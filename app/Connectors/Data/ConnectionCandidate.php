@@ -44,6 +44,8 @@ final class ConnectionCandidate
             'network_label' => $this->network->label(),
             'name' => $this->name,
             'username' => $this->username,
+            // Permisos que faltan para publicar (p. ej. instagram_content_publish): aviso, no bloqueo.
+            'missing_scopes' => $this->meta['missing_scopes'] ?? [],
         ];
     }
 }

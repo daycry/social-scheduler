@@ -70,8 +70,10 @@ class TikTokConnector implements Connector
 
         $scopes = array_values(array_filter(explode(',', (string) ($token['scope'] ?? ''))));
 
-        if ($scopes !== [] && ! in_array('video.upload', $scopes, true) && ! in_array('video.publish', $scopes, true)) {
-            throw new ConnectorException('Faltan los permisos de subida de video de TikTok. Vuelve a conectar y acepta todos los permisos.');
+        // video.upload es el que permite el modo por defecto (borrador en la bandeja, decision G1);
+        // video.publish solo sirve tras la auditoria y por si solo no basta.
+        if ($scopes !== [] && ! in_array('video.upload', $scopes, true)) {
+            throw new ConnectorException('Falta el permiso de subida de video (video.upload) de TikTok. Vuelve a conectar y acepta todos los permisos.');
         }
 
         $user = $this->userInfo($token['access_token']);

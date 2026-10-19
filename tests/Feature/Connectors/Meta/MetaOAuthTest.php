@@ -139,7 +139,7 @@ test('MetaOAuth controller flow: redirect stores state, callback with several ac
     metaFake();
     $this->actingAs($this->user);
 
-    $redirect = $this->get(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $redirect = $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
     $redirect->assertRedirectContains('https://www.facebook.com/v23.0/dialog/oauth');
     $state = session('oauth.meta.state');
     expect($state)->toHaveLength(40);
@@ -172,7 +172,7 @@ test('MetaOAuth callback rejects an invalid state and a cancelled authorization'
     $this->get('/connections/meta/callback?code=CODE&state=forged')->assertRedirect(route('brands.index', absolute: false));
     expect(SocialAccount::count())->toBe(0);
 
-    $this->get(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
     $state = session('oauth.meta.state');
     $this->get('/connections/meta/callback?error=access_denied&state='.$state)
         ->assertRedirect(route('brands.connections.index', $this->brand, false));
@@ -184,10 +184,77 @@ test('MetaOAuth another user cannot start a connection on a brand they do not ow
     $intruder = User::factory()->create();
 
     $this->actingAs($intruder)
-        ->get(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false))
+        ->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false))
         ->assertNotFound();
 });
 
 test('MetaOAuth connector implements the common contract', function () {
     expect(new MetaConnector)->toBeInstanceOf(Connector::class)->and((new MetaConnector)->refreshMarginHours())->toBe(168);
+});
+
+test('MetaOAuth follows paging.next on pages and businesses up to the configured cap', function () {
+    metaFake([
+        'graph.facebook.com/v23.0/me/accounts*' => fn ($request) => str_contains($request->url(), 'after=A')
+            ? Http::response(['data' => [['id' => 'P2', 'name' => 'Dos', 'access_token' => 'T2']]])
+            : Http::response(['data' => [['id' => 'P1', 'name' => 'Uno', 'access_token' => 'T1']], 'paging' => ['next' => 'https://graph.facebook.com/v23.0/me/accounts?after=A']]),
+        'graph.facebook.com/v23.0/me/businesses*' => Http::response(['data' => []]),
+    ]);
+
+    $keys = collect((new MetaConnector)->exchangeCode('CODE', 'https://x/cb'))->map->key()->all();
+
+    expect($keys)->toBe(['facebook:P1', 'facebook:P2']);
+});
+
+test('MetaOAuth stops following paging.next at the page cap and ignores foreign hosts', function () {
+    config(['social.meta.max_pages' => 2]);
+    $loop = fn (string $next) => Http::response(['data' => [['id' => 'P'.random_int(1, 999999), 'name' => 'X', 'access_token' => 'T']], 'paging' => ['next' => $next]]);
+    metaFake([
+        'graph.facebook.com/v23.0/me/accounts*' => $loop('https://graph.facebook.com/v23.0/me/accounts?after=LOOP'),
+        'graph.facebook.com/v23.0/me/businesses*' => Http::response(['data' => []]),
+    ]);
+
+    (new MetaConnector)->exchangeCode('CODE', 'https://x/cb');
+    Http::assertSentCount(1 + 1 + 1 + 2 + 1); // oauth, exchange, debug, 2 paginas de me/accounts, me/businesses
+
+    metaFake([
+        'graph.facebook.com/v23.0/me/accounts*' => Http::response(['data' => [['id' => 'P1', 'name' => 'Uno', 'access_token' => 'T1']], 'paging' => ['next' => 'https://evil.test/steal?x=1']]),
+        'graph.facebook.com/v23.0/me/businesses*' => Http::response(['data' => []]),
+    ]);
+    (new MetaConnector)->exchangeCode('CODE', 'https://x/cb');
+    Http::assertNotSent(fn ($r) => str_contains($r->url(), 'evil.test'));
+});
+
+test('MetaOAuth treats a failing debug_token as a readable error instead of skipping the permission check', function () {
+    metaFake(['graph.facebook.com/v23.0/debug_token*' => Http::response('Bad gateway', 502)]);
+
+    expect(fn () => (new MetaConnector)->exchangeCode('CODE', 'https://x/cb'))
+        ->toThrow(ConnectorException::class, 'comprobar los permisos');
+});
+
+test('MetaOAuth offers Instagram with a permission warning when instagram_content_publish was not granted', function () {
+    metaFake();
+    $candidates = collect((new MetaConnector)->exchangeCode('CODE', 'https://x/cb'));
+
+    $ig = $candidates->first(fn ($c) => $c->network === Network::Instagram);
+    expect($ig->meta['missing_scopes'])->toBe(['instagram_content_publish'])
+        ->and($ig->toPublicArray()['missing_scopes'])->toBe(['instagram_content_publish']);
+
+    metaFake(['graph.facebook.com/v23.0/debug_token*' => Http::response(['data' => [
+        'is_valid' => true, 'data_access_expires_at' => now()->addDays(90)->timestamp,
+        'scopes' => ['pages_show_list', 'pages_manage_posts', 'instagram_basic', 'instagram_content_publish'],
+    ]])]);
+    $ig = collect((new MetaConnector)->exchangeCode('CODE', 'https://x/cb'))->first(fn ($c) => $c->network === Network::Instagram);
+    expect($ig->meta['missing_scopes'])->toBe([]);
+});
+
+test('MetaOAuth refresh shares one token exchange between accounts that share the user token', function () {
+    metaFake();
+    $fb = SocialAccount::factory()->for($this->brand)->create(['network' => Network::Facebook, 'refresh_token' => 'SHARED-USER-TOKEN', 'meta' => ['page_id' => 'P']]);
+    $ig = SocialAccount::factory()->for($this->brand)->create(['network' => Network::Instagram, 'refresh_token' => 'SHARED-USER-TOKEN', 'meta' => ['page_id' => 'P']]);
+
+    (new MetaConnector)->refresh($fb);
+    (new MetaConnector)->refresh($ig);
+
+    $exchanges = Http::recorded(fn ($req) => str_contains($req->url(), 'fb_exchange_token'));
+    expect($exchanges)->toHaveCount(1);
 });

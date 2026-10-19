@@ -13,6 +13,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +35,9 @@ class MetaConnector implements Connector
 
     /** Sin estos permisos no se puede publicar: se rechaza la conexion con un mensaje legible. */
     private const CRITICAL_SCOPES = ['pages_show_list', 'pages_manage_posts'];
+
+    /** Permiso necesario para PUBLICAR en Instagram (conectar para leer funciona sin el). */
+    private const IG_PUBLISH_SCOPES = ['instagram_content_publish'];
 
     /** Codigos de error de Graph que significan "credencial invalida/revocada/caducada". */
     private const REAUTH_CODES = [102, 190, 458, 459, 460, 463, 464, 467];
@@ -87,16 +92,20 @@ class MetaConnector implements Connector
         $userToken = $long['access_token'];
         $expiresAt = isset($long['expires_in']) ? CarbonImmutable::now()->addSeconds((int) $long['expires_in']) : null;
 
-        $debug = $this->debugToken($userToken);
+        // Estricto: si debug_token falla no se puede saber que permisos se concedieron, y saltarse la
+        // comprobacion dejaria conectar paginas sin poder publicar. Se pide reintentar.
+        $debug = $this->debugToken($userToken, strict: true);
         $granted = $debug['scopes'] ?? [];
-        $missing = $granted ? array_values(array_diff(self::CRITICAL_SCOPES, $granted)) : [];
+        $missing = array_values(array_diff(self::CRITICAL_SCOPES, $granted));
 
         if ($missing !== []) {
             throw new ConnectorException('Faltan permisos obligatorios de Meta: '.implode(', ', $missing).'. Vuelve a conectar y acepta todos los permisos.');
         }
 
         $dataAccess = $this->timestamp($debug['data_access_expires_at'] ?? null);
-        $scopes = $granted ?: config('social.meta.scopes');
+        $scopes = $granted;
+        // Sin este permiso Instagram se puede conectar para leer, pero no ofrecer publicar (aviso en la UI).
+        $igMissing = array_values(array_diff(self::IG_PUBLISH_SCOPES, $granted));
 
         $candidates = [];
         foreach ($this->fetchPages($userToken) as $page) {
@@ -132,7 +141,7 @@ class MetaConnector implements Connector
                     tokenExpiresAt: $expiresAt,
                     dataAccessExpiresAt: $dataAccess,
                     scopes: $scopes,
-                    meta: $meta,
+                    meta: array_merge($meta, ['missing_scopes' => $igMissing]),
                 );
             }
         }
@@ -156,9 +165,10 @@ class MetaConnector implements Connector
             throw new ReconnectRequiredException('El acceso a datos de Meta (90 dias) ha caducado: vuelve a iniciar sesion para renovarlo.');
         }
 
-        $long = $this->exchangeForLongLived($userToken);
+        // FB e IG de la misma Pagina (y todas las Paginas del mismo login) comparten token de usuario: el
+        // canje se hace una vez por token y los demas jobs reutilizan el resultado (cifrado, 10 min).
+        [$long, $debug] = $this->renewUserToken($userToken);
         $newUserToken = $long['access_token'];
-        $debug = $this->debugToken($newUserToken);
 
         if (($debug['is_valid'] ?? true) === false) {
             throw new ReconnectRequiredException('Meta ha invalidado el acceso (cambio de contrasena, permisos retirados o app eliminada): reconecta la cuenta.');
@@ -183,6 +193,30 @@ class MetaConnector implements Connector
         );
     }
 
+    /** @return array{0: array{access_token: string, expires_in?: int}, 1: array<string, mixed>} */
+    private function renewUserToken(string $userToken): array
+    {
+        $key = 'meta.renew.'.hash('sha256', $userToken);
+
+        try {
+            $cached = Cache::get($key);
+            $payload = $cached ? json_decode(Crypt::decryptString($cached), true) : null;
+        } catch (\Throwable) {
+            $payload = null;
+        }
+
+        if (is_array($payload) && isset($payload['long']['access_token'])) {
+            return [$payload['long'], $payload['debug'] ?? []];
+        }
+
+        $long = $this->exchangeForLongLived($userToken);
+        $debug = $this->debugToken($long['access_token']);
+
+        Cache::put($key, Crypt::encryptString(json_encode(['long' => $long, 'debug' => $debug])), 600);
+
+        return [$long, $debug];
+    }
+
     /** @return array{access_token: string, expires_in?: int} */
     private function exchangeForLongLived(string $token): array
     {
@@ -201,7 +235,7 @@ class MetaConnector implements Connector
     }
 
     /** @return array<string, mixed> */
-    private function debugToken(string $token): array
+    private function debugToken(string $token, bool $strict = false): array
     {
         try {
             $data = $this->get('debug_token', [
@@ -215,10 +249,21 @@ class MetaConnector implements Connector
 
             Log::notice('meta.debug_token_failed');
 
+            if ($strict) {
+                throw new ConnectorException('No se pudieron comprobar los permisos concedidos en Meta. Vuelve a intentar la conexion en unos minutos.');
+            }
+
+            // En el refresco no es critico: se conserva lo que ya hay y se reintenta en la siguiente pasada.
             return [];
         }
 
-        return $data['data'] ?? [];
+        $info = $data['data'] ?? [];
+
+        if ($strict && $info === []) {
+            throw new ConnectorException('Meta no devolvio informacion sobre los permisos concedidos. Vuelve a intentar la conexion.');
+        }
+
+        return $info;
     }
 
     /** @return list<array<string, mixed>> */
@@ -226,27 +271,26 @@ class MetaConnector implements Connector
     {
         $pages = [];
 
-        $accounts = $this->get('me/accounts', ['access_token' => $userToken, 'fields' => self::PAGE_FIELDS, 'limit' => 100]);
-        foreach ($accounts['data'] ?? [] as $page) {
+        foreach ($this->getAll('me/accounts', ['access_token' => $userToken, 'fields' => self::PAGE_FIELDS, 'limit' => 100]) as $page) {
             $pages[$page['id']] = $page;
         }
 
         // Paginas de portfolios empresariales (no salen en me/accounts).
         try {
-            $businesses = $this->get('me/businesses', ['access_token' => $userToken, 'fields' => 'id,name', 'limit' => 100]);
+            $businesses = $this->getAll('me/businesses', ['access_token' => $userToken, 'fields' => 'id,name', 'limit' => 100]);
         } catch (ConnectorException) {
             $businesses = [];
         }
 
-        foreach ($businesses['data'] ?? [] as $business) {
+        foreach ($businesses as $business) {
             foreach (['owned_pages', 'client_pages'] as $edge) {
                 try {
-                    $edgePages = $this->get($business['id'].'/'.$edge, ['access_token' => $userToken, 'fields' => self::PAGE_FIELDS, 'limit' => 100]);
+                    $edgePages = $this->getAll($business['id'].'/'.$edge, ['access_token' => $userToken, 'fields' => self::PAGE_FIELDS, 'limit' => 100]);
                 } catch (ConnectorException) {
                     continue;
                 }
 
-                foreach ($edgePages['data'] ?? [] as $page) {
+                foreach ($edgePages as $page) {
                     $page['business'] = $business['name'] ?? null;
                     $pages[$page['id']] ??= $page;
                 }
@@ -257,6 +301,30 @@ class MetaConnector implements Connector
     }
 
     /**
+     * Recorre una lista de Graph siguiendo `paging.next` (con tope `social.meta.max_pages`) y devuelve
+     * los elementos de todas las paginas. `paging.next` ya trae todos los parametros (incluido el token).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function getAll(string $path, array $query): array
+    {
+        $items = [];
+        $max = max(1, (int) config('social.meta.max_pages', 10));
+        $page = $this->get($path, $query);
+
+        for ($i = 1; ; $i++) {
+            array_push($items, ...($page['data'] ?? []));
+            $next = $page['paging']['next'] ?? null;
+
+            if (! is_string($next) || $next === '' || $i >= $max || ! str_starts_with($next, 'https://graph.facebook.com/')) {
+                return $items;
+            }
+
+            $page = $this->fetch($next, []);
+        }
+    }
+
+    /**
      * GET contra Graph API. Traduce errores a excepciones con mensaje legible:
      * credencial invalida -> ReconnectRequiredException; permisos -> mensaje claro; 5xx/red -> transitorio.
      *
@@ -264,8 +332,15 @@ class MetaConnector implements Connector
      */
     private function get(string $path, array $query): array
     {
+        return $this->fetch($this->graph($path), $query);
+    }
+
+    /** @return array<string, mixed> */
+    private function fetch(string $url, array $query): array
+    {
         try {
-            $response = $this->http()->get($this->graph($path), $query);
+            // Con $query vacio hay que pasar null: un array vacio pisaria la query string de `paging.next`.
+            $response = $this->http()->get($url, $query === [] ? null : $query);
         } catch (ConnectionException) {
             throw new ConnectorException('No se pudo contactar con Meta. Se reintentara mas tarde.');
         }

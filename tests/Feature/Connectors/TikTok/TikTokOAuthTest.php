@@ -74,7 +74,11 @@ test('TikTokOAuth fails readably on an invalid code or missing upload scopes', f
     expect(fn () => (new TikTokConnector)->exchangeCode('C', 'https://x/cb'))->toThrow(ConnectorException::class, 'invalid_request');
 
     tiktokFake(['open.tiktokapis.com/v2/oauth/token/' => Http::response(['access_token' => 'A', 'scope' => 'user.info.basic', 'open_id' => 'O'])]);
-    expect(fn () => (new TikTokConnector)->exchangeCode('C', 'https://x/cb'))->toThrow(ConnectorException::class, 'permisos de subida');
+    expect(fn () => (new TikTokConnector)->exchangeCode('C', 'https://x/cb'))->toThrow(ConnectorException::class, 'video.upload');
+
+    // video.publish solo (sin video.upload) no basta: el modo por defecto de G1 es borrador en la bandeja.
+    tiktokFake(['open.tiktokapis.com/v2/oauth/token/' => Http::response(['access_token' => 'A', 'scope' => 'user.info.basic,video.publish', 'open_id' => 'O'])]);
+    expect(fn () => (new TikTokConnector)->exchangeCode('C', 'https://x/cb'))->toThrow(ConnectorException::class, 'video.upload');
 });
 
 test('TikTokOAuth refresh rotates access and refresh tokens automatically', function () {
@@ -112,7 +116,7 @@ test('TikTokOAuth controller flow connects the account and keeps direct_post acr
     tiktokFake();
     $this->actingAs($this->user);
 
-    $this->get(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'tiktok'], false))
+    $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'tiktok'], false))
         ->assertRedirectContains('https://www.tiktok.com/v2/auth/authorize/');
     $this->get('/connections/tiktok/callback?code=CODE&state='.session('oauth.tiktok.state'))
         ->assertRedirect(route('brands.connections.index', $this->brand, false));
@@ -121,7 +125,7 @@ test('TikTokOAuth controller flow connects the account and keeps direct_post acr
     expect($account->network)->toBe(Network::TikTok)->and($account->status)->toBe('activa')->and($account->meta['direct_post'] ?? false)->toBeFalse();
 
     $account->update(['meta' => array_merge($account->meta, ['direct_post' => true])]);
-    $this->get(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'tiktok'], false));
+    $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'tiktok'], false));
     $this->get('/connections/tiktok/callback?code=CODE&state='.session('oauth.tiktok.state'));
 
     expect(SocialAccount::count())->toBe(1)->and(SocialAccount::first()->meta['direct_post'])->toBeTrue();

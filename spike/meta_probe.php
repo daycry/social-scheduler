@@ -5,7 +5,7 @@
  * Servidor de callback: php -S 127.0.0.1:8080 spike/meta_probe.php  (atiende /meta/callback)
  */
 const P = 'meta';
-const SCOPES = 'pages_show_list,pages_read_engagement,pages_manage_posts,read_insights,instagram_basic,instagram_content_publish,instagram_manage_insights';
+const SCOPES = 'business_management,pages_show_list,pages_read_engagement,pages_manage_posts,read_insights,instagram_basic,instagram_content_publish,instagram_manage_insights';
 
 // ---------- helpers comunes (copiados en cada probe; desechables) ----------
 function load_env(): void {
@@ -64,8 +64,19 @@ function exchange_code(string $code): array {
         'client_secret' => env('META_APP_SECRET'), 'fb_exchange_token' => $j['access_token']]);
     $user = $l['access_token'] ?? $j['access_token'];
     [, $pages] = http('GET', g('me/accounts'), ['access_token' => $user, 'fields' => 'id,name,access_token,instagram_business_account{id,username}', 'limit' => 100]);
+    $all = $pages['data'] ?? [];
+    // Páginas de portfolios empresariales (Business Manager): no salen en me/accounts
+    $fields = 'id,name,access_token,instagram_business_account{id,username}';
+    [, $biz] = http('GET', g('me/businesses'), ['access_token' => $user, 'fields' => 'id,name', 'limit' => 100]);
+    foreach ($biz['data'] ?? [] as $b) {
+        foreach (['owned_pages', 'client_pages'] as $edge) {
+            [, $bp] = http('GET', g("{$b['id']}/$edge"), ['access_token' => $user, 'fields' => $fields, 'limit' => 100]);
+            foreach ($bp['data'] ?? [] as $pg) { $pg['business'] = $b['name']; $all[$pg['id']] ??= $pg; }
+        }
+    }
+    $all = array_values(array_combine(array_column($all, 'id'), $all));
     $t = ['user_token' => $user, 'user_token_expires_in' => $l['expires_in'] ?? null, 'long_lived' => isset($l['access_token']),
-        'pages' => $pages['data'] ?? [], 'pages_error' => $pages['error'] ?? null, 'saved_at' => gmdate('c')];
+        'pages' => $all, 'pages_error' => $pages['error'] ?? null, 'businesses_error' => $biz['error'] ?? null, 'saved_at' => gmdate('c')];
     store('tokens', $t);
     return $t;
 }
@@ -179,5 +190,5 @@ if (isset($o['code'])) { $t = exchange_code($o['code']); out(['saved' => true, '
 if (isset($o['publish'])) { publish($o['publish']); exit(0); }
 if (isset($o['insights'])) { out(insights()); exit(0); }
 if (isset($o['check'])) { check(); exit(0); }
-if (isset($o['pages'])) { $t = fetch_store('tokens'); foreach ($t['pages'] ?? [] as $p) printf("%-20s %-40s IG: %s
-", $p['id'], $p['name'], $p['instagram_business_account']['username'] ?? '—'); exit(0); }
+if (isset($o['pages'])) { $t = fetch_store('tokens'); foreach ($t['pages'] ?? [] as $p) printf("%-20s %-30s %-18s token:%s IG: %s
+", $p['id'], $p['name'], $p['business'] ?? '(perfil)', isset($p['access_token']) ? 'sí' : 'NO', $p['instagram_business_account']['username'] ?? '—'); exit(0); }

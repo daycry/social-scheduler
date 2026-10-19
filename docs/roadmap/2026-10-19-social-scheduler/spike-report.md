@@ -5,11 +5,11 @@
 ## Preparación
 | Plataforma | App creada (nombre/ID) | Modo (desarrollo/testing) | Roles/cuentas propias | Dominio HTTPS / redirect URI | Estado |
 |---|---|---|---|---|---|
-| Meta | | | | | pendiente |
-| TikTok | | | | | pendiente |
-| Google/YouTube | | | | | pendiente |
+| Meta | «Social Scheduler» (1093743660194956), casos de uso Instagram + Páginas | Desarrollo (sin publicar) | Daycry Jordi (admin); Página Aipocalipsis (portfolio aipocalipsis) + IG @aipocalipsis_oficial | `/meta/callback` en FB Login for Business | listo |
+| TikTok | «Daycry Social Scheduler» (7698380837338843143), sandbox «spike» | Sandbox (sin auditar) | target user @marblepartyrace | `/tiktok/callback` | listo |
+| Google/YouTube | proyecto `social-scheduler-512115`, cliente web «Social Scheduler spike» | Testing (externo) | test user daycry9@gmail.com; canal «Jordi daycry» | `/google/callback` | listo |
 
-Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
+Dominio HTTPS elegido (túnel / VPS Hestia): ngrok dev domain fijo `workable-humorous-rat.ngrok-free.app` (spike); en producción, subdominio del VPS Hestia.
 
 ## Meta
 - (a) ¿Basta el modo desarrollo para publicar y leer insights en cuentas propias? **OAuth e insights de Página: sí** (2026-10-19, app en modo desarrollo, usuario con rol admin). Publicación: pendiente de prueba.
@@ -47,17 +47,24 @@ Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
 ## Tabla de viabilidad
 | Plataforma | Publicar | Insights | Veredicto | Riesgo principal |
 |---|---|---|---|---|
-| Facebook | | | | |
-| Instagram | | | | |
-| TikTok | | | | |
-| YouTube | | | | |
+| Facebook | ✅ foto en Página (modo desarrollo) | ✅ `page_media_view`, `page_post_engagements`, `page_follows` | **viable** | Métricas deprecadas (`page_impressions`, `page_fans`); `data_access` caduca cada 90 días |
+| Instagram | ✅ imagen (contenedor → `media_publish`) | ✅ cuenta y media con `views` (no `impressions`) | **viable** | Requiere IG profesional enlazada a Página; reel/story no probados |
+| TikTok | ❌ Direct Post público: `unaudited_client_can_only_post_to_private_accounts` · ✅ **borrador a bandeja** (`inbox/video/init`) aceptado | n/a (no hay scope de analítica sin auditoría/Research) | **limitado** | Publicación pública exige auditoría de TikTok; vídeos ≥ 23 fps (`frame_rate_check_failed`) |
+| YouTube | ✅ vídeo `public` sin forzar a privado | ✅ canal (Analytics API habilitada) | **viable** | Refresh token caduca a 7 días en «Testing»; cuota ~6 subidas/día |
 
 ## Decisión G1
-Pendiente del usuario (T-05). Elegir por red (TikTok, YouTube):
-- **A** — Continuar con la red tal cual (con limitaciones documentadas).
-- **B** — Continuar e iniciar la auditoría/verificación de la plataforma en paralelo.
-- **C** — Posponer la red (T-13, T-14, T-26, T-27, T-33, T-34 pasan a `cancelado`).
-- **D** — Sustituir por flujo manual asistido (p. ej. subida desde YouTube Studio / bandeja de TikTok).
+Decidida el 2026-10-19 por el orquestador, con delegación expresa del usuario («toma la mejor decisión para TikTok y YouTube»).
 
-Meta: confirmación de continuar — _pendiente_
-Decisión TikTok: _pendiente_ · Decisión YouTube: _pendiente_
+- **Meta (FB + IG): continuar** sin cambios de alcance.
+- **YouTube → A (continuar tal cual)**, con una medida: pasar la pantalla de consentimiento de Google de «Testing» a **«En producción» sin verificar** (uso personal, < 100 usuarios). Así el refresh token deja de caducar a los 7 días; el coste es el aviso «app no verificada» al conectar, aceptable para uso propio. Cuota: 10.000 ud/día (~6 subidas) basta para el volumen declarado; solicitar ampliación solo si se queda corta. Scopes: `youtube` (incluye borrar/editar) + `youtube.readonly` + `yt-analytics.readonly`.
+  - Motivo: la publicación pública funciona sin verificación; el único bloqueo real era la caducidad semanal del token, que se elimina sin trámite.
+- **TikTok → D + B (flujo asistido ahora, auditoría en paralelo)**:
+  - **Por defecto**: publicar como **borrador en la bandeja de TikTok** (`video.upload`, `inbox/video/init`); el usuario recibe la notificación y termina de publicar en la app. Funciona sin auditoría (verificado).
+  - **Direct Post** (`video.publish`) implementado detrás de una opción de configuración por cuenta (`tiktok.direct_post`), desactivada hasta que TikTok apruebe la auditoría; cuando se active, el mismo post pasa a publicarse directamente.
+  - El usuario tramita la auditoría de TikTok en paralelo (requiere política de privacidad y condiciones publicadas en el dominio real + vídeo demo de la app).
+  - Analítica de TikTok: solo lo que permita `user.info.stats`/`video.list` si se conceden; si no, fuera de v1 (se documenta).
+  - Motivo: posponer TikTok (C) dejaría la red fuera; publicar solo en privado (A) no aporta valor; el borrador da el 80 % del valor (programar, subir y avisar) hoy, sin bloquear el resto.
+- **Tareas afectadas**: ninguna pasa a `cancelado`. T-14/T-27/T-34 (TikTok) se implementan con el modo borrador por defecto + Direct Post bajo opción. T-13/T-26/T-33 (YouTube) sin cambios de alcance más allá de los scopes.
+
+Meta: confirmación de continuar — **sí**
+Decisión TikTok: **D + B** (borrador ahora, auditoría en paralelo, Direct Post bajo opción) · Decisión YouTube: **A** (continuar; consentimiento «En producción» sin verificar)

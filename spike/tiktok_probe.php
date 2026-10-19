@@ -1,7 +1,7 @@
 <?php
 /**
  * Spike TikTok (T-03) — script DESECHABLE, PHP plano + curl. Ver spike/README.md.
- * Uso: php spike/tiktok_probe.php --auth | --code=XXX | --creator-info | --publish=video_file|video_url|photo | --status=<publish_id> | --check
+ * Uso: php spike/tiktok_probe.php --auth | --code=XXX | --creator-info | --publish=video_file|video_draft|video_url|photo | --status=<publish_id> | --check
  * Servidor de callback: php -S 127.0.0.1:8080 spike/tiktok_probe.php  (atiende /tiktok/callback)
  */
 const P = 'tiktok';
@@ -99,6 +99,7 @@ function publish(string $type): void {
     $priv = best_privacy($ci); // se usa la opción más restrictiva: es una prueba
     $post = ['title' => 'Spike ' . gmdate('c'), 'privacy_level' => $priv, 'disable_comment' => true];
     switch ($type) {
+        case 'video_draft': // Upload to TikTok: borrador en la bandeja del creador (video.upload)
         case 'video_file':
             need(['TIKTOK_TEST_VIDEO_FILE']);
             $f = env('TIKTOK_TEST_VIDEO_FILE');
@@ -107,8 +108,10 @@ function publish(string $type): void {
             // un solo chunk si <= 64 MB; si no, chunks de 10 MB (el último absorbe el resto)
             $chunk = $size <= 64 * 1024 * 1024 ? $size : 10 * 1024 * 1024;
             $total = (int) floor($size / $chunk);
-            [$c, $j] = api('/v2/post/publish/video/init/', ['post_info' => $post,
-                'source_info' => ['source' => 'FILE_UPLOAD', 'video_size' => $size, 'chunk_size' => $chunk, 'total_chunk_count' => max(1, $total)]]);
+            $src = ['source' => 'FILE_UPLOAD', 'video_size' => $size, 'chunk_size' => $chunk, 'total_chunk_count' => max(1, $total)];
+            [$c, $j] = $type === 'video_draft'
+                ? api('/v2/post/publish/inbox/video/init/', ['source_info' => $src])
+                : api('/v2/post/publish/video/init/', ['post_info' => $post, 'source_info' => $src]);
             if (($j['error']['code'] ?? 'x') !== 'ok') break;
             $fh = fopen($f, 'rb'); $off = 0; $n = max(1, $total); $puts = [];
             for ($i = 0; $i < $n; $i++) {
@@ -132,7 +135,7 @@ function publish(string $type): void {
                 'post_info' => ['title' => $post['title'], 'description' => 'spike', 'privacy_level' => $priv, 'disable_comment' => true],
                 'source_info' => ['source' => 'PULL_FROM_URL', 'photo_cover_index' => 0, 'photo_images' => [env('TIKTOK_TEST_PHOTO_URL')]]]);
             break;
-        default: fwrite(STDERR, "ERROR: tipo desconocido '$type' (video_file|video_url|photo)\n"); exit(2);
+        default: fwrite(STDERR, "ERROR: tipo desconocido '$type' (video_file|video_draft|video_url|photo)\n"); exit(2);
     }
     $ok = ($j['error']['code'] ?? 'x') === 'ok';
     record("publish.$type", ['privacy_used' => $priv, 'ok' => $ok, 'response' => $j]);
@@ -180,7 +183,7 @@ if (PHP_SAPI === 'cli-server') {
     return;
 }
 $o = getopt('', ['auth', 'code:', 'creator-info', 'publish:', 'status:', 'check']);
-if (!$o) { echo "Uso: php spike/tiktok_probe.php --auth | --code=XXX | --creator-info | --publish=video_file|video_url|photo | --status=<id> | --check\n"; exit(2); }
+if (!$o) { echo "Uso: php spike/tiktok_probe.php --auth | --code=XXX | --creator-info | --publish=video_file|video_draft|video_url|photo | --status=<id> | --check\n"; exit(2); }
 need(['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'TIKTOK_REDIRECT_URI']);
 if (isset($o['auth'])) { echo auth_url() . "\n"; exit(0); }
 if (isset($o['code'])) { $t = exchange_code($o['code']); out(['saved' => true, 'scope' => $t['scope'] ?? null, 'expires_in' => $t['expires_in'] ?? null, 'refresh_expires_in' => $t['refresh_expires_in'] ?? null]); exit(0); }

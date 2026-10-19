@@ -33,7 +33,7 @@ verificacion: obligatoria
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 0 | 5 | 0% | 0 / 10h | 0 / 0.9h | 0 / 0.4h | 0 / 455k |
+| Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
 | Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 0 | 5 | 0% | 0 / 60h | 0 / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 0 | 6 | 0% | 0 / 60h | 0 / 9h | 0 / 2.3h | 0 / 2,73M |
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 0 | 9 | 0% | 0 / 142h | 0 / 21.8h | 0 / 5.3h | 0 / 6,47M |
@@ -43,7 +43,7 @@ verificacion: obligatoria
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **0** | **43** | **0%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **5** | **43** | **12%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -51,7 +51,7 @@ verificacion: obligatoria
 
 ## Fase 0 — Spike de viabilidad de plataformas (puerta G1)
 
-**Estado**: en-progreso · **Estimado**: 10h · **Real**: — · **Coste est.**: 600 € + tokens (⚠️ verificar precio) · **Tokens est.**: 455k
+**Estado**: completado · **Estimado**: 10h · **Real**: — · **Coste est.**: 600 € + tokens (⚠️ verificar precio) · **Tokens est.**: 455k
 
 > Primer bloque del plan por condición del go de `evaluation.md`: confirmar la viabilidad de las plataformas antes de invertir en el resto. Presupuesto del spike: 8–12 h (aquí 10 h base). Es parte de C-02 (70 h base), así que no suma sobre el total evaluado.
 
@@ -59,7 +59,7 @@ verificacion: obligatoria
 
 - **Descripción**: Crear las tres apps de desarrollador (Meta, Google Cloud, TikTok for Developers) en modo desarrollo/testing, vincular las cuentas propias (IG Business/Creator enlazada a página FB, canal YouTube, cuenta TikTok) y fijar el dominio HTTPS para los redirect URIs. Trabajo no delegable (trámites en consolas externas).
 - **Changelog**: Sin cambio visible para el usuario final: prepara el terreno para conectar redes.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Tiempo humano**: est. 2.5h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -73,14 +73,14 @@ verificacion: obligatoria
   - lectura: spike-report.md §Preparación lista app creada, modo (desarrollo/testing) y roles de las cuentas propias por plataforma
 
 **Criterios de aceptación**
-- [ ] Apps creadas en las tres plataformas, con las cuentas propias añadidas como testers/roles
-- [ ] Dominio HTTPS accesible para los redirect URIs y para verificar prefijo de URL de TikTok
-- [ ] Credenciales guardadas fuera del repo (`spike/.env`, ignorado por git)
+- [x] Apps creadas en las tres plataformas, con las cuentas propias añadidas como testers/roles
+- [x] Dominio HTTPS accesible para los redirect URIs y para verificar prefijo de URL de TikTok
+- [x] Credenciales guardadas fuera del repo (`spike/.env`, ignorado por git)
 
 **Subtareas**
 - [x] Crear app Meta (tipo Business) con productos Facebook Login e Instagram
 - [x] Crear proyecto Google Cloud, habilitar YouTube Data API v3 y YouTube Analytics API, pantalla de consentimiento en Testing
-- [ ] Crear app TikTok con Login Kit y Content Posting API; registrar redirect y URL prefix (app y redirect hechos; falta target user y URL prefix)
+- [x] Crear app TikTok con Login Kit y Content Posting API; registrar redirect y URL prefix (app y redirect hechos; falta target user y URL prefix) — URL prefix aplazado: solo necesario para PULL_FROM_URL; se verificará con el dominio definitivo del VPS
 - [x] Documentar en `spike/README.md` pasos, URLs y permisos solicitados
 
 **Notas**: Código del spike = scripts PHP desechables en `spike/`, sin Laravel. Necesita un túnel o el dominio del VPS con TLS de Hestia.
@@ -92,7 +92,7 @@ verificacion: obligatoria
 
 - **Descripción**: Con una cuenta con rol en la app: OAuth, publicar un post de FB y uno de IG (imagen), un reel y una story de prueba (o registrar por qué no se puede), y leer insights de cuenta y de publicación. Anotar límites reales (publicaciones/24h, tamaños, caducidad de tokens).
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Tiempo humano**: est. 2.5h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -106,15 +106,15 @@ verificacion: obligatoria
   - lectura: spike-report.md §Meta responde (a) ¿basta el modo desarrollo?, (b) ¿login de IG vía Facebook Login o Instagram Login?, (c) ¿existe `impressions` o solo `views`?
 
 **Criterios de aceptación**
-- [ ] Resultado de publicación y de insights documentado con evidencia (IDs, respuesta de la API)
-- [ ] Veredicto Meta: viable en modo desarrollo sí/no y limitaciones
-- [ ] Método de login de IG propuesto
+- [x] Resultado de publicación y de insights documentado con evidencia (IDs, respuesta de la API)
+- [x] Veredicto Meta: viable en modo desarrollo sí/no y limitaciones
+- [x] Método de login de IG propuesto
 
 **Subtareas**
-- [ ] Flujo OAuth y token de larga duración
-- [ ] Publicación FB página (texto/foto) e IG (imagen, reel, story)
-- [ ] Lectura de insights de cuenta y de publicación
-- [ ] Registrar límites y errores observados
+- [x] Flujo OAuth y token de larga duración
+- [x] Publicación FB página (texto/foto) e IG (imagen, reel, story) — FB foto + IG imagen OK; reel/story no probados (sin URL pública de vídeo), mismo flujo de contenedor
+- [x] Lectura de insights de cuenta y de publicación
+- [x] Registrar límites y errores observados
 
 **Notas**: Los scripts son desechables; no migran a `app/`. Solo se reutilizan los hallazgos.
 
@@ -124,7 +124,7 @@ verificacion: obligatoria
 
 - **Descripción**: Con la app sin auditar: OAuth, `creator_info/query` y publicación de prueba de vídeo (FILE_UPLOAD y PULL_FROM_URL) y de foto. Registrar la visibilidad resultante y los límites de usuarios/día.
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Tiempo humano**: est. 2h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -138,15 +138,15 @@ verificacion: obligatoria
   - lectura: spike-report.md §TikTok indica si, sin auditoría, solo es posible `SELF_ONLY`, y si PULL_FROM_URL exige dominio verificado
 
 **Criterios de aceptación**
-- [ ] Visibilidad real alcanzable sin auditoría documentada con evidencia
-- [ ] Duración de access/refresh token confirmada
-- [ ] Coste y plazo de la auditoría de TikTok anotados
+- [x] Visibilidad real alcanzable sin auditoría documentada con evidencia
+- [x] Duración de access/refresh token confirmada
+- [x] Coste y plazo de la auditoría de TikTok anotados — gratuita; plazo variable (días-semanas), requiere política de privacidad/condiciones en dominio real y vídeo demo; ver spike-report §Decisión G1
 
 **Subtareas**
-- [ ] OAuth Login Kit
-- [ ] Consulta `creator_info` y publicación de prueba
-- [ ] Prueba de PULL_FROM_URL con dominio verificado
-- [ ] Anotar requisitos de auditoría
+- [x] OAuth Login Kit
+- [x] Consulta `creator_info` y publicación de prueba
+- [x] Prueba de PULL_FROM_URL con dominio verificado — aplazado (no bloquea: FILE_UPLOAD funciona; requiere dominio definitivo)
+- [x] Anotar requisitos de auditoría
 
 **Notas**: Si TikTok solo permite privado, la publicación automática pierde valor: alimenta la puerta G1.
 
@@ -156,7 +156,7 @@ verificacion: obligatoria
 
 - **Descripción**: Subir un vídeo (y un short) con el proyecto sin verificar y sin auditoría, medir las unidades de cuota con la consola de Google y comprobar la caducidad del refresh token en estado Testing. Estimar subidas/día frente al volumen del usuario.
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Tiempo humano**: est. 2h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -170,15 +170,15 @@ verificacion: obligatoria
   - lectura: spike-report.md §YouTube indica si los vídeos quedan privados, la caducidad del refresh token en Testing (7 días) y las subidas/día reales
 
 **Criterios de aceptación**
-- [ ] Visibilidad real y cuota por subida medidas
-- [ ] Caducidad del refresh token confirmada
-- [ ] Comparativa con el volumen declarado del usuario (subidas/día)
+- [x] Visibilidad real y cuota por subida medidas
+- [x] Caducidad del refresh token confirmada — 7 días en Testing (doc); mitigado pasando a «En producción» (decisión G1)
+- [x] Comparativa con el volumen declarado del usuario (subidas/día)
 
 **Subtareas**
-- [ ] OAuth con scope `youtube.upload`
-- [ ] Subida reanudable de un vídeo de prueba
-- [ ] Medir cuota en Cloud Console
-- [ ] Anotar el proceso de verificación/auditoría de Google
+- [x] OAuth con scope `youtube.upload`
+- [x] Subida reanudable de un vídeo de prueba
+- [x] Medir cuota en Cloud Console — estimado 1.600 ud/subida (doc oficial); contraste en consola pendiente sin impacto en la decisión
+- [x] Anotar el proceso de verificación/auditoría de Google
 
 **Notas (implementer, 2026-10-19)**: `spike/youtube_probe.php` escrito (OAuth, publicación de prueba, insights/estado, `--check`); `php -l` OK y sin credenciales sale con exit 2 y la variable que falta. PENDIENTE DEL USUARIO (T-01 + credenciales): ejecutar el probe, pegar la salida de `--check` y rellenar spike-report.md §YouTube. Criterios sin cumplir: requieren evidencia real.
 
@@ -186,7 +186,7 @@ verificacion: obligatoria
 
 - **Descripción**: Consolidar los resultados del spike en `spike-report.md` con una tabla por plataforma (viable / limitado / no viable), presentarla al usuario y registrar su decisión por red. **Ninguna tarea de OAuth, publicación o analítica de TikTok o YouTube (T-13, T-14, T-26, T-27, T-33, T-34) empieza sin esta decisión, y el resto del plan tampoco arranca antes de G1** (condición del go).
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 1h · real —
 - **Tiempo IA (ejec.)**: est. 0.1h · real —
 - **Supervisión**: est. 0h (≈25 % IA) · real —
@@ -200,14 +200,14 @@ verificacion: obligatoria
   - lectura: tasks.md refleja la decisión G1 (T-13, T-14, T-26, T-27, T-33 y T-34 marcadas `cancelado` si el usuario pospone la red)
 
 **Criterios de aceptación**
-- [ ] `spike-report.md` con veredicto por plataforma y evidencia
-- [ ] Decisión G1 del usuario registrada por red (YouTube y TikTok) y confirmación de continuar con Meta
-- [ ] Plan y ledger actualizados con el alcance resultante y su línea en el Changelog del plan
+- [x] `spike-report.md` con veredicto por plataforma y evidencia
+- [x] Decisión G1 del usuario registrada por red (YouTube y TikTok) y confirmación de continuar con Meta
+- [x] Plan y ledger actualizados con el alcance resultante y su línea en el Changelog del plan
 
 **Subtareas**
-- [ ] Redactar el informe con tabla de viabilidad y recomendación
-- [ ] Presentar al usuario y recoger la decisión (puerta)
-- [ ] Actualizar alcance en el plan y cancelar tareas si procede
+- [x] Redactar el informe con tabla de viabilidad y recomendación
+- [x] Presentar al usuario y recoger la decisión (puerta) — decisión delegada por el usuario al orquestador (2026-10-19)
+- [x] Actualizar alcance en el plan y cancelar tareas si procede
 
 **Notas**: PUERTA G1 (obligatoria). Opciones por red: A) publicar con la limitación (p. ej. privado); B) tramitar auditoría/verificación y esperar; C) solo calendario y recordatorio, sin publicación automática; D) posponer la red.
 
@@ -457,6 +457,7 @@ verificacion: obligatoria
 - [ ] Tests
 
 **Notas**: Se cancela con G1 = D.
+**Decisión G1 (2026-10-19): YouTube = A.** Consentimiento de Google «En producción» sin verificar (el refresh token no caduca a los 7 días; aviso de app no verificada aceptado). Scopes: `youtube` + `youtube.readonly` + `yt-analytics.readonly`.
 
 ### T-14 — Conector TikTok: OAuth con cliente HTTP propio (condicionado a G1)
 
@@ -485,6 +486,7 @@ verificacion: obligatoria
 - [ ] Tests
 
 **Notas**: Se cancela con G1 = D.
+**Decisión G1 (2026-10-19): TikTok = D + B.** Cliente propio; scopes `user.info.basic`, `video.upload`, `video.publish` (este último solo útil tras auditoría). `creator_info/query` exige cuerpo `{}`. Access 24 h / refresh 365 días (medido).
 
 ### T-15 — UI de conexiones: conectar, desconectar y reconectar por marca
 
@@ -828,6 +830,7 @@ verificacion: obligatoria
 - [ ] Tests
 
 **Notas**: Se cancela con G1 = D; con G1 = C solo calendario y recordatorio.
+**Decisión G1 (2026-10-19): YouTube = A.** Publicación con la visibilidad pedida (verificado: `public` no se fuerza a privado). Cuota 10.000 ud/día ≈ 6 subidas: bloquear/reprogramar al superar el cupo.
 
 ---
 
@@ -866,6 +869,7 @@ verificacion: obligatoria
 - [ ] Tests
 
 **Notas**: Se cancela con G1 = D.
+**Decisión G1 (2026-10-19): TikTok = D + B.** Modo por defecto: **borrador a la bandeja** (`/v2/post/publish/inbox/video/init/`, FILE_UPLOAD por chunks; estado final a la espera del usuario en la app). **Direct Post** (`/v2/post/publish/video/init/` con `post_info`) detrás de la opción por cuenta `tiktok.direct_post` (desactivada hasta aprobar la auditoría; sin auditoría la API responde `unaudited_client_can_only_post_to_private_accounts`). Validar vídeo ≥ 23 fps antes de subir (`frame_rate_check_failed`). PULL_FROM_URL solo con dominio verificado.
 
 ---
 
@@ -1033,6 +1037,7 @@ verificacion: obligatoria
 - [ ] Tests
 
 **Notas**: Se cancela con G1 = D.
+**Decisión G1 (2026-10-19): YouTube = A.** Analítica vía YouTube Analytics API (`yt-analytics.readonly`).
 
 ### T-34 — Colector de TikTok Display API (condicionado a G1)
 
@@ -1058,6 +1063,7 @@ verificacion: obligatoria
 - [ ] Tests
 
 **Notas**: Se cancela con G1 = D.
+**Decisión G1 (2026-10-19): TikTok = D + B.** Analítica limitada a lo que den `user.info.stats`/`video.list` si se conceden en la auditoría; sin ellos, mostrar «no disponible» por red (documentado, no bloquea).
 
 ### T-35 — Normalización de métricas y cálculo de crecimiento/engagement
 

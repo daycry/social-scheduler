@@ -1,6 +1,9 @@
 ---
+id: metricool.GOT-002
+version: 1
+estado: aprobado
 category: GOTCHA
-evidencia: observation
+evidencia: validated_case
 fuentes:
   - docs/roadmap/2026-10-19-social-scheduler/spike-report.md (Meta, apartado b)
   - app/Connectors/Meta/MetaConnector.php

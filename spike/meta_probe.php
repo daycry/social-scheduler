@@ -72,6 +72,7 @@ function ctx(): array {
     $t = fetch_store('tokens');
     if (!$t) { fwrite(STDERR, "ERROR: no hay token. Ejecuta --auth, autoriza y usa --code=XXX (o el servidor de callback).\n"); exit(2); }
     $p = $t['pages'][0] ?? null;
+    if ($want = env('META_PAGE_ID')) { foreach ($t['pages'] ?? [] as $cand) { if ($cand['id'] === $want) { $p = $cand; } } }
     if (!$p) { fwrite(STDERR, "ERROR: el usuario no administra ninguna Página (revisa roles y scopes). Detalle: " . json_encode($t['pages_error']) . "\n"); exit(2); }
     return [$t, $p, $p['instagram_business_account']['id'] ?? null];
 }

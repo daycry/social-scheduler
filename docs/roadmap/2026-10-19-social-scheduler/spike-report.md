@@ -12,9 +12,11 @@
 Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
 
 ## Meta
-- (a) ¿Basta el modo desarrollo para publicar y leer insights en cuentas propias?
-- (b) ¿Login de IG vía Facebook Login o Instagram Login? Motivo:
-- (c) ¿Existe `impressions` o solo `views`? Métricas aceptadas/rechazadas:
+- (a) ¿Basta el modo desarrollo para publicar y leer insights en cuentas propias? **OAuth e insights de Página: sí** (2026-10-19, app en modo desarrollo, usuario con rol admin). Publicación: pendiente de prueba.
+- (b) ¿Login de IG vía Facebook Login o Instagram Login? Motivo: en curso con Facebook Login for Business (`/dialog/oauth` + `scope` funciona; no exigió `config_id`). **Ninguna de las 3 Páginas autorizadas tiene IG Business/Creator enlazada** → IG sin probar.
+- (c) ¿Existe `impressions` o solo `views`? Métricas aceptadas/rechazadas (Página, Graph v23.0): aceptadas `page_media_view`, `page_post_engagements`, `page_follows`; **rechazadas** `page_impressions` y `page_fans` (`(#100) must be a valid insights metric`, deprecadas). IG: sin probar.
+- Hallazgos de configuración (gotchas para F2): en apps por casos de uso, cada permiso debe **añadirse dentro del caso de uso** («Invalid Scopes» si no); hace falta el dominio en «Dominios de la app» + plataforma Sitio web; el redirect se registra en *Facebook Login for Business → Configurar* (el primer guardado no persistió: verificar recargando).
+- Token: larga duración sí; `data_access_expires_at` 2027-01-17 (90 días, renovar con re-login).
 - Tipos publicados con evidencia (FB texto/foto, IG imagen/reel/story):
 - Límites observados (publicaciones/24h, tamaños, caducidad de tokens):
 - Veredicto: viable / limitado / no viable

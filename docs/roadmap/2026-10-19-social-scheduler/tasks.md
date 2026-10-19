@@ -39,11 +39,11 @@ verificacion: obligatoria
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 6 | 9 | 67% | 0h (IA) / 142h | 1.81h (medido) / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
-| Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 0 | 3 | 0% | 0 / 37h | 0 / 5.6h | 0 / 1.4h | 0 / 1,69M |
+| Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 3 | 3 | 100% | 0h (IA) / 37h | 0.67h (0.27h medido, resto estimado) / 5.6h | 0 / 1.4h | 0 / 1,69M |
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **18** | **43** | **42%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **21** | **43** | **49%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -932,90 +932,94 @@ verificacion: obligatoria
 
 ## Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación
 
-**Estado**: borrador · **Estimado**: 37h · **Real**: — · **Coste est.**: 2.220 € + tokens (⚠️ verificar precio) · **Tokens est.**: 1,69M
+**Estado**: completado · **Estimado**: 37h · **Real**: 0.67h IA (parte estimada) · **Coste est.**: 2.220 € + tokens (⚠️ verificar precio) · **Tokens est.**: 1,69M
 
 ### T-28 — Servidor MCP HTTP con API keys personales (Sanctum)
 
 - **Descripción**: Servidor `laravel/mcp` (versión menor fijada) en `/mcp` con Bearer = API key personal (hash en reposo), pantalla para crear y revocar keys y rate limiting.
-- **Changelog**: Un agente de IA puede conectarse al MCP con una API key personal.
-- **Estado**: borrador
+- **Changelog**: Un agente de IA puede conectarse al MCP con una API key personal que creas y revocas desde la web.
+- **Estado**: completado
 - **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.3h (estimado; el JSON de usage-meter no se capturó)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Servers/SchedulerServer.php`, `routes/ai.php`, `app/Http/Controllers/ApiKeyController.php`, `resources/js/Pages/ApiKeys/`, `tests/Feature/Mcp/`
+- **Archivos**: `app/Mcp/Servers/SchedulerServer.php`, `routes/ai.php`, `app/Http/Controllers/ApiKeyController.php`, `resources/js/Pages/ApiKeys/`, `tests/Feature/Mcp/`; añadidos al implementar: `composer.json`, `composer.lock`, `config/sanctum.php`, `config/services.php`, `database/migrations/2026_10_19_223906_create_personal_access_tokens_table.php`, `database/migrations/2026_10_24_090000_create_audit_logs_table.php`, `app/Models/User.php`, `app/Models/AuditLog.php`, `app/Services/AuditLog.php`, `app/Mcp/Abilities.php`, `app/Mcp/Tools/`, `app/Providers/AppServiceProvider.php`, `bootstrap/app.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Support/McpClient.php`, `tests/Feature/Mcp/McpAuthTest.php`
 - **Cubre (tests)**: E2E-12, API-01, API-02
 - **Verificación**:
-  - `php artisan test --filter=McpAuth` → pasa (key válida inicializa; inválida o revocada, 401)
-  - `php artisan route:list --path=mcp` → ruta `/mcp` con middleware `auth:sanctum`
-
+  - `php artisan test --filter=McpAuth` → 13 passed (71 assertions)
+  - `php artisan route:list --path=mcp -v` → POST /mcp con ReorderJsonAccept, ValidateMcpHeaders, AddWwwAuthenticateHeader, Authenticate:sanctum, ThrottleRequests:mcp-ip y :mcp (GET/DELETE → 405)
 **Criterios de aceptación**
-- [ ] Key inválida o revocada devuelve 401 y no ejecuta herramientas
-- [ ] Keys con hash en reposo
-- [ ] UI para crear y revocar
+- [x] Key inválida o revocada devuelve 401 y no ejecuta herramientas
+- [x] Keys con hash en reposo
+- [x] UI para crear y revocar
 
 **Subtareas**
-- [ ] Instalar y fijar `laravel/mcp`
-- [ ] Autenticación Sanctum y rate limit
-- [ ] UI de API keys
-- [ ] Tests
+- [x] Instalar y fijar `laravel/mcp`
+- [x] Autenticación Sanctum y rate limit
+- [x] UI de API keys
+- [x] Tests
 
 **Notas**: Plan B de design.md §6 si `laravel/mcp` falla.
+
+**Notas (implementer, 2026-10-20)**: `laravel/mcp` ~1.0.2 (instalado v1.0.2) + Sanctum 4; el plan B (SDK Node) no fue necesario. Abilities: `brands:read`, `posts:read`, `posts:write` (`*` también vale). Sanctum con `guard=[]` (solo Bearer: una sesión web NO autentica `/mcp`), prefijo `msk_`, caducidad 1 año por defecto (`SANCTUM_EXPIRATION`) o fecha elegida. Rate limit `mcp-ip` 120/min antes de auth y `mcp` 60/min por key. Secreto mostrado una vez (flash); crear/revocar quedan en `audit_logs` sin secreto. OAuth 2.1 (Passport) no incluido: sigue opcional (design.md). **PENDIENTES MANUALES**: M-F6-1 conectar un cliente MCP real (crear key en /api-keys y `claude mcp add --transport http scheduler https://<APP_URL>/mcp --header "Authorization: Bearer msk_..."`; probar `list_brands` y `create_post` en borrador y comprobar en la web); M-F6-2 ajustar `MCP_RATE_PER_MINUTE`/`SANCTUM_EXPIRATION` en producción y comprobar que Nginx/Hestia pasa la cabecera `Authorization` a PHP-FPM.
 
 ### T-29 — Herramientas MCP: marcas, cuentas, publicaciones y calendario
 
 - **Descripción**: Herramientas finas sobre `app/Services`: listar marcas y cuentas, crear/editar/borrar/reprogramar publicaciones y consultar el calendario. El agente pasa URL o ID de media ya subida.
-- **Changelog**: El agente puede programar y consultar publicaciones.
-- **Estado**: borrador
+- **Changelog**: El agente puede programar, editar, cancelar y consultar publicaciones y el calendario.
+- **Estado**: completado
 - **Tiempo humano**: est. 12h · real —
-- **Tiempo IA (ejec.)**: est. 1.8h · real —
+- **Tiempo IA (ejec.)**: est. 1.8h · real 0.27h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-28, T-24
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/`, `tests/Feature/Mcp/Tools/`
+- **Archivos**: `app/Mcp/Tools/`, `tests/Feature/Mcp/Tools/`; añadidos al implementar: `app/Mcp/Tools/` (10 herramientas), `tests/Feature/Mcp/McpToolsTest.php`
 - **Cubre (tests)**: API-01
-- **Verificación**: `php artisan test --filter=McpTools` → pasa (listar marcas, programar/editar/borrar publicación, calendario)
-
+- **Verificación**: `php artisan test --filter=McpTools` → 9 passed (85 assertions)
 **Criterios de aceptación**
-- [ ] Cada operación se ejecuta solo sobre datos del usuario de la key (CA-12)
-- [ ] Errores devueltos con mensajes legibles
+- [x] Cada operación se ejecuta solo sobre datos del usuario de la key (CA-12)
+- [x] Errores devueltos con mensajes legibles
 
 **Subtareas**
-- [ ] Tools de marcas y cuentas
-- [ ] Tools de publicaciones
-- [ ] Tool de calendario
-- [ ] Tests
+- [x] Tools de marcas y cuentas
+- [x] Tools de publicaciones
+- [x] Tool de calendario
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: 10 herramientas finas sobre `BrandService`/`SocialAccountService`/`PostService`/`CalendarService` (misma validación de media y límites por red que la web): `list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `reschedule_post`, `cancel_post` (→ borrador), `delete_post`. La media se pasa por ID (`list_media`); **no se aceptan URLs** (evita SSRF) ni binarios por MCP. Errores legibles («Datos no válidos: campo: motivo», «Publicación no encontrada.», «Esta API key no tiene el permiso «x»»).
 
 ### T-30 — Aislamiento MCP, auditoría y límites
 
 - **Descripción**: Reutilizar la suite de aislamiento contra cada herramienta MCP, registrar acciones y accesos denegados y limitar el uso por key.
-- **Changelog**: El acceso por agente es seguro y auditable.
-- **Estado**: borrador
+- **Changelog**: El acceso por agente queda aislado por usuario, limitado por key y auditado.
+- **Estado**: completado
 - **Tiempo humano**: est. 11h · real —
-- **Tiempo IA (ejec.)**: est. 1.7h · real —
+- **Tiempo IA (ejec.)**: est. 1.7h · real 0.1h (estimado; ~0.1h de reloj, JSON no capturado)
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —
 - **Previsión IA**: 455k in / 46k out tok · ⚠️ verificar €
 - **Dependencias**: T-29
 - **Tipo**: test
-- **Archivos**: `tests/Feature/Isolation/Mcp/`, `app/Services/AuditLog.php`, `tests/Feature/Mcp/`
+- **Archivos**: `tests/Feature/Isolation/Mcp/`, `app/Services/AuditLog.php`, `tests/Feature/Mcp/`; añadidos al implementar: `tests/Feature/Isolation/Mcp/McpIsolationTest.php`, `tests/Feature/Mcp/McpAuditTest.php`, `app/Models/AuditLog.php`, `database/migrations/2026_10_24_090000_create_audit_logs_table.php`
 - **Cubre (tests)**: API-03
 - **Verificación**:
-  - `php artisan test --filter=Isolation` → pasa incluidas las herramientas MCP
-  - `php artisan test --filter=McpAudit` → pasa (acciones registradas)
-
+  - `php artisan test --filter=Isolation` → pasa (incluye MCP)
+  - `php artisan test --filter=McpAudit` → 6 passed
+  - `McpAuth|McpTools|McpAudit|Isolation` → 62 passed (351 assertions)
 **Criterios de aceptación**
-- [ ] Un usuario B no accede a datos de A por MCP (CA-02, CA-12)
-- [ ] Acciones y denegaciones auditadas
+- [x] Un usuario B no accede a datos de A por MCP (CA-02, CA-12)
+- [x] Acciones y denegaciones auditadas
 
 **Subtareas**
-- [ ] Tests de aislamiento por herramienta
-- [ ] Auditoría
-- [ ] Rate limiting por key
+- [x] Tests de aislamiento por herramienta
+- [x] Auditoría
+- [x] Rate limiting por key
 
 ---
+
+**Notas (implementer, 2026-10-20)**: 8 herramientas con id ajeno == id inexistente (mismo mensaje); lecturas sin fuga; B no puede usar cuenta/media de A ni editando; A intacta. `audit_logs` (user, token, acción, resultado, ip); las denegaciones van también a `Log access.denied`; sin secreto ni contenido. Rate limit por key (429) probado en McpAuth. T-42 ampliará las tools (estadísticas/informes) sobre este servidor.
 
 ## Fase 7 — Analítica: snapshots, insights y dashboards
 
@@ -1500,3 +1504,18 @@ Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `0e7d997..ea3f376`. Se
 | 17 | Minor | `chunk_bytes` no redondeado a múltiplos de 256 KiB | T-26 | corregido: `chunk_bytes` se redondea hacia abajo a multiplo de 256 KiB (minimo 256 KiB) en `chunkSize()`; test con 300000 -> trozos de 262144 | `YouTubePublisher.php:252`; corrección: `YouTubePublisher.php` `chunkSize`; test `chunk_bytes se redondea a multiplo de 256 KiB` |
 | 18 | Minor | Chunk único de TikTok (hasta 64 MiB) cargado entero en memoria | T-27 | corregido: el trozo de TikTok viaja como flujo (`MediaChunkReader::stream` = `LimitStream`/cuerpo del `GetObject`) como cuerpo de `withBody`; ya no se carga el trozo (hasta 64 MiB) como cadena; test del lector (flujo con tamano, trozo exacto) | `TikTokPublisher.php:156-157,172` (pico +66 MB medido); corrección: `TikTokPublisher.php` `uploadChunks`, `MediaChunkReader::stream`; test `entrega el trozo como flujo con su longitud` |
 | 19 | Minor | Cifras de Verificación no cuadran (35/21 vs 34/20) y «8–16 MB desde R2» se prueba con 256 KiB en local | T-26/T-27 | corregido: Verificacion de T-26/T-27 reescrita con la salida real (49 y 25 pruebas) y la parte «8–16 MB desde R2» ahora se prueba con una prueba de rango S3 simulado (no con 256 KiB en local); ver notas «Correccion intento 1» de T-26/T-27 | notas de T-26/T-27; corrección: notas de T-26/T-27 |
+
+## Revisión de dos lentes — intento 2: Fase 3 (T-17..T-25) — 3 Important, 5 Minor
+
+Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `fb3596b..94d549e` (export aislado). Traspaso: las 18 filas del intento 1 **✓ corregidas** (#14 con defecto nuevo N2; #18 con N1). SSRF (#1) cerrado: HLS/concat/DASH como `.mp4` → «moov atom not found» sin red; `enable_drefs` desactivado; imágenes sin red.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | `update`/`schedule`/`unschedule` actualizan en sitio un destino `programada` conservando `external_reference`, `progress`, `attempts`… del intento anterior: tras editar texto/media se publica el contenedor viejo (IG) o se reutilizan hijos del carrusel | T-19/T-23 | pendiente | `PostService.php:380-391,136-139`; reproducido (`publish_calls=[C_OLD,C_OLD]`) |
+| N2 | Important | La recuperación solo sondea `procesando` de cuentas `activa`: con cuenta `requiere_reconexion` sin reconectar, `desconectada` o borrada (NULL) el destino queda `procesando` para siempre y el post no se puede editar ni borrar | T-20 | pendiente | `PublishRecovery.php:52-55,92`, `PollPublishStatus.php:58-71`, `PostService.php:241`; reproducido |
+| N3 | Important | La corrección SSRF descarga el vídeo ENTERO de R2 dentro de la petición síncrona `complete` (hasta 4 GB): 504 tras 60 s y temporales huérfanos si el worker muere (CWE-400) | T-17 | pendiente | `MediaProbe.php:50-51,65-87`, `MediaController.php:69-83` |
+| N4 | Minor | `tempnam` antes de comprobar el stream: temporal vacío no se borra si `readStream` devuelve null | T-17 | pendiente | `MediaProbe.php:67-71` |
+| N5 | Minor | El presupuesto por paso no cubre lo que queda tras el último `allows()` (estado + `media_publish` + permalink → 115 s > 110 s); `findPublished` previo fuera de presupuesto | T-21 | pendiente | `InstagramPublisher.php:124-135,217-226` |
+| N6 | Minor | `MetaConnector` sigue mandando tokens (y `client_id|client_secret` en `debug_token`) en la query string (CWE-598) | T-12/T-21 | pendiente | `MetaConnector.php:181,243-245,276,282,290` |
+| N7 | Minor | Story PUBLISHED resuelta con la más reciente desde `since`, no con la de su contenedor | T-21 | pendiente | `InstagramPublisher.php:244-254` |
+| N8 | Minor | (heredado) Contenedor PUBLISHED no-story sin texto queda `fallida`; reprogramar lo duplica | T-21 | pendiente | `InstagramPublisher.php:95,136` |

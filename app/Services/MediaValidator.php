@@ -64,6 +64,33 @@ class MediaValidator
         return $errors;
     }
 
+    /**
+     * Recomendaciones (`recommended` en media_specs) que el contenido no cumple: avisos, nunca errores.
+     *
+     * @param  iterable<MediaAsset>  $media
+     * @return list<string>
+     */
+    public function warnings(ContentType $type, iterable $media): array
+    {
+        $media = is_array($media) ? array_values($media) : iterator_to_array($media, false);
+        $spec = $this->spec($type, ($media[0] ?? null)?->kind);
+        $out = [];
+
+        foreach ($media as $asset) {
+            $rules = $spec['recommended'][$asset->kind] ?? [];
+            $noun = $asset->isVideo() ? 'El video' : 'La imagen';
+
+            foreach ([['width', 'ancho'], ['height', 'alto']] as [$field, $word]) {
+                $min = $rules["min_$field"] ?? null;
+                if ($min !== null && $asset->{$field} !== null && $asset->{$field} < $min) {
+                    $out[] = "$noun mide {$asset->{$field}} px de $word; se recomiendan al menos $min px en {$spec['label']} (se publicara, pero puede verse con menos calidad).";
+                }
+            }
+        }
+
+        return $out;
+    }
+
     /** Lanza `InvalidArgumentException` con todos los motivos si algo no cumple. */
     public function assertValid(ContentType $type, iterable $media, ?string $text = null): void
     {

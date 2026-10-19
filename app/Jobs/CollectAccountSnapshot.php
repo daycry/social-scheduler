@@ -3,9 +3,7 @@
 namespace App\Jobs;
 
 use App\Analytics\SnapshotCollector;
-use App\Connectors\Exceptions\ConnectorException;
-use App\Connectors\Exceptions\ReconnectRequiredException;
-use App\Connectors\Exceptions\TransientPublishException;
+use App\Jobs\Concerns\GuardsInsightsErrors;
 use App\Models\SocialAccount;
 use App\Services\SocialAccountService;
 use Carbon\CarbonImmutable;
@@ -13,8 +11,6 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /**
  * Snapshot de UNA cuenta y UN dia (cola `metrics`). Unico por cuenta+dia: no se encola dos veces mientras haya uno
@@ -27,7 +23,7 @@ use Throwable;
  */
 class CollectAccountSnapshot implements ShouldBeUnique, ShouldQueue
 {
-    use InteractsWithQueue, Queueable;
+    use GuardsInsightsErrors, InteractsWithQueue, Queueable;
 
     public int $timeout = 90;
 
@@ -64,7 +60,7 @@ class CollectAccountSnapshot implements ShouldBeUnique, ShouldQueue
 
         $day = CarbonImmutable::createFromFormat('Y-m-d', $this->date, 'UTC')->startOfDay();
 
-        try {
+        $this->guarded($account, $accounts, function () use ($collector, $account, $day): void {
             if (! ($this->onlyIfMissing && $collector->hasData($account, $day))) {
                 $collector->collectAccount($account, $day);
             }
@@ -72,17 +68,6 @@ class CollectAccountSnapshot implements ShouldBeUnique, ShouldQueue
             if ($this->withPosts) {
                 $collector->collectPosts($account, (int) config('social.analytics.recent_post_days', 30) * 24);
             }
-        } catch (ReconnectRequiredException $e) {
-            $accounts->flagReconnection($account, $e->getMessage());
-        } catch (TransientPublishException $e) {
-            Log::warning('analytics.snapshot_transient', ['account_id' => $account->id, 'network' => $account->network->value, 'code' => $e->errorCode]);
-
-            $this->release($this->backoff);
-        } catch (ConnectorException $e) {
-            Log::warning('analytics.snapshot_error', ['account_id' => $account->id, 'exception' => $e::class]);
-        } catch (Throwable $e) {
-            // Inesperado: se registra sin datos sensibles y la siguiente pasada diaria vuelve a intentarlo.
-            Log::error('analytics.snapshot_unexpected', ['account_id' => $account->id, 'exception' => $e::class]);
-        }
+        });
     }
 }

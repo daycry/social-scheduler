@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Data\RefreshResult;
+use App\Jobs\BackfillMetrics;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -74,6 +75,15 @@ class SocialAccountService
             'last_refreshed_at' => now(),
         ]);
         $account->save();
+
+        // Historico inicial de metricas (T-36): job en cola `metrics`; un fallo al encolar nunca rompe la conexion.
+        if (config('social.analytics.backfill_on_connect', true)) {
+            try {
+                BackfillMetrics::dispatch($account->id);
+            } catch (Throwable $e) {
+                Log::warning('analytics.backfill_dispatch_failed', ['account_id' => $account->id, 'exception' => $e::class]);
+            }
+        }
 
         return $account;
     }

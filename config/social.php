@@ -106,6 +106,8 @@ return [
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
         /* Hora UTC del job diario: el dia anterior ya esta cerrado en todas las zonas habituales. */
+        /* Al conectar una cuenta se encola el historico inicial (T-36). */
+        'backfill_on_connect' => (bool) env('SOCIAL_BACKFILL_ON_CONNECT', true),
         'daily_at' => env('SOCIAL_ANALYTICS_DAILY_AT', '03:30'),
         /* Dias anteriores a ayer que se reintentan si su snapshot falta o salio vacio (latencia de YouTube, caidas). */
         'settle_days' => (int) env('SOCIAL_ANALYTICS_SETTLE_DAYS', 2),

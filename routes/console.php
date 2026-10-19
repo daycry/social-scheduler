@@ -2,6 +2,7 @@
 
 use App\Jobs\CollectSnapshots;
 use App\Jobs\DispatchDuePosts;
+use App\Jobs\RefreshPostMetrics;
 use App\Jobs\RefreshTokens;
 use App\Support\HealthCheck;
 use Illuminate\Foundation\Inspiring;
@@ -33,3 +34,6 @@ Schedule::call(fn () => app(DispatchDuePosts::class)())->everyMinute()->name('di
 
 // Snapshot diario de metricas por cuenta (T-31, CA-09): ayer ya esta cerrado. Cola `metrics`.
 Schedule::job(new CollectSnapshots)->dailyAt((string) config('social.analytics.daily_at', '03:30'))->name('collect-snapshots')->withoutOverlapping();
+
+// Metricas de publicaciones recientes cada 6 h durante las primeras 72 h (T-36).
+Schedule::call(fn () => RefreshPostMetrics::dispatchDue())->cron('15 */6 * * *')->name('refresh-post-metrics')->withoutOverlapping(30);

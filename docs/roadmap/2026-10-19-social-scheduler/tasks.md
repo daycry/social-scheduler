@@ -36,14 +36,14 @@ verificacion: obligatoria
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
 | Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 1.19h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 5 | 6 | 83% | 0h (IA) / 60h | 0.6h (medido) / 9h | 0 / 2.3h | 0 / 2,73M |
-| Fase 3 — Publicación base y Meta (IG + FB), calendario | 7 | 9 | 78% | 0h (IA) / 142h | 1.81h (medido) / 21.8h | 0 / 5.3h | 0 / 6,47M |
+| Fase 3 — Publicación base y Meta (IG + FB), calendario | 6 | 9 | 67% | 0h (IA) / 142h | 1.81h (medido) / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
 | Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 0 | 3 | 0% | 0 / 37h | 0 / 5.6h | 0 / 1.4h | 0 / 1,69M |
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **19** | **43** | **44%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **18** | **43** | **42%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -761,7 +761,7 @@ verificacion: obligatoria
 
 - **Descripción**: Formulario de creación y edición: elegir marca, cuentas y tipo, texto, media y fecha/hora con zona horaria; muestra errores de validación de media y limitaciones por red.
 - **Changelog**: Se pueden programar publicaciones desde un compositor.
-- **Estado**: completado
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 18h · real 0h (IA)
 - **Tiempo IA (ejec.)**: est. 2.8h · real 0.16h (medido)
 - **Supervisión**: est. 0.7h (≈25 % IA) · real —
@@ -1444,3 +1444,28 @@ Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `2e043af..d78b07b`, co
 | N5 | Minor | TikTok: con `scope` vacío se saltaba la comprobación de `video.upload` | T-14 | corregido: sin scope cuenta como permiso ausente | `TikTokConnector.php:75` |
 
 Verificación: suite completa 322 passed (1569 assertions, incluye Fase 3); `pint --test` passed. **Sin gaps Critical/Important pendientes: bucle de la Fase 2 cerrado en el intento 2.** T-12 sigue `en-progreso` solo por M-02 (prueba real).
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-17..T-25) — 8 Important, 10 Minor
+
+Lentes: A+C y B+D (agente `reviewer`, contexto fresco). Diff `493b850..7fef568` (T-17 revisado aunque su commit es anterior a la base). Conformidad (A): todas las Verificaciones de las tareas `completado` se reproducen; T-21/T-22 en-progreso por M-01 (declarado).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | SSRF: ffprobe abre la URL de R2 sin whitelist de protocolos ni comprobación de contenedor; un manifiesto HLS/DASH subido como vídeo hace GET a URLs internas (CWE-918) | T-17 | pendiente | Lente C: `app/Services/MediaProbe.php:45-52,93`; PoC local `INTERNAL HIT` |
+| 2 | Important | Carrusel IG: al sondear no se guarda el ID del contenedor padre y cada pasada crea otro CAROUSEL (≈30) hasta `timeout_procesado` sin publicar | T-21 | pendiente | Lente B (reproducido): `PollPublishStatus.php:91`, `PublishOutcomes.php:61-66`, `InstagramPublisher.php:98-111` |
+| 3 | Important | Reprogramar un destino `fallida` no limpia `external_reference` ni `attempts`: se re-sondea el vídeo fallido viejo y no se reintenta; o queda con 1 solo intento | T-20/T-24 | pendiente | Lente B (reproducido): `PostService.php:151-152` |
+| 4 | Important | TOCTOU editar/borrar vs claim: `assertEditable` sin lock y `targets()->delete()` borra un destino en `publicando` → doble publicación o publicación sin rastro | T-20/T-23 | pendiente | Lente B: `PostService.php:84-95,159-165,209-216`, `PublishPostTarget.php:118` |
+| 5 | Important | Stories IG sin idempotencia: el contenedor no se guarda antes de `media_publish` y `findRecent` no lista stories → historia duplicada tras timeout | T-21 | pendiente | Lente B: `InstagramPublisher.php:44-48,108,225-233` |
+| 6 | Important | `max_width` 1440 de imagen/carrusel IG rechaza en vez de escalar (IG escala); `min_width` 540 «recomendado» aplicado como duro | T-18/T-22 | pendiente | Lente B (reproducido): `config/media_specs.php:37,43,51` |
+| 7 | Important | Proporción/alto sin tener en cuenta la rotación del vídeo (MOV vertical de móvil con displaymatrix -90 → 1.78) → rechaza reels/Shorts válidos | T-17/T-18 | pendiente | Lente B: `MediaValidator.php:162-166`, `MediaProbe::parse` |
+| 8 | Important | Carrusel de 10 en un solo job: ~25 llamadas × 15 s vs `$timeout` 110 s → muere, recrea los hijos hasta 4 veces | T-21 | pendiente | Lente D: `InstagramPublisher.php:81-136`, `PublishPostTarget.php:46` |
+| 9 | Minor | URLs prefirmadas sin Content-Length firmado; assets `pendiente` y multipart abiertos nunca se limpian (CWE-770) | T-17 | pendiente | Lente C: `MediaUploadService.php:65-85,121-131` |
+| 10 | Minor | `max_lateness_hours`=24 recorta «tras una caída se publican las vencidas» (design.md:158) sin marcarlo como decisión pendiente | T-20 | pendiente | Lente A: `config/publishing.php:22` |
+| 11 | Minor | T-23 `completado` con T-21 `en-progreso` y M-01 en Cubre sin justificar | T-23 | pendiente | Lente A: tasks.md T-23 |
+| 12 | Minor | Cuota agotada en `media_publish` durante el sondeo tratada como transitoria (sin QuotaPolicy) | T-25 | pendiente | Lente B: `PollPublishStatus.php:81-83` |
+| 13 | Minor | Destino colgado en `max_attempts` se marca fallido sin consultar `findPublished` | T-20 | pendiente | Lente B: `PublishPostTarget.php:157-160` |
+| 14 | Minor | ReconnectRequired durante el sondeo acaba en `timeout_procesado` | T-20 | pendiente | Lente B: `PollPublishStatus.php:64-79` |
+| 15 | Minor | Borrado de media: `exists()` fuera de transacción y fichero borrado antes que la fila | T-17/T-22 | pendiente | Lente B: `MediaController.php:92`, `MediaUploadService` delete |
+| 16 | Minor | Sin índice que empiece por `posts.scheduled_at` para despachador/recovery | T-20 | pendiente | Lente D: migración posts |
+| 17 | Minor | `GraphClient::get` envía `access_token` en query string (logs de proxy) | T-21/T-22 | pendiente | Lente B (fuera de lente) `GraphClient.php:333` |
+| 18 | Minor | `update` borra y recrea targets y en cascada su historial `publish_attempts` | T-19/T-23 | pendiente | Lente A (fuera de lente) `PostService.php:92` |

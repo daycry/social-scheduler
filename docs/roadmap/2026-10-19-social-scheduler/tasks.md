@@ -509,33 +509,34 @@ verificacion: obligatoria
 
 - **Descripción**: Pantalla de conexiones de la marca: estado de cada cuenta, botones de conectar/desconectar y aviso `requiere reconexión`.
 - **Changelog**: Pantalla para gestionar las cuentas conectadas de cada marca.
-- **Estado**: en-progreso
-- **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 8h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.03h (medido)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Brands/Connections.vue`, `app/Http/Controllers/ConnectionController.php`, `tests/Feature/Connections/`
+- **Archivos**: `resources/js/Pages/Brands/Connections.vue`, `app/Http/Controllers/ConnectionController.php`, `tests/Feature/Connections/`, `resources/js/Pages/Brands/Show.vue`, `tests/Feature/Connections/ConnectionsTest.php`
 - **Cubre (tests)**: E2E-03, E2E-04, M-02
 - **Verificación**: `php artisan test --filter=Connections` → pasa
 
 **Criterios de aceptación**
-- [ ] La cuenta aparece conectada con su estado (CA-03)
-- [ ] Una cuenta en `requiere reconexión` muestra aviso y botón de reconectar
-- [ ] Desconectar elimina los tokens
+- [x] La cuenta aparece conectada con su estado (CA-03)
+- [x] Una cuenta en `requiere reconexión` muestra aviso y botón de reconectar
+- [x] Desconectar elimina los tokens
 
 **Subtareas**
-- [ ] Vista Inertia
-- [ ] Controlador y rutas
-- [ ] Mensajes de estado
-- [ ] Tests de feature
+- [x] Vista Inertia
+- [x] Controlador y rutas
+- [x] Mensajes de estado
+- [x] Tests de feature
+**Notas (implementer, 2026-10-19)**: Pantalla Brands/Connections.vue (una tarjeta por red como en ui-reference.md: cuentas con insignia de estado Conectada/Requiere reconexion/Desconectada, boton + Conectar, eleccion de cuentas tras OAuth multiple, aviso con enlace Reconectar que conserva las publicaciones, Desconectar con confirmacion). ConnectionController (index/select/destroy) ya creado en T-12 junto al flujo; aqui se anaden los tests y el enlace Conexiones desde la ficha de marca. Los props se construyen campo a campo: ningun token llega al navegador (test). Reconectar = mismo OAuth, mismo registro (unique marca+red+id externo) y vuelve a activa. Verificacion: `php artisan test --filter=Connections` -> 9 passed, 69 assertions; `npm run build` -> built (Connections-*.js generado). Pruebas de navegador sobre el diseno no ejecutadas (E2E-04/M-02 con cuentas reales quedan manuales).
 
 ### T-16 — Job de refresco de tokens y estado «requiere reconexión»
 
 - **Descripción**: Job programado que renueva tokens antes de caducar (p. ej. 7 días antes de los 60 de Meta) y, si no puede, marca la cuenta y avisa. Las publicaciones afectadas no se pierden.
 - **Changelog**: Las conexiones se mantienen vivas y avisan si hay que reconectar.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 10h · real —
 - **Tiempo IA (ejec.)**: est. 1.5h · real —
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —

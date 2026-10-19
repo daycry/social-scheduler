@@ -17,7 +17,10 @@ defineProps({ brand: Object });
             <div class="mx-auto max-w-3xl space-y-2 bg-white p-6 shadow-sm sm:rounded-lg">
                 <p class="text-gray-700">{{ brand.description }}</p>
                 <p class="text-sm text-gray-500">Zona horaria: {{ brand.timezone }}</p>
-                <Link :href="route('brands.edit', brand.id)" class="text-indigo-600">Editar</Link>
+                <div class="space-x-4">
+                    <Link :href="route('brands.connections.index', brand.id)" class="text-indigo-600">Conexiones</Link>
+                    <Link :href="route('brands.edit', brand.id)" class="text-indigo-600">Editar</Link>
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>

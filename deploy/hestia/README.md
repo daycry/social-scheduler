@@ -8,7 +8,7 @@ Los pasos marcados **[VPS]** requieren acceso SSH/root y se ejecutan a mano una 
 - HestiaCP con Nginx + PHP-FPM 8.4 (u 8.5) y MariaDB >= 10.6 / MySQL >= 8.0.
   Comprobar: `mysql --version` y `php -v`. Sin `SKIP LOCKED` (MariaDB < 10.6 / MySQL < 8.0) la cola `database` no admite varios workers.
 - Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip`.
-- Composer 2 y Node 22 (solo si se compilan los assets en el servidor; lo recomendado es compilarlos en CI y subir `public/build`).
+- Composer 2 y Node 22: `deploy.sh` compila los assets (`npm ci && npm run build`) y no da el deploy por bueno sin `public/build/manifest.json` (sin el, todas las paginas Inertia darian 500). Con `SKIP_BUILD=1` se omite la compilacion si el build llega por otro medio, pero el manifest sigue siendo obligatorio.
 - Git y acceso de lectura al repositorio (deploy key).
 
 ## 2. Dominio, BD y TLS [VPS]
@@ -41,7 +41,8 @@ clonar la app en `/home/<USUARIO>/web/<DOMINIO>/app` y enlazar `public_html -> a
 su - <USUARIO>
 cd ~/web/<DOMINIO>
 git clone <REPO> app && cd app
-cp .env.production.example .env        # rellenar APP_URL, DB_*, R2_*, HEALTHCHECK_TOKEN, MAIL_*
+cp .env.production.example .env        # rellenar APP_URL, DB_*, R2_*, HEALTHCHECK_TOKEN (openssl rand -hex 32), MAIL_*
+chmod 600 .env                          # contiene secretos: solo legible por el usuario del dominio
 composer install --no-dev --optimize-autoloader
 php artisan key:generate
 php artisan migrate --force
@@ -65,8 +66,12 @@ bash deploy/hestia/deploy.sh             # despliega: pull, composer, migrate, c
 WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll" bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
 ```
 
-El script pone la app en mantenimiento (`down`), migra, regenera caches, ejecuta `queue:restart` y levanta la app (`up`);
-si un paso falla vuelve a levantarla. Termina con `php artisan app:health`.
+Orden: `artisan down` -> fetch/pull -> composer -> `npm ci && npm run build` (gate: existe `public/build/manifest.json`) -> migrate -> caches
+-> `queue:restart` -> `up` -> reinicio de `WORKER_UNITS` -> smoke (`manifest.json` + `app:health --skip-scheduler`).
+- Si algo falla **antes** de cambiar el codigo, la app se vuelve a levantar; si falla **despues**, se queda en mantenimiento (no se sirve codigo nuevo con
+  vendor o esquema a medias) y el script indica como volver a la revision anterior. En ambos casos se ejecuta `queue:restart`.
+- Un job fallido historico **no** rompe el deploy: `app:health` solo falla si algo esta caido (BD, cola, disco); los fallidos recientes salen como AVISO.
+- `PHP_BIN` (p. ej. `PHP_BIN=php8.4`) fija el PHP CLI y debe coincidir con `Environment=PHP_BIN=` de la unidad systemd.
 
 ## 7. Verificacion manual (M-04) [VPS]
 

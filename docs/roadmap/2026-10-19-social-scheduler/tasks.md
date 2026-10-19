@@ -1428,3 +1428,17 @@ Lentes: A+B+C+D (C: OAuth/tokens; D: worker/scheduler). Diff `2e25aab..HEAD`. `s
 | 17 | Minor | `fb_exchange_token` sobre un token ya largo podría no extender la caducidad (no verificado) | T-12 | corregido (anotado): verificación anotada en T-12 para M-02 real; no verificable sin Meta | Lente B: `MetaConnector.php:159,181` |
 
 **Corrección intento 1 (implementer, 2026-10-20)**: 16 de 17 corregidos (el #11 sigue como deuda aceptada); ninguno rebatido. #1 deja T-12 y la Fase 2 en `en-progreso` (M-02 pendiente con ngrok). Verificaciones: `php artisan test` 150 passed; `vendor/bin/pint --test` passed; `npm run build` ok; `bash deploy/hestia/deploy.sh --dry-run` ok.
+
+## Revisión de dos lentes — intento 2: Fase 2 (T-11..T-16) — 2 Important, 3 Minor, todos corregidos
+
+Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `2e043af..d78b07b`, con traspaso de la tabla del intento 1. Traspaso: filas #1-#10 y #13-#17 **✓ corregidas**; #11 deuda aceptada; **#12 seguía rota** (ver N1).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 (#12) | Important | `TRUSTED_PROXIES` en `.env` no tenía efecto: `env()` se evaluaba en `withMiddleware` antes de cargar `.env` (y nunca con `config:cache`); el test usaba `TrustProxies::at('*')` directamente | T-12 | corregido: middleware `TrustProxiesFromConfig` lee `config('app.trusted_proxies')` en cada petición; test que configura vía config | `app/Http/Middleware/TrustProxiesFromConfig.php`, `tests/Feature/Infra/TrustedProxiesTest.php` |
+| N2 | Important | `.env.example` recomendaba `*` en Hestia (Nginx+FPM directo, sin proxy): `X-Forwarded-Host` falso envenenaba el enlace de reset de contraseña (CWE-640) | T-12 | corregido: `trustHosts()` (solo host de `APP_URL`) + `.env.example` indica dejarlo vacío en Hestia y usar `*` solo tras ngrok | `bootstrap/app.php`, test «only the APP_URL host is trusted» |
+| N3 | Minor | Los caminos de error (permanente/transitorio) no comprobaban que la cadena de tokens siguiera siendo la misma: un `invalid_grant` del token viejo marcaba una cuenta recién reconectada | T-16 | corregido: `sameChain()` (activa + `last_refreshed_at` igual) en ambos caminos | 2 tests «stale token chain» en `RefreshTokensTest` |
+| N4 | Minor | Meta: un 190 al releer el token de Página se trataba como transitorio y se daba por renovada con el token viejo | T-12 | corregido: `ReconnectRequiredException` se propaga | test «revoked Page token (190) as permanent» |
+| N5 | Minor | TikTok: con `scope` vacío se saltaba la comprobación de `video.upload` | T-14 | corregido: sin scope cuenta como permiso ausente | `TikTokConnector.php:75` |
+
+Verificación: suite completa 322 passed (1569 assertions, incluye Fase 3); `pint --test` passed. **Sin gaps Critical/Important pendientes: bucle de la Fase 2 cerrado en el intento 2.** T-12 sigue `en-progreso` solo por M-02 (prueba real).

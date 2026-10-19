@@ -34,7 +34,7 @@ verificacion: obligatoria
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
-| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 0.54h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
+| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 1 | 5 | 20% | 0h (IA) / 60h | 0.54h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 0 | 6 | 0% | 0 / 60h | 0 / 9h | 0 / 2.3h | 0 / 2,73M |
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 0 | 9 | 0% | 0 / 142h | 0 / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
@@ -43,7 +43,7 @@ verificacion: obligatoria
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **7** | **43** | **16%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **6** | **43** | **14%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 

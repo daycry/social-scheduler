@@ -15,11 +15,20 @@ return [
     /* Cola donde corre el refresco de tokens (ver config/queue.php names). */
     'refresh_queue' => env('SOCIAL_REFRESH_QUEUE', 'poll'),
 
+    /*
+    | Fallos TRANSITORIOS (5xx, red, timeouts) seguidos tras los que una cuenta pasa a requiere_reconexion.
+    | El job corre cada 30 min: 12 ~ 6 h de Graph/Google/TikTok caidos. Los permanentes (invalid_grant,
+    | token revocado, acceso a datos o refresh token caducados) escalan al instante.
+    */
+    'max_transient_failures' => (int) env('SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES', 12),
+
     /* Timeout HTTP de los conectores (segundos). */
     'http_timeout' => (int) env('SOCIAL_HTTP_TIMEOUT', 15),
 
     'meta' => [
         'graph_version' => env('META_GRAPH_VERSION', 'v23.0'),
+        /* Tope de paginas que se siguen en `paging.next` (100 elementos por pagina). */
+        'max_pages' => (int) env('META_MAX_PAGES', 10),
         'scopes' => [
             'business_management',
             'pages_show_list',

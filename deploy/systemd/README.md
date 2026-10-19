@@ -51,8 +51,8 @@ mkdir -p -m 700 ~/.cache/sched
 ```
 
 ```cron
-* * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/publish.lock php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --tries=3 >> /dev/null 2>&1
-*/5 * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/metrics.lock php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --tries=3 >> /dev/null 2>&1
+* * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/publish.lock php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
+*/5 * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/metrics.lock php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
 ```
 
 Latencia maxima de publicacion = 1 minuto. Es suficiente para el uso personal, pero preferible usar systemd. En cron, usar la ruta absoluta del PHP deseado en lugar de `php`.

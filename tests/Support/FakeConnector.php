@@ -23,6 +23,9 @@ class FakeConnector implements Connector
     /** @var list<int> */
     public array $refreshed = [];
 
+    /** Se ejecuta durante refresh() (simula algo que pasa mientras la red responde). */
+    public ?\Closure $duringRefresh = null;
+
     /** @param list<Network> $networks */
     public function __construct(
         private readonly string $provider = 'meta',
@@ -57,6 +60,10 @@ class FakeConnector implements Connector
     public function refresh(SocialAccount $account): RefreshResult
     {
         $this->refreshed[] = $account->id;
+
+        if ($this->duringRefresh) {
+            ($this->duringRefresh)($account);
+        }
 
         if ($this->refreshError) {
             throw $this->refreshError;

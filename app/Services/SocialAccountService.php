@@ -16,7 +16,12 @@ use InvalidArgumentException;
  */
 class SocialAccountService
 {
-    /** @return Collection<int, SocialAccount> */
+    /**
+     * Cuentas visibles de la marca. Las `desconectada` no se listan (CA-03: desconectar la quita de la
+     * lista); la fila se conserva solo como historico y `connect()` la reactiva si se vuelve a conectar.
+     *
+     * @return Collection<int, SocialAccount>
+     */
     public function listForBrand(User $user, Brand $brand): Collection
     {
         $this->assertOwns($user, $brand);
@@ -24,6 +29,7 @@ class SocialAccountService
         return SocialAccount::withoutUserScope()
             ->where('user_id', $user->id)
             ->where('brand_id', $brand->id)
+            ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
             ->orderBy('network')->orderBy('name')
             ->get();
     }
@@ -55,6 +61,7 @@ class SocialAccountService
             'token_expires_at' => $candidate->tokenExpiresAt,
             'refresh_expires_at' => $candidate->refreshExpiresAt,
             'data_access_expires_at' => $candidate->dataAccessExpiresAt,
+            'refresh_failures' => 0,
             'scopes' => $candidate->scopes,
             // Conserva opciones por cuenta ya guardadas (p. ej. tiktok.direct_post) al reconectar.
             'meta' => array_merge($account->meta ?? [], $candidate->meta),
@@ -77,6 +84,7 @@ class SocialAccountService
             'token_expires_at' => null,
             'refresh_expires_at' => null,
             'data_access_expires_at' => null,
+            'refresh_failures' => 0,
             'last_error' => null,
         ])->save();
 
@@ -92,11 +100,23 @@ class SocialAccountService
             'refresh_expires_at' => $result->refreshExpiresAt ?? $account->refresh_expires_at,
             'data_access_expires_at' => $result->dataAccessExpiresAt ?? $account->data_access_expires_at,
             'status' => SocialAccount::STATUS_ACTIVE,
+            'refresh_failures' => 0,
             'last_error' => null,
             'last_refreshed_at' => now(),
         ])->save();
 
         return $account;
+    }
+
+    /** Anota un fallo transitorio de renovacion y devuelve cuantos van seguidos. */
+    public function recordTransientFailure(SocialAccount $account, string $reason): int
+    {
+        $account->forceFill([
+            'refresh_failures' => (int) $account->refresh_failures + 1,
+            'last_error' => mb_substr($reason, 0, 500),
+        ])->save();
+
+        return (int) $account->refresh_failures;
     }
 
     /** @return bool true si la cuenta acaba de pasar a `requiere_reconexion` (para notificar una sola vez). */

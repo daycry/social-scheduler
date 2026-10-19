@@ -11,6 +11,8 @@
 #   sudo sed -i 's#USUARIO#<usuario hestia>#g; s#DOMINIO#<dominio>#g; s#PHP_BIN=php#PHP_BIN=<php8.4>#' /etc/systemd/system/scheduler-worker@.service
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports
+# --timeout=120 debe ser MAYOR que el $timeout del job mas largo (RefreshSocialAccount: 100 s) y MENOR que
+# retry_after de la cola (config/queue.php, 180 s); si no, un job lento se reencola mientras sigue en curso.
 [Unit]
 Description=Social Scheduler queue worker (%i)
 After=network.target mysql.service mariadb.service
@@ -24,12 +26,12 @@ WorkingDirectory=/home/USUARIO/web/DOMINIO/app
 # PHP CLI configurable: el nombre o ruta del binario (php8.4, /usr/bin/php8.4...) se fija aqui
 # o con un drop-in (`systemctl edit`); debe coincidir con PHP_BIN de deploy.sh.
 Environment=PHP_BIN=php
-ExecStart=/usr/bin/env ${PHP_BIN} artisan queue:work database --queue=%i --sleep=3 --tries=3 --max-time=3600 --max-jobs=500
+ExecStart=/usr/bin/env ${PHP_BIN} artisan queue:work database --queue=%i --sleep=3 --tries=3 --timeout=120 --max-time=3600 --max-jobs=500
 # `queue:restart` hace que el worker termine limpiamente; systemd lo relanza.
 Restart=always
 RestartSec=5
-# Deja terminar el job en curso antes de matar el proceso.
-TimeoutStopSec=60
+# Deja terminar el job en curso antes de matar el proceso: debe ser > --timeout (120 s).
+TimeoutStopSec=130
 KillSignal=SIGTERM
 StandardOutput=journal
 StandardError=journal

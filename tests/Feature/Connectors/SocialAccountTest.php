@@ -71,6 +71,7 @@ test('SocialAccount disconnect removes the tokens but keeps the row', function (
 
     $raw = DB::table('social_accounts')->first();
     expect($raw->status)->toBe('desconectada')->and($raw->access_token)->toBeNull()->and($raw->refresh_token)->toBeNull();
+    expect($this->service->listForBrand($this->user, $this->brand))->toHaveCount(0);
 });
 
 test('SocialAccount is isolated by user through BelongsToUser and the service', function () {

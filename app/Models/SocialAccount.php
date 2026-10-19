@@ -49,6 +49,7 @@ class SocialAccount extends Model
             'data_access_expires_at' => 'datetime',
             'connected_at' => 'datetime',
             'last_refreshed_at' => 'datetime',
+            'refresh_failures' => 'integer',
             'scopes' => 'array',
             'meta' => 'array',
         ];

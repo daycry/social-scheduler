@@ -46,8 +46,7 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->route('posts.edit', $post)
-            ->with('success', $post->status->value === 'borrador' ? 'Borrador guardado.' : 'Publicacion programada.');
+        return $this->afterSave($post, 'Publicacion programada.');
     }
 
     public function edit(Request $request, Post $post): Response
@@ -67,8 +66,7 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->route('posts.edit', $post)
-            ->with('success', $post->status->value === 'borrador' ? 'Borrador guardado.' : 'Publicacion actualizada.');
+        return $this->afterSave($post, 'Publicacion actualizada.');
     }
 
     public function destroy(Request $request, Post $post): RedirectResponse
@@ -90,6 +88,22 @@ class PostController extends Controller
         $this->authorize('update', $brand);
 
         return response()->json(['errors' => $this->posts->validate($request->user(), $brand, $request->validated())]);
+    }
+
+    /** Programada -> al calendario, en la semana de la publicacion; borrador -> sigue en el compositor. */
+    private function afterSave(Post $post, string $scheduledMessage): RedirectResponse
+    {
+        if ($post->status->value === 'borrador' || $post->scheduled_at === null) {
+            return redirect()->route('posts.edit', $post)->with('success', 'Borrador guardado.');
+        }
+
+        $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
+
+        return redirect()->route('calendar.index', [
+            'brand_id' => $post->brand_id,
+            'view' => 'week',
+            'date' => $post->scheduled_at->copy()->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d'),
+        ])->with('success', $scheduledMessage);
     }
 
     private function compose(Request $request, Brand $brand, ?Post $post): Response

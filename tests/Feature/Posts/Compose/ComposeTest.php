@@ -51,7 +51,7 @@ test('Compose: programar guarda la publicacion con la hora de la marca en UTC y 
     $response = $this->actingAs($this->user)->post(route('brands.posts.store', $this->brand), composeBody());
 
     $post = Post::withoutUserScope()->first();
-    $response->assertRedirect(route('posts.edit', $post));
+    $response->assertRedirect(route('calendar.index', ['brand_id' => $this->brand->id, 'view' => 'week', 'date' => '2026-11-02']));
     expect($post->status)->toBe(PostStatus::Scheduled)
         ->and($post->scheduled_at->utc()->format('Y-m-d H:i'))->toBe('2026-11-02 09:00')
         ->and($post->targets)->toHaveCount(1);
@@ -69,7 +69,7 @@ test('Compose: programar guarda la publicacion con la hora de la marca en UTC y 
 
 test('Compose: guardar borrador no exige fecha ni destinos', function () {
     $this->actingAs($this->user)->post(route('brands.posts.store', $this->brand), ['text' => 'idea', 'schedule' => false])
-        ->assertRedirect();
+        ->assertRedirect(route('posts.edit', Post::withoutUserScope()->first()));
 
     expect(Post::withoutUserScope()->first()->status)->toBe(PostStatus::Draft);
 });
@@ -109,7 +109,7 @@ test('Compose: se edita una pendiente (texto, fecha y destino) y se elimina', fu
     $post = app(PostService::class)->create($this->user, $this->brand, composeBody());
 
     $this->actingAs($this->user)->put(route('posts.update', $post), composeBody(['text' => 'Editado', 'scheduled_at' => '2026-11-05T18:30', 'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_photo']]]))
-        ->assertRedirect(route('posts.edit', $post));
+        ->assertRedirect(route('calendar.index', ['brand_id' => $this->brand->id, 'view' => 'week', 'date' => '2026-11-05']));
 
     $fresh = $post->fresh();
     expect($fresh->text)->toBe('Editado')->and($fresh->scheduled_at->utc()->format('Y-m-d H:i'))->toBe('2026-11-05 17:30')

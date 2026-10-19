@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OAuth\OAuthController;
@@ -33,6 +34,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('brands.connections.connect');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('connections.callback');
+
+    // Calendario (T-24).
+    Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::patch('posts/{post}/reschedule', [CalendarController::class, 'reschedule'])->name('posts.reschedule');
 
     // Compositor de publicaciones (T-23).
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');

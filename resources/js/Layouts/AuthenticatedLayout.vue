@@ -45,6 +45,12 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Marcas
                                 </NavLink>
+                                <NavLink
+                                    :href="route('calendar.index')"
+                                    :active="route().current('calendar.*')"
+                                >
+                                    Calendario
+                                </NavLink>
                             </div>
                         </div>
 

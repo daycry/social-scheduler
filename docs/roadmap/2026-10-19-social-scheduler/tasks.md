@@ -792,27 +792,30 @@ verificacion: obligatoria
 
 - **Descripción**: Vista de calendario (mes/semana) filtrable por marca y red con el estado de cada publicación y reprogramación de las pendientes.
 - **Changelog**: Calendario para ver y reprogramar publicaciones.
-- **Estado**: borrador
-- **Tiempo humano**: est. 12h · real —
-- **Tiempo IA (ejec.)**: est. 1.8h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 12h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.8h · real 0.15h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-23
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Calendar/`, `app/Services/CalendarService.php`, `app/Http/Controllers/CalendarController.php`, `tests/Feature/Calendar/`
+- **Archivos**: `resources/js/Pages/Calendar/`, `app/Services/CalendarService.php`, `app/Http/Controllers/CalendarController.php`, `tests/Feature/Calendar/`, `resources/js/Layouts/AuthenticatedLayout.vue`, `app/Http/Controllers/PostController.php`, `routes/web.php`, `tests/Feature/Calendar/CalendarTest.php`, `tests/Feature/Posts/Compose/ComposeTest.php`
 - **Cubre (tests)**: E2E-08
 - **Verificación**: `php artisan test --filter=Calendar` → pasa
 
 **Criterios de aceptación**
-- [ ] Publicaciones en su fecha con estado (CA-08)
-- [ ] Reprogramar pendientes funciona
-- [ ] Filtros por marca y red
+- [x] Publicaciones en su fecha con estado (CA-08)
+- [x] Reprogramar pendientes funciona
+- [x] Filtros por marca y red
 
 **Subtareas**
-- [ ] `CalendarService`
-- [ ] Vista de calendario
-- [ ] Edición de fecha
-- [ ] Tests
+- [x] `CalendarService`
+- [x] Vista de calendario
+- [x] Edición de fecha
+- [x] Tests
+
+---
+**Notas (implementer, 2026-10-19)**: Calendario siguiendo `ui-reference.md` (Planning de Metricool): vistas Semana (franjas horarias de 24 h x 7 dias con tarjetas por publicacion: hora, chips de red IG/FB/YT/TT, estado y extracto), Mes (6 semanas lunes-domingo) y Lista (tabla Fecha - Contenido - Redes - Estado POR RED, motivo del error, enlace externo, busqueda por texto, filtro de estado, borradores sin fecha), filtros por marca y red, navegacion anterior/hoy/siguiente, zona horaria visible y boton «Crear publicacion» (a la marca filtrada). Las pendientes se reprograman arrastrando la tarjeta a otro dia/hora (semana y mes) o editando la fecha en la lista (`PATCH posts/{post}/reschedule` -> `PostService::reschedule`); las publicadas o en curso no son arrastrables y el servidor las rechaza. `CalendarService` solo consulta publicaciones del usuario; las horas salen en la zona de la marca filtrada (o la primera marca). Programar desde el compositor ahora redirige al calendario en la semana de la publicacion («programacion visible»). Fuera de alcance v1: mapa de calor de mejores horas (ui-reference.md). **Verificacion**: `php artisan test --filter=Calendar` -> 9 passed, 237 assertions (fecha/hora/estado por publicacion, mes, filtros marca/red, zona horaria, lista, reprogramacion, publicada no reprogramable, aislamiento); `npm run build` OK; suite completa verde. **Manual**: el arrastrar-y-soltar y el aspecto del calendario no tienen test de navegador (solo build); revisar en el navegador.
 
 ### T-25 — Notificaciones de fallo y política ante cuota agotada
 

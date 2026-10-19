@@ -221,9 +221,9 @@ verificacion: obligatoria
 
 - **Descripción**: Crear el proyecto Laravel 13 en la raíz (sin pisar `docs/` ni `.claude/`) con Pest, Pint y CI. Fijar PHP 8.4/8.5 y BD MariaDB ≥ 10.6 / MySQL ≥ 8.0 (verificar con `mysql --version`); entorno local Laragon con `metricool.test`.
 - **Changelog**: Proyecto base de la aplicación listo para desarrollo.
-- **Estado**: borrador
-- **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Estado**: en-progreso
+- **Tiempo humano**: est. 8h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.16h (medido)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
@@ -246,6 +246,7 @@ verificacion: obligatoria
 - [ ] Comprobar versión de MariaDB/MySQL y documentarla
 
 **Notas**: La decisión de frontend (Inertia + Vue por defecto, React alternativa) se fija en T-07.
+**Notas (implementer, 2026-10-19)**: Laravel 13.37.0 creado en la raiz (PHP 8.3 local; composer exige ^8.3, produccion 8.4/8.5), Pest 4 + Pint, `pint.json` excluye `spike/`, CI en `.github/workflows/ci.yml`, `.env.example` con R2/colas/OAuth. MySQL local = 8.4.3 (cumple >= 8.0). Verificacion: `php artisan --version` -> Laravel Framework 13.37.0; `composer test` -> 2 passed; `vendor/bin/pint --test` -> passed; `/up` -> 200 con `php -S` sobre `public/`. **PENDIENTE (manual)**: el vhost de Laragon (`auto.metricool.test.conf`) se cambio a `public/` pero Apache no se recargo (https://metricool.test/up sigue 404 hasta pulsar Reload en Laragon); el criterio 'arranca en https://metricool.test' queda sin marcar hasta entonces. BD `metricool` y `metricool_testing` creadas en local.
 
 ### T-07 — Autenticación web: registro, login, recuperación de contraseña e Inertia
 

@@ -27,8 +27,9 @@ const networks = computed(() =>
     })),
 );
 
-const connectUrl = (provider, rerequest = false) =>
-    route('brands.connections.connect', { brand: props.brand.id, provider }) + (rerequest ? '?rerequest=1' : '');
+// El OAuth se inicia por POST (CSRF); el servidor responde con Inertia::location hacia la red externa.
+const connect = (provider, rerequest = false) =>
+    router.post(route('brands.connections.connect', { brand: props.brand.id, provider }), rerequest ? { rerequest: 1 } : {});
 
 const disconnect = (account) => {
     if (confirm(`¿Desconectar ${account.network_label} «${account.name}»? Se eliminarán sus credenciales.`)) {
@@ -64,6 +65,9 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                         <span class="font-medium">{{ c.network_label }}</span>
                         <span>{{ c.name }}</span>
                         <span v-if="c.username" class="text-gray-500">@{{ c.username }}</span>
+                        <span v-if="c.missing_scopes && c.missing_scopes.length" class="text-xs text-amber-700">
+                            Faltan permisos para publicar: {{ c.missing_scopes.join(', ') }}
+                        </span>
                     </label>
                     <PrimaryButton :disabled="selection.processing || selection.keys.length === 0" @click="confirmSelection">
                         Conectar seleccionadas
@@ -78,9 +82,7 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                 >
                     <div class="flex items-center justify-between">
                         <h3 class="font-medium text-gray-900">{{ n.label }}</h3>
-                        <a v-if="n.available" :href="connectUrl(n.provider)">
-                            <SecondaryButton type="button">+ Conectar</SecondaryButton>
-                        </a>
+                        <SecondaryButton v-if="n.available" type="button" @click="connect(n.provider)">+ Conectar</SecondaryButton>
                         <span v-else class="text-xs text-gray-400">No disponible</span>
                     </div>
 
@@ -102,12 +104,14 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                                 </p>
                             </div>
                             <div class="flex items-center gap-3 text-sm">
-                                <a
+                                <button
                                     v-if="a.status !== 'activa'"
-                                    :href="connectUrl(a.provider, a.provider === 'meta')"
+                                    type="button"
                                     class="text-indigo-600"
-                                    >{{ a.status === 'requiere_reconexion' ? 'Reconectar' : 'Conectar de nuevo' }}</a
+                                    @click="connect(a.provider, a.provider === 'meta')"
                                 >
+                                    {{ a.status === 'requiere_reconexion' ? 'Reconectar' : 'Conectar de nuevo' }}
+                                </button>
                                 <button v-if="a.status !== 'desconectada'" type="button" class="text-red-600" @click="disconnect(a)">
                                     Desconectar
                                 </button>

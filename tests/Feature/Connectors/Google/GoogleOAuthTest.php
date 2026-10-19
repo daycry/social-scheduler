@@ -94,7 +94,7 @@ test('GoogleOAuth controller flow connects a single channel directly to the bran
     googleFake();
     $this->actingAs($this->user);
 
-    $this->get(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'google'], false))
+    $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'google'], false))
         ->assertRedirectContains('https://accounts.google.com/o/oauth2/v2/auth');
     $state = session('oauth.google.state');
 

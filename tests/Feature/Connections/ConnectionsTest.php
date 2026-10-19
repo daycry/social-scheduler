@@ -1,5 +1,6 @@
 <?php
 
+use App\Connectors\ConnectorRegistry;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Network;
 use App\Models\Brand;
@@ -7,8 +8,10 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\SocialAccountService;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\FakeConnector;
 
 beforeEach(function () {
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->register(new FakeConnector('meta', [Network::Instagram, Network::Facebook])));
     $this->user = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create(['name' => 'Aipocalipsis']);
     $this->url = route('brands.connections.index', $this->brand, false);
@@ -42,8 +45,11 @@ test('Connections page shows an empty state for a brand without accounts', funct
         ->assertInertia(fn ($page) => $page->has('accounts', 0));
 });
 
-test('Connections disconnect removes the tokens from the database and marks the account disconnected', function () {
-    $account = SocialAccount::factory()->for($this->brand)->create();
+test('Connections disconnect removes the tokens, marks the row disconnected and drops it from the list (E2E-03)', function () {
+    $account = SocialAccount::factory()->for($this->brand)->create(['name' => 'Cuenta a quitar']);
+    $keep = SocialAccount::factory()->for($this->brand)->network(Network::YouTube)->create(['name' => 'Se queda']);
+
+    $this->actingAs($this->user)->get($this->url)->assertInertia(fn ($p) => $p->has('accounts', 2));
 
     $this->actingAs($this->user)
         ->delete(route('brands.connections.destroy', [$this->brand, $account], false))
@@ -51,6 +57,36 @@ test('Connections disconnect removes the tokens from the database and marks the 
 
     $raw = DB::table('social_accounts')->where('id', $account->id)->first();
     expect($raw->status)->toBe('desconectada')->and($raw->access_token)->toBeNull()->and($raw->refresh_token)->toBeNull();
+
+    $response = $this->actingAs($this->user)->get($this->url);
+    $response->assertInertia(fn ($p) => $p->has('accounts', 1)->where('accounts.0.id', $keep->id));
+    expect($response->getContent())->not->toContain('Cuenta a quitar');
+});
+
+test('Connections a disconnected account reappears active when the user connects it again', function () {
+    $account = SocialAccount::factory()->for($this->brand)->create(['external_id' => '777']);
+    app(SocialAccountService::class)->disconnect($account);
+    app(SocialAccountService::class)->connect($this->user, $this->brand, new ConnectionCandidate(Network::Instagram, '777', 'Vuelve', 'u', 'NEW', 'NEW-R'));
+
+    $this->actingAs($this->user)->get($this->url)->assertInertia(fn ($p) => $p->has('accounts', 1)->where('accounts.0.status', 'activa'));
+    expect(SocialAccount::withoutUserScope()->count())->toBe(1);
+});
+
+test('Connections starting an OAuth needs a POST: a GET no longer starts it', function () {
+    $connect = route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false);
+
+    $this->actingAs($this->user)->get($connect)->assertStatus(405);
+    expect(session('oauth.meta'))->toBeNull();
+
+    $this->actingAs($this->user)->post($connect)->assertRedirectContains('fake.test/authorize');
+    expect(session('oauth.meta.state'))->toHaveLength(40);
+});
+
+test('Connections an Inertia request to start the OAuth gets a full-page location to the network', function () {
+    $connect = route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false);
+
+    $this->actingAs($this->user)->post($connect, ['rerequest' => 1], ['X-Inertia' => 'true'])
+        ->assertStatus(409)->assertHeader('X-Inertia-Location');
 });
 
 test('Connections reconnect keeps the account row and returns it to active status', function () {

@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Flujo OAuth generico para todos los proveedores (meta | google | tiktok): redirige a la red,
@@ -34,7 +36,7 @@ class OAuthController extends Controller
         private readonly SocialAccountService $accounts,
     ) {}
 
-    public function redirect(Request $request, Brand $brand, string $provider): RedirectResponse
+    public function redirect(Request $request, Brand $brand, string $provider): Response
     {
         $this->authorize('update', $brand);
         abort_unless($this->connectors->has($provider), 404);
@@ -48,7 +50,9 @@ class OAuthController extends Controller
             $request->boolean('rerequest'),
         );
 
-        return redirect()->away($url);
+        // Inertia::location: para una peticion Inertia (409 + X-Inertia-Location) fuerza una visita completa
+        // a la red externa; para una peticion normal es un redirect 302 corriente.
+        return Inertia::location($url);
     }
 
     public function callback(Request $request, string $provider): RedirectResponse
@@ -92,7 +96,10 @@ class OAuthController extends Controller
         if (count($candidates) === 1) {
             $account = $this->accounts->connect($request->user(), $brand, $candidates[0]);
 
-            return $back('success', $account->network->label().' conectado: '.$account->name.'.');
+            $missing = $account->meta['missing_scopes'] ?? [];
+
+            return $back('success', $account->network->label().' conectado: '.$account->name.'.'
+                .($missing ? ' Aviso: faltan permisos para publicar ('.implode(', ', $missing).'); reconecta y aceptalos.' : ''));
         }
 
         $request->session()->put(self::PENDING_KEY.".{$brand->id}", Crypt::encrypt([

@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\Publisher;
+use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\PermanentPublishException;
@@ -51,6 +53,9 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
     public array $backoff = [30];
 
     public int $uniqueFor = 600;
+
+    /** Nota del destino cuando lo que se iba a publicar tras una edicion ya habia salido en el intento anterior. */
+    public const EDIT_NOT_APPLIED = 'La edicion no se aplico: la publicacion anterior ya habia salido en la red.';
 
     public function __construct(public readonly int $targetId)
     {
@@ -102,6 +107,17 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
             $request = $requests->make($target);
             $result = null;
 
+            // Edicion tras un intento ambiguo: antes de publicar lo nuevo se comprueba si lo VIEJO ya salio (sin duplicar).
+            $reconcile = $target->progress['reconcile'] ?? null;
+            if (is_array($reconcile)) {
+                if ($this->reconcile($publisher, $account, $requests, $outcomes, $target, $attempt, $request, $reconcile)) {
+                    return;
+                }
+
+                $target->forceFill(['progress' => null]);
+                PostTarget::withoutUserScope()->whereKey($target->id)->update(['progress' => null]);
+            }
+
             // Idempotencia: si ya hubo un intento (o una referencia externa), la red manda.
             if ($exhausted || $target->attempts > 1 || $target->external_reference !== null) {
                 $result = $publisher->findPublished($account, $request);
@@ -130,6 +146,41 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
             // PublishRecovery, que consulta la red antes de volver a publicar.
             Log::error('publish.unexpected_error', ['target_id' => $target->id, 'exception' => $e::class]);
         }
+    }
+
+    /**
+     * Reconcilia el intento previo a una edicion. Devuelve `true` si la red ya tenia el contenido viejo (el destino queda
+     * `publicada`/`procesando` con la nota «la edicion no se aplico») y `false` si no hay constancia (se limpia el marcador y se publica).
+     *
+     * @param  array<string, mixed>  $reconcile
+     */
+    private function reconcile(Publisher $publisher, SocialAccount $account, PublishRequestFactory $requests, PublishOutcomes $outcomes, PostTarget $target, PublishAttempt $attempt, PublishRequest $request, array $reconcile): bool
+    {
+        try {
+            $found = $publisher->findPublished($account, $requests->makeReconcile($request, $reconcile));
+        } catch (PermanentPublishException $e) {
+            Log::notice('publish.reconcile_inconclusive', ['target_id' => $target->id, 'code' => $e->errorCode]);
+
+            return false;
+        }
+
+        $sent = $found !== null && ($found->isPublished() || ($found->isProcessing() && ! ($found->raw['not_published'] ?? false)));
+
+        if (! $sent) {
+            return false;
+        }
+
+        $note = self::EDIT_NOT_APPLIED.($found->note !== null ? ' '.$found->note : '');
+        Log::notice('publish.reconciled_before_edit', ['target_id' => $target->id, 'status' => $found->status]);
+
+        if ($found->isPublished()) {
+            $outcomes->published($target, PublishResult::published((string) $found->externalId, $found->url, $found->raw, $note, ($found->progress ?? []) + ['reconciled' => true]), $attempt);
+        } else {
+            $this->startPolling($outcomes, $target, PublishResult::processing((string) $found->reference, $found->raw, $found->progress ?? ['reconciled' => true]), $attempt);
+            PostTarget::withoutUserScope()->whereKey($target->id)->update(['status_note' => mb_substr($note, 0, 300)]);
+        }
+
+        return true;
     }
 
     /**

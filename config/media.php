@@ -39,4 +39,7 @@ return [
 
     /* En R2 se sondea bajando solo los primeros y ultimos N bytes (donde vive el atom `moov`), no el video entero. */
     'probe_edge_bytes' => (int) env('MEDIA_PROBE_EDGE_BYTES', 16 * 1024 * 1024),
+
+    /* Un MP4 FRAGMENTADO (moof) no guarda su duracion en `moov`: se baja entero hasta este tope; por encima se rechaza pidiendo `faststart`. */
+    'probe_fragmented_max_bytes' => (int) env('MEDIA_PROBE_FRAGMENTED_MAX_BYTES', 256 * 1024 * 1024),
 ];

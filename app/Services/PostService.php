@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
@@ -37,6 +38,9 @@ class PostService
         'external_id' => null, 'external_url' => null, 'external_reference' => null, 'attempts' => 0,
         'progress' => null, 'error_code' => null, 'error_message' => null, 'status_note' => null, 'started_at' => null, 'next_attempt_at' => null,
     ];
+
+    /** Errores que NO dejan duda de que la red no recibio nada (rechazo, medio invalido...): el resto puede haber salido. */
+    private const AMBIGUOUS_ERRORS = [null, 'transitorio', 'reintentos_agotados'];
 
     public function __construct(private readonly MediaValidator $validator) {}
 
@@ -103,7 +107,7 @@ class PostService
 
             // Contenido ANTES de la edicion: si cambia el texto o la media, el estado residual de un intento anterior
             // (contenedor de Instagram, hijos de un carrusel, sesion de subida...) ya no corresponde a lo que se va a publicar.
-            $before = ['text' => $post->text, 'media' => $post->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all()];
+            $before = ['text' => $post->text, 'scheduled_at' => $post->scheduled_at, 'media' => $post->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all()];
 
             $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']])->save();
             $this->fill($post, $plan, $existing, $before);
@@ -144,7 +148,7 @@ class PostService
                 }
                 if ($target->status !== PostStatus::Draft) {
                     // Al volver a borrador el estado residual del intento anterior se descarta (el contenido puede cambiar).
-                    $this->applyTransition($target, PostStatus::Draft, self::FRESH_ATTEMPT);
+                    $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $post->text, $post->scheduled_at));
                     YouTubePublisher::forgetUploadSession($target->id);
                 }
             }
@@ -172,11 +176,12 @@ class PostService
 
         DB::transaction(function () use ($post, $at) {
             $targets = $this->lockEditableTargets($post);
+            $oldScheduledAt = $post->scheduled_at;
 
             $post->forceFill(['scheduled_at' => $at])->save();
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
-                ->each(function (PostTarget $t) {
-                    $this->transition($t, PostStatus::Scheduled, self::FRESH_ATTEMPT);
+                ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
+                    $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $post->text, $oldScheduledAt));
                     YouTubePublisher::forgetUploadSession($t->id); // la sesion de subida del intento anterior no se reutiliza
                 });
             $post->syncStatus();
@@ -411,7 +416,7 @@ class PostService
             // (referencia externa, progreso, intentos) pertenece al contenido viejo y se descarta. Solo la fecha: se conserva.
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
             $fresh = $current->status === PostStatus::Failed || $contentChanged || $optionsChanged;
-            $attributes = ['options' => $t['options'] ?: null] + ($fresh ? self::FRESH_ATTEMPT : []);
+            $attributes = ['options' => $t['options'] ?: null] + ($fresh ? $this->freshAttempt($current, $before['text'] ?? null, $before['scheduled_at'] ?? null) : []);
             if ($fresh) {
                 YouTubePublisher::forgetUploadSession($current->id);
             }
@@ -430,6 +435,45 @@ class PostService
         }
 
         $post->syncStatus();
+    }
+
+    /**
+     * Atributos de un destino que empieza un intento NUEVO. Si el intento anterior pudo haber salido (referencia/contenedor,
+     * progreso o intentos con un error ambiguo), la prueba de idempotencia NO se pierde: se guarda en `progress.reconcile`
+     * (referencia, progreso, texto y ventana del contenido viejo) y el siguiente claim la consulta en la red ANTES de publicar
+     * (revision F3 i3 R1).
+     *
+     * @return array<string, mixed>
+     */
+    private function freshAttempt(PostTarget $target, ?string $oldText, ?CarbonInterface $oldScheduledAt): array
+    {
+        $attributes = self::FRESH_ATTEMPT;
+        $carried = $target->progress['reconcile'] ?? null;
+
+        if ($carried === null && $this->mayHaveBeenSent($target)) {
+            $progress = array_diff_key((array) ($target->progress ?? []), ['reconcile' => 1]);
+            $reference = $target->external_reference;
+            // Una subida a medias (`subiendo`/fase uploading) no se puede retomar con el contenido nuevo ni consultar por referencia.
+            $uploading = PublishResult::isUploadingState($reference, $progress);
+
+            $carried = array_filter([
+                'reference' => $uploading ? null : $reference,
+                'progress' => $uploading || $progress === [] ? null : $progress,
+                'text' => $oldText,
+                'since' => $oldScheduledAt?->copy()->subMinutes(5)->toIso8601String(),
+            ], fn ($v) => $v !== null) + ['pending' => true];
+        }
+
+        $attributes['progress'] = $carried !== null ? ['reconcile' => $carried] : null;
+
+        return $attributes;
+    }
+
+    private function mayHaveBeenSent(PostTarget $target): bool
+    {
+        return $target->external_reference !== null
+            || (array) ($target->progress ?? []) !== []
+            || ($target->attempts > 0 && in_array($target->error_code, self::AMBIGUOUS_ERRORS, true));
     }
 
     /** Un string sin zona se interpreta en la zona de la marca; el resultado se guarda en UTC. */

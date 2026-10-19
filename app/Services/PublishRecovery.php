@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Enums\PostStatus;
+use App\Exceptions\InvalidPostTransition;
 use App\Jobs\PollPublishStatus;
 use App\Jobs\PublishPostTarget;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Mantenimiento que corre antes de despachar lo vencido, cada minuto y tambien al volver de una caida
@@ -63,12 +65,18 @@ class PublishRecovery
                 foreach ($targets as $target) {
                     $account = $target->social_account_id ? SocialAccount::withoutUserScope()->find($target->social_account_id) : null;
 
-                    if ($account === null || $account->status === SocialAccount::STATUS_DISCONNECTED) {
-                        $this->outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta se elimino o desconecto antes de terminar de publicar. Revisa en la red si el contenido llego a publicarse y reprograma si no.');
-                        $n++;
-                    } elseif ($account->status === SocialAccount::STATUS_RECONNECT && $account->updated_at?->lt($limit) && $target->updated_at?->lt($limit)) {
-                        $this->outcomes->failed($target, 'cuenta_no_disponible', "La cuenta lleva mas de $grace h sin reconectarse y no se pudo confirmar la publicacion. Reconectala, revisa en la red si se publico y reprograma si no.");
-                        $n++;
+                    try {
+                        if ($account === null || $account->status === SocialAccount::STATUS_DISCONNECTED) {
+                            $this->outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta se elimino o desconecto antes de terminar de publicar. Revisa en la red si el contenido llego a publicarse y reprograma si no.');
+                            $n++;
+                        } elseif ($account->status === SocialAccount::STATUS_RECONNECT && $account->updated_at?->lt($limit) && $target->updated_at?->lt($limit)) {
+                            $this->outcomes->failed($target, 'cuenta_no_disponible', "La cuenta lleva mas de $grace h sin reconectarse y no se pudo confirmar la publicacion. Reconectala, revisa en la red si se publico y reprograma si no.");
+                            $n++;
+                        }
+                    } catch (InvalidPostTransition) {
+                        // Carrera: el destino cambio de estado (el usuario lo cancelo, el sondeo lo cerro) entre la lectura y la
+                        // transicion. Ya no es `procesando`: se ignora y se sigue con el resto, sin cortar el despacho.
+                        Log::notice('publish.recovery_race', ['target_id' => $target->id]);
                     }
                 }
             });

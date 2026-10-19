@@ -85,7 +85,7 @@ test('N1: editar el texto de un destino programado con estado residual lo resete
     i2Edit($post, ['text' => 'Texto NUEVO']);
 
     $t = $target->fresh();
-    expect($t->status)->toBe(PostStatus::Scheduled)->and($t->external_reference)->toBeNull()->and($t->progress)->toBeNull()
+    expect($t->status)->toBe(PostStatus::Scheduled)->and($t->external_reference)->toBeNull()->and($t->progress['container'] ?? null)->toBeNull()
         ->and($t->attempts)->toBe(0)->and($t->next_attempt_at)->toBeNull()->and($t->error_code)->toBeNull();
 
     $this->graph->on('POST', '#^'.I2_IG.'/media$#', ['id' => 'C_NEW'])->on('GET', '#^C_NEW$#', ['status_code' => 'FINISHED'])
@@ -110,7 +110,7 @@ test('N1: cambiar la media o las opciones del destino tambien descarta el estado
     }
 
     $t = $target->fresh();
-    expect($t->external_reference)->toBeNull()->and($t->progress)->toBeNull()->and($t->attempts)->toBe(0)->and($t->next_attempt_at)->toBeNull();
+    expect($t->external_reference)->toBeNull()->and($t->progress['container'] ?? null)->toBeNull()->and($t->attempts)->toBe(0)->and($t->next_attempt_at)->toBeNull();
 })->with(['media', 'opciones']);
 
 test('N1: si solo cambia la fecha se conserva el estado residual (idempotencia del intento en curso)', function () {
@@ -131,7 +131,7 @@ test('N1: desprogramar (volver a borrador) descarta el estado residual del desti
     $this->service->unschedule($this->user, $post);
 
     $t = $target->fresh();
-    expect($t->status)->toBe(PostStatus::Draft)->and($t->external_reference)->toBeNull()->and($t->attempts)->toBe(0)->and($t->progress)->toBeNull();
+    expect($t->status)->toBe(PostStatus::Draft)->and($t->external_reference)->toBeNull()->and($t->attempts)->toBe(0)->and($t->progress['container'] ?? null)->toBeNull();
 });
 
 // ------------------------------------------------------------------ N2

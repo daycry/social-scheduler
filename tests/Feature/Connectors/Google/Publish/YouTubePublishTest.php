@@ -592,7 +592,7 @@ test('YouTubePublish N1: editar la privacidad de un destino programado con sesio
 
     $edit(['targets' => [['account_id' => $this->account->id, 'content_type' => 'youtube_video', 'options' => ['privacy' => 'private']]]]);
     $t = $target->fresh();
-    expect(Cache::has('youtube:upload:'.$target->id))->toBeFalse()->and($t->external_reference)->toBeNull()->and($t->progress)->toBeNull()->and($t->attempts)->toBe(0);
+    expect(Cache::has('youtube:upload:'.$target->id))->toBeFalse()->and($t->external_reference)->toBeNull()->and($t->progress['phase'] ?? null)->toBeNull()->and($t->progress['upload_url'] ?? null)->toBeNull()->and($t->attempts)->toBe(0);
 
     ytHappyUpload($this->http);
     $this->yt->publish($this->account, new PublishRequest($target->id, ContentType::YouTubeVideo, 'Mi titulo', [ytMedia()], ['privacy' => 'private'], null, now()->subMinutes(5)));
@@ -617,5 +617,5 @@ test('TikTok N1: editar el contenido de un destino programado descarta publish_i
     ]);
 
     $t = $target->fresh();
-    expect($t->external_reference)->toBeNull()->and($t->progress)->toBeNull()->and($t->attempts)->toBe(0);
+    expect($t->external_reference)->toBeNull()->and($t->progress['phase'] ?? null)->toBeNull()->and($t->progress['upload_url'] ?? null)->toBeNull()->and($t->attempts)->toBe(0);
 });

@@ -341,3 +341,59 @@ test('MediaProbe: la limpieza programada borra los probe_* antiguos y respeta lo
 
     $this->artisan('app:media-prune')->expectsOutputToContain('Temporales de sondeo eliminados')->assertSuccessful();
 });
+
+// Revision Fase 3 intento 3: R2 (MP4 fragmentado sin sidx en R2).
+
+function fragmentedVideo($user, int $seconds = 20): MediaAsset
+{
+    $asset = pendingVideoAsset($user, '');
+    $full = Storage::disk('local')->path($asset->path);
+    exec('ffmpeg -loglevel error -y -f lavfi -i testsrc=duration='.$seconds.':size=640x480:rate=30 -pix_fmt yuv420p -b:v 2M -g 30 -movflags frag_keyframe+empty_moov '.escapeshellarg($full).' 2>&1', $out, $code);
+    expect($code)->toBe(0);
+
+    return $asset;
+}
+
+test('MediaProbe R2: un MP4 fragmentado se detecta y se baja entero para leer la duracion real', function () {
+    if (! hasFfmpeg()) {
+        $this->markTestSkipped('ffmpeg no disponible');
+    }
+
+    $asset = fragmentedVideo($this->user);
+    $size = filesize(Storage::disk('local')->path($asset->path));
+    expect($size)->toBeGreaterThan(4 * 64 * 1024)
+        ->and(MediaProbe::isFragmented((string) file_get_contents(Storage::disk('local')->path($asset->path), false, null, 0, 64 * 1024)))->toBeTrue();
+
+    app()->instance(MediaStorage::class, r2Storage());
+    config(['media.probe_edge_bytes' => 64 * 1024, 'media.probe_fragmented_max_bytes' => 64 * 1024 * 1024]);
+    $ranges = [];
+
+    $meta = recordingProbe($ranges)->inspect($asset);
+
+    expect($meta['duration'])->toBeGreaterThan(19.5)->toBeLessThan(20.5)
+        ->and(array_sum(array_column($ranges, 1)))->toBe($size); // se leyo el fichero completo, no solo los extremos
+});
+
+test('MediaProbe R2: un MP4 fragmentado mas grande que el tope se rechaza con un mensaje claro', function () {
+    if (! hasFfmpeg()) {
+        $this->markTestSkipped('ffmpeg no disponible');
+    }
+
+    $asset = fragmentedVideo($this->user);
+    app()->instance(MediaStorage::class, r2Storage());
+    config(['media.probe_edge_bytes' => 64 * 1024, 'media.probe_fragmented_max_bytes' => 128 * 1024]);
+    $before = glob(sys_get_temp_dir().'/probe_*') ?: [];
+
+    expect(fn () => app(MediaProbe::class)->inspect($asset))->toThrow(RuntimeException::class, 'fragmentado')
+        ->and(glob(sys_get_temp_dir().'/probe_*') ?: [])->toBe($before);
+});
+
+test('MediaProbe R2: un MP4 normal (con o sin faststart) no se considera fragmentado', function () {
+    $ftyp = pack('N', 16).'ftyp'.'isom'.pack('N', 0);
+    $moov = pack('N', 24).'moov'.str_repeat('x', 16);
+
+    expect(MediaProbe::isFragmented($ftyp.$moov.pack('N', 40).'mdat'.str_repeat('moof', 8)))->toBeFalse()
+        ->and(MediaProbe::isFragmented($ftyp.pack('N', 8).'moov'))->toBeFalse()
+        ->and(MediaProbe::isFragmented($ftyp.pack('N', 24).'moov'.str_repeat('x', 12).'mvex'))->toBeTrue()
+        ->and(MediaProbe::isFragmented($ftyp.pack('N', 8).'moof'))->toBeTrue();
+});

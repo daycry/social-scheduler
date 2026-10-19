@@ -95,11 +95,12 @@ class InstagramPublisher implements Publisher, StatusPoller
             $budget->spent();
 
             if ($status['code'] === 'PUBLISHED') {
-                return $this->resolvePublished($account, $request, $container, $budget) ?? PublishResult::processing($container);
+                return $this->resolvePublished($account, $request, $container, $budget) ?? PublishResult::processing($container, ['container_status' => 'PUBLISHED']);
             }
 
             if ($status['code'] === 'FINISHED' || $status['code'] === 'IN_PROGRESS') {
-                return PublishResult::processing($container);
+                // `not_published`: el contenedor existe pero nada salio aun (lo usa la reconciliacion tras una edicion).
+                return PublishResult::processing($container, ['not_published' => true]);
             }
         }
 
@@ -259,6 +260,7 @@ class InstagramPublisher implements Publisher, StatusPoller
             null,
             ['container' => $containerId, 'external_id_kind' => 'container'],
             'Se publico en Instagram pero no se pudo obtener el enlace ni el ID de la publicacion.',
+            ['external_id_kind' => 'container'],
         );
     }
 
@@ -290,7 +292,11 @@ class InstagramPublisher implements Publisher, StatusPoller
             }
         }
 
-        if (count($candidates) === 1) {
+        // Una historia dura 24 h: si la ventana de busqueda es mas antigua, la nuestra ya no puede estar listada y la unica que
+        // aparezca seria AJENA; en la duda se queda con el ID del contenedor (revision F3 i3 R4).
+        $listable = $request->since === null || $request->since->gt(now()->subHours(24));
+
+        if ($listable && count($candidates) === 1) {
             return PublishResult::published((string) $candidates[0]['id'], $candidates[0]['permalink'] ?? null);
         }
 

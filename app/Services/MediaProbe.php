@@ -14,6 +14,8 @@ use Symfony\Component\Process\Process;
  */
 class MediaProbe
 {
+    private const FRAGMENTED_TOO_BIG = 1001;
+
     public function __construct(private readonly MediaStorage $storage) {}
 
     /**
@@ -96,18 +98,75 @@ class MediaProbe
                     $this->copyRange($reader, $out, 0, $size);
                 } else {
                     $this->copyRange($reader, $out, 0, $edge);
-                    $this->copyRange($reader, $out, $size - $edge, $edge);
+                    fflush($out);
+
+                    if (self::isFragmented((string) file_get_contents($target, false, null, 0, $edge))) {
+                        // MP4 fragmentado: su duracion no esta en `moov`, esta repartida por TODOS los `moof`; leer solo los
+                        // extremos daria una duracion falsa. Se baja entero si cabe en el tope; si no, se rechaza con motivo claro.
+                        $cap = (int) config('media.probe_fragmented_max_bytes', 256 * 1024 * 1024);
+
+                        if ($size > $cap) {
+                            throw new RuntimeException('El video esta en formato MP4 fragmentado y es demasiado grande para analizarlo. Exportalo como MP4 normal con "faststart" y vuelve a subirlo.', self::FRAGMENTED_TOO_BIG);
+                        }
+
+                        $this->copyRange($reader, $out, $edge, $size - $edge);
+                    } else {
+                        $this->copyRange($reader, $out, $size - $edge, $edge);
+                    }
                 }
             } finally {
                 fclose($out);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             @unlink($target);
+
+            if ($e instanceof RuntimeException && $e->getCode() === self::FRAGMENTED_TOO_BIG) {
+                throw new RuntimeException($e->getMessage());
+            }
 
             throw new RuntimeException('No se pudo leer el video del almacenamiento.');
         }
 
         return $target;
+    }
+
+    /**
+     * ¿Es un MP4 fragmentado? Recorre las cajas de primer nivel del principio del fichero: hay `moof` o el `moov` declara `mvex`.
+     * Publico y estatico para probarlo sin red.
+     */
+    public static function isFragmented(string $head): bool
+    {
+        $offset = 0;
+        $length = strlen($head);
+
+        while ($offset + 8 <= $length) {
+            $size = unpack('N', substr($head, $offset, 4))[1];
+            $type = substr($head, $offset + 4, 4);
+            $header = 8;
+
+            if ($size === 1 && $offset + 16 <= $length) {
+                $size = unpack('J', substr($head, $offset + 8, 8))[1];
+                $header = 16;
+            }
+
+            if ($type === 'moof') {
+                return true;
+            }
+
+            if ($type === 'moov') {
+                $end = $size === 0 ? $length : min($length, $offset + $size);
+
+                return str_contains(substr($head, $offset + $header, $end - $offset - $header), 'mvex');
+            }
+
+            if ($size < $header) {
+                return false; // caja corrupta o "hasta el final": sin mas que recorrer
+            }
+
+            $offset += $size;
+        }
+
+        return false;
     }
 
     /** Copia `[offset, offset + length)` del origen a la misma posicion del temporal, por trozos. */

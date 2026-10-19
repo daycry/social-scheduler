@@ -69,13 +69,14 @@ test('Revision #3: reprogramar un destino fallido limpia referencia, intentos y 
 
     $t = $target->fresh();
     expect($t->status)->toBe(PostStatus::Scheduled)->and($t->attempts)->toBe(0)->and($t->external_reference)->toBeNull()->and($t->external_id)->toBeNull()
-        ->and($t->progress)->toBeNull()->and($t->error_code)->toBeNull()->and($t->started_at)->toBeNull()->and($t->next_attempt_at)->toBeNull();
+        ->and($t->progress['parent'] ?? null)->toBeNull()->and($t->progress['reconcile']['reference'])->toBe('V1')->and($t->error_code)->toBeNull()->and($t->started_at)->toBeNull()->and($t->next_attempt_at)->toBeNull();
     expect(PublishAttempt::withoutGlobalScopes()->where('post_target_id', $target->id)->count())->toBe(1); // historial intacto
 
     rvTick(180);
     $t = $target->fresh();
     expect($t->status)->toBe(PostStatus::Published)->and($t->attempts)->toBe(1)
-        ->and($this->publisher->publishCalls)->toBe(1)->and($this->publisher->findCalls)->toBe(0); // intento nuevo, sin re-sondear el viejo
+        ->and($this->publisher->publishCalls)->toBe(1)->and($this->publisher->findCalls)->toBe(1) // el intento viejo era ambiguo: se reconcilia UNA vez (sin hallazgo) y luego se publica de cero
+        ->and($t->progress)->toBeNull();
 });
 
 test('Revision #3: tambien se olvida el publish_id de TikTok y la referencia de un video de Facebook al reprogramar', function (Network $network, ContentType $type, string $reference) {

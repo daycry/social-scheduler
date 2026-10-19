@@ -19,6 +19,7 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\PostService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -340,3 +341,54 @@ test('YouTubePublish: con la cuota agotada la politica reschedule aplaza el dest
     'reschedule' => ['reschedule', PostStatus::Scheduled],
     'fail' => ['fail', PostStatus::Failed],
 ]);
+
+test('YouTubePublish: la subida repartida en varias pasadas de sondeo persiste la referencia (subiendo -> ID) y acaba publicada, sin sesion_perdida (revision F4-5)', function () {
+    config(['social.youtube.upload_budget_seconds' => 0]); // cada pasada sube UN trozo y devuelve «subiendo»
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->registerPublisher(Network::YouTube, $this->yt));
+    $this->http->on('POST', '#upload/youtube/v3/videos\?uploadType=resumable&part=snippet,status$#', ['status' => 200, 'headers' => ['Location' => YT_SESSION]])
+        ->on('PUT', '#upload_id=SESS1$#', FakeHttp::seq(
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]],            // publish: trozo 1
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]],            // poll 1: consulta de offset
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(2 * YT_CHUNK - 1)]],        // poll 1: trozo 2
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(2 * YT_CHUNK - 1)]],        // poll 2: consulta de offset
+            ['status' => 200, 'json' => ['id' => 'VID1', 'status' => ['uploadStatus' => 'uploaded']]], // poll 2: trozo 3 -> termina DENTRO del sondeo
+        ))
+        ->on('GET', '#youtube/v3/videos\?#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
+
+    $post = Post::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'text' => 'Mi titulo', 'scheduled_at' => now()->subMinute(), 'status' => PostStatus::Scheduled]);
+    $post->media()->attach($this->asset->id, ['position' => 0]);
+    $target = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $this->user->id, 'social_account_id' => $this->account->id,
+        'network' => Network::YouTube, 'content_type' => ContentType::YouTubeVideo,
+    ]);
+
+    app(DispatchDuePosts::class)(); // publish (trozo 1) + sondeo inmediato (cola sync, trozo 2): sigue subiendo
+    expect($target->fresh()->status)->toBe(PostStatus::Processing)->and($target->fresh()->external_reference)->toBe('subiendo');
+
+    Carbon::setTestNow(now()->addSeconds(31));
+    app(DispatchDuePosts::class)(); // sondeo: trozo 3, YouTube devuelve el ID DENTRO del sondeo
+    expect($target->fresh()->status)->toBe(PostStatus::Processing)->and($target->fresh()->external_reference)->toBe('VID1');
+
+    Carbon::setTestNow(now()->addSeconds(31));
+    app(DispatchDuePosts::class)(); // sondeo: ya con la referencia del video
+    $done = $target->fresh();
+    expect($done->status)->toBe(PostStatus::Published)->and($done->external_id)->toBe('VID1')->and($done->error_code)->toBeNull();
+});
+
+test('YouTubePublish: reprogramar un destino fallido olvida la referencia, los intentos y la sesion de subida cacheada (revision F3 #3 / F4-5)', function () {
+    $post = Post::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'text' => 'Mi titulo', 'scheduled_at' => now()->subMinute(), 'status' => PostStatus::Failed]);
+    $post->media()->attach($this->asset->id, ['position' => 0]);
+    $target = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $this->user->id, 'social_account_id' => $this->account->id, 'network' => Network::YouTube,
+        'content_type' => ContentType::YouTubeVideo, 'status' => PostStatus::Failed, 'attempts' => 4, 'external_reference' => 'subiendo',
+        'error_code' => 'sesion_perdida', 'error_message' => 'x',
+    ]);
+    Cache::put('youtube:upload:'.$target->id, YT_SESSION, now()->addDay());
+
+    app(PostService::class)->reschedule($this->user, $post->fresh(), now()->addMinutes(5));
+
+    $fresh = $target->fresh();
+    expect($fresh->status)->toBe(PostStatus::Scheduled)->and($fresh->external_reference)->toBeNull()->and($fresh->attempts)->toBe(0)
+        ->and($fresh->error_code)->toBeNull()->and($fresh->started_at)->toBeNull();
+    expect(Cache::has('youtube:upload:'.$target->id))->toBeFalse();
+});

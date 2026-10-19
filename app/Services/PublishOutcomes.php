@@ -55,15 +55,20 @@ class PublishOutcomes
         return $this->posts->transition($target, PostStatus::Processing, [
             'external_reference' => $result->reference,
             'next_attempt_at' => now()->addSeconds((int) config('publishing.poll_interval_seconds', 30)),
-        ]);
+        ] + ($result->progress !== null ? ['progress' => $result->progress] : []));
     }
 
-    /** Aun en proceso tras un sondeo: reprograma el siguiente. */
-    public function stillProcessing(PostTarget $target): PostTarget
+    /**
+     * Aun en proceso tras un sondeo: reprograma el siguiente y guarda el avance del paso (referencia/progreso).
+     *
+     * @param  array<string, mixed>  $extra  Campos a fijar a la vez (espera por cuota o reconexion).
+     */
+    public function stillProcessing(PostTarget $target, ?PublishResult $result = null, array $extra = []): PostTarget
     {
-        return $this->posts->transition($target, PostStatus::Processing, [
+        return $this->posts->transition($target, PostStatus::Processing, $extra + [
             'next_attempt_at' => now()->addSeconds((int) config('publishing.poll_interval_seconds', 30)),
-        ]);
+        ] + ($result?->reference !== null ? ['external_reference' => $result->reference] : [])
+          + ($result?->progress !== null ? ['progress' => $result->progress] : []));
     }
 
     /** Error transitorio: vuelve a `programada` con espera creciente, o falla si se agotaron los intentos. */

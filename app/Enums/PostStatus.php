@@ -40,6 +40,12 @@ enum PostStatus: string
         return $this === self::Draft || $this === self::Scheduled;
     }
 
+    /** Un destino en vuelo o publicado nunca se borra por debajo: hay rastro externo que perder. */
+    public function canBeDeleted(): bool
+    {
+        return ! $this->isInFlight() && ! $this->isFinal();
+    }
+
     /** En vuelo: el publicador esta trabajando en ello. */
     public function isInFlight(): bool
     {

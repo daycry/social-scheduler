@@ -23,7 +23,7 @@ class PostTarget extends Model
 
     protected $fillable = [
         'social_account_id', 'network', 'content_type', 'status', 'options', 'external_id', 'external_url',
-        'external_reference', 'status_note', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
+        'external_reference', 'progress', 'status_note', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
     ];
 
     protected function casts(): array
@@ -33,6 +33,7 @@ class PostTarget extends Model
             'content_type' => ContentType::class,
             'status' => PostStatus::class,
             'options' => 'array',
+            'progress' => 'array',
             'attempts' => 'integer',
             'started_at' => 'datetime',
             'next_attempt_at' => 'datetime',

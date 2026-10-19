@@ -5,12 +5,15 @@ namespace App\Jobs;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Enums\PostStatus;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Services\PublishOutcomes;
 use App\Services\PublishRequestFactory;
+use App\Services\QuotaPolicy;
+use App\Services\SocialAccountService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -61,6 +64,23 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        if ($account->status === SocialAccount::STATUS_DISCONNECTED) {
+            $outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta se desconecto antes de terminar de publicar.');
+
+            return;
+        }
+
+        if (! $account->isActive()) {
+            $this->waitForReconnection($outcomes, $target);
+
+            return;
+        }
+
+        // Fin de una espera (cuenta reconectada o cupo liberado): el reloj del sondeo empieza de nuevo.
+        if (in_array($target->error_code, ['reconexion', 'cuota'], true)) {
+            $target = $outcomes->stillProcessing($target, null, ['started_at' => now(), 'error_code' => null, 'error_message' => null]);
+        }
+
         if ($target->started_at && $target->started_at->lt(now()->subMinutes((int) config('publishing.poll_max_minutes', 30)))) {
             $outcomes->failed($target, 'timeout_procesado', 'La red no termino de procesar el contenido a tiempo.');
 
@@ -74,8 +94,14 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
 
             return;
         } catch (ReconnectRequiredException $e) {
-            // No se pierde el contenido ya enviado: se reintenta el sondeo cuando la cuenta se reconecte.
-            $outcomes->stillProcessing($target);
+            // No se pierde el contenido ya enviado: se marca la cuenta y el sondeo se retoma al reconectarla.
+            app(SocialAccountService::class)->flagReconnection($account, $e->getMessage());
+            $this->waitForReconnection($outcomes, $target, $e->getMessage());
+
+            return;
+        } catch (QuotaExceededException $e) {
+            // `media_publish` sin cupo: el contenedor ya existe, se aplica la politica de cuota sin recrearlo.
+            app(QuotaPolicy::class)->applyWhileProcessing($target, $e);
 
             return;
         } catch (Throwable $e) {
@@ -88,7 +114,17 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
         match (true) {
             $result->isPublished() => $outcomes->published($target, $result),
             $result->isFailed() => $outcomes->failed($target, 'rechazada', $result->message ?? 'La red no pudo procesar el contenido.'),
-            default => $outcomes->stillProcessing($target),
+            default => $outcomes->stillProcessing($target, $result),
         };
+    }
+
+    /** Cuenta pendiente de reconectar: sigue `procesando` con el reloj del sondeo reiniciado (no vence por tiempo). */
+    private function waitForReconnection(PublishOutcomes $outcomes, PostTarget $target, string $reason = 'La cuenta necesita reconectarse; la publicacion se completara al reconectar.'): void
+    {
+        $outcomes->stillProcessing($target, null, [
+            'started_at' => now(),
+            'error_code' => 'reconexion',
+            'error_message' => mb_substr($reason, 0, 500),
+        ]);
     }
 }

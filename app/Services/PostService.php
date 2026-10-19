@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Connectors\Google\YouTubePublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
@@ -14,6 +15,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -30,6 +32,12 @@ use Throwable;
  */
 class PostService
 {
+    /** Estado de un destino que empieza un intento NUEVO (tras un error o una edicion): nada del intento anterior sobrevive. */
+    private const FRESH_ATTEMPT = [
+        'external_id' => null, 'external_url' => null, 'external_reference' => null, 'attempts' => 0,
+        'progress' => null, 'error_code' => null, 'error_message' => null, 'status_note' => null, 'started_at' => null, 'next_attempt_at' => null,
+    ];
+
     public function __construct(private readonly MediaValidator $validator) {}
 
     /**
@@ -75,22 +83,26 @@ class PostService
     }
 
     /**
-     * Reemplaza contenido, media y destinos de una publicacion que sigue siendo editable.
+     * Actualiza contenido, media y destinos de una publicacion que sigue siendo editable. Los destinos que se
+     * conservan (misma cuenta y tipo) se ACTUALIZAN en vez de borrarse y recrearse, asi su historial de intentos
+     * sobrevive; solo se borran los destinos pendientes/con error que ya no estan en la lista.
      *
      * @param  array<string, mixed>  $data
      */
     public function update(User $user, Post $post, array $data): Post
     {
         $this->assertOwns($user, $post);
-        $this->assertEditable($post);
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
         $plan = $this->plan($user, $brand, $data);
 
         return DB::transaction(function () use ($post, $plan) {
+            // Bloquea los destinos ANTES de decidir: el claim de `PublishPostTarget` toma el mismo lock, asi que o
+            // gana el claim (aqui se ve `publicando` y se rechaza) o ganamos nosotros (el claim ve el estado nuevo).
+            $existing = $this->lockEditableTargets($post);
+
             $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']])->save();
-            $post->targets()->delete();
-            $this->fill($post, $plan);
+            $this->fill($post, $plan, $existing);
 
             return $post->fresh(['targets', 'media']);
         });
@@ -100,7 +112,6 @@ class PostService
     public function schedule(User $user, Post $post, string|CarbonInterface|null $when = null): Post
     {
         $this->assertOwns($user, $post);
-        $this->assertEditable($post);
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
         $data = [
@@ -120,10 +131,9 @@ class PostService
     public function unschedule(User $user, Post $post): Post
     {
         $this->assertOwns($user, $post);
-        $this->assertEditable($post);
 
         DB::transaction(function () use ($post) {
-            foreach ($post->targets()->lockForUpdate()->get() as $target) {
+            foreach ($this->lockEditableTargets($post) as $target) {
                 if ($target->status !== PostStatus::Draft) {
                     $this->applyTransition($target, PostStatus::Draft);
                 }
@@ -134,11 +144,14 @@ class PostService
         return $post->fresh();
     }
 
-    /** Cambia la fecha de una publicacion pendiente (CA-08); una ya publicada no se reprograma. */
+    /**
+     * Cambia la fecha de una publicacion pendiente (CA-08); una ya publicada no se reprograma. Los destinos
+     * `fallida` vuelven a `programada` como un destino NUEVO: sin referencia externa, intentos ni estado de
+     * sondeo del intento anterior (el historial en `publish_attempts` se conserva).
+     */
     public function reschedule(User $user, Post $post, string|CarbonInterface $when): Post
     {
         $this->assertOwns($user, $post);
-        $this->assertEditable($post);
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
         $at = $this->parseWhen($when, $brand);
@@ -147,10 +160,17 @@ class PostService
             throw new PostValidationException(['scheduled_at' => ['La nueva fecha debe ser futura.']]);
         }
 
-        $post->forceFill(['scheduled_at' => $at])->save();
-        $post->targets()->where('status', PostStatus::Failed->value)->get()
-            ->each(fn (PostTarget $t) => $this->transition($t, PostStatus::Scheduled, ['error_code' => null, 'error_message' => null, 'next_attempt_at' => null]));
-        $post->syncStatus();
+        DB::transaction(function () use ($post, $at) {
+            $targets = $this->lockEditableTargets($post);
+
+            $post->forceFill(['scheduled_at' => $at])->save();
+            $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
+                ->each(function (PostTarget $t) {
+                    $this->transition($t, PostStatus::Scheduled, self::FRESH_ATTEMPT);
+                    YouTubePublisher::forgetUploadSession($t->id); // la sesion de subida del intento anterior no se reutiliza
+                });
+            $post->syncStatus();
+        });
 
         return $post->fresh();
     }
@@ -159,9 +179,11 @@ class PostService
     public function delete(User $user, Post $post): void
     {
         $this->assertOwns($user, $post);
-        $this->assertEditable($post, 'No se puede borrar una publicacion que ya se ha publicado o se esta publicando.');
 
-        $post->delete();
+        DB::transaction(function () use ($post) {
+            $this->lockEditableTargets($post, 'No se puede borrar una publicacion que ya se ha publicado o se esta publicando.');
+            $post->delete();
+        });
     }
 
     /**
@@ -206,13 +228,21 @@ class PostService
         }
     }
 
-    private function assertEditable(Post $post, string $message = 'La publicacion ya se ha publicado o se esta publicando y no se puede modificar.'): void
+    /**
+     * Relee y BLOQUEA (`lockForUpdate`) los destinos del post dentro de la transaccion en curso y exige que ninguno
+     * este en vuelo ni publicado. Devuelve los destinos bloqueados, indexados por `cuenta|tipo`.
+     *
+     * @return Collection<string, PostTarget>
+     */
+    private function lockEditableTargets(Post $post, string $message = 'La publicacion ya se ha publicado o se esta publicando y no se puede modificar.'): Collection
     {
-        $blocked = $post->targets()->get()->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal());
+        $targets = PostTarget::withoutUserScope()->where('post_id', $post->id)->orderBy('id')->lockForUpdate()->get();
 
-        if ($blocked) {
+        if ($targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal())) {
             throw new PostValidationException(['post' => [$message]]);
         }
+
+        return $targets->keyBy(fn (PostTarget $t) => $t->social_account_id.'|'.$t->content_type->value);
     }
 
     /**
@@ -315,22 +345,56 @@ class PostService
         ];
     }
 
-    /** @param array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>} $plan */
-    private function fill(Post $post, array $plan): void
+    /**
+     * Sincroniza media y destinos con el plan. Los destinos existentes (ya bloqueados y editables) se actualizan;
+     * los que sobran se borran; los nuevos se crean.
+     *
+     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>}  $plan
+     * @param  Collection<string, PostTarget>|null  $existing
+     */
+    private function fill(Post $post, array $plan, ?Collection $existing = null): void
     {
+        $existing ??= new Collection;
         $post->media()->sync(collect($plan['media'])->mapWithKeys(fn (MediaAsset $m, int $i) => [$m->id => ['position' => $i]])->all());
 
+        $kept = [];
+
         foreach ($plan['targets'] as $t) {
-            $target = new PostTarget([
-                'social_account_id' => $t['account']->id,
-                'network' => $t['account']->network,
-                'content_type' => $t['type'],
-                'status' => $plan['status'],
-                'options' => $t['options'] ?: null,
-            ]);
-            $target->user_id = $post->user_id;
-            $target->post_id = $post->id;
-            $target->save();
+            $current = $existing->get($t['account']->id.'|'.$t['type']->value);
+
+            if ($current === null) {
+                $target = new PostTarget([
+                    'social_account_id' => $t['account']->id,
+                    'network' => $t['account']->network,
+                    'content_type' => $t['type'],
+                    'status' => $plan['status'],
+                    'options' => $t['options'] ?: null,
+                ]);
+                $target->user_id = $post->user_id;
+                $target->post_id = $post->id;
+                $target->save();
+
+                continue;
+            }
+
+            $kept[$current->id] = true;
+            // Un destino con error vuelve a empezar de cero; uno pendiente conserva sus intentos (idempotencia).
+            $attributes = ['options' => $t['options'] ?: null] + ($current->status === PostStatus::Failed ? self::FRESH_ATTEMPT : []);
+            if ($current->status === PostStatus::Failed) {
+                YouTubePublisher::forgetUploadSession($current->id);
+            }
+
+            if ($current->status === $plan['status']) {
+                $current->forceFill($attributes)->save();
+            } else {
+                $this->applyTransition($current, $plan['status'], $attributes);
+            }
+        }
+
+        foreach ($existing as $current) {
+            if (! isset($kept[$current->id]) && $current->status->canBeDeleted()) {
+                $current->delete();
+            }
         }
 
         $post->syncStatus();

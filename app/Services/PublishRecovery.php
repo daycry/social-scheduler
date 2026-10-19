@@ -7,6 +7,7 @@ use App\Jobs\PollPublishStatus;
 use App\Jobs\PublishPostTarget;
 use App\Models\Post;
 use App\Models\PostTarget;
+use App\Models\SocialAccount;
 
 /**
  * Mantenimiento que corre antes de despachar lo vencido, cada minuto y tambien al volver de una caida
@@ -87,6 +88,8 @@ class PublishRecovery
 
         PostTarget::withoutUserScope()->where('status', PostStatus::Processing->value)
             ->where(fn ($q) => $q->whereNull('next_attempt_at')->orWhere('next_attempt_at', '<=', now()))
+            // Con la cuenta pendiente de reconectar no se sondea: se retoma sola al reconectarla (no es un timeout).
+            ->whereIn('social_account_id', SocialAccount::withoutUserScope()->where('status', SocialAccount::STATUS_ACTIVE)->select('id'))
             ->chunkById(100, function ($targets) use (&$n) {
                 foreach ($targets as $target) {
                     PollPublishStatus::dispatch($target->id);

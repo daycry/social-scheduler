@@ -39,6 +39,15 @@ class PublishRequestFactory
             reference: $target->external_reference,
             // Margen de 5 min antes de la hora programada: desde ahi se busca lo ya publicado al reintentar.
             since: $post->scheduled_at?->copy()->subMinutes(5),
+            progress: $target->progress ?? [],
+            checkpoint: function (?string $reference, ?array $progress) use ($target): void {
+                $changes = array_filter(['external_reference' => $reference, 'progress' => $progress], fn ($v) => $v !== null);
+                if ($changes !== []) {
+                    // Escritura directa y minima: sin cambio de estado, para sobrevivir a un fallo del paso siguiente.
+                    $json = isset($changes['progress']) ? ['progress' => json_encode($changes['progress'])] : [];
+                    PostTarget::withoutUserScope()->whereKey($target->id)->update($json + $changes + ['updated_at' => now()]);
+                }
+            },
         );
     }
 }

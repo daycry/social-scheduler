@@ -20,6 +20,7 @@ final class PublishResult
         public readonly ?string $message = null,
         public readonly array $raw = [],
         public readonly ?string $note = null,
+        public readonly ?array $progress = null,
     ) {}
 
     /** @param ?string $note Aclaracion para el usuario cuando «publicada» no es la historia completa (p. ej. borrador en la bandeja de TikTok). */
@@ -28,9 +29,10 @@ final class PublishResult
         return new self(self::PUBLISHED, $externalId, $url, null, null, $raw, $note);
     }
 
-    public static function processing(string $reference, array $raw = []): self
+    /** @param ?array<string, mixed> $progress Progreso reanudable que se guarda en el destino (null = no cambia). */
+    public static function processing(string $reference, array $raw = [], ?array $progress = null): self
     {
-        return new self(self::PROCESSING, null, null, $reference, null, $raw);
+        return new self(self::PROCESSING, null, null, $reference, null, $raw, null, $progress);
     }
 
     public static function failed(string $message, array $raw = []): self

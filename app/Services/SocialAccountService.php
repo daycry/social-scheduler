@@ -7,8 +7,12 @@ use App\Connectors\Data\RefreshResult;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\ReconnectRequired;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Capa unica para web, jobs y MCP. Exige siempre el usuario/marca explicito:
@@ -130,6 +134,27 @@ class SocialAccountService
         ])->save();
 
         return $changed;
+    }
+
+    /**
+     * Marca la cuenta `requiere_reconexion` (bajo lock, una sola vez) y avisa al usuario. Lo usan la publicacion y
+     * el sondeo cuando la red rechaza las credenciales.
+     */
+    public function flagReconnection(SocialAccount $account, string $reason): void
+    {
+        $changed = DB::transaction(function () use ($account, $reason): bool {
+            $fresh = SocialAccount::withoutUserScope()->lockForUpdate()->find($account->id);
+
+            return $fresh && $fresh->isActive() && $this->markRequiresReconnection($fresh, $reason);
+        });
+
+        if ($changed) {
+            try {
+                $account->refresh()->user->notify(new ReconnectRequired($account, $reason));
+            } catch (Throwable $e) {
+                Log::error('publish.reconnect_notification_failed', ['account_id' => $account->id, 'exception' => $e::class]);
+            }
+        }
     }
 
     private function assertOwns(User $user, Brand $brand): void

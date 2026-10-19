@@ -14,7 +14,6 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\PublishAttempt;
 use App\Models\SocialAccount;
-use App\Notifications\ReconnectRequired;
 use App\Services\PostService;
 use App\Services\PublishOutcomes;
 use App\Services\PublishRequestFactory;
@@ -75,7 +74,7 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
             return; // ya publicada, en vuelo en otro worker, aplazada o replanificada
         }
 
-        [$target, $attempt] = $claim;
+        [$target, $attempt, $exhausted] = $claim;
 
         $account = $target->social_account_id ? SocialAccount::withoutUserScope()->find($target->social_account_id) : null;
 
@@ -104,8 +103,15 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
             $result = null;
 
             // Idempotencia: si ya hubo un intento (o una referencia externa), la red manda.
-            if ($target->attempts > 1 || $target->external_reference !== null) {
+            if ($exhausted || $target->attempts > 1 || $target->external_reference !== null) {
                 $result = $publisher->findPublished($account, $request);
+            }
+
+            if ($exhausted && $result === null) {
+                // Colgado en el ultimo intento y la red no tiene constancia: ahora si, fallo definitivo.
+                $outcomes->failed($target, 'reintentos_agotados', 'La publicacion se quedo colgada varias veces y se dio por fallida.', $attempt);
+
+                return;
             }
 
             $result ??= $publisher->publish($account, $request);
@@ -129,11 +135,15 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
     /**
      * Reclama el destino de forma atomica. Devuelve [destino, intento] o null si no hay nada que hacer.
      *
-     * @return array{0: PostTarget, 1: PublishAttempt}|null
+     * El tercer elemento es `true` cuando el destino se quedo colgado en el ultimo intento permitido: no se publica
+     * otra vez, solo se consulta la red (`findPublished`) antes de darlo por fallido.
+     *
+     * @return array{0: PostTarget, 1: PublishAttempt, 2: bool}|null
      */
     private function claim(PublishOutcomes $outcomes): ?array
     {
         return DB::transaction(function () use ($outcomes): ?array {
+            $exhausted = false;
             $target = PostTarget::withoutUserScope()->lockForUpdate()->find($this->targetId);
             $post = $target ? Post::withoutUserScope()->find($target->post_id) : null;
 
@@ -154,18 +164,13 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
                     return null;
                 }
 
-                if ($target->attempts >= (int) config('publishing.max_attempts', 4)) {
-                    $outcomes->failed($target, 'reintentos_agotados', 'La publicacion se quedo colgada varias veces y se dio por fallida.');
-
-                    return null;
-                }
-
-                $target->forceFill(['attempts' => $target->attempts + 1, 'started_at' => now()])->save();
+                $exhausted = $target->attempts >= (int) config('publishing.max_attempts', 4);
+                $target->forceFill($exhausted ? ['started_at' => now()] : ['attempts' => $target->attempts + 1, 'started_at' => now()])->save();
             } else {
                 return null;
             }
 
-            return [$target, $outcomes->startAttempt($target)];
+            return [$target, $outcomes->startAttempt($target), $exhausted];
         });
     }
 
@@ -187,20 +192,7 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
 
     private function requireReconnection(SocialAccountService $accounts, PublishOutcomes $outcomes, SocialAccount $account, PostTarget $target, PublishAttempt $attempt, string $reason): void
     {
-        $changed = DB::transaction(function () use ($accounts, $account, $reason): bool {
-            $fresh = SocialAccount::withoutUserScope()->lockForUpdate()->find($account->id);
-
-            return $fresh && $fresh->isActive() && $accounts->markRequiresReconnection($fresh, $reason);
-        });
-
+        $accounts->flagReconnection($account, $reason);
         $outcomes->awaitingReconnection($target, $reason, $attempt);
-
-        if ($changed) {
-            try {
-                $account->refresh()->user->notify(new ReconnectRequired($account, $reason));
-            } catch (Throwable $e) {
-                Log::error('publish.reconnect_notification_failed', ['account_id' => $account->id, 'exception' => $e::class]);
-            }
-        }
     }
 }

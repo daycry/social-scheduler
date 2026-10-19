@@ -493,6 +493,17 @@ class YouTubePublisher implements Publisher, StatusPoller
 
     private function sessionKey(PublishRequest $request): string
     {
-        return 'youtube:upload:'.$request->targetId;
+        return self::sessionCacheKey($request->targetId);
+    }
+
+    private static function sessionCacheKey(int $targetId): string
+    {
+        return 'youtube:upload:'.$targetId;
+    }
+
+    /** Olvida la sesion de subida reanudable cacheada de un destino (al empezar de cero tras un error). */
+    public static function forgetUploadSession(int $targetId): void
+    {
+        Cache::forget(self::sessionCacheKey($targetId));
     }
 }

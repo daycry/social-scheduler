@@ -8,6 +8,7 @@ use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -22,6 +23,7 @@ beforeEach(function () {
 
 function metaFake(array $over = []): void
 {
+    Http::swap(new Factory);
     $dataAccess = now()->addDays(90)->timestamp;
     Http::fake(array_merge([
         'graph.facebook.com/v23.0/oauth/access_token*' => function ($request) {

@@ -696,14 +696,14 @@ verificacion: obligatoria
 
 - **Descripción**: Contenedores de media de IG, polling del procesamiento, publicación y captura del permalink; manejo del límite de publicaciones por 24 h y de las limitaciones de stories (⚠️ verificar).
 - **Changelog**: Se publica en Instagram: imagen, carrusel, reel y story.
-- **Estado**: borrador
-- **Tiempo humano**: est. 22h · real —
-- **Tiempo IA (ejec.)**: est. 3.4h · real —
+- **Estado**: en-progreso
+- **Tiempo humano**: est. 22h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 3.4h · real 0.23h (medido)
 - **Supervisión**: est. 0.8h (≈25 % IA) · real —
 - **Previsión IA**: 911k in / 91k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/Instagram/`, `tests/Feature/Connectors/Meta/Instagram/`
+- **Archivos**: `app/Connectors/Meta/Instagram/`, `tests/Feature/Connectors/Meta/Instagram/`, `app/Connectors/Meta/GraphClient.php`, `app/Providers/AppServiceProvider.php`, `app/Enums/ContentType.php`, `app/Services/PublishRequestFactory.php`, `tests/Support/FakeGraph.php`, `tests/Feature/Connectors/Meta/Instagram/InstagramPublishTest.php`
 - **Cubre (tests)**: E2E-06, M-01
 - **Verificación**:
   - `php artisan test --filter=InstagramPublish` → pasa con respuestas grabadas
@@ -711,17 +711,20 @@ verificacion: obligatoria
 
 **Criterios de aceptación**
 - [ ] Cada tipo se publica y queda `publicada` con enlace/ID externo (CA-06)
-- [ ] Errores de la API mapeados a transitorios o permanentes
-- [ ] Limitaciones de stories avisadas en el compositor
+- [x] Errores de la API mapeados a transitorios o permanentes
+- [ ] Limitaciones de stories avisadas en el compositor (datos en ContentType::limitations(); se muestran en T-23)
 
 **Subtareas**
-- [ ] Imagen y carrusel
-- [ ] Reel con polling
-- [ ] Story
-- [ ] Mapeo de errores y límites
-- [ ] Tests con respuestas grabadas
+- [x] Imagen y carrusel
+- [x] Reel con polling
+- [x] Story
+- [x] Mapeo de errores y límites
+- [x] Tests con respuestas grabadas
 
 **Notas**: La validación real es manual (M-01).
+
+---
+**Notas (implementer, 2026-10-19)**: `InstagramPublisher` (Graph v23.0, token de Pagina) sigue el flujo del spike: contenedor `/{ig}/media` -> espera de `status_code` (FINISHED/IN_PROGRESS/ERROR/EXPIRED/PUBLISHED) -> `/{ig}/media_publish` -> permalink. Imagen y story publican en el acto si el contenedor ya esta FINISHED, si no pasan a `procesando` y `poll()` los publica; reel (`REELS`, `share_to_feed` configurable) siempre por sondeo; carrusel en dos fases (`external_reference` = `child:ID1,ID2` hasta que todos los hijos terminan y entonces crea el contenedor `CAROUSEL`). Cupo: consulta `content_publishing_limit` antes de gastar un contenedor (si no se puede consultar, intenta igualmente). Errores (`GraphClient`): 190 y afines -> reconexion; 2207042 -> cuota; 2207026/2207023/2207052... -> permanente con motivo legible; 2207001/2207003/2207027/9007, rate limit 4/17/32/613, 5xx y timeouts -> transitorio; (#10)/(#200) -> permanente `permisos` (instagram_content_publish). `findPublished` busca en la media reciente por descripcion + hora (limitacion documentada: una publicacion SIN texto no se puede reconocer tras un timeout). Limitaciones de stories y demas avisadas via `ContentType::limitations()` (el compositor las muestra en T-23). **Verificacion**: `php artisan test --filter=InstagramPublish` -> 22 passed, 102 assertions (los 4 tipos con respuestas simuladas de Graph, mapeo de errores, cupo, y de extremo a extremo por la cola: timeout en media_publish sin duplicar). **PENDIENTE (manual) M-01**: publicar de verdad los 4 tipos de IG en @aipocalipsis_oficial (necesita `instagram_content_publish` concedido y media accesible por URL publica) y registrar enlace/ID; el criterio `Cada tipo se publica ... (CA-06)` y la tarea siguen en-progreso hasta entonces.
 
 ### T-22 — Publicación en Facebook páginas: texto/enlace, foto, vídeo y reel
 

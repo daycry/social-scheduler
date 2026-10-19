@@ -35,7 +35,8 @@ class PublishRequestFactory
             media: $media,
             options: $target->options ?? [],
             reference: $target->external_reference,
-            since: $target->started_at,
+            // Margen de 5 min antes de la hora programada: desde ahi se busca lo ya publicado al reintentar.
+            since: $post->scheduled_at?->copy()->subMinutes(5),
         );
     }
 }

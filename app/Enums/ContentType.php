@@ -52,6 +52,23 @@ enum ContentType: string
     }
 
     /**
+     * Limitaciones de la API de la red que el compositor avisa al elegir el tipo (T-21).
+     *
+     * @return list<string>
+     */
+    public function limitations(): array
+    {
+        return match ($this) {
+            self::InstagramImage => ['Instagram solo acepta imagenes JPEG; las PNG o WebP se rechazan.'],
+            self::InstagramCarousel => ['El carrusel necesita entre 2 y 10 archivos; todos se recortan a la proporcion del primero.'],
+            self::InstagramReel => ['El reel se publica tambien en el feed salvo que lo desactives; el procesamiento del video puede tardar unos minutos.'],
+            self::InstagramStory => ['Las historias no admiten texto, enlaces ni stickers desde la API: solo se publica la imagen o el video (maximo 60 s).'],
+            self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app.'],
+            default => [],
+        };
+    }
+
+    /**
      * Clave de la regla en `config/media_specs.php`.
      *
      * @param  string|null  $firstMediaKind  'image' | 'video' (solo importa en las historias de Instagram).

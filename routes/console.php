@@ -37,3 +37,6 @@ Schedule::job(new CollectSnapshots)->dailyAt((string) config('social.analytics.d
 
 // Metricas de publicaciones recientes cada 6 h durante las primeras 72 h (T-36).
 Schedule::call(fn () => RefreshPostMetrics::dispatchDue())->cron('15 */6 * * *')->name('refresh-post-metrics')->withoutOverlapping(30);
+
+// Informes (M-9): expira los atascados y purga ficheros/filas pasada la retencion (reports.retention_days).
+Schedule::command('reports:prune')->dailyAt('04:10')->name('reports-prune')->withoutOverlapping();

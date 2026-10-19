@@ -18,4 +18,9 @@ class ReportPolicy
 
         return false;
     }
+
+    public function delete(User $user, Report $report): bool
+    {
+        return $this->view($user, $report);
+    }
 }

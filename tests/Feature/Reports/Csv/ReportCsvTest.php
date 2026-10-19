@@ -28,6 +28,17 @@ beforeEach(function () {
     }
 });
 
+function csvData(float $rate, bool $comparison): array
+{
+    return [
+        'brand' => ['id' => 1, 'name' => 'M'], 'period' => ['from' => '2026-10-01', 'to' => '2026-10-02', 'days' => 2],
+        'comparison' => $comparison ? ['from' => '2026-09-29', 'to' => '2026-09-30', 'days' => 2] : null,
+        'cards' => [['label' => 'Seguidores', 'total' => 10, 'previous' => null, 'delta_pct' => null, 'by_network' => []]],
+        'networks' => [['label' => 'Instagram', 'metrics' => [], 'engagement_rate' => $rate, 'posts' => []]],
+        'notes' => [],
+    ];
+}
+
 function generateReport(User $user, Brand $brand, string $format = 'csv'): Report
 {
     $service = app(ReportService::class);
@@ -40,10 +51,10 @@ it('ReportCsv: genera un CSV con los datos del rango en el disco de media (CA-11
 
     expect($report->status)->toBe('ready')->and($report->path)->toBe("reports/{$this->user->id}/{$report->id}.csv");
     $csv = Storage::disk('local')->get($report->path);
-    expect($csv)->toStartWith("\xEF\xBB\xBFseccion,red,elemento,metrica,fecha,valor,anterior,variacion_pct\n")
-        ->and($csv)->toContain('resumen,Instagram,,Visualizaciones,,50,')
+    expect($csv)->toStartWith("\xEF\xBB\xBF\"seccion\";\"red\";\"elemento\";\"metrica\";\"fecha\";\"valor\";\"anterior\";\"variacion_pct\"\n")
+        ->and($csv)->toContain('"resumen";"Instagram";"";"Visualizaciones";"";50;')
         ->and($csv)->toContain('2026-10-31')
-        ->and($csv)->toContain('no disponible'); // lo que la red no da nunca es 0
+        ->and($csv)->toContain('"no disponible"'); // lo que la red no da nunca es 0
 });
 
 it('ReportCsv: neutraliza la inyeccion de formulas (=, +, -, @)', function () {
@@ -53,8 +64,56 @@ it('ReportCsv: neutraliza la inyeccion de formulas (=, +, -, @)', function () {
     expect(ReportService::cell(-5))->toBe(-5)->and(ReportService::cell('normal'))->toBe('normal');
 
     $csv = Storage::disk('local')->get(generateReport($this->user, $this->brand)->path);
-    expect($csv)->toContain('informe,,"\'=HYPERLINK(""x"")",periodo');
-    expect($csv)->not->toContain(',=HYPERLINK');
+    expect($csv)->toContain('"informe";"";"\'=HYPERLINK(""x"")";"periodo"');
+    expect($csv)->not->toContain(';=HYPERLINK')->not->toContain('"=');
+});
+
+it('ReportCsv: la inyeccion con ; no se cuela en Excel es-ES (CWE-1236)', function () {
+    $payload = "x;=cmd|'/Ccalc'!A0;";
+    expect(ReportService::cell($payload))->toBe("x;'=cmd|'/Ccalc'!A0;")
+        ->and(ReportService::cell('a, -b'))->toBe("a, '-b")
+        ->and(ReportService::cell("a\t@b"))->toBe("a\t'@b");
+
+    $this->brand->update(['name' => $payload]);
+    $csv = Storage::disk('local')->get(generateReport($this->user, $this->brand)->path);
+
+    // Con la celda entrecomillada el `;` no la parte; y aunque otro programa la partiera, ningun tramo empieza por =.
+    expect($csv)->toContain('"informe";"";"x;\'=cmd|\'/Ccalc\'!A0;";"periodo"');
+
+    foreach (explode("\n", trim(substr($csv, 3))) as $line) {
+        $cells = str_getcsv($line, ';', '"', '');
+        expect($cells)->toHaveCount(8);
+
+        foreach ($cells as $cell) {
+            foreach (preg_split('/[;,\t]/', $cell) as $segment) {
+                expect(ltrim($segment))->not->toStartWith('=')->not->toStartWith('@');
+            }
+        }
+    }
+});
+
+it('ReportCsv: separador y decimal segun locale y texto siempre entre comillas', function () {
+    $service = app(ReportService::class);
+    expect($service->csv(csvData(0.5, comparison: true)))->toContain('"Tasa de interaccion (%)";"";0,5;');
+
+    config(['reports.csv_locale' => 'en']);
+    $csv = $service->csv(csvData(0.5, comparison: true));
+    expect($csv)->toContain('"Tasa de interaccion (%)","",0.5,')->and($csv)->not->toContain(';');
+});
+
+it('ReportCsv: distingue "sin comparacion" (vacio) de "no disponible"', function () {
+    $service = app(ReportService::class);
+    $without = $service->csv(csvData(1.5, comparison: false));
+    $with = $service->csv(csvData(1.5, comparison: true));
+
+    expect($without)->toContain('"resumen";"todas";"";"Seguidores";"";10;"";""')
+        ->and($with)->toContain('"resumen";"todas";"";"Seguidores";"";10;"no disponible";"no disponible"');
+});
+
+it('ReportCsv: incluye tasa de interaccion y notas de metricas no disponibles', function () {
+    $csv = Storage::disk('local')->get(generateReport($this->user, $this->brand)->path);
+
+    expect($csv)->toContain('"Tasa de interaccion (%)"')->toContain('"nota";"Instagram"')->toContain('"Cuentas que interactuaron"');
 });
 
 it('ReportCsv: aislamiento, no se crea informe de una marca ajena', function () {

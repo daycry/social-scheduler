@@ -15,6 +15,9 @@ use App\Connectors\Network;
 use App\Connectors\TikTok\Display as TikTokDisplay;
 use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
+use App\Models\Brand;
+use App\Models\Report;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -53,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // Informes (M-9): los FK en cascada no disparan eventos de modelo; se borran antes los ficheros de la marca/usuario.
+        Brand::deleting(fn (Brand $b) => Report::purgeFor('brand_id', $b->id));
+        User::deleting(fn (User $u) => Report::purgeFor('user_id', $u->id));
 
         // MCP (T-28/T-30): limite por API key (tras autenticar) y por IP (antes, contra adivinacion de keys).
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))

@@ -7,7 +7,7 @@ import { onBeforeUnmount, onMounted } from 'vue';
 
 /**
  * Informes (T-40, inspirado en Reporting de Metricool): elegir marca y rango, generar PDF y/o CSV en segundo plano,
- * ver el estado y descargar con enlace firmado (caduca). Mientras haya informes en curso la lista se refresca sola.
+ * ver el estado y descargar (al pulsar se genera un enlace firmado nuevo de unos minutos). Mientras haya informes en curso la lista se refresca sola.
  */
 const props = defineProps({
     brands: Array,
@@ -41,6 +41,12 @@ onMounted(() => {
     }, 4000);
 });
 onBeforeUnmount(() => clearInterval(timer));
+
+const remove = (r) => {
+    if (confirm(`Eliminar el informe de ${r.brand} (${r.format.toUpperCase()}, ${r.from} - ${r.to})? Tambien se borra su fichero.`)) {
+        router.delete(route('reports.destroy', r.id), { preserveScroll: true });
+    }
+};
 
 const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`) : '');
 </script>
@@ -108,6 +114,7 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                             <div class="flex items-center gap-3">
                                 <span class="rounded-full px-2 py-0.5 text-xs" :class="STATUS[r.status][1]">{{ STATUS[r.status][0] }}</span>
                                 <a v-if="r.download_url" :href="r.download_url" class="text-indigo-600 underline">Descargar</a>
+                                <button v-if="r.deletable" type="button" class="text-xs text-red-600 underline" @click="remove(r)">Eliminar</button>
                             </div>
                         </li>
                     </ul>

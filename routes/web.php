@@ -61,10 +61,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('posts/{post}', [PostController::class, 'update'])->name('posts.update');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 
-    // Informes PDF/CSV (T-40): la descarga exige sesion + enlace firmado + ser el dueno.
+    // Informes PDF/CSV (T-40). `link` genera un enlace firmado nuevo al pulsar Descargar (no caduca en pantalla);
+    // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
-    Route::get('reports/{report}/download', [ReportController::class, 'download'])->middleware('signed')->whereNumber('report')->name('reports.download');
+    Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');
+    Route::delete('reports/{report}', [ReportController::class, 'destroy'])->whereNumber('report')->name('reports.destroy');
 
     // API keys personales para el MCP (T-28).
     Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');
@@ -86,3 +88,8 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// Descarga de informes SOLO con firma (T-42 / Fase 9): sin sesion, para que la use tambien un agente MCP. La firma
+// (5 min) cubre el id del informe y su dueno; el controlador comprueba que coinciden, que el informe esta `ready` y audita.
+Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
+    ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');

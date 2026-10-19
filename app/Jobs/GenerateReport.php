@@ -7,6 +7,7 @@ use App\Services\ReportService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Genera un informe en la cola `reports` (T-39/T-40). `$timeout` 100 s < `--timeout` del worker (120 s); sin
@@ -40,8 +41,8 @@ class GenerateReport implements ShouldQueue
 
     public function failed(\Throwable $e): void
     {
-        Report::withoutUserScope()->whereKey($this->reportId)->update([
-            'status' => Report::STATUS_FAILED, 'error' => mb_strimwidth($e->getMessage(), 0, 400, '...'),
-        ]);
+        // Detalle al log; el usuario solo ve un mensaje generico.
+        Log::error('report.job_failed', ['report_id' => $this->reportId, 'error' => $e->getMessage()]);
+        Report::withoutUserScope()->whereKey($this->reportId)->update(['status' => Report::STATUS_FAILED, 'error' => ReportService::GENERIC_ERROR]);
     }
 }

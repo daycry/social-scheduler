@@ -14,10 +14,12 @@ use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Support\MediaChunkReader;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Publicacion en TikTok (Content Posting API), decision G1 = D + B:
@@ -29,11 +31,30 @@ use Illuminate\Support\Facades\Log;
  *  - Video >= 23 fps antes de subir (`frame_rate_check_failed`). Foto/carrusel por PULL_FROM_URL solo con dominio verificado.
  *  - Estado por `/v2/post/publish/status/fetch/`. `creator_info/query` lleva cuerpo `{}`.
  *
- * `external_reference` = publish_id.
+ * `external_reference` = publish_id, desde ANTES de subir el primer trozo (`checkpoint`): un corte en cualquier PUT se
+ * reconcilia por el con `status/fetch`, nunca con un `init` nuevo (no hay borradores duplicados).
+ *
+ * Subida por pasadas: un job dura como maximo 110 s. La subida se reparte en pasadas con presupuesto
+ * (`social.tiktok.upload_budget_seconds`) y su estado vive en `progress` (`phase = uploading`, `upload_url`, trozo siguiente);
+ * `PollPublishStatus` la continua. Al acabar, `progress.phase = processing` y `uploaded_at` (arranca el plazo de procesado).
+ *
+ * Borrador (inbox) atascado: TikTok puede dejar `PROCESSING_UPLOAD` indefinidamente aunque el video ya esta en la bandeja
+ * (observado en el spike en sandbox). Pasado `social.tiktok.inbox_grace_minutes` desde la subida completa se da por
+ * `publicada` con una nota ("TikTok no confirmo el estado") en lugar de `fallida`: el video ya esta subido y el usuario
+ * lo termina en su app. `external_id` de un borrador es el `publish_id` (NO un ID de video): `progress.external_id_kind =
+ * publish_id` lo marca para que la analitica (T-34) no lo use como ID de video.
  */
 class TikTokPublisher implements Publisher, StatusPoller
 {
+    /** Inicio de la pasada de subida en curso (acota el timeout HTTP a la marca dura). */
+    private ?float $passStartedAt = null;
+
     public const INBOX_NOTE = 'Enviado a la bandeja de TikTok: abre la app y termina de publicarlo desde tus borradores.';
+
+    public const INBOX_UNCONFIRMED_NOTE = 'Enviado a la bandeja (TikTok no confirmo el estado); revisa tus borradores.';
+
+    /** Marca en `progress` de que `external_id` es un publish_id y no el ID de un video. */
+    public const KIND_PUBLISH_ID = 'publish_id';
 
     private const API = 'https://open.tiktokapis.com';
 
@@ -72,15 +93,34 @@ class TikTokPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('Falta el publish_id de TikTok.', 'sin_referencia');
         }
 
+        // Subida a medias: se continua desde el trozo siguiente guardado en `progress`.
+        if (($request->progress['phase'] ?? null) === 'uploading') {
+            return $this->resumeUpload($account, $request);
+        }
+
         $data = $this->api($account, '/v2/post/publish/status/fetch/', ['publish_id' => $request->reference]);
         $status = (string) ($data['status'] ?? '');
+        $kind = ['phase' => 'done', 'external_id_kind' => self::KIND_PUBLISH_ID];
 
         return match ($status) {
             'PUBLISH_COMPLETE' => $this->complete($account, $request->reference, $data),
-            'SEND_TO_USER_INBOX' => PublishResult::published($request->reference, null, [], self::INBOX_NOTE),
+            'SEND_TO_USER_INBOX' => PublishResult::published($request->reference, null, [], self::INBOX_NOTE, $kind),
             'FAILED' => $this->failure((string) ($data['fail_reason'] ?? '')),
-            default => PublishResult::processing($request->reference), // PROCESSING_UPLOAD | PROCESSING_DOWNLOAD
+            default => $this->stuckDraft($account, $request, $status)
+                ? PublishResult::published($request->reference, null, [], self::INBOX_UNCONFIRMED_NOTE, $kind)
+                : PublishResult::processing($request->reference), // PROCESSING_UPLOAD | PROCESSING_DOWNLOAD
         };
+    }
+
+    /** Borrador con la subida completa hace mas de `inbox_grace_minutes` y TikTok sin confirmar el estado. */
+    private function stuckDraft(SocialAccount $account, PublishRequest $request, string $status): bool
+    {
+        $uploadedAt = (int) ($request->progress['uploaded_at'] ?? 0);
+
+        return $status === 'PROCESSING_UPLOAD'
+            && ! self::directPost($account)
+            && $uploadedAt > 0
+            && now()->timestamp - $uploadedAt >= (int) config('social.tiktok.inbox_grace_minutes', 10) * 60;
     }
 
     public function findPublished(SocialAccount $account, PublishRequest $request): ?PublishResult
@@ -119,6 +159,7 @@ class TikTokPublisher implements Publisher, StatusPoller
         }
 
         $reader = MediaChunkReader::for($media);
+        $this->passStartedAt = microtime(true);
 
         try {
             if ($reader->size <= 0) {
@@ -142,11 +183,43 @@ class TikTokPublisher implements Publisher, StatusPoller
             }
 
             $this->assertUploadHost($uploadUrl);
-            $this->uploadChunks($uploadUrl, $media, $reader, $chunk, $count);
 
-            return PublishResult::processing($publishId);
+            // El publish_id y el estado de la subida se guardan ANTES del primer PUT: si el job muere a mitad (o en el
+            // ultimo trozo), el reintento reconcilia con este publish_id en vez de abrir un borrador nuevo.
+            $progress = ['phase' => 'uploading', 'upload_url' => $uploadUrl, 'chunk_size' => $chunk, 'chunk_count' => $count, 'next' => 0, 'size' => $reader->size];
+            $request->checkpoint($publishId, $progress);
+
+            return $this->uploadChunks($request, $publishId, $progress, $media, $reader);
         } finally {
             $reader->close();
+            $this->passStartedAt = null;
+        }
+    }
+
+    /** Continua una subida a medias (estado en `progress`) dentro de una pasada con presupuesto. */
+    private function resumeUpload(SocialAccount $account, PublishRequest $request): PublishResult
+    {
+        $progress = $request->progress;
+        $media = $request->firstMedia();
+
+        if ($media === null || ! $media->isVideo() || ! is_string($progress['upload_url'] ?? null)) {
+            throw new PermanentPublishException('Se perdio el estado de la subida a TikTok; reprograma la publicacion.', 'sesion_perdida');
+        }
+
+        $reader = MediaChunkReader::for($media);
+        $this->passStartedAt = microtime(true);
+
+        try {
+            if ($reader->size !== (int) ($progress['size'] ?? -1)) {
+                throw new PermanentPublishException('El video cambio durante la subida a TikTok; reprograma la publicacion.', 'media_invalida');
+            }
+
+            $this->assertUploadHost((string) $progress['upload_url']);
+
+            return $this->uploadChunks($request, (string) $request->reference, $progress, $media, $reader);
+        } finally {
+            $reader->close();
+            $this->passStartedAt = null;
         }
     }
 
@@ -162,28 +235,47 @@ class TikTokPublisher implements Publisher, StatusPoller
         return [$chunk, max(1, intdiv($size, $chunk))];
     }
 
-    private function uploadChunks(string $url, PublishMedia $media, MediaChunkReader $reader, int $chunk, int $count): void
+    /**
+     * Sube los trozos desde `progress.next` hasta terminar o agotar el presupuesto de la pasada. Cada trozo se envia en
+     * streaming (el cuerpo es un flujo de la lectura por rango, nunca el trozo entero en memoria) y su avance se guarda.
+     *
+     * @param  array<string, mixed>  $progress
+     */
+    private function uploadChunks(PublishRequest $request, string $publishId, array $progress, PublishMedia $media, MediaChunkReader $reader): PublishResult
     {
+        $url = (string) $progress['upload_url'];
+        $chunk = (int) $progress['chunk_size'];
+        $count = (int) $progress['chunk_count'];
         $size = $reader->size;
-        $offset = 0;
+        $first = true;
 
-        for ($i = 0; $i < $count; $i++) {
+        for ($i = (int) ($progress['next'] ?? 0); $i < $count; $i++) {
+            // Presupuesto comprobado ANTES de cada PUT (el primero de la pasada siempre se intenta: garantiza avance).
+            if (! $first && $this->budgetLeft() < (float) config('social.tiktok.upload_min_slice_seconds', 15)) {
+                return PublishResult::processing($publishId, [], $progress);
+            }
+            $first = false;
+
+            $offset = $i * $chunk;
             $length = $i === $count - 1 ? $size - $offset : $chunk;
-            $data = $reader->chunk($offset, $length);
+            $body = $reader->stream($offset, $length);
 
-            if (strlen($data) !== $length) {
+            if ($body->getSize() !== $length) {
+                $body->close();
+
                 throw new TransientPublishException('No se pudo leer el video del almacenamiento.', 'lectura_media');
             }
 
             try {
-                $response = Http::timeout((int) config('social.tiktok.upload_timeout', 100))
+                $response = Http::timeout($this->callTimeout((float) config('social.tiktok.upload_timeout', 100)))
                     ->withHeaders(['Content-Range' => 'bytes '.$offset.'-'.($offset + $length - 1).'/'.$size])
-                    ->withBody($data, $media->mime)
+                    ->withBody($body, $media->mime)
                     ->put($url);
             } catch (ConnectionException) {
                 throw new TransientPublishException('Se corto la subida del video a TikTok.', 'red');
+            } finally {
+                $body->close();
             }
-            unset($data);
 
             // 206 en los trozos intermedios y 201 en el ultimo.
             if (! in_array($response->status(), [200, 201, 206], true)) {
@@ -194,8 +286,36 @@ class TikTokPublisher implements Publisher, StatusPoller
                 throw new PermanentPublishException('TikTok rechazo la subida del video ('.$response->status().').', 'subida_rechazada');
             }
 
-            $offset += $length;
+            $progress['next'] = $i + 1;
+
+            if ($progress['next'] < $count) {
+                $request->checkpoint($publishId, $progress);
+            }
         }
+
+        // Subida completa: empieza el procesado (y su plazo).
+        return PublishResult::processing($publishId, [], ['phase' => 'processing', 'uploaded_at' => now()->timestamp]);
+    }
+
+    /** Segundos que quedan del presupuesto blando de subida de la pasada. */
+    private function budgetLeft(): float
+    {
+        return (float) config('social.tiktok.upload_budget_seconds', 80) - $this->elapsed();
+    }
+
+    private function elapsed(): float
+    {
+        return $this->passStartedAt === null ? 0.0 : microtime(true) - $this->passStartedAt;
+    }
+
+    /** Timeout HTTP acotado a lo que queda hasta la marca dura de la pasada (`pass_seconds` < `$timeout` 110 s del job). */
+    private function callTimeout(float $cap): float
+    {
+        if ($this->passStartedAt === null) {
+            return $cap;
+        }
+
+        return max(1.0, min($cap, (float) config('social.tiktok.pass_seconds', 100) - $this->elapsed()));
     }
 
     private function assertUploadHost(string $url): void
@@ -225,12 +345,16 @@ class TikTokPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('Faltan las imagenes de la publicacion.', 'media_invalida');
         }
 
+        if (! str_starts_with($domain, 'https://') || parse_url($domain, PHP_URL_HOST) === null) {
+            throw new PermanentPublishException('TIKTOK_VERIFIED_DOMAIN debe ser una URL https (el dominio verificado en TikTok).', 'dominio_no_verificado');
+        }
+
         $urls = [];
         foreach ($request->media as $m) {
             if ($m->kind !== 'image') {
                 throw new PermanentPublishException('Las fotos de TikTok solo admiten imagenes.', 'media_invalida');
             }
-            $urls[] = $this->onDomain($m->url, $domain);
+            $urls[] = $this->onDomain($m, $domain);
         }
 
         $direct = self::directPost($account);
@@ -241,7 +365,7 @@ class TikTokPublisher implements Publisher, StatusPoller
             'post_mode' => $direct ? 'DIRECT_POST' : 'MEDIA_UPLOAD',
             'source_info' => ['source' => 'PULL_FROM_URL', 'photo_cover_index' => 0, 'photo_images' => $urls],
             'post_info' => $direct
-                ? $this->postInfo($account, $request) + ['description' => mb_substr($text, 0, 4000)]
+                ? array_merge($this->postInfo($account, $request), ['title' => mb_substr((string) strtok($text, "\r\n"), 0, 90), 'description' => mb_substr($text, 0, 4000)])
                 : ['title' => mb_substr((string) strtok($text, "\r\n"), 0, 90), 'description' => mb_substr($text, 0, 4000)],
         ];
 
@@ -254,12 +378,25 @@ class TikTokPublisher implements Publisher, StatusPoller
         return PublishResult::processing((string) $init['publish_id']);
     }
 
-    /** La URL firmada de media debe colgar del dominio verificado (se reescribe el host). */
-    private function onDomain(string $url, string $domain): string
+    /**
+     * URL publica de una imagen bajo el dominio verificado: `<dominio>/<clave del objeto>` (sin `/bucket` ni query firmada).
+     * Exige que el dominio verificado sea el DOMINIO PUBLICO del bucket y que las imagenes sean legibles sin firma: TikTok
+     * descarga la URL tal cual, y reescribir el host de una URL firmada SigV4 (o path-style `/bucket/clave`) no funciona.
+     */
+    private function onDomain(PublishMedia $media, string $domain): string
     {
-        $query = parse_url($url, PHP_URL_QUERY);
+        if ($media->path === null || $media->path === '') {
+            throw new PermanentPublishException('No se encuentra la imagen en el almacenamiento.', 'media_invalida');
+        }
 
-        return $domain.(string) parse_url($url, PHP_URL_PATH).($query ? '?'.$query : '');
+        $root = '';
+        if ($media->disk !== null && ($disk = Storage::disk($media->disk)) instanceof AwsS3V3Adapter) {
+            $root = trim((string) ($disk->getConfig()['root'] ?? ''), '/'); // prefijo del bucket: forma parte de la clave
+        }
+
+        $key = ($root !== '' ? $root.'/' : '').ltrim($media->path, '/');
+
+        return $domain.'/'.implode('/', array_map('rawurlencode', explode('/', $key)));
     }
 
     // ------------------------------------------------------------------ direct post
@@ -276,7 +413,7 @@ class TikTokPublisher implements Publisher, StatusPoller
         }
 
         return [
-            'title' => mb_substr(trim((string) $request->text), 0, 2200),
+            'title' => mb_substr(trim((string) $request->text), 0, 2200), // video: 2.200; la foto lo recorta a 90
             'privacy_level' => $asked,
             'disable_comment' => (bool) ($request->options['disable_comment'] ?? false),
         ];
@@ -292,7 +429,7 @@ class TikTokPublisher implements Publisher, StatusPoller
     private function api(SocialAccount $account, string $path, ?array $body): array
     {
         try {
-            $response = Http::timeout((int) config('social.http_timeout', 15))->acceptJson()
+            $response = Http::timeout($this->callTimeout((float) config('social.http_timeout', 15)))->acceptJson()
                 ->withToken((string) $account->access_token)
                 ->withBody($body === null || $body === [] ? '{}' : json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'application/json; charset=UTF-8')
                 ->post(self::API.$path);
@@ -332,12 +469,12 @@ class TikTokPublisher implements Publisher, StatusPoller
         $postId = (string) ($ids[0] ?? '');
 
         if ($postId === '') {
-            return PublishResult::published($publishId);
+            return PublishResult::published($publishId, null, [], null, ['phase' => 'done', 'external_id_kind' => self::KIND_PUBLISH_ID]);
         }
 
         $user = $account->username ? '@'.ltrim($account->username, '@') : '';
 
-        return PublishResult::published($postId, $user !== '' ? "https://www.tiktok.com/{$user}/video/{$postId}" : null);
+        return PublishResult::published($postId, $user !== '' ? "https://www.tiktok.com/{$user}/video/{$postId}" : null, [], null, ['phase' => 'done', 'external_id_kind' => 'video_id']);
     }
 
     private function failure(string $reason): PublishResult

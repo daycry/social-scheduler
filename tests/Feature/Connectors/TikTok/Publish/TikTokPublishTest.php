@@ -3,6 +3,7 @@
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
+use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
@@ -48,9 +49,9 @@ function ttAsset(int $size, float $fps = 30.0): PublishMedia
     return new PublishMedia($asset->id, 'video', 'video/mp4', 'https://cdn.test/v.mp4?sig=1', 1080, 1920, 20.0, $fps, $size, $asset->disk, $asset->path);
 }
 
-function ttRequest(PublishMedia|array $media, ContentType $type = ContentType::TikTokVideo, ?string $text = 'Mi video', array $options = [], ?string $reference = null): PublishRequest
+function ttRequest(PublishMedia|array $media, ContentType $type = ContentType::TikTokVideo, ?string $text = 'Mi video', array $options = [], ?string $reference = null, array $progress = []): PublishRequest
 {
-    return new PublishRequest(55, $type, $text, is_array($media) ? $media : [$media], $options, $reference, now()->subMinutes(5));
+    return new PublishRequest(55, $type, $text, is_array($media) ? $media : [$media], $options, $reference, now()->subMinutes(5), $progress);
 }
 
 function ttInit(FakeHttp $http, string $path = 'inbox/video'): void
@@ -186,13 +187,17 @@ test('TikTokPublish: un trozo que TikTok rechaza con 5xx se reintenta como trans
     expect(fn () => $this->tt->publish($this->account, ttRequest(ttAsset(TT_MB))))->toThrow(TransientPublishException::class);
 });
 
-test('TikTokPublish: foto/carrusel por PULL_FROM_URL solo con dominio verificado y con las URLs bajo ese dominio', function () {
-    $img = fn ($n) => new PublishMedia($n, 'image', 'image/jpeg', "https://r2.test/media/$n.jpg?X-Sig=abc", 1080, 1080);
+test('TikTokPublish: foto/carrusel por PULL_FROM_URL con la clave del objeto bajo el dominio verificado, sin firma ni /bucket (revision F4-5 #15)', function () {
+    $img = fn ($n) => new PublishMedia($n, 'image', 'image/jpeg', "https://acct.r2.cloudflarestorage.com/bucket/media/$n.jpg?X-Amz-Signature=abc", 1080, 1080, disk: 'local', path: "media/mi foto $n.jpg");
 
     expect(fn () => $this->tt->publish($this->account, ttRequest([$img(1)], ContentType::TikTokPhoto)))->toThrow(PermanentPublishException::class, 'dominio verificado');
     expect($this->http->calls)->toBe([]);
 
-    config(['social.tiktok.verified_domain' => 'https://media.midominio.test']);
+    config(['social.tiktok.verified_domain' => 'http://media.midominio.test']); // http: no vale
+    expect(fn () => $this->tt->publish($this->account, ttRequest([$img(1)], ContentType::TikTokPhoto)))->toThrow(PermanentPublishException::class, 'https');
+    expect($this->http->calls)->toBe([]);
+
+    config(['social.tiktok.verified_domain' => 'https://media.midominio.test/']);
     $this->http->on('POST', '#/content/init/$#', ['json' => ['data' => ['publish_id' => 'ph1'], 'error' => ['code' => 'ok']]]);
 
     $r = $this->tt->publish($this->account, ttRequest([$img(1), $img(2)], ContentType::TikTokPhoto, "Titulo\nResto"));
@@ -201,8 +206,21 @@ test('TikTokPublish: foto/carrusel por PULL_FROM_URL solo con dominio verificado
     $body = $this->http->callsTo('POST', '#/content/init/#')[0]['json'];
     expect($body['media_type'])->toBe('PHOTO')->and($body['post_mode'])->toBe('MEDIA_UPLOAD')
         ->and($body['source_info']['source'])->toBe('PULL_FROM_URL')
-        ->and($body['source_info']['photo_images'])->toBe(['https://media.midominio.test/media/1.jpg?X-Sig=abc', 'https://media.midominio.test/media/2.jpg?X-Sig=abc'])
+        ->and($body['source_info']['photo_images'])->toBe(['https://media.midominio.test/media/mi%20foto%201.jpg', 'https://media.midominio.test/media/mi%20foto%202.jpg'])
         ->and($body['post_info']['title'])->toBe('Titulo');
+});
+
+test('TikTokPublish: el titulo de una foto en Direct Post se recorta a 90 caracteres (revision F4-5 #16)', function () {
+    $this->account->forceFill(['meta' => ['direct_post' => true]])->save();
+    config(['social.tiktok.verified_domain' => 'https://media.midominio.test']);
+    $this->http->on('POST', '#creator_info/query/$#', ['json' => ['data' => ['privacy_level_options' => ['SELF_ONLY']], 'error' => ['code' => 'ok']]])
+        ->on('POST', '#/content/init/$#', ['json' => ['data' => ['publish_id' => 'ph1'], 'error' => ['code' => 'ok']]]);
+    $img = new PublishMedia(1, 'image', 'image/jpeg', 'https://x.test/1.jpg', 1080, 1080, disk: 'local', path: 'media/1.jpg');
+
+    $this->tt->publish($this->account, ttRequest([$img], ContentType::TikTokPhoto, str_repeat('t', 300)));
+
+    $info = $this->http->callsTo('POST', '#/content/init/#')[0]['json']['post_info'];
+    expect(mb_strlen($info['title']))->toBe(90)->and(mb_strlen($info['description']))->toBe(300);
 });
 
 test('TikTokPublish: findPublished sin publish_id no inventa nada y con el consulta su estado', function () {
@@ -238,4 +256,78 @@ test('TikTokPublish: de extremo a extremo por la cola el borrador queda publicad
 
     $done = $target->fresh();
     expect($done->status)->toBe(PostStatus::Published)->and($done->external_id)->toBe('v_pub_1')->and($done->external_url)->toBeNull()->and($done->status_note)->toContain('bandeja de TikTok');
+});
+
+test('TikTokPublish: el publish_id y el estado de la subida se guardan ANTES del primer PUT; un corte se reconcilia por el (revision F4-5 #11)', function () {
+    ttInit($this->http);
+    $this->http->on('PUT', '#upload_id=U1#', FakeHttp::seq(new ConnectionException('corte'), ['status' => 201]));
+    $saved = [];
+    $req = new PublishRequest(55, ContentType::TikTokVideo, 'Mi video', [ttAsset(3 * TT_MB)], [], null, now()->subMinutes(5), [], function ($ref, $progress) use (&$saved) {
+        $saved[] = [$ref, $progress, count($this->http->callsTo('PUT', '#upload_id=U1#'))];
+    });
+
+    expect(fn () => $this->tt->publish($this->account, $req))->toThrow(TransientPublishException::class);
+
+    expect($saved)->toHaveCount(1)->and($saved[0][0])->toBe('v_pub_1')->and($saved[0][2])->toBe(0) // guardado con 0 PUT hechos
+        ->and($saved[0][1])->toMatchArray(['phase' => 'uploading', 'upload_url' => TT_UPLOAD, 'next' => 0, 'chunk_count' => 1]);
+
+    // Reintento: con el publish_id y el progreso guardados NO se llama a init otra vez; se continua el trozo pendiente.
+    $this->http->calls = [];
+    $retry = new PublishRequest(55, ContentType::TikTokVideo, 'Mi video', [ttAsset(3 * TT_MB)], [], 'v_pub_1', now()->subMinutes(5), $saved[0][1]);
+
+    $r = $this->tt->poll($this->account, $retry);
+
+    expect($r->isProcessing())->toBeTrue()->and($r->progress['phase'])->toBe('processing')->and($r->progress['uploaded_at'])->toBeInt();
+    expect($this->http->callsTo('POST', '#/init/#'))->toBe([]);
+});
+
+test('TikTokPublish: la subida se reparte en pasadas con presupuesto: guarda el trozo siguiente y el sondeo la continua (revision F4-5 #8)', function () {
+    config(['social.tiktok.single_chunk_max_bytes' => 5 * TT_MB, 'social.tiktok.upload_budget_seconds' => 0]);
+    ttInit($this->http);
+    $this->http->on('PUT', '#upload_id=U1#', FakeHttp::seq(['status' => 206], ['status' => 206], ['status' => 201]));
+    $size = 35 * TT_MB; // 3 trozos de 10 MB + el ultimo absorbe el resto -> total 3
+    $media = ttAsset($size);
+
+    $first = $this->tt->publish($this->account, ttRequest($media));
+    expect($first->reference)->toBe('v_pub_1')->and($first->progress)->toMatchArray(['phase' => 'uploading', 'next' => 1, 'chunk_count' => 3]);
+    expect(PublishResult::isUploadingState($first->reference, $first->progress))->toBeTrue();
+
+    $second = $this->tt->poll($this->account, ttRequest($media, reference: 'v_pub_1', progress: $first->progress));
+    expect($second->progress)->toMatchArray(['phase' => 'uploading', 'next' => 2]);
+
+    $third = $this->tt->poll($this->account, ttRequest($media, reference: 'v_pub_1', progress: $second->progress));
+    expect($third->progress['phase'])->toBe('processing')->and(PublishResult::isUploadingState($third->reference, $third->progress))->toBeFalse();
+
+    $ranges = array_map(fn ($c) => $c['headers']['content-range'], $this->http->callsTo('PUT', '#upload_id=U1#'));
+    expect($ranges)->toBe([
+        'bytes 0-'.(10 * TT_MB - 1).'/'.$size, 'bytes '.(10 * TT_MB).'-'.(20 * TT_MB - 1).'/'.$size, 'bytes '.(20 * TT_MB).'-'.($size - 1).'/'.$size,
+    ]);
+    expect($this->http->callsTo('POST', '#/inbox/video/init/#'))->toHaveCount(1); // un solo init en toda la subida
+});
+
+test('TikTokPublish: un borrador atascado en PROCESSING_UPLOAD tras la subida completa se da por publicado con nota, no fallido (revision F4-5 #6)', function () {
+    $this->http->on('POST', '#status/fetch/$#', ['json' => ['data' => ['status' => 'PROCESSING_UPLOAD'], 'error' => ['code' => 'ok']]]);
+    $at = fn (int $minutes) => ['phase' => 'processing', 'uploaded_at' => now()->subMinutes($minutes)->timestamp];
+
+    // Dentro del margen: sigue en proceso.
+    expect($this->tt->poll($this->account, ttRequest([], reference: 'v_pub_1', progress: $at(3)))->isProcessing())->toBeTrue();
+
+    // Pasado el margen: publicada con la nota y el publish_id marcado como tal.
+    $done = $this->tt->poll($this->account, ttRequest([], reference: 'v_pub_1', progress: $at(11)));
+    expect($done->isPublished())->toBeTrue()->and($done->note)->toBe(TikTokPublisher::INBOX_UNCONFIRMED_NOTE)->and($done->externalId)->toBe('v_pub_1')
+        ->and($done->progress['external_id_kind'])->toBe('publish_id');
+
+    // Direct Post NO se resuelve asi: ahi PROCESSING_UPLOAD sigue su plazo normal.
+    $this->account->forceFill(['meta' => ['direct_post' => true]])->save();
+    expect($this->tt->poll($this->account->fresh(), ttRequest([], reference: 'v_pub_1', progress: $at(11)))->isProcessing())->toBeTrue();
+});
+
+test('TikTokPublish: tras SEND_TO_USER_INBOX el external_id se marca como publish_id y no como ID de video, para T-34 (revision F4-5 #13)', function () {
+    $this->http->on('POST', '#status/fetch/$#', FakeHttp::seq(
+        ['json' => ['data' => ['status' => 'SEND_TO_USER_INBOX'], 'error' => ['code' => 'ok']]],
+        ['json' => ['data' => ['status' => 'PUBLISH_COMPLETE', 'publicaly_available_post_id' => ['7001']], 'error' => ['code' => 'ok']]],
+    ));
+
+    expect($this->tt->poll($this->account, ttRequest([], reference: 'v_pub_1'))->progress['external_id_kind'])->toBe('publish_id');
+    expect($this->tt->poll($this->account, ttRequest([], reference: 'v_pub_1'))->progress['external_id_kind'])->toBe('video_id');
 });

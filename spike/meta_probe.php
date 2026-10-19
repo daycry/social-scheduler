@@ -5,7 +5,8 @@
  * Servidor de callback: php -S 127.0.0.1:8080 spike/meta_probe.php  (atiende /meta/callback)
  */
 const P = 'meta';
-const SCOPES = 'business_management,pages_show_list,pages_read_engagement,pages_manage_posts,read_insights,instagram_basic,instagram_content_publish,instagram_manage_insights';
+// instagram_manage_contents: necesario para borrar media de IG (DELETE /{ig-media-id})
+const SCOPES = 'instagram_manage_contents,business_management,pages_show_list,pages_read_engagement,pages_manage_posts,read_insights,instagram_basic,instagram_content_publish,instagram_manage_insights';
 
 // ---------- helpers comunes (copiados en cada probe; desechables) ----------
 function load_env(): void {
@@ -182,7 +183,7 @@ if (PHP_SAPI === 'cli-server') {
     } else { http_response_code(404); echo "esperando /meta/callback?code=...\n"; }
     return;
 }
-$o = getopt('', ['auth', 'code:', 'publish:', 'insights', 'check', 'pages']);
+$o = getopt('', ['auth', 'code:', 'publish:', 'insights', 'check', 'pages', 'delete:']);
 if (!$o) { echo "Uso: php spike/meta_probe.php --auth | --code=XXX | --publish=fb_text|fb_photo|ig_image|ig_reel|ig_story | --insights | --check\n"; exit(2); }
 need(['META_APP_ID', 'META_APP_SECRET', 'META_REDIRECT_URI']);
 if (isset($o['auth'])) { echo auth_url() . "\n"; exit(0); }
@@ -190,5 +191,7 @@ if (isset($o['code'])) { $t = exchange_code($o['code']); out(['saved' => true, '
 if (isset($o['publish'])) { publish($o['publish']); exit(0); }
 if (isset($o['insights'])) { out(insights()); exit(0); }
 if (isset($o['check'])) { check(); exit(0); }
+// --delete=<id>: post de Página (pageid_postid) o media de IG; usa el token de la Página activa
+if (isset($o['delete'])) { [$t, $page] = ctx(); [$c, $j] = http('DELETE', g($o['delete']), ['access_token' => $page['access_token']]); out(['http' => $c, 'ok' => !empty($j['success']), 'response' => $j]); exit(!empty($j['success']) ? 0 : 1); }
 if (isset($o['pages'])) { $t = fetch_store('tokens'); foreach ($t['pages'] ?? [] as $p) printf("%-20s %-30s %-18s token:%s IG: %s
 ", $p['id'], $p['name'], $p['business'] ?? '(perfil)', isset($p['access_token']) ? 'sí' : 'NO', $p['instagram_business_account']['username'] ?? '—'); exit(0); }

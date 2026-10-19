@@ -5,7 +5,8 @@
  * Servidor de callback: php -S 127.0.0.1:8080 spike/youtube_probe.php  (atiende /google/callback)
  */
 const P = 'youtube';
-const SCOPES = 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly';
+// youtube.upload no permite borrar: `youtube` cubre subir, leer, editar y borrar
+const SCOPES = 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly';
 const QUOTA_INSERT = 1600; // unidades documentadas de videos.insert (verificar en la consola de cuotas)
 
 // ---------- helpers comunes (desechables) ----------
@@ -159,7 +160,7 @@ if (PHP_SAPI === 'cli-server') {
     } else { http_response_code(404); echo "esperando /google/callback?code=...\n"; }
     return;
 }
-$o = getopt('', ['auth', 'code:', 'publish:', 'inspect:', 'check']);
+$o = getopt('', ['auth', 'code:', 'publish:', 'inspect:', 'check', 'delete:']);
 if (!$o) { echo "Uso: php spike/youtube_probe.php --auth | --code=XXX | --publish=video|short | --inspect=<videoId> | --check\n"; exit(2); }
 need(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI']);
 if (isset($o['auth'])) { echo auth_url() . "\n"; exit(0); }
@@ -167,3 +168,4 @@ if (isset($o['code'])) { $t = exchange_code($o['code']); out(['saved' => true, '
 if (isset($o['publish'])) { publish($o['publish']); exit(0); }
 if (isset($o['inspect'])) { out(inspect($o['inspect'])); exit(0); }
 if (isset($o['check'])) { check(); exit(0); }
+if (isset($o['delete'])) { [$c, $j] = http('DELETE', 'https://www.googleapis.com/youtube/v3/videos?id=' . urlencode($o['delete']), [], ['Authorization: Bearer ' . token()]); out(['http' => $c, 'ok' => $c === 204, 'response' => $j]); exit($c === 204 ? 0 : 1); }

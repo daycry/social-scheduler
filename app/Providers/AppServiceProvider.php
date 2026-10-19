@@ -3,12 +3,16 @@
 namespace App\Providers;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
+use App\Connectors\Meta\GraphClient;
+use App\Connectors\Meta\Insights as MetaInsights;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
+use App\Connectors\TikTok\Display as TikTokDisplay;
 use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -34,7 +38,12 @@ class AppServiceProvider extends ServiceProvider
                 ->registerPublisher(Network::Instagram, new InstagramPublisher)
                 ->registerPublisher(Network::Facebook, new FacebookPublisher)
                 ->registerPublisher(Network::YouTube, new YouTubePublisher)
-                ->registerPublisher(Network::TikTok, new TikTokPublisher);
+                ->registerPublisher(Network::TikTok, new TikTokPublisher)
+                // Lectores de metricas por red (T-32 Meta, T-33 YouTube Analytics, T-34 TikTok Display).
+                ->registerInsights(Network::Instagram, new MetaInsights(new GraphClient))
+                ->registerInsights(Network::Facebook, new MetaInsights(new GraphClient))
+                ->registerInsights(Network::YouTube, new YouTubeAnalytics)
+                ->registerInsights(Network::TikTok, new TikTokDisplay);
         });
     }
 

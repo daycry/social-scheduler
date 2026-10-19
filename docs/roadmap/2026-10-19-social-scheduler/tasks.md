@@ -34,7 +34,7 @@ verificacion: obligatoria
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
-| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 1 | 5 | 20% | 0h (IA) / 60h | 0.54h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
+| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 1.19h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 0 | 6 | 0% | 0 / 60h | 0 / 9h | 0 / 2.3h | 0 / 2,73M |
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 0 | 9 | 0% | 0 / 142h | 0 / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
@@ -43,7 +43,7 @@ verificacion: obligatoria
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **6** | **43** | **14%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **7** | **43** | **16%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -223,12 +223,12 @@ verificacion: obligatoria
 - **Changelog**: Proyecto base de la aplicación listo para desarrollo.
 - **Estado**: en-progreso
 - **Tiempo humano**: est. 8h · real 0h (IA)
-- **Tiempo IA (ejec.)**: est. 1.2h · real 0.16h (medido)
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.16h (medido; fix revisión 1: <0.01h estimado)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
 - **Tipo**: backend
-- **Archivos**: `composer.json`, `app/`, `bootstrap/`, `config/`, `routes/`, `tests/`, `phpunit.xml`, `pint.json`, `.github/workflows/ci.yml`, `.env.example`, `README.md`, `.editorconfig`, `.gitattributes`, `.npmrc`, `artisan`, `public/`, `storage/`, `database/.gitignore`, `database/factories/UserFactory.php`, `database/seeders/DatabaseSeeder.php`, `package.json`, `package-lock.json`, `docs/roadmap/2026-10-19-social-scheduler/ui-reference.md`
+- **Archivos**: `composer.json`, `app/`, `bootstrap/`, `config/`, `routes/`, `tests/`, `phpunit.xml`, `pint.json`, `.github/workflows/ci.yml`, `.env.example`, `README.md`, `.editorconfig`, `.gitattributes`, `.npmrc`, `artisan`, `public/`, `storage/`, `database/.gitignore`, `database/factories/UserFactory.php`, `database/seeders/DatabaseSeeder.php`, `package.json`, `package-lock.json`, `database/migrations/0001_01_01_000000_create_users_table.php`, `database/migrations/0001_01_01_000001_create_cache_table.php`, `database/migrations/0001_01_01_000002_create_jobs_table.php`, `docs/roadmap/2026-10-19-social-scheduler/ui-reference.md`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan --version` → `Laravel Framework 13.`
@@ -248,6 +248,7 @@ verificacion: obligatoria
 **Notas**: La decisión de frontend (Inertia + Vue por defecto, React alternativa) se fija en T-07.
 **Notas (implementer, 2026-10-19)**: Laravel 13.37.0 creado en la raiz (PHP 8.3 local; composer exige ^8.3, produccion 8.4/8.5), Pest 4 + Pint, `pint.json` excluye `spike/`, CI en `.github/workflows/ci.yml`, `.env.example` con R2/colas/OAuth. MySQL local = 8.4.3 (cumple >= 8.0). Verificacion: `php artisan --version` -> Laravel Framework 13.37.0; `composer test` -> 2 passed; `vendor/bin/pint --test` -> passed; `/up` -> 200 con `php -S` sobre `public/`. **PENDIENTE (manual)**: el vhost de Laragon (`auto.metricool.test.conf`) se cambio a `public/` pero Apache no se recargo (https://metricool.test/up sigue 404 hasta pulsar Reload en Laragon); el criterio 'arranca en https://metricool.test' queda sin marcar hasta entonces. Tampoco se marca 'CI ejecuta tests y Pint': el workflow esta escrito pero no se ha ejecutado en GitHub (se comprobara en el primer push). BD `metricool` y `metricool_testing` creadas en local.
 **Nota de alcance (implementer)**: ficheros del esqueleto Laravel (artisan, public/, storage/, .gitignore de carpetas, factories/seeders) y `ui-reference.md` (commit previo de la rama) declarados aqui para la puerta de alcance.
+**Corrección revisión 1 (implementer)**: #11 `permissions: contents: read` en el workflow de CI; #15 migraciones base (users/cache/jobs) declaradas en `Archivos`. #12 y #21 deuda aceptada.
 
 ### T-07 — Autenticación web: registro, login, recuperación de contraseña e Inertia
 
@@ -255,12 +256,12 @@ verificacion: obligatoria
 - **Changelog**: Ya se puede registrar, iniciar sesión y recuperar la contraseña.
 - **Estado**: completado
 - **Tiempo humano**: est. 12h · real 0h (IA)
-- **Tiempo IA (ejec.)**: est. 1.8h · real 0.05h (medido)
+- **Tiempo IA (ejec.)**: est. 1.8h · real 0.07h (medido, incl. fix revisión 1)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-06
 - **Tipo**: frontend
-- **Archivos**: `app/Http/Controllers/Auth/`, `routes/auth.php`, `resources/js/Pages/Auth/`, `resources/js/Layouts/`, `tests/Feature/Auth/`, `config/mail.php`, `resources/js/app.js`, `resources/js/bootstrap.js`, `resources/js/Pages/Dashboard.vue`, `resources/js/Pages/Profile/`, `resources/js/Pages/Welcome.vue`, `resources/views/app.blade.php`, `resources/css/app.css`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `jsconfig.json`, `package.json`, `package-lock.json`
+- **Archivos**: `app/Http/Controllers/Auth/`, `routes/auth.php`, `resources/js/Pages/Auth/`, `resources/js/Layouts/`, `tests/Feature/Auth/`, `config/mail.php`, `resources/js/app.js`, `resources/js/bootstrap.js`, `resources/js/Pages/Dashboard.vue`, `resources/js/Pages/Profile/`, `resources/js/Pages/Welcome.vue`, `resources/js/Components/`, `app/Models/User.php`, `routes/web.php`, `resources/views/app.blade.php`, `resources/css/app.css`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `jsconfig.json`, `package.json`, `package-lock.json`
 - **Cubre (tests)**: E2E-01
 - **Verificación**:
   - `php artisan test --filter=Auth` → todos los tests pasan
@@ -280,19 +281,20 @@ verificacion: obligatoria
 **Notas**: Incógnita abierta: SMTP propio de Hestia o proveedor transaccional; 2FA fuera de alcance.
 **Notas (implementer, 2026-10-19)**: Laravel Breeze 2.4 (Inertia + Vue, Pest) como starter kit: registro, login/logout, reset por email, verificacion, perfil y AuthenticatedLayout con navegacion. Ajustes: se creo `resources/js/bootstrap.js` vacio (Breeze lo importa y L13 no lo trae) y se quito `@tailwindcss/vite` (choca con Tailwind 3 de Breeze). Se anadio `tests/Feature/Auth/ProtectedRoutesTest.php` (rutas protegidas -> login, registro -> dashboard vacio). Verificacion: `php artisan test --filter=Auth` -> 21 passed; `php artisan route:list --name=login` -> ruta login presente; `php artisan test` -> 28 passed; `npm run build` OK; Pint passed. Email: el reset se prueba con Notification fake; SMTP real (Hestia vs proveedor transaccional) queda como decision abierta, `MAIL_MAILER=log` por defecto en local; 2FA fuera de alcance.
 **Nota de alcance (implementer)**: ficheros de Breeze/Inertia/Vite declarados para la puerta de alcance.
+**Corrección revisión 1 (implementer)**: #9 la portada ya no muestra versiones de Laravel/PHP; #10 `User` implementa `MustVerifyEmail` y `/brands/*` va bajo `auth`+`verified` (`/dashboard` ya lo estaba); tests: no verificados redirigidos a `verification.notice`; el registro deja `email_verified_at` nulo. #15 `resources/js/Components/` declarado en `Archivos`.
 
 ### T-08 — Dominio base: marcas, trait BelongsToUser, Policies y tests de aislamiento
 
 - **Descripción**: Modelo `Brand`, trait `BelongsToUser` con global scope y Policies. Toda consulta pasa por servicios que exigen el usuario autenticado. Tests de aislamiento web desde el primer día, reutilizables para API y MCP.
 - **Changelog**: Ya se pueden crear y gestionar marcas, aisladas por usuario.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Tiempo humano**: est. 16h · real 0h (IA)
-- **Tiempo IA (ejec.)**: est. 2.5h · real 0.11h (medido)
+- **Tiempo IA (ejec.)**: est. 2.5h · real 0.29h (medido, incl. fix revisión 1)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-07
 - **Tipo**: backend
-- **Archivos**: `app/Models/Brand.php`, `app/Models/Concerns/BelongsToUser.php`, `app/Policies/`, `app/Services/BrandService.php`, `app/Http/Controllers/BrandController.php`, `resources/js/Pages/Brands/`, `database/migrations/`, `tests/Feature/Isolation/`, `app/Scopes/UserScope.php`, `app/Http/Requests/BrandRequest.php`, `database/factories/BrandFactory.php`, `routes/web.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Pest.php`, `.env.testing.example`, `.gitignore`
+- **Archivos**: `app/Models/Brand.php`, `app/Models/Concerns/BelongsToUser.php`, `app/Policies/`, `app/Services/BrandService.php`, `app/Http/Controllers/BrandController.php`, `resources/js/Pages/Brands/`, `database/migrations/`, `tests/Feature/Isolation/`, `app/Scopes/UserScope.php`, `app/Http/Requests/BrandRequest.php`, `database/factories/BrandFactory.php`, `routes/web.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Pest.php`, `.env.testing.example`, `.gitignore`, `app/Support/CrossUserAccessLogger.php`, `bootstrap/app.php`
 - **Cubre (tests)**: E2E-02
 - **Verificación**:
   - `php artisan test --filter=Isolation` → todos los tests pasan (usuario B recibe 404/403 sobre marcas de A)
@@ -300,7 +302,7 @@ verificacion: obligatoria
 
 **Criterios de aceptación**
 - [x] CRUD de marcas completo
-- [x] Un usuario B pide una marca de A por web/API y recibe 404/403 sin filtrar existencia (CA-02)
+- [x] Un usuario B pide una marca de A por web/API y recibe 404/403 sin filtrar existencia (CA-02) — *por web en Fase 1; API: se valida en T-28*
 - [x] El global scope aplica a toda entidad con `user_id`
 - [x] Acceso denegado registrado
 
@@ -313,6 +315,7 @@ verificacion: obligatoria
 
 **Notas**: Sin RLS en MariaDB/MySQL: el aislamiento es solo de aplicación; la suite de aislamiento es la defensa principal (design.md §6).
 **Notas (implementer, 2026-10-19)**: `UserScope` + trait `BelongsToUser` (fallo seguro: sin usuario devuelve 0 filas y `creating` lanza LogicException), `Brand` + migracion + factory, `BrandPolicy` (loguea `access.denied` con Log::warning), `BrandService` (exige User explicito, usa `withoutUserScope()`), `BrandController` + `BrandRequest`, paginas Inertia `Brands/{Index,Form,Show}` y enlace Marcas en la navegacion. El route-model-binding pasa por el scope, asi que B recibe 404 sin filtrar existencia. Ficheros fuera del `Archivos` original, anadidos: `app/Scopes/UserScope.php`, `app/Http/Requests/BrandRequest.php`, `database/factories/BrandFactory.php`, `routes/web.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Pest.php` (withoutVite en tests Feature), `.env.testing.example`, `.gitignore`. Verificacion: `php artisan test --filter=Isolation` -> 14 passed (45 assertions); `php artisan migrate:fresh --env=testing` -> exit 0 (MySQL `metricool_testing`); `php artisan test` -> 42 passed; Pint passed.
+**Corrección revisión 1 (implementer)**: #1 el 404 del binding (UserScope) se intercepta en `bootstrap/app.php` (`exceptions->render` -> `App\Support\CrossUserAccessLogger`): si el modelo usa `BelongsToUser` y el id existe sin scope, se registra `Log::warning('access.denied', {user_id, brand_id, resource, resource_id, ability: bind})`; la respuesta al cliente sigue siendo el mismo 404 (un id inexistente no loguea). Tests HTTP reales en `tests/Feature/Isolation/BrandIsolationTest.php` (show/edit/update/destroy de B sobre marca de A -> 404 + log; id inexistente -> 404 sin log). `php artisan test --filter=Isolation` -> 19 passed. #14 nota en CA-02. T-08 vuelve a `completado`: criterio «acceso denegado registrado» cumplido con test HTTP.
 
 ### T-09 — Despliegue en HestiaCP: dominio, PHP-FPM, BD, cron y plantilla Laravel
 
@@ -320,7 +323,7 @@ verificacion: obligatoria
 - **Changelog**: Aplicación disponible en el VPS bajo HTTPS.
 - **Estado**: en-progreso
 - **Tiempo humano**: est. 14h · real 0h (IA)
-- **Tiempo IA (ejec.)**: est. 2.1h · real 0.09h (medido)
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.14h (medido, incl. fix revisión 1)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
@@ -345,6 +348,7 @@ verificacion: obligatoria
 
 **Notas**: Requiere el acceso SSH/root confirmado. Parte del trabajo es no delegable (M-04).
 **Notas (implementer, 2026-10-19)**: Hecho y verificado en local: `deploy/hestia/deploy.sh` (down, migrate, caches, queue:restart, up, `app:health`; `--dry-run` sin efectos; `trap` que sube la app si falla), `deploy/hestia/nginx-overrides.conf`, `deploy/hestia/README.md` (runbook: dominio, plantilla Laravel, BD, TLS, PHP-FPM, cron, M-04) y `.env.production.example`. Verificacion: `bash -n deploy/hestia/deploy.sh` OK; `bash deploy/hestia/deploy.sh --dry-run` -> lista 14 pasos, exit 0; argumento desconocido -> exit 2. **PENDIENTE (manual en el VPS, M-04)**: crear dominio/BD/TLS en Hestia, instalar los ajustes de Nginx/PHP-FPM, dar de alta el cron `schedule:run` y comprobar `curl -sI https://<dominio>/up` -> 200. Los criterios 'responde 200 bajo HTTPS' y 'cron activo' y las subtareas 'Crear dominio y BD' y 'Cron de Hestia' NO se marcan: no verificables sin el VPS. La tarea sigue en-progreso hasta M-04.
+**Corrección revisión 1 (implementer)**: #3 `deploy.sh` ejecuta `npm ci && npm run build` (o `SKIP_BUILD=1`) y exige `public/build/manifest.json` antes de migrar y en el smoke final; #5 `artisan down` es el primer paso (antes de fetch/pull/composer) y el `trap` deja la app arriba si el código no cambió o en mantenimiento (con instrucciones de vuelta) si cambió, ejecutando siempre `queue:restart`; #4 los workers (`WORKER_UNITS`) se reinician antes del smoke y un fallo del smoke no los salta; #6 `chmod 600 .env` en el runbook. Verificación: `bash deploy/hestia/deploy.sh --dry-run` -> 18 pasos, exit 0; simulación con `PHP_BIN=echo COMPOSER=false` -> deploy fallido, app en mantenimiento, exit 1; sin manifest -> el gate falla. Test `deploy script goes down before touching code...`. Sigue en-progreso hasta M-04 (VPS).
 
 ### T-10 — Almacenamiento R2, cola `database`, workers systemd y healthcheck
 
@@ -352,12 +356,12 @@ verificacion: obligatoria
 - **Changelog**: Procesos en segundo plano y almacenamiento de media listos.
 - **Estado**: en-progreso
 - **Tiempo humano**: est. 10h · real 0h (IA)
-- **Tiempo IA (ejec.)**: est. 1.5h · real 0.13h (medido)
+- **Tiempo IA (ejec.)**: est. 1.5h · real 0.53h (medido, incl. fix revisión 1)
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —
 - **Previsión IA**: 414k in / 41k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: devops
-- **Archivos**: `config/filesystems.php`, `config/queue.php`, `deploy/systemd/scheduler-worker@.service`, `app/Console/Commands/`, `routes/console.php`, `tests/Feature/Infra/`, `app/Jobs/QueueProbeJob.php`, `app/Support/HealthCheck.php`, `app/Http/Controllers/HealthController.php`, `routes/web.php`, `config/app.php`, `composer.json`, `composer.lock`, `deploy/systemd/README.md`, `deploy/hestia/deploy.sh`
+- **Archivos**: `config/filesystems.php`, `config/queue.php`, `deploy/systemd/scheduler-worker@.service`, `app/Console/Commands/`, `routes/console.php`, `tests/Feature/Infra/`, `app/Jobs/QueueProbeJob.php`, `app/Support/HealthCheck.php`, `app/Http/Controllers/HealthController.php`, `routes/web.php`, `config/app.php`, `composer.json`, `composer.lock`, `deploy/systemd/README.md`, `deploy/hestia/deploy.sh`, `bootstrap/app.php`, `config/cache.php`, `.env.example`, `.env.production.example`, `deploy/hestia/README.md`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --filter=Infra` → pasa (disco `r2` mockeado, cola `database` con colas `publish,poll,metrics,reports`)
@@ -376,6 +380,7 @@ verificacion: obligatoria
 
 **Notas**: Verificar `mysql --version` ≥ MariaDB 10.6 / MySQL 8.0 antes de habilitar varios workers.
 **Notas (implementer, 2026-10-19)**: Hecho: disco `r2` (driver S3, `league/flysystem-aws-s3-v3`, path-style, region auto) + `filesystems.media` (MEDIA_DISK; `local` en dev/test, `r2` en produccion); `queue.names` (publish,poll,metrics,reports); `QueueProbeJob` + `app:queue-probe`; `app:health` (BD con deteccion SKIP LOCKED, cola, disco, latido del scheduler) y endpoint `/health` con token; latido por `Schedule` cada minuto; unidad `deploy/systemd/scheduler-worker@.service` (`--max-time=3600 --max-jobs=500`, `Restart=always`); `deploy/systemd/README.md` con instalacion, operacion, healthcheck y plan B (cron + `--stop-when-empty`). Ficheros fuera del `Archivos` original, anadidos: `app/Jobs/QueueProbeJob.php`, `app/Support/HealthCheck.php`, `app/Http/Controllers/HealthController.php`, `routes/web.php`, `config/app.php`, `composer.json`, `composer.lock`, `deploy/systemd/README.md`, `deploy/hestia/deploy.sh`. Verificacion local: `php artisan test --filter=Infra` -> 17 passed; suite completa -> 59 passed; Pint passed; worker real sobre MySQL 8.4.3 (SKIP LOCKED): `app:queue-probe` + `queue:work --stop-when-empty` proceso las 4 colas (0 pendientes) y `queue:restart` detuvo un worker en ejecucion ('Worker STOPPED Received restart signal'). **PENDIENTE (manual en el VPS)**: `systemd-analyze verify` y arranque/reinicio real con systemd (criterio 1 sin marcar); disco `r2` contra un bucket real de Cloudflare con dominio propio (criterio 2 y subtarea 'dominio propio' sin marcar: en tests esta fake; falta bucket, credenciales y CORS). La tarea sigue en-progreso hasta entonces.
+**Corrección revisión 1 (implementer)**: #2 disco `r2` con `http.connect_timeout=3`/`timeout=5` (env `R2_CONNECT_TIMEOUT`/`R2_TIMEOUT`) y `retries=1`; verificado a mano: put contra IP no enrutable falla a los ~3 s; #4 `HealthCheck::run()` devuelve `status` ok/degraded/down: solo los fallidos de las últimas 24 h dan AVISO (`degraded`, 200) y `ok=false` solo si algo está caído; #7 `/health` con `throttle:30,1` (store `CACHE_LIMITER_STORE`, `file` en producción) y guía `openssl rand -hex 32`; #8 fallos de checks -> log interno `health.check_failed` y mensaje genérico en la respuesta; #13 unidad systemd sandboxeada (NoNewPrivileges, PrivateTmp, ProtectSystem=strict, ProtectHome=read-only, ReadWritePaths) y locks del plan B en `~/.cache/sched` (700); #16 `Environment=PHP_BIN` en la unidad (y `PHP_BIN` en deploy); #17 `scheduler()` con try/catch; #18 `/health` registrado en `then:` de `bootstrap/app.php`, fuera del grupo `web` (sin sesión); #19 disco local: `put` false o lectura inconsistente = error explícito, `--wait` no numérico/negativo y `QUEUE_NAMES` vacío (fallback por defecto; sin colas = error); #20 el one-liner `sed` sustituye `USUARIO`/`DOMINIO` globalmente (incl. `Group=`). `php artisan test --filter=Infra` -> 26 passed.
 
 ---
 
@@ -1318,24 +1323,24 @@ Lentes: A+B+C+D (C por rutas `.env*`, `.github/workflows/`, `Auth`; D por worker
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Important | Acceso cruzado entre usuarios por web no se registra: `UserScope` responde 404 en el binding antes de `BrandPolicy` (único `Log::warning('access.denied')`); el test llama a la policy directamente. Incumple criterio marcado y spec.md:117 | T-08 | pendiente | Lente A: tinker, B `GET /brands/{id}` de A → 404, logs=[] · `app/Policies/BrandPolicy.php:37-49`, `app/Scopes/UserScope.php:26`, `tests/Feature/Isolation/BrandIsolationTest.php:65-74` |
-| 2 | Important | `/health` y `app:health` llaman a R2 (PUT/GET/DELETE) sin timeout HTTP: con R2 degradado bloquean workers PHP-FPM sin límite y agotan el pool | T-10 | pendiente | Lente D: `app/Support/HealthCheck.php:88-91`, `config/filesystems.php:57-70` sin `http.timeout` |
-| 3 | Important | El despliegue no compila assets (`public/build` ignorado; deploy.sh sin `npm ci && npm run build`) → `ViteManifestNotFoundException` → 500 en todas las páginas Inertia | T-09 | pendiente | Lente B: `deploy/hestia/deploy.sh:30-45`, `.gitignore` |
-| 4 | Important | Un solo job fallido en 30 días deja `/health` en 503 y hace fallar `deploy.sh` (paso `app:health`, `set -e`) saltándose el reinicio de workers | T-10/T-09 | pendiente | Lente B: `app/Support/HealthCheck.php:75`, `deploy/hestia/deploy.sh:44,73-77` |
-| 5 | Important | `git pull` + `composer install` antes de `artisan down`: se sirve código nuevo sobre vendor a medias y esquema sin migrar | T-09 | pendiente | Lente B: `deploy/hestia/deploy.sh:31-35` |
-| 6 | Minor | Runbook sin `chmod 600 .env` | T-09 | pendiente | Lente C: `deploy/hestia/README.md:44` (CWE-732) |
-| 7 | Minor | `/health` sin rate limit ni guía de entropía del token | T-10 | pendiente | Lente C: `routes/web.php:19` (CWE-307) |
-| 8 | Minor | `/health` devuelve `$e->getMessage()` en bruto | T-10 | pendiente | Lente C: `HealthCheck.php:47,77,95` (CWE-209) |
-| 9 | Minor | Página pública expone versiones de Laravel/PHP | T-07 | pendiente | Lente C: `routes/web.php:14-15` (CWE-200) |
-| 10 | Minor | Middleware `verified` inoperante (`MustVerifyEmail` comentado) | T-07 | pendiente | Lente C: `app/Models/User.php:5` (CWE-287) |
-| 11 | Minor | CI sin `permissions:` mínimos | T-06 | pendiente | Lente C: `.github/workflows/ci.yml:1-9` |
+| 1 | Important | Acceso cruzado entre usuarios por web no se registra: `UserScope` responde 404 en el binding antes de `BrandPolicy` (único `Log::warning('access.denied')`); el test llama a la policy directamente. Incumple criterio marcado y spec.md:117 | T-08 | corregido (86e765c): `CrossUserAccessLogger` vía `exceptions->render`; test HTTP B->marca de A: 404 + log `access.denied` con user_id y brand_id | Lente A: tinker, B `GET /brands/{id}` de A → 404, logs=[] · `app/Policies/BrandPolicy.php:37-49`, `app/Scopes/UserScope.php:26`, `tests/Feature/Isolation/BrandIsolationTest.php:65-74` |
+| 2 | Important | `/health` y `app:health` llaman a R2 (PUT/GET/DELETE) sin timeout HTTP: con R2 degradado bloquean workers PHP-FPM sin límite y agotan el pool | T-10 | corregido: `http` connect_timeout 3 / timeout 5 (env) + retries 1 en `config/filesystems.php`; probado ~3 s contra IP no enrutable; `storage()` captura y no cuelga | Lente D: `app/Support/HealthCheck.php:88-91`, `config/filesystems.php:57-70` sin `http.timeout` |
+| 3 | Important | El despliegue no compila assets (`public/build` ignorado; deploy.sh sin `npm ci && npm run build`) → `ViteManifestNotFoundException` → 500 en todas las páginas Inertia | T-09 | corregido: `deploy.sh` hace `npm ci && npm run build` y exige `public/build/manifest.json` (gate pre-migrate + smoke) | Lente B: `deploy/hestia/deploy.sh:30-45`, `.gitignore` |
+| 4 | Important | Un solo job fallido en 30 días deja `/health` en 503 y hace fallar `deploy.sh` (paso `app:health`, `set -e`) saltándose el reinicio de workers | T-10/T-09 | corregido: `status` ok/degraded/down (fallidos 24 h = aviso, antiguos ignorados); workers se reinician antes del smoke | Lente B: `app/Support/HealthCheck.php:75`, `deploy/hestia/deploy.sh:44,73-77` |
+| 5 | Important | `git pull` + `composer install` antes de `artisan down`: se sirve código nuevo sobre vendor a medias y esquema sin migrar | T-09 | corregido: `artisan down` primero; `trap` deja la app arriba si el código no cambió o en mantenimiento con instrucciones | Lente B: `deploy/hestia/deploy.sh:31-35` |
+| 6 | Minor | Runbook sin `chmod 600 .env` | T-09 | corregido: `chmod 600 .env` en el runbook | Lente C: `deploy/hestia/README.md:44` (CWE-732) |
+| 7 | Minor | `/health` sin rate limit ni guía de entropía del token | T-10 | corregido: `throttle:30,1` + `CACHE_LIMITER_STORE=file` + guía `openssl rand -hex 32` | Lente C: `routes/web.php:19` (CWE-307) |
+| 8 | Minor | `/health` devuelve `$e->getMessage()` en bruto | T-10 | corregido: log interno `health.check_failed`, detalle genérico en la respuesta | Lente C: `HealthCheck.php:47,77,95` (CWE-209) |
+| 9 | Minor | Página pública expone versiones de Laravel/PHP | T-07 | corregido: portada sin versiones | Lente C: `routes/web.php:14-15` (CWE-200) |
+| 10 | Minor | Middleware `verified` inoperante (`MustVerifyEmail` comentado) | T-07 | corregido: `User implements MustVerifyEmail`, `/brands` bajo `verified`; tests ajustados | Lente C: `app/Models/User.php:5` (CWE-287) |
+| 11 | Minor | CI sin `permissions:` mínimos | T-06 | corregido: `permissions: contents: read` | Lente C: `.github/workflows/ci.yml:1-9` |
 | 12 | Minor | Action de terceros por tag mutable | T-06 | deuda aceptada (uso personal; revisar al publicar el repo) | Lente C: `ci.yml:23` |
-| 13 | Minor | Unidad systemd sin sandboxing; plan B con locks predecibles en `/tmp` | T-10 | pendiente | Lente C: `scheduler-worker@.service:19-33`, `deploy/systemd/README.md:47-48` |
-| 14 | Minor | CA-02 marcado «por web/API» sin API en Fase 1 | T-08 | pendiente (nota en ledger) | Lente A: tasks.md CA-02 |
-| 15 | Minor | `resources/js/Components/` y migraciones base atribuidos a tareas futuras en `Archivos` | T-06/T-07 | pendiente (declarar en Archivos) | Lente A |
-| 16 | Minor | PHP CLI del worker/deploy no fijado (`/usr/bin/php` vs 8.4) | T-10 | pendiente | Lente B: `scheduler-worker@.service:24`, `deploy.sh:27` |
-| 17 | Minor | `scheduler()` sin try/catch → `--json` rompe con BD caída | T-10 | pendiente | Lente B: `HealthCheck.php:102` |
-| 18 | Minor | `/health` pasa por grupo `web` (sesión en BD) → 500 HTML con BD caída y una fila de sesión por sondeo | T-10 | pendiente | Lente B: `routes/web.php:19` |
-| 19 | Minor | Errores silenciados en disco local / `--wait` no numérico / `QUEUE_NAMES` vacío | T-10 | pendiente | Lente B: `HealthCheck.php:89-93`, `QueueProbe.php:20,27-31` |
-| 20 | Minor | One-liner `sed` de instalación no sustituye `Group=USUARIO` | T-10 | pendiente | Orquestador: `scheduler-worker@.service:11,22` |
+| 13 | Minor | Unidad systemd sin sandboxing; plan B con locks predecibles en `/tmp` | T-10 | corregido: sandboxing en la unidad y locks en `~/.cache/sched` (700) | Lente C: `scheduler-worker@.service:19-33`, `deploy/systemd/README.md:47-48` |
+| 14 | Minor | CA-02 marcado «por web/API» sin API en Fase 1 | T-08 | corregido: nota «API: se valida en T-28» en CA-02 | Lente A: tasks.md CA-02 |
+| 15 | Minor | `resources/js/Components/` y migraciones base atribuidos a tareas futuras en `Archivos` | T-06/T-07 | corregido: migraciones base y `resources/js/Components/` declarados en `Archivos` | Lente A |
+| 16 | Minor | PHP CLI del worker/deploy no fijado (`/usr/bin/php` vs 8.4) | T-10 | corregido: `Environment=PHP_BIN` en la unidad y `PHP_BIN` en deploy | Lente B: `scheduler-worker@.service:24`, `deploy.sh:27` |
+| 17 | Minor | `scheduler()` sin try/catch → `--json` rompe con BD caída | T-10 | corregido: try/catch en `scheduler()` | Lente B: `HealthCheck.php:102` |
+| 18 | Minor | `/health` pasa por grupo `web` (sesión en BD) → 500 HTML con BD caída y una fila de sesión por sondeo | T-10 | corregido: `/health` fuera del grupo `web` (sin sesión; test) | Lente B: `routes/web.php:19` |
+| 19 | Minor | Errores silenciados en disco local / `--wait` no numérico / `QUEUE_NAMES` vacío | T-10 | corregido: errores explícitos en disco local; validación de `--wait` y `QUEUE_NAMES` | Lente B: `HealthCheck.php:89-93`, `QueueProbe.php:20,27-31` |
+| 20 | Minor | One-liner `sed` de instalación no sustituye `Group=USUARIO` | T-10 | corregido: `sed` sustituye `USUARIO`/`DOMINIO` globalmente | Orquestador: `scheduler-worker@.service:11,22` |
 | 21 | Minor | Suite local en sqlite en memoria vs MySQL en CI | T-06 | deuda aceptada (CI cubre MySQL) | Lente A (fuera de lente) |

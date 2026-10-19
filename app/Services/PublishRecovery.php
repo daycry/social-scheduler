@@ -17,12 +17,14 @@ use App\Models\SocialAccount;
  *  2. Destinos vencidos hace mas de `max_lateness_hours` -> `fallida` (vencida): no se publica contenido obsoleto.
  *  3. Destinos `publicando` colgados (worker caido) -> se relanzan; el job consulta la red antes de publicar.
  *  4. Destinos `procesando` con sondeo vencido -> se vuelve a sondear.
+ *  5. Destinos `procesando` cuya cuenta ya no esta activa: desconectada o borrada -> `fallida` (cuenta_no_disponible);
+ *     pendiente de reconexion mas de `reconnect_grace_hours` -> `fallida` con motivo claro (nunca se quedan atascados).
  */
 class PublishRecovery
 {
     public function __construct(private readonly PublishOutcomes $outcomes) {}
 
-    /** @return array{orphaned: int, expired: int, resumed: int, polled: int} */
+    /** @return array{orphaned: int, expired: int, resumed: int, polled: int, abandoned: int} */
     public function run(): array
     {
         return [
@@ -30,6 +32,7 @@ class PublishRecovery
             'expired' => $this->failExpired(),
             'resumed' => $this->resumeStuck(),
             'polled' => $this->repoll(),
+            'abandoned' => $this->failInactiveProcessing(),
         ];
     }
 
@@ -42,6 +45,31 @@ class PublishRecovery
                 foreach ($targets as $target) {
                     $this->outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta de destino se elimino antes de publicar. Conectala de nuevo y reprograma la publicacion.');
                     $n++;
+                }
+            });
+
+        return $n;
+    }
+
+    /** `procesando` con la cuenta borrada/desconectada, o sin reconectar pasado el plazo: no se sondean nunca, se cierran. */
+    private function failInactiveProcessing(): int
+    {
+        $n = 0;
+        $grace = (int) config('publishing.reconnect_grace_hours', 72);
+        $limit = now()->subHours($grace);
+
+        PostTarget::withoutUserScope()->where('status', PostStatus::Processing->value)
+            ->chunkById(100, function ($targets) use (&$n, $limit, $grace) {
+                foreach ($targets as $target) {
+                    $account = $target->social_account_id ? SocialAccount::withoutUserScope()->find($target->social_account_id) : null;
+
+                    if ($account === null || $account->status === SocialAccount::STATUS_DISCONNECTED) {
+                        $this->outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta se elimino o desconecto antes de terminar de publicar. Revisa en la red si el contenido llego a publicarse y reprograma si no.');
+                        $n++;
+                    } elseif ($account->status === SocialAccount::STATUS_RECONNECT && $account->updated_at?->lt($limit) && $target->updated_at?->lt($limit)) {
+                        $this->outcomes->failed($target, 'cuenta_no_disponible', "La cuenta lleva mas de $grace h sin reconectarse y no se pudo confirmar la publicacion. Reconectala, revisa en la red si se publico y reprograma si no.");
+                        $n++;
+                    }
                 }
             });
 

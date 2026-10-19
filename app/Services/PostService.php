@@ -101,8 +101,12 @@ class PostService
             // gana el claim (aqui se ve `publicando` y se rechaza) o ganamos nosotros (el claim ve el estado nuevo).
             $existing = $this->lockEditableTargets($post);
 
+            // Contenido ANTES de la edicion: si cambia el texto o la media, el estado residual de un intento anterior
+            // (contenedor de Instagram, hijos de un carrusel, sesion de subida...) ya no corresponde a lo que se va a publicar.
+            $before = ['text' => $post->text, 'media' => $post->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all()];
+
             $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']])->save();
-            $this->fill($post, $plan, $existing);
+            $this->fill($post, $plan, $existing, $before);
 
             return $post->fresh(['targets', 'media']);
         });
@@ -133,9 +137,15 @@ class PostService
         $this->assertOwns($user, $post);
 
         DB::transaction(function () use ($post) {
-            foreach ($this->lockEditableTargets($post) as $target) {
+            foreach ($this->lockEditableTargets($post, allowOrphans: true) as $target) {
+                if ($this->isOrphanedProcessing($target)) {
+                    // Cancelar un destino atascado `procesando` (cuenta no activa): se cierra como fallido y vuelve a borrador.
+                    $this->applyTransition($target, PostStatus::Failed, ['error_code' => 'cuenta_no_disponible', 'error_message' => 'Cancelada por el usuario: la cuenta ya no esta disponible.']);
+                }
                 if ($target->status !== PostStatus::Draft) {
-                    $this->applyTransition($target, PostStatus::Draft);
+                    // Al volver a borrador el estado residual del intento anterior se descarta (el contenido puede cambiar).
+                    $this->applyTransition($target, PostStatus::Draft, self::FRESH_ATTEMPT);
+                    YouTubePublisher::forgetUploadSession($target->id);
                 }
             }
             $post->syncStatus();
@@ -181,7 +191,7 @@ class PostService
         $this->assertOwns($user, $post);
 
         DB::transaction(function () use ($post) {
-            $this->lockEditableTargets($post, 'No se puede borrar una publicacion que ya se ha publicado o se esta publicando.');
+            $this->lockEditableTargets($post, 'No se puede borrar una publicacion que ya se ha publicado o se esta publicando.', allowOrphans: true);
             $post->delete();
         });
     }
@@ -234,15 +244,28 @@ class PostService
      *
      * @return Collection<string, PostTarget>
      */
-    private function lockEditableTargets(Post $post, string $message = 'La publicacion ya se ha publicado o se esta publicando y no se puede modificar.'): Collection
+    private function lockEditableTargets(Post $post, string $message = 'La publicacion ya se ha publicado o se esta publicando y no se puede modificar.', bool $allowOrphans = false): Collection
     {
         $targets = PostTarget::withoutUserScope()->where('post_id', $post->id)->orderBy('id')->lockForUpdate()->get();
 
-        if ($targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal())) {
+        // Borrar/cancelar sí se permite sobre un `procesando` atascado cuya cuenta no esta activa (nadie lo va a sondear).
+        if ($targets->contains(fn (PostTarget $t) => ($t->status->isInFlight() || $t->status->isFinal()) && ! ($allowOrphans && $this->isOrphanedProcessing($t)))) {
             throw new PostValidationException(['post' => [$message]]);
         }
 
         return $targets->keyBy(fn (PostTarget $t) => $t->social_account_id.'|'.$t->content_type->value);
+    }
+
+    /** `procesando` cuya cuenta esta borrada, desconectada o pendiente de reconectar: el sondeo no lo va a retomar. */
+    private function isOrphanedProcessing(PostTarget $target): bool
+    {
+        if ($target->status !== PostStatus::Processing) {
+            return false;
+        }
+
+        $account = $target->social_account_id ? SocialAccount::withoutUserScope()->find($target->social_account_id) : null;
+
+        return $account === null || ! $account->isActive();
     }
 
     /**
@@ -351,10 +374,15 @@ class PostService
      *
      * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>}  $plan
      * @param  Collection<string, PostTarget>|null  $existing
+     * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
-    private function fill(Post $post, array $plan, ?Collection $existing = null): void
+    private function fill(Post $post, array $plan, ?Collection $existing = null, ?array $before = null): void
     {
         $existing ??= new Collection;
+        $contentChanged = $before !== null && (
+            ($before['text'] ?? null) !== ($plan['text'] ?? null)
+            || $before['media'] !== array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media'])
+        );
         $post->media()->sync(collect($plan['media'])->mapWithKeys(fn (MediaAsset $m, int $i) => [$m->id => ['position' => $i]])->all());
 
         $kept = [];
@@ -378,9 +406,13 @@ class PostService
             }
 
             $kept[$current->id] = true;
-            // Un destino con error vuelve a empezar de cero; uno pendiente conserva sus intentos (idempotencia).
-            $attributes = ['options' => $t['options'] ?: null] + ($current->status === PostStatus::Failed ? self::FRESH_ATTEMPT : []);
-            if ($current->status === PostStatus::Failed) {
+            // Un destino con error vuelve a empezar de cero; uno pendiente conserva sus intentos (idempotencia) mientras
+            // el contenido sea el mismo: si cambia el texto, la media o las opciones del destino, el estado residual
+            // (referencia externa, progreso, intentos) pertenece al contenido viejo y se descarta. Solo la fecha: se conserva.
+            $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
+            $fresh = $current->status === PostStatus::Failed || $contentChanged || $optionsChanged;
+            $attributes = ['options' => $t['options'] ?: null] + ($fresh ? self::FRESH_ATTEMPT : []);
+            if ($fresh) {
                 YouTubePublisher::forgetUploadSession($current->id);
             }
 

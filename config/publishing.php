@@ -25,6 +25,13 @@ return [
     'max_lateness_hours' => (int) env('PUBLISH_MAX_LATENESS_HOURS', 24),
 
     /*
+    | Un destino `procesando` cuya cuenta sigue en `requiere_reconexion` espera la reconexion estas horas; pasado el plazo
+    | se marca `fallida` (cuenta_no_disponible) con aviso, para que el usuario pueda reprogramarla o borrarla.
+    | Con la cuenta desconectada o borrada se falla de inmediato.
+    */
+    'reconnect_grace_hours' => (int) env('PUBLISH_RECONNECT_GRACE_HOURS', 72),
+
+    /*
     | Cuota de publicacion agotada (p. ej. 25 publicaciones/24 h de Instagram). Decision de producto por confirmar:
     |   reschedule = aplazar hasta que la red libere cupo (por defecto; falla si no llega dentro del margen de retraso)
     |   fail       = fallar de inmediato con motivo «cuota» y avisar

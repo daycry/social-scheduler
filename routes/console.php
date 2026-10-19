@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\RefreshTokens;
 use App\Support\HealthCheck;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -17,3 +18,6 @@ Schedule::call(fn () => Cache::put(HealthCheck::HEARTBEAT_KEY, now()->timestamp,
 
 // Elimina jobs fallidos antiguos (el historial util vive en publish_attempts, T-19).
 Schedule::command('queue:prune-failed --hours=720')->daily();
+
+// Renueva tokens de redes sociales antes de caducar; si falla marca la cuenta y avisa (T-16).
+Schedule::job(new RefreshTokens)->everyThirtyMinutes()->name('refresh-social-tokens')->withoutOverlapping();

@@ -536,29 +536,30 @@ verificacion: obligatoria
 
 - **Descripción**: Job programado que renueva tokens antes de caducar (p. ej. 7 días antes de los 60 de Meta) y, si no puede, marca la cuenta y avisa. Las publicaciones afectadas no se pierden.
 - **Changelog**: Las conexiones se mantienen vivas y avisan si hay que reconectar.
-- **Estado**: en-progreso
-- **Tiempo humano**: est. 10h · real —
-- **Tiempo IA (ejec.)**: est. 1.5h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 10h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.5h · real 0.06h (medido)
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —
 - **Previsión IA**: 414k in / 41k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/RefreshTokens.php`, `routes/console.php`, `app/Notifications/ReconnectRequired.php`, `tests/Feature/Jobs/`
+- **Archivos**: `app/Jobs/RefreshTokens.php`, `routes/console.php`, `app/Notifications/ReconnectRequired.php`, `tests/Feature/Jobs/`, `database/migrations/` (notifications), `app/Jobs/RefreshTokens.php`, `tests/Feature/Jobs/RefreshTokensTest.php`
 - **Cubre (tests)**: E2E-04
 - **Verificación**: `php artisan test --filter=RefreshTokens` → pasa (renueva tokens; el fallo marca la cuenta y notifica)
 
 **Criterios de aceptación**
-- [ ] Renovación automática sin intervención (CA-04)
-- [ ] Fallo deja la cuenta `requiere_reconexion` y notifica
-- [ ] Publicaciones pendientes no se borran
+- [x] Renovación automática sin intervención (CA-04)
+- [x] Fallo deja la cuenta `requiere_reconexion` y notifica
+- [x] Publicaciones pendientes no se borran
 
 **Subtareas**
-- [ ] Job con margen configurable
-- [ ] Marcado de estado y notificación
-- [ ] Registro en el scheduler
-- [ ] Tests
+- [x] Job con margen configurable
+- [x] Marcado de estado y notificación
+- [x] Registro en el scheduler
+- [x] Tests
 
 ---
+**Notas (implementer, 2026-10-19)**: Job RefreshTokens (cola poll, configurable con SOCIAL_REFRESH_QUEUE; es mantenimiento y no debe competir con publish) registrado en routes/console.php cada 30 min con withoutOverlapping (el access de Google dura 1 h). Itera cuentas activas (withoutUserScope, es un job sin usuario) y renueva las que caen dentro del margen del conector (config/social.php: Meta 168 h = 7 dias de los 60, Google 1 h, TikTok 6 h); sin caducidad conocida no renueva. ReconnectRequiredException o data_access_expires_at vencido -> requiere_reconexion + ReconnectRequired (mail + database, una sola vez por transicion, sin tokens); fallo transitorio -> reintento, solo escala si el token ya caduco; un error en una cuenta no corta el resto. No borra nada: marcas y cuentas (y por diseno las publicaciones futuras) se conservan. Migracion notifications para el canal database. Verificacion: `php artisan test --filter=RefreshTokens` -> 10 passed, 32 assertions. Nota: el criterio Publicaciones pendientes no se borran se cubre a nivel de cuenta/marca porque el modelo de publicaciones llega en T-19; re-verificar entonces.
 
 ## Fase 3 — Publicación base y Meta (IG + FB), calendario
 

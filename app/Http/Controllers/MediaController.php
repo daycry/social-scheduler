@@ -88,6 +88,11 @@ class MediaController extends Controller
     public function destroy(MediaAsset $asset): JsonResponse
     {
         $this->authorize('delete', $asset);
+
+        if ($asset->posts()->exists()) {
+            return response()->json(['message' => 'El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.'], 409);
+        }
+
         $this->uploads->delete($asset);
 
         return response()->json(['ok' => true]);

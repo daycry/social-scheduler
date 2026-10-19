@@ -634,28 +634,31 @@ verificacion: obligatoria
 
 - **Descripción**: Modelar `Post` y `PostTarget` por red/cuenta/tipo, estados `borrador → programada → publicando → procesando → publicada|fallida` y servicio con zona horaria por usuario/marca. Todo pasa por el servicio (web y MCP).
 - **Changelog**: Modelo de publicaciones con estados claros.
-- **Estado**: borrador
-- **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 14h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.18h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-18
 - **Tipo**: backend
-- **Archivos**: `app/Models/Post.php`, `app/Models/PostTarget.php`, `app/Models/PublishAttempt.php`, `app/Services/PostService.php`, `app/Enums/PostStatus.php`, `database/migrations/`, `tests/Feature/Posts/`
+- **Archivos**: `app/Models/Post.php`, `app/Models/PostTarget.php`, `app/Models/PublishAttempt.php`, `app/Services/PostService.php`, `app/Enums/PostStatus.php`, `database/migrations/`, `tests/Feature/Posts/`, `app/Models/MediaAsset.php`, `app/Http/Controllers/MediaController.php`, `app/Exceptions/InvalidPostTransition.php`, `app/Exceptions/PostValidationException.php`, `database/factories/PostFactory.php`, `database/factories/PostTargetFactory.php`, `database/migrations/2026_10_21_100000_create_posts_tables.php`, `tests/Feature/Posts/PostsTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**: `php artisan test --filter=Posts` → pasa (transiciones válidas e inválidas, aislamiento)
 
 **Criterios de aceptación**
-- [ ] Transiciones de estado validadas y persistidas
-- [ ] Zona horaria por marca respetada
-- [ ] Aislamiento por usuario heredado
-- [ ] Al crear `post_targets`, borrar o desconectar una cuenta (o pasarla a `requiere_reconexion`) NO borra publicaciones pendientes: sin `cascadeOnDelete` destructivo desde `social_accounts` (FK `restrict`/`nullOnDelete` + estado) y test que lo verifique (criterio heredado de T-16)
+- [x] Transiciones de estado validadas y persistidas
+- [x] Zona horaria por marca respetada
+- [x] Aislamiento por usuario heredado
+- [x] Al crear `post_targets`, borrar o desconectar una cuenta (o pasarla a `requiere_reconexion`) NO borra publicaciones pendientes: sin `cascadeOnDelete` destructivo desde `social_accounts` (FK `restrict`/`nullOnDelete` + estado) y test que lo verifique (criterio heredado de T-16)
 
 **Subtareas**
-- [ ] Migraciones y modelos
-- [ ] Enum de estados y reglas de transición
-- [ ] `PostService` con validación de media
-- [ ] Tests
+- [x] Migraciones y modelos
+- [x] Enum de estados y reglas de transición
+- [x] `PostService` con validación de media
+- [x] Tests
+
+---
+**Notas (implementer, 2026-10-19)**: Modelo `posts` (texto, `scheduled_at` en UTC, estado agregado) + `post_targets` (cuenta + tipo + estado real, `external_id/url/reference`, `attempts`, `started_at`, `next_attempt_at`, unicidad por post+cuenta+tipo) + `post_media` (orden, FK `restrict`: una media en uso no se borra, el endpoint responde 409) + `publish_attempts`. Estados en `App\Enums\PostStatus` con matriz de transiciones (`InvalidPostTransition` si no es valida); `publicando -> programada` permite reintentos diferidos. `PostService` es la capa unica (exige usuario explicito): create/update/schedule/unschedule/reschedule/delete/transition (con `lockForUpdate`), valida cuentas de la marca, tipo-red, media propia y `MediaValidator` por destino, y un string de fecha sin zona se interpreta en la zona de la marca y se guarda en UTC. **Criterio heredado de T-16**: `post_targets.social_account_id` es nullable con `nullOnDelete` (sin cascade destructivo); tests: desconectar, `requiere_reconexion` y borrar la fila de la cuenta conservan la publicacion pendiente (en el borrado el target queda con cuenta null y `programada`; T-20 la marcara fallida con motivo). Borrar la MARCA si borra sus publicaciones (accion explicita). **Verificacion**: `php artisan test --filter=Posts` -> 28 passed, 88 assertions; suite completa 234 passed.
 
 ### T-20 — Cola de publicación: dispatcher, jobs, reintentos e idempotencia
 

@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToUser;
+use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -42,6 +44,11 @@ class MediaAsset extends Model
             'duration' => 'float',
             'fps' => 'float',
         ];
+    }
+
+    public function posts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class, 'post_media')->withoutGlobalScope(UserScope::class);
     }
 
     public function isVideo(): bool

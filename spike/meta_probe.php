@@ -50,7 +50,9 @@ function g(string $path = ''): string { return 'https://graph.facebook.com/' . (
 function auth_url(): string {
     return 'https://www.facebook.com/' . (env('META_GRAPH_VERSION') ?: 'v23.0') . '/dialog/oauth?' . http_build_query([
         'client_id' => env('META_APP_ID'), 'redirect_uri' => env('META_REDIRECT_URI'),
-        'scope' => SCOPES, 'response_type' => 'code', 'state' => 'spike']);
+        'scope' => SCOPES, 'response_type' => 'code', 'state' => 'spike',
+        // fuerza a Meta a volver a mostrar la selección de Páginas/cuentas IG
+        'auth_type' => 'rerequest']);
 }
 
 function exchange_code(string $code): array {
@@ -61,7 +63,7 @@ function exchange_code(string $code): array {
     [$c2, $l] = http('GET', g('oauth/access_token'), ['grant_type' => 'fb_exchange_token', 'client_id' => env('META_APP_ID'),
         'client_secret' => env('META_APP_SECRET'), 'fb_exchange_token' => $j['access_token']]);
     $user = $l['access_token'] ?? $j['access_token'];
-    [, $pages] = http('GET', g('me/accounts'), ['access_token' => $user, 'fields' => 'id,name,access_token,instagram_business_account{id,username}']);
+    [, $pages] = http('GET', g('me/accounts'), ['access_token' => $user, 'fields' => 'id,name,access_token,instagram_business_account{id,username}', 'limit' => 100]);
     $t = ['user_token' => $user, 'user_token_expires_in' => $l['expires_in'] ?? null, 'long_lived' => isset($l['access_token']),
         'pages' => $pages['data'] ?? [], 'pages_error' => $pages['error'] ?? null, 'saved_at' => gmdate('c')];
     store('tokens', $t);
@@ -169,7 +171,7 @@ if (PHP_SAPI === 'cli-server') {
     } else { http_response_code(404); echo "esperando /meta/callback?code=...\n"; }
     return;
 }
-$o = getopt('', ['auth', 'code:', 'publish:', 'insights', 'check']);
+$o = getopt('', ['auth', 'code:', 'publish:', 'insights', 'check', 'pages']);
 if (!$o) { echo "Uso: php spike/meta_probe.php --auth | --code=XXX | --publish=fb_text|fb_photo|ig_image|ig_reel|ig_story | --insights | --check\n"; exit(2); }
 need(['META_APP_ID', 'META_APP_SECRET', 'META_REDIRECT_URI']);
 if (isset($o['auth'])) { echo auth_url() . "\n"; exit(0); }
@@ -177,3 +179,5 @@ if (isset($o['code'])) { $t = exchange_code($o['code']); out(['saved' => true, '
 if (isset($o['publish'])) { publish($o['publish']); exit(0); }
 if (isset($o['insights'])) { out(insights()); exit(0); }
 if (isset($o['check'])) { check(); exit(0); }
+if (isset($o['pages'])) { $t = fetch_store('tokens'); foreach ($t['pages'] ?? [] as $p) printf("%-20s %-40s IG: %s
+", $p['id'], $p['name'], $p['instagram_business_account']['username'] ?? '—'); exit(0); }

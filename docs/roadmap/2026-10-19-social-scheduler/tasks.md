@@ -40,10 +40,10 @@ verificacion: obligatoria
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
 | Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 3 | 3 | 100% | 0h (IA) / 37h | 0.67h (0.27h medido, resto estimado) / 5.6h | 0 / 1.4h | 0 / 1,69M |
-| Fase 7 — Analítica: snapshots, insights y dashboards | 7 | 7 | 100% | 0h (IA) / 106h | 2.75h (medido) / 16.2h | 0 / 4.1h | 0 / 4,83M |
-| Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
-| Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **28** | **43** | **65%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| Fase 7 — Analítica: snapshots, insights y dashboards | 6 | 7 | 86% | 0h (IA) / 106h | 2.75h (medido) / 16.2h | 0 / 4.1h | 0 / 4,83M |
+| Fase 8 — Reporting PDF/CSV | 3 | 4 | 75% | 0 / 40h | ~1.5h (estimado) / 6h | 0 / 1.5h | 0 / 1,82M |
+| Fase 9 — MCP estadísticas/informes y validación final | 1 | 2 | 50% | 0 / 16h | 0.95h (medido) / 2.4h | 0 / 0.6h | 0 / 728k |
+| **TOTAL** | **31** | **43** | **72%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -1023,7 +1023,7 @@ verificacion: obligatoria
 
 ## Fase 7 — Analítica: snapshots, insights y dashboards
 
-**Estado**: completado · **Estimado**: 106h · **Real**: 2.75h IA (medido) · **Verificación de fase**: `php artisan test` → 591 passed (3108 assertions); `vendor/bin/pint --test` (rutas propias) → passed; `npm run build` → built OK · **Coste est.**: 6.360 € + tokens (⚠️ verificar precio) · **Tokens est.**: 4,83M
+**Estado**: en-progreso · **Estimado**: 106h · **Real**: 2.75h IA (medido) + corrección intento 1 ≈ 2.5h IA y 0.3h supervisión (estimado) · **Verificación de fase**: `php artisan test` → 591 passed (3108 assertions); `vendor/bin/pint --test` (rutas propias) → passed; `npm run build` → built OK · **Coste est.**: 6.360 € + tokens (⚠️ verificar precio) · **Tokens est.**: 4,83M
 
 ### T-31 — Modelo de snapshots y job diario (adelantable tras F2)
 
@@ -1036,7 +1036,7 @@ verificacion: obligatoria
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-16
 - **Tipo**: backend
-- **Archivos**: `app/Models/AccountSnapshot.php`, `app/Models/PostMetricSnapshot.php`, `app/Jobs/CollectSnapshots.php`, `routes/console.php`, `database/migrations/`, `tests/Feature/Snapshots/`; añadidos al implementar: `database/migrations/2026_10_25_090000_create_snapshot_tables.php`, `app/Analytics/Metric.php`, `app/Analytics/SnapshotCollector.php`, `app/Jobs/CollectAccountSnapshot.php`, `app/Connectors/ConnectorRegistry.php` (registerInsights/insightsFor), `app/Connectors/Contracts/InsightsReader.php` (+canReadPost/postInsights), `config/social.php` (bloque analytics), `tests/Support/FakeInsights.php`, `tests/Feature/Snapshots/SnapshotsTest.php`
+- **Archivos**: `app/Models/AccountSnapshot.php`, `app/Models/PostMetricSnapshot.php`, `app/Jobs/CollectSnapshots.php`, `routes/console.php`, `database/migrations/`, `tests/Feature/Snapshots/`; añadidos al implementar: `database/migrations/2026_10_25_090000_create_snapshot_tables.php`, `app/Analytics/Metric.php`, `app/Analytics/SnapshotCollector.php`, `app/Jobs/CollectAccountSnapshot.php`, `app/Connectors/ConnectorRegistry.php` (registerInsights/insightsFor), `app/Connectors/Contracts/InsightsReader.php` (+canReadPost/postInsights), `config/social.php` (bloque analytics), `tests/Support/FakeInsights.php`, `tests/Feature/Snapshots/SnapshotsTest.php`; añadidos en la corrección intento 1 (Fase 7, `646b133`): `app/Analytics/Days.php`, `app/Connectors/Contracts/RangeInsightsReader.php`, `database/migrations/2026_10_27_090000_add_settled_at_to_account_snapshots.php`, `tests/Feature/Snapshots/SettleTest.php` (y cambios en `app/Analytics/Metric.php`, `app/Models/AccountSnapshot.php`, `config/social.php`, `tests/Support/FakeInsights.php`)
 - **Cubre (tests)**: E2E-09
 - **Verificación**:
   - `php artisan test --filter=Snapshots` → pasa (un snapshot por cuenta y día, idempotente)
@@ -1051,7 +1051,9 @@ verificacion: obligatoria
 - [x] Job con planificación diaria
 - [x] Tests
 
-**Notas (implementer, 2026-10-20)**: commit `070ffd6`. Evidencia: un snapshot por cuenta y día, upsert idempotente, `null` no pisa un valor previo, jobs únicos por cuenta+día en la cola `metrics`, timeout 90/60 < 120, planificado `collect-snapshots` 03:30 UTC, aislamiento por usuario, la reconexión avisa una sola vez. Decisiones: día de referencia = ayer UTC; reintento de los 2 días previos solo si faltan o salieron vacíos (latencia de YouTube); `date` sin cast (string Y-m-d) para que el upsert por fecha sea estable en SQLite/MySQL; `null` = no disponible en `metrics` (JSON).
+**Notas (implementer, 2026-10-20)**: commit `070ffd6`. Evidencia: un snapshot por cuenta y día, upsert idempotente, `null` no pisa un valor previo, jobs únicos por cuenta+día en la cola `metrics`, timeout 90/60 < 120, planificado `collect-snapshots` 12:00 UTC (antes 03:30; cambiado en la corrección intento 1, ver abajo), aislamiento por usuario, la reconexión avisa una sola vez. Decisiones: día de referencia = ayer UTC; reintento de los 2 días previos solo si faltan o salieron vacíos (latencia de YouTube); `date` sin cast (string Y-m-d) para que el upsert por fecha sea estable en SQLite/MySQL; `null` = no disponible en `metrics` (JSON).
+
+**Corrección revisión intento 1 (Fase 7, `646b133`)**: (a) **asentado** (`account_snapshots.settled_at`, migración nueva) = completo según `Metric::EXPECTED_FLOWS` (los stocks como seguidores o vídeos no cuentan) o día fuera de la ventana de `settle_days` (3, `Days::isHistoric`); `needsCollection()` = sin fila o sin `settled_at` y `CollectSnapshots` reintenta D-1..D-3. Una métrica permanentemente rechazada (p. ej. `total_interactions` en cuentas pequeñas) se reintenta como mucho 3 días y luego se asienta con `null`; TikTok (solo stocks) se da por completo con cualquier dato. (b) **Zonas horarias por red**: `App\Analytics\Days` con `social.analytics.timezones` (Meta y YouTube = `America/Los_Angeles`, TikTok UTC); el despachador calcula el último día cerrado de cada cuenta en la zona de su red. (c) **`daily_at` 12:00 UTC** (antes 03:30): el día del Pacífico cierra a las 07:00/08:00 UTC; comentario de config corregido. (d) Las publicaciones del snapshot diario se leen en `RefreshPostMetrics` aparte, por bloques (≤25) con presupuesto (60 s < `$timeout` 90) y continuación por offset. Evidencia: `SettleTest`; suite completa 669 passed.
 
 ### T-32 — Colector de insights de Meta (IG + FB)
 
@@ -1064,7 +1066,7 @@ verificacion: obligatoria
 - **Previsión IA**: 745k in / 75k out tok · ⚠️ verificar €
 - **Dependencias**: T-31, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/Insights.php`, `tests/Feature/Connectors/Meta/Insights/`; añadido al implementar: `tests/Feature/Connectors/Meta/Insights/MetaInsightsTest.php`
+- **Archivos**: `app/Connectors/Meta/Insights.php`, `tests/Feature/Connectors/Meta/Insights/`; añadido al implementar: `tests/Feature/Connectors/Meta/Insights/MetaInsightsTest.php`; tocado en la corrección intento 1 (Fase 7, `d21d31d`): `app/Connectors/Meta/GraphClient.php` (solo clasificación de límites de uso + parámetro `$read`)
 - **Cubre (tests)**: E2E-09
 - **Verificación**:
   - `php artisan test --filter=MetaInsights` → pasa con respuestas grabadas; una métrica no disponible se guarda como `null`
@@ -1080,6 +1082,8 @@ verificacion: obligatoria
 - [x] Tests
 
 **Notas (implementer, 2026-10-20)**: commit «T-32: colector de insights de Meta». IG usa `views` y nunca `impressions`; FB usa `page_media_view`/`page_post_engagements`/`page_follows` y nunca `page_impressions`/`page_fans`; `follower_count` sin `metric_type`; una métrica rechazada con #100 queda `null` y un 0 real sigue 0; 190 propaga `ReconnectRequired`, 5xx propaga `Transient`. **Pendiente manual**: `post_media_view` y `post_total_media_view_unique` (publicaciones de Facebook) no están verificadas en el spike; si Meta las rechaza quedan `null`; probar con un post real y ajustar `Insights::facebookPost`. IG: `follower_count` exige ≥ 100 seguidores; confirmar `followers_count`/`views` por día con since/until en la cuenta real (la primera entrada de `values` se toma como el día).
+
+**Corrección revisión intento 1 (Fase 7, `d21d31d`)**: el valor del día se toma por `end_time − 1 s` en el día del Pacífico (no `values[0]`); `total_interactions` de cuenta IG; límites de uso de Graph (4/17/32/613 y familia 800xx) son transitorios en lecturas; `canReadPost` excluye `external_id_kind=container`; las lecturas registran `meta.read_error` en `debug`. Supuestos a validar en M-03 con cuentas reales: convención de `end_time`, `total_interactions` con `metric_type=total_value`, `since/until` ≤30 días y códigos 800xx.
 
 ### T-33 — Colector de YouTube Analytics (condicionado a G1)
 
@@ -1154,7 +1158,7 @@ verificacion: obligatoria
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-32
 - **Tipo**: backend
-- **Archivos**: `app/Services/AnalyticsService.php`, `tests/Unit/Analytics/`; añadidos al implementar: `app/Analytics/Calculator.php`, `app/Analytics/Period.php`, `tests/Unit/Analytics/CalculatorTest.php`, `tests/Feature/Analytics/AnalyticsServiceTest.php`
+- **Archivos**: `app/Services/AnalyticsService.php`, `tests/Unit/Analytics/`; añadidos al implementar: `app/Analytics/Calculator.php`, `app/Analytics/Period.php`, `tests/Unit/Analytics/CalculatorTest.php`, `tests/Feature/Analytics/AnalyticsServiceTest.php`; añadido en la corrección intento 1 (Fase 7, `2d26e74`): `tests/Feature/Analytics/AnalyticsReviewTest.php`
 - **Cubre (tests)**: E2E-10
 - **Verificación**:
   - `php artisan test --filter=Analytics` → pasa (crecimiento, engagement, «no disponible»)
@@ -1170,6 +1174,8 @@ verificacion: obligatoria
 - [x] Tests
 
 **Notas (implementer, 2026-10-20)**: crecimiento absoluto y %, delta frente al periodo de comparación, engagement = interacciones/visualizaciones, `null` ≠ 0, los flujos suman y los stocks toman el último valor, aislamiento por usuario.
+
+**Corrección revisión intento 1 (Fase 7, `2d26e74`)**: crecimiento agregado por cuenta sin saltos por altas/bajas (`Calculator::growthAcross/totalAcross/combine`), KPIs por publicación en SQL sobre TODAS las del periodo con top N explícito (`posts_total`, `posts_limit`, `posts_truncated`), `network()` filtra la red en SQL, periodo en la zona de la marca y comparación anual de igual longitud. **Pendiente/riesgo**: los agregados SQL de `postStats()` solo se han probado en SQLite; ejecutarlos contra MySQL real en M-03.
 
 ### T-36 — Backfill inicial y métricas por publicación reciente
 
@@ -1199,11 +1205,13 @@ verificacion: obligatoria
 
 **Notas (implementer, 2026-10-20)**: máximo histórico por red IG/FB 30 d, YouTube 90 d, TikTok 0 (configurable); refresco de publicaciones recientes cada 6 h en una ventana de 72 h. Backfill por pasadas (presupuesto 80 s < timeout 100 s < worker 120 s), idempotente (salta días con datos), `ShouldBeUniqueUntilProcessing` por cuenta. **Pendiente manual**: el backfill de IG depende de que `views`/`reach` admitan rangos pasados (~30 d); confirmarlo con la cuenta real.
 
+**Decisión (corrección revisión intento 1, Fase 7)** — sustituye a los máximos de la nota anterior: (a) backfill **por rango** cuando la red lo permite (`RangeInsightsReader`); (b) histórico: **Instagram 30 días** (límite de 30 días por consulta de la API de insights de usuario; sus `total_value` exigen una llamada por día), **Facebook 90 días** (por tramos de ≤30 días, 3 llamadas por tramo), **YouTube 365 días** (un informe `dimensions=day` por tramo de 90 días), **TikTok 0** (la Display API no da serie histórica); tope duro `Period::MAX_DAYS` = 366; (c) los tres últimos días se leen día a día porque llevan stocks; (d) el presupuesto de la pasada se comprueba antes de cada unidad con la duración de la más lenta (siempre ≥1 por pasada); (e) un día histórico (fuera de `settle_days`) queda asentado tras una lectura aunque le falten métricas. Documentado en `config/social.php`.
+
 ### T-37 — Dashboards por marca con gráficos por red
 
 - **Descripción**: Dashboard por marca con vista por red: seguidores y crecimiento, alcance, impresiones y engagement con ECharts/Chart.js, mostrando «no disponible» donde la API no lo dé.
 - **Changelog**: Nuevo panel de estadísticas por marca con tarjetas resumen, gráficos por red, selector de periodo y comparación.
-- **Estado**: completado
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 24h · real —
 - **Tiempo IA (ejec.)**: est. 3.7h · real 0.57h (medido)
 - **Supervisión**: est. 0.9h (≈25 % IA) · real —
@@ -1227,152 +1235,183 @@ verificacion: obligatoria
 - [x] Filtros de fecha
 - [x] Tests
 
-**Notas (implementer, 2026-10-20)**: CA-10 cubierto por test con 30 días de snapshots (seguidores, alcance, visualizaciones e interacciones). Gráficos con SVG propio (`LineChart.vue`, sin ECharts/Chart.js: evita una dependencia nueva; corta la línea en días `null`). Mapa de calor: fuera de alcance v1. **Pendiente manual M-03 / E2E-09**: dejar correr el job diario con cuentas reales 30 días y revisar los gráficos; verificar que `collect-snapshots` (03:30 UTC) y `refresh-post-metrics` corren en el scheduler del VPS, que un worker escucha la cola `metrics` y añadir `metrics` a `QUEUE_NAMES`/unidad systemd del worker si el VPS lista colas explícitas (design.md: `publish,poll,metrics,reports`).
+**Notas (implementer, 2026-10-20)**: CA-10 cubierto por test con 30 días de snapshots (seguidores, alcance, visualizaciones e interacciones). Gráficos con SVG propio (`LineChart.vue`, sin ECharts/Chart.js: evita una dependencia nueva; corta la línea en días `null`). Mapa de calor: fuera de alcance v1. **Pendiente manual M-03 / E2E-09**: dejar correr el job diario con cuentas reales 30 días y revisar los gráficos; verificar que `collect-snapshots` (12:00 UTC; antes 03:30) y `refresh-post-metrics` corren en el scheduler del VPS, que un worker escucha la cola `metrics` y añadir `metrics` a `QUEUE_NAMES`/unidad systemd del worker si el VPS lista colas explícitas (design.md: `publish,poll,metrics,reports`).
+
+**Estado (revisión intento 1, Fase 7)**: vuelve a `en-progreso` por **M-03**: el cierre exige la verificación manual M-03 / E2E-09 (job diario con cuentas reales ~30 días y revisión de gráficos; comprobar en el VPS que `collect-snapshots` corre a las 12:00 UTC y `refresh-post-metrics`, y que un worker escucha la cola `metrics`). Corrección `cab1e99`: periodo por defecto en la zona de la marca y aviso «Se muestran las N con más interacciones de M» en `Network.vue`.
 
 ---
 
 ## Fase 8 — Reporting PDF/CSV
 
-**Estado**: borrador · **Estimado**: 40h · **Real**: — · **Coste est.**: 2.400 € + tokens (⚠️ verificar precio) · **Tokens est.**: 1,82M
+**Estado**: en-progreso · **Estimado**: 40h · **Real**: ~1.5h IA (estimado) + corrección intento 1 (no medida) · **Verificación de fase** (estado final `d0cded2`): `php artisan test tests/Feature/Reports tests/Feature/Mcp` → 69 passed (1676 assertions); `vendor/bin/pint --test` (rutas del ámbito) → passed; `npm run build` → built OK; suite completa tras las correcciones → 669 passed (4802 assertions) · **Coste est.**: 2.400 € + tokens (⚠️ verificar precio) · **Tokens est.**: 1,82M
 
 ### T-38 — ReportService y exportación CSV
 
 - **Descripción**: Generar el conjunto de datos del informe por marca y rango de fechas y exportarlo a CSV.
 - **Changelog**: Se pueden exportar los datos de un informe en CSV.
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Tiempo IA (ejec.)**: est. 1.2h · real ~0.5h (estimado; usage-meter no pudo separar tareas, solo el tramo final medido 0.01h)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-35
 - **Tipo**: backend
-- **Archivos**: `app/Services/ReportService.php`, `app/Models/Report.php`, `tests/Feature/Reports/Csv/`
+- **Archivos**: `app/Services/ReportService.php`, `app/Models/Report.php`, `tests/Feature/Reports/Csv/`; añadidos al implementar (`aa73492`): `app/Policies/ReportPolicy.php`, `database/migrations/2026_10_26_090000_create_reports_table.php`, `database/factories/ReportFactory.php`, `config/reports.php`, `tests/Feature/Reports/Csv/ReportCsvTest.php`; añadidos en la corrección intento 1 (`c343d36`): `app/Console/Commands/PruneReports.php`, `app/Services/Reports/TooManyActiveReports.php`, `app/Providers/AppServiceProvider.php` (purga en `Brand::deleting`/`User::deleting`), `routes/console.php` (`reports:prune` diario), `.env.example`, `tests/Feature/Reports/ReportsFixTest.php`
 - **Cubre (tests)**: E2E-11
-- **Verificación**: `php artisan test --filter=ReportCsv` → pasa
+- **Verificación**:
+  - `php artisan test --filter=ReportCsv` → pasa
+  - real (estado final `d0cded2`): `php artisan test tests/Feature/Reports tests/Feature/Mcp --filter=ReportCsv` → `{"result":"passed","tests":8,"passed":8,"assertions":1260}`; carpeta `tests/Feature/Reports` completa → 27 passed (1381 assertions)
 
 **Criterios de aceptación**
-- [ ] CSV con los datos del rango (CA-11)
-- [ ] Aislamiento por usuario
+- [x] CSV con los datos del rango (CA-11)
+- [x] Aislamiento por usuario
 
 **Subtareas**
-- [ ] Servicio y modelo
-- [ ] Exportador CSV
-- [ ] Tests
+- [x] Servicio y modelo
+- [x] Exportador CSV
+- [x] Tests
+
+**Nota de verificación**: la Verificación de esta tarea dependía de commits posteriores (T-40/T-41 y las correcciones de la revisión intento 1); vale en el estado final de la rama (`d0cded2`), no en el commit propio de la tarea.
+
+**Notas (implementer, 2026-10-20)**: commits `aa73492` y `c343d36` (corrección). CSV en formato largo (`seccion,red,elemento,metrica,fecha,valor,anterior,variacion_pct`), UTF-8 con BOM, `null` → «no disponible» (nunca 0). Tras la revisión: celdas de texto SIEMPRE entrecomilladas; `ReportService::cell()` antepone `'` al texto y a cualquier tramo tras `;`, `,`, TAB, CR o LF que empiece por `= + - @ TAB CR` (CWE-1236); separador `;` y coma decimal por defecto (`reports.csv_locale` es/en); los números no se tocan; sin comparación → `anterior`/`variacion_pct` vacíos, con comparación y sin dato → «no disponible»; filas de tasa de interacción y notas; «Publicaciones destacadas» = top N por red de TODO el periodo (`ReportService::topPosts()`); límite de 5 en curso atómico (`enqueue()` con `lockForUpdate`); purga `reports:prune` (retención + atascados) y borrado de ficheros. Fichero en disco `filesystems.media`, ruta `reports/{user_id}/{id}.{ext}`. Aislamiento: `Report` con `BelongsToUser`; `create()` rechaza marca ajena.
 
 ### T-39 — Exportación PDF (decisión de driver: Chromium o DomPDF)
 
 - **Descripción**: Decidir `spatie/laravel-pdf` (Chromium headless) frente a DomPDF con gráficos rasterizados según la RAM del VPS; generar en la cola `reports` con concurrencia 1.
 - **Changelog**: Se pueden exportar informes en PDF.
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Tiempo IA (ejec.)**: est. 2.1h · real — (incluido en el ~1.5h estimado de la fase; usage-meter no separó tareas)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-38
 - **Tipo**: backend
-- **Archivos**: `app/Services/Reports/PdfRenderer.php`, `resources/views/reports/`, `tests/Feature/Reports/Pdf/`
+- **Archivos**: `app/Services/Reports/PdfRenderer.php`, `resources/views/reports/`, `tests/Feature/Reports/Pdf/`; añadidos al implementar (`e7ae517`): `composer.json`, `composer.lock` (`barryvdh/laravel-dompdf` ^3.1), `tests/Feature/Reports/Pdf/ReportPdfTest.php` (+ `app/Jobs/GenerateReport.php`, ver T-40); añadidos en la corrección intento 1 (`b92c6a0`): `docs/knowledge/adr/ADR-002-pdf-dompdf.md`, `docs/knowledge/README.md`, `docs/roadmap/2026-10-19-social-scheduler/design.md`, `resources/views/reports/brand.blade.php`
 - **Cubre (tests)**: E2E-11, M-03
 - **Verificación**:
   - `php artisan test --filter=ReportPdf` → pasa y el PDF generado no está vacío
-  - lectura: M-03 revisa el PDF con datos reales
+  - real (estado final `d0cded2`): `php artisan test tests/Feature/Reports tests/Feature/Mcp --filter=ReportPdf` → `{"result":"passed","tests":3,"passed":3,"assertions":13}` (el PDF empieza por `%PDF-` y pesa > 2 KB; un fallo de render → `failed` con mensaje genérico); prueba de memoria del peor caso (366 días, 4 redes, 4 tarjetas, 5 publicaciones/red): 890 KB, 0.39 s, pico 54 MB
+  - lectura: M-03 revisa el PDF con datos reales (pendiente, usuario)
 
 **Criterios de aceptación**
-- [ ] PDF con KPIs, gráficos y tabla de publicaciones (CA-11)
-- [ ] Consumo de memoria controlado
+- [x] PDF con KPIs, gráficos y tabla de publicaciones (CA-11)
+- [x] Consumo de memoria controlado
 
 **Subtareas**
-- [ ] Prueba del driver (RAM)
-- [ ] Plantilla de informe
-- [ ] Job en cola `reports`
-- [ ] Tests
+- [x] Prueba del driver (RAM)
+- [x] Plantilla de informe
+- [x] Job en cola `reports`
+- [x] Tests
 
-**Notas**: Decisión de driver pendiente (design.md §7).
+**Notas**: ~~Decisión de driver pendiente (design.md §7).~~ Decidido: DomPDF (ver abajo).
+
+**Nota de verificación**: la Verificación de esta tarea dependía de commits posteriores (T-40/T-41 y las correcciones de la revisión intento 1); vale en el estado final de la rama (`d0cded2`), no en el commit propio de la tarea.
+
+**Decisión de driver (ADR-002, `docs/knowledge/adr/ADR-002-pdf-dompdf.md`, estado `propuesta`)**: **DomPDF** (`barryvdh/laravel-dompdf` 3.1, dompdf 3.x) por defecto, configurable con `REPORTS_PDF_DRIVER` (hoy solo `dompdf`; `PdfRenderer` es el punto de enchufe para otro driver). Motivo: PHP puro, sin Chromium/Node/Puppeteer en el VPS HestiaCP; pico medido 54 MB frente a cientos de MB por render de Chromium; sin dependencias de sistema frágiles. Coste: CSS limitado a 2.1 (tablas, sin flex) y gráficos como barras HTML/CSS, no vectoriales. El riesgo «Chromium consume RAM» del plan queda mitigado; si se quiere más fidelidad visual, añadir un driver `spatie/laravel-pdf` más adelante. ADR indexado en `docs/knowledge/README.md`; `design.md` filas 72 y 176 actualizadas (`b92c6a0`). Tras la revisión: gráfico semanal (≤ 53 barras) en periodos de más de 60 días y emojis eliminados del PDF (`PdfRenderer::withoutEmoji()`; el CSV los conserva). API usada `Pdf::loadView()->setPaper()->output()`, verificada ejecutando (Context7 no disponible en el subagente).
 
 ### T-40 — UI de informes: generación, estado y descarga
 
 - **Descripción**: Pantalla para elegir marca y rango de fechas, ver el estado de generación y descargar en PDF y CSV.
 - **Changelog**: Pantalla de informes con descarga.
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 12h · real —
-- **Tiempo IA (ejec.)**: est. 1.8h · real —
+- **Tiempo IA (ejec.)**: est. 1.8h · real — (incluido en el ~1.5h estimado de la fase; usage-meter no separó tareas)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-39
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Reports/`, `app/Http/Controllers/ReportController.php`, `app/Jobs/GenerateReport.php`, `tests/Feature/Reports/`
+- **Archivos**: `resources/js/Pages/Reports/`, `app/Http/Controllers/ReportController.php`, `app/Jobs/GenerateReport.php`, `tests/Feature/Reports/`; añadidos al implementar (`f7af387`): `app/Policies/ReportPolicy.php`, `resources/js/Pages/Reports/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue` (enlace «Informes»), `routes/web.php` (rutas aditivas), `.env.example`, `tests/Feature/Reports/ReportsTest.php`
 - **Cubre (tests)**: E2E-11
-- **Verificación**: `php artisan test --filter=Reports` → pasa
+- **Verificación**:
+  - `php artisan test --filter=Reports` → pasa
+  - real (estado final `d0cded2`): `php artisan test tests/Feature/Reports tests/Feature/Mcp` → `{"result":"passed","tests":69,"passed":69,"assertions":1676}` (cola `reports` + timeout 100 < 120, descarga solo con firma 200/403/404, enlace nuevo al pulsar Descargar, aislamiento 404, límite atómico, atascados, borrado, purga); `vendor/bin/pint --test` (rutas del ámbito) → passed; `npm run build` → built OK
 
 **Criterios de aceptación**
-- [ ] Informe descargable en PDF y CSV (CA-11)
-- [ ] Estado de generación visible
+- [x] Informe descargable en PDF y CSV (CA-11)
+- [x] Estado de generación visible
 
 **Subtareas**
-- [ ] Vista Inertia
-- [ ] Controlador y job
-- [ ] Descarga firmada
-- [ ] Tests
+- [x] Vista Inertia
+- [x] Controlador y job
+- [x] Descarga firmada
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: commits `f7af387` y `8a3edb8` (corrección). `GenerateReport` en la cola `reports` (`$timeout` 100, `tries` 1; fallo → estado `failed` visible con error genérico, detalle en log). La lista se refresca cada 4 s mientras hay informes en curso; throttle 10/min en POST; rango y comparación se validan en `store` (error de formulario, 0 informes). Tras la revisión: `reports.link` (con sesión) redirige a una URL firmada nueva al pulsar Descargar; `DELETE reports/{report}` borra fila y fichero (409 si está en curso); atascados (`stuck_hours`=2) no cuentan para el límite. **Decisión de descarga** (ver T-42): `reports.download` va SOLO con firma TTL 5 min, sin sesión. Concurrencia 1: depende de ejecutar UN worker en la cola `reports` (unidad systemd, ya en design.md); no forzada por código. (Al corregir, la suite completa no se pudo ejecutar por un `rvPost()` redeclarado de otro ámbito; resuelto después: suite completa 669 passed.)
 
 ### T-41 — Plantilla y diseño visual del informe
 
 - **Descripción**: Cerrar secciones y branding del PDF (plantilla única por marca) y validar con el usuario.
 - **Changelog**: Informe con diseño pulido.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 6h · real —
-- **Tiempo IA (ejec.)**: est. 0.9h · real —
+- **Tiempo IA (ejec.)**: est. 0.9h · real — (incluido en el ~1.5h estimado de la fase; usage-meter no separó tareas)
 - **Supervisión**: est. 0.2h (≈25 % IA) · real —
 - **Previsión IA**: 248k in / 25k out tok · ⚠️ verificar €
 - **Dependencias**: T-39
 - **Tipo**: frontend
-- **Archivos**: `resources/views/reports/brand.blade.php`, `tests/Feature/Reports/`
+- **Archivos**: `resources/views/reports/brand.blade.php`, `tests/Feature/Reports/`; añadido al implementar (`0299ddf`): `config/reports.php` (secciones y branding)
 - **Cubre (tests)**: M-03
-- **Verificación**: lectura: M-03 aprobado por el usuario sobre un informe real
+- **Verificación**:
+  - lectura: M-03 aprobado por el usuario sobre un informe real
+  - real (estado final `d0cded2`): tests `ReportPdf` 3/3 (la vista contiene marca, color, KPI, comparación y la nota «No disponible»); PDF de muestra con datos sintéticos generado en el scratchpad de la sesión (`sample.pdf`); **M-03 PENDIENTE** (revisión del usuario con datos reales)
 
 **Criterios de aceptación**
 - [ ] El usuario aprueba el diseño del informe
 
 **Subtareas**
-- [ ] Ajuste de plantilla
+- [x] Ajuste de plantilla
 - [ ] Revisión con el usuario
 
 **Notas**: Incógnita: secciones y branding sin definir en la spec.
+
+**Motivo del estado**: `en-progreso` — el código está hecho, pero el criterio «el usuario aprueba el diseño» es la verificación manual **M-03** y no se cierra sin su aprobación.
+
+**Default propuesto (PENDIENTE DE VALIDAR por el usuario)**: portada con logo y color de marca; resumen KPI (4 tarjetas con variación si hay comparación + gráfico diario de visualizaciones + tabla por red); una página por red con todas sus métricas y tasa de interacción; publicaciones destacadas (top 5 por red, con datos); notas sobre métricas «No disponible». Configurable en `config/reports.php` (`sections`, `branding.color`, `branding.logo` ruta local PNG/JPG, `branding.footer`; env `REPORTS_BRAND_COLOR`/`REPORTS_LOGO_PATH`/`REPORTS_FOOTER`). Plantilla única compartida (color/logo globales, no por marca: `Brand` no tiene campos de branding; «plantilla por marca» requeriría migración + UI, no hecho).
+
+**Pendientes**: validar M-03 con el usuario (diseño, secciones, branding) — bloquea cerrar T-41; branding por marca no implementado.
 
 ---
 
 ## Fase 9 — MCP estadísticas/informes y validación final
 
-**Estado**: borrador · **Estimado**: 16h · **Real**: — · **Coste est.**: 960 € + tokens (⚠️ verificar precio) · **Tokens est.**: 728k
+**Estado**: en-progreso · **Estimado**: 16h · **Real**: 0.95h IA (medido) · **Verificación de fase**: `php artisan test` → 619 passed (3311 assertions) tras T-42/T-43 y 669 passed (4802 assertions) tras las correcciones; `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx playwright test` → no ejecutable (Playwright no instalado) · **Coste est.**: 960 € + tokens (⚠️ verificar precio) · **Tokens est.**: 728k
 
 ### T-42 — Herramientas MCP: estadísticas e informes
 
 - **Descripción**: Añadir las herramientas de lectura de estadísticas y generación de informes al servidor MCP.
-- **Changelog**: El agente puede leer estadísticas y pedir informes.
-- **Estado**: borrador
+- **Changelog**: El agente MCP puede leer estadísticas de marcas, redes y publicaciones, y pedir informes PDF/CSV con enlace de descarga firmado.
+- **Estado**: completado
 - **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.71h (medido)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-30, T-40, T-35
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/`, `tests/Feature/Mcp/Tools/`
+- **Archivos**: `app/Mcp/Tools/`, `tests/Feature/Mcp/Tools/`; añadidos al implementar (`fe429bf`): `app/Mcp/Abilities.php` (`stats:read`, `reports:write`), `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/SchedulerTool.php` (`report_id` en auditoría), `app/Mcp/Tools/{GetStats,GetPostStats,GenerateReport,GetReport}.php`, `tests/Feature/Mcp/Tools/McpStatsTest.php`
 - **Cubre (tests)**: API-01, API-03
-- **Verificación**: `php artisan test --filter=McpStats` → pasa (estadísticas e informe vía MCP, con aislamiento)
+- **Verificación**:
+  - `php artisan test --filter=McpStats` → pasa (estadísticas e informe vía MCP, con aislamiento)
+  - real: `{"result":"passed","tests":8,"passed":8,"assertions":86}`; suite completa → 619 passed (3311 assertions); `vendor/bin/pint --test` → passed; `npm run build` → built OK; tras la corrección `d0cded2`: McpStats 8/8
 
 **Criterios de aceptación**
-- [ ] Estadísticas e informes por MCP sobre datos del usuario (CA-12)
+- [x] Estadísticas e informes por MCP sobre datos del usuario (CA-12)
 
 **Subtareas**
-- [ ] Tools de estadísticas
-- [ ] Tool de informes
-- [ ] Tests
+- [x] Tools de estadísticas
+- [x] Tool de informes
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: commit `fe429bf` (+ `d0cded2`, corrección de la revisión intento 1 de la Fase 8). Tools `get_stats` (resumen o por red, `from`/`to`, `compare` none|previous|year, `include_series`), `get_post_stats`, `generate_report` (encola `GenerateReport`; máximo 5 activos, límite atómico compartido con la web) y `get_report` (estado + URL firmada). Abilities nuevas visibles en la UI de API keys (`Abilities::all()`). `null` = no disponible.
+
+**Decisión de descarga para MCP (revisión intento 1, Fase 8, `d0cded2`)**: `get_report` devolvía una URL que exigía sesión web, inutilizable por un agente. Ahora `reports.download` (`/reports/{report}/download/{owner}`) va **SOLO con firma, sin sesión, TTL 5 min** (`reports.download_minutes`): el dueño va codificado en la firma y se comprueba contra el informe, solo sirve informes `ready` y audita `report_download` (canal `signed-url`); `get_report` la regenera en cada llamada (`Report::signedDownloadUrl()`). Tests: firma válida sin sesión → 200; caducada/alterada → 403; firma de otro dueño → 404; MCP descarga anónima 200 y a los 6 min 403. Riesgo aceptado: quien tenga la URL puede descargar durante 5 min (URL bearer); mitigado con TTL corto, throttle 30/min y auditoría. `GetStats` usa el periodo por defecto en UTC (pasar `$brand->timezone` si se quiere por zona de la marca).
 
 ### T-43 — Validación final: suite E2E, pruebas manuales y revisión de seguridad
 
 - **Descripción**: Ejecutar el `test-plan.md` completo, las pruebas manuales con cuentas reales y una revisión de seguridad (aislamiento, cifrado, API keys).
 - **Changelog**: Entrega validada de extremo a extremo.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.24h (medido)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-42, T-24, T-37
@@ -1382,6 +1421,7 @@ verificacion: obligatoria
 - **Verificación**:
   - `npx playwright test` → los 12 E2E (E2E-01…E2E-12) pasan
   - lectura: test-plan.md con M-01…M-05 marcados con evidencia
+  - real: `php artisan test` → 619 passed (3311 assertions); `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx playwright test` → **NO ejecutable** (Playwright no instalado: sin `playwright.config`, sin `tests/e2e/`, sin `node_modules/.bin/playwright`); M-01…M-05 sin ejecutar (humano)
 
 **Criterios de aceptación**
 - [ ] Todos los CA-01…CA-12 verificados
@@ -1393,6 +1433,27 @@ verificacion: obligatoria
 - [ ] Revisión de seguridad
 
 **Notas**: Las horas de pruebas por fase están dentro de cada tarea; aquí solo la ejecución final.
+
+**Motivo del estado**: `en-progreso` (parcial) — CA-01…CA-12 tienen cobertura Pest identificada, pero no están verificados por E2E de navegador (Playwright no instalado) ni por las pruebas manuales; la revisión de seguridad es parcial (aislamiento cubierto por tests; cifrado de tokens y revisión formal pendientes). Sin cambios de código en esta tarea (`tests/e2e/` no existe).
+
+**Matriz CA → cobertura (2026-10-20, resumen de `t43-matrix.md`)** — cobertura automática con Pest feature y conectores simulados (`Http::fake`/`Queue::fake`/`Http::preventStrayRequests`); los E2E de navegador quedan pendientes para `qa`.
+
+| CA | E2E / manual | Cobertura automática (Pest) | Estado |
+|---|---|---|---|
+| CA-01 registro/login/panel propio | E2E-01 | `tests/Feature/Auth/*`, Dashboard | Auto OK · E2E pendiente |
+| CA-02 aislamiento web/API/MCP | E2E-02, API-03 | `Isolation/BrandIsolationTest`, `Isolation/Mcp/McpIsolationTest`, `Mcp/Tools/McpStatsTest` | Auto OK · E2E pendiente |
+| CA-03 conectar cuenta OAuth | E2E-03, M-02 | `Connections/ConnectionsTest`, `Connectors/{Meta,Google,TikTok}`, `SocialAccountTest` | Auto OK (simulado) · M-02 pendiente |
+| CA-04 refresco de token / reconexión | E2E-04, M-02 | `Jobs/RefreshTokensTest` | Auto OK · M-02 pendiente |
+| CA-05 rechazo de media fuera de límites | E2E-05 | `Media/{MediaValidatorSampleTest,MediaUploadTest,MediaProbeSecurityTest}`, `Posts/Compose/ComposeTest` | Auto OK · E2E pendiente |
+| CA-06 publicar a su hora (estado + enlace) | E2E-06, M-01 | `Publishing/PublishingTest` | Auto OK · M-01 pendiente |
+| CA-07 error transitorio, sin duplicados | E2E-07 | `PublishingTest`, `RevisionFase3*Test` | Auto OK · E2E pendiente |
+| CA-08 calendario por marca/red + reprogramar | E2E-08 | `Calendar/CalendarTest`, `Posts/PostsTest`, `Mcp/Tools/McpToolsTest` | Auto OK · E2E pendiente |
+| CA-09 snapshots diarios | E2E-09 | `Snapshots/SnapshotsTest`, `Backfill/BackfillTest` | Auto OK |
+| CA-10 dashboard 30 días, «no disponible» | E2E-10, M-03 | `Analytics/AnalyticsServiceTest`, `Dashboard/DashboardTest` | Auto OK · M-03 pendiente |
+| CA-11 informe PDF y CSV por rango | E2E-11, M-03 | `Reports/{ReportsTest,Csv/ReportCsvTest,Pdf/*}` | Auto OK · M-03 pendiente |
+| CA-12 MCP: marcas, posts, calendario, stats, informe | E2E-12, API-01..03 | `Mcp/{McpAuthTest,McpAuditTest}`, `Mcp/Tools/McpToolsTest`, `Mcp/Tools/McpStatsTest`, `Isolation/Mcp` | Auto OK · E2E-12 pendiente |
+
+**Pendientes para `qa`/humano**: instalar Playwright y escribir `tests/e2e/` (E2E-01…E2E-12); M-01 publicación real por tipo de contenido; M-02 OAuth real de las 4 redes; M-03 revisión visual de dashboards y PDF (incluye aprobar T-41 y cerrar T-37); M-04 despliegue en el VPS HestiaCP; M-05 informe del spike / decisión G1; API-01…API-03 con curl contra `/mcp` (API-01/03 ya cubiertos en Pest: `tools/list` incluye `get_stats`, `get_post_stats`, `generate_report`, `get_report`); revisión de cifrado de tokens y API keys. La limitación de descarga de `get_report` que recogía la matriz quedó resuelta en `d0cded2` (ruta solo con firma, ver T-42).
 
 ## Revisión de dos lentes — intento 1: Fase 1 (T-06..T-10) — 6 Important, 15 Minor
 
@@ -1595,3 +1656,68 @@ Verificación tras corregir N2-N7 (commit `ae90424`): `--filter="YouTubePublish|
 | extra | — | Los destinos resueltos con el ID del contenedor no deben pedir métricas a los colectores de insights | T-21 / Fase 7 | Delegado en la corrección de la Fase 7 (gap 15). Esta corrección solo deja el marcador `progress.external_id_kind = 'container'` | — |
 
 Los tests previos que fijaban `progress = null` tras un reset (N1 i2, rev. #3, YouTube/TikTok N1) se actualizaron: ahora comprueban que no sobrevive el estado residual de subida/contenedor y que el único resto es el marcador de reconciliación. **Verificación:** `php artisan test` → 632 passed (3394 assertions); `pint --test` sobre las rutas tocadas → passed. **Sin gaps Critical/Important pendientes: bucle de la Fase 3 cerrado en el intento 3.**
+
+## Revisión de dos lentes — intento 1: Fase 7 (T-31..T-37) — 1 Critical, 7 Important, 8 Minor
+
+Commits (rama `feature/social-scheduler`): `646b133` (T-31), `d21d31d` (T-32), `2d26e74` (T-35), `cab1e99` (T-37). Suite completa 669/669 verde, `pint --test` verde sobre mis rutas, `npm run build` verde. Los 2 reproductores (`rv7/repro_settle_fixed.php`, `rv7/repro_growth.php`) dan el resultado correcto (ver nota sobre el reproductor original abajo).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Critical | El reintento de días previos no corre: `hasData` da por «con datos» un snapshot con solo stocks | T-31 | `hasData` eliminado. Nuevo `Metric::EXPECTED_FLOWS` (flujos diarios esperados por red) + `Metric::isComplete()`: los stocks (seguidores, vídeos) no cuentan. `SnapshotCollector::store()` marca `account_snapshots.settled_at` (migración nueva) cuando el snapshot está completo o su día sale de la ventana de reintentos (`Days::isHistoric`, `settle_days` 3). `needsCollection()` = sin fila o sin `settled_at`; lo usan `CollectAccountSnapshot` (onlyIfMissing) y `BackfillMetrics`. `CollectSnapshots` reintenta D-1..D-3. TikTok (solo stocks) se da por completo con cualquier dato. | `SettleTest`: «un snapshot con solo stocks no está completo y el reintento recoge los flujos de YouTube cuando llegan» (settled_at null tras día 1; views 340, interactions 34 y settled tras el reintento; ya asentado no vuelve a leer), «pasada la ventana… asentado», «completo de Instagram/TikTok». Reproductor: tras reintentos `views:340, followers_gained:9, interactions:34`. |
+| 2 | Important | Día del snapshot por red en su zona; recogida cuando el día está cerrado; comentario de config; fixtures | T-31/T-32 | Nuevo `App\Analytics\Days` (`closed()`, `isHistoric()`) con `social.analytics.timezones` (Meta y YouTube = `America/Los_Angeles`, TikTok UTC). `CollectSnapshots` calcula el último día cerrado por cuenta en la zona de su red. `daily_at` por defecto 03:30 → **12:00 UTC** (el día del Pacífico cierra a las 07:00/08:00 UTC) con el comentario de config corregido. Meta: `Insights::seriesValue()` indexa los valores por el día del Pacífico de `end_time − 1 s` y toma el del día pedido (no `values[0]`); sin `end_time` solo acepta una serie de una entrada, si no `null`. YouTube ya pide `startDate=endDate=D` (día del Pacífico): documentado. | `SettleTest` «Día por red…» (02:00 UTC → último cerrado 30-oct en YouTube/IG, 31-oct en TikTok), «el despachador encola el día cerrado de cada red en su zona…», `MetaInsightsTest` «elige el valor cuyo end_time cierra el día pedido» (3 valores → 222; sin coincidencia → null). |
+| 3 | Important | Límites de uso de Graph (80001/80002, 4/17/32/613) deben ser transitorios en lecturas | T-32 | `GraphClient::RATE_LIMIT_CODES` = 4, 17, 32, 613 + familia 800xx (80000-80006, 80008, 80009, 80014) → `TransientPublishException('rate_limit')`. `Insights::safe()` solo traga Permanent: el transitorio sube al job (no se guarda snapshot ni se da por completo → se reintenta). `GraphClient::get()` admite `bool $read` (cuarto argumento opcional): las lecturas de insights registran `meta.read_error` en `debug` en vez de `meta.publish_error` en `warning`. Publicación sin cambios (mismo log, mismo comportamiento). | `MetaInsightsTest` «los límites de uso de Graph (4/17/32/613 y 800xx) son transitorios» (9 códigos → `TransientPublishException`; log debug `meta.read_error`, nunca `warning meta.publish_error`). Tests de publicación de `tests/Feature/Connectors/Meta` en verde (89/89). |
+| 4 | Important | Crecimiento/seguidores agregados saltan con altas/bajas | T-35 | `Calculator::growthAcross()` = suma de Δ de cada cuenta entre su primer y último dato del periodo (solo cuentas con ≥2 puntos; con un solo punto `change=null`). `Calculator::totalAcross()`: stock = suma del último valor conocido de cada cuenta (no el último día de la suma). `Calculator::combine()` arrastra el último valor de cada cuenta entre su primer y último dato en las series de stocks. `networkSeries()` ahora devuelve una serie por cuenta. | Reproductor `repro_growth.php`: cuenta B conectada el 15 → `change:30` (antes saltaba ~+50000); B sin snapshots desde el 26 → `change:16` (A 1015→1031). `AnalyticsReviewTest` «Crecimiento: …sin salto» (total 51031) y «…deja de tener snapshots…» (serie del 27-oct = 1027). |
+| 5 | Important | KPIs por publicación sobre todas las del periodo, lista paginada/top N con aviso | T-35/T-37 | `postStats()`: `COUNT/AVG` en SQL (join con el último snapshot por destino; `CAST(NULLIF(<json>,'null') AS DECIMAL)` para que un `null` JSON no sea 0 en MySQL) sobre TODAS las publicaciones; la lista es un top N explícito por interacciones (`social.analytics.dashboard_posts`, 50). Salida nueva: `posts_total`, `posts_limit`, `posts_truncated`; `kpis.per_post.posts` = total real. `Network.vue` muestra «Se muestran las N con más interacciones de M». | `AnalyticsReviewTest` «KPIs por publicación: se agregan sobre TODAS…» (9 publicaciones, top 3 = 80/70/60, medias 450/45/10 % sobre las 8 con datos) y «un valor null no cuenta como 0». |
+| 6 | Important | IG: `total_interactions` de cuenta y engagement de cuenta | T-32/T-35 | `Insights::instagramAccount()` pide `total_interactions` (`metric_type=total_value`) → `Metric::INTERACTIONS`; si Meta la rechaza queda `null`. `AnalyticsService::SUPPORTED['instagram']` incluye `INTERACTIONS` (engagement de cuenta = interacciones/visualizaciones). `EXPECTED_FLOWS['instagram']` la incluye. | `MetaInsightsTest` «total_interactions alimenta las interacciones…» (77; rechazada → null), `AnalyticsReviewTest` «Interacciones y engagement de cuenta de Instagram» (5.0 %). |
+| 7 | Important | Snapshot diario sin presupuesto de tiempo ni continuación | T-31 | `CollectAccountSnapshot` ya no lee publicaciones: encola `RefreshPostMetrics(accountId, hours, offset)`. `SnapshotCollector::collectPostsBatch()` lee bloques (≤25) con presupuesto (`posts_budget_seconds` 60 < `$timeout` 90), siempre ≥1 por pasada y comprobando antes de cada una con la duración de la más lenta; `RefreshPostMetrics` pasa a `ShouldBeUniqueUntilProcessing` (candado por cuenta+horas) y se reencola con el offset. `$timeout` de todos los jobs < 120. | `SettleTest` «Presupuesto: las publicaciones del snapshot diario se leen en un job aparte, por bloques con continuación» (0 lecturas inline; con presupuesto 1,5 s y 0,6 s/post → 2 lecturas y continuación `offset=2`; último bloque sin encadenar) y «los jobs… timeout menor que el del worker». |
+| 8 | Important | T-37 vuelve a `en-progreso` por M-03 | T-37 | Solo ledger (lo aplica el orquestador): ver «Notas de ledger». | — |
+| 9 | Minor | Presupuesto del backfill por llamada | T-36 | `BackfillMetrics` comprueba el presupuesto ANTES de cada unidad (día o tramo) sumando la duración de la unidad más lenta de la pasada (siempre ≥1 por pasada); si no cabe, se reencola con el offset. | `SettleTest` «el presupuesto se comprueba antes de cada unidad…» (0,6 s/día, presupuesto 1 s → 1 lectura y `BackfillMetrics(offset=1)`); `BackfillTest` «sin presupuesto…» sigue en verde. |
+| 10 | Minor | Backfill por rango | T-36/T-33/T-32 | Nueva interfaz `RangeInsightsReader` (`maxRangeDays`, `accountInsightsRange`). YouTube: un informe `dimensions=day&sort=day` por tramo de hasta 90 días. Facebook: 3 series `since/until` por tramo de ≤30 días. Instagram no (sus métricas `total_value` exigen una llamada por día): `maxRangeDays=0`. Los 3 últimos días (con stocks) van día a día. `SnapshotCollector::collectRange()` solo escribe días que necesitan datos. | `SettleTest` «Backfill por rango: YouTube… UN informe por tramo» (40 días = 4 informes, no 40; `dimensions=day`), `MetaInsightsTest` «Facebook por rango lee 3 series…» (3 llamadas, 21 días). |
+| 11 | Minor | Comparación año anterior con misma longitud (bisiestos) | T-35 | `Period::comparison('year')`: `from − 1 año (sin overflow)` + `days − 1`. | `AnalyticsReviewTest` «Comparación con el año anterior: misma longitud…» (15 días con 29-feb → 15). |
+| 12 | Minor | Documentar decisión 30/90 días | T-36 | Decisión en `config/social.php` y abajo: IG 30 (límite de 30 días por consulta; una llamada por día), FB 90 (3 llamadas por tramo de 30 días), YouTube 365 (un informe por 90 días), TikTok 0; tope duro `Period::MAX_DAYS`. | Config comentada; nota de T-36 más abajo. |
+| 13 | Minor | Fixtures de `end_time` coherentes | T-32 | Fixtures: el día 31-oct del Pacífico acaba el 1-nov 07:00 UTC (PDT; el cambio a PST es el 1-nov a las 02:00 local), no `…T08:00` ni `2026-10-31T07:00`. | `MetaInsightsTest` (IG `follower_count` y FB `page_follows` con `2026-11-01T07:00:00+0000`). |
+| 14 | Minor | `network()` carga solo la red pedida | T-35 | `networkSeries($user,$brand,$period,?Network $only)` filtra por red en SQL. | `AnalyticsReviewTest` «network() solo lee los snapshots de la red pedida» (1 consulta, binding `youtube`). |
+| 15 | Minor | `canReadPost` de Meta excluye `external_id_kind=container` | T-32 | `Insights::canReadPost()` devuelve false si `progress.external_id_kind === 'container'`. No toco `InstagramPublisher`. | `MetaInsightsTest` «una media de Instagram que sigue siendo un contenedor no se lee». |
+| 16 | Minor | Periodo y filtro de publicaciones en la zona de la marca | T-35/T-37 | `Period::make(from, to, ?timezone)`: «ayer» por defecto en la zona de la marca (zona inválida → UTC). `AnalyticsService::bounds()` convierte los días del periodo a límites UTC `[desde, hasta)` en la zona de la marca para filtrar `published_at`. `DashboardController` pasa `$brand->timezone`. | `AnalyticsReviewTest` «Periodo y filtro de publicaciones en la zona horaria de la marca» (Auckland: una publicación a las 20:00 UTC del 10 pertenece al 11; `Period::make(null,null,'Pacific/Auckland')` termina el 1-nov frente al 31-oct en UTC). |
+
+### Notas de ledger (para que las aplique el orquestador; no he tocado `tasks.md`)
+
+- **T-37 → `en-progreso` (por M-03)**: el cierre completo exige la verificación manual M-03 / E2E-09 (job diario con cuentas reales ~30 días y revisar gráficos; comprobar en el VPS que `collect-snapshots` corre a las **12:00 UTC** —antes 03:30— y `refresh-post-metrics`, y que un worker escucha la cola `metrics`). Cambia la hora de la nota de T-31 («planificado 03:30 UTC» → 12:00 UTC, día cerrado en el Pacífico).
+- **Decisiones T-36**: (a) backfill por rango cuando la red lo permite; (b) histórico: IG 30 días (límite de 30 días por consulta de la API de insights de usuario; sus `total_value` exigen una llamada por día), FB 90 (se lee por tramos de ≤30 días, 3 llamadas por tramo), YouTube 365 (un informe `dimensions=day` por tramo de 90 días), TikTok 0 (la Display API no da serie histórica); tope duro `Period::MAX_DAYS`=366; (c) los tres últimos días se leen día a día porque llevan stocks (la API solo da el valor actual); (d) presupuesto de la pasada comprobado por unidad con la duración de la más lenta; (e) un día histórico (fuera de `settle_days`) queda asentado tras una lectura aunque le falten métricas, así no se repite.
+- **Decisión T-31 nueva**: «asentado» (`account_snapshots.settled_at`) = completo según `Metric::EXPECTED_FLOWS` o fuera de la ventana de `settle_days` (3). Una métrica permanentemente rechazada (p. ej. `total_interactions` en cuentas pequeñas) se reintenta como mucho 3 días y luego se asienta con `null`.
+- **`Archivos` a añadir al ledger** (para `scope-check`): T-31: `app/Analytics/Days.php`, `app/Analytics/Metric.php`, `app/Connectors/Contracts/RangeInsightsReader.php`, `database/migrations/2026_10_27_090000_add_settled_at_to_account_snapshots.php`, `app/Models/AccountSnapshot.php`, `config/social.php`, `tests/Feature/Snapshots/SettleTest.php`, `tests/Support/FakeInsights.php`. T-32: `app/Connectors/Meta/GraphClient.php` (solo clasificación de límites de uso + parámetro `$read`). T-33: `app/Connectors/Google/Analytics.php`. T-35: `app/Analytics/Calculator.php`, `app/Analytics/Period.php`, `tests/Feature/Analytics/AnalyticsReviewTest.php`. T-37: `app/Http/Controllers/DashboardController.php`, `resources/js/Pages/Dashboard/Network.vue`.
+- **Horas (estimación, no medidas — sin usage-meter en esta corrección)**: IA ≈ 2,5 h de ejecución; supervisión humana ≈ 0,3 h. Marcar `(estimado)`.
+- **Compatibilidad con `get_stats` (Fase 9)**: firmas públicas de `AnalyticsService::summary/network/connectedNetworks` y de `Period::make/comparison` sin cambios (`make` gana un tercer argumento opcional `?string $timezone`). Salida de `network()` ampliada de forma aditiva: `posts_total`, `posts_limit`, `posts_truncated`, `growth.accounts`; `kpis.per_post.posts` ahora es el total real del periodo (antes ≤50) y `posts` es el top N. `GetStats` usa el periodo por defecto en UTC; si se quiere por zona de la marca, basta pasar `$brand->timezone` como tercer argumento (no he editado `app/Mcp/**`). La métrica `interactions` aparece ahora también en Instagram.
+- **Documentación consultada**: en esta sesión no tuve herramientas de Context7/WebFetch (solo Bash/archivos), así que el contraste con las docs actuales de Instagram User Insights, Page Insights y YouTube Analytics se hizo contra el conocimiento previo y el spike del repo, no contra un fetch en vivo. Supuestos a validar en M-03 con cuentas reales: (1) `end_time` = fin del periodo a medianoche del Pacífico; (2) `total_interactions` con `metric_type=total_value` en la cuenta IG; (3) `since/until` ≤30 días; (4) códigos de límite 800xx. Si Meta devolviera `end_time` con otra convención, `Insights::valuesByDay()` es el único punto a ajustar.
+- **Reproductor original `repro_settle.php`**: reutiliza `Http::fake()` dos veces; en Laravel gana el primer stub que coincide, así que el reintento seguía viendo `rows: []` y no puede demostrar la corrección. La versión con `Http::swap(new Factory)` antes de cada `fake` está en `rv7/repro_settle_fixed.php` y confirma el arreglo.
+- **Pendiente/riesgo**: los agregados SQL de `postStats()` se probaron en SQLite (suite); la expresión usa `Grammar::wrap('pm.metrics->views')` (portable a MySQL/PostgreSQL) pero no se ha ejecutado contra MySQL real: añadir a la verificación manual M-03. Los fallos de `ReportsTest` que vi a mitad de trabajo eran de la Fase 8 en curso y ya están en verde en la suite final.
+
+Verificación tras corregir: suite completa 669 passed (4802 assertions); `pint --test` passed. Sin gaps Critical/Important pendientes de corrección; pendiente revisión intento 2.
+
+## Revisión de dos lentes — intento 1: Fase 8 (T-38..T-41) — 4 Important, 14 Minor
+
+Corrección (implementer, commits c343d36 T-38, b92c6a0 T-39, 8a3edb8 T-40, d0cded2 T-42 sobre feature/social-scheduler). Verificación en el estado final: `php artisan test tests/Feature/Reports tests/Feature/Mcp` -> 69 passed (1676 aserciones); `--filter=ReportCsv` 8/8, `ReportPdf` 3/3, `McpStats` 8/8; `vendor/bin/pint --test` sobre las rutas del ámbito -> passed; `npm run build` -> built OK.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| I-1 | Important | Escape de fórmulas del CSV eludible con `;` (Excel es-ES), CWE-1236 | T-38 | Celdas de texto SIEMPRE entre comillas; `cell()` antepone `'` al texto y a cualquier tramo tras `;`, `,`, TAB, CR o LF que empiece por `= + - @ TAB CR`; separador `;` y coma decimal por defecto (`reports.csv_locale` es/en) | `ReportService::cell/field/csvFormat`; test «la inyeccion con ; no se cuela...» con el payload `x;=cmd|'/Ccalc'!A0;` (salida `"x;'=cmd|'/Ccalc'!A0;"`, 8 celdas por fila, ningún tramo empieza por `=`) |
+| I-2 | Important | «Publicaciones destacadas» salían de las 50 más recientes, no del periodo | T-38 | `ReportService::topPosts()`: consulta propia (`post_targets` + último `post_metric_snapshots` de cada publicación en el periodo, todas las redes en una pasada, streaming con `cursor()`), ordena por interacciones y recorta al top N por red; AnalyticsService intacto | test `ReportFix I-2` con 60 publicaciones: el top 1 es la más antigua (9000 interacciones), orden `[9000,60,59,58,57]` |
+| I-3 | Important (ledger) | Verificaciones de T-38/T-39 no cumplidas por su commit (dependían de commits posteriores) | T-38/T-39 | Ledger corregido: la verificación vale en el estado final; se anota la dependencia | `ledger-f8.md` |
+| I-4 | Important (ledger) | Cifras (tests/aserciones) no coinciden con la salida real; T-41 figuraba `completado` | T-41 | Cifras sustituidas por la salida real; T-41 pasa a `en-progreso` (M-03: aprobación del usuario) | `ledger-f8.md` |
+| M-1 | Minor | Separador/decimal fijos (`,`) | T-38 | Configurable por locale; por defecto es: `;` y decimal con coma | test «separador y decimal segun locale» (`0,5` / `0.5`) |
+| M-2 | Minor | «Sin comparación» y «no disponible» indistinguibles | T-38 | Sin comparación: `anterior`/`variacion_pct` vacíos; con comparación y sin dato: `"no disponible"` | test «distingue sin comparacion de no disponible» |
+| M-3 | Minor | El CSV no traía tasa de interacción ni notas | T-38 | Filas `Tasa de interaccion (%)` por red, `tasa_interaccion_pct` por publicación y sección `nota` por métrica no disponible | test «incluye tasa de interaccion y notas...» |
+| M-4 | Minor | Rango+comparación inválidos terminaban en informe `failed` | T-40 | Se validan en `store` (error de formulario en `from`) y en `ReportService::create` (`comparison()`); también en la tool MCP | test `ReportFix M-4`: 2 errores de validación, 0 informes, 0 jobs |
+| M-5 | Minor | El enlace firmado caducaba en pantalla | T-40 | Ruta `reports.link` (con sesión) que redirige a una URL firmada nueva al pulsar Descargar | test «Descargar genera un enlace firmado nuevo» |
+| M-6 | Minor | Límite de 5 en curso no atómico | T-38/T-40 | `ReportService::enqueue()`: transacción + `lockForUpdate` sobre el usuario, todo o nada; lo usan el controlador y la tool MCP | test `ReportFix M-6` (4 de 5, tercero rechazado sin crear nada) |
+| M-7 | Minor | Informes `pending` atascados y sin borrado | T-40 | `stuck_hours=2`: un atascado no cuenta para el límite, se muestra `failed` y `reports:prune` lo marca `failed`; `DELETE reports/{report}` borra fila+fichero (409 si está en curso) | test `ReportFix M-7` |
+| M-8 | Minor | `put()` devolviendo false se ignoraba | T-38 | Excepción -> `failed` | test `ReportFix M-8/M-10` |
+| M-9 | Minor | Sin purga por `retention_days` ni borrado de ficheros | T-38/T-40 | Comando `reports:prune` diario (04:10); `Report::deleting` borra el fichero; `Brand::deleting`/`User::deleting` (AppServiceProvider) purgan antes del FK en cascada | test `ReportFix M-9` |
+| M-10 | Minor | Mensaje de error con detalle interno al usuario | T-38/T-40 | Error genérico `ReportService::GENERIC_ERROR`; detalle en log (`report.generate_failed`/`report.job_failed`) | tests `ReportPdf` y `ReportFix M-8/M-10` |
+| M-11 | Minor | Gráfico de 366 días desborda A4 | T-39 | Más de 60 puntos (`chart_max_daily_points`) -> barras semanales (≤ 53) y etiqueta «por semana» | test `ReportFix M-11` (53 puntos, primera semana = 7) |
+| M-12 | Minor | Emojis salen como cuadrados (DejaVu Sans) | T-39 | `PdfRenderer::withoutEmoji()` los elimina del PDF (el CSV los conserva); documentado en config y ADR-002 | test `ReportFix M-12` |
+| M-13 | Minor | Snapshots se cargan una vez por red | T-39 | Parcial: el top de publicaciones ya se carga una sola vez para todas las redes. Las lecturas de series de cuenta (`networkSeries` en `summary()`/`network()`) viven en AnalyticsService, que corrige otro agente; no se toca | `ReportService::topPosts` |
+| M-14 | Minor | Falta el ADR de DomPDF | T-39 | `docs/knowledge/adr/ADR-002-pdf-dompdf.md` (estado `propuesta`), índice del README y `design.md` filas 72 y 176 actualizadas | ficheros indicados |
+| T-42 | Decisión Fase 9 | `get_report` devolvía una URL firmada que exigía sesión | T-42 | `reports.download` pasa a `reports/{report}/download/{owner}` solo con firma (sin sesión), TTL 5 min (`download_minutes`), dueño codificado en la firma y comprobado, solo informes `ready`, audita `report_download` (canal `signed-url`); `get_report` usa `Report::signedDownloadUrl()` | tests: firma válida sin sesión -> 200; caducada/id o dueño alterado -> 403; firma de otro dueño -> 404 sin auditar; no `ready` -> 404; MCP descarga anónima 200 y a los 6 min 403 |
+
+Verificación tras corregir: suite completa 669 passed (4802 assertions); `pint --test` passed. Sin gaps Critical/Important pendientes de corrección; pendiente revisión intento 2.

@@ -23,6 +23,12 @@ class GraphClient
     /** Codigos de error de Graph que significan "credencial invalida/revocada/caducada". */
     private const REAUTH_CODES = [102, 190, 458, 459, 460, 463, 464, 467];
 
+    /**
+     * Codigos de limite de uso: 4 (app), 17 (usuario), 32 (pagina), 613 (llamadas) y la familia 800xx de los limites por
+     * caso de uso de negocio (80000 IG, 80001 paginas, 80002 ... 80014): transitorios, nunca "metrica no disponible".
+     */
+    private const RATE_LIMIT_CODES = [4, 17, 32, 613, 80000, 80001, 80002, 80003, 80004, 80005, 80006, 80008, 80009, 80014];
+
     /** Subcodigos de error de la API de publicacion de Instagram -> [clase, codigo interno, mensaje]. */
     private const IG_SUBCODES = [
         2207042 => ['quota', 'cuota', 'Instagram ha alcanzado el limite diario de publicaciones de la cuenta.'],
@@ -46,11 +52,14 @@ class GraphClient
     /**
      * El token viaja siempre en la cabecera `Authorization: Bearer` (nunca en la query, que acaba en logs de proxy).
      *
+     * `$read` marca una LECTURA de insights (no una publicacion): un rechazo es un dato "no disponible" esperable, no un
+     * fallo de publicacion, y se registra en `debug` (`meta.read_error`) en vez de en `warning` (`meta.publish_error`).
+     *
      * @return array<string, mixed>
      */
-    public function get(string $path, array $query, string $token): array
+    public function get(string $path, array $query, string $token, bool $read = false): array
     {
-        return $this->send(fn (PendingRequest $http) => $http->withToken($token)->get($this->url($path), $query));
+        return $this->send(fn (PendingRequest $http) => $http->withToken($token)->get($this->url($path), $query), $read);
     }
 
     /** @return array<string, mixed> */
@@ -77,7 +86,7 @@ class GraphClient
     }
 
     /** @param \Closure(PendingRequest): Response $call */
-    private function send(\Closure $call): array
+    private function send(\Closure $call, bool $read = false): array
     {
         try {
             $response = $call(Http::timeout((int) config('social.http_timeout', 15))->acceptJson());
@@ -86,11 +95,11 @@ class GraphClient
             throw new TransientPublishException('No se pudo contactar con Meta (tiempo agotado o red).', 'red');
         }
 
-        return $this->parse($response);
+        return $this->parse($response, $read);
     }
 
     /** @return array<string, mixed> */
-    private function parse(Response $response): array
+    private function parse(Response $response, bool $read = false): array
     {
         $json = $response->json() ?? [];
 
@@ -103,7 +112,11 @@ class GraphClient
         $sub = (int) ($error['error_subcode'] ?? 0);
         $message = (string) ($error['error_user_msg'] ?? $error['message'] ?? 'respuesta inesperada');
 
-        Log::warning('meta.publish_error', ['status' => $response->status(), 'code' => $code, 'subcode' => $sub]);
+        if ($read) {
+            Log::debug('meta.read_error', ['status' => $response->status(), 'code' => $code, 'subcode' => $sub]);
+        } else {
+            Log::warning('meta.publish_error', ['status' => $response->status(), 'code' => $code, 'subcode' => $sub]);
+        }
 
         throw $this->exceptionFor($response, $code, $sub, $message);
     }
@@ -124,7 +137,7 @@ class GraphClient
             };
         }
 
-        if (in_array($code, [4, 17, 32, 613], true)) {
+        if (in_array($code, self::RATE_LIMIT_CODES, true)) {
             return new TransientPublishException('Meta limito temporalmente las peticiones ('.$message.').', 'rate_limit');
         }
 

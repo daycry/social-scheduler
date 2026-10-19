@@ -11,9 +11,11 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 const INS_PAGE_ID = '1065269806670394';
 const INS_IG_ID = '17841400000000001';
@@ -21,6 +23,7 @@ const INS_IG_ID = '17841400000000001';
 /** Graph simulada que enruta por ruta + parametro `metric`; lo no declarado responde #100 (metrica no valida). */
 function fakeMetaInsights(array $responses, array &$calls): void
 {
+    Http::swap(new Factory);
     Http::fake(function (Request $request) use ($responses, &$calls) {
         $url = parse_url($request->url());
         $path = ltrim(preg_replace('#^/v[\d.]+/#', '', $url['path'] ?? ''), '/');
@@ -60,7 +63,9 @@ it('MetaInsights: Instagram usa views (no impressions) con total_value y followe
         INS_IG_ID.'/insights|reach' => $tv('reach', 800),
         INS_IG_ID.'/insights|profile_views' => $tv('profile_views', 40),
         INS_IG_ID.'/insights|accounts_engaged' => $tv('accounts_engaged', 55),
-        INS_IG_ID.'/insights|follower_count' => ['data' => [['name' => 'follower_count', 'values' => [['value' => 7, 'end_time' => '2026-10-31T07:00:00+0000']]]]],
+        INS_IG_ID.'/insights|total_interactions' => $tv('total_interactions', 130),
+        // end_time = FIN del periodo: el dia 31-oct del Pacifico acaba el 1-nov a las 00:00 PDT = 07:00 UTC.
+        INS_IG_ID.'/insights|follower_count' => ['data' => [['name' => 'follower_count', 'values' => [['value' => 7, 'end_time' => '2026-11-01T07:00:00+0000']]]]],
         INS_IG_ID.'|followers_count' => ['followers_count' => 4321, 'id' => INS_IG_ID],
     ], $calls);
 
@@ -70,7 +75,7 @@ it('MetaInsights: Instagram usa views (no impressions) con total_value y followe
         ->and($m[Metric::VIEWS])->toBe(1200)->and($m[Metric::REACH])->toBe(800)
         ->and($m[Metric::PROFILE_VIEWS])->toBe(40)->and($m[Metric::ACCOUNTS_ENGAGED])->toBe(55)
         ->and($m[Metric::FOLLOWERS_GAINED])->toBe(7)->and($m[Metric::FOLLOWERS])->toBe(4321)
-        ->and($m[Metric::INTERACTIONS])->toBeNull()->and($m[Metric::WATCH_MINUTES])->toBeNull();
+        ->and($m[Metric::INTERACTIONS])->toBe(130)->and($m[Metric::WATCH_MINUTES])->toBeNull();
 
     $metrics = array_column(array_column($calls, 'q'), 'metric');
     expect($metrics)->not->toContain('impressions');
@@ -99,7 +104,7 @@ it('MetaInsights: una metrica rechazada por Meta se guarda como null y no como 0
 
 it('MetaInsights: Facebook usa page_media_view, page_post_engagements y page_follows (no las retiradas)', function () {
     $calls = [];
-    $series = fn ($name, $v) => ['data' => [['name' => $name, 'period' => 'day', 'values' => [['value' => $v, 'end_time' => '2026-11-01T08:00:00+0000']]]]];
+    $series = fn ($name, $v) => ['data' => [['name' => $name, 'period' => 'day', 'values' => [['value' => $v, 'end_time' => '2026-11-01T07:00:00+0000']]]]];
     fakeMetaInsights([
         INS_PAGE_ID.'/insights|page_media_view' => $series('page_media_view', 900),
         INS_PAGE_ID.'/insights|page_post_engagements' => $series('page_post_engagements', 33),
@@ -200,4 +205,93 @@ it('MetaInsights: sin ID externo el destino no se puede leer', function () {
     expect($this->reader->canReadPost($t))->toBeFalse();
     $t->external_id = '123';
     expect($this->reader->canReadPost($t))->toBeTrue();
+});
+
+it('MetaInsights: elige el valor cuyo end_time cierra el dia pedido (Pacifico), no values[0]', function () {
+    $calls = [];
+    // since=30-oct&until=1-nov puede traer varios valores: el del 31-oct acaba el 1-nov 00:00 PDT = 07:00 UTC.
+    $values = [
+        ['value' => 111, 'end_time' => '2026-10-31T07:00:00+0000'], // dia 30-oct
+        ['value' => 222, 'end_time' => '2026-11-01T07:00:00+0000'], // dia 31-oct
+        ['value' => 333, 'end_time' => '2026-11-02T08:00:00+0000'], // dia 1-nov (ya en PST)
+    ];
+    fakeMetaInsights([
+        INS_PAGE_ID.'/insights|page_media_view' => ['data' => [['name' => 'page_media_view', 'period' => 'day', 'values' => $values]]],
+    ], $calls);
+
+    $m = $this->reader->accountInsights($this->fb, Carbon::parse('2026-10-31'));
+
+    expect($m[Metric::VIEWS])->toBe(222);
+
+    // Sin ningun valor que cierre ese dia (y varias entradas): no disponible, no se adivina con la primera.
+    $calls = [];
+    fakeMetaInsights([
+        INS_PAGE_ID.'/insights|page_media_view' => ['data' => [['values' => [['value' => 1, 'end_time' => '2026-10-20T07:00:00+0000'], ['value' => 2, 'end_time' => '2026-10-21T07:00:00+0000']]]]],
+    ], $calls);
+
+    expect($this->reader->accountInsights($this->fb, Carbon::parse('2026-10-31'))[Metric::VIEWS])->toBeNull();
+});
+
+it('MetaInsights: Instagram total_interactions alimenta las interacciones de cuenta y, si Meta la rechaza, queda null', function () {
+    $calls = [];
+    fakeMetaInsights([
+        INS_IG_ID.'/insights|total_interactions' => ['data' => [['name' => 'total_interactions', 'total_value' => ['value' => 77]]]],
+    ], $calls);
+
+    $m = $this->reader->accountInsights($this->ig, Carbon::parse('2026-10-31'));
+    $call = collect($calls)->firstWhere(fn ($c) => ($c['q']['metric'] ?? '') === 'total_interactions');
+
+    expect($m[Metric::INTERACTIONS])->toBe(77)->and($call['q']['metric_type'])->toBe('total_value');
+
+    $calls = [];
+    fakeMetaInsights([], $calls); // todo -> #100
+    expect($this->reader->accountInsights($this->ig, Carbon::parse('2026-10-31'))[Metric::INTERACTIONS])->toBeNull();
+});
+
+it('MetaInsights: los limites de uso de Graph (4/17/32/613 y 800xx) son transitorios, nunca "no disponible"', function () {
+    foreach ([4, 17, 32, 613, 80000, 80001, 80002, 80004, 80014] as $code) {
+        $calls = [];
+        fakeMetaInsights([INS_IG_ID.'/insights|views' => ['status' => 400, 'body' => ['error' => ['code' => $code, 'message' => 'limit']]]], $calls);
+
+        expect(fn () => $this->reader->accountInsights($this->ig, Carbon::parse('2026-10-31')))->toThrow(TransientPublishException::class);
+    }
+
+    // Una lectura rechazada no es un fallo de publicacion: se registra en debug, no como `meta.publish_error`.
+    Log::spy();
+    $calls = [];
+    fakeMetaInsights([], $calls);
+    $this->reader->accountInsights($this->ig, Carbon::parse('2026-10-31'));
+    Log::shouldNotHaveReceived('warning', fn ($m) => $m === 'meta.publish_error');
+    Log::shouldHaveReceived('debug', fn ($m) => $m === 'meta.read_error');
+});
+
+it('MetaInsights: una media de Instagram que sigue siendo un contenedor no se lee', function () {
+    $post = Post::factory()->for($this->user)->create(['brand_id' => $this->brand->id]);
+    $t = PostTarget::factory()->create(['post_id' => $post->id, 'social_account_id' => $this->ig->id, 'external_id' => '17900', 'progress' => ['container' => '17900', 'external_id_kind' => 'container']]);
+
+    expect($this->reader->canReadPost($t))->toBeFalse();
+
+    $t->progress = ['external_id_kind' => 'media'];
+    expect($this->reader->canReadPost($t))->toBeTrue();
+});
+
+it('MetaInsights: Facebook por rango lee 3 series para todos los dias y respeta <= 30 dias; Instagram no usa rango', function () {
+    $calls = [];
+    $rows = fn ($name, $base) => ['data' => [['name' => $name, 'period' => 'day', 'values' => array_map(
+        fn ($i) => ['value' => $base + $i, 'end_time' => Carbon::parse('2026-10-11')->addDays($i)->format('Y-m-d').'T07:00:00+0000'], range(0, 20),
+    )]]];
+    fakeMetaInsights([
+        INS_PAGE_ID.'/insights|page_media_view' => $rows('page_media_view', 100),
+        INS_PAGE_ID.'/insights|page_post_engagements' => $rows('page_post_engagements', 10),
+        INS_PAGE_ID.'/insights|page_follows' => $rows('page_follows', 5000),
+    ], $calls);
+
+    $out = $this->reader->accountInsightsRange($this->fb, Carbon::parse('2026-10-10'), Carbon::parse('2026-10-30'));
+
+    // end_time 11-oct 07:00 UTC = fin del 10-oct del Pacifico.
+    expect($calls)->toHaveCount(3)->and($out)->toHaveCount(21)
+        ->and($out['2026-10-10'][Metric::VIEWS])->toBe(100)->and($out['2026-10-30'][Metric::VIEWS])->toBe(120)
+        ->and($out['2026-10-10'][Metric::INTERACTIONS])->toBe(10)->and($out['2026-10-10'][Metric::REACH])->toBeNull()
+        ->and($calls[0]['q']['since'])->toBe('2026-10-10')->and($calls[0]['q']['until'])->toBe('2026-10-31');
+    expect($this->reader->maxRangeDays($this->fb))->toBe(30)->and($this->reader->maxRangeDays($this->ig))->toBe(0);
 });

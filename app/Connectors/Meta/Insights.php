@@ -3,32 +3,46 @@
 namespace App\Connectors\Meta;
 
 use App\Analytics\Metric;
-use App\Connectors\Contracts\InsightsReader;
+use App\Connectors\Contracts\RangeInsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Network;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Colector de insights de Meta (Facebook Pagina + Instagram) sobre Graph. Reutiliza GraphClient sin modificarlo.
+ * Colector de insights de Meta (Facebook Pagina + Instagram) sobre Graph. Reutiliza GraphClient.
  *
  * Metricas verificadas contra la API real en el spike (spike-report.md, Graph v23.0):
  *  - FB Pagina: `page_media_view` (-> views), `page_post_engagements` (-> interactions), `page_follows`
  *    (-> followers). NO existen `page_impressions` ni `page_fans`.
- *  - IG cuenta: `views`, `reach`, `profile_views`, `accounts_engaged` con `metric_type=total_value`;
- *    `follower_count` como serie diaria (nuevos seguidores del dia -> followers_gained). No existe `impressions`.
+ *  - IG cuenta: `views`, `reach`, `profile_views`, `accounts_engaged`, `total_interactions` (-> interactions, base del
+ *    engagement de cuenta) con `metric_type=total_value`; `follower_count` como serie diaria (nuevos seguidores del dia
+ *    -> followers_gained). No existe `impressions`. Si Meta rechaza `total_interactions`, queda `null`.
  *  - IG media: `views`, `reach`, `likes`, `comments`, `shares`, `saved`, `total_interactions`.
+ *
+ * Dia: Meta define el dia en el Pacifico y cada valor de una serie lleva `end_time` (FIN del periodo, medianoche del
+ * Pacifico = 07:00/08:00 UTC). El valor del dia D es el cuyo `end_time` cae en la medianoche de D+1 del Pacifico, NO
+ * `values[0]` (una consulta `since=D&until=D+1` puede traer mas de un valor). Facebook se lee por rangos de <= 30 dias en
+ * el historico; Instagram (`total_value`) va dia a dia.
  *
  * Cada metrica se pide por separado: si Meta rechaza una (retirada, sin permiso, cuenta pequena) queda en `null`
  * ("no disponible") y las demas se guardan. Credenciales invalidas (ReconnectRequiredException) y fallos
- * transitorios (TransientPublishException) SI se propagan para que el job reintente o pida reconectar.
+ * transitorios, incluidos los limites de uso (TransientPublishException), SI se propagan para que el job reintente o
+ * pida reconectar: un limite de uso nunca se guarda como "no disponible".
  */
-class Insights implements InsightsReader
+class Insights implements RangeInsightsReader
 {
     /** Los stocks (seguidores actuales) solo se leen para dias recientes: la API no da el valor de un dia pasado. */
     private const STOCK_MAX_AGE_DAYS = 2;
+
+    /** Zona en la que Meta cierra el dia de las metricas. */
+    private const ZONE = 'America/Los_Angeles';
+
+    /** Maximo de dias por consulta `since/until` (limite de la API de insights de Instagram; se usa tambien en Facebook). */
+    private const RANGE_DAYS = 30;
 
     public function __construct(private readonly GraphClient $graph) {}
 
@@ -39,8 +53,47 @@ class Insights implements InsightsReader
             : $this->instagramAccount($account, $day);
     }
 
+    public function maxRangeDays(SocialAccount $account): int
+    {
+        return $account->network === Network::Facebook ? self::RANGE_DAYS : 0;
+    }
+
+    public function accountInsightsRange(SocialAccount $account, CarbonInterface $from, CarbonInterface $to): array
+    {
+        $out = [];
+
+        for ($d = CarbonImmutable::instance($from)->startOfDay(); $d->lte($to); $d = $d->addDay()) {
+            $out[$d->format('Y-m-d')] = Metric::blankAccount();
+        }
+
+        if ($account->network !== Network::Facebook) {
+            return $out; // Instagram se lee dia a dia (maxRangeDays = 0)
+        }
+
+        $id = (string) ($account->meta['page_id'] ?? $account->external_id);
+        $token = (string) $account->access_token;
+        $range = ['since' => $from->format('Y-m-d'), 'until' => CarbonImmutable::instance($to)->startOfDay()->addDay()->format('Y-m-d')];
+
+        foreach (['page_media_view' => Metric::VIEWS, 'page_post_engagements' => Metric::INTERACTIONS, 'page_follows' => Metric::FOLLOWERS] as $metric => $key) {
+            $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric, 'period' => 'day'] + $range, $token, true), $metric);
+
+            foreach ($this->valuesByDay($json['data'][0]['values'] ?? []) as $date => $value) {
+                if (isset($out[$date])) {
+                    $out[$date][$key] = $value;
+                }
+            }
+        }
+
+        return $out;
+    }
+
     public function canReadPost(PostTarget $target): bool
     {
+        // Un contenedor de Instagram (media aun sin publicar) no tiene metricas: solo una media publicada las tiene.
+        if (($target->progress['external_id_kind'] ?? null) === 'container') {
+            return false;
+        }
+
         return $target->external_id !== null && $target->external_id !== '';
     }
 
@@ -59,12 +112,12 @@ class Insights implements InsightsReader
         $token = (string) $account->access_token;
         $range = $this->range($day);
 
-        $out[Metric::VIEWS] = $this->seriesValue($id, 'page_media_view', $range, $token);
-        $out[Metric::INTERACTIONS] = $this->seriesValue($id, 'page_post_engagements', $range, $token);
-        $out[Metric::FOLLOWERS] = $this->seriesValue($id, 'page_follows', $range, $token);
+        $out[Metric::VIEWS] = $this->seriesValue($id, 'page_media_view', $range, $token, $day);
+        $out[Metric::INTERACTIONS] = $this->seriesValue($id, 'page_post_engagements', $range, $token, $day);
+        $out[Metric::FOLLOWERS] = $this->seriesValue($id, 'page_follows', $range, $token, $day);
 
         if ($out[Metric::FOLLOWERS] === null && $this->isRecent($day)) {
-            $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token), 'followers_count');
+            $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token, true), 'followers_count');
             $out[Metric::FOLLOWERS] = $this->numberOrNull($json['followers_count'] ?? null);
         }
 
@@ -84,16 +137,17 @@ class Insights implements InsightsReader
             'reach' => Metric::REACH,
             'profile_views' => Metric::PROFILE_VIEWS,
             'accounts_engaged' => Metric::ACCOUNTS_ENGAGED,
+            'total_interactions' => Metric::INTERACTIONS,
         ] as $metric => $key) {
-            $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric, 'metric_type' => 'total_value', 'period' => 'day'] + $range, $token), $metric);
+            $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric, 'metric_type' => 'total_value', 'period' => 'day'] + $range, $token, true), $metric);
             $out[$key] = $this->numberOrNull($json['data'][0]['total_value']['value'] ?? null);
         }
 
         // follower_count NO admite total_value: serie diaria de nuevos seguidores.
-        $out[Metric::FOLLOWERS_GAINED] = $this->seriesValue($id, 'follower_count', $range, $token);
+        $out[Metric::FOLLOWERS_GAINED] = $this->seriesValue($id, 'follower_count', $range, $token, $day);
 
         if ($this->isRecent($day)) {
-            $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token), 'followers_count');
+            $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token, true), 'followers_count');
             $out[Metric::FOLLOWERS] = $this->numberOrNull($json['followers_count'] ?? null);
         }
 
@@ -109,11 +163,11 @@ class Insights implements InsightsReader
             'shares' => Metric::SHARES, 'saved' => Metric::SAVED, 'total_interactions' => Metric::INTERACTIONS];
 
         try {
-            $json = $this->graph->get("$mediaId/insights", ['metric' => implode(',', array_keys($map))], $token);
+            $json = $this->graph->get("$mediaId/insights", ['metric' => implode(',', array_keys($map))], $token, true);
         } catch (PermanentPublishException) {
             // Un tipo de media (p. ej. story) puede no admitir alguna: se pide una a una y lo rechazado queda `null`.
             foreach ($map as $metric => $key) {
-                $one = $this->safe(fn () => $this->graph->get("$mediaId/insights", ['metric' => $metric], $token), $metric);
+                $one = $this->safe(fn () => $this->graph->get("$mediaId/insights", ['metric' => $metric], $token, true), $metric);
                 $out[$key] = $this->numberOrNull($one['data'][0]['values'][0]['value'] ?? $one['data'][0]['total_value']['value'] ?? null);
             }
 
@@ -137,7 +191,7 @@ class Insights implements InsightsReader
         $out = Metric::blankPost();
         $token = (string) $account->access_token;
 
-        $fields = $this->safe(fn () => $this->graph->get($postId, ['fields' => 'reactions.summary(true).limit(0),comments.summary(true).limit(0),shares'], $token), 'post_fields');
+        $fields = $this->safe(fn () => $this->graph->get($postId, ['fields' => 'reactions.summary(true).limit(0),comments.summary(true).limit(0),shares'], $token, true), 'post_fields');
 
         if (isset($fields['reactions']['summary']['total_count'])) {
             $out[Metric::LIKES] = (int) $fields['reactions']['summary']['total_count'];
@@ -155,23 +209,63 @@ class Insights implements InsightsReader
         return $out;
     }
 
-    /** Valor de un dia de una metrica `period=day` (la primera entrada de la serie). */
-    private function seriesValue(string $id, string $metric, array $range, string $token): int|float|null
+    /**
+     * Valor de $day de una metrica `period=day`: el de la serie cuyo `end_time` cierra ese dia del Pacifico (no
+     * `values[0]`). Sin `end_time` en ningun valor solo se acepta una serie de una unica entrada.
+     */
+    private function seriesValue(string $id, string $metric, array $range, string $token, CarbonInterface $day): int|float|null
     {
-        $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric, 'period' => 'day'] + $range, $token), $metric);
+        $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric, 'period' => 'day'] + $range, $token, true), $metric);
+        $values = $json['data'][0]['values'] ?? [];
+        $byDay = $this->valuesByDay($values);
 
-        return $this->numberOrNull($json['data'][0]['values'][0]['value'] ?? null);
+        if ($byDay === [] && count($values) === 1) {
+            return $this->numberOrNull($values[0]['value'] ?? null);
+        }
+
+        return $byDay[$day->format('Y-m-d')] ?? null;
+    }
+
+    /**
+     * Valores de una serie diaria indexados por dia del Pacifico: `end_time` es el FIN del periodo, asi que el dia al que
+     * pertenece el valor es el del instante inmediatamente anterior.
+     *
+     * @param  array<int, array<string, mixed>>  $values
+     * @return array<string, int|float|null> [Y-m-d => valor]
+     */
+    private function valuesByDay(array $values): array
+    {
+        $out = [];
+
+        foreach ($values as $v) {
+            $end = $v['end_time'] ?? null;
+
+            if (! is_string($end)) {
+                continue;
+            }
+
+            try {
+                $day = CarbonImmutable::parse($end)->setTimezone(self::ZONE)->subSecond()->format('Y-m-d');
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $out[$day] = $this->numberOrNull($v['value'] ?? null);
+        }
+
+        return $out;
     }
 
     private function lifetimeValue(string $id, string $metric, string $token): int|float|null
     {
-        $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric], $token), $metric);
+        $json = $this->safe(fn () => $this->graph->get("$id/insights", ['metric' => $metric], $token, true), $metric);
 
         return $this->numberOrNull($json['data'][0]['values'][0]['value'] ?? null);
     }
 
     /**
      * Ejecuta una lectura; un rechazo PERMANENTE de la metrica (retirada, sin permiso) = `[]` ("no disponible").
+     * Los transitorios (red, 5xx, limites de uso 4/17/32/613/800xx) NO se tragan: suben al job.
      *
      * @param  \Closure(): array<string, mixed>  $call
      * @return array<string, mixed>

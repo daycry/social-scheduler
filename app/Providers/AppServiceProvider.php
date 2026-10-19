@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\GoogleConnector;
 use App\Connectors\Meta\MetaConnector;
+use App\Connectors\TikTok\TikTokConnector;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -19,7 +20,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ConnectorRegistry::class, function () {
             return (new ConnectorRegistry)
                 ->register(new MetaConnector)
-                ->register(new GoogleConnector);
+                ->register(new GoogleConnector)
+                ->register(new TikTokConnector);
         });
     }
 

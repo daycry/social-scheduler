@@ -57,6 +57,7 @@ Decidida el 2026-10-19 por el orquestador, con delegación expresa del usuario (
 
 - **Meta (FB + IG): continuar** sin cambios de alcance.
 - **YouTube → A (continuar tal cual)**, con una medida: pasar la pantalla de consentimiento de Google de «Testing» a **«En producción» sin verificar** (uso personal, < 100 usuarios). Así el refresh token deja de caducar a los 7 días; el coste es el aviso «app no verificada» al conectar, aceptable para uso propio. Cuota: 10.000 ud/día (~6 subidas) basta para el volumen declarado; solicitar ampliación solo si se queda corta. Scopes: `youtube` (incluye borrar/editar) + `youtube.readonly` + `yt-analytics.readonly`.
+  - **Aplicado 2026-10-19**: consentimiento en «En producción» (externo, sin verificar, límite 100 usuarios). Requisito previo: página principal, política de privacidad y condiciones en *Información de la marca* (provisionales en el dominio ngrok `/`, `/privacy`, `/terms`; la app debe servir esas páginas y cambiarlas al dominio definitivo). Los refresh tokens emitidos en «Prueba» siguen caducando a los 7 días: reconectar el canal una vez.
   - Motivo: la publicación pública funciona sin verificación; el único bloqueo real era la caducidad semanal del token, que se elimina sin trámite.
 - **TikTok → D + B (flujo asistido ahora, auditoría en paralelo)**:
   - **Por defecto**: publicar como **borrador en la bandeja de TikTok** (`video.upload`, `inbox/video/init`); el usuario recibe la notificación y termina de publicar en la app. Funciona sin auditoría (verificado).

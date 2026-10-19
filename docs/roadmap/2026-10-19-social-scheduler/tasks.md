@@ -1521,3 +1521,34 @@ Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `fb3596b..94d549e` (ex
 | N8 | Minor | (heredado) Contenedor PUBLISHED no-story sin texto queda `fallida`; reprogramar lo duplica | T-21 | corregido: un contenedor PUBLISHED (con o sin texto, no-story) es concluyente: se resuelve como `publicada` con el ID del contenedor y nota si no se localiza el post (nunca `fallida`). Tests: 2 | `InstagramPublisher.php:95,136` |
 
 **Corrección (implementer, intento 3 de 3, 2026-10-20, rama `feature/social-scheduler`).** Los 8 gaps se verificaron contra el código y eran correctos (ninguno rebatido). Commits `T-17`, `T-20`, `T-21` (x2) y `T-12: fix revisión intento 2 (Fase 3)`. Tiempo IA medido (usage-meter `social-scheduler/T-17-fix2`, `T-19-fix2`, `T-20-fix2`, `T-21-fix2`, `T-23-fix2`; ventana compartida): 2.23h (medido). Decisiones: el sondeo de vídeo en R2 usa lectura por rango de principio y final (sin job en cola); el plazo de espera por reconexión de un `procesando` es 72 h (`PUBLISH_RECONNECT_GRACE_HOURS`, decisión de producto por confirmar); `META_OAUTH_METHOD=post` por defecto. **Verificación (salida real)**: `php artisan test` → 571 passed (2956 assertions); `vendor/bin/pint --test` → passed; `npm run build` → OK; ledger-lint y scope-check exit 0.
+
+## Revisión de dos lentes — intento 1: Fase 6 (T-28..T-30) — 1 Important, 7 Minor
+
+Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `191d73c~1..3c353ea`. Aislamiento (IDOR) y abilities en las 10 herramientas ✓; keys con hash ✓; solo Bearer, sin sesión ni CSRF ✓; sin SSRF ✓; 62 tests MCP/aislamiento pasan.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | `throttle:mcp-ip` NO corre antes de la auth: Laravel reordena por `$middlewarePriority` y una key falsa recibe 401 sin pasar por el limitador por IP (CWE-307/770) | T-28/T-30 | corregido — McpGuard global (append) corre antes de auth; test key falsa 429 | `routes/ai.php:8`; prueba con IP=3/min → `401×6`, ningún 429 |
+| 2 | Minor | Intentos con key inválida sin rastro (ni auditoría ni log con IP) (CWE-778) | T-30 | corregido — log mcp.auth_failed (IP, sin token); test | `SchedulerTool.php`, `McpAuditTest` |
+| 3 | Minor | `SANCTUM_EXPIRATION` global (1 año) prevalece sobre la `expires_at` elegida por el usuario | T-28 | corregido — expires_at elegido manda (tope MCP_KEY_MAX_DAYS=730); sanctum.expiration=null; test | `ApiKeyController.php:42,44`, `config/sanctum.php` |
+| 4 | Minor | `SANCTUM_EXPIRATION=null` → `(int)` 0 → keys nacen caducadas | T-28 | corregido — default MCP_KEY_DEFAULT_DAYS=365, sin cast a 0; test | `ApiKeyController.php:44` |
+| 5 | Minor | `list_media` sin paginación (solo últimas 100) | T-29 | corregido — limit/before_id, has_more, next_cursor; test | `ListMedia.php:27-29` |
+| 6 | Minor | Test «la sesión web no autentica el MCP» no prueba nada (`forgetGuards`) | T-28 | corregido — login real con cookie (control en ruta web) y 401 en /mcp; test | `McpAuthTest.php:45-49`, `McpClient.php:27` |
+| 7 | Minor | Sin validación de `Origin` en `/mcp` (MUST de la especificación MCP; mitigado por Bearer + trustHosts) (CWE-346) | T-28 | corregido — Origin fuera de APP_URL/MCP_ALLOWED_ORIGINS -> 403, sin Origin pasa; test | `routes/ai.php:8` |
+| 8 | Minor | Auditoría no cubre `Throwable` genéricos (p. ej. `QueryException` por lock) | T-30 | corregido — catch Throwable -> auditoría error + mensaje genérico; test | `SchedulerTool.php:52-75` |
+
+**Bucle de la Fase 6 cerrado en el intento 1** (commit `d6e69b2`): `php artisan test --filter="Mcp|Isolation"` → 68 passed (385 assertions); `pint --test` passed.
+
+## Revisión de dos lentes — intento 2: Fases 4-5 (T-26, T-27) — 1 Important, 6 Minor
+
+Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `8479838~1..b9f4412` (export aislado). Traspaso: las 17 filas corregidas del intento 1 (#3-#19) **✓**. Tests: `tests/Feature/Connectors` 161 passed; YouTubePublish 49, TikTokPublish 25, MediaChunkReader 2.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | Editar un destino `programada` no invalida la subida a medias: la sesión reanudable cacheada (YouTube) y `publish_id`/`upload_url` (TikTok) sobreviven y el reintento publica con metadatos/fichero viejos (p. ej. sale público tras cambiarlo a privado) | T-26/T-27 | corregido (arreglo N1 de la Fase 3 intento 2: editar contenido de un destino `programada` aplica `FRESH_ATTEMPT` + `forgetUploadSession`, limpiando referencia/progreso de YouTube y TikTok) | `PostService.php:382-385`, `YouTubePublisher.php:94-111`, `TikTokPublisher.php:97-98,200-219`; reproducido |
+| N2 | Minor | La `upload_url` de TikTok caduca (≈1 h, sin verificar); subidas o esperas de reconexión largas acaban en fallo permanente genérico | T-27 | pendiente | `TikTokPublisher.php:281-286`, `PollPublishStatus.php:87` |
+| N3 | Minor | El plazo de gracia del borrador (10 min) puede dar por `publicada` un vídeo que luego pasa a `FAILED` | T-27 | pendiente | `TikTokPublisher.php:116-124` |
+| N4 | Minor | Las lecturas de R2 no están acotadas por `callTimeout` (r2 `timeout` 600 s; HEAD extra) | T-26/T-27 | pendiente | `MediaChunkReader.php:33,38,107-111` |
+| N5 | Minor | Idempotencia de YouTube solo mira la primera página de 10 subidas | T-26 | pendiente | `YouTubePublisher.php:183-185` |
+| N6 | Minor | PULL_FROM_URL exige bucket público sin firma: toda la media queda accesible por URL (CWE-552; mitigado por claves ULID) | T-27 | pendiente | `TikTokPublisher.php:381-400` |
+| N7 | Minor | El tag `ss-<post_target_id>` expone el id interno secuencial en metadatos públicos (CWE-200) | T-26 | pendiente | `YouTubePublisher.php:248,592-595` |

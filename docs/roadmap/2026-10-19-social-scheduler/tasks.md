@@ -387,7 +387,7 @@ verificacion: obligatoria
 
 ## Fase 2 — Conexiones OAuth por red
 
-**Estado**: completado · **Estimado**: 60h · **Real**: — · **Coste est.**: 3.600 € + tokens (⚠️ verificar precio) · **Tokens est.**: 2,73M
+**Estado**: en-progreso · **Estimado**: 60h · **Real**: — · **Coste est.**: 3.600 € + tokens (⚠️ verificar precio) · **Tokens est.**: 2,73M
 
 ### T-11 — Modelo SocialAccount, tokens cifrados y contrato común de conectores
 
@@ -418,7 +418,7 @@ verificacion: obligatoria
 
 ### T-12 — Conector Meta: OAuth de Instagram y Facebook
 
-- **Descripción**: Flujo OAuth contra Meta (método de login decidido en el spike), selección de página FB y cuenta IG, intercambio a token de larga duración y renovación. Socialite como base para FB; el resto con cliente HTTP propio.
+- **Descripción**: Flujo OAuth contra Meta (método de login decidido en el spike), selección de página FB y cuenta IG, intercambio a token de larga duración y renovación. Cliente HTTP propio (`Http` de Laravel) para Meta, Google y TikTok: se descartó `laravel/socialite` (sin dependencia nueva y control total de las llamadas que exigen los hallazgos del spike).
 - **Changelog**: Se pueden conectar cuentas de Instagram y páginas de Facebook.
 - **Estado**: en-progreso
 - **Tiempo humano**: est. 14h · real 0h (IA)
@@ -427,7 +427,7 @@ verificacion: obligatoria
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-05
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/`, `app/Http/Controllers/OAuth/MetaController.php`, `config/services.php`, `tests/Feature/Connectors/Meta/`, `app/Connectors/Meta/MetaConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `.env.example`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connectors/Meta/MetaOAuthTest.php`
+- **Archivos**: `app/Connectors/Meta/`, `app/Http/Controllers/OAuth/MetaController.php`, `config/services.php`, `tests/Feature/Connectors/Meta/`, `app/Connectors/Meta/MetaConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `.env.example`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connectors/Meta/MetaOAuthTest.php`, `app/Connectors/Data/ConnectionCandidate.php`, `app/Support/TrustedProxies.php`, `bootstrap/app.php`, `config/social.php`, `tests/Feature/Infra/TrustedProxiesTest.php`, `tests/Unit/TrustedProxiesTest.php`, `docs/roadmap/2026-10-19-social-scheduler/design.md`, `tests/Support/FakeConnector.php`, `tests/Feature/Connectors/Google/GoogleOAuthTest.php`
 - **Cubre (tests)**: E2E-03, M-02
 - **Verificación**:
   - `php artisan test --filter=MetaOAuth` → pasa con respuestas grabadas
@@ -444,6 +444,7 @@ verificacion: obligatoria
 - [x] Renovación de token
 - [x] Tests con respuestas grabadas
 **Notas (implementer, 2026-10-19)**: MetaConnector (Graph v23.0 fijo en config/social.php, con Http facade en lugar de Socialite: sin dependencia nueva y control total de los hallazgos del spike): /dialog/oauth con scope (+auth_type=rerequest opcional), fb_exchange_token, me/accounts + me/businesses -> owned_pages/client_pages, IG solo si la Pagina tiene instagram_business_account, debug_token para data_access_expires_at (90 dias) y scopes concedidos (rechaza si faltan pages_show_list/pages_manage_posts), refresh = re-intercambio del token de usuario + relectura del token de Pagina; errores de Graph traducidos (credencial -> ReconnectRequiredException, permisos -> mensaje legible, 5xx/red -> transitorio). Un OAuthController generico (app/Http/Controllers/OAuth/OAuthController.php) sirve a Meta/Google/TikTok en lugar de tres controladores; state en sesion, callback /connections/{meta|google|tiktok}/callback, candidatas multiples cifradas en sesion y elegidas en la pantalla (ConnectionController::select). Verificacion: `php artisan test --filter=MetaOAuth` -> 12 passed, 69 assertions (todo con Http::fake). **PENDIENTE (manual)**: M-02, conexion real de IG y FB con la app de Meta (registrar redirect /connections/meta/callback en Facebook Login for Business y rellenar META_APP_ID/SECRET en .env); no se marca como verificado.
+**Corrección revisión intento 1 (Fase 2, 2026-10-20)**: T-12 SIGUE `en-progreso` hasta M-02 (la ejecuta el orquestador con ngrok; NO está hecha). Cambios en esta tarea: OAuth se inicia por POST+CSRF (`Inertia::location`); `paging.next` seguido con tope `social.meta.max_pages` (10) y solo hacia `graph.facebook.com`; `debug_token` estricto en la conexión (si falla, error legible; ya no se salta la comprobación de permisos); Instagram sin `instagram_content_publish` se ofrece como candidata con aviso de permisos (`missing_scopes`); canje del refresco compartido entre cuentas con el mismo token de usuario (cache cifrada 10 min); `TRUSTED_PROXIES` configurable para que `route()` genere https tras ngrok/proxy. **A verificar en M-02 real (gap 17)**: que `fb_exchange_token` sobre un token ya largo extiende la caducidad; si Meta lo ignora hay que mover `token_expires_at` solo si `expires_in` es mayor que el actual.
 
 ### T-13 — Conector Google: OAuth de YouTube (condicionado a G1)
 
@@ -466,7 +467,7 @@ verificacion: obligatoria
 - [x] Cancelada si G1 pospone YouTube
 
 **Subtareas**
-- [x] Cliente `google/apiclient`
+- [x] Cliente HTTP propio con `Http` de Laravel (se descartó `google/apiclient`: solo 3 llamadas REST y una dependencia menos; la subida reanudable se decide en T-26)
 - [x] Controlador OAuth y selección de canal
 - [x] Gestión de refresh/caducidad
 - [x] Tests
@@ -504,6 +505,7 @@ verificacion: obligatoria
 **Notas**: Se cancela con G1 = D.
 **Decisión G1 (2026-10-19): TikTok = D + B.** Cliente propio; scopes `user.info.basic`, `video.upload`, `video.publish` (este último solo útil tras auditoría). `creator_info/query` exige cuerpo `{}`. Access 24 h / refresh 365 días (medido).
 **Notas (implementer, 2026-10-19)**: TikTokConnector con cliente HTTP propio (Login Kit v2): scopes user.info.basic, video.upload, video.publish; canje de code, perfil (/v2/user/info/) y creator_info/query con cuerpo JSON `{}` (best-effort: si falla se conecta igual) guardando privacy_level_options y max_video_post_duration_sec en meta; access 24 h / refresh 365 dias (token_expires_at / refresh_expires_at) con refresco que rota ambos tokens; invalid_grant o refresh caducado -> ReconnectRequiredException, 5xx -> transitorio. Decision G1: el conector no escribe meta.direct_post (ausente = false, borrador en bandeja) para que reconectar no pise la eleccion del usuario (test lo cubre). Verificacion: `php artisan test --filter=TikTokOAuth` -> 8 passed, 38 assertions (Http::fake). **PENDIENTE (manual)**: M-02 con la cuenta real de TikTok (sandbox) y registrar /connections/tiktok/callback en Login Kit.
+**Corrección revisión intento 1**: `video.upload` pasa a ser OBLIGATORIO al conectar (el modo por defecto de G1 es borrador en la bandeja); `video.publish` por sí solo ya no basta (test).
 
 ### T-15 — UI de conexiones: conectar, desconectar y reconectar por marca
 
@@ -516,7 +518,7 @@ verificacion: obligatoria
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Brands/Connections.vue`, `app/Http/Controllers/ConnectionController.php`, `tests/Feature/Connections/`, `resources/js/Pages/Brands/Show.vue`, `tests/Feature/Connections/ConnectionsTest.php`
+- **Archivos**: `resources/js/Pages/Brands/Connections.vue`, `app/Http/Controllers/ConnectionController.php`, `tests/Feature/Connections/`, `resources/js/Pages/Brands/Show.vue`, `tests/Feature/Connections/ConnectionsTest.php`, `app/Services/SocialAccountService.php`, `routes/web.php`, `app/Http/Controllers/OAuth/OAuthController.php`
 - **Cubre (tests)**: E2E-03, E2E-04, M-02
 - **Verificación**: `php artisan test --filter=Connections` → pasa
 
@@ -531,6 +533,7 @@ verificacion: obligatoria
 - [x] Mensajes de estado
 - [x] Tests de feature
 **Notas (implementer, 2026-10-19)**: Pantalla Brands/Connections.vue (una tarjeta por red como en ui-reference.md: cuentas con insignia de estado Conectada/Requiere reconexion/Desconectada, boton + Conectar, eleccion de cuentas tras OAuth multiple, aviso con enlace Reconectar que conserva las publicaciones, Desconectar con confirmacion). ConnectionController (index/select/destroy) ya creado en T-12 junto al flujo; aqui se anaden los tests y el enlace Conexiones desde la ficha de marca. Los props se construyen campo a campo: ningun token llega al navegador (test). Reconectar = mismo OAuth, mismo registro (unique marca+red+id externo) y vuelve a activa. Verificacion: `php artisan test --filter=Connections` -> 9 passed, 69 assertions; `npm run build` -> built (Connections-*.js generado). Pruebas de navegador sobre el diseno no ejecutadas (E2E-04/M-02 con cuentas reales quedan manuales).
+**Corrección revisión intento 1**: desconectar quita la cuenta de la lista (`listForBrand` excluye `desconectada`; la fila y su histórico se conservan sin tokens y `connect()` la reactiva al volver a conectar; decisión más simple y coherente con T-16/T-19, que filtran por `activa`) — E2E-03/CA-03 con test; conectar/reconectar es un botón que hace POST con CSRF (`router.post`) y el servidor responde `Inertia::location`; un GET a la ruta devuelve 405 (test).
 
 ### T-16 — Job de refresco de tokens y estado «requiere reconexión»
 
@@ -543,14 +546,16 @@ verificacion: obligatoria
 - **Previsión IA**: 414k in / 41k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/RefreshTokens.php`, `routes/console.php`, `app/Notifications/ReconnectRequired.php`, `tests/Feature/Jobs/`, `database/migrations/` (notifications), `app/Jobs/RefreshTokens.php`, `tests/Feature/Jobs/RefreshTokensTest.php`
-- **Cubre (tests)**: E2E-04
+- **Archivos**: `app/Jobs/RefreshTokens.php`, `routes/console.php`, `app/Notifications/ReconnectRequired.php`, `tests/Feature/Jobs/`, `database/migrations/` (notifications), `app/Jobs/RefreshTokens.php`, `tests/Feature/Jobs/RefreshTokensTest.php`, `app/Jobs/RefreshSocialAccount.php`, `database/migrations/2026_10_20_090000_add_refresh_failures_to_social_accounts.php`, `app/Models/SocialAccount.php`, `app/Services/SocialAccountService.php`, `config/social.php`, `config/queue.php`, `.env.example`, `deploy/systemd/scheduler-worker@.service`, `deploy/systemd/README.md`, `tests/Support/FakeConnector.php`
+- **Cubre (tests)**: E2E-04, M-02 (renovación real: PENDIENTE manual, ver nota)
 - **Verificación**: `php artisan test --filter=RefreshTokens` → pasa (renueva tokens; el fallo marca la cuenta y notifica)
 
 **Criterios de aceptación**
 - [x] Renovación automática sin intervención (CA-04)
 - [x] Fallo deja la cuenta `requiere_reconexion` y notifica
-- [x] Publicaciones pendientes no se borran
+- [x] Publicaciones pendientes no se borran (a nivel de cuenta/marca; el criterio sobre publicaciones reales queda recogido en T-19 y se re-verifica allí)
+- [x] Un fallo transitorio (5xx, red, timeout) NUNCA marca `requiere_reconexion` por sí solo; solo tras N fallos seguidos (`social.max_transient_failures`, 12 ≈ 6 h) o ante un fallo permanente
+- [x] Un job por cuenta (único por id, `$timeout` 100 s < `--timeout` 120 s del worker < `retry_after` 180 s) que relee la cuenta con lock y aborta si ya no está activa o ya se renovó
 
 **Subtareas**
 - [x] Job con margen configurable
@@ -560,6 +565,7 @@ verificacion: obligatoria
 
 ---
 **Notas (implementer, 2026-10-19)**: Job RefreshTokens (cola poll, configurable con SOCIAL_REFRESH_QUEUE; es mantenimiento y no debe competir con publish) registrado en routes/console.php cada 30 min con withoutOverlapping (el access de Google dura 1 h). Itera cuentas activas (withoutUserScope, es un job sin usuario) y renueva las que caen dentro del margen del conector (config/social.php: Meta 168 h = 7 dias de los 60, Google 1 h, TikTok 6 h); sin caducidad conocida no renueva. ReconnectRequiredException o data_access_expires_at vencido -> requiere_reconexion + ReconnectRequired (mail + database, una sola vez por transicion, sin tokens); fallo transitorio -> reintento, solo escala si el token ya caduco; un error en una cuenta no corta el resto. No borra nada: marcas y cuentas (y por diseno las publicaciones futuras) se conservan. Migracion notifications para el canal database. Verificacion: `php artisan test --filter=RefreshTokens` -> 10 passed, 32 assertions. Nota: el criterio Publicaciones pendientes no se borran se cubre a nivel de cuenta/marca porque el modelo de publicaciones llega en T-19; re-verificar entonces.
+**Corrección revisión intento 1 (2026-10-20)**: (a) Clasificación de fallos: permanentes (`ReconnectRequiredException`: invalid_grant/401, `data_access_expires_at` o `refresh_expires_at` vencidos) escalan al instante; transitorios NUNCA marcan aunque el access token haya caducado, cuentan en `refresh_failures` (migración nueva) y escalan solo tras `social.max_transient_failures` (12 ≈ 6 h) seguidos; un éxito reinicia el contador (el test antiguo que fijaba el comportamiento contrario se reescribió). (b) `RefreshTokens` ahora solo DESPACHA (`ShouldBeUnique`, `chunkById`, sin OFFSET) un `RefreshSocialAccount` por cuenta vencida (`ShouldBeUnique` por id, `$timeout` 100, `$tries` 2); cada job relee con `lockForUpdate` en transacción antes de escribir (la llamada de red va FUERA de la transacción para no retener la fila) y descarta el resultado si la cuenta se desconectó o ya se renovó; solo una transición notifica. (c) `--timeout=120` en la unidad systemd y en el plan B de cron (`TimeoutStopSec=130`), `retry_after` de la cola 90→180 s. (d) Dedup del canje de Meta por token de usuario (FB+IG de la misma Página), en `MetaConnector`. (e) `ReconnectRequired` es `ShouldQueue` con canal `database` antes que `mail` (Laravel encola un job por canal: un SMTP caído no impide el aviso en BD) y guarda datos escalares, no el modelo (el worker no tiene usuario autenticado; el UserScope impediría restaurarlo). **PENDIENTE (manual) M-02**: renovación real de un token con cuentas reales (Meta/Google/TikTok); no se marca verificada. Nota de criterio 3: las publicaciones pendientes se conservan por diseño (nunca se borra nada); T-19 debe mantenerlo sin `cascadeOnDelete` destructivo.
 
 ## Fase 3 — Publicación base y Meta (IG + FB), calendario
 
@@ -637,6 +643,7 @@ verificacion: obligatoria
 - [ ] Transiciones de estado validadas y persistidas
 - [ ] Zona horaria por marca respetada
 - [ ] Aislamiento por usuario heredado
+- [ ] Al crear `post_targets`, borrar o desconectar una cuenta (o pasarla a `requiere_reconexion`) NO borra publicaciones pendientes: sin `cascadeOnDelete` destructivo desde `social_accounts` (FK `restrict`/`nullOnDelete` + estado) y test que lo verifique (criterio heredado de T-16)
 
 **Subtareas**
 - [ ] Migraciones y modelos
@@ -1375,20 +1382,22 @@ Lentes: A+B+C+D (C: OAuth/tokens; D: worker/scheduler). Diff `2e25aab..HEAD`. `s
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Important | T-12 `completado` con la Verificación M-02 (conexión real IG/FB) sin hacer, con `verificacion: obligatoria` | T-12 | pendiente | Lente A: tasks.md T-12 Verificación vs nota «pendiente» |
-| 2 | Important | Desconectar deja la fila `desconectada` visible en la lista; contradice E2E-03 «Desconectar la elimina de la lista» (CA-03) | T-15/T-11 | pendiente | Lente A: `SocialAccountService::disconnect`, `ConnectionController` `listForBrand`, `test-plan.md:48` |
-| 3 | Important | Fallo transitorio con access token caducado se trata como revocación: Google (1 h) pasa a `requiere_reconexion` tras 2 pasadas fallidas aunque el refresh token sea válido; el job solo recorre `activa` y nunca se recupera | T-16 | pendiente | Lente B: `app/Jobs/RefreshTokens.php:74-76`; test que lo fija `RefreshTokensTest.php:96-105` |
-| 4 | Important | Un único job refresca todas las cuentas en serie sin presupuesto de tiempo (Meta 3×15 s por cuenta) y supera el `--timeout` 60 s del worker: se mata, reintenta desde el id 1 y deja cuentas sin refrescar; matar a mitad del refresco de TikTok pierde el refresh token rotado | T-16 | pendiente | Lentes B+D: `RefreshTokens.php:22-45`, `MetaConnector.php:159-171`, `scheduler-worker@.service:27` |
-| 5 | Minor | `withoutOverlapping()` sobre `Schedule::job` solo protege el despacho, no la ejecución | T-16 | pendiente | Lente D: `routes/console.php:23` |
-| 6 | Minor | El job trabaja con el modelo en memoria sin releer ni bloquear: pisa una desconexión concurrente (tokens válidos en una fila `desconectada`) y puede notificar dos veces | T-16/T-15 | pendiente | Lente B: `RefreshTokens.php:34-39` |
-| 7 | Minor | `each()` con OFFSET sobre `status=activa` mientras el bucle cambia el estado (salta filas) | T-16 | pendiente | Lente B: `RefreshTokens.php:34-37` |
-| 8 | Minor | Notificación `mail` síncrona dentro del job y antes que `database`: si SMTP falla no queda ni aviso en BD | T-16 | pendiente | Lentes B+D: `ReconnectRequired.php:10,20` |
-| 9 | Minor | El OAuth se inicia con un GET sin CSRF (navegación forzada reconecta/reactiva cuentas propias) | T-12..T-15 | pendiente | Lente C: ruta `brands.connections.connect`, `OAuthController.php:37-51` (CWE-352) |
-| 10 | Minor | `me/accounts`, `me/businesses` y `owned_pages`/`client_pages` no siguen `paging.next` | T-12 | pendiente | Lente D: `MetaConnector.php:229,236,244` |
+| 1 | Important | T-12 `completado` con la Verificación M-02 (conexión real IG/FB) sin hacer, con `verificacion: obligatoria` | T-12 | corregido (ledger): T-12 sigue `en-progreso` y la Fase 2 `en-progreso`; M-02 NO marcada, pendiente de la prueba real con ngrok | Lente A: tasks.md T-12 Verificación vs nota «pendiente» |
+| 2 | Important | Desconectar deja la fila `desconectada` visible en la lista; contradice E2E-03 «Desconectar la elimina de la lista» (CA-03) | T-15/T-11 | corregido: `listForBrand` excluye `desconectada` (tokens borrados, fila conservada y reactivable); tests `ConnectionsTest` y `SocialAccountTest` | Lente A: `SocialAccountService::disconnect`, `ConnectionController` `listForBrand`, `test-plan.md:48` |
+| 3 | Important | Fallo transitorio con access token caducado se trata como revocación: Google (1 h) pasa a `requiere_reconexion` tras 2 pasadas fallidas aunque el refresh token sea válido; el job solo recorre `activa` y nunca se recupera | T-16 | corregido: transitorio nunca marca; escala tras `social.max_transient_failures`=12 seguidos; permanentes (invalid_grant, data access / refresh vencidos) al instante; test reescrito | Lente B: `app/Jobs/RefreshTokens.php:74-76`; test que lo fija `RefreshTokensTest.php:96-105` |
+| 4 | Important | Un único job refresca todas las cuentas en serie sin presupuesto de tiempo (Meta 3×15 s por cuenta) y supera el `--timeout` 60 s del worker: se mata, reintenta desde el id 1 y deja cuentas sin refrescar; matar a mitad del refresco de TikTok pierde el refresh token rotado | T-16 | corregido: despachador + `RefreshSocialAccount` por cuenta (único, `$timeout` 100 s, `$tries` 2); `--timeout=120` en systemd y plan B; `retry_after` 180 s | Lentes B+D: `RefreshTokens.php:22-45`, `MetaConnector.php:159-171`, `scheduler-worker@.service:27` |
+| 5 | Minor | `withoutOverlapping()` sobre `Schedule::job` solo protege el despacho, no la ejecución | T-16 | corregido: `RefreshTokens` y `RefreshSocialAccount` son `ShouldBeUnique` (protegen la ejecución, no solo el despacho) | Lente D: `routes/console.php:23` |
+| 6 | Minor | El job trabaja con el modelo en memoria sin releer ni bloquear: pisa una desconexión concurrente (tokens válidos en una fila `desconectada`) y puede notificar dos veces | T-16/T-15 | corregido: relectura con `lockForUpdate` en transacción; aborta si no está activa o ya se renovó; una sola transición notifica (tests) | Lente B: `RefreshTokens.php:34-39` |
+| 7 | Minor | `each()` con OFFSET sobre `status=activa` mientras el bucle cambia el estado (salta filas) | T-16 | corregido: el despachador usa `chunkById` (sin OFFSET) y cada cuenta es un job independiente | Lente B: `RefreshTokens.php:34-37` |
+| 8 | Minor | Notificación `mail` síncrona dentro del job y antes que `database`: si SMTP falla no queda ni aviso en BD | T-16 | corregido: `ReconnectRequired` `ShouldQueue`, vía `database` primero y un job por canal (test); escalares en vez del modelo | Lentes B+D: `ReconnectRequired.php:10,20` |
+| 9 | Minor | El OAuth se inicia con un GET sin CSRF (navegación forzada reconecta/reactiva cuentas propias) | T-12..T-15 | corregido: ruta POST con CSRF + `Inertia::location`; Connections.vue usa `router.post`; test de que GET da 405 | Lente C: ruta `brands.connections.connect`, `OAuthController.php:37-51` (CWE-352) |
+| 10 | Minor | `me/accounts`, `me/businesses` y `owned_pages`/`client_pages` no siguen `paging.next` | T-12 | corregido: `getAll` sigue `paging.next` (tope `social.meta.max_pages`=10, solo `graph.facebook.com`); además corrige un fallo real: el `get($url, [])` de Guzzle descartaba la query de `paging.next` | Lente D: `MetaConnector.php:229,236,244` |
 | 11 | Minor | Callback OAuth de Meta con 4 + 2·B llamadas síncronas; con Graph degradada supera el `fastcgi_read_timeout` de 60 s y se pierde el `code` | T-12 | deuda aceptada (B = 1-2 negocios en uso personal; el timeout por llamada ya está acotado) | Lente D: `MetaConnector.php:75-102` |
-| 12 | Minor | Detrás de ngrok/proxy `route()` genera `redirect_uri` `http://` (no hay proxies de confianza) y no coincide con la registrada en HTTPS | T-12..T-14 | pendiente | Lente A (fuera de lente): `bootstrap/app.php` |
-| 13 | Minor | TikTok acepta solo `video.publish` sin `video.upload` (el modo por defecto de G1 es borrador → necesita `video.upload`); IG se crea sin exigir `instagram_content_publish`; si `debug_token` falla no se comprueban permisos | T-12/T-14 | pendiente | Lente A (fuera de lente): `TikTokConnector.php:268`, `MetaConnector.php:35,92` |
-| 14 | Minor | Criterio «publicaciones pendientes no se borran» marcado [x] sin modelo de publicaciones y sin criterio en T-19 que lo recoja | T-16/T-19 | pendiente | Lente A: tasks.md T-16, T-19 |
-| 15 | Minor | Subtarea «Cliente `google/apiclient`» marcada [x] siendo falsa; T-12 y design.md siguen citando Socialite | T-13/T-12 | pendiente | Lente A |
-| 16 | Minor | `Cubre` de T-16 no incluye M-02 (renovación real) ni lo declara pendiente | T-16 | pendiente | Lente A: test-plan M-02 |
-| 17 | Minor | `fb_exchange_token` sobre un token ya largo podría no extender la caducidad (no verificado) | T-12 | pendiente (verificar en M-02 real) | Lente B: `MetaConnector.php:159,181` |
+| 12 | Minor | Detrás de ngrok/proxy `route()` genera `redirect_uri` `http://` (no hay proxies de confianza) y no coincide con la registrada en HTTPS | T-12..T-14 | corregido: `TRUSTED_PROXIES` (`*` o lista) vía `App\Support\TrustedProxies` en `bootstrap/app.php`; documentado en `.env.example`; tests | Lente A (fuera de lente): `bootstrap/app.php` |
+| 13 | Minor | TikTok acepta solo `video.publish` sin `video.upload` (el modo por defecto de G1 es borrador → necesita `video.upload`); IG se crea sin exigir `instagram_content_publish`; si `debug_token` falla no se comprueban permisos | T-12/T-14 | corregido: TikTok exige `video.upload`; IG sin `instagram_content_publish` es candidata con aviso (`missing_scopes`); `debug_token` caído = error legible en la conexión (en el refresco se tolera y se reintenta) | Lente A (fuera de lente): `TikTokConnector.php:268`, `MetaConnector.php:35,92` |
+| 14 | Minor | Criterio «publicaciones pendientes no se borran» marcado [x] sin modelo de publicaciones y sin criterio en T-19 que lo recoja | T-16/T-19 | corregido: criterio nuevo en T-19 (sin `cascadeOnDelete` destructivo) y nota en T-16 | Lente A: tasks.md T-16, T-19 |
+| 15 | Minor | Subtarea «Cliente `google/apiclient`» marcada [x] siendo falsa; T-12 y design.md siguen citando Socialite | T-13/T-12 | corregido: subtarea de T-13 reescrita (Http propio), descripción de T-12 y `design.md` (Http en vez de Socialite/google-apiclient, con motivo) | Lente A |
+| 16 | Minor | `Cubre` de T-16 no incluye M-02 (renovación real) ni lo declara pendiente | T-16 | corregido: `Cubre` de T-16 incluye M-02 con nota de pendiente manual | Lente A: test-plan M-02 |
+| 17 | Minor | `fb_exchange_token` sobre un token ya largo podría no extender la caducidad (no verificado) | T-12 | corregido (anotado): verificación anotada en T-12 para M-02 real; no verificable sin Meta | Lente B: `MetaConnector.php:159,181` |
+
+**Corrección intento 1 (implementer, 2026-10-20)**: 16 de 17 corregidos (el #11 sigue como deuda aceptada); ninguno rebatido. #1 deja T-12 y la Fase 2 en `en-progreso` (M-02 pendiente con ngrok). Verificaciones: `php artisan test` 150 passed; `vendor/bin/pint --test` passed; `npm run build` ok; `bash deploy/hestia/deploy.sh --dry-run` ok.

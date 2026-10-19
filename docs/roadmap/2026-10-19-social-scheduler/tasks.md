@@ -415,38 +415,41 @@ verificacion: obligatoria
 - [x] Servicio de cuentas con aislamiento
 - [x] Conector simulado (fake) para tests
 **Notas (implementer, 2026-10-19)**: Modelo SocialAccount (tokens con cast encrypted + hidden), enum Network, contrato Connector + capacidades Publisher/StatusPoller/InsightsReader, DTOs ConnectionCandidate/RefreshResult, ConnectorRegistry (singleton en AppServiceProvider), SocialAccountService (listForBrand/connect/disconnect/applyRefresh/markRequiresReconnection, exige user+marca), SocialAccountPolicy, config/social.php, FakeConnector en tests/Support. Desviacion: los tests con BD van en tests/Feature/Connectors (los Unit no cargan RefreshDatabase). Desconectar conserva la fila (historico) y borra tokens. Verificacion: `php artisan test --filter=SocialAccount` -> 8 passed, 31 assertions (la columna access_token/refresh_token en BD no contiene el texto plano). Medido: 0.19h.
+
 ### T-12 — Conector Meta: OAuth de Instagram y Facebook
 
 - **Descripción**: Flujo OAuth contra Meta (método de login decidido en el spike), selección de página FB y cuenta IG, intercambio a token de larga duración y renovación. Socialite como base para FB; el resto con cliente HTTP propio.
 - **Changelog**: Se pueden conectar cuentas de Instagram y páginas de Facebook.
-- **Estado**: en-progreso
-- **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 14h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.19h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-05
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/`, `app/Http/Controllers/OAuth/MetaController.php`, `config/services.php`, `tests/Feature/Connectors/Meta/`
+- **Archivos**: `app/Connectors/Meta/`, `app/Http/Controllers/OAuth/MetaController.php`, `config/services.php`, `tests/Feature/Connectors/Meta/`, `app/Connectors/Meta/MetaConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `.env.example`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connectors/Meta/MetaOAuthTest.php`
 - **Cubre (tests)**: E2E-03, M-02
 - **Verificación**:
   - `php artisan test --filter=MetaOAuth` → pasa con respuestas grabadas
   - lectura: M-02 registra la conexión real de IG y FB con evidencia
 
 **Criterios de aceptación**
-- [ ] IG y FB conectadas a una marca con su estado (CA-03)
-- [ ] Token de larga duración guardado y renovable
-- [ ] Errores de permisos con mensaje legible
+- [x] IG y FB conectadas a una marca con su estado (CA-03)
+- [x] Token de larga duración guardado y renovable
+- [x] Errores de permisos con mensaje legible
 
 **Subtareas**
-- [ ] Cliente Meta con versión de API fija
-- [ ] Controlador OAuth y selección de cuenta/página
-- [ ] Renovación de token
-- [ ] Tests con respuestas grabadas
+- [x] Cliente Meta con versión de API fija
+- [x] Controlador OAuth y selección de cuenta/página
+- [x] Renovación de token
+- [x] Tests con respuestas grabadas
+**Notas (implementer, 2026-10-19)**: MetaConnector (Graph v23.0 fijo en config/social.php, con Http facade en lugar de Socialite: sin dependencia nueva y control total de los hallazgos del spike): /dialog/oauth con scope (+auth_type=rerequest opcional), fb_exchange_token, me/accounts + me/businesses -> owned_pages/client_pages, IG solo si la Pagina tiene instagram_business_account, debug_token para data_access_expires_at (90 dias) y scopes concedidos (rechaza si faltan pages_show_list/pages_manage_posts), refresh = re-intercambio del token de usuario + relectura del token de Pagina; errores de Graph traducidos (credencial -> ReconnectRequiredException, permisos -> mensaje legible, 5xx/red -> transitorio). Un OAuthController generico (app/Http/Controllers/OAuth/OAuthController.php) sirve a Meta/Google/TikTok en lugar de tres controladores; state en sesion, callback /connections/{meta|google|tiktok}/callback, candidatas multiples cifradas en sesion y elegidas en la pantalla (ConnectionController::select). Verificacion: `php artisan test --filter=MetaOAuth` -> 12 passed, 69 assertions (todo con Http::fake). **PENDIENTE (manual)**: M-02, conexion real de IG y FB con la app de Meta (registrar redirect /connections/meta/callback en Facebook Login for Business y rellenar META_APP_ID/SECRET en .env); no se marca como verificado.
+
 ### T-13 — Conector Google: OAuth de YouTube (condicionado a G1)
 
 - **Descripción**: OAuth de Google para YouTube Data + Analytics con refresh token offline, selección de canal y manejo de la caducidad de 7 días en estado Testing según G1.
 - **Changelog**: Se puede conectar un canal de YouTube.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 10h · real —
 - **Tiempo IA (ejec.)**: est. 1.5h · real —
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —

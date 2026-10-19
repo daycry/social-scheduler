@@ -35,4 +35,23 @@ return [
         ],
     ],
 
+    /*
+    | Proveedores OAuth de redes sociales (T-12..T-14). Las redirect URIs que hay que registrar en
+    | cada app son /connections/{meta|google|tiktok}/callback sobre APP_URL (ver .env.example).
+    */
+    'meta' => [
+        'client_id' => env('META_APP_ID'),
+        'client_secret' => env('META_APP_SECRET'),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+    ],
+
+    'tiktok' => [
+        'client_key' => env('TIKTOK_CLIENT_KEY'),
+        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+    ],
+
 ];

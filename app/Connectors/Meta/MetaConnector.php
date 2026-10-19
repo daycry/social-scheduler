@@ -77,7 +77,7 @@ class MetaConnector implements Connector
 
     public function exchangeCode(string $code, string $redirectUri): array
     {
-        $short = $this->get('oauth/access_token', [
+        $short = $this->exchange('oauth/access_token', [
             'client_id' => config('services.meta.client_id'),
             'client_secret' => config('services.meta.client_secret'),
             'redirect_uri' => $redirectUri,
@@ -222,7 +222,7 @@ class MetaConnector implements Connector
     /** @return array{access_token: string, expires_in?: int} */
     private function exchangeForLongLived(string $token): array
     {
-        $long = $this->get('oauth/access_token', [
+        $long = $this->exchange('oauth/access_token', [
             'grant_type' => 'fb_exchange_token',
             'client_id' => config('services.meta.client_id'),
             'client_secret' => config('services.meta.client_secret'),
@@ -240,10 +240,9 @@ class MetaConnector implements Connector
     private function debugToken(string $token, bool $strict = false): array
     {
         try {
-            $data = $this->get('debug_token', [
-                'input_token' => $token,
-                'access_token' => config('services.meta.client_id').'|'.config('services.meta.client_secret'),
-            ]);
+            // Token de APP (`client_id|client_secret`) en `Authorization: Bearer` y token inspeccionado (`input_token`) en el
+            // cuerpo de un POST: Graph acepta ambos en `debug_token` (comprobado) y asi nada sensible llega a la URL.
+            $data = $this->exchange('debug_token', ['input_token' => $token], config('services.meta.client_id').'|'.config('services.meta.client_secret'));
         } catch (ConnectorException $e) {
             if ($e instanceof ReconnectRequiredException) {
                 throw $e;
@@ -312,6 +311,7 @@ class MetaConnector implements Connector
     {
         $items = [];
         $max = max(1, (int) config('social.meta.max_pages', 10));
+        $token = isset($query['access_token']) ? (string) $query['access_token'] : null;
         $page = $this->get($path, $query);
 
         for ($i = 1; ; $i++) {
@@ -322,7 +322,7 @@ class MetaConnector implements Connector
                 return $items;
             }
 
-            $page = $this->fetch($next, []);
+            $page = $this->fetch($next, [], $token);
         }
     }
 
@@ -337,17 +337,69 @@ class MetaConnector implements Connector
         return $this->fetch($this->graph($path), $query);
     }
 
-    /** @return array<string, mixed> */
-    private function fetch(string $url, array $query): array
+    /**
+     * Seguridad (CWE-598): ningun token ni secreto viaja en la URL (acaba en logs de proxy/acceso). El `access_token` de la
+     * consulta (de usuario, de Pagina o el de app `client_id|client_secret`) se envia SIEMPRE en `Authorization: Bearer`,
+     * tambien el que Graph incrusta en los enlaces `paging.next`. Los parametros no secretos (fields, limit) siguen en la query.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetch(string $url, array $query, ?string $token = null): array
     {
+        [$url, $linkToken] = $this->withoutToken($url);
+        $token = isset($query['access_token']) ? (string) $query['access_token'] : ($token ?? $linkToken);
+        unset($query['access_token']);
+
         try {
+            $http = $this->http();
+            $http = $token !== null && $token !== '' ? $http->withToken($token) : $http;
             // Con $query vacio hay que pasar null: un array vacio pisaria la query string de `paging.next`.
-            $response = $this->http()->get($url, $query === [] ? null : $query);
+            $response = $http->get($url, $query === [] ? null : $query);
         } catch (ConnectionException) {
             throw new ConnectorException('No se pudo contactar con Meta. Se reintentara mas tarde.');
         }
 
         return $this->parse($response);
+    }
+
+    /**
+     * POST (formulario) a Graph para los intercambios con secretos (`client_secret`, `code`, `fb_exchange_token`): viajan en el
+     * CUERPO, nunca en la query. Graph admite POST con parametros en el cuerpo en `oauth/access_token`; si un despliegue
+     * necesitara GET, `META_OAUTH_METHOD=get` lo restablece (los secretos volverian a la query: solo como ultimo recurso).
+     *
+     * @return array<string, mixed>
+     */
+    private function exchange(string $path, array $params, ?string $bearer = null): array
+    {
+        if (strtolower((string) config('social.meta.oauth_method', 'post')) === 'get') {
+            return $this->fetch($this->graph($path), $params, $bearer);
+        }
+
+        try {
+            $http = $bearer !== null ? $this->http()->withToken($bearer) : $this->http();
+            $response = $http->asForm()->post($this->graph($path), $params);
+        } catch (ConnectionException) {
+            throw new ConnectorException('No se pudo contactar con Meta. Se reintentara mas tarde.');
+        }
+
+        return $this->parse($response);
+    }
+
+    /** @return array{0: string, 1: ?string} URL sin `access_token` y el token que llevaba. */
+    private function withoutToken(string $url): array
+    {
+        $parts = parse_url($url);
+        if (! isset($parts['query'])) {
+            return [$url, null];
+        }
+
+        parse_str($parts['query'], $params);
+        $token = isset($params['access_token']) ? (string) $params['access_token'] : null;
+        unset($params['access_token']);
+
+        $clean = ($parts['scheme'] ?? 'https').'://'.($parts['host'] ?? '').($parts['path'] ?? '');
+
+        return [$params === [] ? $clean : $clean.'?'.http_build_query($params), $token];
     }
 
     /** @return array<string, mixed> */

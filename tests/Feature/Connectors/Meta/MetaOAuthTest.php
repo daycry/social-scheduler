@@ -27,7 +27,8 @@ function metaFake(array $over = []): void
     $dataAccess = now()->addDays(90)->timestamp;
     Http::fake(array_merge([
         'graph.facebook.com/v23.0/oauth/access_token*' => function ($request) {
-            parse_str(parse_url($request->url(), PHP_URL_QUERY), $q);
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $q);
+            $q += (array) $request->data(); // los intercambios viajan en el CUERPO (POST), no en la query
 
             return Http::response(($q['grant_type'] ?? '') === 'fb_exchange_token'
                 ? ['access_token' => 'LONG-USER-TOKEN', 'expires_in' => 5184000]
@@ -73,7 +74,7 @@ test('MetaOAuth exchanges the code for a long lived token and finds pages throug
         ->and($ig->dataAccessExpiresAt->isFuture())->toBeTrue()
         ->and($ig->tokenExpiresAt->isFuture())->toBeTrue();
 
-    Http::assertSent(fn ($r) => str_contains($r->url(), 'fb_exchange_token') && str_contains($r->url(), 'SHORT-USER-TOKEN'));
+    Http::assertSent(fn ($r) => ($r->data()['fb_exchange_token'] ?? null) === 'SHORT-USER-TOKEN');
     Http::assertSent(fn ($r) => str_contains($r->url(), 'me/businesses'));
 });
 
@@ -262,6 +263,36 @@ test('MetaOAuth refresh shares one token exchange between accounts that share th
     (new MetaConnector)->refresh($fb);
     (new MetaConnector)->refresh($ig);
 
-    $exchanges = Http::recorded(fn ($req) => str_contains($req->url(), 'fb_exchange_token'));
+    $exchanges = Http::recorded(fn ($req) => isset($req->data()['fb_exchange_token']));
     expect($exchanges)->toHaveCount(1);
+});
+
+test('MetaOAuth N6: ningun token ni secreto viaja en la URL: intercambios en el cuerpo, tokens y token de app en Authorization', function () {
+    metaFake([
+        'graph.facebook.com/v23.0/me/accounts*' => Http::response(['data' => [['id' => 'P1', 'name' => 'Uno', 'access_token' => 'PAGE-1']], 'paging' => ['next' => 'https://graph.facebook.com/v23.0/me/accounts?after=A&access_token=LONG-USER-TOKEN']]),
+    ]);
+    config(['services.meta.client_id' => 'APPID', 'services.meta.client_secret' => 'APPSECRET']);
+
+    (new MetaConnector)->exchangeCode('CODE-SECRETO', 'https://app.test/cb');
+
+    $calls = Http::recorded()->map(fn ($pair) => $pair[0]);
+    expect($calls)->not->toBeEmpty();
+    foreach ($calls as $req) {
+        foreach (['access_token=', 'client_secret', 'APPSECRET', 'LONG-USER-TOKEN', 'SHORT-USER-TOKEN', 'CODE-SECRETO', 'fb_exchange_token'] as $secret) {
+            expect($req->url())->not->toContain($secret);
+        }
+    }
+
+    $debug = $calls->first(fn ($r) => str_contains($r->url(), 'debug_token'));
+    expect($debug->header('Authorization'))->toBe(['Bearer APPID|APPSECRET'])->and($debug->method())->toBe('POST')
+        ->and($debug->data()['input_token'])->toBe('LONG-USER-TOKEN'); // el token inspeccionado va en el cuerpo
+
+    $exchange = $calls->first(fn ($r) => isset($r->data()['fb_exchange_token']));
+    expect($exchange->method())->toBe('POST')->and($exchange->data()['client_secret'])->toBe('APPSECRET');
+
+    $accounts = $calls->filter(fn ($r) => str_contains($r->url(), 'me/accounts'));
+    expect($accounts->count())->toBeGreaterThanOrEqual(2); // las paginas de paging.next tambien sin token en la URL
+    foreach ($accounts as $req) {
+        expect($req->header('Authorization'))->toBe(['Bearer LONG-USER-TOKEN']);
+    }
 });

@@ -27,6 +27,8 @@ return [
 
     'meta' => [
         'graph_version' => env('META_GRAPH_VERSION', 'v23.0'),
+        /* Intercambio de codigo/token: `post` (secretos en el cuerpo, por defecto) o `get` (en la query; ultimo recurso). */
+        'oauth_method' => env('META_OAUTH_METHOD', 'post'),
         /* Tope de paginas que se siguen en `paging.next` (100 elementos por pagina). */
         'max_pages' => (int) env('META_MAX_PAGES', 10),
         'scopes' => [

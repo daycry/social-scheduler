@@ -1,0 +1,6 @@
+.env
+spike/.env
+vendor/
+node_modules/
+.claude/usage-state.json
+.claude/session-prompts-*

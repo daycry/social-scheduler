@@ -393,33 +393,33 @@ verificacion: obligatoria
 
 - **Descripción**: Definir `SocialAccount` (marca, red, id externo, estado `activa|requiere_reconexion|desconectada`, tokens con cast `encrypted`) y las interfaces de conector (OAuth, publicación, polling, insights) para aislar cada red y versión de API.
 - **Changelog**: Las cuentas conectadas guardan sus credenciales cifradas.
-- **Estado**: borrador
-- **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 8h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.19h (medido)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
-- **Archivos**: `app/Models/SocialAccount.php`, `app/Connectors/Contracts/`, `app/Services/SocialAccountService.php`, `database/migrations/`, `tests/Unit/Connectors/`
+- **Archivos**: `app/Models/SocialAccount.php`, `app/Connectors/Contracts/`, `app/Services/SocialAccountService.php`, `database/migrations/`, `tests/Unit/Connectors/`, `app/Connectors/` (Network, Data, Exceptions, ConnectorRegistry), `app/Policies/SocialAccountPolicy.php`, `app/Providers/AppServiceProvider.php`, `config/social.php`, `database/factories/SocialAccountFactory.php`, `tests/Support/FakeConnector.php`, `tests/Feature/Connectors/SocialAccountTest.php`
 - **Cubre (tests)**: E2E-03
 - **Verificación**: `php artisan test --filter=SocialAccount` → pasa (la columna de tokens en BD no contiene texto plano)
 
 **Criterios de aceptación**
-- [ ] Tokens cifrados en reposo (verificado leyendo la BD)
-- [ ] Interfaz común definida y documentada
-- [ ] Aislamiento por usuario heredado
+- [x] Tokens cifrados en reposo (verificado leyendo la BD)
+- [x] Interfaz común definida y documentada
+- [x] Aislamiento por usuario heredado
 
 **Subtareas**
-- [ ] Migración y modelo
-- [ ] Contratos de conectores
-- [ ] Servicio de cuentas con aislamiento
-- [ ] Conector simulado (fake) para tests
-
+- [x] Migración y modelo
+- [x] Contratos de conectores
+- [x] Servicio de cuentas con aislamiento
+- [x] Conector simulado (fake) para tests
+**Notas (implementer, 2026-10-19)**: Modelo SocialAccount (tokens con cast encrypted + hidden), enum Network, contrato Connector + capacidades Publisher/StatusPoller/InsightsReader, DTOs ConnectionCandidate/RefreshResult, ConnectorRegistry (singleton en AppServiceProvider), SocialAccountService (listForBrand/connect/disconnect/applyRefresh/markRequiresReconnection, exige user+marca), SocialAccountPolicy, config/social.php, FakeConnector en tests/Support. Desviacion: los tests con BD van en tests/Feature/Connectors (los Unit no cargan RefreshDatabase). Desconectar conserva la fila (historico) y borra tokens. Verificacion: `php artisan test --filter=SocialAccount` -> 8 passed, 31 assertions (la columna access_token/refresh_token en BD no contiene el texto plano). Medido: 0.19h.
 ### T-12 — Conector Meta: OAuth de Instagram y Facebook
 
 - **Descripción**: Flujo OAuth contra Meta (método de login decidido en el spike), selección de página FB y cuenta IG, intercambio a token de larga duración y renovación. Socialite como base para FB; el resto con cliente HTTP propio.
 - **Changelog**: Se pueden conectar cuentas de Instagram y páginas de Facebook.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 14h · real —
 - **Tiempo IA (ejec.)**: est. 2.1h · real —
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
@@ -442,7 +442,6 @@ verificacion: obligatoria
 - [ ] Controlador OAuth y selección de cuenta/página
 - [ ] Renovación de token
 - [ ] Tests con respuestas grabadas
-
 ### T-13 — Conector Google: OAuth de YouTube (condicionado a G1)
 
 - **Descripción**: OAuth de Google para YouTube Data + Analytics con refresh token offline, selección de canal y manejo de la caducidad de 7 días en estado Testing según G1.

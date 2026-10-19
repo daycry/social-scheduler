@@ -10,6 +10,7 @@ use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
@@ -49,7 +50,7 @@ class InstagramPublisher implements Publisher, StatusPoller
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
         $this->assertSupported($request);
-        $budget = StepBudget::start();
+        $budget = $request->budget();
 
         if ($request->type === ContentType::InstagramCarousel) {
             if ($request->progress === []) {
@@ -76,7 +77,7 @@ class InstagramPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('Falta la referencia del contenedor de Instagram.', 'sin_referencia');
         }
 
-        $budget = StepBudget::start();
+        $budget = $request->budget();
 
         return $request->reference === self::BUILDING
             ? $this->advanceCarousel($account, $request, $budget)
@@ -86,13 +87,15 @@ class InstagramPublisher implements Publisher, StatusPoller
     public function findPublished(SocialAccount $account, PublishRequest $request): ?PublishResult
     {
         $container = $this->containerOf($request);
+        $budget = $request->budget();
 
         // Un contenedor ya publicado (o a punto) se resuelve por su estado, sin crear otro.
         if ($container !== null) {
             $status = $this->containerStatus($account, $container);
+            $budget->spent();
 
             if ($status['code'] === 'PUBLISHED') {
-                return $this->resolvePublished($account, $request, $container) ?? PublishResult::processing($container);
+                return $this->resolvePublished($account, $request, $container, $budget) ?? PublishResult::processing($container);
             }
 
             if ($status['code'] === 'FINISHED' || $status['code'] === 'IN_PROGRESS') {
@@ -105,7 +108,12 @@ class InstagramPublisher implements Publisher, StatusPoller
             return null;
         }
 
-        return $this->findRecent($account, $request);
+        // Sin presupuesto para otra consulta: NO se publica a ciegas (duplicado); el reintento vuelve a preguntar.
+        if (! $budget->allows()) {
+            throw new TransientPublishException('Sin tiempo para comprobar si Instagram ya publico el contenido; se reintenta.');
+        }
+
+        return $this->findRecent($account, $request, $budget);
     }
 
     // ------------------------------------------------------------------ flujo
@@ -123,7 +131,9 @@ class InstagramPublisher implements Publisher, StatusPoller
     /** Estado -> publicar: comprueba el contenedor y, si esta listo (y cabe en el presupuesto), lo publica. */
     private function advance(SocialAccount $account, PublishRequest $request, string $containerId, StepBudget $budget): PublishResult
     {
-        if (! $budget->allows()) {
+        // Tras el estado FINISHED vienen SIEMPRE `media_publish` y el enlace sin volver a preguntar: se reservan las 2 llamadas
+        // (peor caso: estado + publish + permalink <= presupuesto < $timeout del job).
+        if (! $budget->allows(after: 2)) {
             return PublishResult::processing($containerId);
         }
 
@@ -131,9 +141,9 @@ class InstagramPublisher implements Publisher, StatusPoller
         $budget->spent();
 
         return match ($status['code']) {
-            // `media_publish` va siempre tras un estado FINISHED: el presupuesto reserva margen para estas dos llamadas.
-            'FINISHED' => $this->publishContainer($account, $containerId),
-            'PUBLISHED' => $this->resolvePublished($account, $request, $containerId) ?? PublishResult::failed('Instagram indica que el contenedor ya se publico pero no se encuentra la publicacion.'),
+            'FINISHED' => $this->publishContainer($account, $containerId, $budget),
+            // Contenedor PUBLISHED = publicado (concluyente): si no se puede localizar la publicacion se resuelve igual (N8).
+            'PUBLISHED' => $this->resolvePublished($account, $request, $containerId, $budget) ?? PublishResult::processing($containerId),
             'ERROR', 'EXPIRED' => PublishResult::failed($this->statusMessage($status)),
             default => PublishResult::processing($containerId), // IN_PROGRESS u otro estado intermedio
         };
@@ -214,48 +224,77 @@ class InstagramPublisher implements Publisher, StatusPoller
         return $result->isProcessing() ? PublishResult::processing($parent, [], $progress) : $result;
     }
 
-    private function publishContainer(SocialAccount $account, string $containerId): PublishResult
+    private function publishContainer(SocialAccount $account, string $containerId, StepBudget $budget): PublishResult
     {
         $published = $this->graph->post($account->external_id.'/media_publish', ['creation_id' => $containerId], (string) $account->access_token);
+        $budget->spent();
         $id = (string) ($published['id'] ?? '');
 
         if ($id === '') {
             throw new PermanentPublishException('Instagram no devolvio el ID de la publicacion.', 'sin_id');
         }
 
-        return PublishResult::published($id, $this->permalink($account, $id), ['container' => $containerId]);
+        // El enlace es accesorio: sin presupuesto para otra llamada se omite (la publicacion ya existe).
+        return PublishResult::published($id, $budget->allows() ? $this->permalink($account, $id) : null, ['container' => $containerId]);
     }
 
-    /** Localiza la publicacion de un contenedor que Instagram da por `PUBLISHED`. */
-    private function resolvePublished(SocialAccount $account, PublishRequest $request, string $containerId): ?PublishResult
+    /**
+     * Localiza la publicacion de un contenedor que Instagram da por `PUBLISHED`. Ese estado es CONCLUYENTE: si no se puede
+     * identificar la publicacion concreta, el destino se da igualmente por publicado (con el ID del contenedor y una nota) y
+     * nunca por fallido, para que reprogramarlo no duplique. Devuelve null solo si no queda presupuesto para consultar
+     * (el siguiente sondeo lo reintenta).
+     */
+    private function resolvePublished(SocialAccount $account, PublishRequest $request, string $containerId, StepBudget $budget): ?PublishResult
     {
-        if ($request->type !== ContentType::InstagramStory) {
-            return $this->findRecent($account, $request);
+        if (! $budget->allows()) {
+            return null;
         }
 
-        // Las historias no salen en `/media` ni llevan texto: se buscan en `/stories` (activas, 24 h) por hora.
+        $found = $request->type === ContentType::InstagramStory
+            ? $this->findStory($account, $request, $containerId, $budget)
+            : $this->findRecent($account, $request, $budget);
+
+        return $found ?? PublishResult::published(
+            $containerId,
+            null,
+            ['container' => $containerId, 'external_id_kind' => 'container'],
+            'Se publico en Instagram pero no se pudo obtener el enlace ni el ID de la publicacion.',
+        );
+    }
+
+    /**
+     * Las historias no salen en `/media` ni llevan texto: se buscan en `/stories` (activas, 24 h). Se elige la del contenedor
+     * (mismo ID); si el ID no coincide, solo se acepta una historia si es la UNICA publicada desde `since` (con varias, adivinar
+     * podria atribuir la historia de otra publicacion): en la duda se queda con el ID del contenedor.
+     */
+    private function findStory(SocialAccount $account, PublishRequest $request, string $containerId, StepBudget $budget): ?PublishResult
+    {
         try {
             $data = $this->graph->get($account->external_id.'/stories', ['fields' => 'id,permalink,timestamp', 'limit' => self::RECENT_MEDIA], (string) $account->access_token);
         } catch (PublishException $e) {
             Log::notice('instagram.stories_lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
             $data = [];
         }
+        $budget->spent();
 
-        $best = null;
+        $candidates = [];
         foreach ($data['data'] ?? [] as $item) {
+            if ((string) ($item['id'] ?? '') === $containerId) {
+                return PublishResult::published((string) $item['id'], $item['permalink'] ?? null);
+            }
+
             $when = isset($item['timestamp']) ? strtotime((string) $item['timestamp']) : false;
 
-            if ($when !== false && ($request->since === null || $when >= $request->since->getTimestamp()) && ($best === null || $when > $best['when'])) {
-                $best = ['when' => $when, 'item' => $item];
+            if ($when !== false && ($request->since === null || $when >= $request->since->getTimestamp())) {
+                $candidates[] = $item;
             }
         }
 
-        if ($best !== null) {
-            return PublishResult::published((string) $best['item']['id'], $best['item']['permalink'] ?? null);
+        if (count($candidates) === 1) {
+            return PublishResult::published((string) $candidates[0]['id'], $candidates[0]['permalink'] ?? null);
         }
 
-        // El contenedor consta como PUBLISHED: la historia existe aunque ya no se liste. Nunca se republica.
-        return PublishResult::published($containerId, null, ['container' => $containerId], 'La historia se publico en Instagram pero no se pudo obtener su enlace.');
+        return null;
     }
 
     /** @return array<string, string> */
@@ -345,7 +384,7 @@ class InstagramPublisher implements Publisher, StatusPoller
         }
     }
 
-    private function findRecent(SocialAccount $account, PublishRequest $request): ?PublishResult
+    private function findRecent(SocialAccount $account, PublishRequest $request, StepBudget $budget): ?PublishResult
     {
         $caption = trim((string) $request->text);
 
@@ -355,6 +394,7 @@ class InstagramPublisher implements Publisher, StatusPoller
         }
 
         $data = $this->graph->get($account->external_id.'/media', ['fields' => 'id,caption,permalink,timestamp', 'limit' => self::RECENT_MEDIA], (string) $account->access_token);
+        $budget->spent();
 
         foreach ($data['data'] ?? [] as $item) {
             $when = isset($item['timestamp']) ? strtotime((string) $item['timestamp']) : false;

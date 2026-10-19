@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Data;
 
+use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
 use Carbon\CarbonInterface;
 
@@ -29,7 +30,17 @@ final class PublishRequest
         public readonly ?CarbonInterface $since = null,
         public readonly array $progress = [],
         private readonly ?\Closure $checkpoint = null,
+        private ?StepBudget $budget = null,
     ) {}
+
+    /**
+     * Presupuesto de tiempo de ESTE job: lo comparten `findPublished` y `publish`/`poll` (el reloj empieza en la primera llamada
+     * de red del job), para que la suma de todas las llamadas quepa en el `$timeout`.
+     */
+    public function budget(): StepBudget
+    {
+        return $this->budget ??= StepBudget::start();
+    }
 
     /** Guarda ya la referencia externa y/o el progreso (si quien llama lo permite). */
     public function checkpoint(?string $reference, ?array $progress = null): void

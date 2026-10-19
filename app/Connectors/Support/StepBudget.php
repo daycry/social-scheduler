@@ -19,10 +19,13 @@ class StepBudget
         return new self(microtime(true), (float) config('publishing.step_budget_seconds', 85), (float) config('social.http_timeout', 15));
     }
 
-    /** ¿Cabe otra llamada (en el peor caso, tardara `social.http_timeout`) dentro del presupuesto? */
-    public function allows(): bool
+    /**
+     * ¿Cabe otra llamada (en el peor caso, tardara `social.http_timeout`) dentro del presupuesto? `$after` reserva el peor
+     * caso de las llamadas que SIEMPRE siguen a esta sin volver a preguntar (p. ej. estado -> media_publish -> permalink).
+     */
+    public function allows(int $after = 0): bool
     {
-        return $this->calls === 0 || (microtime(true) - $this->startedAt) + $this->perCall <= $this->budget;
+        return $this->calls === 0 || (microtime(true) - $this->startedAt) + $this->perCall * (1 + max(0, $after)) <= $this->budget;
     }
 
     /** Registra una llamada hecha. */

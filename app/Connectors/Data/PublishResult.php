@@ -11,6 +11,9 @@ final class PublishResult
 
     public const FAILED = 'failed';
 
+    /** Referencia provisional mientras el contenido aun SE ESTA SUBIENDO a la red (aun no hay ID de la publicacion). */
+    public const UPLOADING = 'subiendo';
+
     /** @param array<string, mixed> $raw Respuesta de la red (sin secretos) para depuracion. */
     private function __construct(
         public readonly string $status,
@@ -24,9 +27,20 @@ final class PublishResult
     ) {}
 
     /** @param ?string $note Aclaracion para el usuario cuando «publicada» no es la historia completa (p. ej. borrador en la bandeja de TikTok). */
-    public static function published(string $externalId, ?string $url = null, array $raw = [], ?string $note = null): self
+    public static function published(string $externalId, ?string $url = null, array $raw = [], ?string $note = null, ?array $progress = null): self
     {
-        return new self(self::PUBLISHED, $externalId, $url, null, null, $raw, $note);
+        return new self(self::PUBLISHED, $externalId, $url, null, null, $raw, $note, $progress);
+    }
+
+    /**
+     * Sigue el contenido subiendose a la red (fase de SUBIDA, no de procesado)? Es la fase con plazo propio
+     * (`publishing.upload_max_minutes`): referencia `subiendo` (YouTube) o `progress.phase = uploading` (TikTok).
+     *
+     * @param  ?array<string, mixed>  $progress
+     */
+    public static function isUploadingState(?string $reference, ?array $progress): bool
+    {
+        return $reference === self::UPLOADING || ($progress['phase'] ?? null) === 'uploading';
     }
 
     /** @param ?array<string, mixed> $progress Progreso reanudable que se guarda en el destino (null = no cambia). */

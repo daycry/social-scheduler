@@ -63,6 +63,11 @@ return [
         'chunk_bytes' => (int) env('YOUTUBE_CHUNK_BYTES', 8 * 1024 * 1024),
         /* Segundos de subida por pasada del job (< timeout de 110 s); si no acaba, se continua en el sondeo. */
         'upload_budget_seconds' => (int) env('YOUTUBE_UPLOAD_BUDGET', 80),
+        /* No se empieza otro PUT si queda menos de esto del presupuesto (un trozo de 8 MiB necesita unos segundos). */
+        'upload_min_slice_seconds' => (int) env('YOUTUBE_UPLOAD_MIN_SLICE', 10),
+        /* Marca DURA de la pasada (< `$timeout` 110 s del job): el timeout HTTP de cada llamada se acota a lo que queda. */
+        'pass_seconds' => (int) env('YOUTUBE_PASS_SECONDS', 100),
+        /* Tope de UN PUT de trozo (siempre acotado ademas por lo que quede hasta `pass_seconds`). */
         'upload_timeout' => (int) env('YOUTUBE_UPLOAD_TIMEOUT', 60),
     ],
 
@@ -83,5 +88,13 @@ return [
         'chunk_bytes' => (int) env('TIKTOK_CHUNK_BYTES', 10 * 1024 * 1024),
         'single_chunk_max_bytes' => 64 * 1024 * 1024,
         'upload_timeout' => (int) env('TIKTOK_UPLOAD_TIMEOUT', 100),
+
+        /* Presupuesto BLANDO (s) de subida por pasada y marca DURA (< `$timeout` 110 s del job): ver TikTokPublisher. */
+        'upload_budget_seconds' => (int) env('TIKTOK_UPLOAD_BUDGET', 80),
+        'upload_min_slice_seconds' => (int) env('TIKTOK_UPLOAD_MIN_SLICE', 15),
+        'pass_seconds' => (int) env('TIKTOK_PASS_SECONDS', 100),
+
+        /* Borrador en `PROCESSING_UPLOAD` tras la subida completa: pasados estos minutos se da por publicado con nota. */
+        'inbox_grace_minutes' => (int) env('TIKTOK_INBOX_GRACE_MINUTES', 10),
     ],
 ];

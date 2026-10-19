@@ -44,7 +44,7 @@ class PublishOutcomes
             'external_url' => $result->url,
             'external_reference' => $result->reference ?? $target->external_reference,
             'status_note' => $result->note !== null ? mb_substr($result->note, 0, 300) : null,
-        ]);
+        ] + ($result->progress !== null ? ['progress' => $result->progress] : []));
     }
 
     /** Publicacion asincrona en la red: se sondea hasta que termine. */

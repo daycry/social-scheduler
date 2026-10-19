@@ -36,11 +36,20 @@ use Illuminate\Support\Facades\Log;
  * CONTINUA (referencia `subiendo`; la URL de sesion se guarda en cache por destino) hasta completarla.
  * `external_reference` pasa a ser el ID del video en cuanto existe.
  *
- * Idempotencia: `findPublished` busca en la lista de subidas del canal un video con el mismo titulo posterior a `since`.
+ * Tiempo: cada pasada tiene un presupuesto BLANDO (`upload_budget_seconds`: no se empieza otro PUT si queda menos de
+ * `upload_min_slice_seconds`) y una marca DURA (`pass_seconds` < `$timeout` del job): el timeout HTTP de cada llamada se
+ * acota a lo que queda hasta esa marca, de modo que una pasada nunca supera los 110 s del job. La primera llamada de
+ * subida de cada pasada siempre se intenta (garantiza avance).
+ *
+ * Idempotencia: cada video lleva el tag propio `ss-<post_target_id>` (`snippet.tags`); `findPublished` mira los ultimos
+ * videos del canal (lista de subidas, posteriores a `since`) y pide sus tags (`videos.list`): solo el video marcado con
+ * el tag DE ESTE DESTINO cuenta como "ya publicado" (dos videos con el mismo titulo no se confunden). El ID del video se
+ * guarda con `checkpoint` en cuanto se conoce, y un reintento reutiliza la sesion reanudable cacheada (no abre otra ni
+ * vuelve a cobrar cuota).
  */
 class YouTubePublisher implements Publisher, StatusPoller
 {
-    public const UPLOADING = 'subiendo';
+    public const UPLOADING = PublishResult::UPLOADING;
 
     private const API = 'https://www.googleapis.com/youtube/v3';
 
@@ -71,6 +80,9 @@ class YouTubePublisher implements Publisher, StatusPoller
         'uploadAborted' => 'porque la subida se aborto',
     ];
 
+    /** Inicio de la pasada en curso (para acotar el timeout HTTP a la marca dura). */
+    private ?float $passStartedAt = null;
+
     public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota) {}
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
@@ -78,13 +90,33 @@ class YouTubePublisher implements Publisher, StatusPoller
         $media = $this->videoOf($request);
         $cost = (int) config('social.youtube.upload_cost', 1600);
 
-        $this->quota->assertAvailable($cost);
+        // Un reintento reutiliza la sesion reanudable cacheada: ni abre otra ni vuelve a cobrar cuota local.
+        $cached = Cache::get($this->sessionKey($request));
+        $cached = is_string($cached) && $cached !== '' ? $cached : null;
+
+        if ($cached === null) {
+            $this->quota->assertAvailable($cost);
+        }
 
         $reader = MediaChunkReader::for($media);
+        $this->beginPass();
 
         try {
             if ($reader->size <= 0) {
                 throw new PermanentPublishException('El archivo de video esta vacio.', 'media_invalida');
+            }
+
+            if ($cached !== null) {
+                try {
+                    return $this->continueUpload($account, $request, $cached, $media, $reader);
+                } catch (PermanentPublishException $e) {
+                    if ($e->errorCode !== 'sesion_caducada') {
+                        throw $e;
+                    }
+                    // La sesion guardada caduco (Google las borra a la semana): se abre una nueva, esta si cuesta cuota.
+                    Cache::forget($this->sessionKey($request));
+                    $this->quota->assertAvailable($cost);
+                }
             }
 
             $session = $this->openSession($account, $request, $media, $reader->size);
@@ -94,6 +126,7 @@ class YouTubePublisher implements Publisher, StatusPoller
             return $this->upload($account, $request, $session, $media, $reader, 0);
         } finally {
             $reader->close();
+            $this->passStartedAt = null;
         }
     }
 
@@ -143,27 +176,42 @@ class YouTubePublisher implements Publisher, StatusPoller
             return $this->poll($account, $request);
         }
 
-        $title = $this->title($request);
+        $tag = $this->targetTag($request->targetId);
 
         try {
             // La lista de subidas de un canal es la playlist cuyo ID sustituye el prefijo UC por UU.
-            $data = $this->get($account, 'playlistItems', [
+            $recent = $this->get($account, 'playlistItems', [
                 'part' => 'snippet', 'maxResults' => 10, 'playlistId' => 'UU'.substr($account->external_id, 2),
             ]);
+
+            $ids = [];
+            foreach ($recent['items'] ?? [] as $item) {
+                $snippet = $item['snippet'] ?? [];
+                $when = isset($snippet['publishedAt']) ? strtotime((string) $snippet['publishedAt']) : false;
+                $videoId = (string) ($snippet['resourceId']['videoId'] ?? '');
+
+                if ($videoId !== '' && ($request->since === null || ($when !== false && $when >= $request->since->getTimestamp()))) {
+                    $ids[] = $videoId;
+                }
+            }
+
+            if ($ids === []) {
+                return null;
+            }
+
+            // Los tags no vienen en la lista de subidas: se piden (1 ud de cuota) y solo cuenta el video con el tag de ESTE destino.
+            $videos = $this->get($account, 'videos', ['part' => 'snippet', 'id' => implode(',', $ids)]);
         } catch (PublishException $e) {
             Log::notice('youtube.lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
 
             return null;
         }
 
-        foreach ($data['items'] ?? [] as $item) {
-            $snippet = $item['snippet'] ?? [];
-            $when = isset($snippet['publishedAt']) ? strtotime((string) $snippet['publishedAt']) : false;
-            $videoId = (string) ($snippet['resourceId']['videoId'] ?? '');
+        foreach ($videos['items'] ?? [] as $video) {
+            $id = (string) ($video['id'] ?? '');
 
-            if ($videoId !== '' && (string) ($snippet['title'] ?? '') === $title
-                && ($request->since === null || ($when !== false && $when >= $request->since->getTimestamp()))) {
-                return $this->poll($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $videoId, $request->since));
+            if ($id !== '' && in_array($tag, (array) ($video['snippet']['tags'] ?? []), true)) {
+                return $this->poll($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $id, $request->since));
             }
         }
 
@@ -197,6 +245,7 @@ class YouTubePublisher implements Publisher, StatusPoller
                 'title' => $this->title($request),
                 'description' => $this->description($request),
                 'categoryId' => self::CATEGORY_PEOPLE_BLOGS,
+                'tags' => [$this->targetTag($request->targetId)], // marcador propio del destino: base de la idempotencia
             ],
             'status' => [
                 'privacyStatus' => in_array($privacy, self::PRIVACY, true) ? $privacy : 'private',
@@ -232,24 +281,28 @@ class YouTubePublisher implements Publisher, StatusPoller
 
         $media = $this->videoOf($request);
         $reader = MediaChunkReader::for($media);
+        $this->beginPass();
 
         try {
-            $offset = $this->queryOffset($account, $session, $reader->size);
-
-            return $offset === null
-                ? $this->uploadedOrFail($account, $request)
-                : $this->upload($account, $request, $session, $media, $reader, $offset);
+            return $this->continueUpload($account, $request, $session, $media, $reader);
         } finally {
             $reader->close();
+            $this->passStartedAt = null;
         }
+    }
+
+    /** Pregunta a Google cuanto tiene de la sesion y sigue desde ahi (o recoge el video si ya estaba completo). */
+    private function continueUpload(SocialAccount $account, PublishRequest $request, string $session, PublishMedia $media, MediaChunkReader $reader): PublishResult
+    {
+        $state = $this->queryOffset($account, $request, $session, $reader->size);
+
+        return $state instanceof PublishResult ? $state : $this->upload($account, $request, $session, $media, $reader, $state);
     }
 
     /** Envia trozos desde `$offset` hasta terminar o agotar el presupuesto de tiempo de la pasada. */
     private function upload(SocialAccount $account, PublishRequest $request, string $session, PublishMedia $media, MediaChunkReader $reader, int $offset): PublishResult
     {
-        $started = microtime(true);
-        $budget = (int) config('social.youtube.upload_budget_seconds', 80);
-        $chunkBytes = max(256 * 1024, (int) config('social.youtube.chunk_bytes', 8 * 1024 * 1024));
+        $chunkBytes = self::chunkSize();
         $size = $reader->size;
         $recoveries = 0;
 
@@ -288,10 +341,10 @@ class YouTubePublisher implements Publisher, StatusPoller
                     throw new TransientPublishException('La subida a YouTube se interrumpio varias veces; se reintentara.', 'subida_interrumpida');
                 }
 
-                $known = $this->queryOffset($account, $session, $size);
+                $known = $this->queryOffset($account, $request, $session, $size);
 
-                if ($known === null) {
-                    return $this->uploadedOrFail($account, $request);
+                if ($known instanceof PublishResult) {
+                    return $known;
                 }
 
                 $offset = $known;
@@ -308,16 +361,51 @@ class YouTubePublisher implements Publisher, StatusPoller
                 return $this->uploadedOrFail($account, $request);
             }
 
-            if ((microtime(true) - $started) >= $budget) {
-                return PublishResult::processing(self::UPLOADING); // el sondeo continua desde lo que Google tenga
+            // Presupuesto comprobado ANTES de cada PUT: sin margen para otro trozo, el sondeo continua desde lo que Google tenga.
+            if ($this->budgetLeft() < (float) config('social.youtube.upload_min_slice_seconds', 10)) {
+                return PublishResult::processing(self::UPLOADING);
             }
         }
+    }
+
+    /** Tamano de trozo: el configurado redondeado a multiplo de 256 KiB (requisito de Google), minimo 256 KiB. */
+    private static function chunkSize(): int
+    {
+        $unit = 256 * 1024;
+
+        return max($unit, intdiv((int) config('social.youtube.chunk_bytes', 8 * 1024 * 1024), $unit) * $unit);
+    }
+
+    private function beginPass(): void
+    {
+        $this->passStartedAt = microtime(true);
+    }
+
+    /** Segundos que quedan del presupuesto blando de subida de la pasada. */
+    private function budgetLeft(): float
+    {
+        return (float) config('social.youtube.upload_budget_seconds', 80) - $this->elapsed();
+    }
+
+    private function elapsed(): float
+    {
+        return $this->passStartedAt === null ? 0.0 : microtime(true) - $this->passStartedAt;
+    }
+
+    /** Timeout HTTP de una llamada: el tope propio, acotado a lo que queda hasta la marca dura de la pasada (minimo 1 s). */
+    private function callTimeout(float $cap): float
+    {
+        if ($this->passStartedAt === null) {
+            return $cap;
+        }
+
+        return max(1.0, min($cap, (float) config('social.youtube.pass_seconds', 100) - $this->elapsed()));
     }
 
     /** `PUT` de un trozo (o consulta de estado con cuerpo vacio y `Content-Range: bytes * / total`). */
     private function put(SocialAccount $account, string $session, string $data, string $mime, string $range): Response
     {
-        return Http::timeout((int) config('social.youtube.upload_timeout', 60))
+        return Http::timeout($this->callTimeout((float) config('social.youtube.upload_timeout', 60)))
             ->withToken((string) $account->access_token)
             ->withoutRedirecting()
             ->withHeaders(['Content-Range' => $range])
@@ -325,8 +413,11 @@ class YouTubePublisher implements Publisher, StatusPoller
             ->put($session);
     }
 
-    /** Cuantos bytes tiene Google de la sesion. `null` = la subida ya esta completa. */
-    private function queryOffset(SocialAccount $account, string $session, int $size): ?int
+    /**
+     * Cuantos bytes tiene Google de la sesion, o el resultado final si la subida ya esta completa: con 200/201 el cuerpo
+     * trae el video (se toma su `id`, sin depender de la lista de subidas, que llega con retraso).
+     */
+    private function queryOffset(SocialAccount $account, PublishRequest $request, string $session, int $size): int|PublishResult
     {
         try {
             $response = $this->put($account, $session, '', 'application/octet-stream', "bytes */{$size}");
@@ -335,7 +426,9 @@ class YouTubePublisher implements Publisher, StatusPoller
         }
 
         if (in_array($response->status(), [200, 201], true)) {
-            return null;
+            return ((string) $response->json('id')) !== ''
+                ? $this->uploaded($response, $request)
+                : $this->uploadedOrFail($account, $request); // sin cuerpo util: ultimo recurso, la lista de subidas
         }
 
         if ($response->status() === 308) {
@@ -363,6 +456,8 @@ class YouTubePublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('YouTube no devolvio el ID del video.', 'sin_id');
         }
 
+        // Se guarda YA el ID: si el job muere ahora, el reintento sondea este video en vez de buscarlo o subirlo otra vez.
+        $request->checkpoint($id);
         Cache::forget($this->sessionKey($request));
 
         // El video existe pero YouTube aun lo procesa: se sondea `uploadStatus`.
@@ -378,6 +473,7 @@ class YouTubePublisher implements Publisher, StatusPoller
             throw new TransientPublishException('YouTube recibio el video pero aun no lo muestra; se comprobara en el siguiente intento.', 'subida_sin_confirmar');
         }
 
+        $request->checkpoint($found->reference ?? $found->externalId);
         Cache::forget($this->sessionKey($request));
 
         return $found;
@@ -400,7 +496,7 @@ class YouTubePublisher implements Publisher, StatusPoller
     /** @param \Closure(PendingRequest): Response $call */
     private function send(SocialAccount $account, \Closure $call, bool $json = true): Response
     {
-        $http = Http::timeout((int) config('social.http_timeout', 15))->acceptJson()->withToken((string) $account->access_token);
+        $http = Http::timeout($this->callTimeout((float) config('social.http_timeout', 15)))->acceptJson()->withToken((string) $account->access_token);
 
         try {
             return $call($json ? $http->asJson() : $http);
@@ -421,7 +517,12 @@ class YouTubePublisher implements Publisher, StatusPoller
             return new ReconnectRequiredException('YouTube rechazo las credenciales ('.($reason ?: $status).'). Reconecta el canal.');
         }
 
-        if (in_array($reason, ['quotaExceeded', 'dailyLimitExceeded', 'rateLimitExceeded'], true)) {
+        // `rateLimitExceeded` es un tope de ritmo POR USUARIO y corto: se reintenta con espera, no agota el cupo del dia.
+        if (in_array($reason, ['rateLimitExceeded', 'userRateLimitExceeded'], true)) {
+            return new TransientPublishException('YouTube limito temporalmente el ritmo de peticiones; se reintentara.', 'youtube_limite_ritmo');
+        }
+
+        if (in_array($reason, ['quotaExceeded', 'dailyLimitExceeded'], true)) {
             $this->quota->markExhausted();
 
             return new QuotaExceededException('YouTube informa de que se agoto el cupo de la API ('.$reason.').', $this->quota->resetsAt());
@@ -480,10 +581,17 @@ class YouTubePublisher implements Publisher, StatusPoller
         if ($request->type === ContentType::YouTubeShort
             && ($request->options['shorts_hashtag'] ?? true) !== false
             && ! str_contains(mb_strtolower($text), '#shorts')) {
-            $text = rtrim($text."\n\n#Shorts");
+            $text = rtrim(mb_strcut($text, 0, 5000 - 9, 'UTF-8'))."\n\n#Shorts"; // deja sitio al hashtag
         }
 
-        return mb_substr($text, 0, 5000);
+        // Limite de YouTube: 5.000 BYTES (no caracteres) de UTF-8; mb_strcut corta sin partir un caracter.
+        return mb_strcut($text, 0, 5000, 'UTF-8');
+    }
+
+    /** Tag propio del destino (`snippet.tags`): permite reconocer SU video aunque otro lleve el mismo titulo. */
+    private function targetTag(int $targetId): string
+    {
+        return 'ss-'.$targetId;
     }
 
     private function watchUrl(string $id, ContentType $type): string

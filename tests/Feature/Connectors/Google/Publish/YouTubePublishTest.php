@@ -13,6 +13,7 @@ use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Jobs\DispatchDuePosts;
+use App\Jobs\PollPublishStatus;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Post;
@@ -259,18 +260,24 @@ test('YouTubePublish: si se pierde la sesion guardada el sondeo falla con motivo
     expect(fn () => $this->yt->poll($this->account, ytRequest(reference: YouTubePublisher::UPLOADING)))->toThrow(PermanentPublishException::class, 'sesion de subida');
 });
 
-test('YouTubePublish: findPublished localiza un video ya subido por titulo y hora, y no inventa uno', function () {
+test('YouTubePublish: findPublished localiza SU video por el tag del destino (no por titulo) y no inventa uno (revision F4-5 #4)', function () {
     $this->http->on('GET', '#youtube/v3/playlistItems\?#', ['json' => ['items' => [
-        ['snippet' => ['title' => 'Otro', 'publishedAt' => '2026-11-01T11:59:00Z', 'resourceId' => ['videoId' => 'X1']]],
-        ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-10-01T11:59:00Z', 'resourceId' => ['videoId' => 'OLD']]],
+        ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-11-01T11:59:00Z', 'resourceId' => ['videoId' => 'AJENO']]], // mismo titulo, otro destino
+        ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-10-01T11:59:00Z', 'resourceId' => ['videoId' => 'OLD']]],     // anterior a `since`
         ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-11-01T11:59:30Z', 'resourceId' => ['videoId' => 'VID9']]],
-    ]]])->on('GET', '#youtube/v3/videos\?#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
+    ]]])->on('GET', '#youtube/v3/videos\?part=snippet&id=#', ['json' => ['items' => [
+        ['id' => 'AJENO', 'snippet' => ['tags' => ['ss-12']]],
+        ['id' => 'VID9', 'snippet' => ['tags' => ['otro', 'ss-77']]],
+    ]]])->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
 
     $found = $this->yt->findPublished($this->account, ytRequest());
     expect($found->isPublished())->toBeTrue()->and($found->externalId)->toBe('VID9');
     expect($this->http->callsTo('GET', '#playlistItems#')[0]['url'])->toContain('playlistId=UU'.substr(YT_CHANNEL, 2));
+    expect($this->http->callsTo('GET', '#videos\?part=snippet#')[0]['url'])->toContain('id=AJENO%2CVID9')->not->toContain('OLD');
 
-    expect($this->yt->findPublished($this->account, ytRequest(text: 'Titulo distinto')))->toBeNull();
+    // Otro destino con el MISMO titulo no se queda con el video de este.
+    $other = new PublishRequest(78, ContentType::YouTubeVideo, "Mi titulo\nx", [ytMedia()], [], null, now()->subMinutes(5));
+    expect($this->yt->findPublished($this->account, $other))->toBeNull();
 });
 
 test('YouTubePublish: si la consulta de idempotencia falla, no se bloquea (null) y con referencia se sondea', function () {
@@ -391,4 +398,139 @@ test('YouTubePublish: reprogramar un destino fallido olvida la referencia, los i
     expect($fresh->status)->toBe(PostStatus::Scheduled)->and($fresh->external_reference)->toBeNull()->and($fresh->attempts)->toBe(0)
         ->and($fresh->error_code)->toBeNull()->and($fresh->started_at)->toBeNull();
     expect(Cache::has('youtube:upload:'.$target->id))->toBeFalse();
+});
+
+test('YouTubePublish: la sesion marca el video con el tag ss-<destino> (idempotencia propia, revision F4-5 #4)', function () {
+    ytHappyUpload($this->http);
+    $this->yt->publish($this->account, ytRequest());
+
+    expect($this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['tags'])->toBe(['ss-77']);
+});
+
+test('YouTubePublish: la consulta de offset con 200/201 toma el id del cuerpo, sin depender de la lista de subidas (revision F4-5 #3)', function () {
+    config(['social.youtube.upload_budget_seconds' => 0]);
+    $this->http->on('POST', '#uploadType=resumable#', ['status' => 200, 'headers' => ['Location' => YT_SESSION]])
+        ->on('PUT', '#upload_id=SESS1$#', FakeHttp::seq(
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]],                    // publish: trozo 1 y corta
+            ['status' => 201, 'json' => ['id' => 'VIDQ', 'status' => ['uploadStatus' => 'uploaded']]], // sondeo: la consulta ya devuelve el video
+        ));
+    $saved = [];
+    $req = new PublishRequest(77, ContentType::YouTubeVideo, 'Mi titulo', [ytMedia()], [], YouTubePublisher::UPLOADING, now()->subMinutes(5), [], function ($ref) use (&$saved) {
+        $saved[] = $ref;
+    });
+
+    $this->yt->publish($this->account, ytRequest());
+    $r = $this->yt->poll($this->account, $req);
+
+    expect($r->isProcessing())->toBeTrue()->and($r->reference)->toBe('VIDQ')->and($saved)->toBe(['VIDQ']); // ID guardado en el acto (checkpoint)
+    expect($this->http->callsTo('GET', '#playlistItems#'))->toBe([]); // ni se mira la playlist
+    expect(Cache::get('youtube:upload:77'))->toBeNull();
+});
+
+test('YouTubePublish: un reintento de publish reutiliza la sesion cacheada: no abre otra ni vuelve a cobrar cuota (revision F4-5 #5)', function () {
+    config(['social.youtube.upload_budget_seconds' => 0]);
+    $this->http->on('POST', '#uploadType=resumable#', ['status' => 200, 'headers' => ['Location' => YT_SESSION]])
+        ->on('PUT', '#upload_id=SESS1$#', FakeHttp::seq(
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]],      // 1a pasada: trozo 1
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]],      // reintento: consulta -> Google tiene el 1
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(2 * YT_CHUNK - 1)]],  // reintento: trozo 2
+        ));
+
+    $this->yt->publish($this->account, ytRequest());
+    $this->yt->publish($this->account, ytRequest()); // el job reintenta (p. ej. tras un error transitorio)
+
+    expect($this->http->callsTo('POST', '#uploadType=resumable#'))->toHaveCount(1)->and((new YouTubeQuota)->used())->toBe(1600);
+    $ranges = array_map(fn ($c) => $c['headers']['content-range'], $this->http->callsTo('PUT', '#upload_id=SESS1$#'));
+    expect($ranges[1])->toBe('bytes */'.YT_SIZE)->and($ranges[2])->toBe('bytes 262144-524287/'.YT_SIZE); // continua, no re-sube desde 0
+});
+
+test('YouTubePublish: si la sesion cacheada caduco, el reintento abre una nueva (y esta si cuesta cuota)', function () {
+    Cache::put('youtube:upload:77', YT_SESSION, now()->addDay());
+    $this->http->on('POST', '#uploadType=resumable#', ['status' => 200, 'headers' => ['Location' => 'https://www.googleapis.com/upload/youtube/v3/videos?upload_id=NEW']])
+        ->on('PUT', '#upload_id=SESS1$#', ['status' => 404])
+        ->on('PUT', '#upload_id=NEW$#', FakeHttp::seq(
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]],
+            ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(2 * YT_CHUNK - 1)]],
+            ['status' => 200, 'json' => ['id' => 'VIDN']],
+        ));
+
+    expect($this->yt->publish($this->account, ytRequest())->reference)->toBe('VIDN')->and((new YouTubeQuota)->used())->toBe(1600);
+});
+
+test('YouTubePublish: el timeout de cada llamada se acota a lo que queda de la pasada, nunca supera la marca dura (revision F4-5 #7)', function () {
+    config(['social.youtube.pass_seconds' => 100, 'social.youtube.upload_timeout' => 60]);
+    $timeout = fn (float $elapsed) => (function () use ($elapsed) {
+        $this->passStartedAt = microtime(true) - $elapsed;
+
+        return $this->callTimeout(60.0);
+    })->call($this->yt);
+
+    expect($timeout(0))->toBe(60.0)                       // pasada recien empezada: el tope propio
+        ->and($timeout(70))->toBeGreaterThan(29.0)->toBeLessThanOrEqual(30.0) // quedan ~30 s: el PUT no puede pasarse
+        ->and($timeout(99.5))->toBeLessThanOrEqual(1.0)  // al borde de la marca: 1 s
+        ->and($timeout(120))->toBe(1.0);
+});
+
+test('YouTubePublish: el presupuesto se comprueba antes de cada PUT: sin margen para otro trozo la pasada devuelve «subiendo»', function () {
+    config(['social.youtube.upload_budget_seconds' => 5, 'social.youtube.upload_min_slice_seconds' => 10]); // < trozo minimo
+    $this->http->on('POST', '#uploadType=resumable#', ['status' => 200, 'headers' => ['Location' => YT_SESSION]])
+        ->on('PUT', '#upload_id=SESS1$#', ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(YT_CHUNK - 1)]]);
+
+    $r = $this->yt->publish($this->account, ytRequest());
+
+    expect($r->reference)->toBe(YouTubePublisher::UPLOADING)->and($this->http->callsTo('PUT', '#upload_id=SESS1$#'))->toHaveCount(1);
+});
+
+test('YouTubePublish: chunk_bytes se redondea a multiplo de 256 KiB (revision F4-5 #17)', function () {
+    config(['social.youtube.chunk_bytes' => 300000]); // no multiplo
+    ytHappyUpload($this->http);
+
+    $this->yt->publish($this->account, ytRequest());
+
+    expect($this->http->callsTo('PUT', '#upload_id=SESS1$#')[0]['headers']['content-range'])->toBe('bytes 0-262143/'.YT_SIZE);
+});
+
+test('YouTubePublish: rateLimitExceeded es un limite de ritmo transitorio (backoff), no agota el cupo del dia (revision F4-5 #12)', function () {
+    $this->http->on('POST', '#uploadType=resumable#', ['status' => 403, 'json' => ['error' => ['code' => 403, 'message' => 'x', 'errors' => [['reason' => 'rateLimitExceeded']]]]]);
+
+    expect(fn () => $this->yt->publish($this->account, ytRequest()))->toThrow(TransientPublishException::class);
+    expect((new YouTubeQuota)->used())->toBe(0); // el dia NO queda marcado como agotado
+});
+
+test('YouTubePublish: la descripcion se recorta a 5.000 BYTES de UTF-8 sin partir caracteres (revision F4-5 #14)', function (string $char) {
+    ytHappyUpload($this->http);
+
+    $this->yt->publish($this->account, ytRequest(ContentType::YouTubeShort, "Titulo\n".str_repeat($char, 4000)));
+
+    $desc = $this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['description'];
+    expect(strlen($desc))->toBeLessThanOrEqual(5000)->and(mb_check_encoding($desc, 'UTF-8'))->toBeTrue()->and($desc)->toEndWith('#Shorts');
+})->with(['ascii' => ['a'], 'dos bytes' => ['é'], 'tres bytes' => ['€'], 'emoji' => ['😀']]);
+
+test('YouTubePublish: la fase de subida tiene plazo propio y poll_max_minutes cuenta desde que termina (revision F4-5 #10)', function () {
+    config(['publishing.poll_max_minutes' => 30, 'publishing.upload_max_minutes' => 240]);
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->registerPublisher(Network::YouTube, $this->yt));
+    $post = Post::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'text' => 'Mi titulo', 'scheduled_at' => now()->subHours(2), 'status' => PostStatus::Publishing]);
+    $post->media()->attach($this->asset->id, ['position' => 0]);
+    $target = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $this->user->id, 'social_account_id' => $this->account->id, 'network' => Network::YouTube,
+        'content_type' => ContentType::YouTubeVideo, 'status' => PostStatus::Processing, 'external_reference' => 'subiendo',
+        'started_at' => now()->subMinutes(100), 'next_attempt_at' => now()->subSecond(),
+    ]);
+    Cache::put('youtube:upload:'.$target->id, YT_SESSION, now()->addDay());
+    // Tras 100 min SUBIENDO (> poll_max_minutes) sigue vivo; esta pasada termina la subida y devuelve el ID.
+    $this->http->on('PUT', '#upload_id=SESS1$#', FakeHttp::seq(
+        ['status' => 308, 'headers' => ['Range' => 'bytes=0-'.(2 * YT_CHUNK - 1)]],
+        ['status' => 200, 'json' => ['id' => 'VIDL']],
+    ))->on('GET', '#youtube/v3/videos\?#', ['json' => ['items' => [['status' => ['uploadStatus' => 'uploaded']]]]]);
+
+    dispatch_sync(new PollPublishStatus($target->id));
+
+    $fresh = $target->fresh();
+    expect($fresh->status)->toBe(PostStatus::Processing)->and($fresh->external_reference)->toBe('VIDL');
+    expect($fresh->started_at->diffInMinutes(now()))->toBeLessThan(2); // el reloj del procesado arranca ahora
+
+    // Y el procesado SI vence a los 30 min (no a los 240).
+    $fresh->forceFill(['started_at' => now()->subMinutes(31)])->save();
+    dispatch_sync(new PollPublishStatus($target->id));
+    expect($target->fresh()->status)->toBe(PostStatus::Failed)->and($target->fresh()->error_code)->toBe('timeout_procesado');
 });

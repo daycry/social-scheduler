@@ -36,6 +36,13 @@ return [
     'poll_max_minutes' => (int) env('PUBLISH_POLL_MAX_MINUTES', 30),
 
     /*
+    | Plazo (min) de la fase de SUBIDA de videos grandes (YouTube `subiendo`, TikTok `progress.phase = uploading`), que va
+    | aparte del procesado: `poll_max_minutes` empieza a contar cuando la subida TERMINA. Un video de varios GB tarda mas
+    | de 30 min en subirse sin estar "colgado".
+    */
+    'upload_max_minutes' => (int) env('PUBLISH_UPLOAD_MAX_MINUTES', 240),
+
+    /*
     | Presupuesto (s) de UN paso de publicacion/sondeo con varias llamadas a la red (carrusel de IG). Debe quedar por
     | debajo del `$timeout` del job (110 s) menos una llamada (`social.http_timeout`): al agotarse, el paso guarda su
     | progreso y sigue en el siguiente sondeo.

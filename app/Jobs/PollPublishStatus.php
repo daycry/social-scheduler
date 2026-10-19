@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\StatusPoller;
+use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
@@ -81,7 +82,11 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
             $target = $outcomes->stillProcessing($target, null, ['started_at' => now(), 'error_code' => null, 'error_message' => null]);
         }
 
-        if ($target->started_at && $target->started_at->lt(now()->subMinutes((int) config('publishing.poll_max_minutes', 30)))) {
+        // La SUBIDA tiene plazo propio (videos grandes); el de procesado empieza cuando la subida termina.
+        $uploading = PublishResult::isUploadingState($target->external_reference, $target->progress);
+        $limit = (int) config($uploading ? 'publishing.upload_max_minutes' : 'publishing.poll_max_minutes', $uploading ? 240 : 30);
+
+        if ($target->started_at && $target->started_at->lt(now()->subMinutes($limit))) {
             $outcomes->failed($target, 'timeout_procesado', 'La red no termino de procesar el contenido a tiempo.');
 
             return;
@@ -114,7 +119,8 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
         match (true) {
             $result->isPublished() => $outcomes->published($target, $result),
             $result->isFailed() => $outcomes->failed($target, 'rechazada', $result->message ?? 'La red no pudo procesar el contenido.'),
-            default => $outcomes->stillProcessing($target, $result),
+            // Termino la subida y empieza el procesado: el reloj de `poll_max_minutes` arranca ahora.
+            default => $outcomes->stillProcessing($target, $result, $uploading && ! PublishResult::isUploadingState($result->reference, $result->progress) ? ['started_at' => now()] : []),
         };
     }
 

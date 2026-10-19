@@ -35,7 +35,7 @@ verificacion: obligatoria
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
 | Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 1.19h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
-| Fase 2 — Conexiones OAuth por red | 6 | 6 | 100% | 0h (IA) / 60h | 0.6h (medido) / 9h | 0 / 2.3h | 0 / 2,73M |
+| Fase 2 — Conexiones OAuth por red | 5 | 6 | 83% | 0h (IA) / 60h | 0.6h (medido) / 9h | 0 / 2.3h | 0 / 2,73M |
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 0 | 9 | 0% | 0 / 142h | 0 / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
@@ -43,7 +43,7 @@ verificacion: obligatoria
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **13** | **43** | **30%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **12** | **43** | **28%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -420,7 +420,7 @@ verificacion: obligatoria
 
 - **Descripción**: Flujo OAuth contra Meta (método de login decidido en el spike), selección de página FB y cuenta IG, intercambio a token de larga duración y renovación. Socialite como base para FB; el resto con cliente HTTP propio.
 - **Changelog**: Se pueden conectar cuentas de Instagram y páginas de Facebook.
-- **Estado**: completado
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 14h · real 0h (IA)
 - **Tiempo IA (ejec.)**: est. 2.1h · real 0.19h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
@@ -1368,3 +1368,27 @@ Lentes: A+C y B+D (agente `reviewer`, contexto fresco) sobre `fd17a07..HEAD`, co
 | A-1 | Minor | `MustVerifyEmail` cambia el flujo de CA-01/E2E-01 sin anotarlo | T-07 | corregido: nota en `test-plan.md` (E2E-01) y en T-07 | `test-plan.md` |
 
 Verificación tras corregir: `php artisan test` → 78 passed (216 assertions); `vendor/bin/pint --test` → passed; `bash -n deploy/hestia/deploy.sh` y `--dry-run` → OK. **Sin gaps Critical/Important pendientes: bucle cerrado en el intento 2.**
+
+## Revisión de dos lentes — intento 1: Fase 2 (T-11..T-16) — 4 Important, 13 Minor
+
+Lentes: A+B+C+D (C: OAuth/tokens; D: worker/scheduler). Diff `2e25aab..HEAD`. `scope-check` exit 0. Seguridad (C): sin Critical/Important — `state` de un solo uso ligado a sesión y marca, sin IDOR, tokens cifrados y fuera de props/logs.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | T-12 `completado` con la Verificación M-02 (conexión real IG/FB) sin hacer, con `verificacion: obligatoria` | T-12 | pendiente | Lente A: tasks.md T-12 Verificación vs nota «pendiente» |
+| 2 | Important | Desconectar deja la fila `desconectada` visible en la lista; contradice E2E-03 «Desconectar la elimina de la lista» (CA-03) | T-15/T-11 | pendiente | Lente A: `SocialAccountService::disconnect`, `ConnectionController` `listForBrand`, `test-plan.md:48` |
+| 3 | Important | Fallo transitorio con access token caducado se trata como revocación: Google (1 h) pasa a `requiere_reconexion` tras 2 pasadas fallidas aunque el refresh token sea válido; el job solo recorre `activa` y nunca se recupera | T-16 | pendiente | Lente B: `app/Jobs/RefreshTokens.php:74-76`; test que lo fija `RefreshTokensTest.php:96-105` |
+| 4 | Important | Un único job refresca todas las cuentas en serie sin presupuesto de tiempo (Meta 3×15 s por cuenta) y supera el `--timeout` 60 s del worker: se mata, reintenta desde el id 1 y deja cuentas sin refrescar; matar a mitad del refresco de TikTok pierde el refresh token rotado | T-16 | pendiente | Lentes B+D: `RefreshTokens.php:22-45`, `MetaConnector.php:159-171`, `scheduler-worker@.service:27` |
+| 5 | Minor | `withoutOverlapping()` sobre `Schedule::job` solo protege el despacho, no la ejecución | T-16 | pendiente | Lente D: `routes/console.php:23` |
+| 6 | Minor | El job trabaja con el modelo en memoria sin releer ni bloquear: pisa una desconexión concurrente (tokens válidos en una fila `desconectada`) y puede notificar dos veces | T-16/T-15 | pendiente | Lente B: `RefreshTokens.php:34-39` |
+| 7 | Minor | `each()` con OFFSET sobre `status=activa` mientras el bucle cambia el estado (salta filas) | T-16 | pendiente | Lente B: `RefreshTokens.php:34-37` |
+| 8 | Minor | Notificación `mail` síncrona dentro del job y antes que `database`: si SMTP falla no queda ni aviso en BD | T-16 | pendiente | Lentes B+D: `ReconnectRequired.php:10,20` |
+| 9 | Minor | El OAuth se inicia con un GET sin CSRF (navegación forzada reconecta/reactiva cuentas propias) | T-12..T-15 | pendiente | Lente C: ruta `brands.connections.connect`, `OAuthController.php:37-51` (CWE-352) |
+| 10 | Minor | `me/accounts`, `me/businesses` y `owned_pages`/`client_pages` no siguen `paging.next` | T-12 | pendiente | Lente D: `MetaConnector.php:229,236,244` |
+| 11 | Minor | Callback OAuth de Meta con 4 + 2·B llamadas síncronas; con Graph degradada supera el `fastcgi_read_timeout` de 60 s y se pierde el `code` | T-12 | deuda aceptada (B = 1-2 negocios en uso personal; el timeout por llamada ya está acotado) | Lente D: `MetaConnector.php:75-102` |
+| 12 | Minor | Detrás de ngrok/proxy `route()` genera `redirect_uri` `http://` (no hay proxies de confianza) y no coincide con la registrada en HTTPS | T-12..T-14 | pendiente | Lente A (fuera de lente): `bootstrap/app.php` |
+| 13 | Minor | TikTok acepta solo `video.publish` sin `video.upload` (el modo por defecto de G1 es borrador → necesita `video.upload`); IG se crea sin exigir `instagram_content_publish`; si `debug_token` falla no se comprueban permisos | T-12/T-14 | pendiente | Lente A (fuera de lente): `TikTokConnector.php:268`, `MetaConnector.php:35,92` |
+| 14 | Minor | Criterio «publicaciones pendientes no se borran» marcado [x] sin modelo de publicaciones y sin criterio en T-19 que lo recoja | T-16/T-19 | pendiente | Lente A: tasks.md T-16, T-19 |
+| 15 | Minor | Subtarea «Cliente `google/apiclient`» marcada [x] siendo falsa; T-12 y design.md siguen citando Socialite | T-13/T-12 | pendiente | Lente A |
+| 16 | Minor | `Cubre` de T-16 no incluye M-02 (renovación real) ni lo declara pendiente | T-16 | pendiente | Lente A: test-plan M-02 |
+| 17 | Minor | `fb_exchange_token` sobre un token ya largo podría no extender la caducidad (no verificado) | T-12 | pendiente (verificar en M-02 real) | Lente B: `MetaConnector.php:159,181` |

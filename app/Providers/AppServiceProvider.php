@@ -4,11 +4,13 @@ namespace App\Providers;
 
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\GoogleConnector;
+use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokConnector;
+use App\Connectors\TikTok\TikTokPublisher;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,9 +27,11 @@ class AppServiceProvider extends ServiceProvider
                 ->register(new MetaConnector)
                 ->register(new GoogleConnector)
                 ->register(new TikTokConnector)
-                // Publicadores por red (T-21 Instagram, T-22 Facebook; YouTube y TikTok en T-26/T-27).
+                // Publicadores por red (T-21 Instagram, T-22 Facebook, T-26 YouTube, T-27 TikTok).
                 ->registerPublisher(Network::Instagram, new InstagramPublisher)
-                ->registerPublisher(Network::Facebook, new FacebookPublisher);
+                ->registerPublisher(Network::Facebook, new FacebookPublisher)
+                ->registerPublisher(Network::YouTube, new YouTubePublisher)
+                ->registerPublisher(Network::TikTok, new TikTokPublisher);
         });
     }
 

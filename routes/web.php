@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('brands/{brand}/connections', [ConnectionController::class, 'index'])->name('brands.connections.index');
     Route::post('brands/{brand}/connections/select', [ConnectionController::class, 'select'])->name('brands.connections.select');
     Route::delete('brands/{brand}/connections/{account}', [ConnectionController::class, 'destroy'])->name('brands.connections.destroy');
+    Route::patch('brands/{brand}/connections/{account}/direct-post', [ConnectionController::class, 'directPost'])->name('brands.connections.direct-post');
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])

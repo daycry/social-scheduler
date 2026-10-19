@@ -42,6 +42,7 @@ class ConnectionController extends Controller
                 'username' => $a->username,
                 'status' => $a->status,
                 'last_error' => $a->last_error,
+                'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 'token_expires_at' => $a->token_expires_at?->toIso8601String(),
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
@@ -90,6 +91,21 @@ class ConnectionController extends Controller
             $connected > 0 ? 'success' : 'error',
             $connected > 0 ? "$connected cuenta(s) conectada(s)." : 'Ninguna de las cuentas elegidas es valida.',
         );
+    }
+
+    /** Activa/desactiva Direct Post de una cuenta de TikTok (por defecto desactivado: borrador a la bandeja). */
+    public function directPost(Request $request, Brand $brand, SocialAccount $account): RedirectResponse
+    {
+        $this->authorize('update', $brand);
+        $this->authorize('disconnect', $account);
+        abort_unless($account->brand_id === $brand->id && $account->network === Network::TikTok, 404);
+
+        $enabled = (bool) $request->validate(['enabled' => ['required', 'boolean']])['enabled'];
+        $account->forceFill(['meta' => array_merge($account->meta ?? [], ['direct_post' => $enabled])])->save();
+
+        return redirect()->route('brands.connections.index', $brand)->with('success', $enabled
+            ? 'Direct Post activado: TikTok publicara directamente (requiere auditoria aprobada).'
+            : 'Direct Post desactivado: los videos se enviaran como borrador a la bandeja de TikTok.');
     }
 
     public function destroy(Request $request, Brand $brand, SocialAccount $account): RedirectResponse

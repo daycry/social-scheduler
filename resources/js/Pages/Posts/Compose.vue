@@ -196,6 +196,32 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                                         <InputLabel :for="`link-${account.id}`" value="Enlace (opcional)" />
                                         <input :id="`link-${account.id}`" v-model="targetFor(account.id).options.link" :disabled="!editable" type="url" class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm" placeholder="https://" />
                                     </div>
+                                    <div v-if="account.network === 'youtube'" class="space-y-2">
+                                        <div>
+                                            <InputLabel :for="`yt-title-${account.id}`" value="Título (por defecto, la primera línea del texto)" />
+                                            <input :id="`yt-title-${account.id}`" v-model="targetFor(account.id).options.title" :disabled="!editable" type="text" maxlength="100" class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm" />
+                                        </div>
+                                        <div>
+                                            <InputLabel :for="`yt-privacy-${account.id}`" value="Visibilidad" />
+                                            <select :id="`yt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy ?? 'public'" :disabled="!editable" class="mt-1 rounded-md border-gray-300 text-sm shadow-sm" @change="targetFor(account.id).options.privacy = $event.target.value">
+                                                <option value="public">Público</option>
+                                                <option value="unlisted">No listado</option>
+                                                <option value="private">Privado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div v-if="account.network === 'tiktok'" class="space-y-1 text-sm">
+                                        <p v-if="!account.direct_post" class="text-xs text-gray-600">Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p>
+                                        <div v-else>
+                                            <InputLabel :for="`tt-privacy-${account.id}`" value="Visibilidad (Direct Post)" />
+                                            <select :id="`tt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy_level ?? 'SELF_ONLY'" :disabled="!editable" class="mt-1 rounded-md border-gray-300 text-sm shadow-sm" @change="targetFor(account.id).options.privacy_level = $event.target.value">
+                                                <option value="PUBLIC_TO_EVERYONE">Público</option>
+                                                <option value="MUTUAL_FOLLOW_FRIENDS">Amigos</option>
+                                                <option value="FOLLOWER_OF_CREATOR">Seguidores</option>
+                                                <option value="SELF_ONLY">Solo yo</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <ul v-if="errorsFor(account.id).length" class="space-y-0.5 text-sm text-red-600" role="alert">
                                         <li v-for="e in errorsFor(account.id)" :key="e">{{ e }}</li>
                                     </ul>
@@ -264,6 +290,7 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                                 <span class="font-medium">{{ accountName(t.account_id) }}</span>
                                 <span class="ml-2 rounded px-2 py-0.5 text-xs" :class="STATUS_CLASSES[t.status]">{{ t.status_label }}</span>
                                 <a v-if="t.external_url" :href="t.external_url" target="_blank" rel="noopener" class="ml-2 text-indigo-600">Ver</a>
+                                <p v-if="t.status_note" class="text-xs text-amber-700">{{ t.status_note }}</p>
                                 <p v-if="t.error_message" class="text-xs text-red-600">{{ t.error_message }}</p>
                             </li>
                         </ul>

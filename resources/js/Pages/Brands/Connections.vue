@@ -37,6 +37,9 @@ const disconnect = (account) => {
     }
 };
 
+const toggleDirectPost = (account, enabled) =>
+    router.patch(route('brands.connections.direct-post', { brand: props.brand.id, account: account.id }), { enabled }, { preserveScroll: true });
+
 const selection = useForm({ keys: props.pending ? props.pending.candidates.map((c) => c.key) : [] });
 const confirmSelection = () => selection.post(route('brands.connections.select', props.brand.id));
 </script>
@@ -98,6 +101,13 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                                 <span class="mt-1 inline-block rounded px-2 py-0.5 text-xs" :class="STATUS[a.status].classes">
                                     {{ STATUS[a.status].label }}
                                 </span>
+                                <label v-if="a.network === 'tiktok'" class="mt-2 flex items-start gap-2 text-xs text-gray-700">
+                                    <input type="checkbox" class="mt-0.5 rounded border-gray-300" :checked="a.direct_post" @change="toggleDirectPost(a, $event.target.checked)" />
+                                    <span>
+                                        Publicar directamente (Direct Post)
+                                        <span class="block text-gray-500">Requiere auditoría aprobada de TikTok. Desactivado: los vídeos se envían como borrador a tu bandeja y los terminas de publicar en la app.</span>
+                                    </span>
+                                </label>
                                 <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
                                     Las publicaciones programadas se conservan, pero no se enviarán hasta que reconectes.
                                     <span v-if="a.last_error">({{ a.last_error }})</span>

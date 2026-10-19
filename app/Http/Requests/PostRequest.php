@@ -26,6 +26,12 @@ class PostRequest extends FormRequest
             'targets.*.options' => ['nullable', 'array'],
             'targets.*.options.share_to_feed' => ['nullable', 'boolean'],
             'targets.*.options.link' => ['nullable', 'url', 'max:2000'],
+            // YouTube (T-26) y TikTok (T-27).
+            'targets.*.options.title' => ['nullable', 'string', 'max:100'],
+            'targets.*.options.privacy' => ['nullable', 'in:public,unlisted,private'],
+            'targets.*.options.shorts_hashtag' => ['nullable', 'boolean'],
+            'targets.*.options.privacy_level' => ['nullable', 'in:PUBLIC_TO_EVERYONE,MUTUAL_FOLLOW_FRIENDS,FOLLOWER_OF_CREATOR,SELF_ONLY'],
+            'targets.*.options.disable_comment' => ['nullable', 'boolean'],
         ];
     }
 }

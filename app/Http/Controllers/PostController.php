@@ -119,6 +119,7 @@ class PostController extends Controller
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
+                'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
             ])->values(),
             // Tipos por red con sus limitaciones (T-21): el formulario las avisa al elegir el tipo.
             'contentTypes' => collect(Network::cases())->mapWithKeys(fn (Network $n) => [
@@ -126,7 +127,7 @@ class PostController extends Controller
                     'value' => $t->value,
                     'label' => $t->label(),
                     'limitations' => $t->limitations(),
-                ], ContentType::forNetwork($n)),
+                ], array_values(array_filter(ContentType::forNetwork($n), fn (ContentType $t) => $t->isOffered()))),
             ]),
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
@@ -155,6 +156,7 @@ class PostController extends Controller
                 'status' => $t->status->value,
                 'status_label' => $t->status->label(),
                 'error_message' => $t->error_message,
+                'status_note' => $t->status_note,
                 'external_url' => $t->external_url,
             ])->values(),
         ];

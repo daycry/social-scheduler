@@ -63,7 +63,9 @@ enum ContentType: string
             self::InstagramCarousel => ['El carrusel necesita entre 2 y 10 archivos; todos se recortan a la proporcion del primero.'],
             self::InstagramReel => ['El reel se publica tambien en el feed salvo que lo desactives; el procesamiento del video puede tardar unos minutos.'],
             self::InstagramStory => ['Las historias no admiten texto, enlaces ni stickers desde la API: solo se publica la imagen o el video (maximo 60 s).'],
-            self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app.'],
+            self::YouTubeVideo => ['La visibilidad elegida se respeta tal cual. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API (unas 6 subidas al dia).'],
+            self::YouTubeShort => ['Video vertical de hasta 3 minutos; se anade #Shorts a la descripcion. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API.'],
+            self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app: el usuario termina de publicarlo desde TikTok.'],
             default => [],
         };
     }
@@ -80,6 +82,15 @@ enum ContentType: string
         }
 
         return $this->value;
+    }
+
+    /**
+     * ¿Se ofrece en el compositor? Las fotos de TikTok solo existen por PULL_FROM_URL, que exige un dominio
+     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta.
+     */
+    public function isOffered(): bool
+    {
+        return $this !== self::TikTokPhoto || (string) config('social.tiktok.verified_domain') !== '';
     }
 
     /** @return list<self> */

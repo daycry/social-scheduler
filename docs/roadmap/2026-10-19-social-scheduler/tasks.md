@@ -850,37 +850,37 @@ verificacion: obligatoria
 
 ## Fase 4 — Publicación en YouTube (condicionada a G1)
 
-**Estado**: borrador · **Estimado**: 18h · **Real**: — · **Coste est.**: 1.080 € + tokens (⚠️ verificar precio) · **Tokens est.**: 820k
+**Estado**: en-progreso · **Estimado**: 18h · **Real**: — · **Coste est.**: 1.080 € + tokens (⚠️ verificar precio) · **Tokens est.**: 820k
 
 > Fase condicionada a la puerta G1 (T-05). Si el usuario pospone la red, la tarea pasa a `cancelado` y su presupuesto se libera.
 
 ### T-26 — Publicación en YouTube: vídeo y short con subida reanudable (condicionada a G1)
 
 - **Descripción**: Subida reanudable en streaming desde R2, gestión de cuota (~1.600 unidades por subida), estado de procesamiento y visibilidad según la decisión G1. Añade los tipos YouTube al compositor.
-- **Changelog**: Se publica en YouTube (vídeo y short).
-- **Estado**: borrador
+- **Changelog**: Ya se puede programar y publicar en YouTube, como vídeo o short, con la visibilidad elegida y control del cupo diario de la API.
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 18h · real —
-- **Tiempo IA (ejec.)**: est. 2.8h · real —
+- **Tiempo IA (ejec.)**: est. 2.8h · real 8.35h (medido, ventana inflada por una pausa de límite de uso; T-26+T-27 comparten sesión)
 - **Supervisión**: est. 0.7h (≈25 % IA) · real —
 - **Previsión IA**: 745k in / 75k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-13, T-05
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Google/YouTubePublisher.php`, `tests/Feature/Connectors/Google/Publish/`
+- **Archivos**: `app/Connectors/Google/YouTubePublisher.php`, `app/Connectors/Google/YouTubeQuota.php`, `app/Connectors/Support/MediaChunkReader.php`, `app/Connectors/Data/PublishMedia.php`, `app/Connectors/Data/PublishResult.php`, `app/Services/PublishOutcomes.php`, `app/Services/PublishRequestFactory.php`, `app/Services/PostService.php`, `app/Services/CalendarService.php`, `app/Models/PostTarget.php`, `app/Enums/ContentType.php`, `app/Http/Controllers/PostController.php`, `app/Http/Requests/PostRequest.php`, `app/Providers/AppServiceProvider.php`, `config/social.php`, `.env.example`, `database/migrations/2026_10_22_090000_add_status_note_to_post_targets.php`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Pages/Calendar/Index.vue`, `tests/Support/FakeHttp.php`, `tests/Feature/Connectors/Google/Publish/`
 - **Cubre (tests)**: E2E-06, M-01
 - **Verificación**:
   - `php artisan test --filter=YouTubePublish` → pasa (chunks 8–16 MB desde R2 en streaming, control de cuota)
   - lectura: M-01 registra la subida real de vídeo y short con su visibilidad
 
 **Criterios de aceptación**
-- [ ] Vídeo y short quedan `publicada` con enlace (CA-06) con la visibilidad acordada en G1
-- [ ] Cuota agotada sigue la política de T-25
-- [ ] Nunca se carga el vídeo completo en memoria
+- [x] Vídeo y short quedan `publicada` con enlace (CA-06) con la visibilidad acordada en G1
+- [x] Cuota agotada sigue la política de T-25
+- [x] Nunca se carga el vídeo completo en memoria
 
 **Subtareas**
-- [ ] Cliente de subida reanudable
-- [ ] Control de cuota
-- [ ] Integración con la cola y el compositor
-- [ ] Tests
+- [x] Cliente de subida reanudable
+- [x] Control de cuota
+- [x] Integración con la cola y el compositor
+- [x] Tests
 
 **Notas**: Se cancela con G1 = D; con G1 = C solo calendario y recordatorio.
 **Decisión G1 (2026-10-19): YouTube = A.** Publicación con la visibilidad pedida (verificado: `public` no se fuerza a privado). Cuota 10.000 ud/día ≈ 6 subidas: bloquear/reprogramar al superar el cupo.
@@ -889,22 +889,23 @@ verificacion: obligatoria
 
 ## Fase 5 — Publicación en TikTok (condicionada a G1)
 
-**Estado**: borrador · **Estimado**: 16h · **Real**: — · **Coste est.**: 960 € + tokens (⚠️ verificar precio) · **Tokens est.**: 728k
+**Estado**: en-progreso · **Estimado**: 16h · **Real**: — · **Coste est.**: 960 € + tokens (⚠️ verificar precio) · **Tokens est.**: 728k
 
 > Fase condicionada a la puerta G1 (T-05). Si el usuario pospone la red, la tarea pasa a `cancelado` y su presupuesto se libera.
+**Notas (implementer, 2026-10-20)**: `YouTubePublisher` (Publisher + StatusPoller, cliente `Http` propio): `videos.insert` reanudable (`uploadType=resumable&part=snippet,status`), sesion en cache por destino, trozos de 8 MiB (`social.youtube.chunk_bytes`, multiplo de 256 KiB) leidos en streaming con `MediaChunkReader` (nunca el video entero en memoria; test: ninguna peticion supera un trozo), recuperacion tras cortes preguntando a Google el `Range` recibido, y presupuesto de 80 s por pasada: si no acaba, el destino queda `procesando` con referencia `subiendo` y `PollPublishStatus` continua la subida. Tras subir, se sondea `status.uploadStatus`/`processingDetails` hasta `processed` (publicada con enlace `watch?v=`/`shorts/`) o `rejected/failed` (motivo legible). Visibilidad pedida respetada (`options.privacy`, por defecto `public`, desconocida -> `private`). Short: `#Shorts` anadido salvo `shorts_hashtag=false`. Cuota: `YouTubeQuota` (cache, dia de Pacifico, 10.000 ud/dia, 1.600/subida, configurables) -> `QuotaExceededException` con `retryAt` = reinicio, que aplica la politica de T-25 (`reschedule` por defecto / `fail`); `quotaExceeded` de la API marca el dia agotado. `findPublished` (idempotencia) busca por titulo+hora en la playlist de subidas `UU...`. `deleteVideo` con scope `youtube`. Decisiones: (1) `PublishMedia` gana `disk`/`path` para leer en streaming; (2) nueva columna `post_targets.status_note` (+`PublishResult::note`) para matices de «publicada» (la usa T-27); (3) tipos YouTube en compositor con titulo/visibilidad y avisos de cuota. **Verificacion**: `php artisan test --filter=YouTubePublish` -> 35 passed (33 del publicador + 2 de compositor/conexiones), suite completa 376 passed, `vendor/bin/pint --test` OK, `npm run build` OK. **PENDIENTE MANUAL (M-01)**: la subida real de un video y un short con su visibilidad no se ha ejecutado (los tests solo usan Http::fake/Storage::fake); por eso la tarea sigue `en-progreso`.
 
 ### T-27 — Publicación en TikTok: vídeo y foto/carrusel (condicionada a G1)
 
 - **Descripción**: Content Posting API: vídeo (PULL_FROM_URL desde dominio verificado) y foto/carrusel, polling de `publish_status` y visibilidad según G1. Añade los tipos TikTok al compositor.
-- **Changelog**: Se publica en TikTok (vídeo y foto/carrusel).
-- **Estado**: borrador
+- **Changelog**: Los vídeos se envían a la bandeja de TikTok para terminarlos en la app, con Direct Post opcional por cuenta y fotos solo con dominio verificado.
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 16h · real —
-- **Tiempo IA (ejec.)**: est. 2.5h · real —
+- **Tiempo IA (ejec.)**: est. 2.5h · real incluido en T-26 (misma sesion, no separable)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-14, T-05
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/TikTok/TikTokPublisher.php`, `tests/Feature/Connectors/TikTok/Publish/`
+- **Archivos**: `app/Connectors/TikTok/TikTokPublisher.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `resources/js/Pages/Brands/Connections.vue`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Pages/Calendar/Index.vue`, `app/Enums/ContentType.php`, `app/Services/PostService.php`, `config/social.php`, `tests/Feature/Connectors/TikTok/Publish/`
 - **Cubre (tests)**: E2E-06, M-01
 - **Verificación**:
   - `php artisan test --filter=TikTokPublish` → pasa con respuestas grabadas
@@ -912,19 +913,20 @@ verificacion: obligatoria
 
 **Criterios de aceptación**
 - [ ] Vídeo y foto quedan `publicada` (CA-06) con la visibilidad acordada en G1
-- [ ] Polling del estado de publicación robusto
+- [x] Polling del estado de publicación robusto
 - [ ] Dominio propio sobre el bucket verificado
 
 **Subtareas**
-- [ ] Flujo init/upload/publish
-- [ ] Polling del estado
-- [ ] Integración con cola y compositor
-- [ ] Tests
+- [x] Flujo init/upload/publish
+- [x] Polling del estado
+- [x] Integración con cola y compositor
+- [x] Tests
 
 **Notas**: Se cancela con G1 = D.
 **Decisión G1 (2026-10-19): TikTok = D + B.** Modo por defecto: **borrador a la bandeja** (`/v2/post/publish/inbox/video/init/`, FILE_UPLOAD por chunks; estado final a la espera del usuario en la app). **Direct Post** (`/v2/post/publish/video/init/` con `post_info`) detrás de la opción por cuenta `tiktok.direct_post` (desactivada hasta aprobar la auditoría; sin auditoría la API responde `unaudited_client_can_only_post_to_private_accounts`). Validar vídeo ≥ 23 fps antes de subir (`frame_rate_check_failed`). PULL_FROM_URL solo con dominio verificado.
 
 ---
+**Notas (implementer, 2026-10-20)**: `TikTokPublisher` (Publisher + StatusPoller): por defecto **borrador a la bandeja** (`inbox/video/init`, FILE_UPLOAD, un trozo si <= 64 MB, si no trozos de 10 MB con `total_chunk_count = floor(size/chunk)` y el ultimo absorbe el resto; PUT con `Content-Range`, en streaming); `upload_url` solo de hosts TikTok. **Decision de estado final**: el borrador queda `publicada` (SEND_TO_USER_INBOX; `external_id` = publish_id, sin enlace) con la **nota** `status_note` «Enviado a la bandeja de TikTok: abre la app y termina de publicarlo desde tus borradores», visible en el compositor y el calendario (sin estado nuevo: no toca la maquina de estados). **Direct Post** (`video/init` + `post_info`, visibilidad de `creator_info` con `{}`, nunca mas abierta de lo pedido) solo con `meta.direct_post` = true; interruptor por cuenta en Conexiones (PATCH `brands.connections.direct-post`, desactivado por defecto, texto «Requiere auditoria aprobada de TikTok»). `unaudited_client_can_only_post_to_private_accounts` -> fallo permanente sugiriendo desactivar Direct Post. fps < 23 se rechaza antes de subir (`frame_rate_check_failed`). Sondeo `status/fetch` (PROCESSING_* / SEND_TO_USER_INBOX / PUBLISH_COMPLETE con enlace / FAILED con motivo); errores clasificados (cuota por spam, reconexion, transitorio, permanente). Foto/carrusel por PULL_FROM_URL (`content/init`, MEDIA_UPLOAD o DIRECT_POST) **solo con `TIKTOK_VERIFIED_DOMAIN`**; sin el, `ContentType::isOffered()` oculta el tipo del compositor y `PostService` lo rechaza; las URLs firmadas se reescriben bajo el dominio (requiere que ese dominio haga de proxy/CDN del bucket: **pendiente de infraestructura**). **Verificacion**: `php artisan test --filter=TikTokPublish` -> 21 passed (19 publicador con respuestas simuladas + 2 conexiones/compositor), suite completa 376 passed, pint OK, `npm run build` OK. **PENDIENTE MANUAL (M-01)**: publicacion real (borrador y Direct Post) en TikTok, y verificar el dominio propio sobre el bucket; la tarea sigue `en-progreso`.
 
 ## Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación
 

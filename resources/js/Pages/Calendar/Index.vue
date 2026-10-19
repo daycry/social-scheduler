@@ -228,6 +228,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                             <span class="font-medium">{{ networkOf(t.network).short }}</span>
                                             <span class="ml-1 rounded px-1.5 py-0.5" :class="STATUS_STYLE[t.status]">{{ t.status_label }}</span>
                                             <a v-if="t.external_url" :href="t.external_url" target="_blank" rel="noopener" class="ml-1 text-indigo-600">Ver</a>
+                                            <span v-if="t.status_note" class="block text-amber-700">{{ t.status_note }}</span>
                                             <span v-if="t.error_message" class="block text-red-600">{{ t.error_message }}</span>
                                         </li>
                                         <li v-if="item.targets.length === 0" class="text-xs text-gray-400">Sin destinos</li>

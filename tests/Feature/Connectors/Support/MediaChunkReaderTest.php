@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Data\PublishMedia;
+use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Support\MediaChunkReader;
 use Aws\CommandInterface;
 use Aws\Result;
@@ -34,18 +35,22 @@ test('MediaChunkReader: en disco local entrega el trozo como flujo con su longit
 test('MediaChunkReader: en S3/R2 cada trozo es un GetObject con Range; no se descarga ni se descarta lo anterior (revision F4-5 #9)', function () {
     $bytes = str_repeat('0123456789', 100); // 1000 bytes
     $ranges = [];
+    $heads = 0;
+    $http = [];
     $client = new S3Client([
         'region' => 'auto', 'version' => 'latest', 'endpoint' => 'http://r2.test', 'use_path_style_endpoint' => true,
         'credentials' => ['key' => 'k', 'secret' => 's'],
-        'handler' => function (CommandInterface $command, RequestInterface $request) use ($bytes, &$ranges) {
+        'handler' => function (CommandInterface $command, RequestInterface $request) use ($bytes, &$ranges, &$heads, &$http) {
             if ($command->getName() === 'GetObject') {
                 $ranges[] = [$command['Key'], $command['Range']];
+                $http[] = $command['@http'] ?: null;
                 [$from, $to] = array_map('intval', explode('-', substr($command['Range'], 6)));
 
                 return Create::promiseFor(new Result(['Body' => Utils::streamFor(substr($bytes, $from, $to - $from + 1)), 'ContentLength' => $to - $from + 1]));
             }
 
-            // exists()/size() -> HeadObject
+            $heads++; // size() -> HeadObject
+
             return Create::promiseFor(new Result(['ContentLength' => strlen($bytes), 'ContentType' => 'video/mp4', 'LastModified' => new DateTime]));
         },
     ]);
@@ -56,9 +61,19 @@ test('MediaChunkReader: en S3/R2 cada trozo es un GetObject con Range; no se des
     $reader = MediaChunkReader::for(readerMedia('r2test', 'media/v.mp4'));
     $chunk = $reader->chunk(900, 50);
 
-    expect($reader->size)->toBe(1000)->and($chunk)->toBe(substr($bytes, 900, 50));
+    expect($reader->size)->toBe(1000)->and($chunk)->toBe(substr($bytes, 900, 50))->and($heads)->toBe(1); // sin HEAD redundante (N4)
     expect($ranges)->toBe([['media-root/media/v.mp4', 'bytes=900-949']]); // UNA peticion, solo esos bytes
 
     $reader->chunk(950, 5000); // el ultimo trozo se acota al final del fichero
     expect($ranges[1][1])->toBe('bytes=950-999');
+
+    // N4: timeout por peticion (opciones HTTP del comando); sin timeout no se tocan las del disco.
+    expect($http[0])->toBeNull();
+    $reader->chunk(0, 10, 12.5);
+    expect($http[2])->toMatchArray(['timeout' => 12.5]);
+});
+
+test('MediaChunkReader N4: un fichero inexistente es fallo permanente con UNA sola consulta de tamano', function () {
+    Storage::fake('local');
+    expect(fn () => MediaChunkReader::for(readerMedia('local', 'media/no-existe.mp4')))->toThrow(PermanentPublishException::class, 'ya no existe');
 });

@@ -84,10 +84,15 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
 
         // La SUBIDA tiene plazo propio (videos grandes); el de procesado empieza cuando la subida termina.
         $uploading = PublishResult::isUploadingState($target->external_reference, $target->progress);
-        $limit = (int) config($uploading ? 'publishing.upload_max_minutes' : 'publishing.poll_max_minutes', $uploading ? 240 : 30);
+        // Cada red puede acotar la subida a la vigencia de su sesion (`social.<red>.upload_max_minutes`; TikTok: 1 h por URL).
+        $limit = (int) ($uploading
+            ? config('social.'.$target->network->value.'.upload_max_minutes', config('publishing.upload_max_minutes', 240))
+            : config('publishing.poll_max_minutes', 30));
 
         if ($target->started_at && $target->started_at->lt(now()->subMinutes($limit))) {
-            $outcomes->failed($target, 'timeout_procesado', 'La red no termino de procesar el contenido a tiempo.');
+            $outcomes->failed($target, 'timeout_procesado', $uploading
+                ? 'La subida no termino a tiempo (la sesion de subida caduca): reprograma la publicacion.'
+                : 'La red no termino de procesar el contenido a tiempo.');
 
             return;
         }

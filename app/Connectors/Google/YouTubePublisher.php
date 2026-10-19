@@ -176,46 +176,69 @@ class YouTubePublisher implements Publisher, StatusPoller
             return $this->poll($account, $request);
         }
 
-        $tag = $this->targetTag($request->targetId);
+        $tag = self::targetTag($request->targetId);
+        $found = null;
 
         try {
-            // La lista de subidas de un canal es la playlist cuyo ID sustituye el prefijo UC por UU.
-            $recent = $this->get($account, 'playlistItems', [
-                'part' => 'snippet', 'maxResults' => 10, 'playlistId' => 'UU'.substr($account->external_id, 2),
-            ]);
+            // La lista de subidas de un canal es la playlist cuyo ID sustituye el prefijo UC por UU. Se pagina (de la mas
+            // reciente a la mas antigua) hasta pasar `since`, sin pagina siguiente o `lookup_max_pages`; cada pagina cuesta
+            // 1 ud (playlistItems.list) + 1 ud (videos.list): tope 2 x paginas (revision F4-5 i2 N5).
+            $pageToken = null;
+            $maxPages = max(1, (int) config('social.youtube.lookup_max_pages', 3));
 
-            $ids = [];
-            foreach ($recent['items'] ?? [] as $item) {
-                $snippet = $item['snippet'] ?? [];
-                $when = isset($snippet['publishedAt']) ? strtotime((string) $snippet['publishedAt']) : false;
-                $videoId = (string) ($snippet['resourceId']['videoId'] ?? '');
+            for ($page = 0; $page < $maxPages && $found === null; $page++) {
+                $query = ['part' => 'snippet', 'maxResults' => 50, 'playlistId' => 'UU'.substr($account->external_id, 2)];
+                if ($pageToken !== null) {
+                    $query['pageToken'] = $pageToken;
+                }
 
-                if ($videoId !== '' && ($request->since === null || ($when !== false && $when >= $request->since->getTimestamp()))) {
-                    $ids[] = $videoId;
+                $recent = $this->get($account, 'playlistItems', $query);
+
+                $ids = [];
+                $reachedOlder = false;
+                foreach ($recent['items'] ?? [] as $item) {
+                    $snippet = $item['snippet'] ?? [];
+                    $when = isset($snippet['publishedAt']) ? strtotime((string) $snippet['publishedAt']) : false;
+                    $videoId = (string) ($snippet['resourceId']['videoId'] ?? '');
+
+                    if ($videoId !== '' && ($request->since === null || ($when !== false && $when >= $request->since->getTimestamp()))) {
+                        $ids[] = $videoId;
+                    } elseif ($request->since !== null && $when !== false && $when < $request->since->getTimestamp()) {
+                        $reachedOlder = true;
+                    }
+                }
+
+                if ($ids !== []) {
+                    // Los tags no vienen en la lista de subidas: se piden (1 ud de cuota) y solo cuenta el video con el tag de ESTE destino.
+                    $videos = $this->get($account, 'videos', ['part' => 'snippet', 'id' => implode(',', $ids)]);
+
+                    foreach ($videos['items'] ?? [] as $video) {
+                        $id = (string) ($video['id'] ?? '');
+
+                        if ($id !== '' && in_array($tag, (array) ($video['snippet']['tags'] ?? []), true)) {
+                            $found = $id;
+                            break;
+                        }
+                    }
+                }
+
+                $pageToken = $recent['nextPageToken'] ?? null;
+
+                if ($reachedOlder || ! is_string($pageToken) || $pageToken === '') {
+                    break;
                 }
             }
-
-            if ($ids === []) {
-                return null;
-            }
-
-            // Los tags no vienen en la lista de subidas: se piden (1 ud de cuota) y solo cuenta el video con el tag de ESTE destino.
-            $videos = $this->get($account, 'videos', ['part' => 'snippet', 'id' => implode(',', $ids)]);
         } catch (PublishException $e) {
             Log::notice('youtube.lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
 
             return null;
         }
 
-        foreach ($videos['items'] ?? [] as $video) {
-            $id = (string) ($video['id'] ?? '');
-
-            if ($id !== '' && in_array($tag, (array) ($video['snippet']['tags'] ?? []), true)) {
-                return $this->poll($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $id, $request->since));
-            }
+        if ($found === null) {
+            return null;
         }
 
-        return null;
+        return $this->poll($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $found, $request->since));
     }
 
     /** Borra un video del canal (scope `youtube`; `youtube.upload` no lo permite). `false` si ya no existia. */
@@ -245,7 +268,7 @@ class YouTubePublisher implements Publisher, StatusPoller
                 'title' => $this->title($request),
                 'description' => $this->description($request),
                 'categoryId' => self::CATEGORY_PEOPLE_BLOGS,
-                'tags' => [$this->targetTag($request->targetId)], // marcador propio del destino: base de la idempotencia
+                'tags' => [self::targetTag($request->targetId)], // marcador propio del destino: base de la idempotencia
             ],
             'status' => [
                 'privacyStatus' => in_array($privacy, self::PRIVACY, true) ? $privacy : 'private',
@@ -307,7 +330,7 @@ class YouTubePublisher implements Publisher, StatusPoller
         $recoveries = 0;
 
         while (true) {
-            $data = $reader->chunk($offset, min($chunkBytes, $size - $offset));
+            $data = $reader->chunk($offset, min($chunkBytes, $size - $offset), $this->callTimeout((float) config('social.youtube.upload_timeout', 60)));
 
             if ($data === '') {
                 throw new TransientPublishException('No se pudo leer el video del almacenamiento.', 'lectura_media');
@@ -588,10 +611,14 @@ class YouTubePublisher implements Publisher, StatusPoller
         return mb_strcut($text, 0, 5000, 'UTF-8');
     }
 
-    /** Tag propio del destino (`snippet.tags`): permite reconocer SU video aunque otro lleve el mismo titulo. */
-    private function targetTag(int $targetId): string
+    /**
+     * Tag propio del destino (`snippet.tags`, publico): permite reconocer SU video aunque otro lleve el mismo titulo. Es OPACO
+     * (HMAC corto con APP_KEY): no expone el id secuencial interno (CWE-200). Rotar APP_KEY cambia el tag: solo afectaria a la
+     * idempotencia de un destino con subida en curso en ese instante.
+     */
+    public static function targetTag(int $targetId): string
     {
-        return 'ss-'.$targetId;
+        return 'ss-'.substr(hash_hmac('sha256', 'youtube-target:'.$targetId, (string) config('app.key')), 0, 16);
     }
 
     private function watchUrl(string $id, ContentType $type): string

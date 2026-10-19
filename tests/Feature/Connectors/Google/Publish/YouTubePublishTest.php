@@ -266,8 +266,8 @@ test('YouTubePublish: findPublished localiza SU video por el tag del destino (no
         ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-10-01T11:59:00Z', 'resourceId' => ['videoId' => 'OLD']]],     // anterior a `since`
         ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-11-01T11:59:30Z', 'resourceId' => ['videoId' => 'VID9']]],
     ]]])->on('GET', '#youtube/v3/videos\?part=snippet&id=#', ['json' => ['items' => [
-        ['id' => 'AJENO', 'snippet' => ['tags' => ['ss-12']]],
-        ['id' => 'VID9', 'snippet' => ['tags' => ['otro', 'ss-77']]],
+        ['id' => 'AJENO', 'snippet' => ['tags' => [YouTubePublisher::targetTag(12)]]],
+        ['id' => 'VID9', 'snippet' => ['tags' => ['otro', YouTubePublisher::targetTag(77)]]],
     ]]])->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
 
     $found = $this->yt->findPublished($this->account, ytRequest());
@@ -400,11 +400,49 @@ test('YouTubePublish: reprogramar un destino fallido olvida la referencia, los i
     expect(Cache::has('youtube:upload:'.$target->id))->toBeFalse();
 });
 
-test('YouTubePublish: la sesion marca el video con el tag ss-<destino> (idempotencia propia, revision F4-5 #4)', function () {
+test('YouTubePublish N7: la sesion marca el video con un tag OPACO por destino que no expone el id secuencial (revision F4-5 i2 N7)', function () {
     ytHappyUpload($this->http);
     $this->yt->publish($this->account, ytRequest());
 
-    expect($this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['tags'])->toBe(['ss-77']);
+    $tags = $this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['tags'];
+    expect($tags)->toBe([YouTubePublisher::targetTag(77)])
+        ->and($tags[0])->toMatch('/^ss-[0-9a-f]{16}$/')->not->toContain('77')
+        ->and(YouTubePublisher::targetTag(77))->not->toBe(YouTubePublisher::targetTag(78));
+    config(['app.key' => 'base64:'.base64_encode(str_repeat('z', 32))]);
+    expect(YouTubePublisher::targetTag(77))->not->toBe($tags[0]); // depende de APP_KEY: no se deduce del id
+});
+
+test('YouTubePublish N5: la idempotencia pagina las subidas desde `since` con tope de paginas (revision F4-5 i2 N5)', function () {
+    $item = fn (string $id, string $when) => ['snippet' => ['publishedAt' => $when, 'resourceId' => ['videoId' => $id]]];
+    $this->http->on('GET', '#youtube/v3/playlistItems\?#', FakeHttp::seq(
+        ['json' => ['nextPageToken' => 'P2', 'items' => [$item('A1', '2026-11-01T11:59:50Z'), $item('A2', '2026-11-01T11:59:40Z')]]],
+        ['json' => ['nextPageToken' => 'P3', 'items' => [$item('B1', '2026-11-01T11:59:30Z'), $item('MIO', '2026-11-01T11:59:20Z')]]],
+    ))->on('GET', '#youtube/v3/videos\?part=snippet&id=#', FakeHttp::seq(
+        ['json' => ['items' => [['id' => 'A1', 'snippet' => ['tags' => []]], ['id' => 'A2', 'snippet' => ['tags' => []]]]]],
+        ['json' => ['items' => [['id' => 'B1', 'snippet' => ['tags' => []]], ['id' => 'MIO', 'snippet' => ['tags' => [YouTubePublisher::targetTag(77)]]]]]],
+    ))->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
+
+    expect($this->yt->findPublished($this->account, ytRequest())->externalId)->toBe('MIO');
+    $lists = $this->http->callsTo('GET', '#playlistItems#');
+    expect($lists)->toHaveCount(2)->and($lists[1]['url'])->toContain('pageToken=P2');
+});
+
+test('YouTubePublish N5: se detiene al llegar a un video anterior a `since` o en el tope de paginas', function () {
+    $item = fn (string $id, string $when) => ['snippet' => ['publishedAt' => $when, 'resourceId' => ['videoId' => $id]]];
+
+    // Pagina 1 ya contiene uno anterior a `since` -> no se pide la siguiente aunque haya token.
+    $this->http->on('GET', '#youtube/v3/playlistItems\?#', ['json' => ['nextPageToken' => 'P2', 'items' => [$item('N1', '2026-11-01T11:59:50Z'), $item('OLD', '2026-01-01T00:00:00Z')]]])
+        ->on('GET', '#youtube/v3/videos\?part=snippet&id=#', ['json' => ['items' => [['id' => 'N1', 'snippet' => ['tags' => []]]]]]);
+    expect($this->yt->findPublished($this->account, ytRequest()))->toBeNull()->and($this->http->callsTo('GET', '#playlistItems#'))->toHaveCount(1);
+
+});
+
+test('YouTubePublish N5: el tope de paginas (lookup_max_pages) acota el coste de cuota', function () {
+    $item = fn (string $id, string $when) => ['snippet' => ['publishedAt' => $when, 'resourceId' => ['videoId' => $id]]];
+    config(['social.youtube.lookup_max_pages' => 2]);
+    $this->http->on('GET', '#youtube/v3/playlistItems\?#', ['json' => ['nextPageToken' => 'MAS', 'items' => [$item('N2', '2026-11-01T11:59:50Z')]]])
+        ->on('GET', '#youtube/v3/videos\?part=snippet&id=#', ['json' => ['items' => [['id' => 'N2', 'snippet' => ['tags' => []]]]]]);
+    expect($this->yt->findPublished($this->account, ytRequest()))->toBeNull()->and($this->http->callsTo('GET', '#playlistItems#'))->toHaveCount(2);
 });
 
 test('YouTubePublish: la consulta de offset con 200/201 toma el id del cuerpo, sin depender de la lista de subidas (revision F4-5 #3)', function () {

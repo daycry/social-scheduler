@@ -83,6 +83,12 @@ php artisan schedule:list                      # cron activo
 php artisan app:health                         # BD, cola, disco
 ```
 
+## 8. TikTok: media publica y subida [VPS]
+
+- **Fotos/carrusel (PULL_FROM_URL).** TikTok descarga las imagenes de una URL del dominio verificado (`TIKTOK_VERIFIED_DOMAIN`), sin firma: ese dominio tiene que ser el dominio publico del bucket R2 (`R2_URL`) y **toda la media del bucket queda accesible por URL** (claves ULID impredecibles y bucket sin listado, pero no privado; CWE-552). Mitigacion recomendada: crear un bucket publico aparte solo para TikTok (o una regla WAF/Transform de Cloudflare que limite el dominio publico a un prefijo), apuntar `TIKTOK_VERIFIED_DOMAIN` ahi y fijar una regla de ciclo de vida de R2 que borre ese prefijo a las 24 h. El codigo no copia ni borra ficheros: decision deliberada (sin esa restriccion en el dominio, un prefijo aparte no oculta nada).
+- **Video (FILE_UPLOAD).** La `upload_url` de TikTok vale 1 hora. Si caduca a mitad, la subida se reinicia una vez con un `init` nuevo; si vuelve a caducar, el destino falla con «reprograma». Ajustes: `TIKTOK_UPLOAD_URL_TTL`, `TIKTOK_UPLOAD_RESTARTS`, `TIKTOK_UPLOAD_MAX_MINUTES`.
+- **Borrador sin confirmar.** Pasados `TIKTOK_INBOX_GRACE_MINUTES` desde la subida completa se da por enviado a la bandeja con la nota «revisa tus borradores»; no se sigue sondeando despues (si TikTok lo marcara `FAILED` mas tarde, el usuario lo ve en la app).
+
 ## Estado de verificacion
 
 | Elemento | Estado |

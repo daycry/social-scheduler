@@ -71,6 +71,12 @@ return [
         'pass_seconds' => (int) env('YOUTUBE_PASS_SECONDS', 100),
         /* Tope de UN PUT de trozo (siempre acotado ademas por lo que quede hasta `pass_seconds`). */
         'upload_timeout' => (int) env('YOUTUBE_UPLOAD_TIMEOUT', 60),
+
+        /*
+        | Idempotencia (`findPublished`): paginas de la playlist de subidas que se recorren desde `since` (50 por pagina). Cada
+        | pagina cuesta 1 ud de cuota (playlistItems.list) + 1 (videos.list): como mucho 2 x paginas = 6 uds por comprobacion.
+        */
+        'lookup_max_pages' => (int) env('YOUTUBE_LOOKUP_MAX_PAGES', 3),
     ],
 
     'tiktok' => [
@@ -95,6 +101,16 @@ return [
         'upload_budget_seconds' => (int) env('TIKTOK_UPLOAD_BUDGET', 80),
         'upload_min_slice_seconds' => (int) env('TIKTOK_UPLOAD_MIN_SLICE', 15),
         'pass_seconds' => (int) env('TIKTOK_PASS_SECONDS', 100),
+
+        /*
+        | La `upload_url` de FILE_UPLOAD vale 1 hora desde que se emite (doc. de TikTok): pasados estos minutos (con margen) se
+        | reinicia la subida con un `init` nuevo, hasta `upload_restarts` veces; luego falla pidiendo reprogramar.
+        | `upload_max_minutes` acota la fase de subida de TikTok (sustituye a `publishing.upload_max_minutes`): sesion inicial
+        | + reinicio; las esperas de reconexion reinician el reloj.
+        */
+        'upload_url_ttl_minutes' => (int) env('TIKTOK_UPLOAD_URL_TTL', 55),
+        'upload_restarts' => (int) env('TIKTOK_UPLOAD_RESTARTS', 1),
+        'upload_max_minutes' => (int) env('TIKTOK_UPLOAD_MAX_MINUTES', 120),
 
         /* Borrador en `PROCESSING_UPLOAD` tras la subida completa: pasados estos minutos se da por publicado con nota. */
         'inbox_grace_minutes' => (int) env('TIKTOK_INBOX_GRACE_MINUTES', 10),

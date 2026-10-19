@@ -13,6 +13,7 @@ use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Jobs\DispatchDuePosts;
+use App\Jobs\PollPublishStatus;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Post;
@@ -330,4 +331,62 @@ test('TikTokPublish: tras SEND_TO_USER_INBOX el external_id se marca como publis
 
     expect($this->tt->poll($this->account, ttRequest([], reference: 'v_pub_1'))->progress['external_id_kind'])->toBe('publish_id');
     expect($this->tt->poll($this->account, ttRequest([], reference: 'v_pub_1'))->progress['external_id_kind'])->toBe('video_id');
+});
+
+test('TikTokPublish N2: la upload_url caducada (>= TTL) reinicia la subida con un init nuevo y progreso limpio (revision F4-5 i2 N2)', function () {
+    ttInit($this->http);
+    $this->http->on('PUT', '#upload_id=U1#', ['status' => 201]);
+    $media = ttAsset(3 * TT_MB);
+    $old = ['phase' => 'uploading', 'upload_url' => TT_UPLOAD, 'upload_url_at' => now()->subMinutes(56)->timestamp, 'restarts' => 0, 'chunk_size' => 3 * TT_MB, 'chunk_count' => 1, 'next' => 0, 'size' => 3 * TT_MB];
+    $saved = [];
+    $req = new PublishRequest(55, ContentType::TikTokVideo, 'Mi video', [$media], [], 'v_old', now()->subMinutes(70), $old, function ($ref, $progress) use (&$saved) {
+        $saved[] = [$ref, $progress];
+    });
+
+    $r = $this->tt->poll($this->account, $req);
+
+    expect($this->http->callsTo('POST', '#/inbox/video/init/#'))->toHaveCount(1); // init nuevo
+    expect($saved[0][0])->toBe('v_pub_1')->and($saved[0][1])->toMatchArray(['restarts' => 1, 'next' => 0])->and($saved[0][1]['upload_url_at'])->toBe(now()->timestamp);
+    expect($r->isProcessing())->toBeTrue()->and($r->progress['phase'])->toBe('processing');
+});
+
+test('TikTokPublish N2: tras agotar los reinicios falla con motivo claro; un PUT 403 de URL caducada tambien reinicia', function () {
+    $media = ttAsset(3 * TT_MB);
+    $progress = ['phase' => 'uploading', 'upload_url' => TT_UPLOAD, 'upload_url_at' => now()->subMinutes(56)->timestamp, 'restarts' => 1, 'chunk_size' => 3 * TT_MB, 'chunk_count' => 1, 'next' => 0, 'size' => 3 * TT_MB];
+
+    try {
+        $this->tt->poll($this->account, ttRequest($media, reference: 'v_old', progress: $progress));
+        $this->fail('debia fallar');
+    } catch (PermanentPublishException $e) {
+        expect($e->errorCode)->toBe('subida_caducada')->and($e->getMessage())->toContain('caduco')->toContain('reprograma');
+    }
+    expect($this->http->callsTo('POST', '#/init/#'))->toBe([]);
+
+    // PUT 403 (URL caducada/revocada) dentro de plazo: se reinicia una vez; si vuelve a pasar, falla claro.
+    ttInit($this->http);
+    $this->http->on('PUT', '#upload_id=U1#', FakeHttp::seq(['status' => 403], ['status' => 201]));
+    $fresh = $progress;
+    $fresh['upload_url_at'] = now()->timestamp;
+    $fresh['restarts'] = 0;
+
+    $r = $this->tt->poll($this->account, ttRequest($media, reference: 'v_old', progress: $fresh));
+
+    expect($r->progress['phase'])->toBe('processing')->and($this->http->callsTo('POST', '#/inbox/video/init/#'))->toHaveCount(1);
+});
+
+test('TikTokPublish N2: la fase de subida de TikTok usa su propio plazo (social.tiktok.upload_max_minutes) en PollPublishStatus', function () {
+    config(['social.tiktok.upload_max_minutes' => 120, 'publishing.upload_max_minutes' => 240]);
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->registerPublisher(Network::TikTok, $this->tt));
+    $post = Post::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'text' => 'Mi video', 'scheduled_at' => now()->subHours(4), 'status' => PostStatus::Publishing]);
+    $target = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $this->user->id, 'social_account_id' => $this->account->id, 'network' => Network::TikTok,
+        'content_type' => ContentType::TikTokVideo, 'status' => PostStatus::Processing, 'external_reference' => 'v_old',
+        'progress' => ['phase' => 'uploading', 'upload_url' => TT_UPLOAD, 'next' => 0],
+        'started_at' => now()->subMinutes(130), 'next_attempt_at' => now()->subSecond(),
+    ]);
+
+    dispatch_sync(new PollPublishStatus($target->id));
+
+    $fresh = $target->fresh();
+    expect($fresh->status)->toBe(PostStatus::Failed)->and($fresh->error_code)->toBe('timeout_procesado')->and($fresh->error_message)->toContain('reprograma');
 });

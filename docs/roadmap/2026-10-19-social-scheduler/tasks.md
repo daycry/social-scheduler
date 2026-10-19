@@ -36,14 +36,14 @@ verificacion: obligatoria
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
 | Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 1.19h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 5 | 6 | 83% | 0h (IA) / 60h | 0.6h (medido) / 9h | 0 / 2.3h | 0 / 2,73M |
-| Fase 3 — Publicación base y Meta (IG + FB), calendario | 0 | 9 | 0% | 0 / 142h | 0 / 21.8h | 0 / 5.3h | 0 / 6,47M |
+| Fase 3 — Publicación base y Meta (IG + FB), calendario | 7 | 9 | 78% | 0h (IA) / 142h | 1.81h (medido) / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
 | Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 0 | 3 | 0% | 0 / 37h | 0 / 5.6h | 0 / 1.4h | 0 / 1,69M |
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **12** | **43** | **28%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **19** | **43** | **44%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -569,7 +569,7 @@ verificacion: obligatoria
 
 ## Fase 3 — Publicación base y Meta (IG + FB), calendario
 
-**Estado**: borrador · **Estimado**: 142h · **Real**: — · **Coste est.**: 8.520 € + tokens (⚠️ verificar precio) · **Tokens est.**: 6,47M
+**Estado**: en-progreso · **Estimado**: 142h · **Real**: — · **Coste est.**: 8.520 € + tokens (⚠️ verificar precio) · **Tokens est.**: 6,47M
 
 ### T-17 — Subida de media a R2 (multipart prefirmada) y MediaAsset
 
@@ -821,27 +821,30 @@ verificacion: obligatoria
 
 - **Descripción**: Aviso in-app y por email cuando una publicación falla, y política ante cuota agotada (reprogramar automáticamente o fallar con motivo «cuota»; decisión de producto a confirmar).
 - **Changelog**: Avisos cuando una publicación falla.
-- **Estado**: borrador
-- **Tiempo humano**: est. 8h · real —
-- **Tiempo IA (ejec.)**: est. 1.2h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 8h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.2h · real 0.13h (medido)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-20
 - **Tipo**: backend
-- **Archivos**: `app/Notifications/PublishFailed.php`, `app/Services/QuotaPolicy.php`, `tests/Feature/Notifications/`
+- **Archivos**: `app/Notifications/PublishFailed.php`, `app/Services/QuotaPolicy.php`, `tests/Feature/Notifications/`, `app/Services/PublishOutcomes.php`, `app/Jobs/PublishPostTarget.php`, `config/publishing.php`, `app/Http/Controllers/NotificationController.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `resources/js/Pages/Notifications/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `routes/web.php`, `tests/Feature/Notifications/PublishFailedTest.php`
 - **Cubre (tests)**: E2E-07
 - **Verificación**: `php artisan test --filter=PublishFailed` → pasa (aviso in-app y email)
 
 **Criterios de aceptación**
-- [ ] Un fallo genera aviso con motivo legible
-- [ ] Cuota agotada sigue la política elegida
+- [x] Un fallo genera aviso con motivo legible
+- [x] Cuota agotada sigue la política elegida
 
 **Subtareas**
-- [ ] Notificación in-app y email
-- [ ] Política de cuota configurable
-- [ ] Tests
+- [x] Notificación in-app y email
+- [x] Política de cuota configurable
+- [x] Tests
 
 **Notas**: Incógnita: reprogramar automáticamente o fallar.
+
+---
+**Notas (implementer, 2026-10-19)**: `PublishFailed` (database + mail, por cola `poll`, datos escalares, sin tokens) se envia UNA vez en la transicion a `fallida` (hook unico en `PublishOutcomes::failed`, que cubre permanentes, reintentos agotados, vencidas y cuenta eliminada); un transitorio que aun reintenta no avisa. Aviso in-app: pagina `Avisos` (lista, marcar leido / todo) y contador de no leidos en la barra, siempre acotado al usuario autenticado. `QuotaPolicy` con politica configurable `PUBLISH_QUOTA_POLICY`: `reschedule` (POR DEFECTO: aplaza hasta que la red libere cupo sin gastar intento; si no llega dentro del margen `max_lateness_hours` falla con motivo «cuota») o `fail` (falla ya con motivo «cuota» y avisa). **Decision de producto pendiente de confirmar por el usuario**: reprogramar automaticamente (default) o fallar; esta documentada en `config/publishing.php` y se cambia por entorno sin tocar codigo. **Verificacion**: `php artisan test --filter=PublishFailed` -> 9 passed, 75 assertions (aviso in-app y email con motivo legible, una sola vez, transitorio, vencidas, politica de cuota en sus 3 variantes, pantalla de avisos y aislamiento); suite completa 322 passed; `npm run build` OK.
 
 ---
 

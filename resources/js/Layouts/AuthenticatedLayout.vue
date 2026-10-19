@@ -51,6 +51,17 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Calendario
                                 </NavLink>
+                                <NavLink
+                                    :href="route('notifications.index')"
+                                    :active="route().current('notifications.*')"
+                                >
+                                    Avisos
+                                    <span
+                                        v-if="$page.props.unreadNotifications > 0"
+                                        class="ms-1 rounded-full bg-red-600 px-1.5 text-xs text-white"
+                                        aria-label="Avisos sin leer"
+                                    >{{ $page.props.unreadNotifications }}</span>
+                                </NavLink>
                             </div>
                         </div>
 

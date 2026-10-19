@@ -34,6 +34,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Contador de avisos sin leer para la barra de navegacion.
+            'unreadNotifications' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
         ];
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
@@ -34,6 +35,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('brands.connections.connect');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('connections.callback');
+
+    // Avisos in-app (T-25).
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     // Calendario (T-24).
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');

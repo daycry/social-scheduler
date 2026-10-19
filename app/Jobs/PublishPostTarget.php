@@ -18,6 +18,7 @@ use App\Notifications\ReconnectRequired;
 use App\Services\PostService;
 use App\Services\PublishOutcomes;
 use App\Services\PublishRequestFactory;
+use App\Services\QuotaPolicy;
 use App\Services\SocialAccountService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -113,7 +114,7 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
         } catch (ReconnectRequiredException $e) {
             $this->requireReconnection($accounts, $outcomes, $account, $target, $attempt, $e->getMessage());
         } catch (QuotaExceededException $e) {
-            $outcomes->quota($target, $e->getMessage(), $e->retryAt ?? now()->addHour(), $attempt);
+            app(QuotaPolicy::class)->apply($target, $e, $attempt);
         } catch (PermanentPublishException $e) {
             $outcomes->failed($target, $e->errorCode ?? 'rechazada', $e->getMessage(), $attempt);
         } catch (TransientPublishException|ConnectorException $e) {

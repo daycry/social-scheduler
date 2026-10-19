@@ -6,7 +6,11 @@ use App\Connectors\Data\PublishResult;
 use App\Enums\PostStatus;
 use App\Models\PostTarget;
 use App\Models\PublishAttempt;
+use App\Models\User;
+use App\Notifications\PublishFailed;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Unico punto donde un destino cambia de estado como consecuencia de publicar o sondear. Cada salida
@@ -111,11 +115,26 @@ class PublishOutcomes
     {
         $this->close($attempt, PublishAttempt::OUTCOME_PERMANENT, $code, $message);
 
-        return $this->posts->transition($target, PostStatus::Failed, [
+        $failed = $this->posts->transition($target, PostStatus::Failed, [
             'error_code' => $code,
             'error_message' => mb_substr($message, 0, 500),
             'next_attempt_at' => null,
         ]);
+
+        $this->notifyFailure($failed, $message);
+
+        return $failed;
+    }
+
+    /** Avisa al usuario (in-app + email) UNA vez: solo se llega aqui en la transicion a `fallida`. */
+    private function notifyFailure(PostTarget $target, string $message): void
+    {
+        try {
+            User::find($target->user_id)?->notify(new PublishFailed($target, $message));
+        } catch (Throwable $e) {
+            // El aviso nunca debe impedir que el estado quede registrado.
+            Log::error('publish.failure_notification_failed', ['target_id' => $target->id, 'exception' => $e::class]);
+        }
     }
 
     private function close(?PublishAttempt $attempt, string $outcome, ?string $code = null, ?string $message = null): void

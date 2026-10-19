@@ -21,6 +21,13 @@ return [
     */
     'max_lateness_hours' => (int) env('PUBLISH_MAX_LATENESS_HOURS', 24),
 
+    /*
+    | Cuota de publicacion agotada (p. ej. 25 publicaciones/24 h de Instagram). Decision de producto por confirmar:
+    |   reschedule = aplazar hasta que la red libere cupo (por defecto; falla si no llega dentro del margen de retraso)
+    |   fail       = fallar de inmediato con motivo «cuota» y avisar
+    */
+    'quota_policy' => env('PUBLISH_QUOTA_POLICY', 'reschedule'),
+
     /* Sondeo de publicaciones asincronas (contenedores de IG, videos de FB). */
     'poll_interval_seconds' => (int) env('PUBLISH_POLL_INTERVAL', 30),
     'poll_max_minutes' => (int) env('PUBLISH_POLL_MAX_MINUTES', 30),

@@ -6,14 +6,13 @@ use App\Mcp\Abilities;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\URL;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get_report')]
-#[Description('Estado de un informe (pending, processing, ready, failed) y, si esta listo, enlace firmado de descarga que caduca.')]
+#[Description('Estado de un informe (pending, processing, ready, failed) y, si esta listo, URL firmada de descarga que NO exige sesion y caduca en unos minutos (llama de nuevo a get_report para renovarla).')]
 #[IsReadOnly]
 class GetReport extends SchedulerTool
 {
@@ -36,7 +35,7 @@ class GetReport extends SchedulerTool
     {
         /** @var Report $report */
         $report = $this->owned(Report::class, $user, $request->get('report_id'), 'Informe');
-        $minutes = (int) config('reports.download_minutes', 15);
+        $minutes = (int) config('reports.download_minutes', 5);
 
         return [
             'id' => $report->id,
@@ -47,7 +46,7 @@ class GetReport extends SchedulerTool
             'to' => $report->to->format('Y-m-d'),
             'size' => $report->size,
             'error' => $report->error,
-            'download_url' => $report->isReady() ? URL::temporarySignedRoute('reports.download', now()->addMinutes($minutes), $report) : null,
+            'download_url' => $report->isReady() ? $report->signedDownloadUrl() : null,
             'download_expires_in_minutes' => $report->isReady() ? $minutes : null,
         ];
     }

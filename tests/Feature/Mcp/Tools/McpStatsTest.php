@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\McpClient;
 
 uses(McpClient::class);
@@ -122,7 +123,17 @@ test('McpStats: generate_report encola y get_report da estado y enlace firmado s
 
     $row->update(['status' => Report::STATUS_READY, 'path' => "reports/{$this->user->id}/{$row->id}.csv", 'size' => 10]);
     [, $ready] = $this->callTool($this->key, 'get_report', ['report_id' => $r['id']]);
-    expect($ready['status'])->toBe('ready')->and($ready['download_url'])->toContain('signature=')->toContain("reports/{$row->id}/download");
+    expect($ready['status'])->toBe('ready')->and($ready['download_url'])->toContain('signature=')->toContain("reports/{$row->id}/download/{$this->user->id}")
+        ->and($ready['download_expires_in_minutes'])->toBe(5);
+
+    // Un agente MCP (sin sesion web) puede descargar con esa URL: la firma basta, y caduca.
+    Storage::fake('local');
+    config(['filesystems.media' => 'local']);
+    Storage::disk('local')->put($row->path, 'a;b');
+    $this->get($ready['download_url'])->assertOk();
+    $this->travel(6)->minutes();
+    $this->get($ready['download_url'])->assertForbidden();
+    $this->travelBack();
 });
 
 test('McpStats: get_report de un informe ajeno responde como inexistente y generate_report valida y limita', function () {

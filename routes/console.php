@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\DispatchDuePosts;
 use App\Jobs\RefreshTokens;
 use App\Support\HealthCheck;
 use Illuminate\Foundation\Inspiring;
@@ -21,3 +22,7 @@ Schedule::command('queue:prune-failed --hours=720')->daily();
 
 // Renueva tokens de redes sociales antes de caducar; si falla marca la cuenta y avisa (T-16).
 Schedule::job(new RefreshTokens)->everyThirtyMinutes()->name('refresh-social-tokens')->withoutOverlapping();
+
+// Publica lo vencido y recupera lo colgado (T-20). En linea (no en cola) para que no espere a un worker ocupado;
+// withoutOverlapping evita pasadas solapadas si una tarda mas de un minuto.
+Schedule::call(fn () => app(DispatchDuePosts::class)())->everyMinute()->name('dispatch-due-posts')->withoutOverlapping(5);

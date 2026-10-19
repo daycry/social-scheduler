@@ -664,30 +664,33 @@ verificacion: obligatoria
 
 - **Descripción**: Dispatcher cada minuto de lo vencido; `PublishPostTarget` con `tries`/`backoff`/`ShouldBeUnique`; estado `publicando` persistido antes de llamar a la red y consulta del estado externo antes de reintentar; `PollPublishStatus` para procesos asíncronos; recuperación de vencidas tras caída del VPS.
 - **Changelog**: Las publicaciones se lanzan solas a su hora y sin duplicados.
-- **Estado**: borrador
-- **Tiempo humano**: est. 22h · real —
-- **Tiempo IA (ejec.)**: est. 3.4h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 22h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 3.4h · real 0.26h (medido)
 - **Supervisión**: est. 0.8h (≈25 % IA) · real —
 - **Previsión IA**: 911k in / 91k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-10
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/PublishPostTarget.php`, `app/Jobs/PollPublishStatus.php`, `routes/console.php`, `app/Services/PublishRecovery.php`, `tests/Feature/Publishing/`
+- **Archivos**: `app/Jobs/PublishPostTarget.php`, `app/Jobs/PollPublishStatus.php`, `routes/console.php`, `app/Services/PublishRecovery.php`, `tests/Feature/Publishing/`, `config/publishing.php`, `app/Jobs/DispatchDuePosts.php`, `app/Services/PublishOutcomes.php`, `app/Services/PublishRequestFactory.php`, `app/Connectors/ConnectorRegistry.php`, `app/Connectors/Contracts/Publisher.php`, `app/Connectors/Contracts/StatusPoller.php`, `app/Connectors/Data/PublishMedia.php`, `app/Connectors/Data/PublishRequest.php`, `app/Connectors/Data/PublishResult.php`, `app/Connectors/Exceptions/PublishException.php`, `app/Connectors/Exceptions/TransientPublishException.php`, `app/Connectors/Exceptions/PermanentPublishException.php`, `app/Connectors/Exceptions/QuotaExceededException.php`, `tests/Support/FakePublisher.php`, `tests/Feature/Publishing/PublishingTest.php`
 - **Cubre (tests)**: E2E-06, E2E-07
 - **Verificación**: `php artisan test --filter=Publishing` → pasa (reintentos con backoff, sin duplicados, recuperación de vencidas)
 
 **Criterios de aceptación**
-- [ ] Error transitorio acaba `publicada` o `fallida` con motivo, sin duplicados (CA-07)
-- [ ] Tras una caída, al arrancar se publican las vencidas
-- [ ] Error permanente no reintenta
+- [x] Error transitorio acaba `publicada` o `fallida` con motivo, sin duplicados (CA-07)
+- [x] Tras una caída, al arrancar se publican las vencidas
+- [x] Error permanente no reintenta
 
 **Subtareas**
-- [ ] Dispatcher en el scheduler
-- [ ] Jobs con unicidad y backoff
-- [ ] Idempotencia y comprobación previa del estado externo
-- [ ] Recuperación de vencidas
-- [ ] Tests con conector simulado
+- [x] Dispatcher en el scheduler
+- [x] Jobs con unicidad y backoff
+- [x] Idempotencia y comprobación previa del estado externo
+- [x] Recuperación de vencidas
+- [x] Tests con conector simulado
 
 **Notas**: Tarea de mayor riesgo técnico (design.md §6).
+
+---
+**Notas (implementer, 2026-10-19)**: Contratos `Publisher` (publish + `findPublished`) y `StatusPoller` rehechos con `PublishRequest/Result` y excepciones transitoria/permanente/cuota (el `Publisher` previo era solo un esqueleto sin implementaciones). `DispatchDuePosts` (scheduler cada minuto, en linea y `withoutOverlapping`) ejecuta `PublishRecovery` (cuenta eliminada -> fallida; vencidas > `max_lateness_hours`=24 -> fallida `vencida`; `publicando` colgado -> se relanza; `procesando` con sondeo vencido -> se vuelve a sondear) y despacha un `PublishPostTarget` (cola `publish`, `ShouldBeUnique` por destino, timeout 110 < worker 120 < retry_after 180) por destino `programada` vencido con cuenta activa. El job reclama con `lockForUpdate` y persiste `publicando` antes de llamar a la red; en cualquier reintento (attempts>1 o referencia externa) consulta `findPublished` antes de publicar; transitorio -> `programada` con backoff 60/300/900 s hasta `max_attempts` (4) -> `fallida` con motivo; permanente -> `fallida` sin reintento; cuota -> aplazado sin gastar intento (la politica elegible llega en T-25); credenciales invalidas -> la cuenta pasa a `requiere_reconexion` (aviso una vez) y la publicacion se conserva `programada`. `PollPublishStatus` (cola `poll`) sondea `procesando` hasta `poll_max_minutes`; un error pasajero al sondear nunca falla el destino. Decision de producto por defecto (documentada en `config/publishing.php`): las vencidas se publican al volver solo si llevan < 24 h de retraso. **Verificacion**: `php artisan test --filter=Publishing` -> 24 passed, 105 assertions (reintentos con backoff, timeout-tras-enviar sin duplicado, recuperacion de vencidas y colgadas, cuota, reconexion, sondeo); suite completa 254 passed. Ejecuciones simultaneas del mismo destino publican una vez (test).
 
 ### T-21 — Publicación en Instagram: post, carrusel, reel y story
 

@@ -10,6 +10,8 @@ Los pasos marcados **[VPS]** requieren acceso SSH/root y se ejecutan a mano una 
 - Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip`.
 - Composer 2 y Node 22: `deploy.sh` compila los assets (`npm ci && npm run build`) y no da el deploy por bueno sin `public/build/manifest.json` (sin el, todas las paginas Inertia darian 500). Con `SKIP_BUILD=1` se omite la compilacion si el build llega por otro medio, pero el manifest sigue siendo obligatorio.
 - Git y acceso de lectura al repositorio (deploy key).
+- `ffprobe` (paquete `ffmpeg`) en el PATH del usuario de PHP-FPM y de los workers: se usa para leer duracion, fps y codec de los videos subidos (`FFPROBE_BINARY` si esta en otra ruta). Sin el, los videos se rechazan al subirlos.
+- CORS del bucket R2 (subida directa del navegador, T-17): permitir `PUT` desde el dominio de la app, cabeceras `Content-Type` y exponer `ETag` (lo necesita el multipart). Sin esto la subida falla en el navegador aunque las URLs prefirmadas sean correctas.
 
 ## 2. Dominio, BD y TLS [VPS]
 

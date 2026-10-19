@@ -180,8 +180,10 @@ class MetaConnector implements Connector
         try {
             $page = $this->get($pageId, ['fields' => 'access_token', 'access_token' => $newUserToken]);
             $pageToken = $page['access_token'] ?? $pageToken;
+        } catch (ReconnectRequiredException $e) {
+            throw $e; // 190 / acceso revocado a la Pagina: no se da por renovada con el token viejo
         } catch (ConnectorException $e) {
-            // El token de Pagina anterior sigue siendo valido mientras no se revoque el acceso.
+            // Fallo transitorio: el token de Pagina anterior sigue siendo valido mientras no se revoque.
             Log::notice('meta.page_token_refetch_failed', ['account_id' => $account->id]);
         }
 

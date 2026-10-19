@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ConnectionController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('brands.connections.connect');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('connections.callback');
+
+    // Media (T-17): prefirmado/finalizacion JSON; el binario va directo a R2 (o a `upload` en dev).
+    Route::get('media', [MediaController::class, 'index'])->name('media.index');
+    Route::post('media', [MediaController::class, 'store'])->name('media.store');
+    Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
+    Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');
+    Route::delete('media/{asset}', [MediaController::class, 'destroy'])->name('media.destroy');
 });
 
 Route::middleware('auth')->group(function () {

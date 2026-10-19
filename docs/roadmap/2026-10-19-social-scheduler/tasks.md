@@ -575,27 +575,30 @@ verificacion: obligatoria
 
 - **Descripción**: Subida directa navegador→R2 con URLs prefirmadas y multipart para vídeo; registro del `MediaAsset` con metadatos y URL pública/firmada accesible por Meta y TikTok. El binario nunca pasa por PHP-FPM.
 - **Changelog**: Se pueden subir imágenes y vídeos grandes.
-- **Estado**: borrador
-- **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 14h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.46h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-10, T-08
 - **Tipo**: backend
-- **Archivos**: `app/Models/MediaAsset.php`, `app/Services/MediaUploadService.php`, `app/Http/Controllers/MediaController.php`, `resources/js/Components/MediaUploader.vue`, `tests/Feature/Media/`
+- **Archivos**: `app/Models/MediaAsset.php`, `app/Services/MediaUploadService.php`, `app/Http/Controllers/MediaController.php`, `resources/js/Components/MediaUploader.vue`, `tests/Feature/Media/`, `config/media.php`, `database/migrations/2026_10_21_090000_create_media_assets_table.php`, `database/factories/MediaAssetFactory.php`, `app/Services/MediaStorage.php`, `app/Services/MediaProbe.php`, `app/Policies/MediaAssetPolicy.php`, `routes/web.php`, `deploy/hestia/README.md`, `tests/Feature/Media/MediaUploadTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**: `php artisan test --filter=MediaUpload` → pasa (URLs prefirmadas, aislamiento, finalización multipart)
 
 **Criterios de aceptación**
-- [ ] Vídeo grande sube por multipart sin pasar por PHP-FPM
-- [ ] Cada asset pertenece a un usuario y no es accesible por otros
-- [ ] Metadatos (dimensiones, duración, peso) extraídos
+- [x] Vídeo grande sube por multipart sin pasar por PHP-FPM
+- [x] Cada asset pertenece a un usuario y no es accesible por otros
+- [x] Metadatos (dimensiones, duración, peso) extraídos
 
 **Subtareas**
-- [ ] Endpoints de prefirmado y finalización
-- [ ] Componente de subida
-- [ ] Extracción de metadatos
-- [ ] Tests de aislamiento
+- [x] Endpoints de prefirmado y finalización
+- [x] Componente de subida
+- [x] Extracción de metadatos
+- [x] Tests de aislamiento
+
+---
+**Notas (implementer, 2026-10-19)**: `MediaUploadService` prefirma contra el disco `config('filesystems.media')`: en R2/S3 el navegador sube con un PUT prefirmado (`single`) o por multipart (partes de 16 MiB desde 32 MiB, una URL prefirmada por parte, cierre en `complete`); el binario nunca pasa por PHP-FPM. Con disco local (dev/test) `mode: local` sube a `PUT media/{asset}/upload` (409 en R2). `MediaProbe` extrae dimensiones (GD) y duracion/fps/codec (ffprobe sobre ruta o URL temporal); contenido distinto del MIME declarado o ilegible -> `invalido` y se borra. `MediaAsset` con `BelongsToUser` (otro usuario recibe 404) y `publicUrl()` temporal firmada para Meta/TikTok. Requisitos de despliegue (ffprobe y CORS de R2 con ExposeHeaders ETag) anotados en `deploy/hestia/README.md`. **Verificacion**: `php artisan test --filter=MediaUpload` -> 11 passed, 73 assertions (incluye ffprobe real sobre un video generado con ffmpeg, multipart con cliente S3 simulado, aislamiento). **PENDIENTE manual**: probar la subida real navegador->R2 (CORS) cuando haya bucket; no hay credenciales R2 en dev.
 
 ### T-18 — Validador de media por red y tipo de contenido
 

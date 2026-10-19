@@ -285,7 +285,7 @@ verificacion: obligatoria
 
 - **Descripción**: Modelo `Brand`, trait `BelongsToUser` con global scope y Policies. Toda consulta pasa por servicios que exigen el usuario autenticado. Tests de aislamiento web desde el primer día, reutilizables para API y MCP.
 - **Changelog**: Ya se pueden crear y gestionar marcas, aisladas por usuario.
-- **Estado**: completado
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 16h · real 0h (IA)
 - **Tiempo IA (ejec.)**: est. 2.5h · real 0.11h (medido)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
@@ -1311,3 +1311,31 @@ verificacion: obligatoria
 - [ ] Revisión de seguridad
 
 **Notas**: Las horas de pruebas por fase están dentro de cada tarea; aquí solo la ejecución final.
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-06..T-10) — 6 Important, 15 Minor
+
+Lentes: A+B+C+D (C por rutas `.env*`, `.github/workflows/`, `Auth`; D por worker/scheduler). Diff `1c2cfb1..HEAD`. Puerta `scope-check` exit 0. Revisores: agente `reviewer` (contexto fresco).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | Acceso cruzado entre usuarios por web no se registra: `UserScope` responde 404 en el binding antes de `BrandPolicy` (único `Log::warning('access.denied')`); el test llama a la policy directamente. Incumple criterio marcado y spec.md:117 | T-08 | pendiente | Lente A: tinker, B `GET /brands/{id}` de A → 404, logs=[] · `app/Policies/BrandPolicy.php:37-49`, `app/Scopes/UserScope.php:26`, `tests/Feature/Isolation/BrandIsolationTest.php:65-74` |
+| 2 | Important | `/health` y `app:health` llaman a R2 (PUT/GET/DELETE) sin timeout HTTP: con R2 degradado bloquean workers PHP-FPM sin límite y agotan el pool | T-10 | pendiente | Lente D: `app/Support/HealthCheck.php:88-91`, `config/filesystems.php:57-70` sin `http.timeout` |
+| 3 | Important | El despliegue no compila assets (`public/build` ignorado; deploy.sh sin `npm ci && npm run build`) → `ViteManifestNotFoundException` → 500 en todas las páginas Inertia | T-09 | pendiente | Lente B: `deploy/hestia/deploy.sh:30-45`, `.gitignore` |
+| 4 | Important | Un solo job fallido en 30 días deja `/health` en 503 y hace fallar `deploy.sh` (paso `app:health`, `set -e`) saltándose el reinicio de workers | T-10/T-09 | pendiente | Lente B: `app/Support/HealthCheck.php:75`, `deploy/hestia/deploy.sh:44,73-77` |
+| 5 | Important | `git pull` + `composer install` antes de `artisan down`: se sirve código nuevo sobre vendor a medias y esquema sin migrar | T-09 | pendiente | Lente B: `deploy/hestia/deploy.sh:31-35` |
+| 6 | Minor | Runbook sin `chmod 600 .env` | T-09 | pendiente | Lente C: `deploy/hestia/README.md:44` (CWE-732) |
+| 7 | Minor | `/health` sin rate limit ni guía de entropía del token | T-10 | pendiente | Lente C: `routes/web.php:19` (CWE-307) |
+| 8 | Minor | `/health` devuelve `$e->getMessage()` en bruto | T-10 | pendiente | Lente C: `HealthCheck.php:47,77,95` (CWE-209) |
+| 9 | Minor | Página pública expone versiones de Laravel/PHP | T-07 | pendiente | Lente C: `routes/web.php:14-15` (CWE-200) |
+| 10 | Minor | Middleware `verified` inoperante (`MustVerifyEmail` comentado) | T-07 | pendiente | Lente C: `app/Models/User.php:5` (CWE-287) |
+| 11 | Minor | CI sin `permissions:` mínimos | T-06 | pendiente | Lente C: `.github/workflows/ci.yml:1-9` |
+| 12 | Minor | Action de terceros por tag mutable | T-06 | deuda aceptada (uso personal; revisar al publicar el repo) | Lente C: `ci.yml:23` |
+| 13 | Minor | Unidad systemd sin sandboxing; plan B con locks predecibles en `/tmp` | T-10 | pendiente | Lente C: `scheduler-worker@.service:19-33`, `deploy/systemd/README.md:47-48` |
+| 14 | Minor | CA-02 marcado «por web/API» sin API en Fase 1 | T-08 | pendiente (nota en ledger) | Lente A: tasks.md CA-02 |
+| 15 | Minor | `resources/js/Components/` y migraciones base atribuidos a tareas futuras en `Archivos` | T-06/T-07 | pendiente (declarar en Archivos) | Lente A |
+| 16 | Minor | PHP CLI del worker/deploy no fijado (`/usr/bin/php` vs 8.4) | T-10 | pendiente | Lente B: `scheduler-worker@.service:24`, `deploy.sh:27` |
+| 17 | Minor | `scheduler()` sin try/catch → `--json` rompe con BD caída | T-10 | pendiente | Lente B: `HealthCheck.php:102` |
+| 18 | Minor | `/health` pasa por grupo `web` (sesión en BD) → 500 HTML con BD caída y una fila de sesión por sondeo | T-10 | pendiente | Lente B: `routes/web.php:19` |
+| 19 | Minor | Errores silenciados en disco local / `--wait` no numérico / `QUEUE_NAMES` vacío | T-10 | pendiente | Lente B: `HealthCheck.php:89-93`, `QueueProbe.php:20,27-31` |
+| 20 | Minor | One-liner `sed` de instalación no sustituye `Group=USUARIO` | T-10 | pendiente | Orquestador: `scheduler-worker@.service:11,22` |
+| 21 | Minor | Suite local en sqlite en memoria vs MySQL en CI | T-06 | deuda aceptada (CI cubre MySQL) | Lente A (fuera de lente) |

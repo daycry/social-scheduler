@@ -52,6 +52,12 @@ const showingNavigationDropdown = ref(false);
                                     Calendario
                                 </NavLink>
                                 <NavLink
+                                    :href="route('reports.index')"
+                                    :active="route().current('reports.*')"
+                                >
+                                    Informes
+                                </NavLink>
+                                <NavLink
                                     :href="route('notifications.index')"
                                     :active="route().current('notifications.*')"
                                 >

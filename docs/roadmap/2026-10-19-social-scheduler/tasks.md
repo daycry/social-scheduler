@@ -40,10 +40,10 @@ verificacion: obligatoria
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
 | Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 3 | 3 | 100% | 0h (IA) / 37h | 0.67h (0.27h medido, resto estimado) / 5.6h | 0 / 1.4h | 0 / 1,69M |
-| Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
+| Fase 7 — Analítica: snapshots, insights y dashboards | 7 | 7 | 100% | 0h (IA) / 106h | 2.75h (medido) / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **21** | **43** | **49%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **28** | **43** | **65%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -1023,184 +1023,211 @@ verificacion: obligatoria
 
 ## Fase 7 — Analítica: snapshots, insights y dashboards
 
-**Estado**: borrador · **Estimado**: 106h · **Real**: — · **Coste est.**: 6.360 € + tokens (⚠️ verificar precio) · **Tokens est.**: 4,83M
+**Estado**: completado · **Estimado**: 106h · **Real**: 2.75h IA (medido) · **Verificación de fase**: `php artisan test` → 591 passed (3108 assertions); `vendor/bin/pint --test` (rutas propias) → passed; `npm run build` → built OK · **Coste est.**: 6.360 € + tokens (⚠️ verificar precio) · **Tokens est.**: 4,83M
 
 ### T-31 — Modelo de snapshots y job diario (adelantable tras F2)
 
 - **Descripción**: Tablas de snapshots normalizados y job diario por cuenta conectada. Puede adelantarse justo después de F2 para empezar a acumular histórico cuanto antes.
-- **Changelog**: La aplicación empieza a guardar el histórico diario de métricas.
-- **Estado**: borrador
+- **Changelog**: La aplicación empieza a guardar el histórico diario de métricas de cada cuenta y de sus publicaciones recientes.
+- **Estado**: completado
 - **Tiempo humano**: est. 12h · real —
-- **Tiempo IA (ejec.)**: est. 1.8h · real —
+- **Tiempo IA (ejec.)**: est. 1.8h · real 1.14h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-16
 - **Tipo**: backend
-- **Archivos**: `app/Models/AccountSnapshot.php`, `app/Models/PostMetricSnapshot.php`, `app/Jobs/CollectSnapshots.php`, `routes/console.php`, `database/migrations/`, `tests/Feature/Snapshots/`
+- **Archivos**: `app/Models/AccountSnapshot.php`, `app/Models/PostMetricSnapshot.php`, `app/Jobs/CollectSnapshots.php`, `routes/console.php`, `database/migrations/`, `tests/Feature/Snapshots/`; añadidos al implementar: `database/migrations/2026_10_25_090000_create_snapshot_tables.php`, `app/Analytics/Metric.php`, `app/Analytics/SnapshotCollector.php`, `app/Jobs/CollectAccountSnapshot.php`, `app/Connectors/ConnectorRegistry.php` (registerInsights/insightsFor), `app/Connectors/Contracts/InsightsReader.php` (+canReadPost/postInsights), `config/social.php` (bloque analytics), `tests/Support/FakeInsights.php`, `tests/Feature/Snapshots/SnapshotsTest.php`
 - **Cubre (tests)**: E2E-09
-- **Verificación**: `php artisan test --filter=Snapshots` → pasa (un snapshot por cuenta y día, idempotente)
+- **Verificación**:
+  - `php artisan test --filter=Snapshots` → pasa (un snapshot por cuenta y día, idempotente)
+  - real: `{"result":"passed","tests":12,"passed":12,"assertions":38}`
 
 **Criterios de aceptación**
-- [ ] Snapshot diario por cuenta y de publicaciones recientes (CA-09)
-- [ ] Job idempotente
+- [x] Snapshot diario por cuenta y de publicaciones recientes (CA-09)
+- [x] Job idempotente
 
 **Subtareas**
-- [ ] Migraciones y modelos
-- [ ] Job con planificación diaria
-- [ ] Tests
+- [x] Migraciones y modelos
+- [x] Job con planificación diaria
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: commit `070ffd6`. Evidencia: un snapshot por cuenta y día, upsert idempotente, `null` no pisa un valor previo, jobs únicos por cuenta+día en la cola `metrics`, timeout 90/60 < 120, planificado `collect-snapshots` 03:30 UTC, aislamiento por usuario, la reconexión avisa una sola vez. Decisiones: día de referencia = ayer UTC; reintento de los 2 días previos solo si faltan o salieron vacíos (latencia de YouTube); `date` sin cast (string Y-m-d) para que el upsert por fecha sea estable en SQLite/MySQL; `null` = no disponible en `metrics` (JSON).
 
 ### T-32 — Colector de insights de Meta (IG + FB)
 
 - **Descripción**: Métricas de cuenta y de publicación en IG/FB según las que ofrezca la versión vigente de la API (⚠️ `impressions` frente a `views`). Las no disponibles se reportan como no disponibles, nunca como 0.
-- **Changelog**: Se recogen estadísticas de Instagram y Facebook.
-- **Estado**: borrador
+- **Changelog**: Se recogen estadísticas de Instagram y Facebook (seguidores, visualizaciones, alcance e interacciones).
+- **Estado**: completado
 - **Tiempo humano**: est. 18h · real —
-- **Tiempo IA (ejec.)**: est. 2.8h · real —
+- **Tiempo IA (ejec.)**: est. 2.8h · real 0.20h (medido)
 - **Supervisión**: est. 0.7h (≈25 % IA) · real —
 - **Previsión IA**: 745k in / 75k out tok · ⚠️ verificar €
 - **Dependencias**: T-31, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/Insights.php`, `tests/Feature/Connectors/Meta/Insights/`
+- **Archivos**: `app/Connectors/Meta/Insights.php`, `tests/Feature/Connectors/Meta/Insights/`; añadido al implementar: `tests/Feature/Connectors/Meta/Insights/MetaInsightsTest.php`
 - **Cubre (tests)**: E2E-09
-- **Verificación**: `php artisan test --filter=MetaInsights` → pasa con respuestas grabadas; una métrica no disponible se guarda como `null`
+- **Verificación**:
+  - `php artisan test --filter=MetaInsights` → pasa con respuestas grabadas; una métrica no disponible se guarda como `null`
+  - real: `{"result":"passed","tests":11,"passed":11,"assertions":59}` (respuestas simuladas con `Http::fake`; no hay grabaciones reales)
 
 **Criterios de aceptación**
-- [ ] Snapshot de métricas de cuenta y publicaciones (CA-09)
-- [ ] Métricas retiradas gestionadas
+- [x] Snapshot de métricas de cuenta y publicaciones (CA-09)
+- [x] Métricas retiradas gestionadas
 
 **Subtareas**
-- [ ] Mapeo de métricas por versión de API
-- [ ] Colector y reintentos
-- [ ] Tests
+- [x] Mapeo de métricas por versión de API
+- [x] Colector y reintentos
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: commit «T-32: colector de insights de Meta». IG usa `views` y nunca `impressions`; FB usa `page_media_view`/`page_post_engagements`/`page_follows` y nunca `page_impressions`/`page_fans`; `follower_count` sin `metric_type`; una métrica rechazada con #100 queda `null` y un 0 real sigue 0; 190 propaga `ReconnectRequired`, 5xx propaga `Transient`. **Pendiente manual**: `post_media_view` y `post_total_media_view_unique` (publicaciones de Facebook) no están verificadas en el spike; si Meta las rechaza quedan `null`; probar con un post real y ajustar `Insights::facebookPost`. IG: `follower_count` exige ≥ 100 seguidores; confirmar `followers_count`/`views` por día con since/until en la cuenta real (la primera entrada de `values` se toma como el día).
 
 ### T-33 — Colector de YouTube Analytics (condicionado a G1)
 
 - **Descripción**: Métricas de canal y de vídeo con YouTube Analytics API (otro scope y otra API).
-- **Changelog**: Se recogen estadísticas de YouTube.
-- **Estado**: borrador
+- **Changelog**: Se recogen estadísticas de YouTube (visualizaciones, minutos reproducidos, interacciones y suscriptores).
+- **Estado**: completado
 - **Tiempo humano**: est. 16h · real —
-- **Tiempo IA (ejec.)**: est. 2.5h · real —
+- **Tiempo IA (ejec.)**: est. 2.5h · real 0.06h (medido)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-31, T-13
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Google/Analytics.php`, `tests/Feature/Connectors/Google/Analytics/`
+- **Archivos**: `app/Connectors/Google/Analytics.php`, `tests/Feature/Connectors/Google/Analytics/`; añadido al implementar: `tests/Feature/Connectors/Google/Analytics/YouTubeAnalyticsTest.php`
 - **Cubre (tests)**: E2E-09
-- **Verificación**: `php artisan test --filter=YouTubeAnalytics` → pasa con respuestas grabadas
+- **Verificación**:
+  - `php artisan test --filter=YouTubeAnalytics` → pasa con respuestas grabadas
+  - real: `{"result":"passed","tests":7,"passed":7,"assertions":49}`
 
 **Criterios de aceptación**
-- [ ] Snapshot de métricas (CA-09)
-- [ ] Scope adicional solicitado en la conexión
+- [x] Snapshot de métricas (CA-09)
+- [x] Scope adicional solicitado en la conexión
 
 **Subtareas**
-- [ ] Cliente Analytics
-- [ ] Colector
-- [ ] Tests
+- [x] Cliente Analytics
+- [x] Colector
+- [x] Tests
 
 **Notas**: Se cancela con G1 = D.
 **Decisión G1 (2026-10-19): YouTube = A.** Analítica vía YouTube Analytics API (`yt-analytics.readonly`).
 
+**Notas (implementer, 2026-10-20)**: el scope `yt-analytics.readonly` ya estaba en `config/social.php` (google.scopes) desde T-13. Métricas (YouTube Analytics API v2, `channel_reports` verificado en la doc): views, estimatedMinutesWatched, likes, comments, shares, subscribersGained, subscribersLost; suscriptores/vídeos vía Data API `channels.list?part=statistics`. La API no da impresiones ni alcance → `null`. Sin filas (latencia 1-3 días) → `null`, se reintenta. **Pendiente manual**: confirmar en cuenta real que `yt-analytics.readonly` se concedió al conectar (los canales conectados antes de T-13 deben reconectar) y que la YouTube Analytics API está habilitada en el proyecto de Google Cloud.
+
 ### T-34 — Colector de TikTok Display API (condicionado a G1)
 
 - **Descripción**: Métricas disponibles de la Display API (pocas); lo no disponible se muestra como tal.
-- **Changelog**: Se recogen las estadísticas que TikTok permite.
-- **Estado**: borrador
+- **Changelog**: Se recogen las estadísticas que TikTok permite (seguidores y vídeos); el resto se muestra como no disponible.
+- **Estado**: completado
 - **Tiempo humano**: est. 10h · real —
-- **Tiempo IA (ejec.)**: est. 1.5h · real —
+- **Tiempo IA (ejec.)**: est. 1.5h · real 0.08h (medido)
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —
 - **Previsión IA**: 414k in / 41k out tok · ⚠️ verificar €
 - **Dependencias**: T-31, T-14
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/TikTok/Display.php`, `tests/Feature/Connectors/TikTok/Display/`
+- **Archivos**: `app/Connectors/TikTok/Display.php`, `tests/Feature/Connectors/TikTok/Display/`; añadidos al implementar: `app/Providers/AppServiceProvider.php` (registro de los 4 lectores), `tests/Feature/Connectors/TikTok/Display/TikTokDisplayTest.php`
 - **Cubre (tests)**: E2E-09
-- **Verificación**: `php artisan test --filter=TikTokDisplay` → pasa con respuestas grabadas
+- **Verificación**:
+  - `php artisan test --filter=TikTokDisplay` → pasa con respuestas grabadas
+  - real: `{"result":"passed","tests":7,"passed":7,"assertions":44}`
 
 **Criterios de aceptación**
-- [ ] Snapshot de métricas disponibles (CA-09)
+- [x] Snapshot de métricas disponibles (CA-09)
 
 **Subtareas**
-- [ ] Cliente Display
-- [ ] Colector
-- [ ] Tests
+- [x] Cliente Display
+- [x] Colector
+- [x] Tests
 
 **Notas**: Se cancela con G1 = D.
 **Aviso de la revisión Fases 4-5 (#13)**: en TikTok, `external_id` de un destino enviado a la bandeja es el `publish_id`, no un ID de vídeo; usarlo para métricas solo si `progress.external_id_kind = video_id`.
 **Decisión G1 (2026-10-19): TikTok = D + B.** Analítica limitada a lo que den `user.info.stats`/`video.list` si se conceden en la auditoría; sin ellos, mostrar «no disponible» por red (documentado, no bloquea).
 
+**Notas (implementer, 2026-10-20)**: sin `user.info.stats`/`video.list` en `account.scopes` todo es `null` y no hay llamada HTTP (`Http::assertNothingSent`). `external_id` solo se usa como ID de vídeo si `progress.external_id_kind = video_id` (un `publish_id` de borrador no se lee). Los scopes de estadísticas no se añaden a `social.tiktok.scopes` (decisión G1: solo tras auditoría). **Pendiente manual**: tras la auditoría, añadir los scopes a `social.tiktok.scopes`, reconectar y verificar `video/query`.
+
 ### T-35 — Normalización de métricas y cálculo de crecimiento/engagement
 
 - **Descripción**: Capa de normalización desacoplada de la versión de API, cálculo de crecimiento y engagement sin inventar equivalencias entre redes.
-- **Changelog**: Las métricas de todas las redes se presentan de forma comparable.
-- **Estado**: borrador
+- **Changelog**: Las métricas de todas las redes se presentan de forma comparable, sin inventar equivalencias.
+- **Estado**: completado
 - **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.39h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-32
 - **Tipo**: backend
-- **Archivos**: `app/Services/AnalyticsService.php`, `tests/Unit/Analytics/`
+- **Archivos**: `app/Services/AnalyticsService.php`, `tests/Unit/Analytics/`; añadidos al implementar: `app/Analytics/Calculator.php`, `app/Analytics/Period.php`, `tests/Unit/Analytics/CalculatorTest.php`, `tests/Feature/Analytics/AnalyticsServiceTest.php`
 - **Cubre (tests)**: E2E-10
-- **Verificación**: `php artisan test --filter=Analytics` → pasa (crecimiento, engagement, «no disponible»)
+- **Verificación**:
+  - `php artisan test --filter=Analytics` → pasa (crecimiento, engagement, «no disponible»)
+  - real: `{"result":"passed","tests":24,"passed":24,"assertions":149}` (incluye los 7 de YouTubeAnalytics por coincidencia de filtro)
 
 **Criterios de aceptación**
-- [ ] Crecimiento y engagement calculados correctamente
-- [ ] Métrica ausente = «no disponible» (no 0)
+- [x] Crecimiento y engagement calculados correctamente
+- [x] Métrica ausente = «no disponible» (no 0)
 
 **Subtareas**
-- [ ] Modelo normalizado
-- [ ] Cálculos
-- [ ] Tests
+- [x] Modelo normalizado
+- [x] Cálculos
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: crecimiento absoluto y %, delta frente al periodo de comparación, engagement = interacciones/visualizaciones, `null` ≠ 0, los flujos suman y los stocks toman el último valor, aislamiento por usuario.
 
 ### T-36 — Backfill inicial y métricas por publicación reciente
 
 - **Descripción**: Cargar el histórico que permita cada API al conectar una cuenta y refrescar métricas de publicaciones recientes (p. ej. cada 6 h las primeras 72 h).
-- **Changelog**: Al conectar una cuenta se importa el histórico disponible.
-- **Estado**: borrador
+- **Changelog**: Al conectar una cuenta se importa el histórico disponible y se refrescan las métricas de las publicaciones recientes.
+- **Estado**: completado
 - **Tiempo humano**: est. 12h · real —
-- **Tiempo IA (ejec.)**: est. 1.8h · real —
+- **Tiempo IA (ejec.)**: est. 1.8h · real 0.31h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-32
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/BackfillMetrics.php`, `app/Jobs/RefreshPostMetrics.php`, `tests/Feature/Backfill/`
+- **Archivos**: `app/Jobs/BackfillMetrics.php`, `app/Jobs/RefreshPostMetrics.php`, `tests/Feature/Backfill/`; añadidos al implementar: `app/Jobs/Concerns/GuardsInsightsErrors.php`, `app/Jobs/CollectAccountSnapshot.php` (refactor al trait), `app/Services/SocialAccountService.php` (encola el backfill al conectar), `config/social.php`, `routes/console.php`, `phpunit.xml` (`SOCIAL_BACKFILL_ON_CONNECT=false` en tests), `tests/Feature/Backfill/BackfillTest.php`
 - **Cubre (tests)**: E2E-09
-- **Verificación**: `php artisan test --filter=Backfill` → pasa
+- **Verificación**:
+  - `php artisan test --filter=Backfill` → pasa
+  - real: `{"result":"passed","tests":10,"passed":10,"assertions":23}`; suite completa tras T-36: 581 passed
 
 **Criterios de aceptación**
-- [ ] Backfill con el máximo histórico permitido por red
-- [ ] Refresco programado de publicaciones recientes
+- [x] Backfill con el máximo histórico permitido por red
+- [x] Refresco programado de publicaciones recientes
 
 **Subtareas**
-- [ ] Job de backfill
-- [ ] Refresco por publicación
-- [ ] Tests
+- [x] Job de backfill
+- [x] Refresco por publicación
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: máximo histórico por red IG/FB 30 d, YouTube 90 d, TikTok 0 (configurable); refresco de publicaciones recientes cada 6 h en una ventana de 72 h. Backfill por pasadas (presupuesto 80 s < timeout 100 s < worker 120 s), idempotente (salta días con datos), `ShouldBeUniqueUntilProcessing` por cuenta. **Pendiente manual**: el backfill de IG depende de que `views`/`reach` admitan rangos pasados (~30 d); confirmarlo con la cuenta real.
 
 ### T-37 — Dashboards por marca con gráficos por red
 
 - **Descripción**: Dashboard por marca con vista por red: seguidores y crecimiento, alcance, impresiones y engagement con ECharts/Chart.js, mostrando «no disponible» donde la API no lo dé.
-- **Changelog**: Panel de estadísticas por marca.
-- **Estado**: borrador
+- **Changelog**: Nuevo panel de estadísticas por marca con tarjetas resumen, gráficos por red, selector de periodo y comparación.
+- **Estado**: completado
 - **Tiempo humano**: est. 24h · real —
-- **Tiempo IA (ejec.)**: est. 3.7h · real —
+- **Tiempo IA (ejec.)**: est. 3.7h · real 0.57h (medido)
 - **Supervisión**: est. 0.9h (≈25 % IA) · real —
 - **Previsión IA**: 994k in / 99k out tok · ⚠️ verificar €
 - **Dependencias**: T-35
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Dashboard/`, `app/Http/Controllers/DashboardController.php`, `tests/Feature/Dashboard/`
+- **Archivos**: `resources/js/Pages/Dashboard/`, `app/Http/Controllers/DashboardController.php`, `tests/Feature/Dashboard/`; añadidos al implementar: `routes/web.php` (`/dashboard` y `/dashboard/{network}`), `resources/js/Pages/Dashboard/Index.vue`, `resources/js/Pages/Dashboard/Network.vue`, `resources/js/Pages/Dashboard/Partials/{LineChart,PeriodFilter,NetworkTabs}.vue`, `resources/js/Pages/Dashboard/Partials/format.js`, `resources/js/Pages/Dashboard.vue` (eliminado, sustituido), `tests/Feature/Dashboard/DashboardTest.php`
 - **Cubre (tests)**: E2E-10, M-03
 - **Verificación**:
   - `php artisan test --filter=Dashboard` → pasa
+  - real: `{"result":"passed","tests":11,"passed":11,"assertions":126}`; `npm run build` → `✓ built in 718ms`; suite completa 591 passed
   - lectura: M-03 revisa gráficos con datos reales
 
 **Criterios de aceptación**
-- [ ] Con ≥ 30 días de snapshots se ven seguidores, alcance, impresiones y engagement (CA-10)
-- [ ] «No disponible» donde proceda
+- [x] Con ≥ 30 días de snapshots se ven seguidores, alcance, impresiones y engagement (CA-10)
+- [x] «No disponible» donde proceda
 
 **Subtareas**
-- [ ] Componentes de gráficos
-- [ ] Vista por marca y red
-- [ ] Filtros de fecha
-- [ ] Tests
+- [x] Componentes de gráficos
+- [x] Vista por marca y red
+- [x] Filtros de fecha
+- [x] Tests
+
+**Notas (implementer, 2026-10-20)**: CA-10 cubierto por test con 30 días de snapshots (seguidores, alcance, visualizaciones e interacciones). Gráficos con SVG propio (`LineChart.vue`, sin ECharts/Chart.js: evita una dependencia nueva; corta la línea en días `null`). Mapa de calor: fuera de alcance v1. **Pendiente manual M-03 / E2E-09**: dejar correr el job diario con cuentas reales 30 días y revisar los gráficos; verificar que `collect-snapshots` (03:30 UTC) y `refresh-post-metrics` corren en el scheduler del VPS, que un worker escucha la cola `metrics` y añadir `metrics` a `QUEUE_NAMES`/unidad systemd del worker si el VPS lista colas explícitas (design.md: `publish,poll,metrics,reports`).
 
 ---
 
@@ -1552,3 +1579,5 @@ Lentes A+B+C+D (agente `reviewer`, contexto fresco) sobre `8479838~1..b9f4412` (
 | N5 | Minor | Idempotencia de YouTube solo mira la primera página de 10 subidas | T-26 | corregido: `findPublished` pagina la playlist de subidas (50/pag) con `pageToken` hasta pasar `since`, sin pagina siguiente o `youtube.lookup_max_pages` (3); coste anotado en `config/social.php`: <= 2 uds por pagina (6 uds max) | `YouTubePublisher.php:183-185` |
 | N6 | Minor | PULL_FROM_URL exige bucket público sin firma: toda la media queda accesible por URL (CWE-552; mitigado por claves ULID) | T-27 | decision documentada: no se copia a un prefijo aparte porque el dominio verificado expone todo el bucket y un prefijo no oculta nada sin WAF/bucket aparte. `.env.example` y runbook (seccion 8) advierten de que PULL_FROM_URL exige dominio publico y recomiendan bucket/prefijo publico separado + ciclo de vida 24 h | `TikTokPublisher.php:381-400` |
 | N7 | Minor | El tag `ss-<post_target_id>` expone el id interno secuencial en metadatos públicos (CWE-200) | T-26 | corregido: el tag es opaco `ss-<HMAC-SHA256(APP_KEY) 16 hex>` (`YouTubePublisher::targetTag()`), sin el id secuencial | `YouTubePublisher.php:248,592-595` |
+
+Verificación tras corregir N2-N7 (commit `ae90424`): `--filter="YouTubePublish|TikTokPublish|MediaChunkReader|Publishing|MediaProbe"` → 164 passed. **Sin gaps Critical/Important pendientes: bucle de las Fases 4-5 cerrado en el intento 2** (N3 y N6 como decisiones documentadas).

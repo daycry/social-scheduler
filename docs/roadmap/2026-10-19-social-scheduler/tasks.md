@@ -732,7 +732,7 @@ verificacion: obligatoria
 - **Changelog**: Se publica en páginas de Facebook.
 - **Estado**: en-progreso
 - **Tiempo humano**: est. 16h · real 0h (IA)
-- **Tiempo IA (ejec.)**: est. 2.5h · real 0.17h (medido)
+- **Tiempo IA (ejec.)**: est. 2.5h · real 0.09h (medido)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-12

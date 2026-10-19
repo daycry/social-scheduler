@@ -61,7 +61,7 @@ class DashboardController extends Controller
         $brand = ! empty($data['brand_id']) ? ($all->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : $all->first();
 
         try {
-            $period = Period::make($data['from'] ?? null, $data['to'] ?? null);
+            $period = Period::make($data['from'] ?? null, $data['to'] ?? null, $brand?->timezone);
         } catch (InvalidArgumentException $e) {
             abort(422, $e->getMessage());
         }

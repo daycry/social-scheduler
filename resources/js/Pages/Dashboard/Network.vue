@@ -130,7 +130,10 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
 
                         <!-- Publicaciones -->
                         <section class="rounded-lg bg-white p-5 shadow-sm" data-section="posts">
-                            <h3 class="text-sm font-semibold text-gray-700">Publicaciones del periodo ({{ detail.posts.length }})</h3>
+                            <h3 class="text-sm font-semibold text-gray-700">Publicaciones del periodo ({{ detail.posts_total }})</h3>
+                            <p v-if="detail.posts_truncated" class="mt-1 text-xs text-amber-700" data-testid="posts-truncated">
+                                Se muestran las {{ detail.posts.length }} con más interacciones de {{ detail.posts_total }}. Los KPIs por publicación incluyen todas.
+                            </p>
                             <p v-if="detail.posts.length === 0" class="mt-2 text-sm text-gray-500">No hay publicaciones de esta red en el periodo.</p>
                             <div v-else class="mt-3 overflow-x-auto">
                                 <table class="min-w-full text-sm">

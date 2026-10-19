@@ -37,6 +37,13 @@ Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
 - Proceso de verificación/auditoría de Google (plazo):
 - Veredicto: viable / limitado / no viable
 
+
+## Limpieza y borrado (2026-10-19)
+- FB: post de prueba borrado por API con el token de Página (`pages_manage_posts` basta) → `success: true`.
+- IG: `DELETE /{ig-media-id}` → `(#10) Insufficient permissions`: borrar exige **`instagram_manage_contents`** (no pedido). Las 2 imágenes se borran a mano.
+- YouTube: `videos.delete` → 403 `insufficientPermissions`: `youtube.upload` no permite borrar; hace falta **`youtube`** o `youtube.force-ssl`. Vídeo `f-pIxNXaDq0` se borra a mano.
+- ⇒ Para F2/F3: si el producto debe poder borrar o editar publicaciones, añadir esos scopes desde el principio.
+
 ## Tabla de viabilidad
 | Plataforma | Publicar | Insights | Veredicto | Riesgo principal |
 |---|---|---|---|---|

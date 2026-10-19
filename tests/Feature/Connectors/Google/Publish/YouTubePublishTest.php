@@ -534,3 +534,50 @@ test('YouTubePublish: la fase de subida tiene plazo propio y poll_max_minutes cu
     dispatch_sync(new PollPublishStatus($target->id));
     expect($target->fresh()->status)->toBe(PostStatus::Failed)->and($target->fresh()->error_code)->toBe('timeout_procesado');
 });
+
+test('YouTubePublish N1: editar la privacidad de un destino programado con sesion cacheada abre una sesion NUEVA con private; solo la fecha la conserva', function () {
+    $service = app(PostService::class);
+    $post = $service->create($this->user, $this->brand, [
+        'text' => 'Mi titulo', 'scheduled_at' => now()->addHour(), 'schedule' => true, 'media' => [$this->asset->id],
+        'targets' => [['account_id' => $this->account->id, 'content_type' => 'youtube_video', 'options' => ['privacy' => 'public']]],
+    ]);
+    $target = $post->targets->first();
+    $edit = fn (array $over) => $service->update($this->user, $post->fresh(), array_merge([
+        'text' => 'Mi titulo', 'scheduled_at' => $post->fresh()->scheduled_at, 'schedule' => true, 'media' => [$this->asset->id],
+        'targets' => [['account_id' => $this->account->id, 'content_type' => 'youtube_video', 'options' => ['privacy' => 'public']]],
+    ], $over));
+    $target->forceFill(['external_reference' => 'subiendo', 'progress' => ['phase' => 'uploading'], 'attempts' => 1])->save();
+    Cache::put('youtube:upload:'.$target->id, YT_SESSION, now()->addDay());
+
+    $edit(['scheduled_at' => now()->addHours(5)]); // solo la fecha
+    expect(Cache::has('youtube:upload:'.$target->id))->toBeTrue()->and($target->fresh()->external_reference)->toBe('subiendo');
+
+    $edit(['targets' => [['account_id' => $this->account->id, 'content_type' => 'youtube_video', 'options' => ['privacy' => 'private']]]]);
+    $t = $target->fresh();
+    expect(Cache::has('youtube:upload:'.$target->id))->toBeFalse()->and($t->external_reference)->toBeNull()->and($t->progress)->toBeNull()->and($t->attempts)->toBe(0);
+
+    ytHappyUpload($this->http);
+    $this->yt->publish($this->account, new PublishRequest($target->id, ContentType::YouTubeVideo, 'Mi titulo', [ytMedia()], ['privacy' => 'private'], null, now()->subMinutes(5)));
+
+    $sessions = $this->http->callsTo('POST', '#uploadType=resumable#');
+    expect($sessions)->toHaveCount(1)->and($sessions[0]['json']['status']['privacyStatus'])->toBe('private');
+});
+
+test('TikTok N1: editar el contenido de un destino programado descarta publish_id, upload_url y fase (sesion nueva)', function () {
+    $service = app(PostService::class);
+    $tt = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::TikTok]);
+    $post = $service->create($this->user, $this->brand, [
+        'text' => 'Titulo', 'scheduled_at' => now()->addHour(), 'schedule' => true, 'media' => [$this->asset->id],
+        'targets' => [['account_id' => $tt->id, 'content_type' => 'tiktok_video', 'options' => []]],
+    ]);
+    $target = $post->targets->first();
+    $target->forceFill(['external_reference' => 'PUB1', 'progress' => ['phase' => 'uploading', 'upload_url' => 'https://upload.tiktokapis.com/x', 'next_chunk' => 2], 'attempts' => 1])->save();
+
+    $service->update($this->user, $post->fresh(), [
+        'text' => 'Titulo NUEVO', 'scheduled_at' => $post->fresh()->scheduled_at, 'schedule' => true, 'media' => [$this->asset->id],
+        'targets' => [['account_id' => $tt->id, 'content_type' => 'tiktok_video', 'options' => []]],
+    ]);
+
+    $t = $target->fresh();
+    expect($t->external_reference)->toBeNull()->and($t->progress)->toBeNull()->and($t->attempts)->toBe(0);
+});

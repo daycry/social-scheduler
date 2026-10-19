@@ -247,8 +247,15 @@ test('MetaOAuth offers Instagram with a permission warning when instagram_conten
     expect($ig->meta['missing_scopes'])->toBe([]);
 });
 
+test('MetaOAuth refresh treats a revoked Page token (190) as permanent instead of keeping the stale one', function () {
+    metaFake(['graph.facebook.com/v23.0/P*' => Http::response(['error' => ['message' => 'Error validating access token', 'code' => 190]], 400)]);
+    $fb = SocialAccount::factory()->for($this->brand)->create(['network' => Network::Facebook, 'refresh_token' => 'USER-TOKEN', 'meta' => ['page_id' => 'P']]);
+
+    expect(fn () => (new MetaConnector)->refresh($fb))->toThrow(ReconnectRequiredException::class);
+});
+
 test('MetaOAuth refresh shares one token exchange between accounts that share the user token', function () {
-    metaFake();
+    metaFake(['graph.facebook.com/v23.0/P*' => Http::response(['access_token' => 'PAGE-TOKEN-NEW', 'id' => 'P'])]);
     $fb = SocialAccount::factory()->for($this->brand)->create(['network' => Network::Facebook, 'refresh_token' => 'SHARED-USER-TOKEN', 'meta' => ['page_id' => 'P']]);
     $ig = SocialAccount::factory()->for($this->brand)->create(['network' => Network::Instagram, 'refresh_token' => 'SHARED-USER-TOKEN', 'meta' => ['page_id' => 'P']]);
 

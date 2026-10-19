@@ -316,9 +316,9 @@ verificacion: obligatoria
 
 - **Descripción**: Documentar y automatizar el despliegue: dominio en Hestia con plantilla Laravel (`public/` como docroot), PHP 8.4/8.5, BD y usuario MariaDB, TLS Let's Encrypt, cron `schedule:run` cada minuto y script de deploy con `queue:restart`. Versionar los ajustes de Nginx/PHP-FPM (p. ej. `client_max_body_size`).
 - **Changelog**: Aplicación disponible en el VPS bajo HTTPS.
-- **Estado**: borrador
-- **Tiempo humano**: est. 14h · real —
-- **Tiempo IA (ejec.)**: est. 2.1h · real —
+- **Estado**: en-progreso
+- **Tiempo humano**: est. 14h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.1h · real 0.09h (medido)
 - **Supervisión**: est. 0.5h (≈25 % IA) · real —
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
@@ -332,16 +332,17 @@ verificacion: obligatoria
 **Criterios de aceptación**
 - [ ] La app responde 200 en `/up` bajo HTTPS en el VPS
 - [ ] Cron del scheduler activo
-- [ ] Ajustes de Hestia versionados en `deploy/hestia/`
-- [ ] Despliegue repetible con un solo comando
+- [x] Ajustes de Hestia versionados en `deploy/hestia/`
+- [x] Despliegue repetible con un solo comando
 
 **Subtareas**
 - [ ] Crear dominio y BD en Hestia
-- [ ] Ajustes de Nginx y PHP-FPM versionados
+- [x] Ajustes de Nginx y PHP-FPM versionados
 - [ ] Cron de Hestia para el scheduler
-- [ ] Script `deploy.sh` (pull, composer, migrate, caches, queue:restart)
+- [x] Script `deploy.sh` (pull, composer, migrate, caches, queue:restart)
 
 **Notas**: Requiere el acceso SSH/root confirmado. Parte del trabajo es no delegable (M-04).
+**Notas (implementer, 2026-10-19)**: Hecho y verificado en local: `deploy/hestia/deploy.sh` (down, migrate, caches, queue:restart, up, `app:health`; `--dry-run` sin efectos; `trap` que sube la app si falla), `deploy/hestia/nginx-overrides.conf`, `deploy/hestia/README.md` (runbook: dominio, plantilla Laravel, BD, TLS, PHP-FPM, cron, M-04) y `.env.production.example`. Verificacion: `bash -n deploy/hestia/deploy.sh` OK; `bash deploy/hestia/deploy.sh --dry-run` -> lista 14 pasos, exit 0; argumento desconocido -> exit 2. **PENDIENTE (manual en el VPS, M-04)**: crear dominio/BD/TLS en Hestia, instalar los ajustes de Nginx/PHP-FPM, dar de alta el cron `schedule:run` y comprobar `curl -sI https://<dominio>/up` -> 200. Los criterios 'responde 200 bajo HTTPS' y 'cron activo' y las subtareas 'Crear dominio y BD' y 'Cron de Hestia' NO se marcan: no verificables sin el VPS. La tarea sigue en-progreso hasta M-04.
 
 ### T-10 — Almacenamiento R2, cola `database`, workers systemd y healthcheck
 

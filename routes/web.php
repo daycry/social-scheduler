@@ -4,6 +4,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OAuth\OAuthController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -32,6 +33,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('brands.connections.connect');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('connections.callback');
+
+    // Compositor de publicaciones (T-23).
+    Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
+    Route::post('brands/{brand}/posts', [PostController::class, 'store'])->name('brands.posts.store');
+    Route::post('brands/{brand}/posts/validate', [PostController::class, 'validatePost'])->name('brands.posts.validate');
+    Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
+    Route::put('posts/{post}', [PostController::class, 'update'])->name('posts.update');
+    Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 
     // Media (T-17): prefirmado/finalizacion JSON; el binario va directo a R2 (o a `upload` en dev).
     Route::get('media', [MediaController::class, 'index'])->name('media.index');

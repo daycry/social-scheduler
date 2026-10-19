@@ -712,7 +712,7 @@ verificacion: obligatoria
 **Criterios de aceptación**
 - [ ] Cada tipo se publica y queda `publicada` con enlace/ID externo (CA-06)
 - [x] Errores de la API mapeados a transitorios o permanentes
-- [ ] Limitaciones de stories avisadas en el compositor (datos en ContentType::limitations(); se muestran en T-23)
+- [x] Limitaciones de stories avisadas en el compositor (T-23 las muestra al elegir el tipo)
 
 **Subtareas**
 - [x] Imagen y carrusel
@@ -761,29 +761,32 @@ verificacion: obligatoria
 
 - **Descripción**: Formulario de creación y edición: elegir marca, cuentas y tipo, texto, media y fecha/hora con zona horaria; muestra errores de validación de media y limitaciones por red.
 - **Changelog**: Se pueden programar publicaciones desde un compositor.
-- **Estado**: borrador
-- **Tiempo humano**: est. 18h · real —
-- **Tiempo IA (ejec.)**: est. 2.8h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 18h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.8h · real 0.16h (medido)
 - **Supervisión**: est. 0.7h (≈25 % IA) · real —
 - **Previsión IA**: 745k in / 75k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-21
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Posts/Compose.vue`, `resources/js/Components/`, `app/Http/Controllers/PostController.php`, `tests/Feature/Posts/Compose/`
+- **Archivos**: `resources/js/Pages/Posts/Compose.vue`, `resources/js/Components/`, `app/Http/Controllers/PostController.php`, `tests/Feature/Posts/Compose/`, `app/Services/PostService.php`, `app/Policies/PostPolicy.php`, `app/Http/Requests/PostRequest.php`, `resources/js/Components/MediaUploader.vue`, `resources/js/Pages/Brands/Show.vue`, `routes/web.php`, `tests/Feature/Posts/Compose/ComposeTest.php`
 - **Cubre (tests)**: E2E-05, E2E-06, M-01
 - **Verificación**: `php artisan test --filter=Compose` → pasa
 
 **Criterios de aceptación**
-- [ ] Programación guardada y visible
-- [ ] Media inválida se rechaza con el límite incumplido (CA-05)
-- [ ] Edición y borrado de pendientes
+- [x] Programación guardada y visible
+- [x] Media inválida se rechaza con el límite incumplido (CA-05)
+- [x] Edición y borrado de pendientes
 
 **Subtareas**
-- [ ] Formulario por red/tipo
-- [ ] Integración con el validador
-- [ ] Previsualización básica
-- [ ] Tests de feature
+- [x] Formulario por red/tipo
+- [x] Integración con el validador
+- [x] Previsualización básica
+- [x] Tests de feature
 
 **Notas**: El compositor incorpora YouTube y TikTok en T-26 y T-27.
+
+---
+**Notas (implementer, 2026-10-19)**: `PostController` (crear, editar, programar, borrar, y validacion en vivo `POST brands/{brand}/posts/validate`) sobre `PostService`; todas las rutas autorizan por Policy y el UserScope da 404 a otros usuarios. `Posts/Compose.vue`: cuentas de la marca con selector de tipo por red, limitaciones por tipo (`ContentType::limitations()`: p. ej. las historias de IG no admiten texto), media con subida (`MediaUploader`, ordenable), fecha en la zona horaria de la marca (se guarda en UTC), validacion en vivo contra `MediaValidator` (muestra el limite incumplido, CA-05), previsualizacion basica y estado por red al editar; las ya publicadas/en vuelo quedan de solo lectura. Programar o Guardar borrador desde el mismo formulario; el calendario (T-24) sustituira la redireccion a la edicion. **Verificacion**: `php artisan test --filter=Compose` -> 11 passed, 112 assertions; `npm run build` OK; suite completa 304 passed. **Manual (no bloquea el cierre)**: probar el compositor en el navegador con cuentas reales dentro de M-01.
 
 ### T-24 — Calendario por marca y red con reprogramación
 

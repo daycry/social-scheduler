@@ -32,6 +32,27 @@ class PostService
 {
     public function __construct(private readonly MediaValidator $validator) {}
 
+    /**
+     * Valida sin guardar (vista previa del compositor). Devuelve los errores por campo, vacio si es valido.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, list<string>>
+     */
+    public function validate(User $user, Brand $brand, array $data): array
+    {
+        if ($brand->user_id !== $user->id) {
+            return ['brand' => ['La marca no pertenece al usuario.']];
+        }
+
+        try {
+            $this->plan($user, $brand, $data);
+        } catch (PostValidationException $e) {
+            return $e->errors();
+        }
+
+        return [];
+    }
+
     /** @param array<string, mixed> $data */
     public function create(User $user, Brand $brand, array $data): Post
     {

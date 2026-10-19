@@ -18,6 +18,7 @@ defineProps({ brand: Object });
                 <p class="text-gray-700">{{ brand.description }}</p>
                 <p class="text-sm text-gray-500">Zona horaria: {{ brand.timezone }}</p>
                 <div class="space-x-4">
+                    <Link :href="route('brands.posts.create', brand.id)" class="text-indigo-600">Nueva publicación</Link>
                     <Link :href="route('brands.connections.index', brand.id)" class="text-indigo-600">Conexiones</Link>
                     <Link :href="route('brands.edit', brand.id)" class="text-indigo-600">Editar</Link>
                 </div>

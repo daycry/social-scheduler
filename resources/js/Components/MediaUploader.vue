@@ -4,7 +4,7 @@ import { ref } from 'vue';
 /**
  * Sube un fichero de media. En produccion el navegador envia el binario directamente a R2 con URLs
  * prefirmadas (un PUT, o multipart por partes para videos grandes); la app solo prefirma y finaliza.
- * Emite `uploaded` con el asset listo (metadatos extraidos) o `error` con el motivo.
+ * Emite `uploaded` con el asset listo (y el File original, para previsualizar) (metadatos extraidos) o `error` con el motivo.
  */
 const emit = defineEmits(['uploaded', 'error']);
 defineProps({ label: { type: String, default: 'Subir imagen o video' } });
@@ -84,7 +84,7 @@ const onFile = async (event) => {
         }
 
         if (!ready || ready.status !== 'listo') throw new Error(ready?.error || 'El fichero no es valido.');
-        emit('uploaded', ready);
+        emit('uploaded', ready, file);
     } catch (e) {
         message.value = e.message;
         emit('error', e.message);

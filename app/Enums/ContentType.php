@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Enums;
+
+use App\Connectors\Network;
+
+/**
+ * Tipos de contenido nativos que se pueden programar (CA-06). La historia de Instagram admite imagen
+ * o video: para validar se resuelve a su variante segun la media (13 reglas de `config/media_specs.php`).
+ */
+enum ContentType: string
+{
+    case InstagramImage = 'instagram_image';
+    case InstagramCarousel = 'instagram_carousel';
+    case InstagramReel = 'instagram_reel';
+    case InstagramStory = 'instagram_story';
+    case FacebookText = 'facebook_text';
+    case FacebookPhoto = 'facebook_photo';
+    case FacebookVideo = 'facebook_video';
+    case FacebookReel = 'facebook_reel';
+    case YouTubeVideo = 'youtube_video';
+    case YouTubeShort = 'youtube_short';
+    case TikTokVideo = 'tiktok_video';
+    case TikTokPhoto = 'tiktok_photo';
+
+    public function network(): Network
+    {
+        return match ($this) {
+            self::InstagramImage, self::InstagramCarousel, self::InstagramReel, self::InstagramStory => Network::Instagram,
+            self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel => Network::Facebook,
+            self::YouTubeVideo, self::YouTubeShort => Network::YouTube,
+            self::TikTokVideo, self::TikTokPhoto => Network::TikTok,
+        };
+    }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::InstagramImage => 'Publicacion de imagen',
+            self::InstagramCarousel => 'Carrusel',
+            self::InstagramReel => 'Reel',
+            self::InstagramStory => 'Historia',
+            self::FacebookText => 'Texto o enlace',
+            self::FacebookPhoto => 'Foto',
+            self::FacebookVideo => 'Video',
+            self::FacebookReel => 'Reel',
+            self::YouTubeVideo => 'Video',
+            self::YouTubeShort => 'Short',
+            self::TikTokVideo => 'Video',
+            self::TikTokPhoto => 'Fotos (carrusel)',
+        };
+    }
+
+    /**
+     * Clave de la regla en `config/media_specs.php`.
+     *
+     * @param  string|null  $firstMediaKind  'image' | 'video' (solo importa en las historias de Instagram).
+     */
+    public function specKey(?string $firstMediaKind = null): string
+    {
+        if ($this === self::InstagramStory) {
+            return $firstMediaKind === 'video' ? 'instagram_story_video' : 'instagram_story_image';
+        }
+
+        return $this->value;
+    }
+
+    /** @return list<self> */
+    public static function forNetwork(Network $network): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $t) => $t->network() === $network));
+    }
+}

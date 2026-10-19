@@ -604,28 +604,31 @@ verificacion: obligatoria
 
 - **Descripción**: Reglas por red y tipo (dimensiones, duración, peso, códec, nº de elementos de carrusel) en configuración, contrastadas con la documentación oficial (⚠️ verificar). Mensajes concretos del límite incumplido.
 - **Changelog**: La aplicación avisa antes de programar si el contenido no cumple los límites de la red.
-- **Estado**: borrador
-- **Tiempo humano**: est. 16h · real —
-- **Tiempo IA (ejec.)**: est. 2.5h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 16h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.5h · real 0.15h (medido)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-17
 - **Tipo**: backend
-- **Archivos**: `app/Services/MediaValidator.php`, `config/media_specs.php`, `tests/Unit/MediaValidator/`
+- **Archivos**: `app/Services/MediaValidator.php`, `config/media_specs.php`, `tests/Unit/MediaValidator/`, `app/Enums/ContentType.php`, `tests/Feature/Media/MediaValidatorSampleTest.php`, `tests/Unit/MediaValidator/MediaValidatorTest.php`
 - **Cubre (tests)**: E2E-05
 - **Verificación**: `php artisan test --filter=MediaValidator` → pasa para los 13 tipos de contenido, con casos límite
 
 **Criterios de aceptación**
-- [ ] Un vídeo que excede los límites de un reel de IG se rechaza indicando el límite (CA-05)
-- [ ] Reglas versionadas en `config/media_specs.php`
-- [ ] Cobertura de los 13 tipos
+- [x] Un vídeo que excede los límites de un reel de IG se rechaza indicando el límite (CA-05)
+- [x] Reglas versionadas en `config/media_specs.php`
+- [x] Cobertura de los 13 tipos
 
 **Subtareas**
-- [ ] Matriz de specs oficial por tipo
-- [ ] Validador y mensajes
-- [ ] Tests con ficheros de muestra
+- [x] Matriz de specs oficial por tipo
+- [x] Validador y mensajes
+- [x] Tests con ficheros de muestra
 
 **Notas**: Sin transcodificación (fuera de alcance, +20–30 h).
+
+---
+**Notas (implementer, 2026-10-19)**: `config/media_specs.php` (version 2026-10-19) define las reglas de los 13 tipos (IG imagen/carrusel/reel/historia-imagen/historia-video, FB texto/foto/video/reel, YT video/short, TikTok video/fotos) y `MediaValidator` devuelve mensajes con el limite exacto (p. ej. «dura 20 min y un reel de Instagram admite como maximo 15 min», CA-05). Incluye TikTok >= 23 fps (spike), IG solo JPEG. Los limites de las redes estan puestos de memoria de la documentacion oficial y marcados en el fichero como VERIFICAR contra la doc vigente al tocarlos (el ledger ya pedia ⚠️ verificar); sin transcodificacion (un PNG para IG se rechaza). **Verificacion**: `php artisan test --filter=MediaValidator` -> 40 passed, 109 assertions (13 validos + 22 invalidos + limites exactos + videos de muestra reales con ffmpeg/ffprobe).
 
 ### T-19 — Modelo de publicaciones, máquina de estados y PostService
 

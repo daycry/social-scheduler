@@ -2,9 +2,11 @@
 
 use App\Jobs\QueueProbeJob;
 use App\Support\HealthCheck;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,6 +22,35 @@ test('r2 disk is an s3 driver configured for r2', function () {
         ->and($disk['use_path_style_endpoint'])->toBeTrue()
         ->and($disk['region'])->toBe('auto');
     expect(array_keys($disk))->toContain('bucket', 'endpoint', 'url');
+});
+
+test('r2 disk has bounded http timeouts', function () {
+    $disk = config('filesystems.disks.r2');
+
+    expect($disk['http']['connect_timeout'])->toBe(3.0)
+        ->and($disk['http']['timeout'])->toBe(5.0);
+    // Verificado a mano: contra una IP no enrutable el put falla a los ~3 s (connect_timeout).
+});
+
+test('storage check fails fast and generic when the disk throws', function () {
+    Log::spy();
+    config(['filesystems.media' => 'r2']);
+    $fake = Mockery::mock(Filesystem::class);
+    $fake->shouldReceive('put')->andThrow(new RuntimeException('cURL error 28: timeout https://secret-host'));
+    Storage::shouldReceive('disk')->with('r2')->andReturn($fake);
+
+    $check = app(HealthCheck::class)->storage();
+
+    expect($check['ok'])->toBeFalse()->and($check['detail'])->not->toContain('secret-host');
+    Log::shouldHaveReceived('error')->with('health.check_failed', Mockery::type('array'))->once();
+});
+
+test('local disk write failure is reported explicitly', function () {
+    $fake = Mockery::mock(Filesystem::class);
+    $fake->shouldReceive('put')->andReturn(false);
+    Storage::shouldReceive('disk')->andReturn($fake);
+
+    expect(app(HealthCheck::class)->storage())->toMatchArray(['ok' => false]);
 });
 
 test('media disk falls back to local in test and r2 is operative when faked', function () {
@@ -75,14 +106,58 @@ test('app:health fails without scheduler heartbeat unless skipped', function () 
     expect(Artisan::call('app:health', ['--skip-scheduler' => true]))->toBe(0);
 });
 
-test('app:health reports failed jobs', function () {
+test('a recent failed job degrades health but does not make it fail', function () {
     Cache::put(HealthCheck::HEARTBEAT_KEY, now()->timestamp);
     DB::table('failed_jobs')->insert([
         'uuid' => 'x', 'connection' => 'database', 'queue' => 'publish',
         'payload' => '{}', 'exception' => 'boom', 'failed_at' => now(),
     ]);
 
-    expect(Artisan::call('app:health'))->toBe(1);
+    expect(Artisan::call('app:health', ['--json' => true]))->toBe(0);
+    $result = json_decode(Artisan::output(), true);
+
+    expect($result['ok'])->toBeTrue()->and($result['status'])->toBe('degraded')
+        ->and($result['checks']['queue']['detail'])->toContain('AVISO', 'fallidos_24h=1');
+});
+
+test('an old failed job neither degrades nor breaks health', function () {
+    Cache::put(HealthCheck::HEARTBEAT_KEY, now()->timestamp);
+    DB::table('failed_jobs')->insert([
+        'uuid' => 'old', 'connection' => 'database', 'queue' => 'publish',
+        'payload' => '{}', 'exception' => 'boom', 'failed_at' => now()->subDays(10),
+    ]);
+
+    $result = app(HealthCheck::class)->run();
+
+    expect($result['ok'])->toBeTrue()->and($result['status'])->toBe('ok')
+        ->and($result['checks']['queue']['detail'])->toContain('fallidos_total=1');
+});
+
+test('a failing database is reported as down with a generic message', function () {
+    Log::spy();
+    DB::shouldReceive('connection')->andThrow(new RuntimeException('SQLSTATE[HY000] [2002] host=10.0.0.5 password=hunter2'));
+
+    $check = app(HealthCheck::class)->database();
+
+    expect($check['ok'])->toBeFalse()->and($check['detail'])->not->toContain('hunter2');
+});
+
+test('app:queue-probe validates --wait and the queue names', function () {
+    expect(Artisan::call('app:queue-probe', ['--wait' => 'abc']))->not->toBe(0);
+    expect(Artisan::call('app:queue-probe', ['--wait' => '-3']))->not->toBe(0);
+
+    config(['queue.names' => []]);
+    expect(Artisan::call('app:queue-probe'))->toBe(1);
+});
+
+test('empty QUEUE_NAMES falls back to the default queues', function () {
+    $_ENV['QUEUE_NAMES'] = '';
+    putenv('QUEUE_NAMES=');
+    $names = (require base_path('config/queue.php'))['names'];
+    unset($_ENV['QUEUE_NAMES']);
+    putenv('QUEUE_NAMES');
+
+    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports']);
 });
 
 test('stale heartbeat is detected', function () {
@@ -116,6 +191,23 @@ test('health endpoint is closed without token and works with it', function () {
     $this->get('/health', ['X-Health-Token' => 'secreto'])->assertStatus(503);
 });
 
+test('health endpoint is outside the web group (no session) and rate limited', function () {
+    $route = app('router')->getRoutes()->getByName('health');
+
+    expect($route->gatherMiddleware())->not->toContain('web')
+        ->and($route->gatherMiddleware())->toContain('throttle:30,1');
+
+    config(['app.healthcheck_token' => 'secreto']);
+    Cache::put(HealthCheck::HEARTBEAT_KEY, now()->timestamp);
+    $this->get('/health', ['X-Health-Token' => 'secreto'])->assertOk()->assertJsonPath('status', 'ok');
+    expect(DB::table('sessions')->count())->toBe(0);
+
+    for ($i = 0; $i < 40; $i++) {
+        $last = $this->get('/health', ['X-Health-Token' => 'mal']);
+    }
+    expect($last->getStatusCode())->toBe(429);
+});
+
 test('scheduler registers the heartbeat every minute', function () {
     Artisan::call('schedule:list');
 
@@ -128,5 +220,7 @@ test('systemd unit is a template with recycling and restart policy', function ()
     expect($unit)->toContain('--queue=%i')
         ->toContain('--max-time=3600')
         ->toContain('--max-jobs=500')
-        ->toContain('Restart=always');
+        ->toContain('Restart=always')
+        ->toContain('NoNewPrivileges=true', 'PrivateTmp=true', 'ProtectSystem=strict', 'ReadWritePaths=')
+        ->toContain('ProtectHome=read-only', 'Environment=PHP_BIN=', '${PHP_BIN} artisan queue:work');
 });

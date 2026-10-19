@@ -15,18 +15,34 @@ class QueueProbe extends Command
 
     public function handle(): int
     {
+        $wait = $this->option('wait');
+
+        if (! is_numeric($wait) || (int) $wait < 0) {
+            $this->error("--wait debe ser un numero de segundos >= 0 (recibido: '$wait').");
+
+            return self::INVALID;
+        }
+
+        $names = config('queue.names');
+
+        if ($names === []) {
+            $this->error('QUEUE_NAMES no define ninguna cola.');
+
+            return self::FAILURE;
+        }
+
         $probes = [];
 
-        foreach (config('queue.names') as $queue) {
+        foreach ($names as $queue) {
             $id = (string) Str::uuid();
             QueueProbeJob::dispatch($id)->onQueue($queue);
             $probes[$queue] = $id;
             $this->line("encolado en '$queue' ($id)");
         }
 
-        $wait = (int) $this->option('wait');
+        $wait = (int) $wait;
 
-        if ($wait <= 0) {
+        if ($wait === 0) {
             return self::SUCCESS;
         }
 

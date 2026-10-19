@@ -67,6 +67,12 @@ return [
             'visibility' => 'private',
             'throw' => true,
             'report' => false,
+            // Sin timeouts un R2 degradado bloquea workers PHP-FPM y el healthcheck.
+            'http' => [
+                'connect_timeout' => (float) env('R2_CONNECT_TIMEOUT', 3),
+                'timeout' => (float) env('R2_TIMEOUT', 5),
+            ],
+            'retries' => (int) env('R2_RETRIES', 1),
         ],
 
         's3' => [

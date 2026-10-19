@@ -18,6 +18,12 @@ return [
     'default' => env('CACHE_STORE', 'database'),
 
     /*
+    | Store del rate limiter (null = el store por defecto). En produccion con cache en BD
+    | conviene `file` para que el throttle de /health no dependa de la base de datos.
+    */
+    'limiter' => env('CACHE_LIMITER_STORE'),
+
+    /*
     |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------

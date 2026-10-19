@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 /**
  * Endpoint para el healthcheck externo (UptimeRobot, Healthchecks.io, cron remoto).
- * Requiere el token en la cabecera X-Health-Token; sin HEALTHCHECK_TOKEN configurado esta cerrado.
+ * Fuera del grupo `web` (sin sesion) y con rate limit. Requiere el token en la cabecera X-Health-Token; sin HEALTHCHECK_TOKEN configurado esta cerrado.
  */
 class HealthController extends Controller
 {

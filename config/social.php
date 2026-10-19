@@ -97,4 +97,30 @@ return [
         /* Borrador en `PROCESSING_UPLOAD` tras la subida completa: pasados estos minutos se da por publicado con nota. */
         'inbox_grace_minutes' => (int) env('TIKTOK_INBOX_GRACE_MINUTES', 10),
     ],
+
+    /*
+    | Analitica (fase 7, T-31..T-37). Cola `metrics`; los jobs tienen $timeout < 120 (timeout del worker).
+    */
+    'analytics' => [
+        'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
+        /* Hora UTC del job diario: el dia anterior ya esta cerrado en todas las zonas habituales. */
+        'daily_at' => env('SOCIAL_ANALYTICS_DAILY_AT', '03:30'),
+        /* Dias anteriores a ayer que se reintentan si su snapshot falta o salio vacio (latencia de YouTube, caidas). */
+        'settle_days' => (int) env('SOCIAL_ANALYTICS_SETTLE_DAYS', 2),
+        /* Publicaciones recientes cuyo snapshot se toma en el job diario. */
+        'recent_post_days' => (int) env('SOCIAL_ANALYTICS_RECENT_POST_DAYS', 30),
+        'max_posts_per_account' => (int) env('SOCIAL_ANALYTICS_MAX_POSTS', 50),
+        /* Refresco frecuente de publicaciones nuevas: cada `refresh_hours` durante `refresh_window_hours`. */
+        'refresh_hours' => (int) env('SOCIAL_ANALYTICS_REFRESH_HOURS', 6),
+        'refresh_window_hours' => (int) env('SOCIAL_ANALYTICS_REFRESH_WINDOW', 72),
+        /* Dias de historico que se piden al conectar (maximo razonable por red; Meta ofrece ~30 en cuenta). */
+        'backfill_days' => [
+            'instagram' => (int) env('SOCIAL_BACKFILL_DAYS_INSTAGRAM', 30),
+            'facebook' => (int) env('SOCIAL_BACKFILL_DAYS_FACEBOOK', 30),
+            'youtube' => (int) env('SOCIAL_BACKFILL_DAYS_YOUTUBE', 90),
+            'tiktok' => 0, // la Display API no ofrece serie historica
+        ],
+        /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
+        'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),
+    ],
 ];

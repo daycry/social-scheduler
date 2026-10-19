@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\CollectSnapshots;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\RefreshTokens;
 use App\Support\HealthCheck;
@@ -29,3 +30,6 @@ Schedule::job(new RefreshTokens)->everyThirtyMinutes()->name('refresh-social-tok
 // Publica lo vencido y recupera lo colgado (T-20). En linea (no en cola) para que no espere a un worker ocupado;
 // withoutOverlapping evita pasadas solapadas si una tarda mas de un minuto.
 Schedule::call(fn () => app(DispatchDuePosts::class)())->everyMinute()->name('dispatch-due-posts')->withoutOverlapping(5);
+
+// Snapshot diario de metricas por cuenta (T-31, CA-09): ayer ya esta cerrado. Cola `metrics`.
+Schedule::job(new CollectSnapshots)->dailyAt((string) config('social.analytics.daily_at', '03:30'))->name('collect-snapshots')->withoutOverlapping();

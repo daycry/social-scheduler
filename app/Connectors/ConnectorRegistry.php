@@ -3,6 +3,7 @@
 namespace App\Connectors;
 
 use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\InsightsReader;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Exceptions\ConnectorException;
 
@@ -13,6 +14,9 @@ class ConnectorRegistry
 
     /** @var array<string, Publisher> */
     private array $publishers = [];
+
+    /** @var array<string, InsightsReader> */
+    private array $insights = [];
 
     public function register(Connector $connector): static
     {
@@ -27,6 +31,19 @@ class ConnectorRegistry
         $this->publishers[$network->value] = $publisher;
 
         return $this;
+    }
+
+    /** Lector de metricas de una red (T-32, T-33, T-34). */
+    public function registerInsights(Network $network, InsightsReader $reader): static
+    {
+        $this->insights[$network->value] = $reader;
+
+        return $this;
+    }
+
+    public function insightsFor(Network $network): ?InsightsReader
+    {
+        return $this->insights[$network->value] ?? null;
     }
 
     public function publisherFor(Network $network): ?Publisher

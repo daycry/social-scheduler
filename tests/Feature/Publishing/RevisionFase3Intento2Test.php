@@ -3,7 +3,9 @@
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Network;
+use App\Enums\ContentType;
 use App\Enums\PostStatus;
+use App\Exceptions\PostValidationException;
 use App\Jobs\DispatchDuePosts;
 use App\Models\Brand;
 use App\Models\MediaAsset;
@@ -11,9 +13,12 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\PublishFailed;
 use App\Services\PostService;
+use App\Services\PublishRecovery;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeGraph;
 
@@ -136,7 +141,7 @@ function i2Processing(array $accountAttrs = [], bool $deleteAccount = false): ar
     $account = SocialAccount::factory()->for(test()->user)->create(['brand_id' => test()->brand->id, 'network' => Network::Instagram] + $accountAttrs);
     $post = Post::factory()->create(['brand_id' => test()->brand->id, 'user_id' => test()->user->id, 'scheduled_at' => now()->subHour(), 'status' => PostStatus::Processing]);
     $target = PostTarget::factory()->create([
-        'post_id' => $post->id, 'user_id' => test()->user->id, 'social_account_id' => $account->id, 'content_type' => \App\Enums\ContentType::InstagramImage,
+        'post_id' => $post->id, 'user_id' => test()->user->id, 'social_account_id' => $account->id, 'content_type' => ContentType::InstagramImage,
         'status' => PostStatus::Processing, 'external_reference' => 'C1', 'started_at' => now()->subHour(), 'next_attempt_at' => now()->subMinute(),
     ]);
 
@@ -154,34 +159,34 @@ test('N2: un destino procesando de una cuenta desconectada o borrada pasa a fall
         : i2Processing(['status' => SocialAccount::STATUS_DISCONNECTED]);
     expect($target->fresh()->status)->toBe(PostStatus::Processing);
 
-    $result = app(\App\Services\PublishRecovery::class)->run();
+    $result = app(PublishRecovery::class)->run();
 
     $t = $target->fresh();
     expect($result['abandoned'])->toBe(1)->and($t->status)->toBe(PostStatus::Failed)->and($t->error_code)->toBe('cuenta_no_disponible')->and($t->error_message)->not->toBeEmpty();
-    Notification::assertSentTo($this->user, \App\Notifications\PublishFailed::class);
+    Notification::assertSentTo($this->user, PublishFailed::class);
 })->with(['borrada', 'desconectada']);
 
 test('N2: con la cuenta pendiente de reconectar espera el plazo configurable y despues falla con motivo claro', function () {
     config(['publishing.reconnect_grace_hours' => 72]);
     [$post, $target, $account] = i2Processing(['status' => SocialAccount::STATUS_RECONNECT]);
 
-    app(\App\Services\PublishRecovery::class)->run();
+    app(PublishRecovery::class)->run();
     expect($target->fresh()->status)->toBe(PostStatus::Processing); // dentro del plazo: se espera la reconexion
 
     Carbon::setTestNow(now()->addHours(73));
-    $result = app(\App\Services\PublishRecovery::class)->run();
+    $result = app(PublishRecovery::class)->run();
 
     $t = $target->fresh();
     expect($result['abandoned'])->toBe(1)->and($t->status)->toBe(PostStatus::Failed)->and($t->error_code)->toBe('cuenta_no_disponible')
         ->and($t->error_message)->toContain('72 h');
-    Notification::assertSentTo($this->user, \App\Notifications\PublishFailed::class);
+    Notification::assertSentTo($this->user, PublishFailed::class);
 });
 
 test('N2: una cuenta activa no se toca', function () {
-    \Illuminate\Support\Facades\Queue::fake(); // el sondeo normal de una cuenta activa no es lo que se prueba aqui
+    Queue::fake(); // el sondeo normal de una cuenta activa no es lo que se prueba aqui
     [$post, $target] = i2Processing();
 
-    $r = app(\App\Services\PublishRecovery::class)->run();
+    $r = app(PublishRecovery::class)->run();
 
     expect([$r['abandoned'], $target->fresh()->error_code, $target->fresh()->status])->toBe([0, null, PostStatus::Processing]);
 });
@@ -202,7 +207,7 @@ test('N2: el usuario puede borrar y cancelar (a borrador) una publicacion proces
 test('N2: con la cuenta ACTIVA un destino procesando sigue sin poderse borrar ni cancelar', function () {
     [$post, $target] = i2Processing();
 
-    expect(fn () => $this->service->delete($this->user, $post->fresh()))->toThrow(\App\Exceptions\PostValidationException::class);
-    expect(fn () => $this->service->unschedule($this->user, $post->fresh()))->toThrow(\App\Exceptions\PostValidationException::class);
+    expect(fn () => $this->service->delete($this->user, $post->fresh()))->toThrow(PostValidationException::class);
+    expect(fn () => $this->service->unschedule($this->user, $post->fresh()))->toThrow(PostValidationException::class);
     expect($target->fresh()->status)->toBe(PostStatus::Processing);
 });

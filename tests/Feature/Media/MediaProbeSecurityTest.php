@@ -1,5 +1,6 @@
 <?php
 
+use App\Connectors\Support\MediaChunkReader;
 use App\Enums\ContentType;
 use App\Models\Brand;
 use App\Models\MediaAsset;
@@ -263,7 +264,7 @@ function recordingProbe(array &$ranges): MediaProbe
             parent::__construct($storage);
         }
 
-        protected function fetchRange(\App\Connectors\Support\MediaChunkReader $reader, int $offset, int $length): string
+        protected function fetchRange(MediaChunkReader $reader, int $offset, int $length): string
         {
             $this->log[] = [$offset, $length];
 

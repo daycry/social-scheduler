@@ -2,6 +2,7 @@
 
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Network;
 use App\Enums\ContentType;
@@ -118,5 +119,5 @@ test('N5: findPublished sin contenedor y con el presupuesto agotado no publica a
     $budget->spent();
     $request = new PublishRequest(77, ContentType::InstagramImage, 'Hola', [], [], null, now()->subMinutes(5), [], null, $budget);
 
-    expect(fn () => $this->ig->findPublished($this->account, $request))->toThrow(\App\Connectors\Exceptions\TransientPublishException::class);
+    expect(fn () => $this->ig->findPublished($this->account, $request))->toThrow(TransientPublishException::class);
 });

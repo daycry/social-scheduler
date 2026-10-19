@@ -53,7 +53,7 @@ class FakeGraph
     private function handle(Request $request)
     {
         $url = parse_url($request->url());
-        $path = preg_replace('#^/v[\d.]+/#', '', $url['path'] ?? '');
+        $path = ltrim(preg_replace('#^/v[\d.]+/#', '', $url['path'] ?? ''), '/');
         parse_str($url['query'] ?? '', $query);
         $params = $request->method() === 'GET' ? $query : (array) $request->data();
         $this->calls[] = ['method' => $request->method(), 'path' => $path, 'params' => $params];

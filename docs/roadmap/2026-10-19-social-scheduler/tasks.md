@@ -730,14 +730,14 @@ verificacion: obligatoria
 
 - **Descripción**: Publicación en páginas de Facebook (texto/enlace, foto, vídeo y reel) con el token de página y polling del procesamiento de vídeo.
 - **Changelog**: Se publica en páginas de Facebook.
-- **Estado**: borrador
-- **Tiempo humano**: est. 16h · real —
-- **Tiempo IA (ejec.)**: est. 2.5h · real —
+- **Estado**: en-progreso
+- **Tiempo humano**: est. 16h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.5h · real 0.17h (medido)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/Facebook/`, `tests/Feature/Connectors/Meta/Facebook/`
+- **Archivos**: `app/Connectors/Meta/Facebook/`, `tests/Feature/Connectors/Meta/Facebook/`, `app/Providers/AppServiceProvider.php`, `app/Connectors/Meta/GraphClient.php`, `tests/Support/FakeGraph.php`, `tests/Feature/Connectors/Meta/Facebook/FacebookPublishTest.php`
 - **Cubre (tests)**: E2E-06, M-01
 - **Verificación**:
   - `php artisan test --filter=FacebookPublish` → pasa con respuestas grabadas
@@ -745,14 +745,17 @@ verificacion: obligatoria
 
 **Criterios de aceptación**
 - [ ] Los 4 tipos quedan `publicada` con ID externo (CA-06)
-- [ ] El reel respeta sus requisitos de formato
-- [ ] Errores mapeados
+- [x] El reel respeta sus requisitos de formato
+- [x] Errores mapeados
 
 **Subtareas**
-- [ ] Texto/enlace y foto
-- [ ] Vídeo
-- [ ] Reel
-- [ ] Tests con respuestas grabadas
+- [x] Texto/enlace y foto
+- [x] Vídeo
+- [x] Reel
+- [x] Tests con respuestas grabadas
+
+---
+**Notas (implementer, 2026-10-19)**: `FacebookPublisher` (Graph v23.0, token de Pagina): texto/enlace `POST /{page}/feed` (message + link), foto `POST /{page}/photos` (url + caption, como en el spike; devuelve `post_id`), video `POST /{page}/videos` (`file_url`) con sondeo de `status.video_status`, y reel en 3 pasos (`video_reels` start -> subida por cabecera `file_url` a `rupload.facebook.com` -> finish `PUBLISHED`) con sondeo. La URL de subida solo se acepta si es https y de `*.facebook.com`. `findPublished` busca en `/posts` (o `/videos`) recientes por texto + hora, y un video/reel ya creado se resuelve por su ID (no se crea otro). Errores via `GraphClient` (mismos mapeos que IG). El reel respeta los requisitos de formato porque el `MediaValidator` (T-18) rechaza antes de programar (9:16, 3-90 s, 24-60 fps, 540x960). **Verificacion**: `php artisan test --filter=FacebookPublish` -> 17 passed, 65 assertions (los 4 tipos con respuestas simuladas y de extremo a extremo por la cola, errores, idempotencia); suite completa 293 passed. **PENDIENTE (manual) M-01**: publicar de verdad los 4 tipos de FB en la Pagina Aipocalipsis (foto ya verificada en el spike, post_id `1065269806670394_122137968398744480`; texto/video/reel sin probar; los campos de `status` del reel hay que contrastarlos con la respuesta real). El criterio `Los 4 tipos quedan publicada con ID externo (CA-06)` y la tarea siguen en-progreso hasta entonces.
 
 ### T-23 — Compositor de publicaciones por red y tipo
 

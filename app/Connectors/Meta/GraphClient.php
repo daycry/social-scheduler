@@ -55,6 +55,23 @@ class GraphClient
         return $this->send(fn (PendingRequest $http) => $http->asForm()->post($this->url($path), $params + ['access_token' => $token]));
     }
 
+    /**
+     * POST a una URL de subida de Meta (reels): solo hosts de Meta, con las cabeceras indicadas.
+     *
+     * @param  array<string, string>  $headers
+     * @return array<string, mixed>
+     */
+    public function postToUrl(string $url, array $headers): array
+    {
+        $host = (string) parse_url($url, PHP_URL_HOST);
+
+        if (! str_ends_with($host, '.facebook.com') || parse_url($url, PHP_URL_SCHEME) !== 'https') {
+            throw new PermanentPublishException('Meta devolvio una URL de subida no valida.', 'url_subida_invalida');
+        }
+
+        return $this->send(fn (PendingRequest $http) => $http->withHeaders($headers)->post($url));
+    }
+
     /** @param \Closure(PendingRequest): Response $call */
     private function send(\Closure $call): array
     {

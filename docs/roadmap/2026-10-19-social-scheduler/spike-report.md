@@ -17,21 +17,21 @@ Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
 - (c) ¿Existe `impressions` o solo `views`? Métricas aceptadas/rechazadas (Página, Graph v23.0): aceptadas `page_media_view`, `page_post_engagements`, `page_follows`; **rechazadas** `page_impressions` y `page_fans` (`(#100) must be a valid insights metric`, deprecadas). **IG (cuenta y media): `impressions` ya no existe** (rechazada en cuenta y en media) → usar **`views`**. Aceptadas en cuenta: `views`, `reach`, `profile_views`, `accounts_engaged`; `follower_count` no admite `metric_type=total_value` (pedirla como serie diaria). Aceptadas en media: `views`, `reach`, `likes`, `comments`, `shares`, `saved`, `total_interactions`. `content_publishing_limit` (edge) responde OK.
 - Hallazgos de configuración (gotchas para F2): en apps por casos de uso, cada permiso debe **añadirse dentro del caso de uso** («Invalid Scopes» si no); hace falta el dominio en «Dominios de la app» + plataforma Sitio web; el redirect se registra en *Facebook Login for Business → Configurar* (el primer guardado no persistió: verificar recargando).
 - Token: larga duración sí; `data_access_expires_at` 2027-01-17 (90 días, renovar con re-login).
-- Tipos publicados con evidencia (FB texto/foto, IG imagen/reel/story):
+- Tipos publicados con evidencia (FB texto/foto, IG imagen/reel/story): **FB foto OK** en Página Aipocalipsis (post_id `1065269806670394_122137968398744480`, 2026-10-19). **IG imagen OK** en @aipocalipsis_oficial (media `18099448502453789` y `18139303639528036` — duplicada por relanzar el comando; flujo contenedor → `media_publish`). Reel/story y FB texto: no probados (sin URL pública de vídeo). ⇒ **El modo desarrollo basta para publicar en cuentas propias.**
 - Límites observados (publicaciones/24h, tamaños, caducidad de tokens):
 - Veredicto: viable / limitado / no viable
 
 ## TikTok
 - Permisos y `privacy_level_options` devueltos por `creator_info/query`: scopes `user.info.basic,video.publish,video.upload` concedidos (app «Daycry Social Scheduler», **Sandbox «spike»**, cuenta `marblepartyrace` como target user). `privacy_level_options`: `PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, SELF_ONLY`; `max_video_post_duration_sec` 600. Gotcha: `creator_info/query` exige cuerpo JSON objeto `{}` (con `[]` → `invalid_params`).
-- ¿Solo `SELF_ONLY` sin auditoría? **No concluyente**: `creator_info` ofrece también `PUBLIC_TO_EVERYONE`, pero la doc de TikTok indica que el contenido de clientes no auditados queda restringido a privado. Confirmar con una publicación real (pendiente, al final del spike).
+- ¿Solo `SELF_ONLY` sin auditoría? **Sí, en la práctica**: aunque `creator_info` ofrece `PUBLIC_TO_EVERYONE`, publicar con ella (FILE_UPLOAD, Libre.mp4) devuelve `unaudited_client_can_only_post_to_private_accounts` (log_id 20261019172543DE641D79FF0A7619607D). Sin auditoría solo se puede publicar si **la cuenta de TikTok es privada** → publicación automática pública NO viable sin auditoría.
 - ¿PULL_FROM_URL exige dominio verificado?
 - Duración access/refresh token: access 86400 s (24 h), refresh 31536000 s (365 días) — medido 2026-10-19.
 - Límite de usuarios/día; coste y plazo de la auditoría:
 - Veredicto: viable / limitado / no viable
 
 ## YouTube
-- Visibilidad real del vídeo subido (¿privado forzado?):
-- Unidades de cuota por subida y subidas/día reales vs. volumen del usuario:
+- Visibilidad real del vídeo subido (¿privado forzado?): subido Libre.mp4 (3:48, vertical) pidiendo `public` → video `f-pIxNXaDq0`, `privacyStatus=public` tras `processed` (2026-10-19T17:26Z). **No se ha forzado a privado (provisional)**: la política de Google indica que los proyectos no verificados quedan bloqueados en privado; re-verificar con `--inspect=f-pIxNXaDq0` en 24 h y en la consola de YouTube Studio.
+- Unidades de cuota por subida y subidas/día reales vs. volumen del usuario: estimado 1.600 ud/subida → ~6 subidas/día con el cupo por defecto (10.000). Contrastar en la consola de Cloud (Quotas).
 - Caducidad del refresh token en Testing (7 días) — fecha de emisión / fecha de fallo: emitido 2026-10-19T17:19:40Z (canal «Jordi daycry», scopes youtube.upload + youtube.readonly). **Re-ejecutar `--check` a partir del 2026-10-26** para confirmar el fallo.
 - OAuth en modo Testing: requiere que la cuenta esté en «Usuarios de prueba» (si no: «Acceso bloqueado… no ha completado el proceso de verificación»); con ella dentro, aviso «Google no ha verificado esta aplicación» → Continuar. Gotcha: el alta de test user desde la consola no persistió en los primeros intentos; verificar recargando.
 - Proceso de verificación/auditoría de Google (plazo):

@@ -89,6 +89,7 @@ function creator_info(): array {
 
 function best_privacy(array $info): string {
     $opts = $info['data']['privacy_level_options'] ?? [];
+    if (env('SPIKE_PRIVACY') === 'public' && in_array('PUBLIC_TO_EVERYONE', $opts, true)) return 'PUBLIC_TO_EVERYONE';
     return in_array('SELF_ONLY', $opts, true) ? 'SELF_ONLY' : ($opts[0] ?? 'SELF_ONLY');
 }
 

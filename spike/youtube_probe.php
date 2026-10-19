@@ -103,7 +103,7 @@ function publish(string $kind): void {
     if (!is_file($f)) { fwrite(STDERR, "ERROR: no existe $var=$f\n"); exit(2); }
     $size = filesize($f);
     $meta = ['snippet' => ['title' => 'Spike ' . $kind . ' ' . gmdate('c'), 'description' => 'prueba del spike' . ($kind === 'short' ? ' #Shorts' : ''), 'categoryId' => '22'],
-        'status' => ['privacyStatus' => 'private', 'selfDeclaredMadeForKids' => false]];
+        'status' => ['privacyStatus' => (env('SPIKE_PRIVACY') === 'public' ? 'public' : 'private'), 'selfDeclaredMadeForKids' => false]];
     // 1) iniciar sesión de subida reanudable
     [$c, $j, $hdr] = http('POST', 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', [],
         ['Authorization: Bearer ' . token(), 'Content-Type: application/json; charset=UTF-8', 'X-Upload-Content-Length: ' . $size, 'X-Upload-Content-Type: video/*'],

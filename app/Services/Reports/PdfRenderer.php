@@ -24,9 +24,29 @@ class PdfRenderer
 
         $sections = array_values(array_intersect(self::SECTIONS, (array) config('reports.sections')));
 
+        $data = $this->withoutEmoji($data);
+
         return Pdf::loadView('reports.brand', ['data' => $data, 'branding' => $this->branding(), 'sections' => $sections])
             ->setPaper('a4')
             ->output();
+    }
+
+    /**
+     * DejaVu Sans (la fuente embebida) no trae emojis ni selectores/uniones: saldrian como cuadrados. Se eliminan de
+     * los textos del PDF (el CSV los conserva). Documentado en ADR-002.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function withoutEmoji(array $data): array
+    {
+        array_walk_recursive($data, function (&$v) {
+            if (is_string($v)) {
+                $v = trim((string) preg_replace('/[\x{1F000}-\x{1FFFF}\x{2190}-\x{21FF}\x{2300}-\x{23FF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE00}-\x{FE0F}\x{200D}\x{20E3}\x{E0020}-\x{E007F}]/u', '', $v));
+            }
+        });
+
+        return $data;
     }
 
     /** @return array{color: string, logo: ?string, footer: string} */

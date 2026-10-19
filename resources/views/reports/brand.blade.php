@@ -72,13 +72,13 @@
         </tr></table>
 
         @if (count($data['timeline']['points']) && $maxView > 0)
-            <h3>{{ $data['timeline']['label'] }} por dia</h3>
+            <h3>{{ $data['timeline']['label'] }} por {{ ($data['timeline']['granularity'] ?? 'day') === 'week' ? 'semana' : 'dia' }}</h3>
             <table class="chart"><tr>
                 @foreach ($data['timeline']['points'] as $p)
                     <td style="height:90px;"><div style="background:{{ $color }};height:{{ $p['value'] === null ? 1 : max(1, round(($p['value'] / $maxView) * 88)) }}px;"></div></td>
                 @endforeach
             </tr></table>
-            <p class="muted" style="margin:2px 0 12px 0;">{{ $data['period']['from'] }} ... {{ $data['period']['to'] }} (maximo diario: {{ $fmt($maxView) }})</p>
+            <p class="muted" style="margin:2px 0 12px 0;">{{ $data['period']['from'] }} ... {{ $data['period']['to'] }} (maximo {{ ($data['timeline']['granularity'] ?? 'day') === 'week' ? 'semanal' : 'diario' }}: {{ $fmt($maxView) }})</p>
         @endif
 
         @foreach ($data['cards'] as $c)

@@ -52,5 +52,5 @@ it('ReportPdf: un fallo del render deja el informe en failed sin romper', functi
     $service = app(ReportService::class);
     $report = $service->generate($service->create($this->user, $this->brand, 'pdf', Period::make('2026-10-20', '2026-10-31')));
 
-    expect($report->status)->toBe('failed')->and($report->error)->toContain('Driver de PDF no soportado');
+    expect($report->status)->toBe('failed')->and($report->error)->toBe(ReportService::GENERIC_ERROR)->not->toContain('Driver');
 });

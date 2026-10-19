@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\McpGuard;
 use App\Http\Middleware\TrustProxiesFromConfig;
 use App\Support\CrossUserAccessLogger;
 use Illuminate\Foundation\Application;
@@ -36,6 +37,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Solo se aceptan peticiones dirigidas al host de APP_URL (y subdominios): un Host o
         // X-Forwarded-Host falso no puede envenenar URLs absolutas (p. ej. el enlace de reset).
         $middleware->trustHosts();
+        // /mcp: Origin + limite por IP + log de 401, antes de la autenticacion (ver McpGuard).
+        $middleware->append(McpGuard::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Acceso cruzado entre usuarios: el UserScope devuelve 404 en el binding antes

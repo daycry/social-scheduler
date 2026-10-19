@@ -2,6 +2,7 @@
 
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\Support\McpClient;
 
@@ -42,10 +43,60 @@ test('McpAuth: una key caducada responde 401', function () {
     $this->rpc($key, 'tools/list')->assertUnauthorized();
 });
 
-test('McpAuth: una sesion web NO autentica el MCP (solo Bearer)', function () {
-    $this->actingAs(User::factory()->create());
+test('McpAuth: una sesion web (cookie real) NO autentica el MCP (solo Bearer)', function () {
+    $user = User::factory()->create(['password' => 'secret-pass-123']);
+    $login = $this->post('/login', ['email' => $user->email, 'password' => 'secret-pass-123']);
+    $cookies = collect($login->headers->getCookies())->mapWithKeys(fn ($c) => [$c->getName() => $c->getValue()])->all();
+    expect($cookies)->toHaveKey(config('session.cookie'));
 
-    $this->rpc(null, 'tools/list')->assertUnauthorized();
+    // Control: la cookie SI autentica una ruta web...
+    $this->call('GET', '/api-keys', [], $cookies, [], ['HTTP_ACCEPT' => 'text/html'])->assertOk();
+
+    // ...pero no el MCP (sin forgetGuards: la peticion lleva solo la cookie, sin Bearer).
+    $body = json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => (object) []]);
+    $this->call('POST', '/mcp', [], $cookies, [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], $body)->assertUnauthorized();
+});
+
+test('McpAuth: el limite por IP actua ANTES de la autenticacion (key falsa tambien recibe 429)', function () {
+    config(['services.mcp.per_minute_ip' => 3]);
+
+    foreach (range(1, 3) as $_) {
+        $this->rpc('999|falsa', 'tools/list')->assertUnauthorized();
+    }
+    $this->rpc('999|falsa', 'tools/list')->assertStatus(429)->assertHeader('Retry-After');
+});
+
+test('McpAuth: los 401 quedan en el log mcp.auth_failed con la IP y sin el token', function () {
+    Log::spy();
+
+    $this->rpc('999|secreto-falso', 'tools/list')->assertUnauthorized();
+
+    Log::shouldHaveReceived('warning')->withArgs(fn ($msg, $ctx = []) => $msg === 'mcp.auth_failed' && ! empty($ctx['ip']) && ! str_contains(json_encode($ctx), 'secreto-falso'))->once();
+});
+
+test('McpAuth: Origin ajeno -> 403; sin Origin o con uno permitido -> pasa', function () {
+    config(['app.url' => 'https://app.example.com', 'services.mcp.allowed_origins' => ['https://claude.ai']]);
+    $key = $this->mcpKey(User::factory()->create());
+    $post = fn (?string $origin) => $this->withHeaders($origin ? ['Origin' => $origin] : [])->rpc($key, 'tools/list');
+
+    $post('https://evil.example')->assertForbidden();
+    $post('https://app.example.com')->assertOk();
+    $post('https://claude.ai')->assertOk();
+    $post(null)->assertOk();
+});
+
+test('McpAuth: la fecha de caducidad elegida manda dentro del tope; sin ella, el default de 1 ano', function () {
+    $user = User::factory()->create();
+    config(['sanctum.expiration' => null]);
+
+    $this->actingAs($user)->post(route('api-keys.store', absolute: false), ['name' => 'a', 'abilities' => ['brands:read'], 'expires_at' => now()->addDays(10)->toDateString()])->assertSessionHasNoErrors();
+    $this->actingAs($user)->post(route('api-keys.store', absolute: false), ['name' => 'b', 'abilities' => ['brands:read']])->assertSessionHasNoErrors();
+    $this->actingAs($user)->post(route('api-keys.store', absolute: false), ['name' => 'c', 'abilities' => ['brands:read'], 'expires_at' => now()->addDays(5000)->toDateString()])->assertSessionHasErrors('expires_at');
+
+    $tokens = $user->tokens()->orderBy('id')->get();
+    expect($tokens)->toHaveCount(2)
+        ->and((int) round(now()->diffInDays($tokens[0]->expires_at, true)))->toBeIn([10, 11]) // fin del dia elegido
+        ->and((int) round(now()->diffInDays($tokens[1]->expires_at, true)))->toBe(365);
 });
 
 test('McpAuth: la key se guarda con hash y el secreto solo se muestra una vez', function () {

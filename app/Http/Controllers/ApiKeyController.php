@@ -34,14 +34,17 @@ class ApiKeyController extends Controller
 
     public function store(Request $request, AuditLog $audit): RedirectResponse
     {
+        // La fecha elegida manda, con un tope configurable; sin fecha, el default (nunca 0 ni sin caducidad).
+        $maxDays = max(1, (int) config('services.mcp.key_max_days', 730));
+        $defaultDays = min($maxDays, max(1, (int) config('services.mcp.key_default_days', 365)));
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'abilities' => ['required', 'array', 'min:1'],
             'abilities.*' => ['string', Rule::in(Abilities::keys())],
-            'expires_at' => ['nullable', 'date', 'after:now'],
+            'expires_at' => ['nullable', 'date', 'after:now', 'before_or_equal:'.now()->addDays($maxDays)->toDateString()],
         ]);
 
-        $token = $request->user()->createToken($data['name'], array_values(array_unique($data['abilities'])), isset($data['expires_at']) ? Carbon::parse($data['expires_at'])->endOfDay() : now()->addMinutes((int) config('sanctum.expiration', 525600)));
+        $token = $request->user()->createToken($data['name'], array_values(array_unique($data['abilities'])), isset($data['expires_at']) ? Carbon::parse($data['expires_at'])->endOfDay() : now()->addDays($defaultDays));
         $audit->record($request->user(), 'api_key.created', AuditLog::OK, 'api_key', $token->accessToken->id, null, 'web');
 
         // Se muestra una sola vez: en BD solo queda su hash.

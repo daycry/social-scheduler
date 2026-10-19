@@ -14,6 +14,7 @@ use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
+use Throwable;
 
 /**
  * Base de las herramientas: identifica al usuario de la key, exige la ability, ejecuta sobre los servicios
@@ -71,6 +72,12 @@ abstract class SchedulerTool extends Tool
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, $e->getMessage());
 
             return Response::error($e->getMessage());
+        } catch (Throwable $e) {
+            // Fallo inesperado (BD, lock...): se audita como error sin volcar datos y el cliente recibe un mensaje generico.
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Error interno: '.class_basename($e));
+            report($e);
+
+            return Response::error('Error interno al ejecutar la herramienta. Intentalo de nuevo.');
         }
 
         $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $resourceId);

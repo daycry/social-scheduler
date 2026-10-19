@@ -50,7 +50,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_EXPIRATION', 525600), // minutos; las keys caducan al ano salvo que se indique otra fecha
+    'expiration' => null, // la caducidad la fija expires_at de cada key (services.mcp.key_*_days)
 
     /*
     |--------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 use App\Models\AuditLog;
 use App\Models\Brand;
 use App\Models\User;
+use App\Services\CalendarService;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\McpClient;
 
@@ -60,4 +61,15 @@ test('McpAudit: la fila sobrevive a la revocacion de la key y se conserva sin el
     $this->user->delete();
 
     expect(AuditLog::firstOrFail()->user_id)->toBeNull();
+});
+
+test('McpAudit: un fallo inesperado (Throwable) se audita como error y el cliente recibe un mensaje generico', function () {
+    $this->mock(CalendarService::class)->shouldReceive('build')->andThrow(new RuntimeException('SQLSTATE secreto-interno'));
+
+    [$isError, $msg] = $this->callTool($this->key, 'get_calendar');
+
+    $row = AuditLog::firstOrFail();
+    expect($isError)->toBeTrue()->and($msg)->not->toContain('SQLSTATE')->and($msg)->toContain('Error interno')
+        ->and($row->only(['action', 'outcome']))->toBe(['action' => 'get_calendar', 'outcome' => 'error'])
+        ->and($row->detail)->not->toContain('secreto-interno');
 });

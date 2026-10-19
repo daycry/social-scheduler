@@ -58,6 +58,11 @@ return [
     'mcp' => [
         'per_minute' => env('MCP_RATE_PER_MINUTE', 60),
         'per_minute_ip' => env('MCP_RATE_PER_MINUTE_IP', 120),
+        // Origenes (ademas de APP_URL) que pueden llamar al MCP desde un navegador; sin Origin siempre se permite.
+        'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('MCP_ALLOWED_ORIGINS', ''))))),
+        // Maximo de vida de una key en dias (la fecha elegida por el usuario manda dentro de este tope) y default.
+        'key_max_days' => (int) env('MCP_KEY_MAX_DAYS', 730),
+        'key_default_days' => (int) env('MCP_KEY_DEFAULT_DAYS', 365),
     ],
 
 ];

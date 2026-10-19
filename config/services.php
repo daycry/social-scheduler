@@ -54,4 +54,10 @@ return [
         'client_secret' => env('TIKTOK_CLIENT_SECRET'),
     ],
 
+    // Servidor MCP (T-28/T-30): peticiones por minuto por API key y por IP.
+    'mcp' => [
+        'per_minute' => env('MCP_RATE_PER_MINUTE', 60),
+        'per_minute_ip' => env('MCP_RATE_PER_MINUTE_IP', 120),
+    ],
+
 ];

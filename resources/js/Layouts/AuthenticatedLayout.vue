@@ -62,6 +62,12 @@ const showingNavigationDropdown = ref(false);
                                         aria-label="Avisos sin leer"
                                     >{{ $page.props.unreadNotifications }}</span>
                                 </NavLink>
+                                <NavLink
+                                    :href="route('api-keys.index')"
+                                    :active="route().current('api-keys.*')"
+                                >
+                                    API keys
+                                </NavLink>
                             </div>
                         </div>
 

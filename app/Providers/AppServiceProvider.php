@@ -11,6 +11,9 @@ use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -41,5 +44,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // MCP (T-28/T-30): limite por API key (tras autenticar) y por IP (antes, contra adivinacion de keys).
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
+            ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
+        RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));
     }
 }

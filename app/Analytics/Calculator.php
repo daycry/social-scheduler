@@ -62,6 +62,106 @@ final class Calculator
     }
 
     /**
+     * Serie de un conjunto de cuentas para mostrar: los STOCKS arrastran el ultimo valor conocido de cada cuenta entre su
+     * primer y su ultimo dato (un dia sin snapshot no es un salto hacia abajo); los flujos se suman tal cual.
+     *
+     * @param  list<array<string, int|float|null>>  $seriesList  una serie por cuenta
+     * @param  list<string>  $dates  dias del periodo
+     * @return array<string, int|float|null>
+     */
+    public static function combine(array $seriesList, string $metric, array $dates): array
+    {
+        if (in_array($metric, Metric::STOCKS, true)) {
+            $seriesList = array_map(fn ($series) => self::carry($series, $dates), $seriesList);
+        }
+
+        return self::sumSeries($seriesList);
+    }
+
+    /**
+     * Valor de un periodo para varias cuentas: flujos = suma de los dias; stocks = SUMA DEL ULTIMO VALOR CONOCIDO DE CADA
+     * CUENTA (no el ultimo dia de la suma, que dejaria fuera a las cuentas sin dato ese dia). `null` si ninguna tiene dato.
+     *
+     * @param  list<array<string, int|float|null>>  $seriesList
+     */
+    public static function totalAcross(array $seriesList, string $metric): int|float|null
+    {
+        if (! in_array($metric, Metric::STOCKS, true)) {
+            return self::total(self::sumSeries($seriesList), $metric);
+        }
+
+        $last = array_filter(array_map(fn ($series) => self::total($series, $metric), $seriesList), fn ($v) => $v !== null);
+
+        return $last === [] ? null : array_sum($last);
+    }
+
+    /**
+     * Crecimiento de un stock sumado por cuenta: la variacion de CADA cuenta entre su primer y su ultimo dato dentro del
+     * periodo, sumadas. Una cuenta conectada (o desconectada) a mitad de periodo aporta solo su propia variacion: nunca
+     * su saldo entero como un salto. Solo cuentan las que tienen al menos dos puntos.
+     *
+     * @param  list<array<string, int|float|null>>  $seriesList
+     * @return array{start: int|float|null, end: int|float|null, change: int|float|null, pct: float|null, accounts: int}
+     */
+    public static function growthAcross(array $seriesList): array
+    {
+        $measured = [];
+        $single = [];
+
+        foreach ($seriesList as $series) {
+            $g = self::growth($series);
+
+            if ($g['change'] !== null) {
+                $measured[] = $g;
+            } elseif ($g['start'] !== null) {
+                $single[] = $g;
+            }
+        }
+
+        if ($measured === []) {
+            $start = $single === [] ? null : array_sum(array_column($single, 'start'));
+
+            return ['start' => $start, 'end' => $start, 'change' => null, 'pct' => null, 'accounts' => 0];
+        }
+
+        $start = array_sum(array_column($measured, 'start'));
+        $change = array_sum(array_column($measured, 'change'));
+
+        return ['start' => $start, 'end' => array_sum(array_column($measured, 'end')), 'change' => $change, 'pct' => self::pct($change, $start), 'accounts' => count($measured)];
+    }
+
+    /**
+     * @param  array<string, int|float|null>  $series
+     * @param  list<string>  $dates
+     * @return array<string, int|float|null>
+     */
+    private static function carry(array $series, array $dates): array
+    {
+        $known = array_filter($series, fn ($v) => $v !== null);
+
+        if ($known === []) {
+            return [];
+        }
+
+        ksort($known);
+        $first = array_key_first($known);
+        $last = array_key_last($known);
+        $out = [];
+        $prev = null;
+
+        foreach ($dates as $d) {
+            if ($d < $first || $d > $last) {
+                continue;
+            }
+
+            $prev = $known[$d] ?? $prev;
+            $out[$d] = $prev;
+        }
+
+        return $out;
+    }
+
+    /**
      * Variacion frente al periodo de comparacion.
      *
      * @return array{abs: int|float|null, pct: float|null}

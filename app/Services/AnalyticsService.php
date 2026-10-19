@@ -13,8 +13,12 @@ use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Capa de lectura de la analitica (T-35): convierte los snapshots en lo que muestran los dashboards sin acoplarse a
@@ -53,12 +57,13 @@ class AnalyticsService
 
     /** Metricas que cada red PUEDE ofrecer (las demas no se muestran en su pagina). Presentes pero sin dato = "no disponible". */
     public const SUPPORTED = [
-        'instagram' => [Metric::FOLLOWERS, Metric::FOLLOWERS_GAINED, Metric::VIEWS, Metric::REACH, Metric::PROFILE_VIEWS, Metric::ACCOUNTS_ENGAGED],
+        'instagram' => [Metric::FOLLOWERS, Metric::FOLLOWERS_GAINED, Metric::VIEWS, Metric::REACH, Metric::PROFILE_VIEWS, Metric::ACCOUNTS_ENGAGED, Metric::INTERACTIONS],
         'facebook' => [Metric::FOLLOWERS, Metric::VIEWS, Metric::INTERACTIONS],
         'youtube' => [Metric::FOLLOWERS, Metric::FOLLOWERS_GAINED, Metric::FOLLOWERS_LOST, Metric::VIEWS, Metric::WATCH_MINUTES, Metric::INTERACTIONS, Metric::LIKES, Metric::COMMENTS, Metric::SHARES, Metric::VIDEO_COUNT],
         'tiktok' => [Metric::FOLLOWERS, Metric::VIDEO_COUNT],
     ];
 
+    /** Publicaciones que lista la pagina de una red por defecto (las de mas interacciones); ver `social.analytics.dashboard_posts`. */
     public const MAX_POSTS = 50;
 
     /** Redes con al menos una cuenta conectada (no desconectada) en la marca. */
@@ -101,9 +106,10 @@ class AnalyticsService
 
             foreach ($networks as $n) {
                 $net = $n['value'];
-                $series = $this->fill($current[$net][$metric] ?? [], $dates);
-                $value = Calculator::total($series, $metric);
-                $prev = $compare ? Calculator::total($previous[$net][$metric] ?? [], $metric) : null;
+                $accounts = $current[$net][$metric] ?? [];
+                $series = $this->fill(Calculator::combine($accounts, $metric, $dates), $dates);
+                $value = Calculator::totalAcross($accounts, $metric);
+                $prev = $compare ? Calculator::totalAcross($previous[$net][$metric] ?? [], $metric) : null;
 
                 $byNetwork[] = [
                     'network' => $net, 'label' => $n['label'], 'value' => $value, 'previous' => $prev,
@@ -150,97 +156,114 @@ class AnalyticsService
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->orderBy('name')->get();
 
         $dates = $period->dates();
-        $current = $this->networkSeries($user, $brand, $period)[$network->value] ?? [];
-        $previous = $compare ? ($this->networkSeries($user, $brand, $compare)[$network->value] ?? []) : [];
+        // Solo se carga la red pedida (no las cuatro).
+        $current = $this->networkSeries($user, $brand, $period, $network)[$network->value] ?? [];
+        $previous = $compare ? ($this->networkSeries($user, $brand, $compare, $network)[$network->value] ?? []) : [];
 
         $metrics = [];
+        $combined = [];
 
         foreach (self::SUPPORTED[$network->value] as $metric) {
-            $series = $this->fill($current[$metric] ?? [], $dates);
-            $total = Calculator::total($series, $metric);
-            $prev = $compare ? Calculator::total($previous[$metric] ?? [], $metric) : null;
+            $combined[$metric] = $this->fill(Calculator::combine($current[$metric] ?? [], $metric, $dates), $dates);
+            $total = Calculator::totalAcross($current[$metric] ?? [], $metric);
+            $prev = $compare ? Calculator::totalAcross($previous[$metric] ?? [], $metric) : null;
 
             $metrics[] = [
                 'key' => $metric, 'label' => self::LABELS[$metric], 'kind' => in_array($metric, Metric::STOCKS, true) ? 'stock' : 'flow',
                 'total' => $total, 'previous' => $prev, 'delta_pct' => Calculator::delta($total, $prev)['pct'],
                 'available' => $total !== null,
-                'series' => collect($series)->map(fn ($v, $d) => ['date' => $d, 'value' => $v])->values()->all(),
+                'series' => collect($combined[$metric])->map(fn ($v, $d) => ['date' => $d, 'value' => $v])->values()->all(),
             ];
         }
 
-        $followers = $this->fill($current[Metric::FOLLOWERS] ?? [], $dates);
-        $posts = $this->posts($user, $accounts, $period);
+        $stats = $this->postStats($user, $brand, $accounts, $period);
 
         return [
             'network' => ['value' => $network->value, 'label' => $network->label()],
             'accounts' => $accounts->map(fn (SocialAccount $a) => ['id' => $a->id, 'name' => $a->name, 'username' => $a->username, 'status' => $a->status])->all(),
             'period' => $period->toArray(),
             'comparison' => $compare?->toArray(),
-            'growth' => Calculator::growth($followers) + [
-                'previous' => $compare ? Calculator::growth($previous[Metric::FOLLOWERS] ?? []) : null,
+            // Crecimiento = suma de la variacion de CADA cuenta entre su primer y ultimo dato del periodo (sin saltos por altas/bajas).
+            'growth' => Calculator::growthAcross($current[Metric::FOLLOWERS] ?? []) + [
+                'previous' => $compare ? Calculator::growthAcross($previous[Metric::FOLLOWERS] ?? []) : null,
             ],
             'metrics' => $metrics,
-            'kpis' => $this->kpis($current, $dates, $posts),
-            'posts' => $posts,
+            'kpis' => $this->kpis($combined, $stats['kpis']),
+            'posts' => $stats['posts'],
+            'posts_total' => $stats['total'],
+            'posts_limit' => $stats['limit'],
+            'posts_truncated' => $stats['total'] > count($stats['posts']),
         ];
     }
 
     /**
-     * KPIs derivados: por dia (sobre la serie de la cuenta) y por publicacion (sobre las de la app con datos).
+     * KPIs derivados: por dia (sobre la serie de la cuenta) y por publicacion (agregados en SQL sobre TODAS las del periodo).
      *
-     * @param  array<string, array<string, int|float|null>>  $current
-     * @param  list<array<string, mixed>>  $posts
+     * @param  array<string, array<string, int|float|null>>  $series  serie combinada por metrica
+     * @param  array<string, mixed>  $perPost
      * @return array<string, mixed>
      */
-    private function kpis(array $current, array $dates, array $posts): array
+    private function kpis(array $series, array $perPost): array
     {
-        $interactions = $this->fill($current[Metric::INTERACTIONS] ?? [], $dates);
-        $views = $this->fill($current[Metric::VIEWS] ?? [], $dates);
-        $totalInteractions = Calculator::total($interactions, Metric::INTERACTIONS);
+        $interactions = $series[Metric::INTERACTIONS] ?? [];
+        $views = $series[Metric::VIEWS] ?? [];
 
         return [
             'per_day' => [
                 'interactions' => Calculator::perDay($interactions),
                 'views' => Calculator::perDay($views),
             ],
-            'engagement_rate' => Calculator::engagementRate($totalInteractions, Calculator::total($views, Metric::VIEWS)),
-            'per_post' => [
-                'posts' => count($posts),
-                'views' => Calculator::average(array_column(array_column($posts, 'metrics'), Metric::VIEWS)),
-                'interactions' => Calculator::average(array_column(array_column($posts, 'metrics'), Metric::INTERACTIONS)),
-                'engagement_rate' => Calculator::average(array_column($posts, 'engagement_rate')),
-            ],
+            'engagement_rate' => Calculator::engagementRate(Calculator::total($interactions, Metric::INTERACTIONS), Calculator::total($views, Metric::VIEWS)),
+            'per_post' => $perPost,
         ];
     }
 
     /**
-     * Publicaciones de la app publicadas en el periodo, con su ultimo snapshot de metricas.
+     * Publicaciones de la app publicadas en el periodo (dias de la zona de la marca) con su ultimo snapshot de metricas.
+     * Los KPIs por publicacion se agregan en SQL sobre TODAS; la lista devuelve solo las `dashboard_posts` con mas
+     * interacciones y `total` indica cuantas hay (para avisar de que se muestra un top N).
      *
      * @param  Collection<int, SocialAccount>  $accounts
-     * @return list<array<string, mixed>>
+     * @return array{kpis: array<string, mixed>, posts: list<array<string, mixed>>, total: int, limit: int}
      */
-    private function posts(User $user, $accounts, Period $period): array
+    private function postStats(User $user, Brand $brand, $accounts, Period $period): array
     {
+        $limit = max(1, (int) config('social.analytics.dashboard_posts', self::MAX_POSTS));
+
         if ($accounts->isEmpty()) {
-            return [];
+            return ['kpis' => ['posts' => 0, 'views' => null, 'interactions' => null, 'engagement_rate' => null], 'posts' => [], 'total' => 0, 'limit' => $limit];
         }
 
-        $targets = PostTarget::withoutUserScope()
+        [$from, $to] = $this->bounds($brand, $period);
+
+        $query = fn (): Builder => PostTarget::withoutUserScope()
+            ->where('post_targets.user_id', $user->id)
+            ->whereIn('post_targets.social_account_id', $accounts->pluck('id'))
+            ->where('post_targets.status', PostStatus::Published->value)
+            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to)
+            ->leftJoinSub(
+                PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
+                'lm', 'lm.post_target_id', '=', 'post_targets.id',
+            )
+            ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));
+
+        $grammar = DB::connection((new PostTarget)->getConnectionName())->getQueryGrammar();
+        // Un `null` JSON es "no disponible": NULLIF evita que MySQL lo lea como la cadena 'null' (que casteada seria 0).
+        $num = fn (string $key): string => 'CAST(NULLIF('.$grammar->wrap('pm.metrics->'.$key).", 'null') AS DECIMAL(20,4))";
+        $views = $num(Metric::VIEWS);
+        $inter = $num(Metric::INTERACTIONS);
+
+        $agg = $query()->selectRaw("COUNT(*) as total, AVG($views) as avg_views, AVG($inter) as avg_interactions, AVG(CASE WHEN $views > 0 AND $inter IS NOT NULL THEN $inter * 100.0 / $views END) as avg_engagement")->first();
+
+        $targets = $query()
             ->with(['post' => fn ($q) => $q->withoutGlobalScopes()])
-            ->where('user_id', $user->id)
-            ->whereIn('social_account_id', $accounts->pluck('id'))
-            ->where('status', PostStatus::Published->value)
-            ->whereBetween('published_at', [$period->from->startOfDay(), $period->to->endOfDay()])
-            ->orderByDesc('published_at')
-            ->limit(self::MAX_POSTS)
-            ->get();
+            ->select('post_targets.*', 'pm.metrics as latest_metrics')
+            ->orderByRaw("($inter IS NULL) ASC")->orderByRaw("$inter DESC")->orderByDesc('post_targets.published_at')->orderByDesc('post_targets.id')
+            ->limit($limit)->get();
 
-        $latest = PostMetricSnapshot::withoutUserScope()
-            ->where('user_id', $user->id)->whereIn('post_target_id', $targets->pluck('id'))
-            ->orderBy('date')->get()->keyBy('post_target_id'); // el ultimo dia sobrescribe
-
-        return $targets->map(function (PostTarget $t) use ($latest) {
-            $metrics = Metric::clean($latest[$t->id]->metrics ?? [], Metric::POST);
+        $posts = $targets->map(function (PostTarget $t) {
+            $raw = $t->getAttribute('latest_metrics');
+            $metrics = Metric::clean(is_string($raw) ? (json_decode($raw, true) ?: []) : (array) $raw, Metric::POST);
 
             return [
                 'id' => $t->id,
@@ -252,18 +275,56 @@ class AnalyticsService
                 'has_data' => ! Metric::isEmpty($metrics),
                 'engagement_rate' => Calculator::engagementRate($metrics[Metric::INTERACTIONS], $metrics[Metric::VIEWS]),
             ];
-        })->sortByDesc(fn ($p) => $p['metrics'][Metric::INTERACTIONS] ?? -1)->values()->all();
+        })->values()->all();
+
+        $round = fn ($v) => $v === null ? null : round((float) $v, 2);
+        $total = (int) ($agg->total ?? 0);
+
+        return [
+            'kpis' => [
+                'posts' => $total,
+                'views' => $round($agg->avg_views ?? null),
+                'interactions' => $round($agg->avg_interactions ?? null),
+                'engagement_rate' => $round($agg->avg_engagement ?? null),
+            ],
+            'posts' => $posts,
+            'total' => $total,
+            'limit' => $limit,
+        ];
     }
 
     /**
-     * Series por red y metrica del periodo, sumando las cuentas de la misma red de la marca.
+     * Limites UTC [desde, hasta) del periodo: sus dias son dias de la zona horaria de la marca (una publicacion de las
+     * 23:30 locales del ultimo dia pertenece al periodo aunque en UTC ya sea el dia siguiente).
      *
-     * @return array<string, array<string, array<string, int|float|null>>> [red][metrica][fecha => valor]
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
      */
-    private function networkSeries(User $user, Brand $brand, Period $period): array
+    private function bounds(Brand $brand, Period $period): array
+    {
+        $zone = $brand->timezone ?: 'UTC';
+
+        try {
+            new \DateTimeZone($zone);
+        } catch (Throwable) {
+            $zone = 'UTC';
+        }
+
+        $from = CarbonImmutable::createFromFormat('!Y-m-d', $period->from->format('Y-m-d'), $zone)->utc();
+        $to = CarbonImmutable::createFromFormat('!Y-m-d', $period->to->format('Y-m-d'), $zone)->addDay()->utc();
+
+        return [$from, $to];
+    }
+
+    /**
+     * Series por red, metrica y CUENTA del periodo (se combinan despues segun sea flujo o stock).
+     *
+     * @return array<string, array<string, list<array<string, int|float|null>>>> [red][metrica][] = [fecha => valor] (una por cuenta)
+     */
+    private function networkSeries(User $user, Brand $brand, Period $period, ?Network $only = null): array
     {
         $rows = AccountSnapshot::withoutUserScope()
             ->where('user_id', $user->id)->where('brand_id', $brand->id)
+            ->when($only, fn ($q) => $q->where('network', $only->value))
             ->whereBetween('date', [$period->from->format('Y-m-d'), $period->to->format('Y-m-d')])
             ->get(['social_account_id', 'network', 'date', 'metrics']);
 
@@ -281,7 +342,10 @@ class AnalyticsService
 
         foreach ($perAccount as $network => $byMetric) {
             foreach ($byMetric as $metric => $byAccount) {
-                $out[$network][$metric] = Calculator::sumSeries(array_values($byAccount));
+                foreach ($byAccount as $series) {
+                    ksort($series);
+                    $out[$network][$metric][] = $series;
+                }
             }
         }
 

@@ -30,11 +30,15 @@ final class Period
         return new self($from, $to);
     }
 
-    /** Por defecto los ultimos 30 dias cerrados (hasta ayer). */
-    public static function make(?string $from, ?string $to): self
+    /**
+     * Por defecto los ultimos 30 dias cerrados (hasta ayer). "Ayer" se cuenta en la zona horaria indicada (la de la marca)
+     * y no en UTC; las fechas son etiquetas Y-m-d, como las de los snapshots.
+     */
+    public static function make(?string $from, ?string $to, ?string $timezone = null): self
     {
         try {
-            $end = $to ? CarbonImmutable::createFromFormat('!Y-m-d', $to, 'UTC') : CarbonImmutable::now('UTC')->startOfDay()->subDay();
+            $today = CarbonImmutable::now(self::validZone($timezone))->format('Y-m-d');
+            $end = $to ? CarbonImmutable::createFromFormat('!Y-m-d', $to, 'UTC') : CarbonImmutable::createFromFormat('!Y-m-d', $today, 'UTC')->subDay();
             $start = $from ? CarbonImmutable::createFromFormat('!Y-m-d', $from, 'UTC') : $end->subDays(29);
         } catch (\Throwable) {
             throw new InvalidArgumentException('Fecha no valida.');
@@ -47,17 +51,27 @@ final class Period
         return self::between($start, $end);
     }
 
+    private static function validZone(?string $zone): string
+    {
+        try {
+            return (new \DateTimeZone($zone ?: 'UTC'))->getName();
+        } catch (\Throwable) {
+            return 'UTC';
+        }
+    }
+
     public function days(): int
     {
         return (int) $this->from->diffInDays($this->to) + 1;
     }
 
-    /** Periodo de comparacion: el inmediatamente anterior de igual duracion, o el mismo rango un anio antes. */
+    /** Periodo de comparacion: el inmediatamente anterior de igual duracion, o el rango que empieza un anio antes con la misma duracion. */
     public function comparison(string $mode): ?self
     {
         return match ($mode) {
             'previous' => self::between($this->from->subDays($this->days()), $this->from->subDay()),
-            'year' => self::between($this->from->subYear(), $this->to->subYear()),
+            // Misma LONGITUD que el periodo actual (un rango con 29-feb no debe comparar con uno de otra duracion).
+            'year' => self::between($this->from->subYearNoOverflow(), $this->from->subYearNoOverflow()->addDays($this->days() - 1)),
             default => null,
         };
     }

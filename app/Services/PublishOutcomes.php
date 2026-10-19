@@ -43,6 +43,7 @@ class PublishOutcomes
             'external_id' => $result->externalId,
             'external_url' => $result->url,
             'external_reference' => $result->reference ?? $target->external_reference,
+            'status_note' => $result->note !== null ? mb_substr($result->note, 0, 300) : null,
         ]);
     }
 

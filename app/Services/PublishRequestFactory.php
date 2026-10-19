@@ -26,6 +26,8 @@ class PublishRequestFactory
             duration: $m->duration,
             fps: $m->fps,
             size: $m->size,
+            disk: $m->disk,
+            path: $m->path,
         ))->all();
 
         return new PublishRequest(

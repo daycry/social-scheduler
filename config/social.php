@@ -50,8 +50,38 @@ return [
         ],
     ],
 
+    /*
+    | Publicacion en YouTube (T-26, decision G1 = A). La cuota de la API es POR PROYECTO de Google (no por canal):
+    | 10.000 unidades/dia y ~1.600 por subida (~6 subidas). Se cuenta localmente (cache) para no gastar llamadas
+    | que la API rechazaria; al agotarse se aplica `PUBLISH_QUOTA_POLICY` (reprogramar o fallar). El dia de cuota
+    | de YouTube acaba a medianoche de Pacifico.
+    */
+    'youtube' => [
+        'daily_quota' => (int) env('YOUTUBE_DAILY_QUOTA', 10000),
+        'upload_cost' => (int) env('YOUTUBE_UPLOAD_COST', 1600),
+        /* Trozos de la subida reanudable: multiplo de 256 KiB (requisito de Google). 8 MiB. */
+        'chunk_bytes' => (int) env('YOUTUBE_CHUNK_BYTES', 8 * 1024 * 1024),
+        /* Segundos de subida por pasada del job (< timeout de 110 s); si no acaba, se continua en el sondeo. */
+        'upload_budget_seconds' => (int) env('YOUTUBE_UPLOAD_BUDGET', 80),
+        'upload_timeout' => (int) env('YOUTUBE_UPLOAD_TIMEOUT', 60),
+    ],
+
     'tiktok' => [
         // video.publish solo es util tras la auditoria de TikTok (decision G1: borrador por defecto).
         'scopes' => ['user.info.basic', 'video.upload', 'video.publish'],
+
+        /*
+        | Dominio VERIFICADO en TikTok (URL prefix) que sirve la media por PULL_FROM_URL. Solo con esto se ofrece el tipo
+        | foto/carrusel (T-27): la subida de archivos (FILE_UPLOAD) solo existe para video. Vacio = foto desactivada.
+        */
+        'verified_domain' => env('TIKTOK_VERIFIED_DOMAIN'),
+
+        /* Sufijos de host permitidos para la `upload_url` que devuelve TikTok (evita subir a un host arbitrario). */
+        'upload_hosts' => ['tiktokapis.com', 'tiktokcdn.com', 'tiktokcdn-us.com', 'tiktokv.com'],
+
+        /* Tamano de trozo de FILE_UPLOAD cuando el video supera `single_chunk_max_bytes` (el ultimo absorbe el resto). */
+        'chunk_bytes' => (int) env('TIKTOK_CHUNK_BYTES', 10 * 1024 * 1024),
+        'single_chunk_max_bytes' => 64 * 1024 * 1024,
+        'upload_timeout' => (int) env('TIKTOK_UPLOAD_TIMEOUT', 100),
     ],
 ];

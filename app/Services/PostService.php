@@ -280,6 +280,11 @@ class PostService
 
                 continue;
             }
+            if (! $type->isOffered()) {
+                $errors[$key][] = "{$type->label()} de {$account->network->label()} no esta disponible: necesita un dominio verificado en TikTok.";
+
+                continue;
+            }
             if ($schedule && ! $account->isActive()) {
                 $errors[$key][] = "La cuenta {$account->name} necesita reconectarse antes de programar.";
             }

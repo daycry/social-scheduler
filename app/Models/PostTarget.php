@@ -23,7 +23,7 @@ class PostTarget extends Model
 
     protected $fillable = [
         'social_account_id', 'network', 'content_type', 'status', 'options', 'external_id', 'external_url',
-        'external_reference', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
+        'external_reference', 'status_note', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
     ];
 
     protected function casts(): array

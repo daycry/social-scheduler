@@ -138,6 +138,7 @@ class CalendarService
                 'status' => $t->status->value,
                 'status_label' => $t->status->label(),
                 'error_message' => $t->error_message,
+                'status_note' => $t->status_note,
                 'external_url' => $t->external_url,
             ])->values()->all(),
         ];

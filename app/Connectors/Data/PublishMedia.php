@@ -15,6 +15,9 @@ final class PublishMedia
         public readonly ?float $duration = null,
         public readonly ?float $fps = null,
         public readonly ?int $size = null,
+        /** Disco y ruta del fichero: permiten leerlo en streaming por trozos (YouTube, TikTok FILE_UPLOAD). */
+        public readonly ?string $disk = null,
+        public readonly ?string $path = null,
     ) {}
 
     public function isVideo(): bool

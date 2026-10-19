@@ -11,6 +11,7 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Meta\GraphClient;
+use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use Illuminate\Support\Facades\Log;
@@ -20,17 +21,26 @@ use Illuminate\Support\Facades\Log;
  *   contenedor `/{ig}/media` -> espera de `status_code` -> `/{ig}/media_publish`.
  * Tipos: imagen, carrusel, reel y story. Necesita `instagram_content_publish`.
  *
- * Fases (se guardan en `external_reference` mientras el destino esta `procesando`):
- *   `child:ID1,ID2,...`  hijos del carrusel aun sin terminar de procesar
- *   `ID`                 contenedor creado; se publica cuando `status_code` = FINISHED
+ * Referencia (`external_reference`) mientras el destino esta `procesando`:
+ *   `carousel`   carrusel en construccion; el avance (hijos creados / listos, padre) vive en `progress` del destino
+ *   `ID`         contenedor creado (unico o padre del carrusel); se publica cuando `status_code` = FINISHED
+ * Cada ID se persiste EN EL ACTO (`PublishRequest::checkpoint`) antes del paso siguiente: un timeout en
+ * `media_publish` o un worker caido nunca pierde el contenedor ni obliga a recrearlo.
+ *
+ * Un carrusel de 10 se divide en pasos reanudables (crear hijos -> sondear hijos -> crear padre -> publicar), cada
+ * uno acotado por `StepBudget` (< `$timeout` del job): al agotarse el presupuesto el paso guarda su progreso y
+ * continua en el siguiente sondeo.
  *
  * Idempotencia: `findPublished` busca en la media reciente de la cuenta una publicacion con la misma
  * descripcion posterior a la hora programada (las publicaciones sin texto no se pueden reconocer y se
- * documentan como limitacion); un contenedor ya `PUBLISHED` se resuelve igual. Antes de crear contenedores
- * se consulta `content_publishing_limit`.
+ * documentan como limitacion); un contenedor ya `PUBLISHED` se resuelve igual (las historias, que no se listan en
+ * `/media`, por `/{ig}/stories`). Antes de crear contenedores se consulta `content_publishing_limit`.
  */
 class InstagramPublisher implements Publisher, StatusPoller
 {
+    /** Referencia mientras un carrusel aun crea/espera a sus hijos (el avance vive en `progress`). */
+    private const BUILDING = 'carousel';
+
     /** Cuantas publicaciones recientes se revisan al buscar un duplicado. */
     private const RECENT_MEDIA = 25;
 
@@ -39,13 +49,25 @@ class InstagramPublisher implements Publisher, StatusPoller
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
         $this->assertSupported($request);
+        $budget = StepBudget::start();
+
+        if ($request->type === ContentType::InstagramCarousel) {
+            if ($request->progress === []) {
+                $this->assertQuota($account);
+                $budget->spent();
+            }
+
+            return $this->advanceCarousel($account, $request, $budget);
+        }
+
         $this->assertQuota($account);
+        $budget->spent();
 
-        $reference = $request->type === ContentType::InstagramCarousel
-            ? $this->createCarouselChildren($account, $request)
-            : $this->createContainer($account, $this->containerParams($request));
+        $containerId = $this->createContainer($account, $this->containerParams($request));
+        $request->checkpoint($containerId);
+        $budget->spent();
 
-        return $this->advance($account, $request, $reference);
+        return $this->advance($account, $request, $containerId, $budget);
     }
 
     public function poll(SocialAccount $account, PublishRequest $request): PublishResult
@@ -54,22 +76,33 @@ class InstagramPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('Falta la referencia del contenedor de Instagram.', 'sin_referencia');
         }
 
-        return $this->advance($account, $request, $request->reference);
+        $budget = StepBudget::start();
+
+        return $request->reference === self::BUILDING
+            ? $this->advanceCarousel($account, $request, $budget)
+            : $this->advance($account, $request, $request->reference, $budget);
     }
 
     public function findPublished(SocialAccount $account, PublishRequest $request): ?PublishResult
     {
+        $container = $this->containerOf($request);
+
         // Un contenedor ya publicado (o a punto) se resuelve por su estado, sin crear otro.
-        if ($request->reference !== null && ! str_starts_with($request->reference, 'child:')) {
-            $status = $this->containerStatus($account, $request->reference);
+        if ($container !== null) {
+            $status = $this->containerStatus($account, $container);
 
             if ($status['code'] === 'PUBLISHED') {
-                return $this->findRecent($account, $request) ?? PublishResult::processing($request->reference);
+                return $this->resolvePublished($account, $request, $container) ?? PublishResult::processing($container);
             }
 
             if ($status['code'] === 'FINISHED' || $status['code'] === 'IN_PROGRESS') {
-                return PublishResult::processing($request->reference);
+                return PublishResult::processing($container);
             }
+        }
+
+        // Carrusel aun en construccion (sin padre): nada puede estar publicado; `publish` retoma desde `progress`.
+        if ($request->type === ContentType::InstagramCarousel && $container === null && $request->progress !== []) {
+            return null;
         }
 
         return $this->findRecent($account, $request);
@@ -77,39 +110,108 @@ class InstagramPublisher implements Publisher, StatusPoller
 
     // ------------------------------------------------------------------ flujo
 
-    /** Avanza la publicacion un paso: hijos -> contenedor -> publicar. */
-    private function advance(SocialAccount $account, PublishRequest $request, string $reference): PublishResult
+    /** Contenedor "vivo" del destino: el unico/padre, o null si el carrusel aun se construye. */
+    private function containerOf(PublishRequest $request): ?string
     {
-        if (str_starts_with($reference, 'child:')) {
-            $ids = explode(',', substr($reference, 6));
-
-            foreach ($ids as $id) {
-                $status = $this->containerStatus($account, $id);
-
-                if (in_array($status['code'], ['ERROR', 'EXPIRED'], true)) {
-                    return PublishResult::failed($this->statusMessage($status));
-                }
-
-                if ($status['code'] !== 'FINISHED') {
-                    return PublishResult::processing($reference);
-                }
-            }
-
-            $reference = $this->createContainer($account, [
-                'media_type' => 'CAROUSEL',
-                'children' => implode(',', $ids),
-                'caption' => (string) $request->text,
-            ]);
+        if ($request->reference !== null && $request->reference !== self::BUILDING) {
+            return $request->reference;
         }
 
-        $status = $this->containerStatus($account, $reference);
+        return isset($request->progress['parent']) ? (string) $request->progress['parent'] : null;
+    }
+
+    /** Estado -> publicar: comprueba el contenedor y, si esta listo (y cabe en el presupuesto), lo publica. */
+    private function advance(SocialAccount $account, PublishRequest $request, string $containerId, StepBudget $budget): PublishResult
+    {
+        if (! $budget->allows()) {
+            return PublishResult::processing($containerId);
+        }
+
+        $status = $this->containerStatus($account, $containerId);
+        $budget->spent();
 
         return match ($status['code']) {
-            'FINISHED' => $this->publishContainer($account, $reference),
-            'PUBLISHED' => $this->findRecent($account, $request) ?? PublishResult::failed('Instagram indica que el contenedor ya se publico pero no se encuentra la publicacion.'),
+            // `media_publish` va siempre tras un estado FINISHED: el presupuesto reserva margen para estas dos llamadas.
+            'FINISHED' => $this->publishContainer($account, $containerId),
+            'PUBLISHED' => $this->resolvePublished($account, $request, $containerId) ?? PublishResult::failed('Instagram indica que el contenedor ya se publico pero no se encuentra la publicacion.'),
             'ERROR', 'EXPIRED' => PublishResult::failed($this->statusMessage($status)),
-            default => PublishResult::processing($reference), // IN_PROGRESS u otro estado intermedio
+            default => PublishResult::processing($containerId), // IN_PROGRESS u otro estado intermedio
         };
+    }
+
+    /**
+     * Carrusel por pasos reanudables: 1) crear los hijos que falten, 2) esperar a que todos esten FINISHED,
+     * 3) crear el padre, 4) publicar. El avance se guarda tras cada llamada con `checkpoint`.
+     */
+    private function advanceCarousel(SocialAccount $account, PublishRequest $request, StepBudget $budget): PublishResult
+    {
+        $parent = $this->containerOf($request);
+
+        if ($parent !== null) {
+            return $this->advance($account, $request, $parent, $budget);
+        }
+
+        $children = array_values((array) ($request->progress['children'] ?? []));
+        $ready = array_values((array) ($request->progress['ready'] ?? []));
+
+        $building = function () use (&$children, &$ready): PublishResult {
+            return PublishResult::processing(self::BUILDING, [], ['children' => $children, 'ready' => $ready]);
+        };
+
+        // 1) Hijos que faltan (cada ID se guarda al crearlo: un fallo posterior no los pierde).
+        while (count($children) < count($request->media)) {
+            if (! $budget->allows()) {
+                return $building();
+            }
+
+            $children[] = $this->createContainer($account, $this->mediaParams($request->media[count($children)]) + ['is_carousel_item' => 'true']);
+            $budget->spent();
+            $request->checkpoint(self::BUILDING, ['children' => $children, 'ready' => $ready]);
+        }
+
+        // 2) Esperar a que cada hijo termine de procesarse.
+        foreach ($children as $id) {
+            if (in_array($id, $ready, true)) {
+                continue;
+            }
+
+            if (! $budget->allows()) {
+                return $building();
+            }
+
+            $status = $this->containerStatus($account, $id);
+            $budget->spent();
+
+            if (in_array($status['code'], ['ERROR', 'EXPIRED'], true)) {
+                return PublishResult::failed($this->statusMessage($status));
+            }
+
+            if ($status['code'] !== 'FINISHED') {
+                return $building();
+            }
+
+            $ready[] = $id;
+            $request->checkpoint(self::BUILDING, ['children' => $children, 'ready' => $ready]);
+        }
+
+        // 3) Contenedor padre (su ID sustituye a `carousel` como referencia).
+        if (! $budget->allows()) {
+            return $building();
+        }
+
+        $parent = $this->createContainer($account, [
+            'media_type' => 'CAROUSEL',
+            'children' => implode(',', $children),
+            'caption' => (string) $request->text,
+        ]);
+        $budget->spent();
+        $progress = ['children' => $children, 'ready' => $ready, 'parent' => $parent];
+        $request->checkpoint($parent, $progress);
+
+        // 4) Estado del padre y, si esta listo, publicar.
+        $result = $this->advance($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $parent, $request->since, $progress, null), $parent, $budget);
+
+        return $result->isProcessing() ? PublishResult::processing($parent, [], $progress) : $result;
     }
 
     private function publishContainer(SocialAccount $account, string $containerId): PublishResult
@@ -124,15 +226,36 @@ class InstagramPublisher implements Publisher, StatusPoller
         return PublishResult::published($id, $this->permalink($account, $id), ['container' => $containerId]);
     }
 
-    private function createCarouselChildren(SocialAccount $account, PublishRequest $request): string
+    /** Localiza la publicacion de un contenedor que Instagram da por `PUBLISHED`. */
+    private function resolvePublished(SocialAccount $account, PublishRequest $request, string $containerId): ?PublishResult
     {
-        $ids = [];
-
-        foreach ($request->media as $media) {
-            $ids[] = $this->createContainer($account, $this->mediaParams($media) + ['is_carousel_item' => 'true']);
+        if ($request->type !== ContentType::InstagramStory) {
+            return $this->findRecent($account, $request);
         }
 
-        return 'child:'.implode(',', $ids);
+        // Las historias no salen en `/media` ni llevan texto: se buscan en `/stories` (activas, 24 h) por hora.
+        try {
+            $data = $this->graph->get($account->external_id.'/stories', ['fields' => 'id,permalink,timestamp', 'limit' => self::RECENT_MEDIA], (string) $account->access_token);
+        } catch (PublishException $e) {
+            Log::notice('instagram.stories_lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
+            $data = [];
+        }
+
+        $best = null;
+        foreach ($data['data'] ?? [] as $item) {
+            $when = isset($item['timestamp']) ? strtotime((string) $item['timestamp']) : false;
+
+            if ($when !== false && ($request->since === null || $when >= $request->since->getTimestamp()) && ($best === null || $when > $best['when'])) {
+                $best = ['when' => $when, 'item' => $item];
+            }
+        }
+
+        if ($best !== null) {
+            return PublishResult::published((string) $best['item']['id'], $best['item']['permalink'] ?? null);
+        }
+
+        // El contenedor consta como PUBLISHED: la historia existe aunque ya no se liste. Nunca se republica.
+        return PublishResult::published($containerId, null, ['container' => $containerId], 'La historia se publico en Instagram pero no se pudo obtener su enlace.');
     }
 
     /** @return array<string, string> */
@@ -226,7 +349,8 @@ class InstagramPublisher implements Publisher, StatusPoller
     {
         $caption = trim((string) $request->text);
 
-        if ($caption === '') {
+        // Las historias no llevan texto ni salen en `/media`: se resuelven por su contenedor (ver resolvePublished).
+        if ($caption === '' || $request->type === ContentType::InstagramStory) {
             return null; // sin texto no hay forma fiable de reconocer la publicacion
         }
 

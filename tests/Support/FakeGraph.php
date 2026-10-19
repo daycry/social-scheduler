@@ -12,7 +12,7 @@ use Throwable;
  */
 class FakeGraph
 {
-    /** @var list<array{method: string, path: string, params: array<string, mixed>}> */
+    /** @var list<array{method: string, path: string, params: array<string, mixed>, authorization: ?string, url: string}> */
     public array $calls = [];
 
     /** @var list<array{method: string, pattern: string, queue: list<mixed>}> */
@@ -56,7 +56,7 @@ class FakeGraph
         $path = ltrim(preg_replace('#^/v[\d.]+/#', '', $url['path'] ?? ''), '/');
         parse_str($url['query'] ?? '', $query);
         $params = $request->method() === 'GET' ? $query : (array) $request->data();
-        $this->calls[] = ['method' => $request->method(), 'path' => $path, 'params' => $params];
+        $this->calls[] = ['method' => $request->method(), 'path' => $path, 'params' => $params, 'authorization' => $request->header('Authorization')[0] ?? null, 'url' => $request->url()];
 
         foreach ($this->routes as &$route) {
             if ($route['method'] === $request->method() && preg_match($route['pattern'], $path)) {

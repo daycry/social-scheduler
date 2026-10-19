@@ -69,7 +69,10 @@ test('InstagramPublish: una imagen crea el contenedor, espera FINISHED y publica
 
     expect($result->isPublished())->toBeTrue()->and($result->externalId)->toBe('18001')->and($result->url)->toBe('https://www.instagram.com/p/ABC/');
     $create = $this->graph->callsTo('POST', '#/media$#')[0]['params'];
-    expect($create)->toMatchArray(['image_url' => 'https://cdn.test/a.jpg', 'caption' => 'Mi texto', 'access_token' => 'page-token-xyz']);
+    expect($create)->toMatchArray(['image_url' => 'https://cdn.test/a.jpg', 'caption' => 'Mi texto'])->not->toHaveKey('access_token'); // el token va en la cabecera, nunca en el cuerpo ni la query
+    foreach ($this->graph->calls as $call) {
+        expect($call['authorization'])->toBe('Bearer page-token-xyz')->and($call['url'])->not->toContain('access_token');
+    }
     expect($this->graph->callsTo('POST', '#/media_publish$#')[0]['params'])->toMatchArray(['creation_id' => '9001']);
 });
 
@@ -132,9 +135,11 @@ test('InstagramPublish: el carrusel crea hijos, espera a que terminen y despues 
 
     $media = [igImage('1'), igVideo('2')];
     $first = $this->ig->publish($this->account, igRequest(ContentType::InstagramCarousel, $media));
-    expect($first->isProcessing())->toBeTrue()->and($first->reference)->toBe('child:c1,c2');
+    expect($first->isProcessing())->toBeTrue()->and($first->reference)->toBe('carousel')
+        ->and($first->progress)->toBe(['children' => ['c1', 'c2'], 'ready' => ['c1']]);
 
-    $done = $this->ig->poll($this->account, igRequest(ContentType::InstagramCarousel, $media, reference: 'child:c1,c2'));
+    $request = igRequest(ContentType::InstagramCarousel, $media, reference: 'carousel');
+    $done = $this->ig->poll($this->account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, [], 'carousel', $request->since, $first->progress));
     expect($done->isPublished())->toBeTrue()->and($done->externalId)->toBe('18300');
 
     $creates = $this->graph->callsTo('POST', '#/media$#');
@@ -235,7 +240,8 @@ test('InstagramPublish: de extremo a extremo por la cola, un timeout en media_pu
 
     igBase($this->graph);
     $this->graph->on('POST', '#^'.IG_ID.'/media$#', ['id' => '9600'])
-        ->on('GET', '#^9600$#', ['status_code' => 'FINISHED'])
+        // Tras el timeout el contenedor consta como PUBLISHED: la red SI habia publicado.
+        ->on('GET', '#^9600$#', FakeGraph::seq(['status_code' => 'FINISHED'], ['status_code' => 'PUBLISHED']))
         ->on('POST', '#/media_publish$#', new ConnectionException('cURL error 28: timeout'))
         // La red SI habia publicado: aparece en la media reciente.
         ->on('GET', '#^'.IG_ID.'/media$#', ['data' => [['id' => '18600', 'caption' => 'Mi texto', 'permalink' => 'https://www.instagram.com/p/Q/', 'timestamp' => '2026-11-01T11:59:59+0000']]]);

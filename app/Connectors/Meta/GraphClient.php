@@ -43,16 +43,20 @@ class GraphClient
 
     public function __construct(private readonly ?string $version = null) {}
 
-    /** @return array<string, mixed> */
+    /**
+     * El token viaja siempre en la cabecera `Authorization: Bearer` (nunca en la query, que acaba en logs de proxy).
+     *
+     * @return array<string, mixed>
+     */
     public function get(string $path, array $query, string $token): array
     {
-        return $this->send(fn (PendingRequest $http) => $http->get($this->url($path), $query + ['access_token' => $token]));
+        return $this->send(fn (PendingRequest $http) => $http->withToken($token)->get($this->url($path), $query));
     }
 
     /** @return array<string, mixed> */
     public function post(string $path, array $params, string $token): array
     {
-        return $this->send(fn (PendingRequest $http) => $http->asForm()->post($this->url($path), $params + ['access_token' => $token]));
+        return $this->send(fn (PendingRequest $http) => $http->withToken($token)->asForm()->post($this->url($path), $params));
     }
 
     /**

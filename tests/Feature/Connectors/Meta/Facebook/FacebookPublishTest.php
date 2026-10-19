@@ -58,7 +58,8 @@ test('FacebookPublish: texto con enlace usa /feed con message y link y devuelve 
     $r = $this->fb->publish($this->account, fbRequest(ContentType::FacebookText, [], 'Mira esto', options: ['link' => 'https://ejemplo.test/post']));
 
     expect($r->isPublished())->toBeTrue()->and($r->externalId)->toBe(PAGE_ID.'_555')->and($r->url)->toBe('https://www.facebook.com/'.PAGE_ID.'/posts/555');
-    expect($this->graph->callsTo('POST', '#/feed$#')[0]['params'])->toMatchArray(['message' => 'Mira esto', 'link' => 'https://ejemplo.test/post', 'access_token' => 'page-token-xyz']);
+    expect($this->graph->callsTo('POST', '#/feed$#')[0]['params'])->toMatchArray(['message' => 'Mira esto', 'link' => 'https://ejemplo.test/post'])->not->toHaveKey('access_token');
+    expect($this->graph->callsTo('POST', '#/feed$#')[0]['authorization'])->toBe('Bearer page-token-xyz');
 });
 
 test('FacebookPublish: la foto usa /photos con url y caption (como el spike) y devuelve el post_id', function () {

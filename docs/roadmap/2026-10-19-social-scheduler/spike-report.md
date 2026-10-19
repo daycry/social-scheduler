@@ -22,10 +22,10 @@ Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
 - Veredicto: viable / limitado / no viable
 
 ## TikTok
-- Permisos y `privacy_level_options` devueltos por `creator_info/query`:
-- ¿Solo `SELF_ONLY` sin auditoría?
+- Permisos y `privacy_level_options` devueltos por `creator_info/query`: scopes `user.info.basic,video.publish,video.upload` concedidos (app «Daycry Social Scheduler», **Sandbox «spike»**, cuenta `marblepartyrace` como target user). `privacy_level_options`: `PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, SELF_ONLY`; `max_video_post_duration_sec` 600. Gotcha: `creator_info/query` exige cuerpo JSON objeto `{}` (con `[]` → `invalid_params`).
+- ¿Solo `SELF_ONLY` sin auditoría? **No concluyente**: `creator_info` ofrece también `PUBLIC_TO_EVERYONE`, pero la doc de TikTok indica que el contenido de clientes no auditados queda restringido a privado. Confirmar con una publicación real (pendiente, al final del spike).
 - ¿PULL_FROM_URL exige dominio verificado?
-- Duración access/refresh token:
+- Duración access/refresh token: access 86400 s (24 h), refresh 31536000 s (365 días) — medido 2026-10-19.
 - Límite de usuarios/día; coste y plazo de la auditoría:
 - Veredicto: viable / limitado / no viable
 

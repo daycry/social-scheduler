@@ -76,7 +76,7 @@ function token(): string {
 }
 
 function api(string $path, array $json): array {
-    [$c, $j] = http('POST', API . $path, [], ['Authorization: Bearer ' . token(), 'Content-Type: application/json; charset=UTF-8'], json_encode($json));
+    [$c, $j] = http('POST', API . $path, [], ['Authorization: Bearer ' . token(), 'Content-Type: application/json; charset=UTF-8'], $json ? json_encode($json) : '{}'); // [] vacío se serializa como lista: TikTok exige objeto
     return [$c, $j];
 }
 

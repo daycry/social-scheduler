@@ -3,11 +3,12 @@
 namespace App\Connectors\Google;
 
 use App\Analytics\Metric;
-use App\Connectors\Contracts\InsightsReader;
+use App\Connectors\Contracts\RangeInsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\Log;
  * los videos, y YouTube Data API (`channels.list?part=statistics`, scope `youtube.readonly`) para el numero de
  * suscriptores y videos (stock).
  *
+ * Dia: YouTube Analytics agrupa por dia en la zona del Pacifico (America/Los_Angeles); `startDate=endDate=D` ya es el
+ * dia D del Pacifico, por eso el ultimo dia cerrado se calcula en esa zona (Analytics\Days) y no en UTC. El historico
+ * se pide con un solo informe `dimensions=day` por tramo de hasta 90 dias.
+ *
  * Metricas de Analytics usadas (documentadas en channel_reports): views, estimatedMinutesWatched, likes,
  * comments, shares, subscribersGained, subscribersLost. La API NO ofrece impresiones ni alcance: quedan `null`.
  * Sin filas para el dia (latencia de procesado de 1-3 dias) el flujo es `null`, no 0: el job diario lo reintenta.
@@ -27,13 +32,16 @@ use Illuminate\Support\Facades\Log;
  * Un fallo de la API de Analytics (scope no concedido, API no habilitada, metrica no admitida) deja el flujo en
  * `null` ("no disponible") sin romper los stocks de la Data API.
  */
-class Analytics implements InsightsReader
+class Analytics implements RangeInsightsReader
 {
     private const REPORTS_URL = 'https://youtubeanalytics.googleapis.com/v2/reports';
 
     private const CHANNELS_URL = 'https://www.googleapis.com/youtube/v3/channels';
 
     private const STOCK_MAX_AGE_DAYS = 2;
+
+    /** Dias por informe `dimensions=day` del historico. */
+    private const RANGE_DAYS = 90;
 
     private const CHANNEL_METRICS = [
         'views' => Metric::VIEWS,
@@ -75,6 +83,58 @@ class Analytics implements InsightsReader
 
             $out[Metric::FOLLOWERS] = ($stats['hiddenSubscriberCount'] ?? false) ? null : $this->num($stats['subscriberCount'] ?? null);
             $out[Metric::VIDEO_COUNT] = $this->num($stats['videoCount'] ?? null);
+        }
+
+        return $out;
+    }
+
+    public function maxRangeDays(SocialAccount $account): int
+    {
+        return self::RANGE_DAYS;
+    }
+
+    public function accountInsightsRange(SocialAccount $account, CarbonInterface $from, CarbonInterface $to): array
+    {
+        $out = [];
+
+        for ($d = CarbonImmutable::instance($from)->startOfDay(); $d->lte($to); $d = $d->addDay()) {
+            $out[$d->format('Y-m-d')] = Metric::blankAccount();
+        }
+
+        try {
+            $json = $this->get(self::REPORTS_URL, [
+                'ids' => 'channel==MINE',
+                'startDate' => $from->format('Y-m-d'),
+                'endDate' => $to->format('Y-m-d'),
+                'dimensions' => 'day',
+                'sort' => 'day',
+                'metrics' => implode(',', array_keys(self::CHANNEL_METRICS)),
+            ], (string) $account->access_token);
+        } catch (PermanentPublishException) {
+            return $out; // sin scope / API no habilitada: todo "no disponible"
+        }
+
+        $headers = array_column($json['columnHeaders'] ?? [], 'name');
+        $dayCol = array_search('day', $headers, true);
+
+        if ($dayCol === false) {
+            return $out;
+        }
+
+        foreach ($json['rows'] ?? [] as $row) {
+            $date = is_array($row) ? (string) ($row[$dayCol] ?? '') : '';
+
+            if (! isset($out[$date])) {
+                continue;
+            }
+
+            foreach ($headers as $i => $name) {
+                if (isset(self::CHANNEL_METRICS[$name]) && isset($row[$i]) && is_numeric($row[$i])) {
+                    $out[$date][self::CHANNEL_METRICS[$name]] = $row[$i] + 0;
+                }
+            }
+
+            $out[$date][Metric::INTERACTIONS] = $this->interactions($out[$date]);
         }
 
         return $out;

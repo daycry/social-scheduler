@@ -121,24 +121,49 @@ return [
     */
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
-        /* Hora UTC del job diario: el dia anterior ya esta cerrado en todas las zonas habituales. */
         /* Al conectar una cuenta se encola el historico inicial (T-36). */
         'backfill_on_connect' => (bool) env('SOCIAL_BACKFILL_ON_CONNECT', true),
-        'daily_at' => env('SOCIAL_ANALYTICS_DAILY_AT', '03:30'),
-        /* Dias anteriores a ayer que se reintentan si su snapshot falta o salio vacio (latencia de YouTube, caidas). */
-        'settle_days' => (int) env('SOCIAL_ANALYTICS_SETTLE_DAYS', 2),
+        /*
+        | Hora UTC del job diario. Meta y YouTube Analytics definen el dia en el huso del Pacifico (America/Los_Angeles),
+        | que cierra a las 07:00/08:00 UTC: a las 12:00 UTC el dia anterior del Pacifico ya esta cerrado y Meta ha
+        | publicado sus valores. (A las 03:30 UTC aun no habia terminado ese dia.) Lo que tarde mas (YouTube: 1-3 dias)
+        | lo recogen los reintentos de `settle_days`.
+        */
+        'daily_at' => env('SOCIAL_ANALYTICS_DAILY_AT', '12:00'),
+        /* Zona en la que cada red define el "dia" de sus metricas; el ultimo dia cerrado se calcula en ella. */
+        'timezones' => [
+            'instagram' => 'America/Los_Angeles',
+            'facebook' => 'America/Los_Angeles',
+            'youtube' => 'America/Los_Angeles',
+            'tiktok' => 'UTC',
+        ],
+        /*
+        | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
+        | diarios esperados de la red: latencia de YouTube, caidas, limites de uso). Pasada la ventana el snapshot se
+        | da por asentado aunque le falten metricas (la API no las ofrece) y no se vuelve a pedir.
+        */
+        'settle_days' => (int) env('SOCIAL_ANALYTICS_SETTLE_DAYS', 3),
         /* Publicaciones recientes cuyo snapshot se toma en el job diario. */
         'recent_post_days' => (int) env('SOCIAL_ANALYTICS_RECENT_POST_DAYS', 30),
         'max_posts_per_account' => (int) env('SOCIAL_ANALYTICS_MAX_POSTS', 50),
+        /* Presupuesto (s) de una pasada de lectura de publicaciones (< $timeout 90 s del job); si no acaba, se encadena otra. */
+        'posts_budget_seconds' => (int) env('SOCIAL_ANALYTICS_POSTS_BUDGET', 60),
+        /* Publicaciones que lista el dashboard por red (las de mas interacciones); los KPIs cubren TODAS las del periodo. */
+        'dashboard_posts' => (int) env('SOCIAL_ANALYTICS_DASHBOARD_POSTS', 50),
         /* Refresco frecuente de publicaciones nuevas: cada `refresh_hours` durante `refresh_window_hours`. */
         'refresh_hours' => (int) env('SOCIAL_ANALYTICS_REFRESH_HOURS', 6),
         'refresh_window_hours' => (int) env('SOCIAL_ANALYTICS_REFRESH_WINDOW', 72),
-        /* Dias de historico que se piden al conectar (maximo razonable por red; Meta ofrece ~30 en cuenta). */
+        /*
+        | Dias de historico que se piden al conectar. Decision (T-36): Instagram 30 (limite de 30 dias por consulta de la
+        | API de insights de usuario, y sus metricas total_value exigen una llamada por dia); Facebook 90 (se lee por
+        | rangos de <= 30 dias, 3 llamadas por rango); YouTube 365 (un solo informe `dimensions=day` por tramo de 90
+        | dias); TikTok ninguno (la Display API no da serie historica). Tope duro: Period::MAX_DAYS.
+        */
         'backfill_days' => [
             'instagram' => (int) env('SOCIAL_BACKFILL_DAYS_INSTAGRAM', 30),
-            'facebook' => (int) env('SOCIAL_BACKFILL_DAYS_FACEBOOK', 30),
-            'youtube' => (int) env('SOCIAL_BACKFILL_DAYS_YOUTUBE', 90),
-            'tiktok' => 0, // la Display API no ofrece serie historica
+            'facebook' => (int) env('SOCIAL_BACKFILL_DAYS_FACEBOOK', 90),
+            'youtube' => (int) env('SOCIAL_BACKFILL_DAYS_YOUTUBE', 365),
+            'tiktok' => 0,
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),

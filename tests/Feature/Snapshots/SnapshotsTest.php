@@ -59,7 +59,7 @@ it('guarda un snapshot por cuenta y dia de forma idempotente (upsert)', function
     $snap = AccountSnapshot::withoutUserScope()->first();
     expect($snap->metrics[Metric::FOLLOWERS])->toBe(100)
         ->and($snap->metrics[Metric::REACH])->toBe(30)
-        ->and($snap->metrics[Metric::PROFILE_VIEWS])->toBeNull() // no disponible = null, nunca 0
+        ->and($snap->metrics[Metric::LIKES])->toBeNull() // no disponible = null, nunca 0
         ->and($snap->user_id)->toBe($this->user->id)
         ->and($snap->brand_id)->toBe($this->brand->id)
         ->and(substr((string) $snap->date, 0, 10))->toBe('2026-10-31');
@@ -136,10 +136,11 @@ it('el despachador encola ayer con publicaciones y los dias de reintento solo si
 
     (new CollectSnapshots)->handle();
 
-    Bus::assertDispatchedTimes(CollectAccountSnapshot::class, 3);
+    Bus::assertDispatchedTimes(CollectAccountSnapshot::class, 4); // ayer + 3 dias de reintento
     Bus::assertDispatched(CollectAccountSnapshot::class, fn ($j) => $j->accountId === $this->account->id && $j->date === '2026-10-31' && $j->withPosts && ! $j->onlyIfMissing);
     Bus::assertDispatched(CollectAccountSnapshot::class, fn ($j) => $j->date === '2026-10-30' && ! $j->withPosts && $j->onlyIfMissing);
     Bus::assertDispatched(CollectAccountSnapshot::class, fn ($j) => $j->date === '2026-10-29' && $j->onlyIfMissing);
+    Bus::assertDispatched(CollectAccountSnapshot::class, fn ($j) => $j->date === '2026-10-28' && $j->onlyIfMissing);
 });
 
 it('los dias de reintento no vuelven a leer lo que ya tiene datos', function () {

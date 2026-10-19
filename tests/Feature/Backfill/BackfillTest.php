@@ -26,7 +26,7 @@ use Tests\Support\FakeInsights;
 
 beforeEach(function () {
     Carbon::setTestNow('2026-11-01 12:00:00');
-    config(['social.analytics.backfill_days.instagram' => 5]);
+    config(['social.analytics.backfill_days.instagram' => 5, 'social.analytics.settle_days' => 3]);
     $this->user = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create();
     $this->account = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Instagram]);

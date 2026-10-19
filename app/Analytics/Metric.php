@@ -54,6 +54,42 @@ final class Metric
     /** @var list<string> Valores en un instante (no se suman en un periodo: se toma el primero/ultimo). */
     public const STOCKS = [self::FOLLOWERS, self::VIDEO_COUNT];
 
+    /**
+     * FLUJOS diarios que cada red PUEDE dar para un dia cerrado. Sirven para decidir si el snapshot de un dia esta
+     * completo: un dia con solo stocks (seguidores, videos) NO lo esta. TikTok no ofrece flujos de cuenta (solo stocks).
+     *
+     * @var array<string, list<string>>
+     */
+    public const EXPECTED_FLOWS = [
+        'instagram' => [self::VIEWS, self::REACH, self::PROFILE_VIEWS, self::ACCOUNTS_ENGAGED, self::INTERACTIONS, self::FOLLOWERS_GAINED],
+        'facebook' => [self::VIEWS, self::INTERACTIONS],
+        'youtube' => [self::VIEWS, self::WATCH_MINUTES, self::LIKES, self::COMMENTS, self::SHARES, self::INTERACTIONS, self::FOLLOWERS_GAINED, self::FOLLOWERS_LOST],
+        'tiktok' => [],
+    ];
+
+    /**
+     * ¿El snapshot esta completo? Todos los flujos esperados de la red tienen valor; en una red sin flujos (TikTok)
+     * basta con que haya algun dato. Los stocks no cuentan: no demuestran que el dia ya este procesado.
+     *
+     * @param  array<string, mixed>  $metrics
+     */
+    public static function isComplete(string $network, array $metrics): bool
+    {
+        $expected = self::EXPECTED_FLOWS[$network] ?? [];
+
+        if ($expected === []) {
+            return ! self::isEmpty($metrics);
+        }
+
+        foreach ($expected as $key) {
+            if (($metrics[$key] ?? null) === null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /** @return array<string, null> Mapa con todas las claves de cuenta a `null` ("no disponible"). */
     public static function blankAccount(): array
     {

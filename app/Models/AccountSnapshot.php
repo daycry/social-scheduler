@@ -12,7 +12,7 @@ class AccountSnapshot extends Model
 {
     use BelongsToUser;
 
-    protected $fillable = ['user_id', 'brand_id', 'social_account_id', 'network', 'date', 'metrics', 'collected_at'];
+    protected $fillable = ['user_id', 'brand_id', 'social_account_id', 'network', 'date', 'metrics', 'collected_at', 'settled_at'];
 
     protected function casts(): array
     {
@@ -20,6 +20,7 @@ class AccountSnapshot extends Model
             'network' => Network::class,
             'metrics' => 'array',
             'collected_at' => 'datetime',
+            'settled_at' => 'datetime',
         ];
     }
 

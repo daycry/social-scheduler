@@ -13,7 +13,11 @@ use Throwable;
 class FakeInsights implements InsightsReader
 {
     /** @var array<string, int|float|null> */
-    public array $account = [Metric::FOLLOWERS => 100, Metric::VIEWS => 50, Metric::REACH => 30, Metric::INTERACTIONS => 5];
+    public array $account = [
+        Metric::FOLLOWERS => 100, Metric::VIEWS => 50, Metric::REACH => 30, Metric::INTERACTIONS => 5,
+        // Con estos flujos el snapshot de Instagram esta COMPLETO (Metric::EXPECTED_FLOWS).
+        Metric::PROFILE_VIEWS => 4, Metric::ACCOUNTS_ENGAGED => 9, Metric::FOLLOWERS_GAINED => 2,
+    ];
 
     /** @var array<string, int|float|null> */
     public array $post = [Metric::VIEWS => 10, Metric::LIKES => 2, Metric::COMMENTS => 1, Metric::INTERACTIONS => 3];

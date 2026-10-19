@@ -8,7 +8,7 @@ use App\Jobs\Concerns\GuardsInsightsErrors;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Services\SocialAccountService;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -18,8 +18,12 @@ use Illuminate\Queue\InteractsWithQueue;
  * primeras `refresh_window_hours` (72 h) tras publicar, que es cuando mas cambian. Un snapshot por destino y dia
  * (upsert: la ultima lectura del dia gana). Unico por cuenta en cola `metrics`; $timeout 90 s < worker 120 s.
  * El despachador `dispatchDue()` solo encola cuentas activas con publicaciones en la ventana.
+ *
+ * Trabaja por BLOQUES con presupuesto de tiempo (`posts_budget_seconds` 60 s < $timeout 90 s): si no caben todas las
+ * publicaciones, se reencola a si mismo con el desplazamiento por donde iba (`ShouldBeUniqueUntilProcessing` libera el
+ * candado al empezar para poder encadenar). `hours` 0 = ventana de refresco; el snapshot diario pide `recent_post_days`.
  */
-class RefreshPostMetrics implements ShouldBeUnique, ShouldQueue
+class RefreshPostMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use GuardsInsightsErrors, InteractsWithQueue, Queueable;
 
@@ -31,14 +35,14 @@ class RefreshPostMetrics implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 3600;
 
-    public function __construct(public readonly int $accountId)
+    public function __construct(public readonly int $accountId, public readonly int $hours = 0, public readonly int $offset = 0)
     {
         $this->onQueue((string) config('social.analytics.queue', 'metrics'));
     }
 
     public function uniqueId(): string
     {
-        return (string) $this->accountId;
+        return $this->accountId.($this->hours > 0 ? ':'.$this->hours : '');
     }
 
     /** Encola un job por cuenta activa con publicaciones dentro de la ventana de refresco. @return int cuentas encoladas */
@@ -72,6 +76,15 @@ class RefreshPostMetrics implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $this->guarded($account, $accounts, fn () => $collector->collectPosts($account, (int) config('social.analytics.refresh_window_hours', 72)));
+        $hours = $this->hours > 0 ? $this->hours : (int) config('social.analytics.refresh_window_hours', 72);
+        $next = null;
+
+        $ok = $this->guarded($account, $accounts, function () use ($collector, $account, $hours, &$next): void {
+            $next = $collector->collectPostsBatch($account, $hours, $this->offset, (float) config('social.analytics.posts_budget_seconds', 60))['next'];
+        });
+
+        if ($ok && $next !== null) {
+            self::dispatch($this->accountId, $this->hours, $next);
+        }
     }
 }

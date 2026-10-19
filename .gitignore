@@ -33,3 +33,6 @@ node_modules/
 spike/.tokens-*.json
 spike/.results-*.json
 .env.testing
+
+# Configuración local de herramientas del agente (no versionar)
+/.claude/

@@ -1,9 +1,11 @@
 <?php
 
+use App\Connectors\Network;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuth\OAuthController;
@@ -19,9 +21,12 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Dashboards de analitica por marca (T-37): Summary y pagina por red.
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/{network}', [DashboardController::class, 'network'])
+        ->whereIn('network', array_column(Network::cases(), 'value'))->name('dashboard.network');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('brands', BrandController::class);

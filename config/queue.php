@@ -29,6 +29,11 @@ return [
     |
     */
 
+    /*
+    | Colas de la aplicacion por prioridad (se pasan a `queue:work --queue=`).
+    */
+    'names' => array_values(array_filter(array_map('trim', explode(',', (string) env('QUEUE_NAMES', 'publish,poll,metrics,reports'))))),
+
     'connections' => [
 
         'sync' => [

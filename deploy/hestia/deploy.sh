@@ -41,7 +41,7 @@ STEPS=(
     "$PHP_BIN artisan storage:link"
     "$PHP_BIN artisan queue:restart"
     "$PHP_BIN artisan up"
-    "$PHP_BIN artisan app:health"
+    "$PHP_BIN artisan app:health --skip-scheduler"
 )
 
 echo "== Social Scheduler deploy (rama: $BRANCH, dir: $APP_DIR) =="

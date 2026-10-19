@@ -1,0 +1,36 @@
+# Worker de cola de Social Scheduler. Unidad plantilla: la instancia (%i) es la cola
+# o lista de colas por prioridad que atiende ese worker.
+#
+#   scheduler-worker@publish.service          -> queue:work --queue=publish
+#   scheduler-worker@poll.service             -> queue:work --queue=poll
+#   scheduler-worker@metrics.service          -> queue:work --queue=metrics
+#   scheduler-worker@reports.service          -> queue:work --queue=reports
+#
+# Instalacion en el VPS (ver deploy/systemd/README.md):
+#   sudo cp deploy/systemd/scheduler-worker@.service /etc/systemd/system/
+#   sudo sed -i 's#/home/USUARIO/web/DOMINIO/app#<ruta real>#; s#User=USUARIO#User=<usuario hestia>#' /etc/systemd/system/scheduler-worker@.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports
+[Unit]
+Description=Social Scheduler queue worker (%i)
+After=network.target mysql.service mariadb.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=USUARIO
+Group=USUARIO
+WorkingDirectory=/home/USUARIO/web/DOMINIO/app
+ExecStart=/usr/bin/php artisan queue:work database --queue=%i --sleep=3 --tries=3 --max-time=3600 --max-jobs=500
+# `queue:restart` hace que el worker termine limpiamente; systemd lo relanza.
+Restart=always
+RestartSec=5
+# Deja terminar el job en curso antes de matar el proceso.
+TimeoutStopSec=60
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scheduler-worker-%i
+
+[Install]
+WantedBy=multi-user.target

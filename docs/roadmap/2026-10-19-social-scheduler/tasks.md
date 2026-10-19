@@ -34,7 +34,7 @@ verificacion: obligatoria
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
-| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 0 | 5 | 0% | 0 / 60h | 0 / 9.1h | 0 / 2.3h | 0 / 2,73M |
+| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 0.54h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 0 | 6 | 0% | 0 / 60h | 0 / 9h | 0 / 2.3h | 0 / 2,73M |
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 0 | 9 | 0% | 0 / 142h | 0 / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
@@ -43,7 +43,7 @@ verificacion: obligatoria
 | Fase 7 — Analítica: snapshots, insights y dashboards | 0 | 7 | 0% | 0 / 106h | 0 / 16.2h | 0 / 4.1h | 0 / 4,83M |
 | Fase 8 — Reporting PDF/CSV | 0 | 4 | 0% | 0 / 40h | 0 / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 0 | 2 | 0% | 0 / 16h | 0 / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **5** | **43** | **12%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **7** | **43** | **16%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -215,7 +215,7 @@ verificacion: obligatoria
 
 ## Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia
 
-**Estado**: borrador · **Estimado**: 60h · **Real**: — · **Coste est.**: 3.600 € + tokens (⚠️ verificar precio) · **Tokens est.**: 2,73M
+**Estado**: en-progreso · **Estimado**: 60h · **Real**: — · **Coste est.**: 3.600 € + tokens (⚠️ verificar precio) · **Tokens est.**: 2,73M
 
 ### T-06 — Esqueleto Laravel 13, calidad y CI
 
@@ -228,7 +228,7 @@ verificacion: obligatoria
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
 - **Tipo**: backend
-- **Archivos**: `composer.json`, `app/`, `bootstrap/`, `config/`, `routes/`, `tests/`, `phpunit.xml`, `pint.json`, `.github/workflows/ci.yml`, `.env.example`, `README.md`
+- **Archivos**: `composer.json`, `app/`, `bootstrap/`, `config/`, `routes/`, `tests/`, `phpunit.xml`, `pint.json`, `.github/workflows/ci.yml`, `.env.example`, `README.md`, `.editorconfig`, `.gitattributes`, `.npmrc`, `artisan`, `public/`, `storage/`, `database/.gitignore`, `database/factories/UserFactory.php`, `database/seeders/DatabaseSeeder.php`, `package.json`, `package-lock.json`, `docs/roadmap/2026-10-19-social-scheduler/ui-reference.md`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan --version` → `Laravel Framework 13.`
@@ -246,7 +246,8 @@ verificacion: obligatoria
 - [ ] Comprobar versión de MariaDB/MySQL y documentarla
 
 **Notas**: La decisión de frontend (Inertia + Vue por defecto, React alternativa) se fija en T-07.
-**Notas (implementer, 2026-10-19)**: Laravel 13.37.0 creado en la raiz (PHP 8.3 local; composer exige ^8.3, produccion 8.4/8.5), Pest 4 + Pint, `pint.json` excluye `spike/`, CI en `.github/workflows/ci.yml`, `.env.example` con R2/colas/OAuth. MySQL local = 8.4.3 (cumple >= 8.0). Verificacion: `php artisan --version` -> Laravel Framework 13.37.0; `composer test` -> 2 passed; `vendor/bin/pint --test` -> passed; `/up` -> 200 con `php -S` sobre `public/`. **PENDIENTE (manual)**: el vhost de Laragon (`auto.metricool.test.conf`) se cambio a `public/` pero Apache no se recargo (https://metricool.test/up sigue 404 hasta pulsar Reload en Laragon); el criterio 'arranca en https://metricool.test' queda sin marcar hasta entonces. BD `metricool` y `metricool_testing` creadas en local.
+**Notas (implementer, 2026-10-19)**: Laravel 13.37.0 creado en la raiz (PHP 8.3 local; composer exige ^8.3, produccion 8.4/8.5), Pest 4 + Pint, `pint.json` excluye `spike/`, CI en `.github/workflows/ci.yml`, `.env.example` con R2/colas/OAuth. MySQL local = 8.4.3 (cumple >= 8.0). Verificacion: `php artisan --version` -> Laravel Framework 13.37.0; `composer test` -> 2 passed; `vendor/bin/pint --test` -> passed; `/up` -> 200 con `php -S` sobre `public/`. **PENDIENTE (manual)**: el vhost de Laragon (`auto.metricool.test.conf`) se cambio a `public/` pero Apache no se recargo (https://metricool.test/up sigue 404 hasta pulsar Reload en Laragon); el criterio 'arranca en https://metricool.test' queda sin marcar hasta entonces. Tampoco se marca 'CI ejecuta tests y Pint': el workflow esta escrito pero no se ha ejecutado en GitHub (se comprobara en el primer push). BD `metricool` y `metricool_testing` creadas en local.
+**Nota de alcance (implementer)**: ficheros del esqueleto Laravel (artisan, public/, storage/, .gitignore de carpetas, factories/seeders) y `ui-reference.md` (commit previo de la rama) declarados aqui para la puerta de alcance.
 
 ### T-07 — Autenticación web: registro, login, recuperación de contraseña e Inertia
 
@@ -259,7 +260,7 @@ verificacion: obligatoria
 - **Previsión IA**: 497k in / 50k out tok · ⚠️ verificar €
 - **Dependencias**: T-06
 - **Tipo**: frontend
-- **Archivos**: `app/Http/Controllers/Auth/`, `routes/auth.php`, `resources/js/Pages/Auth/`, `resources/js/Layouts/`, `tests/Feature/Auth/`, `config/mail.php`
+- **Archivos**: `app/Http/Controllers/Auth/`, `routes/auth.php`, `resources/js/Pages/Auth/`, `resources/js/Layouts/`, `tests/Feature/Auth/`, `config/mail.php`, `resources/js/app.js`, `resources/js/bootstrap.js`, `resources/js/Pages/Dashboard.vue`, `resources/js/Pages/Profile/`, `resources/js/Pages/Welcome.vue`, `resources/views/app.blade.php`, `resources/css/app.css`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js`, `jsconfig.json`, `package.json`, `package-lock.json`
 - **Cubre (tests)**: E2E-01
 - **Verificación**:
   - `php artisan test --filter=Auth` → todos los tests pasan
@@ -278,6 +279,7 @@ verificacion: obligatoria
 
 **Notas**: Incógnita abierta: SMTP propio de Hestia o proveedor transaccional; 2FA fuera de alcance.
 **Notas (implementer, 2026-10-19)**: Laravel Breeze 2.4 (Inertia + Vue, Pest) como starter kit: registro, login/logout, reset por email, verificacion, perfil y AuthenticatedLayout con navegacion. Ajustes: se creo `resources/js/bootstrap.js` vacio (Breeze lo importa y L13 no lo trae) y se quito `@tailwindcss/vite` (choca con Tailwind 3 de Breeze). Se anadio `tests/Feature/Auth/ProtectedRoutesTest.php` (rutas protegidas -> login, registro -> dashboard vacio). Verificacion: `php artisan test --filter=Auth` -> 21 passed; `php artisan route:list --name=login` -> ruta login presente; `php artisan test` -> 28 passed; `npm run build` OK; Pint passed. Email: el reset se prueba con Notification fake; SMTP real (Hestia vs proveedor transaccional) queda como decision abierta, `MAIL_MAILER=log` por defecto en local; 2FA fuera de alcance.
+**Nota de alcance (implementer)**: ficheros de Breeze/Inertia/Vite declarados para la puerta de alcance.
 
 ### T-08 — Dominio base: marcas, trait BelongsToUser, Policies y tests de aislamiento
 
@@ -348,14 +350,14 @@ verificacion: obligatoria
 
 - **Descripción**: Configurar disco S3/R2, la conexión de cola `database` (comprobando `SKIP LOCKED` con la versión real de MariaDB/MySQL), unidades systemd de workers (`--max-time=3600 --max-jobs=500`, `Restart=always`) y un healthcheck externo. Documentar el plan B (cron con `--stop-when-empty`).
 - **Changelog**: Procesos en segundo plano y almacenamiento de media listos.
-- **Estado**: borrador
-- **Tiempo humano**: est. 10h · real —
-- **Tiempo IA (ejec.)**: est. 1.5h · real —
+- **Estado**: en-progreso
+- **Tiempo humano**: est. 10h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 1.5h · real 0.13h (medido)
 - **Supervisión**: est. 0.4h (≈25 % IA) · real —
 - **Previsión IA**: 414k in / 41k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: devops
-- **Archivos**: `config/filesystems.php`, `config/queue.php`, `deploy/systemd/scheduler-worker@.service`, `app/Console/Commands/`, `routes/console.php`, `tests/Feature/Infra/`
+- **Archivos**: `config/filesystems.php`, `config/queue.php`, `deploy/systemd/scheduler-worker@.service`, `app/Console/Commands/`, `routes/console.php`, `tests/Feature/Infra/`, `app/Jobs/QueueProbeJob.php`, `app/Support/HealthCheck.php`, `app/Http/Controllers/HealthController.php`, `routes/web.php`, `config/app.php`, `composer.json`, `composer.lock`, `deploy/systemd/README.md`, `deploy/hestia/deploy.sh`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --filter=Infra` → pasa (disco `r2` mockeado, cola `database` con colas `publish,poll,metrics,reports`)
@@ -364,15 +366,16 @@ verificacion: obligatoria
 **Criterios de aceptación**
 - [ ] Worker systemd arranca, procesa un job de prueba y se reinicia tras `queue:restart`
 - [ ] Disco `r2` operativo con URL pública o prefirmada
-- [ ] Healthcheck documentado
+- [x] Healthcheck documentado
 
 **Subtareas**
 - [ ] Config de filesystem R2 y dominio propio sobre el bucket
-- [ ] Config de colas y job de prueba
-- [ ] Unidad systemd plantilla `@.service`
-- [ ] Healthcheck y plan B
+- [x] Config de colas y job de prueba
+- [x] Unidad systemd plantilla `@.service`
+- [x] Healthcheck y plan B
 
 **Notas**: Verificar `mysql --version` ≥ MariaDB 10.6 / MySQL 8.0 antes de habilitar varios workers.
+**Notas (implementer, 2026-10-19)**: Hecho: disco `r2` (driver S3, `league/flysystem-aws-s3-v3`, path-style, region auto) + `filesystems.media` (MEDIA_DISK; `local` en dev/test, `r2` en produccion); `queue.names` (publish,poll,metrics,reports); `QueueProbeJob` + `app:queue-probe`; `app:health` (BD con deteccion SKIP LOCKED, cola, disco, latido del scheduler) y endpoint `/health` con token; latido por `Schedule` cada minuto; unidad `deploy/systemd/scheduler-worker@.service` (`--max-time=3600 --max-jobs=500`, `Restart=always`); `deploy/systemd/README.md` con instalacion, operacion, healthcheck y plan B (cron + `--stop-when-empty`). Ficheros fuera del `Archivos` original, anadidos: `app/Jobs/QueueProbeJob.php`, `app/Support/HealthCheck.php`, `app/Http/Controllers/HealthController.php`, `routes/web.php`, `config/app.php`, `composer.json`, `composer.lock`, `deploy/systemd/README.md`, `deploy/hestia/deploy.sh`. Verificacion local: `php artisan test --filter=Infra` -> 17 passed; suite completa -> 59 passed; Pint passed; worker real sobre MySQL 8.4.3 (SKIP LOCKED): `app:queue-probe` + `queue:work --stop-when-empty` proceso las 4 colas (0 pendientes) y `queue:restart` detuvo un worker en ejecucion ('Worker STOPPED Received restart signal'). **PENDIENTE (manual en el VPS)**: `systemd-analyze verify` y arranque/reinicio real con systemd (criterio 1 sin marcar); disco `r2` contra un bucket real de Cloudflare con dominio propio (criterio 2 y subtarea 'dominio propio' sin marcar: en tests esta fake; falta bucket, credenciales y CORS). La tarea sigue en-progreso hasta entonces.
 
 ---
 

@@ -15,6 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // Token del endpoint /health (healthcheck externo). Vacio = endpoint cerrado.
+    'healthcheck_token' => env('HEALTHCHECK_TOKEN'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

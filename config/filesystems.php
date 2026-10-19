@@ -28,6 +28,12 @@ return [
     |
     */
 
+    /*
+    | Disco de media de la aplicacion: "r2" en produccion; "local" en dev/test
+    | (fallback sin credenciales). Usar siempre Storage::disk(config('filesystems.media'))
+    */
+    'media' => env('MEDIA_DISK', 'local'),
+
     'disks' => [
 
         'local' => [
@@ -44,6 +50,22 @@ return [
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
+            'report' => false,
+        ],
+
+        // Cloudflare R2 (API compatible S3). La URL publica debe ser el dominio propio
+        // sobre el bucket (R2_URL); las URLs temporales se firman con temporaryUrl().
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => env('R2_REGION', 'auto'),
+            'bucket' => env('R2_BUCKET'),
+            'url' => env('R2_URL'),
+            'endpoint' => env('R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'visibility' => 'private',
+            'throw' => true,
             'report' => false,
         ],
 

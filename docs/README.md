@@ -1,0 +1,45 @@
+# Social Scheduler — documentación
+
+Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube y TikTok. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
+
+Última actualización: 2026-10-20
+
+## Por dónde empezar
+
+| Si quieres… | Lee |
+|---|---|
+| Entender cómo encaja todo | [Arquitectura](arquitectura.md) y [Stack](stack.md) |
+| Saber qué se decidió por red (Meta, YouTube, TikTok) | [Decisiones por red](referencia/decisiones-por-red.md) |
+| Rellenar el `.env` | [Configuración](referencia/configuracion.md) |
+| Levantar el proyecto en tu máquina | [Desarrollo local con Laragon](guias/desarrollo-local.md) |
+| Usar la aplicación | [Guía de usuario](usuario/guia-de-usuario.md) |
+| Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
+
+## Módulos (documentación técnica)
+
+| Módulo | Página | Código principal |
+|---|---|---|
+| Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
+| Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php` |
+| Media y validación | [media.md](modulos/media.md) | `app/Services/Media*.php`, `config/media_specs.php` |
+| Calendario | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php` |
+| Analítica y snapshots | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php` |
+| Informes PDF/CSV | [informes.md](modulos/informes.md) | `app/Services/ReportService.php` |
+| Servidor MCP y API keys | [mcp.md](modulos/mcp.md) | `app/Mcp/`, `routes/ai.php` |
+| Despliegue (HestiaCP, systemd, R2) | [despliegue.md](modulos/despliegue.md) | `deploy/` |
+
+## Memoria técnica y planificación
+
+- Decisiones: [ADR-001 stack](knowledge/adr/ADR-001-stack-laravel-nativo-hestia.md) y [ADR-002 PDF con DomPDF](knowledge/adr/ADR-002-pdf-dompdf.md); índice en [knowledge/README.md](knowledge/README.md).
+- Roadmap de la iniciativa (gestionado por otros agentes, solo enlazado): [roadmap](roadmap/README.md) · [spec](roadmap/2026-10-19-social-scheduler/spec.md) · [diseño](roadmap/2026-10-19-social-scheduler/design.md) · [informe del spike](roadmap/2026-10-19-social-scheduler/spike-report.md) · [ledger de tareas](roadmap/2026-10-19-social-scheduler/tasks.md) · [plan de pruebas](roadmap/2026-10-19-social-scheduler/test-plan.md).
+- Índice para IA/RAG: [RAG-INDEX.md](RAG-INDEX.md).
+
+## Estado del proyecto
+
+El código de las fases 0–9 está implementado y la suite Pest está en verde según el ledger (669 tests tras las últimas correcciones). Siguen abiertas las verificaciones manuales con cuentas y servidor reales: ver [Pendientes manuales](referencia/pendientes-manuales.md).
+
+## Categorías omitidas
+
+- `docs/security-scan/`: no existe en el repo.
+- Referencia de API HTTP pública: la app no expone API REST propia; la única interfaz máquina a máquina es el MCP ([mcp.md](modulos/mcp.md)).
+- Confluence: no se publica (opt-in no configurado).

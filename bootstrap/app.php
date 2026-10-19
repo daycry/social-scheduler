@@ -2,12 +2,13 @@
 
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\TrustProxiesFromConfig;
 use App\Support\CrossUserAccessLogger;
-use App\Support\TrustedProxies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -28,10 +29,13 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Detras de ngrok o del proxy de Hestia TLS termina fuera de PHP: sin proxies de confianza route()
-        // genera http:// y el redirect_uri de OAuth no coincide con el registrado (https). Configurable:
-        // TRUSTED_PROXIES='*' o 'ip1,ip2,cidr'. Vacio = no se confia en ninguno (desarrollo local).
-        $middleware->trustProxies(at: TrustedProxies::parse(env('TRUSTED_PROXIES')));
+        // Detras de un proxy TLS (ngrok) route() generaria http:// y el redirect_uri de OAuth no
+        // coincidiria. Los proxies salen de config('app.trusted_proxies') (TRUSTED_PROXIES) en cada
+        // peticion; vacio = no se confia en ninguno (lo correcto con Nginx + PHP-FPM directo en Hestia).
+        $middleware->replace(TrustProxies::class, TrustProxiesFromConfig::class);
+        // Solo se aceptan peticiones dirigidas al host de APP_URL (y subdominios): un Host o
+        // X-Forwarded-Host falso no puede envenenar URLs absolutas (p. ej. el enlace de reset).
+        $middleware->trustHosts();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Acceso cruzado entre usuarios: el UserScope devuelve 404 en el binding antes

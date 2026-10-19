@@ -105,7 +105,7 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         }
 
         if (($reason = self::permanentReason($account)) !== null) {
-            $this->requireReconnection($accounts, $reason);
+            $this->requireReconnection($accounts, $reason, $account->last_refreshed_at?->getTimestamp());
 
             return;
         }
@@ -119,11 +119,11 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         try {
             $result = $connectors->forNetwork($account->network)->refresh($account);
         } catch (ReconnectRequiredException $e) {
-            $this->requireReconnection($accounts, $e->getMessage());
+            $this->requireReconnection($accounts, $e->getMessage(), $before);
 
             return;
         } catch (ConnectorException $e) {
-            $this->transientFailure($accounts, $e->getMessage(), $account);
+            $this->transientFailure($accounts, $e->getMessage(), $account, $before);
 
             return;
         }
@@ -136,12 +136,21 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         });
     }
 
-    private function transientFailure(SocialAccountService $accounts, string $message, SocialAccount $account): void
+    /**
+     * El fallo pertenece a la cadena de tokens leida al empezar ($before): si mientras tanto la
+     * cuenta se renovo o se reconecto (last_refreshed_at cambia), el error ya no aplica.
+     */
+    private static function sameChain(SocialAccount $fresh, ?int $before): bool
+    {
+        return $fresh->isActive() && $fresh->last_refreshed_at?->getTimestamp() === $before;
+    }
+
+    private function transientFailure(SocialAccountService $accounts, string $message, SocialAccount $account, ?int $before): void
     {
         Log::warning('social.refresh_transient_error', ['account_id' => $account->id, 'network' => $account->network->value]);
 
-        $escalate = $this->locked(function (SocialAccount $fresh) use ($accounts, $message): bool {
-            if (! $fresh->isActive()) {
+        $escalate = $this->locked(function (SocialAccount $fresh) use ($accounts, $message, $before): bool {
+            if (! self::sameChain($fresh, $before)) {
                 return false;
             }
 
@@ -151,16 +160,16 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         });
 
         if ($escalate) {
-            $this->requireReconnection($accounts, 'La renovacion falla desde hace horas: '.$message);
+            $this->requireReconnection($accounts, 'La renovacion falla desde hace horas: '.$message, $before);
         }
     }
 
-    private function requireReconnection(SocialAccountService $accounts, string $reason): void
+    private function requireReconnection(SocialAccountService $accounts, string $reason, ?int $before): void
     {
         // El estado se cambia releyendo con lock: solo UNA transicion notifica (sin avisos duplicados).
         $account = null;
-        $changed = $this->locked(function (SocialAccount $fresh) use ($accounts, $reason, &$account): bool {
-            if (! $fresh->isActive()) {
+        $changed = $this->locked(function (SocialAccount $fresh) use ($accounts, $reason, $before, &$account): bool {
+            if (! self::sameChain($fresh, $before)) {
                 return false;
             }
 

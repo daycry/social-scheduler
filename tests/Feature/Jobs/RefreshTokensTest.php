@@ -216,6 +216,34 @@ test('RefreshTokens aborts when the account was already refreshed by someone els
     expect(SocialAccount::withoutUserScope()->find($account->id)->access_token)->toBe('OTHER-RUN');
 });
 
+test('RefreshTokens a permanent error from a stale token chain does not mark an account reconnected meanwhile', function () {
+    $account = SocialAccount::factory()->for($this->brand)->create(['token_expires_at' => now()->addDay()]);
+    // Mientras la llamada viaja con el refresh token viejo, el usuario reconecta (nueva cadena de tokens).
+    $this->fake->duringRefresh = function () use ($account) {
+        SocialAccount::withoutUserScope()->whereKey($account->id)->first()
+            ->forceFill(['last_refreshed_at' => now()->addMinute(), 'access_token' => 'RECONNECTED'])->save();
+        throw new ReconnectRequiredException('invalid_grant');
+    };
+
+    refreshAccount($account);
+
+    $raw = SocialAccount::withoutUserScope()->find($account->id);
+    expect($raw->status)->toBe('activa')->and($raw->access_token)->toBe('RECONNECTED');
+    Notification::assertNothingSent();
+});
+
+test('RefreshTokens a transient error from a stale token chain is not counted against the reconnected account', function () {
+    $account = SocialAccount::factory()->for($this->brand)->create(['token_expires_at' => now()->addDay()]);
+    $this->fake->duringRefresh = function () use ($account) {
+        SocialAccount::withoutUserScope()->whereKey($account->id)->first()->forceFill(['last_refreshed_at' => now()->addMinute()])->save();
+        throw new ConnectorException('503');
+    };
+
+    refreshAccount($account);
+
+    expect(SocialAccount::withoutUserScope()->find($account->id)->refresh_failures)->toBe(0);
+});
+
 test('RefreshTokens does nothing for a missing, disconnected or already marked account', function () {
     $off = SocialAccount::factory()->for($this->brand)->create(['status' => 'desconectada', 'token_expires_at' => now()->subHour()]);
     $marked = SocialAccount::factory()->for($this->brand)->requiresReconnection()->create(['token_expires_at' => now()->subHour()]);

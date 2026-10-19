@@ -42,7 +42,7 @@ abstract class SchedulerTool extends Tool
         $audit = app(AuditLog::class);
         $user = $request->user();
         $action = $this->name();
-        $resourceId = $request->get('post_id') ?? $request->get('brand_id');
+        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('brand_id');
 
         if (! $user instanceof User) {
             return Response::error('No autenticado.');

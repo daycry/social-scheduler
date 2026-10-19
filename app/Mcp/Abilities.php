@@ -11,6 +11,10 @@ final class Abilities
 
     public const POSTS_WRITE = 'posts:write';
 
+    public const STATS_READ = 'stats:read';
+
+    public const REPORTS_WRITE = 'reports:write';
+
     /** @return array<string, string> ability => descripcion para la UI */
     public static function all(): array
     {
@@ -18,6 +22,8 @@ final class Abilities
             self::BRANDS_READ => 'Leer marcas, cuentas conectadas y media',
             self::POSTS_READ => 'Leer publicaciones, su estado y el calendario',
             self::POSTS_WRITE => 'Crear, programar, editar, cancelar y borrar publicaciones',
+            self::STATS_READ => 'Leer estadisticas de marcas, redes y publicaciones',
+            self::REPORTS_WRITE => 'Generar informes PDF/CSV y consultar su estado',
         ];
     }
 

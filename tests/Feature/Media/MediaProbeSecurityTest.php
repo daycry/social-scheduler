@@ -250,3 +250,93 @@ test('MediaUpload: la fila se borra ANTES que el fichero (si la fila no se puede
         MediaAsset::flushEventListeners();
     }
 });
+
+// Revision Fase 3 intento 2: N3 (no bajar el video entero en `complete`), N4 (temporal vacio), limpieza de `probe_*`.
+
+/** MediaProbe que registra los rangos pedidos al almacenamiento. */
+function recordingProbe(array &$ranges): MediaProbe
+{
+    return new class(app(MediaStorage::class), $ranges) extends MediaProbe
+    {
+        public function __construct(MediaStorage $storage, private array &$log)
+        {
+            parent::__construct($storage);
+        }
+
+        protected function fetchRange(\App\Connectors\Support\MediaChunkReader $reader, int $offset, int $length): string
+        {
+            $this->log[] = [$offset, $length];
+
+            return parent::fetchRange($reader, $offset, $length);
+        }
+    };
+}
+
+test('MediaProbe N3: en R2 un video grande solo baja el principio y el final por rango, no entero', function () {
+    if (! hasFfmpeg()) {
+        $this->markTestSkipped('ffmpeg no disponible');
+    }
+
+    $asset = pendingVideoAsset($this->user, '');
+    $full = Storage::disk('local')->path($asset->path);
+    exec('ffmpeg -loglevel error -y -f lavfi -i testsrc=duration=20:size=640x480:rate=30 -pix_fmt yuv420p -b:v 2M '.escapeshellarg($full).' 2>&1', $out, $code);
+    expect($code)->toBe(0);
+    $size = filesize($full);
+    expect($size)->toBeGreaterThan(400 * 1024); // el moov (al final, sin faststart) y el centro de mdat caben en extremos de 64 KiB
+
+    app()->instance(MediaStorage::class, r2Storage());
+    config(['media.probe_edge_bytes' => 64 * 1024]);
+    $ranges = [];
+    $before = glob(sys_get_temp_dir().'/probe_*') ?: [];
+
+    $meta = recordingProbe($ranges)->inspect($asset);
+
+    $bytes = array_sum(array_column($ranges, 1));
+    expect($meta)->toMatchArray(['width' => 640, 'height' => 480, 'codec' => 'h264'])
+        ->and($bytes)->toBe(2 * 64 * 1024)->and($bytes)->toBeLessThan($size)
+        ->and($ranges[0][0])->toBe(0)
+        ->and(end($ranges)[0] + end($ranges)[1])->toBe($size) // el ultimo rango termina en el ultimo byte
+        ->and(glob(sys_get_temp_dir().'/probe_*') ?: [])->toBe($before);
+});
+
+test('MediaProbe N3: el moov al principio (faststart) tambien se sondea con solo los extremos', function () {
+    if (! hasFfmpeg()) {
+        $this->markTestSkipped('ffmpeg no disponible');
+    }
+
+    $asset = pendingVideoAsset($this->user, '');
+    $full = Storage::disk('local')->path($asset->path);
+    exec('ffmpeg -loglevel error -y -f lavfi -i testsrc=duration=20:size=640x480:rate=30 -pix_fmt yuv420p -b:v 2M -movflags +faststart '.escapeshellarg($full).' 2>&1', $out, $code);
+    expect($code)->toBe(0);
+
+    app()->instance(MediaStorage::class, r2Storage());
+    config(['media.probe_edge_bytes' => 64 * 1024]);
+    $ranges = [];
+
+    expect(recordingProbe($ranges)->inspect($asset))->toMatchArray(['width' => 640, 'height' => 480])
+        ->and(array_sum(array_column($ranges, 1)))->toBe(2 * 64 * 1024);
+});
+
+test('MediaProbe N4: si el objeto no se puede leer no queda un temporal vacio', function () {
+    app()->instance(MediaStorage::class, r2Storage());
+    $asset = pendingVideoAsset($this->user, 'x');
+    Storage::disk('local')->delete($asset->path); // el objeto ya no existe
+    $before = glob(sys_get_temp_dir().'/probe_*') ?: [];
+
+    expect(fn () => app(MediaProbe::class)->inspect($asset))->toThrow(RuntimeException::class, 'No se pudo leer')
+        ->and(glob(sys_get_temp_dir().'/probe_*') ?: [])->toBe($before);
+});
+
+test('MediaProbe: la limpieza programada borra los probe_* antiguos y respeta los recientes', function () {
+    $old = sys_get_temp_dir().'/probe_old_'.uniqid(); // tempnam() en Windows recorta el prefijo a 3 letras
+    $new = sys_get_temp_dir().'/probe_new_'.uniqid();
+    file_put_contents($old, 'x');
+    file_put_contents($new, 'x');
+    touch($old, time() - 3 * 3600);
+
+    expect(MediaProbe::pruneTemporaries(60))->toBeGreaterThanOrEqual(1)
+        ->and(file_exists($old))->toBeFalse()->and(file_exists($new))->toBeTrue();
+    @unlink($new);
+
+    $this->artisan('app:media-prune')->expectsOutputToContain('Temporales de sondeo eliminados')->assertSuccessful();
+});

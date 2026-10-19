@@ -36,4 +36,7 @@ return [
     /* Binario de ffprobe (requisito de despliegue para leer duracion/fps/codec de los videos). */
     'ffprobe' => env('FFPROBE_BINARY', 'ffprobe'),
     'ffprobe_timeout' => (int) env('FFPROBE_TIMEOUT', 60),
+
+    /* En R2 se sondea bajando solo los primeros y ultimos N bytes (donde vive el atom `moov`), no el video entero. */
+    'probe_edge_bytes' => (int) env('MEDIA_PROBE_EDGE_BYTES', 16 * 1024 * 1024),
 ];

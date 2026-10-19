@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
+use App\Connectors\Data\PublishMedia;
+use App\Connectors\Support\MediaChunkReader;
 use App\Models\MediaAsset;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 
 /**
  * Extrae dimensiones, duracion, fps y codec. Las imagenes se leen con GD; los videos con ffprobe
- * sobre un fichero local (en R2 se descarga a un temporal; ffprobe nunca abre URLs).
+ * sobre un fichero local (en R2 solo se bajan por rango los extremos a un temporal; ffprobe nunca abre URLs).
  */
 class MediaProbe
 {
@@ -61,29 +63,83 @@ class MediaProbe
         }
     }
 
-    /** Copia el objeto a un fichero temporal (en streaming, sin cargarlo en memoria). */
+    /**
+     * Prepara un fichero local sondeable SIN bajar el video entero (la peticion `complete` es sincrona y un MP4 puede pesar GB):
+     * se leen por rango (`GetObject` con `Range`) solo los primeros y los ultimos `media.probe_edge_bytes` (el atom `moov` esta
+     * al principio o al final) y se colocan en sus posiciones reales de un fichero disperso (sparse) del tamano original. Si el
+     * video cabe en ambos extremos se copia entero. ffprobe sigue recibiendo solo un fichero local.
+     */
     private function download(MediaAsset $asset): string
     {
-        $stream = $this->storage->disk()->readStream($asset->path);
-        $target = tempnam(sys_get_temp_dir(), 'probe_');
+        $media = new PublishMedia(id: (int) $asset->id, kind: 'video', mime: (string) $asset->mime, url: '', disk: $this->storage->diskName(), path: $asset->path);
 
-        if (! is_resource($stream) || $target === false) {
+        try {
+            $reader = MediaChunkReader::for($media);
+        } catch (\Throwable) {
             throw new RuntimeException('No se pudo leer el video del almacenamiento.');
         }
 
+        // Nombre propio (tempnam recorta el prefijo en Windows y la limpieza busca `probe_*`).
+        $target = sys_get_temp_dir().DIRECTORY_SEPARATOR.'probe_'.bin2hex(random_bytes(8));
+
         try {
-            $out = fopen($target, 'wb');
-            stream_copy_to_stream($stream, $out);
-            fclose($out);
+            $edge = max(64 * 1024, (int) config('media.probe_edge_bytes', 16 * 1024 * 1024));
+            $size = $reader->size;
+            $out = @fopen($target, 'xb');
+
+            if ($out === false) {
+                throw new RuntimeException('sin temporal');
+            }
+
+            try {
+                if ($size <= 2 * $edge) {
+                    $this->copyRange($reader, $out, 0, $size);
+                } else {
+                    $this->copyRange($reader, $out, 0, $edge);
+                    $this->copyRange($reader, $out, $size - $edge, $edge);
+                }
+            } finally {
+                fclose($out);
+            }
         } catch (\Throwable) {
             @unlink($target);
 
             throw new RuntimeException('No se pudo leer el video del almacenamiento.');
-        } finally {
-            fclose($stream);
         }
 
         return $target;
+    }
+
+    /** Copia `[offset, offset + length)` del origen a la misma posicion del temporal, por trozos. */
+    private function copyRange(MediaChunkReader $reader, $out, int $offset, int $length): void
+    {
+        fseek($out, $offset);
+        $step = 4 * 1024 * 1024;
+
+        for ($done = 0; $done < $length; $done += $step) {
+            $data = $this->fetchRange($reader, $offset + $done, min($step, $length - $done));
+            fwrite($out, $data);
+        }
+    }
+
+    /** Un `GetObject` con `Range` por trozo (punto de extension para los tests). */
+    protected function fetchRange(MediaChunkReader $reader, int $offset, int $length): string
+    {
+        return $reader->chunk($offset, $length);
+    }
+
+    /** Borra los temporales `probe_*` abandonados (worker muerto a mitad del sondeo). Devuelve cuantos. */
+    public static function pruneTemporaries(int $olderThanMinutes = 60): int
+    {
+        $n = 0;
+
+        foreach (glob(sys_get_temp_dir().DIRECTORY_SEPARATOR.'probe_*') ?: [] as $file) {
+            if (is_file($file) && filemtime($file) < time() - $olderThanMinutes * 60 && @unlink($file)) {
+                $n++;
+            }
+        }
+
+        return $n;
     }
 
     private function runFfprobe(string $source): array

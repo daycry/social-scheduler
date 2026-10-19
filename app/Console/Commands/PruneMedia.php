@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\MediaProbe;
 use App\Services\MediaUploadService;
 use Illuminate\Console\Command;
 
@@ -18,6 +19,7 @@ class PruneMedia extends Command
         $n = $uploads->pruneAbandoned($hours);
 
         $this->info("Subidas abandonadas eliminadas: $n");
+        $this->info('Temporales de sondeo eliminados: '.MediaProbe::pruneTemporaries());
 
         return self::SUCCESS;
     }

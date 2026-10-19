@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Support\CrossUserAccessLogger;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Acceso cruzado entre usuarios: el UserScope devuelve 404 en el binding antes
+        // que la Policy, asi que se registra aqui sin cambiar la respuesta al cliente.
+        $exceptions->render(function (NotFoundHttpException $e): void {
+            CrossUserAccessLogger::log($e);
+        });
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

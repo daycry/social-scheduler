@@ -73,6 +73,30 @@ test('policy denial is logged', function () {
     ))->once();
 });
 
+// Criterio «acceso denegado registrado»: el 404 del binding (UserScope) se loguea por la web real.
+test('cross-user web access returns 404 and logs access.denied with user and brand', function (string $method, string $route, array $data) {
+    Log::spy();
+
+    $this->actingAs($this->userB)->{$method}(route($route, $this->brandA->id, absolute: false), $data)->assertNotFound();
+
+    Log::shouldHaveReceived('warning')->with('access.denied', Mockery::on(
+        fn ($ctx) => $ctx['user_id'] === $this->userB->id && $ctx['brand_id'] === (string) $this->brandA->id
+    ))->once();
+})->with([
+    'show' => ['get', 'brands.show', []],
+    'edit' => ['get', 'brands.edit', []],
+    'update' => ['put', 'brands.update', ['name' => 'Hack', 'timezone' => 'UTC']],
+    'destroy' => ['delete', 'brands.destroy', []],
+]);
+
+test('nonexistent brand returns the same 404 and logs nothing', function () {
+    Log::spy();
+
+    $this->actingAs($this->userB)->get('/brands/999999')->assertNotFound();
+
+    Log::shouldNotHaveReceived('warning');
+});
+
 test('owner can run the full CRUD on brands', function () {
     $this->actingAs($this->userA);
 

@@ -32,3 +32,4 @@ node_modules/
 .claude/session-prompts-*
 spike/.tokens-*.json
 spike/.results-*.json
+.env.testing

@@ -283,33 +283,34 @@ verificacion: obligatoria
 
 - **Descripción**: Modelo `Brand`, trait `BelongsToUser` con global scope y Policies. Toda consulta pasa por servicios que exigen el usuario autenticado. Tests de aislamiento web desde el primer día, reutilizables para API y MCP.
 - **Changelog**: Ya se pueden crear y gestionar marcas, aisladas por usuario.
-- **Estado**: borrador
-- **Tiempo humano**: est. 16h · real —
-- **Tiempo IA (ejec.)**: est. 2.5h · real —
+- **Estado**: completado
+- **Tiempo humano**: est. 16h · real 0h (IA)
+- **Tiempo IA (ejec.)**: est. 2.5h · real 0.11h (medido)
 - **Supervisión**: est. 0.6h (≈25 % IA) · real —
 - **Previsión IA**: 662k in / 66k out tok · ⚠️ verificar €
 - **Dependencias**: T-07
 - **Tipo**: backend
-- **Archivos**: `app/Models/Brand.php`, `app/Models/Concerns/BelongsToUser.php`, `app/Policies/`, `app/Services/BrandService.php`, `app/Http/Controllers/BrandController.php`, `resources/js/Pages/Brands/`, `database/migrations/`, `tests/Feature/Isolation/`
+- **Archivos**: `app/Models/Brand.php`, `app/Models/Concerns/BelongsToUser.php`, `app/Policies/`, `app/Services/BrandService.php`, `app/Http/Controllers/BrandController.php`, `resources/js/Pages/Brands/`, `database/migrations/`, `tests/Feature/Isolation/`, `app/Scopes/UserScope.php`, `app/Http/Requests/BrandRequest.php`, `database/factories/BrandFactory.php`, `routes/web.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Pest.php`, `.env.testing.example`, `.gitignore`
 - **Cubre (tests)**: E2E-02
 - **Verificación**:
   - `php artisan test --filter=Isolation` → todos los tests pasan (usuario B recibe 404/403 sobre marcas de A)
   - `php artisan migrate:fresh --env=testing` → exit 0
 
 **Criterios de aceptación**
-- [ ] CRUD de marcas completo
-- [ ] Un usuario B pide una marca de A por web/API y recibe 404/403 sin filtrar existencia (CA-02)
-- [ ] El global scope aplica a toda entidad con `user_id`
-- [ ] Acceso denegado registrado
+- [x] CRUD de marcas completo
+- [x] Un usuario B pide una marca de A por web/API y recibe 404/403 sin filtrar existencia (CA-02)
+- [x] El global scope aplica a toda entidad con `user_id`
+- [x] Acceso denegado registrado
 
 **Subtareas**
-- [ ] Migración y modelo `Brand`
-- [ ] Trait `BelongsToUser` + test de fallo seguro sin usuario
-- [ ] Policies y `BrandService`
-- [ ] Pantallas Inertia de marcas
-- [ ] Suite `tests/Feature/Isolation/` reutilizable
+- [x] Migración y modelo `Brand`
+- [x] Trait `BelongsToUser` + test de fallo seguro sin usuario
+- [x] Policies y `BrandService`
+- [x] Pantallas Inertia de marcas
+- [x] Suite `tests/Feature/Isolation/` reutilizable
 
 **Notas**: Sin RLS en MariaDB/MySQL: el aislamiento es solo de aplicación; la suite de aislamiento es la defensa principal (design.md §6).
+**Notas (implementer, 2026-10-19)**: `UserScope` + trait `BelongsToUser` (fallo seguro: sin usuario devuelve 0 filas y `creating` lanza LogicException), `Brand` + migracion + factory, `BrandPolicy` (loguea `access.denied` con Log::warning), `BrandService` (exige User explicito, usa `withoutUserScope()`), `BrandController` + `BrandRequest`, paginas Inertia `Brands/{Index,Form,Show}` y enlace Marcas en la navegacion. El route-model-binding pasa por el scope, asi que B recibe 404 sin filtrar existencia. Ficheros fuera del `Archivos` original, anadidos: `app/Scopes/UserScope.php`, `app/Http/Requests/BrandRequest.php`, `database/factories/BrandFactory.php`, `routes/web.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Pest.php` (withoutVite en tests Feature), `.env.testing.example`, `.gitignore`. Verificacion: `php artisan test --filter=Isolation` -> 14 passed (45 assertions); `php artisan migrate:fresh --env=testing` -> exit 0 (MySQL `metricool_testing`); `php artisan test` -> 42 passed; Pint passed.
 
 ### T-09 — Despliegue en HestiaCP: dominio, PHP-FPM, BD, cron y plantilla Laravel
 

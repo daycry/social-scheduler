@@ -89,11 +89,11 @@ class MediaController extends Controller
     {
         $this->authorize('delete', $asset);
 
-        if ($asset->posts()->exists()) {
-            return response()->json(['message' => 'El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.'], 409);
+        try {
+            $this->uploads->delete($asset);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
-
-        $this->uploads->delete($asset);
 
         return response()->json(['ok' => true]);
     }

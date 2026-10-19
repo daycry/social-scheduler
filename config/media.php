@@ -18,6 +18,17 @@ return [
     'multipart_threshold' => (int) env('MEDIA_MULTIPART_THRESHOLD', 32 * 1024 * 1024),
     'part_size' => (int) env('MEDIA_PART_SIZE', 16 * 1024 * 1024),
 
+    /*
+    | Subidas abandonadas: un asset `pendiente`/`invalido` mas viejo que esto (y sin publicaciones) se elimina con
+    | `app:media-prune` (cada hora), que tambien aborta su multipart abierto.
+    |
+    | Ciclo de vida en R2 (configuracion del bucket, complementa al comando; ver docs del despliegue):
+    |  - Regla «Abort incomplete multipart uploads» a 1 dia: red de seguridad si el comando no corre.
+    |  - La URL prefirmada NO limita el tamano del PUT; el limite real se comprueba en `complete` (objeto real vs
+    |    declarado y vs `max_bytes`) y el objeto excedido se borra.
+    */
+    'pending_ttl_hours' => (int) env('MEDIA_PENDING_TTL_HOURS', 24),
+
     /* Vigencia (minutos) de las URLs prefirmadas de subida y de las URLs que reciben las redes. */
     'upload_url_ttl' => (int) env('MEDIA_UPLOAD_URL_TTL', 120),
     'public_url_ttl' => (int) env('MEDIA_PUBLIC_URL_TTL', 720),

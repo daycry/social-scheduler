@@ -213,7 +213,7 @@ test('MediaUpload: ffprobe real extrae duracion, dimensiones y fps de un video g
         $this->markTestSkipped('ffmpeg no disponible');
     }
 
-    $this->actingAs($this->user)->postJson(route('media.store'), ['name' => 'v.mp4', 'mime' => 'video/mp4', 'size' => 1000]);
+    $this->actingAs($this->user)->postJson(route('media.store'), ['name' => 'v.mp4', 'mime' => 'video/mp4', 'size' => 5 * 1024 * 1024]);
     $asset = MediaAsset::withoutUserScope()->first();
     $full = Storage::disk('local')->path($asset->path);
     @mkdir(dirname($full), 0777, true);

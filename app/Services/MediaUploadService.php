@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\MediaAsset;
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
@@ -130,6 +132,14 @@ class MediaUploadService
             return $this->invalidate($asset, 'El fichero supera el tamano maximo permitido.');
         }
 
+        // La URL prefirmada no puede limitar el tamano del PUT: se comprueba aqui el objeto REAL contra lo declarado
+        // (y ya validado contra el maximo al iniciar la subida), para que declarar poco no permita subir mucho (CWE-770).
+        if ($size > $asset->declared_size) {
+            $disk->delete($asset->path);
+
+            return $this->invalidate($asset, 'El fichero pesa mas de lo declarado al iniciar la subida.');
+        }
+
         try {
             $meta = $this->probe->inspect($asset);
         } catch (RuntimeException $e) {
@@ -152,8 +162,67 @@ class MediaUploadService
         return $asset;
     }
 
-    /** Borra el fichero y el registro (cancela el multipart pendiente si lo hubiera). */
+    /**
+     * Borra el registro y despues el fichero (cancela el multipart pendiente si lo hubiera). La comprobacion de
+     * «sin publicaciones» y el borrado de la fila van en UNA transaccion con la fila bloqueada: una publicacion que
+     * adjunte la media a la vez choca con el lock (y con la FK `restrict`) en vez de quedarse sin fichero. Si la
+     * fila no se puede borrar, el fichero queda intacto.
+     *
+     * @throws \DomainException si la media la usa alguna publicacion.
+     */
     public function delete(MediaAsset $asset): void
+    {
+        try {
+            DB::transaction(function () use ($asset) {
+                $locked = MediaAsset::withoutUserScope()->lockForUpdate()->find($asset->id);
+
+                if ($locked === null) {
+                    return; // ya borrada por otra peticion
+                }
+
+                if ($locked->posts()->exists()) {
+                    throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
+                }
+
+                $locked->delete();
+            });
+        } catch (QueryException) {
+            throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
+        }
+
+        $this->removeObject($asset);
+    }
+
+    /**
+     * Limpieza de subidas abandonadas: assets `pendiente` (o `invalido`) de mas de `$hours` horas que ninguna
+     * publicacion usa. Aborta su multipart abierto (R2 factura las partes huerfanas), borra el objeto y la fila.
+     *
+     * @return int Registros eliminados.
+     */
+    public function pruneAbandoned(int $hours): int
+    {
+        $n = 0;
+
+        MediaAsset::withoutUserScope()
+            ->whereIn('status', [MediaAsset::STATUS_PENDING, MediaAsset::STATUS_INVALID])
+            ->where('created_at', '<', now()->subHours($hours))
+            ->whereDoesntHave('posts')
+            ->chunkById(100, function ($assets) use (&$n) {
+                foreach ($assets as $asset) {
+                    try {
+                        $this->delete($asset);
+                        $n++;
+                    } catch (\DomainException) {
+                        // se adjunto a una publicacion en el ultimo instante: se conserva
+                    }
+                }
+            });
+
+        return $n;
+    }
+
+    /** Aborta el multipart abierto (si lo hay) y borra el objeto; ambos pasos tolerantes a «ya no existe». */
+    private function removeObject(MediaAsset $asset): void
     {
         if ($asset->upload_id && $this->storage->isS3()) {
             try {
@@ -164,7 +233,6 @@ class MediaUploadService
         }
 
         $this->storage->disk()->delete($asset->path);
-        $asset->delete();
     }
 
     private function invalidate(MediaAsset $asset, string $reason): MediaAsset

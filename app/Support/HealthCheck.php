@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -104,6 +105,25 @@ class HealthCheck
         }
     }
 
+    /**
+     * Copia del disco con un limite total corto: el disco real tolera transferencias
+     * largas (videos), pero una sonda colgada no debe retener un worker PHP-FPM.
+     */
+    private function probeDisk(string $disk): Filesystem
+    {
+        $config = (array) config("filesystems.disks.$disk");
+
+        if (($config['driver'] ?? null) !== 's3') {
+            return Storage::disk($disk);
+        }
+
+        $config['http'] = array_merge((array) ($config['http'] ?? []), [
+            'timeout' => (float) config('filesystems.health_timeout', 5),
+        ]);
+
+        return Storage::build($config);
+    }
+
     /** @return array{ok: bool, detail: string} */
     public function storage(): array
     {
@@ -111,7 +131,7 @@ class HealthCheck
         $path = 'health/'.bin2hex(random_bytes(6)).'.txt';
 
         try {
-            $storage = Storage::disk($disk);
+            $storage = $this->probeDisk($disk);
 
             if ($storage->put($path, 'ok') === false) {
                 return ['ok' => false, 'detail' => "disco=$disk: no se pudo escribir"];

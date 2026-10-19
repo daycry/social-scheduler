@@ -11,6 +11,7 @@
 ## Automáticos (E2E — los ejecuta `qa` con Playwright)
 
 ### E2E-01 — Registro, login y panel vacío (CA-01)
+> **Nota (revisión intento 2, 2026-10-19):** con `MustVerifyEmail` activo (gap #10), tras el registro el usuario va a `/verify-email`; E2E-01 debe verificar el email (enlace firmado o `markEmailAsVerified` en el fixture) antes de esperar el panel vacío. Requiere SMTP configurado en producción (decisión abierta en T-07).
 - **Objetivo**: un visitante se registra, inicia sesión y ve solo su panel vacío.
 - **Precondiciones**: app levantada en la URL local; BD limpia con `migrate:fresh`.
 - **Pasos**:

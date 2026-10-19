@@ -35,13 +35,15 @@ COMPOSER="${COMPOSER:-composer}"
 NPM="${NPM:-npm}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 MANIFEST="public/build/manifest.json"
+# Composer corre con el mismo PHP que la app (su shebang usaria el php por defecto del sistema).
+COMPOSER_RUN="$PHP_BIN \$(command -v $COMPOSER)"
 
 STEPS=(
     "$PHP_BIN artisan down --retry=30 --refresh=15"
     "git fetch --prune origin"
     "git checkout $BRANCH"
     "git pull --ff-only origin $BRANCH"
-    "$COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autoloader"
+    "$COMPOSER_RUN install --no-dev --no-interaction --prefer-dist --optimize-autoloader"
 )
 if [ "$SKIP_BUILD" != "1" ]; then
     STEPS+=("$NPM ci" "$NPM run build")
@@ -86,6 +88,21 @@ fi
 
 cd "$APP_DIR"
 
+# Un binario que falte se detecta ANTES de entrar en mantenimiento.
+preflight() {
+    local missing=0 bin
+    for bin in git "$PHP_BIN" "$COMPOSER"; do
+        command -v "$bin" >/dev/null 2>&1 || { echo "!! Falta el binario: $bin" >&2; missing=1; }
+    done
+    if [ "$SKIP_BUILD" != "1" ]; then
+        command -v "$NPM" >/dev/null 2>&1 || { echo "!! Falta el binario: $NPM (o usa SKIP_BUILD=1)" >&2; missing=1; }
+    else
+        echo "!! SKIP_BUILD=1: solo se comprueba que exista $MANIFEST, no que corresponda a este commit." >&2
+    fi
+    [ "$missing" -eq 0 ] || exit 2
+}
+preflight
+
 PREV_REV="$(git rev-parse HEAD 2>/dev/null || echo desconocido)"
 DOWN=0
 CODE_CHANGED=0
@@ -94,12 +111,20 @@ on_failure() {
     local code=$?
     trap - ERR
     echo "!! Deploy fallido (exit $code) en: ${CURRENT_STEP:-?}" >&2
+    # El codigo cambio si HEAD ya no es el de partida (checkout o pull) o el arbol tiene cambios.
+    if [ "$(git rev-parse HEAD 2>/dev/null)" != "$PREV_REV" ] || ! git diff --quiet HEAD 2>/dev/null; then
+        CODE_CHANGED=1
+    fi
     if [ "$DOWN" -eq 1 ] && [ "$CODE_CHANGED" -eq 0 ]; then
         echo "!! El codigo no llego a cambiar: se vuelve a levantar la app." >&2
         "$PHP_BIN" artisan up >/dev/null 2>&1 || true
     elif [ "$DOWN" -eq 1 ]; then
         echo "!! La app queda en MANTENIMIENTO (codigo nuevo con vendor/esquema a medias)." >&2
-        echo "!! Corrige y reejecuta el deploy, o vuelve a $PREV_REV (git checkout $PREV_REV; composer install; php artisan up)." >&2
+        echo "!! Corrige y reejecuta el deploy, o vuelve a $PREV_REV sin dejar HEAD suelto:" >&2
+        echo "!!   git checkout $BRANCH && git reset --hard $PREV_REV" >&2
+        echo "!!   $PHP_BIN \$(command -v $COMPOSER) install --no-dev --optimize-autoloader && $NPM ci && $NPM run build" >&2
+        echo "!!   $PHP_BIN artisan optimize:clear && $PHP_BIN artisan optimize && $PHP_BIN artisan up" >&2
+        echo "!! Las migraciones ya aplicadas NO se revierten solas (revisa migrate:status)." >&2
     fi
     # Los workers deben cargar siempre el codigo vigente.
     "$PHP_BIN" artisan queue:restart >/dev/null 2>&1 || true

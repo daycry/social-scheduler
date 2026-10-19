@@ -30,7 +30,9 @@ class CrossUserAccessLogger
         }
 
         foreach ($previous->getIds() as $id) {
-            if (! $modelClass::withoutUserScope()->whereKey($id)->exists()) {
+            $ownerId = $modelClass::withoutUserScope()->whereKey($id)->value('user_id');
+
+            if ($ownerId === null || (int) $ownerId === (int) Auth::id()) {
                 continue;
             }
 

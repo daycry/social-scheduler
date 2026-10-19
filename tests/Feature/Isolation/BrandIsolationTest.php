@@ -3,6 +3,8 @@
 use App\Models\Brand;
 use App\Models\User;
 use App\Services\BrandService;
+use App\Support\CrossUserAccessLogger;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
@@ -93,6 +95,17 @@ test('nonexistent brand returns the same 404 and logs nothing', function () {
     Log::spy();
 
     $this->actingAs($this->userB)->get('/brands/999999')->assertNotFound();
+
+    Log::shouldNotHaveReceived('warning');
+});
+
+test('a 404 on an own record is not logged as cross-user access', function () {
+    Log::spy();
+    $notFound = fn () => (new ModelNotFoundException)
+        ->setModel(Brand::class, [$this->brandA->id]);
+
+    $this->actingAs($this->userA);
+    CrossUserAccessLogger::log($notFound());
 
     Log::shouldNotHaveReceived('warning');
 });

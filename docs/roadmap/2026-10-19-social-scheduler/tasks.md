@@ -279,6 +279,7 @@ verificacion: obligatoria
 - [x] Layout y navegación
 
 **Notas**: Incógnita abierta: SMTP propio de Hestia o proveedor transaccional; 2FA fuera de alcance.
+**Nota (revisión intento 2)**: con `MustVerifyEmail` el registro lleva a `/verify-email`; CA-01 «ve el panel vacío» se cumple tras verificar el email (necesita SMTP en producción). Ver test-plan E2E-01.
 **Notas (implementer, 2026-10-19)**: Laravel Breeze 2.4 (Inertia + Vue, Pest) como starter kit: registro, login/logout, reset por email, verificacion, perfil y AuthenticatedLayout con navegacion. Ajustes: se creo `resources/js/bootstrap.js` vacio (Breeze lo importa y L13 no lo trae) y se quito `@tailwindcss/vite` (choca con Tailwind 3 de Breeze). Se anadio `tests/Feature/Auth/ProtectedRoutesTest.php` (rutas protegidas -> login, registro -> dashboard vacio). Verificacion: `php artisan test --filter=Auth` -> 21 passed; `php artisan route:list --name=login` -> ruta login presente; `php artisan test` -> 28 passed; `npm run build` OK; Pint passed. Email: el reset se prueba con Notification fake; SMTP real (Hestia vs proveedor transaccional) queda como decision abierta, `MAIL_MAILER=log` por defecto en local; 2FA fuera de alcance.
 **Nota de alcance (implementer)**: ficheros de Breeze/Inertia/Vite declarados para la puerta de alcance.
 **Corrección revisión 1 (implementer)**: #9 la portada ya no muestra versiones de Laravel/PHP; #10 `User` implementa `MustVerifyEmail` y `/brands/*` va bajo `auth`+`verified` (`/dashboard` ya lo estaba); tests: no verificados redirigidos a `verification.notice`; el registro deja `email_verified_at` nulo. #15 `resources/js/Components/` declarado en `Archivos`.
@@ -1344,3 +1345,20 @@ Lentes: A+B+C+D (C por rutas `.env*`, `.github/workflows/`, `Auth`; D por worker
 | 19 | Minor | Errores silenciados en disco local / `--wait` no numérico / `QUEUE_NAMES` vacío | T-10 | corregido: errores explícitos en disco local; validación de `--wait` y `QUEUE_NAMES` | Lente B: `HealthCheck.php:89-93`, `QueueProbe.php:20,27-31` |
 | 20 | Minor | One-liner `sed` de instalación no sustituye `Group=USUARIO` | T-10 | corregido: `sed` sustituye `USUARIO`/`DOMINIO` globalmente | Orquestador: `scheduler-worker@.service:11,22` |
 | 21 | Minor | Suite local en sqlite en memoria vs MySQL en CI | T-06 | deuda aceptada (CI cubre MySQL) | Lente A (fuera de lente) |
+
+## Revisión de dos lentes — intento 2: Fase 1 (T-06..T-10) — 1 Important, 7 Minor, todos corregidos
+
+Lentes: A+C y B+D (agente `reviewer`, contexto fresco) sobre `fd17a07..HEAD`, con traspaso de la tabla del intento 1. Resultado del traspaso: las filas #1-#11 y #13-#20 del intento 1 quedan **✓ corregidas** (#12 y #21 deuda aceptada). Seguridad (Lente C): sin defectos nuevos; el log de acceso cruzado no filtra existencia (respuesta idéntica, misma mediana de tiempo ±0,1 ms).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| G2 | Important | El timeout total de 5 s del intento 1 se aplicaba a todo el disco `r2` (rompería subidas/lecturas de vídeo > 5 s) | T-10 | corregido: disco `r2` con `connect_timeout` 3 s y total 600 s (`R2_TIMEOUT`); la sonda del healthcheck usa una copia del disco con `R2_HEALTH_TIMEOUT` 5 s (`HealthCheck::probeDisk`) | test «storage probe uses a short total timeout without touching the real r2 disk» |
+| G1 | Minor | `CODE_CHANGED` solo tras `git pull`: un `checkout` que mueve el código y luego falla relevantaba la app con código nuevo | T-09 | corregido: el trap compara `HEAD` con `PREV_REV` y el árbol sucio | `deploy.sh` `on_failure` |
+| G3 | Minor | `PHP_BIN` no llegaba a composer | T-09 | corregido: `COMPOSER_RUN="$PHP_BIN $(command -v $COMPOSER)"` | dry-run paso 5 |
+| G4 | Minor | Binarios ausentes se descubrían tras `down` | T-09 | corregido: `preflight` (git, PHP_BIN, composer, npm) antes de `down`, exit 2 | `deploy.sh` `preflight` |
+| G5 | Minor | El logger no comprobaba que el dueño fuese otro usuario | T-08 | corregido: compara `user_id` del registro con `Auth::id()` | test «a 404 on an own record is not logged as cross-user access» |
+| G6 | Minor | Con `SKIP_BUILD=1` el manifest antiguo pasa el gate | T-09 | corregido (aviso): `preflight` avisa de que solo se comprueba la existencia; documentado | `deploy.sh` |
+| G7 | Minor | Instrucciones de recuperación incompletas (php literal, HEAD suelto, sin build/caché, migraciones) | T-09 | corregido | `deploy.sh` `on_failure` |
+| A-1 | Minor | `MustVerifyEmail` cambia el flujo de CA-01/E2E-01 sin anotarlo | T-07 | corregido: nota en `test-plan.md` (E2E-01) y en T-07 | `test-plan.md` |
+
+Verificación tras corregir: `php artisan test` → 78 passed (216 assertions); `vendor/bin/pint --test` → passed; `bash -n deploy/hestia/deploy.sh` y `--dry-run` → OK. **Sin gaps Critical/Important pendientes: bucle cerrado en el intento 2.**

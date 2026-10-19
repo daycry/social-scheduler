@@ -34,6 +34,9 @@ return [
     */
     'media' => env('MEDIA_DISK', 'local'),
 
+    // Limite total (s) de la sonda de almacenamiento del healthcheck.
+    'health_timeout' => (float) env('R2_HEALTH_TIMEOUT', 5),
+
     'disks' => [
 
         'local' => [
@@ -67,10 +70,12 @@ return [
             'visibility' => 'private',
             'throw' => true,
             'report' => false,
-            // Sin timeouts un R2 degradado bloquea workers PHP-FPM y el healthcheck.
+            // Conexion acotada siempre; el limite total es amplio porque el disco mueve
+            // videos e informes grandes. El healthcheck usa su propio limite corto
+            // (R2_HEALTH_TIMEOUT) sobre una copia de este disco: ver HealthCheck::storage().
             'http' => [
                 'connect_timeout' => (float) env('R2_CONNECT_TIMEOUT', 3),
-                'timeout' => (float) env('R2_TIMEOUT', 5),
+                'timeout' => (float) env('R2_TIMEOUT', 600),
             ],
             'retries' => (int) env('R2_RETRIES', 1),
         ],

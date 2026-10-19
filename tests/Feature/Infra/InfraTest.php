@@ -27,9 +27,32 @@ test('r2 disk is an s3 driver configured for r2', function () {
 test('r2 disk has bounded http timeouts', function () {
     $disk = config('filesystems.disks.r2');
 
+    // Conexion acotada; el total es amplio para transferir videos/informes grandes.
     expect($disk['http']['connect_timeout'])->toBe(3.0)
-        ->and($disk['http']['timeout'])->toBe(5.0);
+        ->and($disk['http']['timeout'])->toBe(600.0)
+        ->and(config('filesystems.health_timeout'))->toBe(5.0);
     // Verificado a mano: contra una IP no enrutable el put falla a los ~3 s (connect_timeout).
+});
+
+test('storage probe uses a short total timeout without touching the real r2 disk', function () {
+    config(['filesystems.media' => 'r2']);
+    $captured = null;
+    Storage::shouldReceive('build')->once()->andReturnUsing(function (array $config) use (&$captured) {
+        $captured = $config;
+        $fake = Mockery::mock(Filesystem::class);
+        $fake->shouldReceive('put')->andReturnTrue();
+        $fake->shouldReceive('get')->andReturn('ok');
+        $fake->shouldReceive('delete')->andReturnTrue();
+
+        return $fake;
+    });
+
+    $result = app(HealthCheck::class)->storage();
+
+    expect($result['ok'])->toBeTrue()
+        ->and($captured['http']['timeout'])->toBe(5.0)
+        ->and($captured['http']['connect_timeout'])->toBe(3.0)
+        ->and(config('filesystems.disks.r2.http.timeout'))->toBe(600.0);
 });
 
 test('storage check fails fast and generic when the disk throws', function () {
@@ -218,7 +241,7 @@ test('deploy script goes down before touching code, builds assets and gates on t
     $sh = file_get_contents(base_path('deploy/hestia/deploy.sh'));
 
     expect(strpos($sh, '"$PHP_BIN artisan down'))->toBeLessThan(strpos($sh, '"git pull'))
-        ->and(strpos($sh, '"git pull'))->toBeLessThan(strpos($sh, 'composer install') ?: strpos($sh, '$COMPOSER install'));
+        ->and(strpos($sh, '"git pull'))->toBeLessThan(strpos($sh, '$COMPOSER_RUN install'));
     expect($sh)->toContain('$NPM ci', '$NPM run build', 'public/build/manifest.json', 'trap on_failure ERR', 'PHP_BIN');
     expect(strpos($sh, 'test -f $MANIFEST'))->toBeLessThan(strpos($sh, 'artisan migrate'));
 });

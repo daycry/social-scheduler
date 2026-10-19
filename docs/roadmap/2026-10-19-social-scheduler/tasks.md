@@ -59,14 +59,14 @@ verificacion: obligatoria
 
 - **Descripción**: Crear las tres apps de desarrollador (Meta, Google Cloud, TikTok for Developers) en modo desarrollo/testing, vincular las cuentas propias (IG Business/Creator enlazada a página FB, canal YouTube, cuenta TikTok) y fijar el dominio HTTPS para los redirect URIs. Trabajo no delegable (trámites en consolas externas).
 - **Changelog**: Sin cambio visible para el usuario final: prepara el terreno para conectar redes.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2.5h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
 - **Previsión IA**: 104k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: devops
-- **Archivos**: `spike/README.md`, `spike/.env.example`, `docs/roadmap/2026-10-19-social-scheduler/spike-report.md`
+- **Archivos**: `spike/README.md`, `spike/.env.example`, `.gitignore`, `docs/roadmap/2026-10-19-social-scheduler/spike-report.md`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `grep -ci "redirect" spike/README.md` → ≥ 3 (un redirect URI documentado por plataforma)
@@ -81,15 +81,17 @@ verificacion: obligatoria
 - [ ] Crear app Meta (tipo Business) con productos Facebook Login e Instagram
 - [ ] Crear proyecto Google Cloud, habilitar YouTube Data API v3 y YouTube Analytics API, pantalla de consentimiento en Testing
 - [ ] Crear app TikTok con Login Kit y Content Posting API; registrar redirect y URL prefix
-- [ ] Documentar en `spike/README.md` pasos, URLs y permisos solicitados
+- [x] Documentar en `spike/README.md` pasos, URLs y permisos solicitados
 
 **Notas**: Código del spike = scripts PHP desechables en `spike/`, sin Laravel. Necesita un túnel o el dominio del VPS con TLS de Hestia.
+
+**Notas (implementer, 2026-10-19)**: `spike/README.md`, `spike/.env.example`, `.gitignore` (spike/.env, .tokens-*, .results-*) y plantilla `spike-report.md` listos. `grep -ci redirect spike/README.md` → 5 (≥3 OK). PENDIENTE DEL USUARIO: crear las 3 apps, añadir cuentas, fijar dominio HTTPS, rellenar `spike/.env` y completar spike-report.md §Preparación. No se cierra sin eso.
 
 ### T-02 — Spike Meta: publicar y leer insights en modo desarrollo
 
 - **Descripción**: Con una cuenta con rol en la app: OAuth, publicar un post de FB y uno de IG (imagen), un reel y una story de prueba (o registrar por qué no se puede), y leer insights de cuenta y de publicación. Anotar límites reales (publicaciones/24h, tamaños, caducidad de tokens).
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2.5h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -115,11 +117,13 @@ verificacion: obligatoria
 
 **Notas**: Los scripts son desechables; no migran a `app/`. Solo se reutilizan los hallazgos.
 
+**Notas (implementer, 2026-10-19)**: `spike/meta_probe.php` escrito (OAuth, publicación de prueba, insights/estado, `--check`); `php -l` OK y sin credenciales sale con exit 2 y la variable que falta. PENDIENTE DEL USUARIO (T-01 + credenciales): ejecutar el probe, pegar la salida de `--check` y rellenar spike-report.md §Meta. Criterios sin cumplir: requieren evidencia real.
+
 ### T-03 — Spike TikTok: publicar sin auditoría y verificar dominio
 
 - **Descripción**: Con la app sin auditar: OAuth, `creator_info/query` y publicación de prueba de vídeo (FILE_UPLOAD y PULL_FROM_URL) y de foto. Registrar la visibilidad resultante y los límites de usuarios/día.
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -145,11 +149,13 @@ verificacion: obligatoria
 
 **Notas**: Si TikTok solo permite privado, la publicación automática pierde valor: alimenta la puerta G1.
 
+**Notas (implementer, 2026-10-19)**: `spike/tiktok_probe.php` escrito (OAuth, publicación de prueba, insights/estado, `--check`); `php -l` OK y sin credenciales sale con exit 2 y la variable que falta. PENDIENTE DEL USUARIO (T-01 + credenciales): ejecutar el probe, pegar la salida de `--check` y rellenar spike-report.md §TikTok. Criterios sin cumplir: requieren evidencia real.
+
 ### T-04 — Spike YouTube: subida con proyecto no verificado y cupo diario
 
 - **Descripción**: Subir un vídeo (y un short) con el proyecto sin verificar y sin auditoría, medir las unidades de cuota con la consola de Google y comprobar la caducidad del refresh token en estado Testing. Estimar subidas/día frente al volumen del usuario.
 - **Changelog**: Sin cambio visible para el usuario final.
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2h · real —
 - **Tiempo IA (ejec.)**: est. 0.2h · real —
 - **Supervisión**: est. 0.1h (≈25 % IA) · real —
@@ -172,6 +178,8 @@ verificacion: obligatoria
 - [ ] Subida reanudable de un vídeo de prueba
 - [ ] Medir cuota en Cloud Console
 - [ ] Anotar el proceso de verificación/auditoría de Google
+
+**Notas (implementer, 2026-10-19)**: `spike/youtube_probe.php` escrito (OAuth, publicación de prueba, insights/estado, `--check`); `php -l` OK y sin credenciales sale con exit 2 y la variable que falta. PENDIENTE DEL USUARIO (T-01 + credenciales): ejecutar el probe, pegar la salida de `--check` y rellenar spike-report.md §YouTube. Criterios sin cumplir: requieren evidencia real.
 
 ### T-05 — Informe del spike y PUERTA G1: decisión del usuario sobre TikTok/YouTube
 

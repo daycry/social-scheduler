@@ -32,7 +32,8 @@ Dominio HTTPS elegido (túnel / VPS Hestia): _pendiente_
 ## YouTube
 - Visibilidad real del vídeo subido (¿privado forzado?):
 - Unidades de cuota por subida y subidas/día reales vs. volumen del usuario:
-- Caducidad del refresh token en Testing (7 días) — fecha de emisión / fecha de fallo:
+- Caducidad del refresh token en Testing (7 días) — fecha de emisión / fecha de fallo: emitido 2026-10-19T17:19:40Z (canal «Jordi daycry», scopes youtube.upload + youtube.readonly). **Re-ejecutar `--check` a partir del 2026-10-26** para confirmar el fallo.
+- OAuth en modo Testing: requiere que la cuenta esté en «Usuarios de prueba» (si no: «Acceso bloqueado… no ha completado el proceso de verificación»); con ella dentro, aviso «Google no ha verificado esta aplicación» → Continuar. Gotcha: el alta de test user desde la consola no persistió en los primeros intentos; verificar recargando.
 - Proceso de verificación/auditoría de Google (plazo):
 - Veredicto: viable / limitado / no viable
 

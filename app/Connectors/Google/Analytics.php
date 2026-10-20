@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Google;
 
+use App\Analytics\Days;
 use App\Analytics\Metric;
 use App\Connectors\Contracts\RangeInsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
@@ -38,8 +39,6 @@ class Analytics implements RangeInsightsReader
 
     private const CHANNELS_URL = 'https://www.googleapis.com/youtube/v3/channels';
 
-    private const STOCK_MAX_AGE_DAYS = 2;
-
     /** Dias por informe `dimensions=day` del historico. */
     private const RANGE_DAYS = 90;
 
@@ -74,7 +73,7 @@ class Analytics implements RangeInsightsReader
 
         $out[Metric::INTERACTIONS] = $this->interactions($out);
 
-        if ($day->copy()->startOfDay()->gte(now()->startOfDay()->subDays(self::STOCK_MAX_AGE_DAYS))) {
+        if (CarbonImmutable::createFromFormat('!Y-m-d', $day->format('Y-m-d'), 'UTC')->gte(Days::closed($account->network))) {
             try {
                 $stats = $this->channelStatistics($token);
             } catch (PermanentPublishException) {

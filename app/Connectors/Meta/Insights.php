@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Meta;
 
+use App\Analytics\Days;
 use App\Analytics\Metric;
 use App\Connectors\Contracts\RangeInsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
@@ -116,7 +117,7 @@ class Insights implements RangeInsightsReader
         $out[Metric::INTERACTIONS] = $this->seriesValue($id, 'page_post_engagements', $range, $token, $day);
         $out[Metric::FOLLOWERS] = $this->seriesValue($id, 'page_follows', $range, $token, $day);
 
-        if ($out[Metric::FOLLOWERS] === null && $this->isRecent($day)) {
+        if ($out[Metric::FOLLOWERS] === null && $this->isRecent($account, $day)) {
             $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token, true), 'followers_count');
             $out[Metric::FOLLOWERS] = $this->numberOrNull($json['followers_count'] ?? null);
         }
@@ -146,7 +147,7 @@ class Insights implements RangeInsightsReader
         // follower_count NO admite total_value: serie diaria de nuevos seguidores.
         $out[Metric::FOLLOWERS_GAINED] = $this->seriesValue($id, 'follower_count', $range, $token, $day);
 
-        if ($this->isRecent($day)) {
+        if ($this->isRecent($account, $day)) {
             $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token, true), 'followers_count');
             $out[Metric::FOLLOWERS] = $this->numberOrNull($json['followers_count'] ?? null);
         }
@@ -289,9 +290,10 @@ class Insights implements RangeInsightsReader
         return ['since' => $start->format('Y-m-d'), 'until' => $start->copy()->addDay()->format('Y-m-d')];
     }
 
-    private function isRecent(CarbonInterface $day): bool
+    /** El stock (seguidores) solo vale para el ultimo dia cerrado de la red: el de un dia anterior seria el valor de HOY. */
+    private function isRecent(SocialAccount $account, CarbonInterface $day): bool
     {
-        return $day->copy()->startOfDay()->gte(now()->startOfDay()->subDays(self::STOCK_MAX_AGE_DAYS));
+        return CarbonImmutable::createFromFormat('!Y-m-d', $day->format('Y-m-d'), 'UTC')->gte(Days::closed($account->network));
     }
 
     private function numberOrNull(mixed $v): int|float|null

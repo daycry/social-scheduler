@@ -2,6 +2,7 @@
 
 namespace App\Connectors\TikTok;
 
+use App\Analytics\Days;
 use App\Analytics\Metric;
 use App\Connectors\Contracts\InsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
@@ -9,6 +10,7 @@ use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -35,7 +37,7 @@ class Display implements InsightsReader
     {
         $out = Metric::blankAccount();
 
-        if (! $this->hasScope($account, self::SCOPE_STATS) || $day->copy()->startOfDay()->lt(now()->startOfDay()->subDays(2))) {
+        if (! $this->hasScope($account, self::SCOPE_STATS) || CarbonImmutable::createFromFormat('!Y-m-d', $day->format('Y-m-d'), 'UTC')->lt(Days::closed($account->network))) {
             return $out; // stock: no existe el valor de un dia pasado
         }
 

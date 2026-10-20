@@ -113,7 +113,7 @@ class SnapshotCollector
     {
         $date = $day->format('Y-m-d');
         $existing = AccountSnapshot::withoutUserScope()->where('social_account_id', $account->id)->where('date', $date)->first();
-        $metrics = self::merge($existing?->metrics ?? [], $fresh, Metric::ACCOUNT);
+        $metrics = self::merge($existing?->metrics ?? [], $fresh, Metric::ACCOUNT, Metric::STOCKS);
 
         // Asentado = completo (todos los flujos esperados de la red) o fuera de la ventana de reintentos.
         $settled = Metric::isComplete($account->network->value, $metrics) || Days::isHistoric($account->network, $day);
@@ -234,14 +234,16 @@ class SnapshotCollector
      * @param  array<string, mixed>  $old
      * @param  array<string, int|float|null>  $fresh
      * @param  list<string>  $keys
+     * @param  list<string>  $keepOld  Claves en las que manda el valor ya guardado (stocks: el de un reintento seria el de HOY).
      * @return array<string, int|float|null>
      */
-    private static function merge(array $old, array $fresh, array $keys): array
+    private static function merge(array $old, array $fresh, array $keys, array $keepOld = []): array
     {
         $out = [];
 
         foreach ($keys as $key) {
-            $out[$key] = $fresh[$key] ?? (is_numeric($old[$key] ?? null) ? $old[$key] : null);
+            $oldValue = is_numeric($old[$key] ?? null) ? $old[$key] : null;
+            $out[$key] = in_array($key, $keepOld, true) ? ($oldValue ?? $fresh[$key] ?? null) : ($fresh[$key] ?? $oldValue);
         }
 
         return $out;

@@ -20,8 +20,10 @@ use App\Notifications\ReconnectRequired;
 use App\Services\SocialAccountService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Tests\Support\FakeInsights;
 
@@ -65,14 +67,40 @@ it('guarda un snapshot por cuenta y dia de forma idempotente (upsert)', function
         ->and(substr((string) $snap->date, 0, 10))->toBe('2026-10-31');
 });
 
-it('un valor posterior actualiza el snapshot y un null posterior no borra lo ya guardado', function () {
+it('un reintento actualiza los flujos pero conserva el stock ya guardado y un null posterior no borra nada', function () {
     runSnapshot($this->account, '2026-10-31');
 
-    $this->fake->account = [Metric::FOLLOWERS => 120, Metric::VIEWS => null];
+    // El stock (seguidores) de un reintento seria el de HOY, no el del dia: manda el guardado. Un flujo nuevo si se actualiza.
+    $this->fake->account = [Metric::FOLLOWERS => 120, Metric::VIEWS => null, Metric::REACH => 31];
     runSnapshot($this->account, '2026-10-31');
 
     $m = AccountSnapshot::withoutUserScope()->first()->metrics;
-    expect($m[Metric::FOLLOWERS])->toBe(120)->and($m[Metric::VIEWS])->toBe(50);
+    expect($m[Metric::FOLLOWERS])->toBe(100)->and($m[Metric::VIEWS])->toBe(50)->and($m[Metric::REACH])->toBe(31);
+});
+
+it('un dia que no es el ultimo cerrado no lee el stock actual de las redes (YouTube: 31-oct conserva sus seguidores)', function () {
+    $this->app->forgetInstance(ConnectorRegistry::class); // conectores reales (HTTP simulado), no el FakeInsights de Instagram
+    $acc = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::YouTube, 'external_id' => 'UCx', 'access_token' => 't']);
+    $hdr = array_map(fn ($n) => ['name' => $n], ['views', 'estimatedMinutesWatched', 'likes', 'comments', 'shares', 'subscribersGained', 'subscribersLost']);
+    $fake = function (string $subs) use ($hdr) {
+        Http::swap(new HttpFactory);
+        Http::fake([
+            'youtubeanalytics.googleapis.com/*' => Http::response(['columnHeaders' => $hdr, 'rows' => []]),
+            'www.googleapis.com/youtube/v3/channels*' => Http::response(['items' => [['statistics' => ['subscriberCount' => $subs, 'videoCount' => '48']]]]),
+        ]);
+    };
+
+    $fake('1520');
+    runSnapshot($acc, '2026-10-31'); // ultimo dia cerrado (LA) el 1-nov: lee el stock
+
+    Carbon::setTestNow('2026-11-02 12:00:00');
+    $fake('1600');
+    runSnapshot($acc, '2026-11-01');
+    runSnapshot($acc, '2026-10-31', false, true); // reintento de un dia ya no cerrado
+
+    $by = AccountSnapshot::withoutUserScope()->where('social_account_id', $acc->id)->orderBy('date')->get()
+        ->mapWithKeys(fn ($r) => [substr((string) $r->date, 0, 10) => $r->metrics[Metric::FOLLOWERS]]);
+    expect($by['2026-10-31'])->toBe(1520)->and($by['2026-11-01'])->toBe(1600);
 });
 
 it('guarda las metricas de las publicaciones recientes con un snapshot por destino y dia', function () {

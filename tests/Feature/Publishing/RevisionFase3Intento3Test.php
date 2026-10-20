@@ -16,8 +16,11 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
+use App\Services\PublishOutcomes;
 use App\Services\PublishRecovery;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -227,4 +230,32 @@ test('R4: historia con ventana de busqueda de mas de 24 h: no se adopta la unica
 
     $recent = (new InstagramPublisher)->findPublished($this->account, $request(now()->subHours(3)));
     expect($recent->externalId)->toBe('AJENA'); // dentro de las 24 h la unica candidata sigue valiendo
+});
+
+test('N6: un error real (no carrera) en failInactiveProcessing se reporta con clase y mensaje y no corta la pasada', function () {
+    Queue::fake();
+    Log::spy();
+    $account = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Instagram, 'status' => SocialAccount::STATUS_DISCONNECTED]);
+    $targets = [];
+    foreach ([1, 2] as $i) {
+        $post = Post::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'scheduled_at' => now()->subHour(), 'status' => PostStatus::Processing]);
+        $targets[$i] = PostTarget::factory()->create([
+            'post_id' => $post->id, 'user_id' => $this->user->id, 'social_account_id' => $account->id, 'content_type' => ContentType::InstagramImage,
+            'status' => PostStatus::Processing, 'external_reference' => 'C'.$i, 'started_at' => now()->subHour(),
+        ]);
+    }
+    $outcomes = Mockery::mock(PublishOutcomes::class);
+    $outcomes->shouldReceive('failed')->once()->andThrow(new RuntimeException('fallo de BD simulado'));
+    $outcomes->shouldReceive('failed')->once()->andReturnUsing(fn ($t) => $t);
+    $reported = [];
+    app(ExceptionHandler::class)->reportable(function (RuntimeException $e) use (&$reported) {
+        $reported[] = $e->getMessage();
+
+        return false;
+    });
+
+    $result = (new PublishRecovery($outcomes))->run();
+
+    expect($result['abandoned'])->toBe(1)->and($reported)->toBe(['fallo de BD simulado']);
+    Log::shouldHaveReceived('error')->withArgs(fn ($m, $ctx) => $m === 'publish.recovery_failed' && $ctx['exception'] === RuntimeException::class && $ctx['message'] === 'fallo de BD simulado')->once();
 });

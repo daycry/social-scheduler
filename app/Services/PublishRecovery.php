@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\PostStatus;
+use App\Exceptions\InvalidPostTransition;
 use App\Jobs\PollPublishStatus;
 use App\Jobs\PublishPostTarget;
 use App\Models\Post;
@@ -78,10 +79,14 @@ class PublishRecovery
                             $this->outcomes->failed($target, 'cuenta_no_disponible', "La cuenta lleva mas de $grace h sin reconectarse y no se pudo confirmar la publicacion. Reconectala, revisa en la red si se publico y reprograma si no.");
                             $n++;
                         }
-                    } catch (Throwable) {
+                    } catch (InvalidPostTransition) {
                         // Carrera: el destino cambio de estado (el usuario lo cancelo, el sondeo lo cerro) entre la lectura y la
                         // transicion. Ya no es `procesando`: se ignora y se sigue con el resto, sin cortar el despacho.
                         Log::notice('publish.recovery_race', ['target_id' => $target->id]);
+                    } catch (Throwable $e) {
+                        // Error real (BD, notificacion...): no es una carrera. Se reporta y se registra con clase y mensaje, y se sigue.
+                        report($e);
+                        Log::error('publish.recovery_failed', ['target_id' => $target->id, 'exception' => $e::class, 'message' => $e->getMessage()]);
                     }
                 }
             });

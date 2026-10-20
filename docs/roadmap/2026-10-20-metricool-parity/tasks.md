@@ -427,3 +427,26 @@ Corrección aplicada por el implementer tras la revisión (4 lentes + crítica d
 - `npm run build` → `built`
 - `npm run test:e2e` (con axe, desktop 1440×900, mobile 375×812 y mobile-360 360×740) → `184 passed, 2 skipped`
 - `ledger-lint.py` → `0 incoherencias · 0 avisos`
+
+## Revisión de dos lentes — intento 2: Paridad — 0 Critical, 0 Important, 7 Minor
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Minor | `AutolistService::realign`: la búsqueda `slot_at = $at OR clave local` sin orden encontraba la franja vecina y chocaba con `unique(autolist_id, slot_at)` al cambiar de zona | T-11 | `fillSlot` busca primero SOLO por la clave local de la franja (y por instante solo si no hay); `realign()` aparca a la ocupante del instante destino en un instante libre lejano para no chocar, y su propia pasada la realinea | `RevisionIntento2Test` N1: Madrid → London con franjas 10:00 y 11:00 en UNA pasada (10:00/11:00 UTC, 2 posts); reproductor `rv2_realign.php` OK |
+| N2 | Minor | La migración `2026_11_02_090000` rellenaba el cursor con `min(cursor,count)-1`, ignorando `items[cursor % count]` en listas recicladas | T-11 | Migración original corregida (recicladas: `(cursor-1) % count`) + migración correctora `2026_11_03_090000_fix_autolist_cursor_recycled` (ya aplicada con `migrate --force` en la BD local) para las BD donde la original ya corrió | `RevisionIntento2Test` N2: cursor 4 sobre A,B,C → último usado A (siguiente B) |
+| N3 | Minor | `Comments::fetch` no comprobaba el presupuesto entre páginas de comentarios ni de respuestas | T-12 | `fetch(..., ?float $deadline)` comprueba que quepa otra llamada (`social.http_timeout`) antes de cada página y de cada página de respuestas; corta devolviendo lo leído (que `syncBatch` guarda) | `InboxTest` N3: sin hueco → 1 página y 0 de respuestas; con tiempo → pagina |
+| N4 | Minor | El reencolado con offset de `SyncAccountComments` se descartaba por el bloqueo de unicidad | T-12 | `uniqueId` = `cuenta:offset`; `Cache::lock` por cuenta (el que llega tarde hace `release(30)`; el lock se libera siempre en `finally`) | `InboxTest` N4: ids distintos por offset; con el lock tomado no lee y se libera; sin él procesa y libera |
+| N5 | Minor | `SafeUrl` rechazaba combinaciones legítimas (latín+han/kana/hangul), ZWJ en rutas y `%2500` | T-09 | Regla «highly restrictive» UTS #39 (Latin+Han+Hiragana+Katakana, Latin+Han+Bopomofo, Latin+Han+Hangul); ZWJ permitido solo en ruta/query/fragmento (nunca en el host); solo `%00` es nulo. Documentado que los homógrafos de una escritura (todo cirílico) no se bloquean; la página pública muestra «Destino: host» (punycode) bajo cada botón | `SmartLinkTest` N5 + C2 + C1 (14 passed); `rv2_safeurl.php`: sony…ストア, abc漢字, 한국漢字, emoji ZWJ y `%2500` SAFE; `%00`, ZWJ en host y latín+cirílico rej |
+| N6 | Minor | `failInactiveProcessing` trataba como carrera cualquier `Throwable` | T-08 | `InvalidPostTransition` → notice (carrera); otro `Throwable` → `report($e)` + `Log::error` con clase y mensaje; la pasada continúa | `RevisionFase3Intento3Test` N6: el error real se reporta y el segundo destino se cierra (`abandoned` = 1) |
+| N7 | Minor | El avatar del selector llevaba una URL temporal nueva en cada navegación (sin caché) | T-03 | Ruta autorizada `brands.avatar` (`/brands/{brand}/avatar?v=<media>`) que redirige a la imagen (URL temporal de 120 min) con `Cache-Control: private, max-age=3600`; el shell usa esa URL estable | `BrandSettingsTest` N7: `avatar_url` idéntico entre peticiones, cabecera `private, max-age=3600`, ajeno/sin avatar → 404 |
+| Cosm. | Minor | Comentario de `accent` en `SmartLinks/Index.vue` incoherente | T-09 | Comentario alineado con su comportamiento (color del formulario si es #RRGGBB válido; si no, el por defecto) | `npm run build` ok |
+| E2E | Minor | Datos `e2e-*` sobrantes en la BD local | T-15 | Sin restos en la BD local; `globalTeardown` (`tests/e2e/global-teardown.ts`) borra las marcas `e2e-` al terminar la batería | tras la batería: marcas `e2e-` = 0 |
+
+**Verificación (intento 2)**
+
+- `php artisan test` → `794 passed (5888 assertions)`
+- `vendor/bin/pint --test` → `passed`
+- `npm run build` → `built`
+- `npm run test:e2e` → `184 passed, 2 skipped`
+
+Sin gaps pendientes: bucle de revisión de la paridad cerrado en el intento 2

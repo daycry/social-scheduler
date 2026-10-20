@@ -3,6 +3,7 @@
 use App\Connectors\Network;
 use App\Jobs\CollectCompetitorSnapshot;
 use App\Jobs\CollectCompetitorSnapshots;
+use App\Models\AccountSnapshot;
 use App\Models\Brand;
 use App\Models\Competitor;
 use App\Models\CompetitorSnapshot;
@@ -175,4 +176,14 @@ test('Competitors: aislamiento — marca ajena 404, competidor ajeno 404 y no ap
     $mine->save();
     $this->actingAs($this->user)->delete(route('competitors.destroy', $mine))->assertRedirect();
     expect(Competitor::query()->count())->toBe(0);
+});
+
+test('Competitors: B10 la comparativa lleva el media_count propio de Instagram (no un campo de TikTok vacio)', function () {
+    AccountSnapshot::withoutUserScope()->create([
+        'user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'social_account_id' => $this->ig->id, 'network' => 'instagram',
+        'date' => '2026-11-01', 'metrics' => ['followers' => 321, 'video_count' => 87],
+    ]);
+
+    $this->actingAs($this->user)->get(route('competitors.index'))->assertOk()
+        ->assertInertia(fn ($p) => $p->where('comparison.own.followers', 321)->where('comparison.own.media', 87));
 });

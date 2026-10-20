@@ -11,6 +11,7 @@ use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Mejores horas para publicar (PA-05): mapa de calor 7 (dia de la semana) x 24 (hora) por red con el engagement
@@ -27,6 +28,20 @@ class BestTimesService
      */
     public function heatmap(User $user, Brand $brand, Network $network, ?int $days = null): array
     {
+        $ttl = (int) config('social.best_times.cache_minutes', 10);
+        if ($ttl <= 0) {
+            return $this->compute($user, $brand, $network, $days);
+        }
+
+        // Cache corta por usuario/marca/red/ventana: el calculo recorre las publicaciones del periodo y la pagina se refresca a menudo.
+        $key = sprintf('besttimes:%d:%d:%s:%s', $user->id, $brand->id, $network->value, $days ?? 'd').':'.md5((string) $brand->timezone);
+
+        return Cache::remember($key, now()->addMinutes($ttl), fn () => $this->compute($user, $brand, $network, $days));
+    }
+
+    /** @return array<string, mixed> */
+    private function compute(User $user, Brand $brand, Network $network, ?int $days): array
+    {
         $days = max(7, min(365, $days ?? (int) config('social.best_times.days', 90)));
         $min = (int) config('social.best_times.min_posts', 10);
         $tz = $brand->timezone ?: 'UTC';
@@ -41,19 +56,21 @@ class BestTimesService
             ->get(['id', 'published_at'])
             ->keyBy('id');
 
-        // Ultima lectura (fecha mas alta) de cada destino: los acumulados crecen con el tiempo.
+        // Ultima lectura (fecha mas alta) de cada destino, resuelta en SQL (MAX(date) por destino): los acumulados crecen con el tiempo.
+        // Solo se traen las filas ganadoras (una por destino), no todo el historico de snapshots.
         $latest = [];
         foreach ($targets->keys()->chunk(500) as $ids) {
-            PostMetricSnapshot::withoutUserScope()
-                ->where('user_id', $user->id)
-                ->whereIn('post_target_id', $ids->all())
-                ->orderBy('date')
-                ->get(['post_target_id', 'metrics'])
-                ->each(function (PostMetricSnapshot $s) use (&$latest) {
-                    $latest[$s->post_target_id] = $s->metrics;
+            $newest = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $ids->all())
+                ->groupBy('post_target_id')->selectRaw('post_target_id, MAX(date) as max_date');
+
+            PostMetricSnapshot::withoutUserScope()->from('post_metric_snapshots as s')
+                ->joinSub($newest, 'n', fn ($j) => $j->on('n.post_target_id', '=', 's.post_target_id')->on('n.max_date', '=', 's.date'))
+                ->where('s.user_id', $user->id)
+                ->get(['s.post_target_id', 's.metrics'])
+                ->each(function ($s) use (&$latest) {
+                    $latest[$s->post_target_id] = is_string($s->metrics) ? json_decode($s->metrics, true) : $s->metrics;
                 });
         }
-
         $sum = array_fill(0, 7, array_fill(0, 24, 0.0));
         $counts = array_fill(0, 7, array_fill(0, 24, 0));
         $posts = 0;

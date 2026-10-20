@@ -148,8 +148,11 @@ class Insights implements RangeInsightsReader
         $out[Metric::FOLLOWERS_GAINED] = $this->seriesValue($id, 'follower_count', $range, $token, $day);
 
         if ($this->isRecent($account, $day)) {
-            $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count'], $token, true), 'followers_count');
+            // `media_count` (publicaciones del perfil) se guarda como VIDEO_COUNT (stock): es la cifra propia que la comparativa
+            // de competidores contrasta con el `media_count` de Business Discovery.
+            $json = $this->safe(fn () => $this->graph->get($id, ['fields' => 'followers_count,media_count'], $token, true), 'followers_count');
             $out[Metric::FOLLOWERS] = $this->numberOrNull($json['followers_count'] ?? null);
+            $out[Metric::VIDEO_COUNT] = $this->numberOrNull($json['media_count'] ?? null);
         }
 
         return $out;

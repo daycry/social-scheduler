@@ -66,7 +66,7 @@ it('MetaInsights: Instagram usa views (no impressions) con total_value y followe
         INS_IG_ID.'/insights|total_interactions' => $tv('total_interactions', 130),
         // end_time = FIN del periodo: el dia 31-oct del Pacifico acaba el 1-nov a las 00:00 PDT = 07:00 UTC.
         INS_IG_ID.'/insights|follower_count' => ['data' => [['name' => 'follower_count', 'values' => [['value' => 7, 'end_time' => '2026-11-01T07:00:00+0000']]]]],
-        INS_IG_ID.'|followers_count' => ['followers_count' => 4321, 'id' => INS_IG_ID],
+        INS_IG_ID.'|followers_count,media_count' => ['followers_count' => 4321, 'media_count' => 87, 'id' => INS_IG_ID],
     ], $calls);
 
     $m = $this->reader->accountInsights($this->ig, Carbon::parse('2026-10-31'));
@@ -74,7 +74,7 @@ it('MetaInsights: Instagram usa views (no impressions) con total_value y followe
     expect($m)->toHaveKeys(Metric::ACCOUNT)
         ->and($m[Metric::VIEWS])->toBe(1200)->and($m[Metric::REACH])->toBe(800)
         ->and($m[Metric::PROFILE_VIEWS])->toBe(40)->and($m[Metric::ACCOUNTS_ENGAGED])->toBe(55)
-        ->and($m[Metric::FOLLOWERS_GAINED])->toBe(7)->and($m[Metric::FOLLOWERS])->toBe(4321)
+        ->and($m[Metric::FOLLOWERS_GAINED])->toBe(7)->and($m[Metric::FOLLOWERS])->toBe(4321)->and($m[Metric::VIDEO_COUNT])->toBe(87)
         ->and($m[Metric::INTERACTIONS])->toBe(130)->and($m[Metric::WATCH_MINUTES])->toBeNull();
 
     $metrics = array_column(array_column($calls, 'q'), 'metric');
@@ -132,7 +132,7 @@ it('MetaInsights: usa el page_id de la cuenta de Facebook cuando difiere del ext
 
 it('MetaInsights: los seguidores actuales solo se piden para dias recientes', function () {
     $calls = [];
-    fakeMetaInsights([INS_IG_ID.'|followers_count' => ['followers_count' => 10]], $calls);
+    fakeMetaInsights([INS_IG_ID.'|followers_count,media_count' => ['followers_count' => 10]], $calls);
 
     $old = $this->reader->accountInsights($this->ig, Carbon::parse('2026-10-10'));
 

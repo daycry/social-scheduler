@@ -119,3 +119,21 @@ test('BestTimes: la herramienta MCP get_best_times respeta la ability y el aisla
     [$err] = $this->callTool($key, 'get_best_times', ['brand_id' => $this->brand->id, 'network' => 'myspace']);
     expect($err)->toBeTrue();
 });
+
+test('BestTimes: B11 usa la ULTIMA lectura de cada destino (MAX(date) en SQL) y la cache corta evita recalcular', function () {
+    foreach ([5, 12, 14] as $d) {
+        $t = bestTimesPost($this->brand, sprintf('2026-10-%02d 08:30:00', $d), [Metric::INTERACTIONS => 1]); // lectura antigua (31-oct)
+        PostMetricSnapshot::withoutUserScope()->create([
+            'user_id' => $this->brand->user_id, 'post_target_id' => $t->id, 'social_account_id' => $t->social_account_id,
+            'network' => 'instagram', 'date' => '2026-11-01', 'metrics' => array_merge(Metric::blankPost(), [Metric::INTERACTIONS => 40]),
+        ]);
+    }
+
+    $r = app(BestTimesService::class)->heatmap($this->user, $this->brand, Network::Instagram);
+    expect($r['top'][0]['avg_engagement'])->toBe(40.0);
+
+    config(['social.best_times.cache_minutes' => 5]);
+    app(BestTimesService::class)->heatmap($this->user, $this->brand, Network::Instagram);
+    PostMetricSnapshot::withoutUserScope()->update(['metrics' => json_encode(array_merge(Metric::blankPost(), [Metric::INTERACTIONS => 99]))]);
+    expect(app(BestTimesService::class)->heatmap($this->user, $this->brand, Network::Instagram)['top'][0]['avg_engagement'])->toBe(40.0); // desde cache
+});

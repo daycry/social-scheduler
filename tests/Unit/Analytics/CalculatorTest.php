@@ -4,6 +4,10 @@ use App\Analytics\Calculator;
 use App\Analytics\Metric;
 use App\Analytics\Period;
 use Carbon\CarbonImmutable;
+use Tests\TestCase;
+
+// El periodo por defecto consulta la zona de cada red (config): necesita la aplicacion.
+uses(TestCase::class);
 
 it('Analytics: el total de un flujo suma los dias con dato y es null si no hay ninguno', function () {
     expect(Calculator::total(['2026-10-01' => 5, '2026-10-02' => null, '2026-10-03' => 7], Metric::VIEWS))->toBe(12)

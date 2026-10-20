@@ -98,7 +98,8 @@ final class Calculator
     /**
      * Crecimiento de un stock sumado por cuenta: la variacion de CADA cuenta entre su primer y su ultimo dato dentro del
      * periodo, sumadas. Una cuenta conectada (o desconectada) a mitad de periodo aporta solo su propia variacion: nunca
-     * su saldo entero como un salto. Solo cuentan las que tienen al menos dos puntos.
+     * su saldo entero como un salto. Solo aportan variacion las que tienen al menos dos puntos; las de un solo punto suman su valor
+     * a `start` y `end` (variacion 0).
      *
      * @param  list<array<string, int|float|null>>  $seriesList
      * @return array{start: int|float|null, end: int|float|null, change: int|float|null, pct: float|null, accounts: int}
@@ -124,10 +125,12 @@ final class Calculator
             return ['start' => $start, 'end' => $start, 'change' => null, 'pct' => null, 'accounts' => 0];
         }
 
-        $start = array_sum(array_column($measured, 'start'));
+        // Una cuenta con un solo punto no aporta variacion (0) pero SI su valor: asi `end` coincide con el total de seguidores.
+        $start = array_sum(array_column($measured, 'start')) + array_sum(array_column($single, 'start'));
+        $end = array_sum(array_column($measured, 'end')) + array_sum(array_column($single, 'end'));
         $change = array_sum(array_column($measured, 'change'));
 
-        return ['start' => $start, 'end' => array_sum(array_column($measured, 'end')), 'change' => $change, 'pct' => self::pct($change, $start), 'accounts' => count($measured)];
+        return ['start' => $start, 'end' => $end, 'change' => $change, 'pct' => self::pct($change, $start), 'accounts' => count($measured)];
     }
 
     /**

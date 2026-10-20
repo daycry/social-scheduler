@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
-use Throwable;
 
 /**
  * Capa de lectura de la analitica (T-35): convierte los snapshots en lo que muestran los dashboards sin acoplarse a
@@ -301,18 +300,7 @@ class AnalyticsService
      */
     private function bounds(Brand $brand, Period $period): array
     {
-        $zone = $brand->timezone ?: 'UTC';
-
-        try {
-            new \DateTimeZone($zone);
-        } catch (Throwable) {
-            $zone = 'UTC';
-        }
-
-        $from = CarbonImmutable::createFromFormat('!Y-m-d', $period->from->format('Y-m-d'), $zone)->utc();
-        $to = CarbonImmutable::createFromFormat('!Y-m-d', $period->to->format('Y-m-d'), $zone)->addDay()->utc();
-
-        return [$from, $to];
+        return $period->utcBounds($brand->timezone);
     }
 
     /**

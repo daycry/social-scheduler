@@ -2,6 +2,7 @@
 
 namespace App\Analytics;
 
+use App\Connectors\Network;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
@@ -31,14 +32,15 @@ final class Period
     }
 
     /**
-     * Por defecto los ultimos 30 dias cerrados (hasta ayer). "Ayer" se cuenta en la zona horaria indicada (la de la marca)
-     * y no en UTC; las fechas son etiquetas Y-m-d, como las de los snapshots.
+     * Por defecto los ultimos 30 dias cerrados. El fin es "ayer" en la zona indicada (la de la marca) sin pasar del ultimo
+     * dia cerrado de ninguna red (el dia de Meta/YouTube es el del Pacifico y se recoge mas tarde): asi el ultimo dia del
+     * periodo nunca es uno aun sin recoger. Las fechas son etiquetas Y-m-d, como las de los snapshots.
      */
     public static function make(?string $from, ?string $to, ?string $timezone = null): self
     {
         try {
             $today = CarbonImmutable::now(self::validZone($timezone))->format('Y-m-d');
-            $end = $to ? CarbonImmutable::createFromFormat('!Y-m-d', $to, 'UTC') : CarbonImmutable::createFromFormat('!Y-m-d', $today, 'UTC')->subDay();
+            $end = $to ? CarbonImmutable::createFromFormat('!Y-m-d', $to, 'UTC') : self::defaultEnd($today);
             $start = $from ? CarbonImmutable::createFromFormat('!Y-m-d', $from, 'UTC') : $end->subDays(29);
         } catch (\Throwable) {
             throw new InvalidArgumentException('Fecha no valida.');
@@ -49,6 +51,34 @@ final class Period
         }
 
         return self::between($start, $end);
+    }
+
+    /**
+     * Limites UTC [desde, hasta) del periodo: sus dias son dias de la zona indicada (la de la marca). Una publicacion de
+     * las 23:30 locales del ultimo dia pertenece al periodo aunque en UTC ya sea el dia siguiente.
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    public function utcBounds(?string $timezone): array
+    {
+        $zone = self::validZone($timezone);
+
+        return [
+            CarbonImmutable::createFromFormat('!Y-m-d', $this->from->format('Y-m-d'), $zone)->utc(),
+            CarbonImmutable::createFromFormat('!Y-m-d', $this->to->format('Y-m-d'), $zone)->addDay()->utc(),
+        ];
+    }
+
+    private static function defaultEnd(string $today): CarbonImmutable
+    {
+        $end = CarbonImmutable::createFromFormat('!Y-m-d', $today, 'UTC')->subDay();
+
+        foreach (Network::cases() as $network) {
+            $closed = Days::closed($network);
+            $end = $closed->lt($end) ? $closed : $end;
+        }
+
+        return $end;
     }
 
     private static function validZone(?string $zone): string

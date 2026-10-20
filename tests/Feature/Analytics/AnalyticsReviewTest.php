@@ -93,6 +93,19 @@ it('Crecimiento: una cuenta que deja de tener snapshots no hunde el crecimiento 
         ->and(collect($followers['series'])->firstWhere('date', '2026-10-27')['value'])->toBe(1027); // B ya no suma tras su ultimo dato
 });
 
+it('Crecimiento: un solo punto no cuenta como variacion pero su valor suma a los seguidores del fin del periodo', function () {
+    $a = anaRvAccount($this->user, $this->brand);
+    $b = anaRvAccount($this->user, $this->brand);
+    anaRvSnap($a, '2026-10-05', [Metric::FOLLOWERS => 100]);
+    anaRvSnap($a, '2026-10-20', [Metric::FOLLOWERS => 110]);
+    anaRvSnap($b, '2026-10-25', [Metric::FOLLOWERS => 40]);
+
+    $r = $this->svc->network($this->user, $this->brand, Network::Instagram, Period::make('2026-10-01', '2026-10-31'));
+    $total = collect($r['metrics'])->firstWhere('key', 'followers')['total'];
+
+    expect($r['growth']['change'])->toBe(10)->and($r['growth']['end'])->toBe(150)->and($r['growth']['end'])->toBe($total);
+});
+
 it('Crecimiento: una cuenta con un solo punto no cuenta como variacion y sin ninguna medible no hay crecimiento', function () {
     $a = anaRvAccount($this->user, $this->brand);
     anaRvSnap($a, '2026-10-05', [Metric::FOLLOWERS => 300]);
@@ -155,8 +168,9 @@ it('Periodo y filtro de publicaciones en la zona horaria de la marca', function 
 
     expect($on10['posts_total'])->toBe(0)->and($on11['posts_total'])->toBe(1);
 
-    // "Ayer" por defecto se cuenta en la zona de la marca: 12:00 UTC del 1-nov ya es 2-nov en Auckland.
-    expect(Period::make(null, null, 'Pacific/Auckland')->toArray()['to'])->toBe('2026-11-01')
+    // "Ayer" en la zona de la marca seria el 1-nov en Auckland (12:00 UTC del 1-nov ya es 2-nov), pero ese dia aun no esta
+    // recogido (el ultimo dia cerrado de Meta/YouTube, en el Pacifico, es el 31-oct): el periodo termina en el 31.
+    expect(Period::make(null, null, 'Pacific/Auckland')->toArray()['to'])->toBe('2026-10-31')
         ->and(Period::make(null, null)->toArray()['to'])->toBe('2026-10-31')
         ->and(Period::make(null, null, 'Zona/Invalida')->toArray()['to'])->toBe('2026-10-31');
 });

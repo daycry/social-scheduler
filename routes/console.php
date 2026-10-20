@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\CollectCompetitorSnapshots;
 use App\Jobs\CollectSnapshots;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\RefreshPostMetrics;
@@ -40,3 +41,9 @@ Schedule::call(fn () => RefreshPostMetrics::dispatchDue())->cron('15 */6 * * *')
 
 // Informes (M-9): expira los atascados y purga ficheros/filas pasada la retencion (reports.retention_days).
 Schedule::command('reports:prune')->dailyAt('04:10')->name('reports-prune')->withoutOverlapping();
+
+// Papelera (PA-06): elimina las publicaciones con mas de 30 dias en la papelera.
+Schedule::command('posts:purge-trash')->dailyAt('04:30')->name('posts-purge-trash')->withoutOverlapping();
+
+// Competidores de Instagram (PA-08): snapshot diario de seguidores y publicaciones (Business Discovery). Cola `metrics`.
+Schedule::job(new CollectCompetitorSnapshots)->dailyAt((string) config('social.competitors.daily_at', '13:00'))->name('collect-competitor-snapshots')->withoutOverlapping();

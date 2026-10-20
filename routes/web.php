@@ -97,3 +97,5 @@ require __DIR__.'/auth.php';
 // (5 min) cubre el id del informe y su dueno; el controlador comprueba que coinciden, que el informe esta `ready` y audita.
 Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
     ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');
+
+require __DIR__.'/parity.php';

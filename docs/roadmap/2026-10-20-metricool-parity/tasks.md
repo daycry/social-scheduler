@@ -20,25 +20,25 @@ verificacion: obligatoria
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|---|---|---|---|
-| Fase 1 — P1 — UI: portada, auth, shell, estados vacíos y ajustes (agente UI) | 0 | 5 | 0% | — | — | — | — |
+| Fase 1 — P1 — UI: portada, auth, shell, estados vacíos y ajustes (agente UI) | 5 | 5 | 100% | — | — | — | — |
 | Fase 2 — P2 — Backend y páginas: mejores horas, biblioteca, papelera, SmartLinks, competidores | 5 | 5 | 100% | — | — | — | — |
 | Fase 3 — P3 — Autolistas, inbox, Meta Ads solo lectura y asistente IA | 4 | 4 | 100% | — | — | — | — |
-| Fase 4 — P4 — QA E2E y accesibilidad | 0 | 1 | 0% | — | — | — | — |
-| **TOTAL** | **9** | **15** | **60%** | — | — | — | — |
+| Fase 4 — P4 — QA E2E y accesibilidad | 1 | 1 | 100% | — | — | — | — |
+| **TOTAL** | **15** | **15** | **100%** | — | — | — | — |
 
 ---
 
 
 ## Fase 1 — P1 — UI: portada, auth, shell, estados vacíos y ajustes (agente UI)
 
-**Estado**: en-progreso · **Estimado**: —
+**Estado**: completado · **Estimado**: —
 
 
 ### T-01 — Portada pública (Welcome)
 
 - **Descripción**: Portada con propuesta de valor, módulos, FAQ, CTA y enlaces legales. Asignada a «agente UI» (no la implementa el implementer de P2).
 - **Changelog**: Nueva portada pública en español con módulos, preguntas frecuentes y acceso a registro.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Asignada a**: agente UI
 - **Tiempo humano**: est. 0h · real —
 - **Tiempo IA (ejec.)**: est. —h · real —
@@ -52,87 +52,97 @@ verificacion: obligatoria
   - lectura: Welcome.vue contiene secciones de módulos, FAQ y CTA
 
 **Criterios de aceptación**
-- [ ] PA-01/PA-02: sin texto de Laravel; enlaces a /privacy y /terms
+- [x] PA-01/PA-02: sin texto de Laravel; enlaces a /privacy y /terms
+
+**Evidencia**: Welcome con módulos, FAQ, CTA y enlaces a /privacy y /terms; `npx playwright test` (portada, privacidad, términos: status<400, sin errores de consola, sin desbordamiento, h1) y axe sin violaciones críticas/serias.
 
 
 ### T-02 — Autenticación en español
 
 - **Descripción**: Login, registro, recuperar y verificar email en español con identidad propia. Asignada a «agente UI».
 - **Changelog**: Pantallas de acceso, registro y recuperación de contraseña en español.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Asignada a**: agente UI
 - **Tiempo humano**: est. 0h · real —
 - **Tiempo IA (ejec.)**: est. —h · real —
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Auth/**`, `lang/**`
+- **Archivos**: `resources/js/Pages/Auth/**`, `lang/**`, `tests/Feature/Auth/TransactionalMailTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test --filter=Auth` → verde
 
 **Criterios de aceptación**
-- [ ] PA-01: ninguna pantalla de auth con textos en inglés de Breeze
+- [x] PA-01: ninguna pantalla de auth con textos en inglés de Breeze
+
+**Evidencia**: login/registro/recuperar en español; correos de verificación y reset en español con el nombre de la app (`lang/es.json`, `TransactionalMailTest`); E2E de registro → aviso de verificar correo.
 
 
 ### T-03 — Shell con selector de marca y barra lateral por módulo
 
 - **Descripción**: Barra superior con módulos, selector de marca persistente, campana, menú de usuario y lateral contextual, responsive. Asignada a «agente UI».
 - **Changelog**: Nuevo panel con selector de marca persistente, navegación por módulos y diseño adaptable a móvil.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Asignada a**: agente UI
 - **Tiempo humano**: est. 0h · real —
 - **Tiempo IA (ejec.)**: est. —h · real —
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Layouts/**`, `resources/js/Components/**`, `resources/js/navigation.js`, `app/Http/Middleware/HandleInertiaRequests.php`, `app/Support/CurrentBrand.php`
+- **Archivos**: `resources/js/Layouts/**`, `resources/js/Components/**`, `resources/js/navigation.js`, `app/Http/Middleware/HandleInertiaRequests.php`, `app/Support/CurrentBrand.php`, `tests/Feature/Ui/ShellTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `npm run build` → exit 0
 
 **Criterios de aceptación**
-- [ ] PA-03: selector de marca persistente; responsive 360 px
+- [x] PA-03: selector de marca persistente; responsive 360 px
+
+**Evidencia**: shell con módulos Analítica/Planificación/Informes/Conexiones/SmartLinks/Inbox (si existe la ruta), laterales con Mejores horas, Biblioteca, Autolistas, Papelera, Competidores y Meta Ads; cabecera sin desbordar a 375 px (logo compacto, selector de marca recortado); contador de Inbox sin leer en `HandleInertiaRequests` (`unreadInbox`, 1 COUNT). E2E: 0 desbordamiento en todas las páginas a 375 px.
 
 
 ### T-04 — Estados vacíos con CTA de conexión
 
 - **Descripción**: Cada red sin cuenta muestra estado vacío con CTA que inicia el OAuth. Asignada a «agente UI».
 - **Changelog**: Las redes sin conectar muestran un aviso con botón para conectarlas.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Asignada a**: agente UI
 - **Tiempo humano**: est. 0h · real —
 - **Tiempo IA (ejec.)**: est. —h · real —
 - **Supervisión**: est. — · real —
 - **Dependencias**: T-03
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Dashboard/**`
+- **Archivos**: `resources/js/Pages/Dashboard/**`, `resources/js/Pages/{BestTimes,Library,Trash,SmartLinks,Competitors}/Index.vue`, `app/Http/Controllers/LibraryController.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test --filter=Dashboard` → verde
 
 **Criterios de aceptación**
-- [ ] PA-04: estado vacío con CTA por red
+- [x] PA-04: estado vacío con CTA por red
+
+**Evidencia**: Dashboard/Competidores/Mejores horas/Biblioteca/Papelera/SmartLinks usan `FeatureEmpty` con CTA; `php artisan test` verde.
 
 
 ### T-05 — Ajustes de marca
 
 - **Descripción**: Página de ajustes de marca (nombre, zona horaria, avatar, redes). Asignada a «agente UI».
 - **Changelog**: Nueva página de ajustes de marca con nombre, zona horaria y avatar.
-- **Estado**: en-progreso
+- **Estado**: completado
 - **Asignada a**: agente UI
 - **Tiempo humano**: est. 0h · real —
 - **Tiempo IA (ejec.)**: est. —h · real —
 - **Supervisión**: est. — · real —
 - **Dependencias**: T-03
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Brands/**`
+- **Archivos**: `resources/js/Pages/Brands/**`, `app/Http/Controllers/BrandController.php`, `app/Http/Requests/BrandRequest.php`, `app/Models/Brand.php`, `database/migrations/2026_10_29_090000_add_avatar_to_brands.php`, `tests/Feature/Ui/BrandSettingsTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test --filter=Brand` → verde
 
 **Criterios de aceptación**
-- [ ] Ajustes editables y persistidos
+- [x] Ajustes editables y persistidos
+
+**Evidencia**: nombre, descripción, zona horaria y avatar (imagen de la media del usuario, migración `add_avatar_to_brands`, validada contra media propia) editables; `BrandSettingsTest` (3 tests). Pendiente menor: el selector de marca del shell sigue mostrando la inicial, no el avatar.
 
 
 ## Fase 2 — P2 — Backend y páginas: mejores horas, biblioteca, papelera, SmartLinks, competidores
@@ -349,24 +359,26 @@ verificacion: obligatoria
 
 ## Fase 4 — P4 — QA E2E y accesibilidad
 
-**Estado**: borrador · **Estimado**: —
+**Estado**: completado · **Estimado**: —
 
 
 ### T-15 — QA E2E y accesibilidad (PA-12)
 
 - **Descripción**: Suite verde, revisión adversarial, E2E en navegador de los flujos principales y revisión de accesibilidad.
 - **Changelog**: Revisión final de calidad y accesibilidad de toda la aplicación.
-- **Estado**: borrador
+- **Estado**: completado
 - **Asignada a**: implementer
 - **Tiempo humano**: est. 0h · real —
 - **Tiempo IA (ejec.)**: est. —h · real —
 - **Supervisión**: est. — · real —
 - **Dependencias**: T-01..T-14
 - **Tipo**: qa
-- **Archivos**: `docs/roadmap/2026-10-20-metricool-parity/testing/**` (lo escribe qa)
+- **Archivos**: `playwright.config.ts`, `tests/e2e/**`, `package.json`, `package-lock.json`, `.gitignore`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test` → verde y E2E documentado por qa
 
 **Criterios de aceptación**
-- [ ] PA-12
+- [x] PA-12: batería E2E (Playwright, desktop 1440x900 y móvil 375x812) y axe (WCAG 2 A/AA) sin violaciones critical/serious
+
+**Evidencia** (`npm run test:e2e` contra http://127.0.0.1:8080): `123 passed, 1 skipped (3.2m)` — la omitida es la prueba de la barra lateral de escritorio en el proyecto móvil. Cubre: portada, login, registro, recuperar, privacy, terms, dashboard (+4 redes), calendario (semana/mes/lista), crear publicación, marcas (+editar), conexiones, informes, api-keys, avisos, perfil, mejores horas, biblioteca, papelera, smartlinks, competidores, autolistas, inbox y Meta Ads (status<400, sin errores de consola/pageerror, sin desbordamiento horizontal, con h1); flujos registro→verificar correo, marca→borrador→lista→biblioteca→papelera→restaurar→usar plantilla, SmartLink público sin cookies con redirección del clic y conteo, y API key crear/revocar; axe `@axe-core/playwright` 4.10.2 en 29 páginas × 2 viewports (56 checks): 0 violaciones critical/serious. Los datos de prueba llevan prefijo `e2e-` y se limpian (también al arrancar). `php artisan test` 767 verdes, `pint --test` ok, `npm run build` ok.

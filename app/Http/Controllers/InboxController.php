@@ -88,8 +88,9 @@ class InboxController extends Controller
 
     public function readAll(Request $request): RedirectResponse
     {
+        $data = $request->validate(['network' => ['nullable', 'string', 'in:instagram,facebook']]);
         $brand = CurrentBrand::resolve($request);
-        $n = $this->inbox->markAllRead($request->user(), array_filter(['network' => $request->input('network'), 'brand_id' => $brand?->id]));
+        $n = $this->inbox->markAllRead($request->user(), array_filter(['network' => $data['network'] ?? null, 'brand_id' => $brand?->id]));
 
         return back()->with('success', "$n comentarios marcados como leídos.");
     }

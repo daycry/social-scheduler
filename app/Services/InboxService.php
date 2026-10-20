@@ -14,7 +14,10 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Buzon de comentarios de Instagram/Facebook (PA-10): sincroniza los comentarios de las publicaciones propias ya
@@ -40,36 +43,74 @@ class InboxService
     }
 
     /**
-     * Sincroniza los comentarios de las publicaciones recientes de UNA cuenta. Devuelve cuantos comentarios nuevos entraron.
-     * Los errores de una publicacion concreta (borrada en la red...) se saltan; credenciales y transitorios suben al job.
+     * Sincroniza los comentarios de las publicaciones recientes de UNA cuenta (sin limite de tiempo: uso fuera de cola).
+     * Devuelve cuantos comentarios nuevos entraron.
      */
     public function sync(SocialAccount $account): int
     {
+        $new = 0;
+        $offset = 0;
+
+        do {
+            $r = $this->syncBatch($account, $offset, PHP_FLOAT_MAX);
+            $new += $r['new'];
+            $offset = $r['next'];
+        } while ($offset !== null);
+
+        return $new;
+    }
+
+    /**
+     * Un bloque de publicaciones con presupuesto de tiempo (`$budgetSeconds`): lee desde `$offset` mientras quepa otra de la
+     * duracion de la mas lenta; si no caben todas devuelve el desplazamiento por donde continuar (`next`), que el job reencola.
+     * Los errores de una publicacion concreta (borrada en la red...) se saltan; credenciales y transitorios suben al job.
+     *
+     * @return array{new: int, next: int|null}
+     */
+    public function syncBatch(SocialAccount $account, int $offset, float $budgetSeconds): array
+    {
         if (! $this->syncable($account)) {
-            return 0;
+            return ['new' => 0, 'next' => null];
         }
 
+        $max = (int) config('social.inbox.max_posts', 25);
         $targets = PostTarget::withoutUserScope()->where('user_id', $account->user_id)->where('social_account_id', $account->id)
             ->where('status', PostStatus::Published->value)->whereNotNull('external_id')
             ->where('published_at', '>=', now()->subDays((int) config('social.inbox.post_days', 30)))
-            ->orderByDesc('published_at')->limit((int) config('social.inbox.max_posts', 25))->get();
+            ->orderByDesc('published_at')->orderByDesc('id')->offset($offset)->limit(max(0, $max - $offset))->get();
 
         $new = 0;
+        $done = 0;
+        $started = microtime(true);
+        $slowest = 0.0;
+
         foreach ($targets as $target) {
+            // Siempre se lee al menos una por pasada; despues solo si cabe otra de la duracion de la mas lenta.
+            if ($done > 0 && (microtime(true) - $started) + $slowest > $budgetSeconds) {
+                return ['new' => $new, 'next' => $offset + $done];
+            }
+
+            $t0 = microtime(true);
+            $done++;
+
             try {
                 $rows = $this->comments->fetch($account, (string) $target->external_id);
             } catch (ReconnectRequiredException|TransientPublishException $e) {
                 throw $e;
             } catch (ConnectorException) {
+                $slowest = max($slowest, microtime(true) - $t0);
+
                 continue; // publicacion borrada o sin permiso sobre ella: se salta
             }
 
-            foreach ($rows as $row) {
+            // `fetch` devuelve lo mas reciente primero; se guarda del mas antiguo al mas nuevo para que los ids crezcan con el tiempo (cursor del MCP).
+            foreach (array_reverse($rows) as $row) {
                 $new += $this->upsert($account, $target, $row) ? 1 : 0;
             }
+            $slowest = max($slowest, microtime(true) - $t0);
         }
 
-        return $new;
+        return ['new' => $new, 'next' => null];
     }
 
     /** @param array<string, mixed> $row */
@@ -78,7 +119,8 @@ class InboxService
         $existing = InboxComment::withoutUserScope()->where('social_account_id', $account->id)->where('external_id', $row['external_id'])->first();
 
         if ($existing) {
-            $existing->forceFill(['text' => $row['text'], 'hidden' => $row['hidden'], 'author_name' => $row['author_name']])->save();
+            // Si la fila la creo `reply()` antes que la sincronizacion, esta la reconcilia (autor/propio) sin duplicar.
+            $existing->forceFill(['text' => $row['text'], 'hidden' => $row['hidden'], 'author_name' => $row['author_name'], 'is_own' => $row['is_own']])->save();
 
             return false;
         }
@@ -94,7 +136,16 @@ class InboxService
         $comment->brand_id = $account->brand_id;
         $comment->social_account_id = $account->id;
         $comment->post_target_id = $target->id;
-        $comment->save();
+
+        try {
+            $comment->save();
+        } catch (UniqueConstraintViolationException) {
+            // Carrera con `reply()` u otra sincronizacion: ya existe, se actualiza (idempotente).
+            InboxComment::withoutUserScope()->where('social_account_id', $account->id)->where('external_id', $row['external_id'])
+                ->update(['text' => $row['text'], 'hidden' => $row['hidden'], 'author_name' => $row['author_name'], 'is_own' => $row['is_own']]);
+
+            return false;
+        }
 
         return ! $row['is_own'];
     }
@@ -150,8 +201,11 @@ class InboxService
 
         $id = $this->call($account, fn () => $this->comments->reply($account, $comment->external_id, $text));
 
+        $comment->forceFill(['read_at' => $comment->read_at ?? now()])->save();
+
+        // Meta ya publico la respuesta: nada de lo que sigue puede fallar hacia el usuario (ni 500 ni duplicados).
         $reply = new InboxComment([
-            'network' => $comment->network, 'external_id' => $id !== '' ? $id : 'own-'.$comment->id.'-'.now()->timestamp,
+            'network' => $comment->network, 'external_id' => $id,
             'parent_external_id' => $comment->external_id, 'post_external_id' => $comment->post_external_id,
             'author_name' => $account->username ?? $account->name, 'text' => $text, 'is_own' => true, 'hidden' => false,
             'commented_at' => now(), 'read_at' => now(),
@@ -160,9 +214,24 @@ class InboxService
         $reply->brand_id = $comment->brand_id;
         $reply->social_account_id = $account->id;
         $reply->post_target_id = $comment->post_target_id;
-        $reply->save();
 
-        $comment->forceFill(['read_at' => $comment->read_at ?? now()])->save();
+        // Sin id de Meta no se guarda un `own-…` inventado (duplicaria la respuesta cuando la sincronizacion la traiga con su id real):
+        // la proxima sincronizacion la incorpora. Con id, se guarda salvo que la sincronizacion ya la haya traido.
+        if ($id === '') {
+            return $reply;
+        }
+
+        try {
+            $existing = InboxComment::withoutUserScope()->where('social_account_id', $account->id)->where('external_id', $id)->first();
+            if ($existing) {
+                return $existing;
+            }
+            $reply->save();
+        } catch (UniqueConstraintViolationException) {
+            return InboxComment::withoutUserScope()->where('social_account_id', $account->id)->where('external_id', $id)->first() ?? $reply;
+        } catch (Throwable $e) {
+            Log::error('inbox.reply_persist_failed', ['comment_id' => $comment->id, 'exception' => $e::class]);
+        }
 
         return $reply;
     }

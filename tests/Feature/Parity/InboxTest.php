@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
@@ -263,4 +264,72 @@ test('Inbox MCP: list_comments y reply_comment exigen su ability y respetan el a
     expect($err)->toBeTrue()->and($msg)->toContain('no encontrada');
     [, $none] = $this->callTool($this->mcpKey($other), 'list_comments');
     expect($none['comments'])->toBe([]);
+});
+
+test('Inbox: B4 sigue paging.next en comentarios y en el hilo de respuestas, mas recientes primero y con tope', function () {
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $page1 = ['data' => [
+        ['id' => 'p1', 'text' => 'uno', 'username' => 'ana', 'timestamp' => '2026-10-31T10:00:00+0000', 'replies' => ['data' => [
+            ['id' => 'p1r1', 'text' => 'r1', 'username' => 'bob', 'timestamp' => '2026-10-31T10:30:00+0000'],
+        ], 'paging' => ['cursors' => ['after' => 'RC1'], 'next' => 'https://graph.facebook.com/next-replies']]],
+    ], 'paging' => ['cursors' => ['after' => 'PAGE2'], 'next' => 'https://graph.facebook.com/next']];
+    $page2 = ['data' => [['id' => 'p2', 'text' => 'dos', 'username' => 'luis', 'timestamp' => '2026-10-31T12:00:00+0000']], 'paging' => ['cursors' => ['after' => 'PAGE3']]];
+    $this->graph->on('GET', '#^17900000000000001/comments$#', FakeGraph::seq($page1, $page2));
+    $this->graph->on('GET', '#^p1/replies$#', ['data' => [['id' => 'p1r2', 'text' => 'r2', 'username' => 'eva', 'timestamp' => '2026-10-31T10:45:00+0000']]]);
+
+    $rows = app(Comments::class)->fetch($this->ig, '17900000000000001');
+
+    expect(array_column($rows, 'external_id'))->toBe(['p2', 'p1r2', 'p1r1', 'p1'])
+        ->and($this->graph->callsTo('GET', '#^17900000000000001/comments$#')[1]['params']['after'])->toBe('PAGE2')
+        ->and($this->graph->callsTo('GET', '#^p1/replies$#')[0]['params']['after'])->toBe('RC1');
+
+    config(['social.inbox.max_pages' => 1]);
+    $this->graph->calls = [];
+    $this->graph->on('GET', '#^17900000000000001/comments$#', $page1);
+    expect($this->graph->callsTo('GET', '#comments$#'))->toBe([]);
+    app(Comments::class)->fetch($this->ig, '17900000000000001');
+    expect($this->graph->callsTo('GET', '#^17900000000000001/comments$#'))->toHaveCount(1); // tope respetado
+});
+
+test('Inbox: B5 el job respeta el presupuesto de tiempo y se reencola con el desplazamiento', function () {
+    Queue::fake();
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    inboxPublishedTarget($this->ig, '17900000000000002');
+    $this->graph->on('GET', '#/comments$#', inboxIgComments());
+    config(['social.inbox.budget_seconds' => -1]); // presupuesto agotado tras la primera publicacion
+
+    $job = new SyncAccountComments($this->ig->id);
+    $job->handle(app(InboxService::class), app(SocialAccountService::class));
+
+    expect($this->graph->callsTo('GET', '#/comments$#'))->toHaveCount(1);
+    Queue::assertPushed(SyncAccountComments::class, fn ($j) => $j->accountId === $this->ig->id && $j->offset === 1);
+
+    config(['social.inbox.budget_seconds' => 60]);
+    Queue::fake();
+    (new SyncAccountComments($this->ig->id, 1))->handle(app(InboxService::class), app(SocialAccountService::class));
+    Queue::assertNotPushed(SyncAccountComments::class);
+});
+
+test('Inbox: B6/B7 una respuesta sin id de Meta no guarda un own- duplicable y la carrera con la sync no da 500', function () {
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $this->graph->on('GET', '#/comments$#', inboxIgComments());
+    app(InboxService::class)->sync($this->ig);
+    $c2 = InboxComment::withoutUserScope()->where('external_id', 'c2')->first();
+
+    $this->graph->on('POST', '#^c2/replies$#', FakeGraph::seq(['id' => ''], ['id' => 'c2r']));
+    $this->actingAs($this->user)->post(route('inbox.reply', $c2), ['text' => 'Hola'])->assertSessionHasNoErrors();
+    expect(InboxComment::withoutUserScope()->where('is_own', true)->where('external_id', 'like', 'own-%')->count())->toBe(0);
+
+    // Carrera: la sync ya trajo la respuesta con su id real antes de que `reply()` la guarde -> se reutiliza, sin duplicar ni 500.
+    $row = new InboxComment(['network' => Network::Instagram, 'external_id' => 'c2r', 'parent_external_id' => 'c2', 'text' => 'Hola', 'is_own' => true, 'hidden' => false]);
+    $row->user_id = $this->user->id;
+    $row->brand_id = $this->brand->id;
+    $row->social_account_id = $this->ig->id;
+    $row->save();
+    $reply = app(InboxService::class)->reply($this->user, $c2->fresh(), 'Hola otra vez');
+    expect($reply->external_id)->toBe('c2r')->and(InboxComment::withoutUserScope()->where('external_id', 'c2r')->count())->toBe(1);
+});
+
+test('Inbox: marcar todo leido valida la red (un array da 422)', function () {
+    $this->actingAs($this->user)->postJson(route('inbox.read-all'), ['network' => ['instagram']])->assertStatus(422);
 });

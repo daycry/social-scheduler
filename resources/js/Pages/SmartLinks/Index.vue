@@ -56,6 +56,7 @@ const hexDraft = computed({
         form.theme_color = value.startsWith('#') ? value : `#${value}`;
     },
 });
+// Color de la vista previa: el del formulario si es un #RRGGBB valido; si no, el color por defecto (el mismo que aplica la pagina publica).
 const accent = computed(() => (/^#[0-9a-fA-F]{6}$/.test(form.theme_color) ? form.theme_color : props.defaults.theme_color));
 const dark = computed(() => form.theme_mode === 'dark');
 const previewBlocks = computed(() => form.blocks.filter((b) => b.label?.trim()));

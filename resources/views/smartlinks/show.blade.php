@@ -31,6 +31,7 @@
         ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .75rem; }
         .btn { display: block; padding: .9rem 1rem; border-radius: .75rem; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
         .btn:hover, .btn:focus-visible { filter: brightness(1.1); outline: 3px solid var(--fg); outline-offset: 2px; }
+        .dest { display: block; margin-top: .25rem; font-size: .7rem; color: var(--muted); overflow-wrap: anywhere; }
         .header { margin-top: 1rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
         footer { margin-top: 2.5rem; font-size: .75rem; color: var(--muted); }
         footer p { margin: .25rem 0; }
@@ -53,7 +54,10 @@
             @if ($block->type === 'header')
                 <li class="header" role="heading" aria-level="2">{{ $block->label }}</li>
             @else
-                <li><a class="btn" rel="nofollow noopener" href="{{ url('/l/'.$link->slug.'/go/'.$block->id) }}">{{ $block->label }}</a></li>
+                <li>
+                    <a class="btn" rel="nofollow noopener" href="{{ url('/l/'.$link->slug.'/go/'.$block->id) }}">{{ $block->label }}</a>
+                    <span class="dest">Destino: {{ \App\Support\SafeUrl::displayHost($block->url) }}</span>
+                </li>
             @endif
         @endforeach
     </ul>

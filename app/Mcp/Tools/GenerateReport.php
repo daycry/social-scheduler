@@ -41,7 +41,7 @@ class GenerateReport extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
-        $period = Period::make($request->get('from'), $request->get('to'));
+        $period = Period::make($request->get('from'), $request->get('to'), $brand->timezone);
 
         $compare = (string) ($request->get('compare') ?: 'none');
         $period->comparison($compare); // rango de comparacion invalido: error de validacion, no informe fallido

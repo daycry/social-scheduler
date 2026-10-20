@@ -28,9 +28,9 @@ class ReportController extends Controller
 
     public function index(Request $request): Response
     {
-        $brands = Brand::query()->orderBy('name')->get(['id', 'name']);
+        $brands = Brand::query()->orderBy('name')->get(['id', 'name', 'timezone']);
         $names = $brands->pluck('name', 'id');
-        $period = Period::make(null, null)->toArray();
+        $period = Period::make(null, null, $brands->first()?->timezone)->toArray();
 
         // Un pending/processing atascado se muestra como fallido (lo marca de verdad `reports:prune`).
         $items = Report::query()->latest('id')->limit(20)->get()->map(fn (Report $r) => [

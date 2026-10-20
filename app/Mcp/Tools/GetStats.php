@@ -45,7 +45,7 @@ class GetStats extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
-        $period = Period::make($request->get('from'), $request->get('to'));
+        $period = Period::make($request->get('from'), $request->get('to'), $brand->timezone);
         $mode = (string) ($request->get('compare') ?: 'none');
 
         if (! in_array($mode, Period::COMPARE_MODES, true)) {

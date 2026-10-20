@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Connectors\Network;
+use App\Models\MediaAsset;
 use App\Models\SocialAccount;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
@@ -45,6 +46,8 @@ class HandleInertiaRequests extends Middleware
             'unreadNotifications' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             // Comentarios sin leer del Inbox (una sola consulta COUNT, lazy y solo con sesion).
             'unreadInbox' => fn () => $request->user() ? app(InboxService::class)->unreadCount($request->user()) : 0,
+            // Registro publico abierto: oculta los enlaces «Crear cuenta» cuando REGISTRATION_ENABLED=false.
+            'registrationEnabled' => (bool) config('app.registration_enabled', true),
             'shell' => fn () => $request->user() ? $this->shell($request) : null,
         ];
     }
@@ -54,6 +57,22 @@ class HandleInertiaRequests extends Middleware
     {
         $brands = CurrentBrand::brands($request);
         $current = CurrentBrand::resolve($request);
+
+        // Avatares de las marcas (URL temporal); si el disco no puede firmarlas, el selector muestra la inicial.
+        $avatars = [];
+        $withAvatar = $brands->filter(fn ($b) => $b->avatar_media_id);
+        if ($withAvatar->isNotEmpty()) {
+            MediaAsset::query()->whereIn('id', $withAvatar->pluck('avatar_media_id'))->get()->each(function (MediaAsset $m) use ($withAvatar, &$avatars): void {
+                try {
+                    $url = $m->publicUrl(60);
+                } catch (\Throwable) {
+                    return;
+                }
+                foreach ($withAvatar->where('avatar_media_id', $m->id) as $b) {
+                    $avatars[$b->id] = $url;
+                }
+            });
+        }
 
         $accounts = [];
         if ($current) {
@@ -71,8 +90,8 @@ class HandleInertiaRequests extends Middleware
         }
 
         return [
-            'brands' => $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values()->all(),
-            'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name] : null,
+            'brands' => $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'avatar_url' => $avatars[$b->id] ?? null])->values()->all(),
+            'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name, 'avatar_url' => $avatars[$current->id] ?? null] : null,
             'accounts' => (object) $accounts,
             'networks' => collect(Network::cases())->map(fn (Network $n) => [
                 'value' => $n->value, 'label' => $n->label(), 'provider' => $n->provider(),

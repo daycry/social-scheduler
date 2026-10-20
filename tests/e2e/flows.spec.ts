@@ -107,7 +107,7 @@ test.describe('con sesión demo', () => {
         const w = watch(page);
         aceptarDialogos(page);
         const brand = `e2e-sl-${stamp()}-${info.project.name}`;
-        const slug = `e2e-${stamp()}${info.project.name === 'mobile' ? 'm' : 'd'}`;
+        const slug = `e2e-${stamp()}${info.project.name === 'desktop' ? 'd' : info.project.name === 'mobile' ? 'm' : 'n'}`;
 
         try {
             await page.goto('/brands/create');
@@ -119,7 +119,7 @@ test.describe('con sesión demo', () => {
             const brandId = (await page.getByRole('main').getByRole('link', { name: brand }).getAttribute('href'))!.match(/brands\/(\d+)/)![1];
 
             await page.goto(`/smartlinks?brand_id=${brandId}`);
-            await page.getByLabel('Enlace (/l/…)').fill(slug);
+            await page.getByLabel('Dirección de tu página').fill(slug);
             await page.getByLabel('Título').fill('e2e Mi página');
             await page.getByRole('button', { name: 'Añadir enlace' }).click();
             await page.getByLabel('Texto del bloque 1').fill('e2e Mi web');

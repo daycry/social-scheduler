@@ -88,7 +88,8 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                     <Dropdown align="right" width="72">
                         <template #trigger>
                             <button type="button" class="flex max-w-[7rem] items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white hover:bg-white/10 min-[420px]:max-w-[10rem] sm:max-w-[16rem] sm:gap-2 sm:px-2.5" aria-label="Cambiar de marca" data-testid="brand-switcher">
-                                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold">{{ (brand?.name ?? '+').slice(0, 1).toUpperCase() }}</span>
+                                <img v-if="brand?.avatar_url" :src="brand.avatar_url" alt="" class="h-6 w-6 shrink-0 rounded-md object-cover" />
+                                <span v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold" aria-hidden="true">{{ (brand?.name ?? '+').slice(0, 1).toUpperCase() }}</span>
                                 <span class="truncate">{{ brand?.name ?? 'Sin marca' }}</span>
                                 <Icon name="chevronDown" class="h-4 w-4 shrink-0 text-slate-400" />
                             </button>
@@ -102,7 +103,8 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                                 class="flex w-full items-center gap-2 px-4 py-2 text-start text-sm text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
                                 @click="switchBrand(b.id)"
                             >
-                                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-xs font-bold text-indigo-700">{{ b.name.slice(0, 1).toUpperCase() }}</span>
+                                <img v-if="b.avatar_url" :src="b.avatar_url" alt="" class="h-6 w-6 shrink-0 rounded-md object-cover" />
+                                <span v-else class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-xs font-bold text-indigo-700" aria-hidden="true">{{ b.name.slice(0, 1).toUpperCase() }}</span>
                                 <span class="min-w-0 flex-1 truncate">{{ b.name }}</span>
                                 <Icon v-if="brand && brand.id === b.id" name="check" class="h-4 w-4 text-indigo-600" />
                             </button>

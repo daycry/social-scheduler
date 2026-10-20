@@ -42,7 +42,7 @@ class SmartLinkController extends Controller
                 'blocks' => $link->blocks->map(fn ($b) => ['id' => $b->id, 'type' => $b->type, 'label' => $b->label, 'url' => $b->url])->values(),
             ] : null,
             'stats' => $link ? $this->links->stats($link) : null,
-            'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(50)->get()->map(fn ($m) => $m->toPublicArray())->values(),
+            'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(50)->get()->map(fn ($m) => $m->toPublicArray() + ['url' => $this->thumbUrl($m)])->values(),
             'defaults' => ['theme_color' => '#4f46e5', 'theme_mode' => 'light', 'max_blocks' => SmartLinkService::MAX_BLOCKS],
             'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
@@ -92,5 +92,15 @@ class SmartLinkController extends Controller
         $smartLink->delete();
 
         return redirect()->route('smartlinks.index', ['brand_id' => $brandId])->with('success', 'SmartLink eliminado.');
+    }
+
+    /** URL temporal para la vista previa del avatar; si el disco no puede firmarla, la vista previa usa la inicial. */
+    private function thumbUrl(MediaAsset $m): ?string
+    {
+        try {
+            return $m->publicUrl(60);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

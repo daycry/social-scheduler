@@ -36,7 +36,7 @@ test.describe('páginas autenticadas', () => {
     });
 
     test('el shell enlaza los módulos nuevos', async ({ page }, info) => {
-        test.skip(info.project.name === 'mobile', 'La barra lateral de escritorio no existe en móvil');
+        test.skip(info.project.name.startsWith('mobile'), 'La barra lateral de escritorio no existe en móvil');
         await page.goto('/calendar');
         const side = page.getByRole('complementary', { name: 'Navegación del módulo' });
         for (const label of ['Calendario', 'Lista', 'Crear publicación', 'Mejores horas', 'Biblioteca', 'Autolistas', 'Papelera']) {

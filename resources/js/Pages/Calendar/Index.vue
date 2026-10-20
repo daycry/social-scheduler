@@ -53,11 +53,13 @@ const dayCount = computed(() => Math.round((new Date(`${props.to}T00:00:00Z`) - 
 const days = computed(() => Array.from({ length: dayCount.value }, (_, i) => addDays(props.from, i)));
 const weekdayLabel = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('es', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
 const monthOf = computed(() => props.date.slice(0, 7));
+// «19–25 oct 2026» (es-ES, Intl): el formateador de rangos comparte mes y año en vez de repetirlos.
+const rangeFormat = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const title = computed(() => {
     const d = new Date(`${props.date}T00:00:00Z`);
     return props.view === 'month'
         ? d.toLocaleDateString('es', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-        : `${new Date(`${props.from}T00:00:00Z`).toLocaleDateString('es', { day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${new Date(`${props.to}T00:00:00Z`).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
+        : rangeFormat.formatRange(new Date(`${props.from}T00:00:00Z`), new Date(`${props.to}T00:00:00Z`)).replace(/\./g, '');
 });
 const itemsAt = (day, hour = null) =>
     props.items.filter((i) => i.local_date === day && (hour === null || Number(i.local_time.slice(0, 2)) === hour));
@@ -97,7 +99,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
     <AuthenticatedLayout>
         <template #header>
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h1 class="text-xl font-bold text-slate-900">Planificación</h1>
+                <h1 class="text-xl font-bold text-slate-900">Calendario</h1>
                 <div class="flex items-center gap-2">
                     <Link v-if="createHref" :href="createHref" class="btn-primary">Crear publicación</Link>
                     <span v-else class="text-sm text-slate-500">Elige una marca para crear una publicación</span>

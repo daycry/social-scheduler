@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import { computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
 /**
@@ -44,7 +45,22 @@ const destroy = () => {
     if (confirm('¿Eliminar tu SmartLink? La página pública dejará de existir.')) router.delete(route('smartlinks.destroy', props.link.id));
 };
 const clicks = (b) => (b.id ? (props.stats?.by_block?.[b.id] ?? 0) : 0);
-</script>
+// Cuota de clics de un bloque sobre el total de clics (30 días): da contexto a «N clics».
+const share = (b) => (props.stats?.clicks > 0 ? Math.round((clicks(b) / props.stats.clicks) * 100) : 0);
+
+// Color: swatch + hex editable. El hex solo se acepta si es #RRGGBB válido (si no, la vista previa conserva el último bueno).
+const hexDraft = computed({
+    get: () => form.theme_color,
+    set: (v) => {
+        const value = String(v).trim();
+        form.theme_color = value.startsWith('#') ? value : `#${value}`;
+    },
+});
+const accent = computed(() => (/^#[0-9a-fA-F]{6}$/.test(form.theme_color) ? form.theme_color : props.defaults.theme_color));
+const dark = computed(() => form.theme_mode === 'dark');
+const previewBlocks = computed(() => form.blocks.filter((b) => b.label?.trim()));
+const initial = computed(() => (form.title || '?').trim().charAt(0).toUpperCase());
+const avatarUrl = computed(() => props.images?.find((m) => m.id === form.avatar_media_id)?.url ?? null);</script>
 
 <template>
     <Head title="SmartLinks" />
@@ -74,6 +90,7 @@ const clicks = (b) => (b.id ? (props.stats?.by_block?.[b.id] ?? 0) : 0);
                     <div>
                         <p class="text-xs font-medium text-slate-600">Tu página pública</p>
                         <a :href="link.public_url" target="_blank" rel="noopener" class="link">{{ link.public_url }}</a>
+                        <a :href="link.public_url" target="_blank" rel="noopener" class="btn btn-secondary mt-2 inline-flex">Ver página pública</a>
                     </div>
                     <dl class="flex gap-6">
                         <div><dt class="text-xs text-slate-600">Visitas (30 días)</dt><dd class="text-lg font-semibold tabular-nums">{{ stats.views }}</dd></div>
@@ -81,13 +98,18 @@ const clicks = (b) => (b.id ? (props.stats?.by_block?.[b.id] ?? 0) : 0);
                     </dl>
                 </section>
 
+                <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
                 <form class="card space-y-4 p-5" @submit.prevent="submit">
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600">Enlace (/l/…)</span>
-                            <input v-model="form.slug" type="text" maxlength="40" required class="field" />
+                        <div class="block text-sm">
+                            <label for="sl-slug" class="block text-xs font-medium text-slate-600">Dirección de tu página</label>
+                            <div class="flex items-stretch">
+                                <span class="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-2 text-sm text-slate-600" aria-hidden="true">/l/</span>
+                                <input id="sl-slug" v-model="form.slug" type="text" maxlength="40" required aria-describedby="sl-slug-help" class="field !rounded-l-none" />
+                            </div>
+                            <p id="sl-slug-help" class="mt-1 text-xs text-slate-600">De 3 a 40 caracteres: minúsculas, números y guiones. Es lo que pones en la bio de tus redes.</p>
                             <InputError :message="form.errors.slug" />
-                        </label>
+                        </div>
                         <label class="block text-sm">
                             <span class="block text-xs font-medium text-slate-600">Título</span>
                             <input v-model="form.title" type="text" maxlength="100" required class="field" />
@@ -108,11 +130,14 @@ const clicks = (b) => (b.id ? (props.stats?.by_block?.[b.id] ?? 0) : 0);
                             </select>
                             <InputError :message="form.errors.avatar_media_id" />
                         </label>
-                        <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600">Color</span>
-                            <input v-model="form.theme_color" type="color" class="h-10 w-full rounded border border-slate-300" />
+                        <div class="block text-sm">
+                            <label for="sl-hex" class="block text-xs font-medium text-slate-600">Color</label>
+                            <div class="flex items-center gap-2">
+                                <input v-model="form.theme_color" type="color" aria-label="Elegir color" class="h-9 w-9 shrink-0 cursor-pointer rounded border border-slate-300 p-0.5" />
+                                <input id="sl-hex" v-model="hexDraft" type="text" maxlength="7" inputmode="text" spellcheck="false" class="field font-mono uppercase" />
+                            </div>
                             <InputError :message="form.errors.theme_color" />
-                        </label>
+                        </div>
                         <label class="block text-sm">
                             <span class="block text-xs font-medium text-slate-600">Tema</span>
                             <select v-model="form.theme_mode" class="field">
@@ -130,7 +155,7 @@ const clicks = (b) => (b.id ? (props.stats?.by_block?.[b.id] ?? 0) : 0);
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ b.type === 'link' ? 'Enlace' : 'Cabecera' }}</span>
                                 <input v-model="b.label" type="text" maxlength="100" :aria-label="`Texto del bloque ${i + 1}`" placeholder="Texto" class="field min-w-0 flex-1" />
-                                <span v-if="b.type === 'link' && b.id" class="text-xs text-slate-600">{{ clicks(b) }} clics</span>
+                                <span v-if="b.type === 'link' && b.id" class="text-xs text-slate-600 tabular-nums">{{ clicks(b) }} clics ({{ share(b) }} %)</span>
                                 <button type="button" class="btn btn-secondary" :aria-label="`Subir bloque ${i + 1}`" @click="move(i, -1)">↑</button>
                                 <button type="button" class="btn btn-secondary" :aria-label="`Bajar bloque ${i + 1}`" @click="move(i, 1)">↓</button>
                                 <button type="button" class="text-xs font-medium text-red-700 underline" @click="removeBlock(i)">Quitar</button>
@@ -149,6 +174,28 @@ const clicks = (b) => (b.id ? (props.stats?.by_block?.[b.id] ?? 0) : 0);
                         <button v-if="link" type="button" class="text-sm font-medium text-red-700 underline" @click="destroy">Eliminar SmartLink</button>
                     </div>
                 </form>
+
+                <aside class="lg:sticky lg:top-4" aria-label="Vista previa de tu página">
+                    <p class="mb-2 text-xs font-medium text-slate-600">Vista previa en vivo</p>
+                    <div
+                        data-testid="smartlink-preview"
+                        class="mx-auto w-full max-w-xs rounded-3xl border border-slate-300 p-5 text-center shadow-sm"
+                        :style="{ background: dark ? '#111827' : '#f9fafb', color: dark ? '#f9fafb' : '#111827' }"
+                    >
+                        <img v-if="avatarUrl" :src="avatarUrl" alt="" class="mx-auto h-20 w-20 rounded-full border-4 object-cover" :style="{ borderColor: accent }" />
+                        <span v-else class="mx-auto inline-flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white" :style="{ background: accent }" aria-hidden="true">{{ initial }}</span>
+                        <p class="mt-3 text-lg font-bold">{{ form.title || 'Tu título' }}</p>
+                        <p v-if="form.bio" class="mt-1 whitespace-pre-line text-sm" :style="{ color: dark ? '#9ca3af' : '#6b7280' }">{{ form.bio }}</p>
+                        <ul class="mt-4 space-y-2">
+                            <li v-for="(b, i) in previewBlocks" :key="b.id ?? `p${i}`">
+                                <p v-if="b.type === 'header'" class="pt-2 text-xs font-bold uppercase tracking-wider" :style="{ color: dark ? '#9ca3af' : '#6b7280' }">{{ b.label }}</p>
+                                <span v-else class="block rounded-xl px-3 py-2.5 text-sm font-semibold text-white" :style="{ background: accent }">{{ b.label }}</span>
+                            </li>
+                            <li v-if="!previewBlocks.length" class="text-xs" :style="{ color: dark ? '#9ca3af' : '#6b7280' }">Añade bloques para verlos aquí.</li>
+                        </ul>
+                    </div>
+                </aside>
+                </div>
             </template>
         </div>
     </AuthenticatedLayout>

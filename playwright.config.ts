@@ -27,6 +27,8 @@ export default defineConfig({
     projects: [
         { name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 900 } } },
         { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true } },
+        // Movil estrecho (360 x 740: gama media de Android): mismo recorrido, 0 px de desbordamiento horizontal.
+        { name: 'mobile-360', use: { browserName: 'chromium', viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true } },
     ],
     outputDir: 'test-results',
 });

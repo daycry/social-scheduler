@@ -39,3 +39,11 @@ test('el formulario de edición ofrece las imágenes del usuario', function () {
     $this->actingAs($this->user)->get(route('brands.edit', $this->brand))
         ->assertInertia(fn ($page) => $page->component('Brands/Form')->has('images', 1));
 });
+
+test('no se puede usar como avatar una imagen que aun no esta lista', function () {
+    $processing = MediaAsset::factory()->for($this->user)->create(['status' => MediaAsset::STATUS_PENDING]);
+
+    $this->actingAs($this->user)->put(route('brands.update', $this->brand), [
+        'name' => 'X', 'timezone' => 'Europe/Madrid', 'avatar_media_id' => $processing->id,
+    ])->assertSessionHasErrors('avatar_media_id');
+});

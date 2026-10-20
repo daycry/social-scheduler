@@ -17,6 +17,7 @@ use App\Services\InboxService;
 use App\Services\SocialAccountService;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\Support\FakeGraph;
@@ -332,4 +333,48 @@ test('Inbox: B6/B7 una respuesta sin id de Meta no guarda un own- duplicable y l
 
 test('Inbox: marcar todo leido valida la red (un array da 422)', function () {
     $this->actingAs($this->user)->postJson(route('inbox.read-all'), ['network' => ['instagram']])->assertStatus(422);
+});
+
+test('Inbox: N3 el presupuesto se comprueba entre paginas de comentarios y de respuestas y corta guardando lo leido', function () {
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $mk = fn (string $id, string $after) => ['data' => [
+        ['id' => $id, 'text' => $id, 'username' => 'ana', 'timestamp' => '2026-10-31T10:00:00+0000', 'replies' => ['data' => [], 'paging' => ['cursors' => ['after' => 'RC'], 'next' => 'https://graph.facebook.com/nr']]],
+    ], 'paging' => ['cursors' => ['after' => $after], 'next' => 'https://graph.facebook.com/n']];
+    $this->graph->on('GET', '#^17900000000000001/comments$#', FakeGraph::seq($mk('q1', 'A2'), $mk('q2', 'A3'), $mk('q3', 'A4')));
+    $this->graph->on('GET', '#/replies$#', ['data' => []]);
+
+    // Sin hueco para otra llamada: solo la primera pagina de comentarios y ninguna de respuestas.
+    $rows = app(Comments::class)->fetch($this->ig, '17900000000000001', microtime(true) - 1);
+
+    expect(array_column($rows, 'external_id'))->toBe(['q1'])
+        ->and($this->graph->callsTo('GET', '#^17900000000000001/comments$#'))->toHaveCount(1)
+        ->and($this->graph->callsTo('GET', '#/replies$#'))->toBe([]);
+
+    // Con tiempo de sobra (y max_pages = 5) sigue paginando.
+    $this->graph->calls = [];
+    $this->graph->on('GET', '#^17900000000000001/comments$#', FakeGraph::seq($mk('q1', 'A2'), $mk('q2', 'A3'), $mk('q3', 'A4')));
+    app(Comments::class)->fetch($this->ig, '17900000000000001', microtime(true) + 600);
+    expect(count($this->graph->callsTo('GET', '#^17900000000000001/comments$#')))->toBeGreaterThan(1);
+});
+
+test('Inbox: N4 el reencolado con offset tiene unicidad propia y dos pasadas de la misma cuenta no se solapan', function () {
+    expect((new SyncAccountComments($this->ig->id, 0))->uniqueId())->not->toBe((new SyncAccountComments($this->ig->id, 25))->uniqueId());
+
+    Queue::fake();
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $this->graph->on('GET', '#/comments$#', ['data' => []]);
+
+    $lock = Cache::lock('sync-account-comments:'.$this->ig->id, 120);
+    expect($lock->get())->toBeTrue();
+
+    $queued = Mockery::mock(Job::class);
+    $queued->shouldReceive('release')->once()->with(30);
+    $job = new SyncAccountComments($this->ig->id, 25);
+    $job->setJob($queued);
+    $job->handle(app(InboxService::class), app(SocialAccountService::class));
+    expect($this->graph->callsTo('GET', '#/comments$#'))->toBe([]); // no leyo: la otra pasada tiene el lock
+
+    $lock->release();
+    (new SyncAccountComments($this->ig->id, 25))->handle(app(InboxService::class), app(SocialAccountService::class));
+    expect(Cache::lock('sync-account-comments:'.$this->ig->id, 5)->get())->toBeTrue(); // liberado al terminar
 });

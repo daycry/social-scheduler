@@ -94,7 +94,7 @@ class InboxService
             $done++;
 
             try {
-                $rows = $this->comments->fetch($account, (string) $target->external_id);
+                $rows = $this->comments->fetch($account, (string) $target->external_id, $budgetSeconds >= PHP_FLOAT_MAX / 2 ? null : $started + $budgetSeconds);
             } catch (ReconnectRequiredException|TransientPublishException $e) {
                 throw $e;
             } catch (ConnectorException) {

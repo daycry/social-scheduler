@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Sincroniza los comentarios de UNA cuenta (cola `poll`, PA-10). Unico por cuenta hasta que empieza (asi puede encadenarse); `upsert` por
@@ -35,7 +36,8 @@ class SyncAccountComments implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     public function uniqueId(): string
     {
-        return (string) $this->accountId;
+        // El offset forma parte de la clave: el reencolado de la siguiente tanda no se descarta por el bloqueo de la actual.
+        return $this->accountId.':'.$this->offset;
     }
 
     public function handle(InboxService $inbox, SocialAccountService $accounts): void
@@ -46,11 +48,22 @@ class SyncAccountComments implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        $next = null;
+        // Dos pasadas simultaneas de la MISMA cuenta (p. ej. offset 0 y offset 25) no se pisan: la que llega tarde espera y se reintenta.
+        $lock = Cache::lock('sync-account-comments:'.$this->accountId, (int) $this->timeout + 30);
+        if (! $lock->get()) {
+            $this->release(30);
 
-        $ok = $this->guarded($account, $accounts, function () use ($inbox, $account, &$next): void {
-            $next = $inbox->syncBatch($account, $this->offset, (float) config('social.inbox.budget_seconds', 60))['next'];
-        });
+            return;
+        }
+
+        try {
+            $next = null;
+            $ok = $this->guarded($account, $accounts, function () use ($inbox, $account, &$next): void {
+                $next = $inbox->syncBatch($account, $this->offset, (float) config('social.inbox.budget_seconds', 60))['next'];
+            });
+        } finally {
+            $lock->release();
+        }
 
         if ($ok && $next !== null) {
             self::dispatch($this->accountId, $next);

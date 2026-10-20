@@ -41,10 +41,13 @@ class Comments
      * (`paging.cursors.after` mientras haya `paging.next`) hasta `social.inbox.max_pages` paginas de comentarios y
      * `max_reply_pages` por hilo de respuestas. No usa `since`: una respuesta nueva a un comentario antiguo no cambia la fecha
      * del padre y se perderia (y Instagram no lo admite); la sincronizacion es idempotente por `upsert`.
+     * Con `$deadline` (microtime) comprueba el presupuesto TAMBIEN entre paginas de comentarios y de respuestas: si no cabe otra
+     * llamada en el peor caso (`social.http_timeout`) corta y devuelve lo leido hasta ahora (que el llamador guarda; el resto llega
+     * en la siguiente sincronizacion). Siempre se hace al menos la primera pagina.
      *
      * @return list<array{external_id: string, parent_external_id: ?string, author_name: ?string, text: ?string, is_own: bool, hidden: bool, commented_at: ?CarbonImmutable}>
      */
-    public function fetch(SocialAccount $account, string $postExternalId): array
+    public function fetch(SocialAccount $account, string $postExternalId, ?float $deadline = null): array
     {
         $this->assertId($postExternalId);
         $limit = (int) config('social.inbox.comments_per_post', 50);
@@ -57,6 +60,9 @@ class Comments
         $out = [];
         $after = null;
         for ($page = 0, $max = max(1, (int) config('social.inbox.max_pages', 5)); $page < $max; $page++) {
+            if ($page > 0 && ! $this->fits($deadline)) {
+                break;
+            }
             $json = $this->graph->get($postExternalId.'/comments', $query + ($after !== null ? ['after' => $after] : []), $token, true);
 
             foreach ((array) ($json['data'] ?? []) as $c) {
@@ -68,7 +74,7 @@ class Comments
                 $replies = (array) ($c[$isIg ? 'replies' : 'comments'] ?? []);
                 $rows = (array) ($replies['data'] ?? []);
                 // El hilo trae sus propias paginas: se sigue hasta el tope.
-                $rows = array_merge($rows, $this->moreReplies($account, $top['external_id'], $replies, $token));
+                $rows = array_merge($rows, $this->moreReplies($account, $top['external_id'], $replies, $token, $deadline));
                 foreach ($rows as $r) {
                     $reply = $this->normalize($account, $r, $top['external_id']);
                     if ($reply) {
@@ -89,20 +95,26 @@ class Comments
         return $out;
     }
 
+    /** ¿Cabe otra llamada de red (peor caso `social.http_timeout`) antes de `$deadline`? Sin deadline, siempre. */
+    private function fits(?float $deadline): bool
+    {
+        return $deadline === null || microtime(true) + (float) config('social.http_timeout', 15) <= $deadline;
+    }
+
     /**
      * Paginas siguientes de las respuestas de un comentario (la primera ya vino anidada).
      *
      * @param  array<string, mixed>  $replies  el bloque `replies`/`comments` anidado, con su `paging`
      * @return list<array<string, mixed>>
      */
-    private function moreReplies(SocialAccount $account, string $commentId, array $replies, string $token): array
+    private function moreReplies(SocialAccount $account, string $commentId, array $replies, string $token, ?float $deadline = null): array
     {
         $isIg = $account->network === Network::Instagram;
         $after = $replies['paging']['cursors']['after'] ?? null;
         $more = [];
 
         for ($page = 1, $max = max(1, (int) config('social.inbox.max_reply_pages', 3)); $page < $max + 1; $page++) {
-            if (empty($replies['paging']['next']) || $after === null || $after === '') {
+            if (empty($replies['paging']['next']) || $after === null || $after === '' || ! $this->fits($deadline)) {
                 break;
             }
             $this->assertId($commentId);

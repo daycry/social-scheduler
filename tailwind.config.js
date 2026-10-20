@@ -13,7 +13,14 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+            },
+            colors: {
+                // Identidad propia: azul-noche para la barra, indigo como acento, teal de apoyo.
+                night: { 800: '#162033', 900: '#0f172a', 950: '#0a1020' },
+            },
+            boxShadow: {
+                card: '0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06)',
             },
         },
     },

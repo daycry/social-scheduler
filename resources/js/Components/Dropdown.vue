@@ -28,6 +28,8 @@ onUnmounted(() => document.removeEventListener('keydown', closeOnEscape));
 const widthClass = computed(() => {
     return {
         48: 'w-48',
+        64: 'w-64',
+        72: 'w-72',
     }[props.width.toString()];
 });
 
@@ -67,13 +69,13 @@ const open = ref(false);
         >
             <div
                 v-show="open"
-                class="absolute z-50 mt-2 rounded-md shadow-lg"
+                class="absolute z-50 mt-2 rounded-lg shadow-lg"
                 :class="[widthClass, alignmentClasses]"
                 style="display: none"
                 @click="open = false"
             >
                 <div
-                    class="rounded-md ring-1 ring-black ring-opacity-5"
+                    class="rounded-lg ring-1 ring-slate-900/10"
                     :class="contentClasses"
                 >
                     <slot name="content" />

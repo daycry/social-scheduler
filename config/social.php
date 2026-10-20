@@ -31,7 +31,7 @@ return [
         'oauth_method' => env('META_OAUTH_METHOD', 'post'),
         /* Tope de paginas que se siguen en `paging.next` (100 elementos por pagina). */
         'max_pages' => (int) env('META_MAX_PAGES', 10),
-        'scopes' => [
+        'scopes' => array_values(array_unique(array_filter(array_merge([
             'business_management',
             'pages_show_list',
             'pages_read_engagement',
@@ -41,16 +41,18 @@ return [
             'instagram_content_publish',
             'instagram_manage_insights',
             'instagram_manage_contents',
-            /*
-             * Fase P3 (PA-10, PA-11). Cada permiso hay que activarlo en los casos de uso de la app de Meta (developers.facebook.com)
-             * y RECONECTAR las cuentas para que se concedan: comentarios de Instagram, comentarios/moderacion de la Pagina y
-             * lectura de Meta Ads. Sin ellos el buzon y Ads muestran «no disponible» con la instruccion de activarlos.
-             */
+            // Inbox de Instagram y moderacion de la Pagina (P3): activados en los casos de uso de la app.
             'instagram_manage_comments',
-            'pages_read_user_content',
             'pages_manage_engagement',
-            'ads_read',
         ],
+            /*
+             * Permisos OPCIONALES (Fase P3): Meta rechaza TODO el login («Invalid Scopes») si se pide un permiso que no esta
+             * activado en un caso de uso de la app. Por eso solo se piden si se declaran aqui, tras activarlos en
+             * developers.facebook.com y antes de reconectar: `pages_read_user_content` (comentarios de Facebook en el Inbox)
+             * y `ads_read` (Meta Ads). Sin ellos esas secciones muestran «no disponible» con la instruccion de activarlos.
+             */
+            array_map('trim', explode(',', (string) env('META_EXTRA_SCOPES', ''))),
+        )))),
     ],
 
     'google' => [

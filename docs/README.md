@@ -26,6 +26,12 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Analítica y snapshots | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php` |
 | Informes PDF/CSV | [informes.md](modulos/informes.md) | `app/Services/ReportService.php` |
 | Servidor MCP y API keys | [mcp.md](modulos/mcp.md) | `app/Mcp/`, `routes/ai.php` |
+| Planificación avanzada (mejores horas, biblioteca, papelera, autolistas) | [planificacion-avanzada.md](modulos/planificacion-avanzada.md) | `app/Services/{BestTimes,Library,Trash,Autolist}Service.php` |
+| SmartLinks | [smartlinks.md](modulos/smartlinks.md) | `app/Services/SmartLinkService.php`, `app/Support/SafeUrl.php` |
+| Inbox de comentarios | [inbox.md](modulos/inbox.md) | `app/Services/InboxService.php`, `app/Connectors/Meta/Comments.php` |
+| Meta Ads (lectura) | [ads.md](modulos/ads.md) | `app/Connectors/Meta/Ads.php` |
+| Competidores de Instagram | [competidores.md](modulos/competidores.md) | `app/Services/CompetitorService.php` |
+| Asistente IA | [asistente-ia.md](modulos/asistente-ia.md) | `app/Services/AiAssistant.php` |
 | Despliegue (HestiaCP, systemd, R2) | [despliegue.md](modulos/despliegue.md) | `deploy/` |
 
 ## Memoria técnica y planificación

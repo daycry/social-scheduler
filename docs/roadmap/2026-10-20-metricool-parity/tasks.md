@@ -50,6 +50,7 @@ verificacion: obligatoria
 - **Verificación**:
   - `npm run build` → exit 0
   - lectura: Welcome.vue contiene secciones de módulos, FAQ y CTA
+  - salida real: `npm run build` → `built` (exit 0); `npm run test:e2e` → portada, privacidad y términos: 184 passed, 2 skipped (con axe)
 
 **Criterios de aceptación**
 - [x] PA-01/PA-02: sin texto de Laravel; enlaces a /privacy y /terms
@@ -72,6 +73,7 @@ verificacion: obligatoria
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test --filter=Auth` → verde
+  - salida real: `php artisan test --filter=Auth` → `85 passed (484 assertions)`
 
 **Criterios de aceptación**
 - [x] PA-01: ninguna pantalla de auth con textos en inglés de Breeze
@@ -90,10 +92,11 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Layouts/**`, `resources/js/Components/**`, `resources/js/navigation.js`, `app/Http/Middleware/HandleInertiaRequests.php`, `app/Support/CurrentBrand.php`, `tests/Feature/Ui/ShellTest.php`
+- **Archivos**: `resources/js/Layouts/**`, `resources/js/Components/**`, `resources/js/navigation.js`, `app/Http/Middleware/HandleInertiaRequests.php`, `app/Support/CurrentBrand.php`, `tests/Feature/Ui/ShellTest.php`, `resources/js/Pages/Dashboard/Partials/NetworkTabs.vue`, `resources/js/Pages/Calendar/Index.vue`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `npm run build` → exit 0
+  - salida real: `npm run build` → `built` (exit 0); `php artisan test --filter=Shell` → `11 passed (174 assertions)`
 
 **Criterios de aceptación**
 - [x] PA-03: selector de marca persistente; responsive 360 px
@@ -116,6 +119,7 @@ verificacion: obligatoria
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test --filter=Dashboard` → verde
+  - salida real: `php artisan test --filter=Dashboard` → `12 passed (144 assertions)`
 
 **Criterios de aceptación**
 - [x] PA-04: estado vacío con CTA por red
@@ -138,6 +142,7 @@ verificacion: obligatoria
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test --filter=Brand` → verde
+  - salida real: `php artisan test --filter=Brand` → `37 passed (177 assertions)`
 
 **Criterios de aceptación**
 - [x] Ajustes editables y persistidos
@@ -161,7 +166,7 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Services/BestTimesService.php`, `app/Http/Controllers/BestTimesController.php`, `app/Mcp/Tools/GetBestTimes.php`, `app/Mcp/Servers/SchedulerServer.php`, `config/social.php`, `routes/parity.php`, `routes/web.php`, `resources/js/Pages/BestTimes/Index.vue`, `tests/Feature/Parity/BestTimesTest.php`
+- **Archivos**: `app/Services/BestTimesService.php`, `app/Http/Controllers/BestTimesController.php`, `app/Mcp/Tools/GetBestTimes.php`, `app/Mcp/Servers/SchedulerServer.php`, `config/social.php`, `routes/parity.php`, `routes/web.php`, `resources/js/Pages/BestTimes/Index.vue`, `tests/Feature/Parity/BestTimesTest.php`, `config/app.php`, `phpunit.xml`
 - **Cubre (tests)**: PA-05
 - **Verificación**:
   - `vendor/bin/pest tests/Feature/Parity/BestTimesTest.php` → verde
@@ -208,12 +213,12 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `database/migrations/2026_10_28_090100_add_soft_deletes_to_posts.php`, `app/Models/Post.php`, `app/Policies/PostPolicy.php`, `app/Services/TrashService.php`, `app/Http/Controllers/TrashController.php`, `app/Console/Commands/PurgeTrash.php`, `routes/console.php`, `routes/parity.php`, `resources/js/Pages/Trash/Index.vue`, `tests/Feature/Parity/TrashTest.php`, `tests/Feature/Posts/PostsTest.php`, `tests/Feature/Publishing/RevisionFase3Intento2Test.php`
+- **Archivos**: `database/migrations/2026_10_28_090100_add_soft_deletes_to_posts.php`, `app/Models/Post.php`, `app/Policies/PostPolicy.php`, `app/Services/TrashService.php`, `app/Http/Controllers/TrashController.php`, `app/Console/Commands/PurgeTrash.php`, `routes/console.php`, `routes/parity.php`, `resources/js/Pages/Trash/Index.vue`, `tests/Feature/Parity/TrashTest.php`, `tests/Feature/Posts/PostsTest.php`, `tests/Feature/Publishing/RevisionFase3Intento2Test.php`, `app/Services/PostService.php`, `app/Services/PublishRecovery.php`, `app/Services/PublishRequestFactory.php`, `docs/modulos/planificacion-avanzada.md`, `docs/modulos/calendario.md`
 - **Cubre (tests)**: PA-06
 - **Verificación**:
   - `vendor/bin/pest tests/Feature/Parity/TrashTest.php` → verde
   - salida real: vendor/bin/pest tests/Feature/Parity/TrashTest.php → 8 passed; tests antiguos de borrado (PostsTest, RevisionFase3Intento2Test) actualizados a soft delete
-- **Notas**: Decisión: restaurar un post cuya hora ya venció lo devuelve a borrador (unschedule) para no publicar de golpe; la purga se salta destinos en vuelo (Publishing, o Processing con cuenta activa).
+- **Notas**: Decisión: restaurar un post cuya hora ya venció lo devuelve a borrador (unschedule) para no publicar de golpe; la purga se salta destinos en vuelo (Publishing, o Processing con cuenta activa). Revisión intento 1 (B1/B8): al enviar a la papelera los destinos `programada` pasan a `borrador` (restaurar siempre devuelve borrador), la recuperación y el despacho excluyen posts borrados y aíslan cada destino, y restore+unschedule van en una transacción. `TrashTest` → 12 passed.
 
 **Criterios de aceptación**
 - [x] Borrar = soft delete; en vuelo/publicada sigue rechazada
@@ -233,7 +238,7 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `database/migrations/2026_10_28_090200_create_smart_links_tables.php`, `app/Models/SmartLink.php`, `app/Models/SmartLinkBlock.php`, `app/Policies/SmartLinkPolicy.php`, `app/Support/SafeUrl.php`, `app/Services/SmartLinkService.php`, `app/Http/Controllers/SmartLinkController.php`, `app/Http/Controllers/PublicSmartLinkController.php`, `resources/views/smartlinks/show.blade.php`, `routes/parity.php`, `resources/js/Pages/SmartLinks/Index.vue`, `tests/Feature/Parity/SmartLinkTest.php`
+- **Archivos**: `database/migrations/2026_10_28_090200_create_smart_links_tables.php`, `app/Models/SmartLink.php`, `app/Models/SmartLinkBlock.php`, `app/Policies/SmartLinkPolicy.php`, `app/Support/SafeUrl.php`, `app/Services/SmartLinkService.php`, `app/Http/Controllers/SmartLinkController.php`, `app/Http/Controllers/PublicSmartLinkController.php`, `resources/views/smartlinks/show.blade.php`, `routes/parity.php`, `resources/js/Pages/SmartLinks/Index.vue`, `tests/Feature/Parity/SmartLinkTest.php`, `resources/views/legal/privacy.blade.php`, `routes/auth.php`, `resources/js/Pages/Auth/Login.vue`, `docs/modulos/smartlinks.md`
 - **Cubre (tests)**: PA-07
 - **Verificación**:
   - `vendor/bin/pest tests/Feature/Parity/SmartLinkTest.php` → verde
@@ -258,7 +263,7 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `database/migrations/2026_10_28_090300_create_competitors_tables.php`, `app/Models/Competitor.php`, `app/Models/CompetitorSnapshot.php`, `app/Policies/CompetitorPolicy.php`, `app/Connectors/Meta/BusinessDiscovery.php`, `app/Connectors/Meta/CompetitorNotFound.php`, `app/Services/CompetitorService.php`, `app/Jobs/CollectCompetitorSnapshot.php`, `app/Jobs/CollectCompetitorSnapshots.php`, `app/Http/Controllers/CompetitorController.php`, `routes/console.php`, `routes/parity.php`, `config/social.php`, `resources/js/Pages/Competitors/Index.vue`, `tests/Feature/Parity/CompetitorTest.php`
+- **Archivos**: `database/migrations/2026_10_28_090300_create_competitors_tables.php`, `app/Models/Competitor.php`, `app/Models/CompetitorSnapshot.php`, `app/Policies/CompetitorPolicy.php`, `app/Connectors/Meta/BusinessDiscovery.php`, `app/Connectors/Meta/CompetitorNotFound.php`, `app/Services/CompetitorService.php`, `app/Jobs/CollectCompetitorSnapshot.php`, `app/Jobs/CollectCompetitorSnapshots.php`, `app/Http/Controllers/CompetitorController.php`, `routes/console.php`, `routes/parity.php`, `config/social.php`, `resources/js/Pages/Competitors/Index.vue`, `tests/Feature/Parity/CompetitorTest.php`, `app/Connectors/Meta/Insights.php`, `tests/Feature/Connectors/Meta/Insights/MetaInsightsTest.php`, `docs/modulos/competidores.md`
 - **Cubre (tests)**: PA-08
 - **Verificación**:
   - `vendor/bin/pest tests/Feature/Parity/CompetitorTest.php` → verde
@@ -288,8 +293,8 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: T-07
 - **Tipo**: backend
-- **Archivos**: `app/Models/Autolist*.php`, `app/Services/AutolistService.php`, `app/Jobs/GenerateAutolistPosts.php`, `app/Http/Controllers/AutolistController.php`, `app/Policies/AutolistPolicy.php`, `database/migrations/2026_10_29_090000_create_autolists_tables.php`, `resources/js/Pages/Autolists/Index.vue`, `routes/parity.php`, `routes/console.php`, `config/social.php`, `.env.example`, `tests/Feature/Parity/AutolistTest.php`
-- **Cubre (tests)**: PA-—
+- **Archivos**: `app/Models/Autolist*.php`, `app/Services/AutolistService.php`, `app/Jobs/GenerateAutolistPosts.php`, `app/Http/Controllers/AutolistController.php`, `app/Policies/AutolistPolicy.php`, `database/migrations/2026_10_29_090000_create_autolists_tables.php`, `resources/js/Pages/Autolists/Index.vue`, `routes/parity.php`, `routes/console.php`, `config/social.php`, `.env.example`, `tests/Feature/Parity/AutolistTest.php`, `database/migrations/2026_11_02_090000_autolist_slots_local_key_and_item_cursor.php`, `docs/modulos/planificacion-avanzada.md`
+- **Cubre (tests)**: PA-09
 - **Verificación**:
   - `php artisan test tests/Feature/Parity/AutolistTest.php` → 9 passed (72 assertions)
 
@@ -308,8 +313,8 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/Comments.php`, `app/Services/InboxService.php`, `app/Jobs/SyncInboxComments.php`, `app/Jobs/SyncAccountComments.php`, `app/Models/InboxComment.php`, `app/Policies/InboxCommentPolicy.php`, `app/Http/Controllers/InboxController.php`, `app/Mcp/**`, `database/migrations/2026_10_29_100000_create_inbox_comments_table.php`, `resources/js/Pages/Inbox/Index.vue`, `routes/parity.php`, `routes/console.php`, `config/social.php`, `tests/Feature/Parity/InboxTest.php`
-- **Cubre (tests)**: PA-—
+- **Archivos**: `app/Connectors/Meta/Comments.php`, `app/Services/InboxService.php`, `app/Jobs/SyncInboxComments.php`, `app/Jobs/SyncAccountComments.php`, `app/Models/InboxComment.php`, `app/Policies/InboxCommentPolicy.php`, `app/Http/Controllers/InboxController.php`, `app/Mcp/**`, `database/migrations/2026_10_29_100000_create_inbox_comments_table.php`, `resources/js/Pages/Inbox/Index.vue`, `routes/parity.php`, `routes/console.php`, `config/social.php`, `tests/Feature/Parity/InboxTest.php`, `app/Mcp/Tools/ListComments.php`, `app/Mcp/Tools/ReplyComment.php`, `docs/modulos/inbox.md`
+- **Cubre (tests)**: PA-10
 - **Verificación**:
   - `php artisan test tests/Feature/Parity/InboxTest.php` → 13 passed (127 assertions); `tests/Feature/Mcp` + `tests/Feature/Parity` → 103 passed
 
@@ -328,8 +333,8 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/Ads.php`, `app/Services/AdsService.php`, `app/Http/Controllers/AdsController.php`, `resources/js/Pages/Ads/Index.vue`, `routes/parity.php`, `config/social.php`, `tests/Feature/Parity/AdsTest.php`
-- **Cubre (tests)**: PA-—
+- **Archivos**: `app/Connectors/Meta/Ads.php`, `app/Services/AdsService.php`, `app/Http/Controllers/AdsController.php`, `resources/js/Pages/Ads/Index.vue`, `routes/parity.php`, `config/social.php`, `tests/Feature/Parity/AdsTest.php`, `docs/modulos/ads.md`
+- **Cubre (tests)**: PA-11
 - **Verificación**:
   - `php artisan test tests/Feature/Parity/AdsTest.php` → 8 passed (159 assertions)
 
@@ -348,8 +353,8 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Services/AiAssistant.php`, `app/Http/Controllers/AiAssistantController.php`, `resources/js/Components/AiSuggest.vue`, `routes/parity.php`, `config/social.php`, `.env.example`, `tests/Feature/Parity/AiAssistantTest.php`
-- **Cubre (tests)**: PA-—
+- **Archivos**: `app/Services/AiAssistant.php`, `app/Http/Controllers/AiAssistantController.php`, `resources/js/Components/AiSuggest.vue`, `routes/parity.php`, `config/social.php`, `.env.example`, `tests/Feature/Parity/AiAssistantTest.php`, `docs/modulos/asistente-ia.md`
+- **Cubre (tests)**: PA-12 (calidad y privacidad del asistente opcional)
 - **Verificación**:
   - `php artisan test` → 761 passed (5705 assertions); `vendor/bin/pint --test app routes config database tests` → passed; `npm run build` → built
 
@@ -373,12 +378,52 @@ verificacion: obligatoria
 - **Supervisión**: est. — · real —
 - **Dependencias**: T-01..T-14
 - **Tipo**: qa
-- **Archivos**: `playwright.config.ts`, `tests/e2e/**`, `package.json`, `package-lock.json`, `.gitignore`
+- **Archivos**: `playwright.config.ts`, `tests/e2e/**`, `package.json`, `package-lock.json`, `.gitignore`, `docs/README.md`, `docs/RAG-INDEX.md`, `docs/referencia/configuracion.md`, `.env.example`, `docs/roadmap/2026-10-20-metricool-parity/.claude/**`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
   - `php artisan test` → verde y E2E documentado por qa
 
 **Criterios de aceptación**
-- [x] PA-12: batería E2E (Playwright, desktop 1440x900 y móvil 375x812) y axe (WCAG 2 A/AA) sin violaciones critical/serious
+- [x] PA-12: batería E2E (Playwright, desktop 1440x900, móvil 375x812 y móvil 360x740) y axe (WCAG 2 A/AA) sin violaciones critical/serious
 
-**Evidencia** (`npm run test:e2e` contra http://127.0.0.1:8080): `123 passed, 1 skipped (3.2m)` — la omitida es la prueba de la barra lateral de escritorio en el proyecto móvil. Cubre: portada, login, registro, recuperar, privacy, terms, dashboard (+4 redes), calendario (semana/mes/lista), crear publicación, marcas (+editar), conexiones, informes, api-keys, avisos, perfil, mejores horas, biblioteca, papelera, smartlinks, competidores, autolistas, inbox y Meta Ads (status<400, sin errores de consola/pageerror, sin desbordamiento horizontal, con h1); flujos registro→verificar correo, marca→borrador→lista→biblioteca→papelera→restaurar→usar plantilla, SmartLink público sin cookies con redirección del clic y conteo, y API key crear/revocar; axe `@axe-core/playwright` 4.10.2 en 29 páginas × 2 viewports (56 checks): 0 violaciones critical/serious. Los datos de prueba llevan prefijo `e2e-` y se limpian (también al arrancar). `php artisan test` 767 verdes, `pint --test` ok, `npm run build` ok.
+**Evidencia (inicial, antes de la revisión)** (`npm run test:e2e` contra http://127.0.0.1:8080): `123 passed, 1 skipped (3.2m)` — la omitida es la prueba de la barra lateral de escritorio en el proyecto móvil. Cubre: portada, login, registro, recuperar, privacy, terms, dashboard (+4 redes), calendario (semana/mes/lista), crear publicación, marcas (+editar), conexiones, informes, api-keys, avisos, perfil, mejores horas, biblioteca, papelera, smartlinks, competidores, autolistas, inbox y Meta Ads (status<400, sin errores de consola/pageerror, sin desbordamiento horizontal, con h1); flujos registro→verificar correo, marca→borrador→lista→biblioteca→papelera→restaurar→usar plantilla, SmartLink público sin cookies con redirección del clic y conteo, y API key crear/revocar; axe `@axe-core/playwright` 4.10.2 en 29 páginas × 2 viewports (56 checks): 0 violaciones critical/serious. Los datos de prueba llevan prefijo `e2e-` y se limpian (también al arrancar). `php artisan test` 767 verdes, `pint --test` ok, `npm run build` ok.
+
+**Evidencia (tras la revisión intento 1)**: `npm run test:e2e` → `184 passed, 2 skipped` (desktop, mobile 375 y mobile-360, con axe: 0 violaciones critical/serious y 0 px de desbordamiento horizontal); `php artisan test` → `787 passed (5845 assertions)`; `vendor/bin/pint --test` → `passed`; `npm run build` → `built`.
+
+---
+
+## Revisión de dos lentes — intento 1: Paridad (T-01..T-15) — 1 Critical, 5 Important, 14 Minor
+
+Corrección aplicada por el implementer tras la revisión (4 lentes + crítica de diseño). Cada gap se verificó contra el código antes de corregirlo; ninguno resultó incorrecto. Salidas completas de la verificación al final de la sección.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B1 | Critical | Un post en la papelera tumba el despachador: `PublishRecovery` → `PublishOutcomes::failed` → `PostService::transition` hace `findOrFail` sin papelera y el `ModelNotFoundException` aborta `DispatchDuePosts` cada minuto para todos | T-08 | Todas las consultas de recuperación/despacho/repoll filtran destinos de posts vivos (`livePosts()`); `transition` y `PublishRequestFactory` usan `withTrashed()` sobre destinos ya existentes; cada destino en recovery va aislado (`guard()` con `try/catch` + log) y `failInactiveProcessing` captura `Throwable`; al enviar a la papelera, `PostService::delete` pasa los destinos `programada` a `borrador` y cierra como fallido el `procesando` huérfano | `TrashTest`: 12 passed — escenarios huérfano (cuenta borrada) y `procesando` con cuenta desconectada con un post vivo que SÍ se despacha, repoll que ignora la papelera y transición con `withTrashed` |
+| B2 | Important | Cambiar la zona horaria de la marca duplica franjas de autolistas | T-11 | Migración `2026_11_02_090000`: `autolist_slots.local_date/local_time` con unicidad por (lista, fecha local, hora local); `fillSlot` reconoce la franja por clave local y `realign()` mueve (reschedule) la publicación futura sin publicar al nuevo instante en vez de crear otra | `AutolistTest` B2: 2 posts y 2 slots tras cambiar a America/New_York, horas 15:00/23:30 UTC |
+| B3 | Important | Cuenta en `requiere_reconexion` quema franjas y consume elementos | T-11 | Causa temporal: `fillSlot` devuelve `deferred` sin registrar slot ni avanzar el cursor; `generate()` lo cuenta y reintenta en la siguiente pasada mientras la franja sea futura | `AutolistTest` B3: 0 slots/cursor 0 con la cuenta en reconexión; al reactivarla se crean los 2 posts |
+| B4 | Important | Inbox sin paginación | T-12 | `Comments::fetch` sigue `paging.next` (tope `SOCIAL_INBOX_MAX_PAGES`) y los hilos de respuestas (`..._MAX_REPLY_PAGES`), con orden explícito más recientes primero. Se descarta `since`: una respuesta nueva a un comentario antiguo no cambia la fecha del padre (se perdería) y la sync ya es idempotente por `upsert` | `InboxTest` B4: orden `p2, p1r2, p1r1, p1`, `after` enviado en comentarios y respuestas, tope respetado |
+| B5 | Important | `SyncAccountComments` sin presupuesto de tiempo | T-12 | `InboxService::syncBatch` con presupuesto (`SOCIAL_INBOX_BUDGET_SECONDS`=60 < `timeout` 90); el job es `ShouldBeUniqueUntilProcessing`, recibe `offset` y se reencola como `RefreshPostMetrics` | `InboxTest` B5: con presupuesto agotado lee 1 publicación y encola `offset=1`; con presupuesto normal y `offset=1` termina sin reencolar |
+| A1 | Important | T-15 completada antes de la revisión; cabecera/resumen incoherentes | T-15 | T-15 se reabrió durante la corrección y se cierra solo ahora, con la verificación final en verde (evidencia nueva abajo); cabecera de fase, resumen y estado del plan coherentes | `ledger-lint` 0 incoherencias · 0 avisos |
+| B6 | Minor | Respuesta propia sin id guarda un `own-…` duplicable | T-12 | `reply()` no guarda nada si Meta no devuelve id (la sync la trae con su id real); con id reutiliza la fila si la sync ya la creó | `InboxTest` B6/B7 |
+| B7 | Minor | Carrera reply/sync → 500 tras publicar | T-12 | `upsert` y `reply` capturan `UniqueConstraintViolationException` (se actualiza/reutiliza) y cualquier error al persistir se registra sin llegar al usuario; el comentario se marca leído antes | `InboxTest` B6/B7: una sola fila `c2r` |
+| B8 | Minor | Restaurar: restore y unschedule en transacciones separadas | T-08 | `TrashService::restore` hace `restore()` + `unschedule` en UNA transacción (y los destinos ya vuelven a borrador al borrar) | `TrashTest`: restaurar devuelve `borrador` |
+| B9 | Minor | Cursor de autolista por índice; plantilla borrada deja huecos | T-11 | Cursor por último elemento (`last_position` + `last_item_id`, con relleno en la migración); `nextItem()` elimina de la cola los elementos sin contenido (plantilla borrada sin texto/media) | `AutolistTest` B9: tras borrar el usado y la plantilla, el siguiente es C y la plantilla desaparece |
+| B10 | Minor | Competidores: el `media_count` propio no se obtiene | T-10 | `Insights` pide `followers_count,media_count` de la cuenta IG y lo guarda como `video_count` (stock), que la comparativa ya lee | `CompetitorTest` B10 (`own.media` = 87) y `MetaInsightsTest` |
+| B11 | Minor | Mejores horas carga todo el histórico de snapshots | T-06 | Último snapshot por destino en SQL (`MAX(date)` + `joinSub`, una fila por destino) y caché corta `SOCIAL_BEST_TIMES_CACHE_MINUTES` | `BestTimesTest` B11 (6 passed): usa la última lectura y sirve desde caché |
+| B12 | Minor | Autolistas: un solo job para todas las listas | T-11 | El job programado reparte y ejecuta un `GenerateAutolistPosts` por lista | `AutolistTest` B12: 2 jobs con su `autolistId` |
+| C1 | Minor | SmartLinks sin aviso legal/denuncia ni forma de cerrar el registro | T-09 | Página pública con aviso, «Denunciar esta página» (`SMARTLINKS_REPORT_EMAIL`), `rel="nofollow noopener"`; `REGISTRATION_ENABLED` (true por defecto) que quita las rutas de registro y el enlace «Crear cuenta»; documentado `false` en producción | `SmartLinkTest` C1 y registro: passed |
+| C2 | Minor | `SafeUrl` admite Unicode de control/formato, `%00` y hosts de escritura mixta | T-09 | Rechaza `\p{Cc}\p{Cf}\p{Zl}\p{Zp}`, `%00`/`%2500`, punycode inválido y etiquetas con más de una escritura (cirílico+latín…); permite IDN de una sola escritura | `SmartLinkTest` C2: 12 rechazadas, 5 aceptadas |
+| C3 | Minor | MCP: texto de terceros sin marcar y `reply_comment` sin cautela | T-12 | `list_comments`: `untrusted: true` por comentario y aviso en la descripción; `reply_comment`: exige confirmación humana del texto exacto | `InboxTest` MCP: passed |
+| C4 | Minor | IA: sin tope global y refund negativo en cambio de día | T-14 | `AI_ASSISTANT_GLOBAL_DAILY_LIMIT` (200; 0 = sin tope); la reserva devuelve las claves del día en que se hizo y nunca baja de cero | `AiAssistantTest`: 9 passed (tope global, cambio de día) |
+| A2 | Minor | Móvil solo a 375 px | T-15 | Proyecto Playwright `mobile-360` (360×740) además de `mobile` | E2E: 184 passed, 2 skipped, 0 desbordamiento en ambos móviles |
+| A3/A4 | Minor | `Cubre (tests)` de T-11..T-14 vacío; sin salida real en la `Verificación` de T-01..T-05 | T-01..T-05, T-11..T-14 | `Cubre` completado (PA-09, PA-10, PA-11; T-14 → PA-12) y salida real pegada en cada `Verificación` | `ledger-lint` 0/0 |
+| Otros | Minor | `InboxController` aceptaba `network` sin validar; `BrandRequest` admitía media no lista; política de privacidad desactualizada | T-12, T-05 | `readAll` valida `network` (array → 422); `BrandRequest` exige `status = listo`; `/privacy` menciona comentarios de terceros, competidores, Meta Ads, SmartLinks y, con la IA activa, Anthropic | `InboxTest`, `BrandSettingsTest`: passed |
+| Diseño | Diseño | Crítica de diseño: SmartLinks sin vista previa; calendario con h1 «Planificación» y rango largo; chips móviles solo «Resumen»; selector de marca sin avatar | T-03, T-09 | SmartLinks: vista previa en vivo, prefijo `/l/` y ayuda, color swatch+hex, «Ver página pública», clics por bloque con cuota; Calendario: h1 «Calendario» y rango `Intl.DateTimeFormat('es-ES').formatRange` («19–25 oct 2026»); chips con las 4 redes (conectar si falta); avatar de marca en el selector del shell (URL temporal desde `HandleInertiaRequests`) | `npm run build` ok; E2E con axe: 0 violaciones critical/serious |
+
+**Verificación final (tras la corrección)**
+
+- `php artisan test` → `787 passed (5845 assertions)`
+- `vendor/bin/pint --test` → `passed`
+- `npm run build` → `built`
+- `npm run test:e2e` (con axe, desktop 1440×900, mobile 375×812 y mobile-360 360×740) → `184 passed, 2 skipped`
+- `ledger-lint.py` → `0 incoherencias · 0 avisos`

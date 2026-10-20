@@ -13,4 +13,4 @@ Vista semana/mes y lista de publicaciones por marca, con el estado por red.
 
 Reprogramar arrastrando solo se permite mientras el destino sea `borrador` o `programada` (`PostStatus::isPending()`). Las herramientas MCP `get_calendar` y `reschedule_post` usan la misma capa de servicios.
 
-Fuera de alcance v1: mapa de calor de mejores horas (anotado en [ui-reference.md](../roadmap/2026-10-19-social-scheduler/ui-reference.md)).
+Mejores horas, papelera y autolistas: ver [planificacion-avanzada.md](planificacion-avanzada.md).

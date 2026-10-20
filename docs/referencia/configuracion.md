@@ -133,3 +133,24 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `META_OAUTH_METHOD` | `post` | `.env` |
 | Borrador TikTok = `publicada` con nota | activo | `TIKTOK_INBOX_GRACE_MINUTES` y `TikTokPublisher` |
 | Secciones del informe | 5 secciones | `config/reports.php` |
+
+## Paridad con Metricool (P2–P4)
+
+Variables nuevas, todas opcionales (valores por defecto en la segunda columna). Los permisos de Meta de esta fase hay que activarlos en los casos de uso de la app y **reconectar** las cuentas.
+
+| Variable | Por defecto | Efecto |
+|---|---|---|
+| `META_EXTRA_SCOPES` | vacío | Permisos opcionales de Meta separados por comas que se añaden al login: `pages_read_user_content` (comentarios de Facebook en el Inbox) y `ads_read` (Meta Ads). Ponlos **solo** tras activarlos en la app de Meta y antes de reconectar: si no, Meta rechaza el login entero («Invalid Scopes»). `instagram_manage_comments` y `pages_manage_engagement` ya van en el login normal |
+| `REGISTRATION_ENABLED` | `true` | `false` cierra `/register` (la ruta no existe) y oculta «Crear cuenta». Recomendado `false` en producción de uso personal; las cuentas se crean por consola |
+| `SMARTLINKS_REPORT_EMAIL` | `MAIL_FROM_ADDRESS` | Destino del enlace «Denunciar esta página» de las páginas públicas `/l/{slug}` |
+| `SOCIAL_AUTOLISTS_DAILY_AT` / `_HORIZON_DAYS` / `_QUEUE` | `02:00` / `7` / `poll` | Hora UTC del reparto diario, días que se generan por delante y cola. El job programado solo reparte: ejecuta un `GenerateAutolistPosts` **por lista** |
+| `SOCIAL_INBOX_SYNC_MINUTES` | `15` | Frecuencia de sincronización de comentarios |
+| `SOCIAL_INBOX_POST_DAYS` / `_MAX_POSTS` / `_COMMENTS_PER_POST` | `30` / `25` / `50` | Publicaciones recientes que se sincronizan y comentarios por página de Graph |
+| `SOCIAL_INBOX_MAX_PAGES` / `_MAX_REPLY_PAGES` | `5` / `3` | Tope de páginas `paging.next` que se siguen por publicación y por hilo de respuestas |
+| `SOCIAL_INBOX_BUDGET_SECONDS` | `60` | Presupuesto de tiempo por pasada del job (< `timeout` 90 s); si no caben todas las publicaciones, el job se reencola con el desplazamiento |
+| `SOCIAL_BEST_TIMES_DAYS` / `_MIN_POSTS` / `_CACHE_MINUTES` | `90` / `10` / `10` | Ventana del mapa de calor, mínimo de publicaciones con métricas y caché corta (0 = sin caché) |
+| `SOCIAL_COMPETITORS_DAILY_AT` / `_MAX` | `13:00` / `10` | Hora UTC del snapshot diario de competidores y máximo por marca |
+| `SOCIAL_ADS_CACHE_MINUTES` | `10` | Caché de las respuestas de Meta Ads |
+| `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
+| `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |
+| `AI_ASSISTANT_MODEL` / `_MAX_TOKENS` / `_TIMEOUT` | `claude-sonnet-5-5` / `600` / `30` | Modelo y límites de la llamada a la Messages API |

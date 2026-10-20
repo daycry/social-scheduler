@@ -38,7 +38,7 @@ Las publicaciones se refrescan cada 6 h (`15 */6 * * *`) durante las primeras 72
 
 Instagram: `impressions` ya no existe; se usa `views`. Facebook: `page_impressions` y `page_fans` están retiradas; se usan `page_media_view`, `page_post_engagements`, `page_follows`. `follower_count` de IG no admite `metric_type=total_value` y se pide como serie diaria. Detalle en [decisiones por red](../referencia/decisiones-por-red.md).
 
-Regla de producto (CA-10): una métrica que la red no ofrece se muestra como "no disponible", nunca como 0. Los dashboards tienen periodo, comparación (anual de igual longitud) y KPIs por publicación calculados en SQL sobre todas las del periodo, con un top N explícito (`posts_total`, `posts_limit`, `posts_truncated`).
+Regla de producto (CA-10): una métrica que la red no ofrece se muestra como "no disponible", nunca como 0. El periodo por defecto termina en el último día ya cerrado y recogido de las redes de la marca (no «ayer» si aún no se ha recogido), en la zona horaria de la marca; web y MCP usan la misma regla. Los dashboards tienen periodo, comparación (anual de igual longitud) y KPIs por publicación calculados en SQL sobre todas las del periodo, con un top N explícito (`posts_total`, `posts_limit`, `posts_truncated`).
 
 TikTok: solo lo que permitan `user.info.stats`/`video.list`; el `external_id` de un borrador es el `publish_id`, no un ID de vídeo (`progress.external_id_kind = publish_id`), y no se usa para leer métricas.
 

@@ -427,7 +427,7 @@ verificacion: obligatoria
 - **Previsión IA**: 580k in / 58k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-05
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Meta/`, `app/Http/Controllers/OAuth/MetaController.php`, `config/services.php`, `tests/Feature/Connectors/Meta/`, `app/Connectors/Meta/MetaConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `.env.example`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connectors/Meta/MetaOAuthTest.php`, `app/Connectors/Data/ConnectionCandidate.php`, `app/Support/TrustedProxies.php`, `bootstrap/app.php`, `config/social.php`, `tests/Feature/Infra/TrustedProxiesTest.php`, `tests/Unit/TrustedProxiesTest.php`, `docs/roadmap/2026-10-19-social-scheduler/design.md`, `tests/Support/FakeConnector.php`, `tests/Feature/Connectors/Google/GoogleOAuthTest.php`
+- **Archivos**: `app/Connectors/Meta/`, `app/Http/Controllers/OAuth/MetaController.php`, `config/services.php`, `tests/Feature/Connectors/Meta/`, `app/Connectors/Meta/MetaConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `.env.example`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connectors/Meta/MetaOAuthTest.php`, `app/Connectors/Data/ConnectionCandidate.php`, `app/Support/TrustedProxies.php`, `bootstrap/app.php`, `config/social.php`, `tests/Feature/Infra/TrustedProxiesTest.php`, `tests/Unit/TrustedProxiesTest.php`, `docs/roadmap/2026-10-19-social-scheduler/design.md`, `tests/Support/FakeConnector.php`, `tests/Feature/Connectors/Google/GoogleOAuthTest.php`, `resources/views/legal/`, `config/legal.php`, `tests/Feature/Legal/` (páginas /privacy y /terms exigidas por Google y TikTok, commit `b52abdd`)
 - **Cubre (tests)**: E2E-03, M-02
 - **Verificación**:
   - `php artisan test --filter=MetaOAuth` → pasa con respuestas grabadas
@@ -1416,7 +1416,7 @@ verificacion: obligatoria
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-42, T-24, T-37
 - **Tipo**: test
-- **Archivos**: `tests/e2e/`, `docs/roadmap/2026-10-19-social-scheduler/test-plan.md`
+- **Archivos**: `tests/e2e/`, `docs/roadmap/2026-10-19-social-scheduler/test-plan.md`, `docs/README.md`, `docs/RAG-INDEX.md`, `docs/arquitectura.md`, `docs/stack.md`, `docs/modulos/`, `docs/referencia/`, `docs/guias/`, `docs/usuario/` (documentación del proyecto, Fase 4 del ciclo, commit `19da202`)
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06, E2E-07, E2E-08, E2E-09, E2E-10, E2E-11, E2E-12, M-01, M-02, M-03, M-04, M-05
 - **Verificación**:
   - `npx playwright test` → los 12 E2E (E2E-01…E2E-12) pasan

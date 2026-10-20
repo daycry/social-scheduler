@@ -4,6 +4,7 @@ use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Jobs\GenerateAutolistPosts;
 use App\Models\Autolist;
+use App\Models\AutolistItem;
 use App\Models\AutolistSlot;
 use App\Models\Brand;
 use App\Models\MediaAsset;
@@ -15,6 +16,7 @@ use App\Services\AutolistService;
 use App\Services\LibraryService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     Http::preventStrayRequests();
@@ -178,4 +180,71 @@ test('Autolistas: la pagina lista las autolistas de la marca y las acciones del 
     expect($list->fresh()->active)->toBeFalse();
     $this->actingAs($this->user)->delete(route('autolists.destroy', $list))->assertRedirect();
     expect(Autolist::withoutUserScope()->count())->toBe(0)->and(Post::withoutUserScope()->count())->toBe(1);
+});
+
+test('Autolistas: B2 cambiar la zona horaria de la marca NO duplica las franjas: las futuras se realinean', function () {
+    $list = autolistMake(true);
+    $this->svc->addItem($this->user, $list, null, 'A', [$this->image->id]);
+    $this->svc->generate($list, 7);
+    $before = Post::withoutUserScope()->orderBy('scheduled_at')->get()->map(fn ($p) => $p->scheduled_at->utc()->format('Y-m-d H:i'))->all();
+    expect($before)->toBe(['2026-11-03 09:00', '2026-11-05 17:30']);
+
+    $this->brand->forceFill(['timezone' => 'America/New_York'])->save(); // EST: UTC-5
+    $res = $this->svc->generate($list->fresh(), 7);
+
+    expect($res['created'])->toBe(0)
+        ->and(Post::withoutUserScope()->count())->toBe(2)
+        ->and(AutolistSlot::withoutUserScope()->count())->toBe(2)
+        ->and(Post::withoutUserScope()->orderBy('scheduled_at')->get()->map(fn ($p) => $p->scheduled_at->utc()->format('Y-m-d H:i'))->all())
+        ->toBe(['2026-11-03 15:00', '2026-11-05 23:30']);
+});
+
+test('Autolistas: B3 con una cuenta pendiente de reconectar no se quema la franja ni se consume el elemento', function () {
+    $list = autolistMake();
+    $this->svc->addItem($this->user, $list, null, 'Uno', [$this->image->id]);
+    $this->svc->addItem($this->user, $list, null, 'Dos', [$this->image->id]);
+    $this->ig->forceFill(['status' => SocialAccount::STATUS_RECONNECT])->save();
+
+    $res = $this->svc->generate($list, 7);
+
+    expect($res['created'])->toBe(0)->and($res['deferred'])->toBe(2)
+        ->and(AutolistSlot::withoutUserScope()->count())->toBe(0)
+        ->and($list->fresh()->cursor)->toBe(0)
+        ->and(Post::withoutUserScope()->count())->toBe(0);
+
+    // Al reconectar, la siguiente generacion (franja aun futura) la rellena.
+    $this->ig->forceFill(['status' => SocialAccount::STATUS_ACTIVE])->save();
+    $again = $this->svc->generate($list->fresh(), 7);
+    expect($again['created'])->toBe(2)->and(Post::withoutUserScope()->count())->toBe(2);
+});
+
+test('Autolistas: B9 el cursor sigue al elemento (no al indice) y las plantillas borradas salen de la cola', function () {
+    $list = autolistMake(false, [['day' => 2, 'time' => '10:00'], ['day' => 4, 'time' => '18:30'], ['day' => 6, 'time' => '09:00']]);
+    $a = $this->svc->addItem($this->user, $list, null, 'A', [$this->image->id]);
+    $template = app(LibraryService::class)->store($this->user, $this->brand, 'Efimera', 'Plantilla', [$this->image->id]);
+    $t = $this->svc->addItem($this->user, $list, $template->id, null);
+    $c = $this->svc->addItem($this->user, $list, null, 'C', [$this->image->id]);
+
+    $this->svc->generate($list, 3); // solo la franja del martes: usa A
+    expect(Post::withoutUserScope()->pluck('text')->all())->toBe(['A']);
+
+    // Se borra A (ya usado) y la plantilla: el siguiente es C, no uno desplazado por el indice.
+    $a->delete();
+    $template->delete();
+    $this->svc->generate($list->fresh(), 7);
+
+    expect(Post::withoutUserScope()->orderBy('scheduled_at')->pluck('text')->all())->toBe(['A', 'C'])
+        ->and(AutolistItem::withoutUserScope()->whereKey($t->id)->exists())->toBeFalse();
+});
+
+test('Autolistas: B12 el job programado reparte un job por lista', function () {
+    Queue::fake();
+    $one = autolistMake();
+    $two = autolistMake();
+
+    app(GenerateAutolistPosts::class)->handle($this->svc);
+
+    Queue::assertPushed(GenerateAutolistPosts::class, 2);
+    Queue::assertPushed(GenerateAutolistPosts::class, fn ($j) => $j->autolistId === $one->id);
+    Queue::assertPushed(GenerateAutolistPosts::class, fn ($j) => $j->autolistId === $two->id);
 });

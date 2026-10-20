@@ -37,17 +37,24 @@ class GenerateAutolistPosts implements ShouldBeUnique, ShouldQueue
 
     public function handle(AutolistService $service): void
     {
+        // El job programado (sin id) solo reparte: un job POR LISTA, para que una lista lenta o rota no consuma el timeout de las demas.
+        if ($this->autolistId === null) {
+            Autolist::withoutUserScope()->where('active', true)->orderBy('id')
+                ->each(fn (Autolist $list) => static::dispatch($list->id));
+
+            return;
+        }
+
         // Job sin usuario autenticado: opta explicitamente por salir del UserScope.
-        Autolist::withoutUserScope()->where('active', true)
-            ->when($this->autolistId, fn ($q) => $q->whereKey($this->autolistId))
-            ->chunkById(100, function ($lists) use ($service): void {
-                foreach ($lists as $list) {
-                    try {
-                        $service->generate($list);
-                    } catch (Throwable $e) {
-                        Log::error('autolist.generate_failed', ['autolist_id' => $list->id, 'exception' => $e::class]);
-                    }
-                }
-            });
+        $list = Autolist::withoutUserScope()->where('active', true)->find($this->autolistId);
+        if (! $list) {
+            return;
+        }
+
+        try {
+            $service->generate($list);
+        } catch (Throwable $e) {
+            Log::error('autolist.generate_failed', ['autolist_id' => $list->id, 'exception' => $e::class]);
+        }
     }
 }

@@ -10,7 +10,7 @@ class AutolistSlot extends Model
 {
     use BelongsToUser;
 
-    protected $fillable = ['slot_at', 'post_id', 'skipped_reason'];
+    protected $fillable = ['slot_at', 'local_date', 'local_time', 'post_id', 'skipped_reason'];
 
     protected function casts(): array
     {

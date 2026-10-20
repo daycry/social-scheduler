@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Enums\ContentType;
+use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
 use App\Models\Autolist;
 use App\Models\AutolistItem;
 use App\Models\AutolistSlot;
 use App\Models\Brand;
 use App\Models\MediaAsset;
+use App\Models\Post;
 use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -128,7 +130,9 @@ class AutolistService
             if ($outcome === null) {
                 break; // cola agotada (sin reciclado): no hay mas contenido
             }
-            if (isset($result[$outcome])) {
+            if ($outcome === 'deferred') {
+                $result['deferred'] = ($result['deferred'] ?? 0) + 1; // causa temporal: la franja no se registra y se reintenta
+            } elseif (isset($result[$outcome])) {
                 $result[$outcome]++;
             }
         }
@@ -169,25 +173,40 @@ class AutolistService
         return array_values($out);
     }
 
-    /** @return 'created'|'skipped'|'existing'|null null = cola agotada */
+    /** @return 'created'|'skipped'|'existing'|'deferred'|null null = cola agotada */
     private function fillSlot(int $autolistId, User $user, Brand $brand, CarbonImmutable $at): ?string
     {
+        $local = $at->setTimezone($brand->timezone ?: 'UTC');
+        $localDate = $local->format('Y-m-d');
+        $localTime = $local->format('H:i');
+
         try {
-            return DB::transaction(function () use ($autolistId, $user, $brand, $at) {
+            return DB::transaction(function () use ($autolistId, $user, $brand, $at, $localDate, $localTime) {
                 // Bloquea la lista: dos ejecuciones simultaneas no se pisan el cursor.
                 $autolist = Autolist::withoutUserScope()->lockForUpdate()->findOrFail($autolistId);
 
-                if (AutolistSlot::withoutUserScope()->where('autolist_id', $autolistId)->where('slot_at', $at)->exists()) {
+                // La franja se reconoce por su fecha/hora LOCAL: si la marca cambio de zona, la franja ya generada no se duplica.
+                $existing = AutolistSlot::withoutUserScope()->where('autolist_id', $autolistId)
+                    ->where(fn ($q) => $q->where('slot_at', $at)->orWhere(fn ($q) => $q->where('local_date', $localDate)->where('local_time', $localTime)))
+                    ->first();
+                if ($existing) {
+                    $this->realign($existing, $user, $at, $localDate, $localTime);
+
                     return 'existing';
                 }
 
-                $items = AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->orderBy('position')->orderBy('id')->get();
-                if ($items->isEmpty() || (! $autolist->recycle && $autolist->cursor >= $items->count())) {
+                // Una cuenta pendiente de reconectar es una causa TEMPORAL: no se quema la franja ni se consume el elemento;
+                // se reintenta en la siguiente generacion mientras la franja siga siendo futura.
+                if ($this->hasTemporarilyUnavailableTarget($autolist)) {
+                    return 'deferred';
+                }
+
+                $item = $this->nextItem($autolist);
+                if ($item === null) {
                     return null;
                 }
 
-                $item = $items[$autolist->cursor % $items->count()];
-                $slot = new AutolistSlot(['slot_at' => $at]);
+                $slot = new AutolistSlot(['slot_at' => $at, 'local_date' => $localDate, 'local_time' => $localTime]);
                 $slot->user_id = $user->id;
                 $slot->autolist_id = $autolistId;
 
@@ -203,7 +222,7 @@ class AutolistService
                 $slot->save();
 
                 $item->forceFill(['times_used' => $item->times_used + 1, 'last_used_at' => now()])->save();
-                $autolist->forceFill(['cursor' => $autolist->cursor + 1])->save();
+                $autolist->forceFill(['cursor' => $autolist->cursor + 1, 'last_position' => $item->position, 'last_item_id' => $item->id])->save();
 
                 return $outcome;
             });
@@ -213,6 +232,81 @@ class AutolistService
 
             return 'existing';
         }
+    }
+
+    /** Franja ya generada con otro instante (cambio de zona de la marca): la publicacion futura sin publicar se mueve al instante correcto. */
+    private function realign(AutolistSlot $slot, User $user, CarbonImmutable $at, string $localDate, string $localTime): void
+    {
+        if ($slot->slot_at?->equalTo($at) && $slot->local_date === $localDate) {
+            return;
+        }
+
+        if ($slot->post_id) {
+            $post = Post::withoutUserScope()->find($slot->post_id);
+            if ($post && $post->status === PostStatus::Scheduled && $post->scheduled_at?->gt(now())) {
+                try {
+                    $this->posts->reschedule($user, $post, $at);
+                } catch (PostValidationException) {
+                    return; // en vuelo o ya no editable: se deja como esta
+                }
+            } elseif ($post) {
+                return; // publicada o fallida: no se toca
+            }
+        }
+
+        $slot->forceFill(['slot_at' => $at, 'local_date' => $localDate, 'local_time' => $localTime])->save();
+    }
+
+    private function hasTemporarilyUnavailableTarget(Autolist $autolist): bool
+    {
+        $ids = collect((array) $autolist->targets)->pluck('account_id')->map(fn ($id) => (int) $id)->all();
+
+        return $ids !== [] && SocialAccount::withoutUserScope()->whereIn('id', $ids)->where('status', SocialAccount::STATUS_RECONNECT)->exists();
+    }
+
+    /**
+     * Siguiente elemento de la cola tras el ultimo usado (por posicion/id, no por indice: borrar elementos no desplaza la cola).
+     * Un elemento sin contenido (su plantilla se borro y no tenia texto/media propios) se elimina de la cola.
+     */
+    private function nextItem(Autolist $autolist): ?AutolistItem
+    {
+        for ($guard = 0; $guard < self::MAX_ITEMS + 1; $guard++) {
+            $query = AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->orderBy('position')->orderBy('id');
+            $item = (clone $query)
+                ->when($autolist->last_position !== null, fn ($q) => $q->where(fn ($q) => $q->where('position', '>', $autolist->last_position)
+                    ->orWhere(fn ($q) => $q->where('position', $autolist->last_position)->where('id', '>', (int) $autolist->last_item_id))))
+                ->first();
+
+            if ($item === null) {
+                if (! $autolist->recycle && $autolist->last_position !== null) {
+                    return null; // sin reciclado la cola termino
+                }
+                $item = $query->first();
+                if ($item === null) {
+                    return null;
+                }
+            }
+
+            if ($this->isEmptyItem($item)) {
+                $autolist->forceFill(['last_position' => $item->position, 'last_item_id' => $item->id]);
+                $item->delete();
+
+                continue;
+            }
+
+            return $item;
+        }
+
+        return null;
+    }
+
+    private function isEmptyItem(AutolistItem $item): bool
+    {
+        if ($item->post_template_id !== null) {
+            return ! PostTemplate::withoutUserScope()->whereKey($item->post_template_id)->exists();
+        }
+
+        return trim((string) $item->text) === '' && (array) $item->media === [];
     }
 
     /** @return array<string, mixed> */

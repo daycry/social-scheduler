@@ -13,7 +13,7 @@ class Autolist extends Model
 {
     use BelongsToUser;
 
-    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_generated_at'];
+    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at'];
 
     protected function casts(): array
     {

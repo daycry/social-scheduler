@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdsController;
+use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\AutolistController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CompetitorController;
@@ -68,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Analytics · Meta Ads, solo lectura (PA-11).
     Route::get('ads', [AdsController::class, 'index'])->middleware('throttle:30,1')->name('ads.index');
+
+    // Asistente IA opcional del compositor (T-14): JSON; solo existe con AI_ASSISTANT_ENABLED y ANTHROPIC_API_KEY.
+    Route::get('ai/status', [AiAssistantController::class, 'status'])->name('ai.status');
+    Route::post('ai/suggest', [AiAssistantController::class, 'suggest'])->middleware('throttle:10,1')->name('ai.suggest');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

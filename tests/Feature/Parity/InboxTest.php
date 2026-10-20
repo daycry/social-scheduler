@@ -39,7 +39,7 @@ beforeEach(function () {
     $this->graph = new FakeGraph;
 });
 
-function publishedTarget(SocialAccount $account, string $externalId, ?User $user = null): PostTarget
+function inboxPublishedTarget(SocialAccount $account, string $externalId, ?User $user = null): PostTarget
 {
     $post = Post::factory()->create(['brand_id' => $account->brand_id, 'user_id' => $account->user_id, 'text' => 'Mi publicacion']);
 
@@ -49,7 +49,7 @@ function publishedTarget(SocialAccount $account, string $externalId, ?User $user
     ]);
 }
 
-function igComments(): array
+function inboxIgComments(): array
 {
     return ['data' => [
         ['id' => 'c1', 'text' => 'Que bonito!', 'username' => 'ana', 'timestamp' => '2026-10-31T10:00:00+0000', 'hidden' => false, 'replies' => ['data' => [
@@ -60,8 +60,8 @@ function igComments(): array
 }
 
 test('Inbox: sincroniza comentarios de IG con Bearer, campos y respuestas propias (nace leida) sin duplicar', function () {
-    $t = publishedTarget($this->ig, '17900000000000001');
-    $this->graph->on('GET', '#^17900000000000001/comments$#', igComments());
+    $t = inboxPublishedTarget($this->ig, '17900000000000001');
+    $this->graph->on('GET', '#^17900000000000001/comments$#', inboxIgComments());
 
     $new = app(InboxService::class)->sync($this->ig);
     $again = app(InboxService::class)->sync($this->ig);
@@ -78,7 +78,7 @@ test('Inbox: sincroniza comentarios de IG con Bearer, campos y respuestas propia
 });
 
 test('Inbox: sincroniza comentarios de Facebook (autor de la Pagina = propio)', function () {
-    publishedTarget($this->fb, '555_777');
+    inboxPublishedTarget($this->fb, '555_777');
     $this->graph->on('GET', '#^555_777/comments$#', ['data' => [
         ['id' => 'f1', 'message' => 'Hola', 'from' => ['id' => '99', 'name' => 'Marta'], 'created_time' => '2026-10-31T10:00:00+0000', 'comments' => ['data' => [
             ['id' => 'f1r', 'message' => 'Hola Marta', 'from' => ['id' => '555', 'name' => 'Mi Pagina'], 'created_time' => '2026-10-31T10:30:00+0000'],
@@ -92,7 +92,7 @@ test('Inbox: sincroniza comentarios de Facebook (autor de la Pagina = propio)', 
 
 test('Inbox: sin el permiso la cuenta no se sincroniza (no hay llamadas) y la pagina dice no disponible', function () {
     $this->ig->forceFill(['scopes' => ['instagram_basic']])->save();
-    publishedTarget($this->ig, '17900000000000001');
+    inboxPublishedTarget($this->ig, '17900000000000001');
 
     expect(app(InboxService::class)->sync($this->ig->fresh()))->toBe(0)->and($this->graph->calls)->toBe([]);
 
@@ -101,10 +101,10 @@ test('Inbox: sin el permiso la cuenta no se sincroniza (no hay llamadas) y la pa
 });
 
 test('Inbox: solo publicaciones propias publicadas, recientes y con id externo', function () {
-    publishedTarget($this->ig, '17900000000000001');
-    $old = publishedTarget($this->ig, '17900000000000002');
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $old = inboxPublishedTarget($this->ig, '17900000000000002');
     $old->forceFill(['published_at' => now()->subDays(60)])->save();
-    $draft = publishedTarget($this->ig, '17900000000000003');
+    $draft = inboxPublishedTarget($this->ig, '17900000000000003');
     $draft->forceFill(['status' => PostStatus::Scheduled])->save();
     $this->graph->on('GET', '#/comments$#', ['data' => []]);
 
@@ -114,9 +114,9 @@ test('Inbox: solo publicaciones propias publicadas, recientes y con id externo',
 });
 
 test('Inbox: bandeja con filtros de red y no leidos, y marcar leido', function () {
-    publishedTarget($this->ig, '17900000000000001');
-    publishedTarget($this->fb, '555_777');
-    $this->graph->on('GET', '#^17900000000000001/comments$#', igComments());
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    inboxPublishedTarget($this->fb, '555_777');
+    $this->graph->on('GET', '#^17900000000000001/comments$#', inboxIgComments());
     $this->graph->on('GET', '#^555_777/comments$#', ['data' => [['id' => 'f1', 'message' => 'Hola', 'from' => ['id' => '99', 'name' => 'Marta'], 'created_time' => '2026-10-31T13:00:00+0000']]]);
     app(InboxService::class)->sync($this->ig);
     app(InboxService::class)->sync($this->fb);
@@ -134,8 +134,8 @@ test('Inbox: bandeja con filtros de red y no leidos, y marcar leido', function (
 });
 
 test('Inbox: responder publica en Graph (IG /replies, FB /comments), guarda la respuesta y marca leido', function () {
-    publishedTarget($this->ig, '17900000000000001');
-    $this->graph->on('GET', '#/comments$#', igComments());
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $this->graph->on('GET', '#/comments$#', inboxIgComments());
     app(InboxService::class)->sync($this->ig);
     $c2 = InboxComment::withoutUserScope()->where('external_id', 'c2')->first();
 
@@ -159,8 +159,8 @@ test('Inbox: responder publica en Graph (IG /replies, FB /comments), guarda la r
 });
 
 test('Inbox: ocultar y mostrar usan hide (IG) / is_hidden (FB) y reflejan el estado', function () {
-    publishedTarget($this->ig, '17900000000000001');
-    $this->graph->on('GET', '#/comments$#', igComments());
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $this->graph->on('GET', '#/comments$#', inboxIgComments());
     app(InboxService::class)->sync($this->ig);
     $c2 = InboxComment::withoutUserScope()->where('external_id', 'c2')->first();
     $this->graph->on('POST', '#^c2$#', ['success' => true]);
@@ -228,7 +228,7 @@ test('Inbox: los jobs despachan por cuenta activa de IG/FB en la cola poll y los
 });
 
 test('Inbox: el job sincroniza y un fallo transitorio de Meta no rompe (se libera para reintento)', function () {
-    publishedTarget($this->ig, '17900000000000001');
+    inboxPublishedTarget($this->ig, '17900000000000001');
     $this->graph->on('GET', '#/comments$#', new TransientPublishException('red', 'red'));
 
     $queueJob = Mockery::mock(Job::class);
@@ -241,8 +241,8 @@ test('Inbox: el job sincroniza y un fallo transitorio de Meta no rompe (se liber
 });
 
 test('Inbox MCP: list_comments y reply_comment exigen su ability y respetan el aislamiento', function () {
-    publishedTarget($this->ig, '17900000000000001');
-    $this->graph->on('GET', '#/comments$#', igComments());
+    inboxPublishedTarget($this->ig, '17900000000000001');
+    $this->graph->on('GET', '#/comments$#', inboxIgComments());
     app(InboxService::class)->sync($this->ig);
     $c2 = InboxComment::withoutUserScope()->where('external_id', 'c2')->first();
 

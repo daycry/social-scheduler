@@ -21,7 +21,7 @@ beforeEach(function () {
     $this->graph = new FakeGraph;
 });
 
-function fakeAds(FakeGraph $g): void
+function adsFake(FakeGraph $g): void
 {
     $g->on('GET', '#^me/adaccounts$#', ['data' => [['id' => 'act_111', 'name' => 'Cuenta A', 'currency' => 'EUR', 'account_status' => 1], ['id' => 'act_222', 'name' => 'Cuenta B', 'currency' => 'USD', 'account_status' => 1]]]);
     $g->on('GET', '#^act_\d+/campaigns$#', ['data' => [['id' => '9001', 'name' => 'Rebajas', 'status' => 'ACTIVE', 'objective' => 'OUTCOME_TRAFFIC'], ['id' => '9002', 'name' => 'Sin datos', 'status' => 'PAUSED']]]);
@@ -29,7 +29,7 @@ function fakeAds(FakeGraph $g): void
 }
 
 test('Ads: lista cuentas, campanas e insights con el token de USUARIO en Bearer', function () {
-    fakeAds($this->graph);
+    adsFake($this->graph);
 
     $this->actingAs($this->user)->get(route('ads.index'))->assertOk()->assertInertia(fn ($p) => $p->component('Ads/Index')
         ->where('overview.available', true)->where('overview.selected.id', 'act_111')->has('overview.ad_accounts', 2)
@@ -46,7 +46,7 @@ test('Ads: lista cuentas, campanas e insights con el token de USUARIO en Bearer'
 });
 
 test('Ads: solo lectura (ninguna llamada es distinta de GET) y la cuenta publicitaria elegida debe venir de Meta', function () {
-    fakeAds($this->graph);
+    adsFake($this->graph);
 
     $this->actingAs($this->user)->get(route('ads.index', ['ad_account' => 'act_222', 'days' => 7]))->assertInertia(fn ($p) => $p->where('overview.selected.id', 'act_222')->where('overview.period', 7));
     // Un act_ que Meta no devolvio para el usuario cae en la primera cuenta, y un formato invalido se rechaza.
@@ -84,7 +84,7 @@ test('Ads: sin cuentas publicitarias se avisa', function () {
 });
 
 test('Ads: las respuestas de Graph se cachean unos minutos por usuario', function () {
-    fakeAds($this->graph);
+    adsFake($this->graph);
     $this->actingAs($this->user)->get(route('ads.index'));
     expect($this->graph->calls)->toHaveCount(4); // cuentas, campanas, total, por campana
 
@@ -97,7 +97,7 @@ test('Ads: aislamiento (la cuenta de otro usuario con ads_read no se usa ni se m
     $ob = Brand::factory()->for($other)->create();
     SocialAccount::factory()->for($other)->create(['brand_id' => $ob->id, 'network' => Network::Facebook, 'refresh_token' => 'OTHER-TOKEN', 'scopes' => ['ads_read']]);
     $this->fb->forceFill(['scopes' => []])->save();
-    fakeAds($this->graph);
+    adsFake($this->graph);
 
     $this->actingAs($this->user)->get(route('ads.index'))->assertInertia(fn ($p) => $p->where('overview.available', false));
     expect($this->graph->calls)->toBe([]);

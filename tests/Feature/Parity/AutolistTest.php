@@ -27,7 +27,7 @@ beforeEach(function () {
     $this->svc = app(AutolistService::class);
 });
 
-function makeList(bool $recycle = false, array $slots = [['day' => 2, 'time' => '10:00'], ['day' => 4, 'time' => '18:30']]): Autolist
+function autolistMake(bool $recycle = false, array $slots = [['day' => 2, 'time' => '10:00'], ['day' => 4, 'time' => '18:30']]): Autolist
 {
     return test()->svc->create(test()->user, test()->brand, 'Semanal', [['account_id' => test()->ig->id, 'content_type' => 'instagram_image']], $slots, $recycle);
 }
@@ -50,7 +50,7 @@ test('Autolistas: crear valida destinos y franjas', function () {
 });
 
 test('Autolistas: genera programadas en la hora local de la marca usando PostService, con la media validada', function () {
-    $list = makeList();
+    $list = autolistMake();
     $this->svc->addItem($this->user, $list, null, 'Primero', [$this->image->id]);
     $this->svc->addItem($this->user, $list, null, 'Segundo', [$this->image->id]);
 
@@ -69,7 +69,7 @@ test('Autolistas: genera programadas en la hora local de la marca usando PostSer
 });
 
 test('Autolistas: es idempotente (re-ejecutar no duplica) y respeta el cursor', function () {
-    $list = makeList(true);
+    $list = autolistMake(true);
     $this->svc->addItem($this->user, $list, null, 'A', [$this->image->id]);
     $this->svc->addItem($this->user, $list, null, 'B', [$this->image->id]);
 
@@ -87,18 +87,18 @@ test('Autolistas: es idempotente (re-ejecutar no duplica) y respeta el cursor', 
 });
 
 test('Autolistas: sin reciclado la cola se agota; con reciclado vuelve a empezar', function () {
-    $list = makeList(false);
+    $list = autolistMake(false);
     $this->svc->addItem($this->user, $list, null, 'Unico', [$this->image->id]);
     expect($this->svc->generate($list, 14))->toBe(['created' => 1, 'skipped' => 0])->and(Post::withoutUserScope()->count())->toBe(1);
 
-    $r = makeList(true);
+    $r = autolistMake(true);
     $this->svc->addItem($this->user, $r, null, 'Unico', [$this->image->id]);
     expect($this->svc->generate($r, 7)['created'])->toBe(2);
 });
 
 test('Autolistas: las plantillas de la Biblioteca aportan texto y media; una lista en pausa no genera', function () {
     $template = app(LibraryService::class)->store($this->user, $this->brand, 'Plantilla', 'Desde la biblioteca', [$this->image->id]);
-    $list = makeList();
+    $list = autolistMake();
     $this->svc->addItem($this->user, $list, $template->id, null);
 
     $list->forceFill(['active' => false])->save();
@@ -111,7 +111,7 @@ test('Autolistas: las plantillas de la Biblioteca aportan texto y media; una lis
 });
 
 test('Autolistas: una media que ya no es valida omite la franja con motivo y la cola avanza', function () {
-    $list = makeList();
+    $list = autolistMake();
     $png = MediaAsset::factory()->for($this->user)->create(['mime' => 'image/png', 'path' => 'media/test/x.png']);
     $this->svc->addItem($this->user, $list, null, 'Con PNG', [$png->id]);
     $this->svc->addItem($this->user, $list, null, 'Valido', [$this->image->id]);
@@ -124,7 +124,7 @@ test('Autolistas: una media que ya no es valida omite la franja con motivo y la 
 });
 
 test('Autolistas: el job diario recorre las listas activas de todos los usuarios, cada una con lo suyo', function () {
-    $list = makeList();
+    $list = autolistMake();
     $this->svc->addItem($this->user, $list, null, 'Mio', [$this->image->id]);
 
     $other = User::factory()->create();
@@ -157,7 +157,7 @@ test('Autolistas: aislamiento (no se puede crear con marca ajena, ni tocar/gener
     $this->actingAs($this->user)->post(route('autolists.items.store', $ol), ['text' => 'x'])->assertNotFound();
     expect($ol->fresh()->active)->toBeTrue();
 
-    $mine = makeList();
+    $mine = autolistMake();
     $foreignMedia = MediaAsset::factory()->for($other)->create();
     $foreignTemplate = PostTemplate::unguarded(fn () => PostTemplate::withoutUserScope()->create(['user_id' => $other->id, 'brand_id' => $ob->id, 'name' => 'T', 'text' => 'x']));
     $this->actingAs($this->user)->post(route('autolists.items.store', $mine), ['media' => [$foreignMedia->id]])->assertSessionHasErrors('media');
@@ -166,7 +166,7 @@ test('Autolistas: aislamiento (no se puede crear con marca ajena, ni tocar/gener
 });
 
 test('Autolistas: la pagina lista las autolistas de la marca y las acciones del dueno funcionan', function () {
-    $list = makeList();
+    $list = autolistMake();
 
     $this->actingAs($this->user)->get(route('autolists.index'))->assertOk()
         ->assertInertia(fn ($p) => $p->component('Autolists/Index')->has('autolists', 1)->where('autolists.0.name', 'Semanal')->has('accounts', 1));

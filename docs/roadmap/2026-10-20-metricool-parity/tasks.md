@@ -22,9 +22,9 @@ verificacion: obligatoria
 |------|------------|-------|----------|---|---|---|---|
 | Fase 1 — P1 — UI: portada, auth, shell, estados vacíos y ajustes (agente UI) | 0 | 5 | 0% | — | — | — | — |
 | Fase 2 — P2 — Backend y páginas: mejores horas, biblioteca, papelera, SmartLinks, competidores | 5 | 5 | 100% | — | — | — | — |
-| Fase 3 — P3 — Autolistas, inbox, Meta Ads solo lectura y asistente IA | 0 | 4 | 0% | — | — | — | — |
+| Fase 3 — P3 — Autolistas, inbox, Meta Ads solo lectura y asistente IA | 4 | 4 | 100% | — | — | — | — |
 | Fase 4 — P4 — QA E2E y accesibilidad | 0 | 1 | 0% | — | — | — | — |
-| **TOTAL** | **5** | **15** | **33%** | — | — | — | — |
+| **TOTAL** | **9** | **15** | **60%** | — | — | — | — |
 
 ---
 
@@ -264,87 +264,87 @@ verificacion: obligatoria
 
 ## Fase 3 — P3 — Autolistas, inbox, Meta Ads solo lectura y asistente IA
 
-**Estado**: borrador · **Estimado**: —
+**Estado**: completado · **Estimado**: —
 
 
 ### T-11 — Autolistas (PA-09)
 
 - **Descripción**: Colas con franjas semanales que generan publicaciones programadas.
 - **Changelog**: Colas de contenido recurrente con franjas semanales.
-- **Estado**: borrador
+- **Estado**: completado
 - **Asignada a**: implementer
 - **Tiempo humano**: est. 0h · real —
-- **Tiempo IA (ejec.)**: est. —h · real —
+- **Tiempo IA (ejec.)**: est. —h · real 0.49h (medido)
 - **Supervisión**: est. — · real —
 - **Dependencias**: T-07
 - **Tipo**: backend
-- **Archivos**: pendiente de planificar en P3
+- **Archivos**: `app/Models/Autolist*.php`, `app/Services/AutolistService.php`, `app/Jobs/GenerateAutolistPosts.php`, `app/Http/Controllers/AutolistController.php`, `app/Policies/AutolistPolicy.php`, `database/migrations/2026_10_29_090000_create_autolists_tables.php`, `resources/js/Pages/Autolists/Index.vue`, `routes/parity.php`, `routes/console.php`, `config/social.php`, `.env.example`, `tests/Feature/Parity/AutolistTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
-  - pendiente: test Pest de la fase P3
+  - `php artisan test tests/Feature/Parity/AutolistTest.php` → 9 passed (72 assertions)
 
 **Criterios de aceptación**
-- [ ] PA-09
+- [x] PA-09: franjas semanales (día+hora en la zona de la marca), cola (plantillas o texto+media), reciclado opcional y job diario idempotente con PostService
 
 
 ### T-12 — Inbox de comentarios IG/FB (PA-10)
 
 - **Descripción**: Listar, responder y ocultar comentarios de publicaciones propias (scopes de comentarios).
 - **Changelog**: Responde y oculta comentarios de Instagram y Facebook desde un único buzón.
-- **Estado**: borrador
+- **Estado**: completado
 - **Asignada a**: implementer
 - **Tiempo humano**: est. 0h · real —
-- **Tiempo IA (ejec.)**: est. —h · real —
+- **Tiempo IA (ejec.)**: est. —h · real 0.41h (medido)
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: pendiente de planificar en P3
+- **Archivos**: `app/Connectors/Meta/Comments.php`, `app/Services/InboxService.php`, `app/Jobs/SyncInboxComments.php`, `app/Jobs/SyncAccountComments.php`, `app/Models/InboxComment.php`, `app/Policies/InboxCommentPolicy.php`, `app/Http/Controllers/InboxController.php`, `app/Mcp/**`, `database/migrations/2026_10_29_100000_create_inbox_comments_table.php`, `resources/js/Pages/Inbox/Index.vue`, `routes/parity.php`, `routes/console.php`, `config/social.php`, `tests/Feature/Parity/InboxTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
-  - pendiente: test Pest de la fase P3
+  - `php artisan test tests/Feature/Parity/InboxTest.php` → 13 passed (127 assertions); `tests/Feature/Mcp` + `tests/Feature/Parity` → 103 passed
 
 **Criterios de aceptación**
-- [ ] PA-10
+- [x] PA-10: leer comentarios de publicaciones propias de IG/FB (Graph v23, Bearer), sincronización en cola poll, responder y ocultar/mostrar, filtros red/no leídos, aislamiento por usuario, sin DMs
 
 
 ### T-13 — Meta Ads solo lectura (PA-11)
 
 - **Descripción**: Cuentas publicitarias, campañas y métricas básicas con `ads_read`.
 - **Changelog**: Consulta tus campañas y métricas de Meta Ads en modo lectura.
-- **Estado**: borrador
+- **Estado**: completado
 - **Asignada a**: implementer
 - **Tiempo humano**: est. 0h · real —
-- **Tiempo IA (ejec.)**: est. —h · real —
+- **Tiempo IA (ejec.)**: est. —h · real 0.2h (medido)
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: pendiente de planificar en P3
+- **Archivos**: `app/Connectors/Meta/Ads.php`, `app/Services/AdsService.php`, `app/Http/Controllers/AdsController.php`, `resources/js/Pages/Ads/Index.vue`, `routes/parity.php`, `config/social.php`, `tests/Feature/Parity/AdsTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
-  - pendiente: test Pest de la fase P3
+  - `php artisan test tests/Feature/Parity/AdsTest.php` → 8 passed (159 assertions)
 
 **Criterios de aceptación**
-- [ ] PA-11
+- [x] PA-11: scope ads_read; cuentas publicitarias (me/adaccounts), campañas e insights básicos (gasto, impresiones, clics, CTR, CPC) por periodo, solo lectura; sin permiso -> no disponible con instrucción
 
 
 ### T-14 — Asistente IA opcional
 
 - **Descripción**: Generación de textos tras el flag `AI_ASSISTANT` con Claude API si hay clave.
 - **Changelog**: Asistente opcional para proponer textos de publicaciones.
-- **Estado**: borrador
+- **Estado**: completado
 - **Asignada a**: implementer
 - **Tiempo humano**: est. 0h · real —
-- **Tiempo IA (ejec.)**: est. —h · real —
+- **Tiempo IA (ejec.)**: est. —h · real 0.08h (medido)
 - **Supervisión**: est. — · real —
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: pendiente de planificar en P3
+- **Archivos**: `app/Services/AiAssistant.php`, `app/Http/Controllers/AiAssistantController.php`, `resources/js/Components/AiSuggest.vue`, `routes/parity.php`, `config/social.php`, `.env.example`, `tests/Feature/Parity/AiAssistantTest.php`
 - **Cubre (tests)**: PA-—
 - **Verificación**:
-  - pendiente: test Pest de la fase P3
+  - `php artisan test` → 761 passed (5705 assertions); `vendor/bin/pint --test app routes config database tests` → passed; `npm run build` → built
 
 **Criterios de aceptación**
-- [ ] Desactivado por defecto
+- [x] Desactivado por defecto: sin AI_ASSISTANT_ENABLED y ANTHROPIC_API_KEY la UI no muestra «Sugerir texto»; con ambos usa Messages API (claude-sonnet-5-5) por Http, límite diario por usuario y sin datos personales
 
 
 ## Fase 4 — P4 — QA E2E y accesibilidad

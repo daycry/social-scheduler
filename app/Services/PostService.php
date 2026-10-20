@@ -196,7 +196,19 @@ class PostService
         $this->assertOwns($user, $post);
 
         DB::transaction(function () use ($post) {
-            $this->lockEditableTargets($post, 'No se puede borrar una publicacion que ya se ha publicado o se esta publicando.', allowOrphans: true);
+            $targets = $this->lockEditableTargets($post, 'No se puede borrar una publicacion que ya se ha publicado o se esta publicando.', allowOrphans: true);
+
+            // Nada pendiente sobrevive en la papelera: un `procesando` huerfano se cierra como fallido y lo programado vuelve a
+            // borrador (restaurar nunca reactiva una publicacion; el usuario la reprograma).
+            foreach ($targets as $target) {
+                if ($this->isOrphanedProcessing($target)) {
+                    $this->applyTransition($target, PostStatus::Failed, ['error_code' => 'cuenta_no_disponible', 'error_message' => 'Enviada a la papelera: la cuenta ya no estaba disponible.']);
+                } elseif ($target->status === PostStatus::Scheduled) {
+                    $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $post->text, $post->scheduled_at));
+                    YouTubePublisher::forgetUploadSession($target->id);
+                }
+            }
+            $post->syncStatus();
             $post->delete();
         });
     }
@@ -211,7 +223,7 @@ class PostService
         return DB::transaction(function () use ($target, $to, $attributes) {
             $fresh = PostTarget::withoutUserScope()->lockForUpdate()->findOrFail($target->id);
             $this->applyTransition($fresh, $to, $attributes);
-            Post::withoutUserScope()->findOrFail($fresh->post_id)->syncStatus();
+            Post::withoutUserScope()->withTrashed()->findOrFail($fresh->post_id)->syncStatus();
 
             return $fresh;
         });

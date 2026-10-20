@@ -32,17 +32,18 @@ class TrashService
     {
         $this->assertTrashed($user, $post);
 
-        DB::transaction(function () use ($post) {
+        // Restaurar y, si procede, volver a borrador en UNA transaccion: nunca queda un post vivo y vencido entre ambos pasos
+        // (el despachador no lo ve a medias). Los destinos ya pasan a borrador al enviarse a la papelera; esto cubre las filas antiguas.
+        return DB::transaction(function () use ($user, $post) {
             $post->restore();
+            $post = Post::withoutUserScope()->findOrFail($post->id);
+
+            if ($post->targets()->where('status', 'programada')->exists() && ($post->scheduled_at === null || $post->scheduled_at->lte(now()))) {
+                $post = $this->posts->unschedule($user, $post);
+            }
+
+            return $post;
         });
-
-        $post = Post::withoutUserScope()->findOrFail($post->id);
-
-        if ($post->targets()->where('status', 'programada')->exists() && ($post->scheduled_at === null || $post->scheduled_at->lte(now()))) {
-            $post = $this->posts->unschedule($user, $post);
-        }
-
-        return $post;
     }
 
     /** Elimina para siempre una publicacion de la papelera. */

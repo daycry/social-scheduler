@@ -3,13 +3,14 @@
 namespace App\Services;
 
 use App\Enums\PostStatus;
-use App\Exceptions\InvalidPostTransition;
 use App\Jobs\PollPublishStatus;
 use App\Jobs\PublishPostTarget;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Mantenimiento que corre antes de despachar lo vencido, cada minuto y tambien al volver de una caida
@@ -43,10 +44,13 @@ class PublishRecovery
         $n = 0;
 
         PostTarget::withoutUserScope()->where('status', PostStatus::Scheduled->value)->whereNull('social_account_id')
+            ->whereIn('post_id', $this->livePosts())
             ->chunkById(100, function ($targets) use (&$n) {
                 foreach ($targets as $target) {
-                    $this->outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta de destino se elimino antes de publicar. Conectala de nuevo y reprograma la publicacion.');
-                    $n++;
+                    $this->guard($target, function () use ($target, &$n) {
+                        $this->outcomes->failed($target, 'cuenta_no_disponible', 'La cuenta de destino se elimino antes de publicar. Conectala de nuevo y reprograma la publicacion.');
+                        $n++;
+                    });
                 }
             });
 
@@ -61,6 +65,7 @@ class PublishRecovery
         $limit = now()->subHours($grace);
 
         PostTarget::withoutUserScope()->where('status', PostStatus::Processing->value)
+            ->whereIn('post_id', $this->livePosts())
             ->chunkById(100, function ($targets) use (&$n, $limit, $grace) {
                 foreach ($targets as $target) {
                     $account = $target->social_account_id ? SocialAccount::withoutUserScope()->find($target->social_account_id) : null;
@@ -73,7 +78,7 @@ class PublishRecovery
                             $this->outcomes->failed($target, 'cuenta_no_disponible', "La cuenta lleva mas de $grace h sin reconectarse y no se pudo confirmar la publicacion. Reconectala, revisa en la red si se publico y reprograma si no.");
                             $n++;
                         }
-                    } catch (InvalidPostTransition) {
+                    } catch (Throwable) {
                         // Carrera: el destino cambio de estado (el usuario lo cancelo, el sondeo lo cerro) entre la lectura y la
                         // transicion. Ya no es `procesando`: se ignora y se sigue con el resto, sin cortar el despacho.
                         Log::notice('publish.recovery_race', ['target_id' => $target->id]);
@@ -94,8 +99,10 @@ class PublishRecovery
             ->chunkById(100, function ($targets) use (&$n) {
                 foreach ($targets as $target) {
                     $hours = (int) config('publishing.max_lateness_hours', 24);
-                    $this->outcomes->failed($target, 'vencida', "No se publico a su hora y ya han pasado mas de $hours h (cuenta sin reconectar o servidor detenido). Reprogramala para publicarla.");
-                    $n++;
+                    $this->guard($target, function () use ($target, $hours, &$n) {
+                        $this->outcomes->failed($target, 'vencida', "No se publico a su hora y ya han pasado mas de $hours h (cuenta sin reconectar o servidor detenido). Reprogramala para publicarla.");
+                        $n++;
+                    });
                 }
             });
 
@@ -108,6 +115,7 @@ class PublishRecovery
         $n = 0;
 
         PostTarget::withoutUserScope()->where('status', PostStatus::Publishing->value)->where('started_at', '<=', $limit)
+            ->whereIn('post_id', $this->livePosts())
             ->chunkById(100, function ($targets) use (&$n) {
                 foreach ($targets as $target) {
                     PublishPostTarget::dispatch($target->id);
@@ -123,6 +131,7 @@ class PublishRecovery
         $n = 0;
 
         PostTarget::withoutUserScope()->where('status', PostStatus::Processing->value)
+            ->whereIn('post_id', $this->livePosts())
             ->where(fn ($q) => $q->whereNull('next_attempt_at')->orWhere('next_attempt_at', '<=', now()))
             // Con la cuenta pendiente de reconectar no se sondea: se retoma sola al reconectarla (no es un timeout).
             ->whereIn('social_account_id', SocialAccount::withoutUserScope()->where('status', SocialAccount::STATUS_ACTIVE)->select('id'))
@@ -134,5 +143,21 @@ class PublishRecovery
             });
 
         return $n;
+    }
+
+    /** Posts vivos (la papelera queda fuera): ninguna consulta de recuperacion toca destinos de una publicacion borrada. */
+    private function livePosts(): Builder
+    {
+        return Post::withoutUserScope()->select('id');
+    }
+
+    /** Aisla un destino: un fallo en uno nunca corta la pasada (ni el despacho de todos los demas). */
+    private function guard(PostTarget $target, \Closure $fn): void
+    {
+        try {
+            $fn();
+        } catch (Throwable $e) {
+            Log::warning('publish.recovery_target_failed', ['target_id' => $target->id, 'exception' => $e::class, 'message' => $e->getMessage()]);
+        }
     }
 }

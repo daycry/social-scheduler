@@ -4,6 +4,7 @@ use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
 use App\Jobs\DispatchDuePosts;
+use App\Jobs\PollPublishStatus;
 use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
 use App\Models\MediaAsset;
@@ -12,6 +13,7 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
+use App\Services\PublishRecovery;
 use App\Services\TrashService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -64,7 +66,7 @@ test('Trash: una publicacion en la papelera no se despacha ni se publica', funct
     Queue::assertNotPushed(PublishPostTarget::class);
 });
 
-test('Trash: restaurar devuelve el post; si ya vencio vuelve a BORRADOR y no se publica de golpe', function () {
+test('Trash: restaurar devuelve el post como BORRADOR (los destinos se cancelan al borrar) y no se publica de golpe', function () {
     Queue::fake();
     $future = trashPost('2026-11-10 10:00');
     $past = trashPost('2026-11-01 12:30');
@@ -76,7 +78,7 @@ test('Trash: restaurar devuelve el post; si ya vencio vuelve a BORRADOR y no se 
     $this->actingAs($this->user)->post(route('trash.restore', $past))->assertRedirect(route('trash.index'));
 
     expect(Post::query()->count())->toBe(2)
-        ->and($future->fresh()->status)->toBe(PostStatus::Scheduled)
+        ->and($future->fresh()->status)->toBe(PostStatus::Draft)
         ->and($past->fresh()->status)->toBe(PostStatus::Draft)
         ->and($past->fresh()->targets->first()->status)->toBe(PostStatus::Draft);
     expect(app(DispatchDuePosts::class)())->toBe(0);
@@ -128,4 +130,57 @@ test('Trash: aislamiento — la papelera, restaurar y eliminar de otro usuario r
     expect(Post::withoutUserScope()->onlyTrashed()->whereKey($otherPost->id)->exists())->toBeTrue();
 
     expect(fn () => $this->trash->restore($this->user, $otherPost))->toThrow(PostValidationException::class);
+});
+
+test('Trash: B1 un post en la papelera con la cuenta borrada NO tumba el despachador (los demas se despachan)', function () {
+    Queue::fake();
+    $trashed = trashPost('2026-11-10 10:00');
+    $this->trash->trash($this->user, $trashed);
+    // Estado heredado: destino todavia programado dentro de un post borrado, y su cuenta eliminada (FK nullOnDelete).
+    PostTarget::withoutUserScope()->where('post_id', $trashed->id)->update(['status' => PostStatus::Scheduled->value, 'social_account_id' => null]);
+
+    $live = trashPost('2026-11-01 12:30');
+    Carbon::setTestNow('2026-11-01 13:00:00');
+
+    expect(app(DispatchDuePosts::class)())->toBe(1);
+    Queue::assertPushed(PublishPostTarget::class, 1);
+});
+
+test('Trash: B1 un destino procesando de un post en la papelera, con la cuenta desconectada, no aborta la recuperacion', function () {
+    Queue::fake();
+    $trashed = trashPost('2026-11-10 10:00');
+    $this->trash->trash($this->user, $trashed);
+    PostTarget::withoutUserScope()->where('post_id', $trashed->id)->update(['status' => PostStatus::Processing->value]);
+    $this->ig->update(['status' => SocialAccount::STATUS_DISCONNECTED]);
+
+    $other = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Instagram]);
+    $live = app(PostService::class)->create($this->user, $this->brand, [
+        'text' => 'Viva', 'schedule' => true, 'scheduled_at' => '2026-11-01 12:30', 'media' => [$this->image->id],
+        'targets' => [['account_id' => $other->id, 'content_type' => 'instagram_image']],
+    ]);
+    Carbon::setTestNow('2026-11-01 13:00:00');
+
+    expect(app(DispatchDuePosts::class)())->toBe(1)
+        ->and(PostTarget::withoutUserScope()->where('post_id', $trashed->id)->first()->status)->toBe(PostStatus::Processing); // la papelera no se toca
+});
+
+test('Trash: B1 enviar a la papelera cancela los destinos pendientes (borrador) y cierra un procesando huerfano', function () {
+    $post = trashPost('2026-11-10 10:00');
+    $this->trash->trash($this->user, $post);
+
+    expect(PostTarget::withoutUserScope()->where('post_id', $post->id)->first()->status)->toBe(PostStatus::Draft);
+});
+
+test('Trash: B1 el repoll ignora la papelera y la transicion de un destino ya existente funciona con el post borrado', function () {
+    Queue::fake();
+    $post = trashPost('2026-11-10 10:00');
+    $this->trash->trash($this->user, $post);
+    $target = PostTarget::withoutUserScope()->where('post_id', $post->id)->first();
+    $target->forceFill(['status' => PostStatus::Processing->value, 'next_attempt_at' => null])->save();
+
+    expect(app(PublishRecovery::class)->run()['polled'])->toBe(0);
+    Queue::assertNotPushed(PollPublishStatus::class);
+
+    // La transicion explicita no revienta (withTrashed): p. ej. un sondeo que ya estaba en cola cuando se envio a la papelera.
+    expect(app(PostService::class)->transition($target->fresh(), PostStatus::Failed, ['error_code' => 'x'])->status)->toBe(PostStatus::Failed);
 });

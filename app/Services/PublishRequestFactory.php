@@ -14,7 +14,7 @@ class PublishRequestFactory
 {
     public function make(PostTarget $target): PublishRequest
     {
-        $post = Post::withoutUserScope()->findOrFail($target->post_id);
+        $post = Post::withoutUserScope()->withTrashed()->findOrFail($target->post_id);
         $ttl = (int) config('publishing.media_url_ttl_minutes', 720);
 
         $media = $post->media()->get()->map(fn (MediaAsset $m) => new PublishMedia(

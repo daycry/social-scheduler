@@ -36,3 +36,8 @@ spike/.results-*.json
 
 # Configuración local de herramientas del agente (no versionar)
 /.claude/
+
+# E2E (Playwright)
+/test-results
+/playwright-report
+/tests/e2e/.auth

@@ -186,9 +186,10 @@ class AutolistService
                 $autolist = Autolist::withoutUserScope()->lockForUpdate()->findOrFail($autolistId);
 
                 // La franja se reconoce por su fecha/hora LOCAL: si la marca cambio de zona, la franja ya generada no se duplica.
-                $existing = AutolistSlot::withoutUserScope()->where('autolist_id', $autolistId)
-                    ->where(fn ($q) => $q->where('slot_at', $at)->orWhere(fn ($q) => $q->where('local_date', $localDate)->where('local_time', $localTime)))
-                    ->first();
+                // Primero por la clave local (una franja concreta); solo si no hay, por el instante (misma hora UTC con otra clave local).
+                $bySlot = AutolistSlot::withoutUserScope()->where('autolist_id', $autolistId);
+                $existing = (clone $bySlot)->where('local_date', $localDate)->where('local_time', $localTime)->first()
+                    ?? (clone $bySlot)->where('slot_at', $at)->first();
                 if ($existing) {
                     $this->realign($existing, $user, $at, $localDate, $localTime);
 
@@ -252,6 +253,16 @@ class AutolistService
             } elseif ($post) {
                 return; // publicada o fallida: no se toca
             }
+        }
+
+        // Otra franja de la lista ocupa ya ese instante (p. ej. la vecina al cambiar de zona): se aparca en un instante
+        // libre lejano para no chocar con unique(autolist_id, slot_at); su propia pasada la realinea despues.
+        $occupant = AutolistSlot::withoutUserScope()->where('autolist_id', $slot->autolist_id)->where('slot_at', $at)->whereKeyNot($slot->id)->first();
+        if ($occupant) {
+            if ($occupant->post_id && Post::withoutUserScope()->whereKey($occupant->post_id)->where('status', '!=', PostStatus::Scheduled->value)->exists()) {
+                return; // el ocupante ya publico: ese instante es suyo
+            }
+            $occupant->forceFill(['slot_at' => $at->addYears(50)->addSeconds($occupant->id)])->save();
         }
 
         $slot->forceFill(['slot_at' => $at, 'local_date' => $localDate, 'local_time' => $localTime])->save();

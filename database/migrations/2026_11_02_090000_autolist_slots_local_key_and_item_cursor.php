@@ -35,9 +35,10 @@ return new class extends Migration
             DB::table('autolist_slots')->where('id', $slot->id)->update(['local_date' => $local->format('Y-m-d'), 'local_time' => $local->format('H:i')]);
         });
 
+        // Semantica antigua: el siguiente era items[cursor % count] (reciclada) o se agotaba al llegar a count; el ultimo usado es items[(cursor-1) % count].
         DB::table('autolists')->where('cursor', '>', 0)->orderBy('id')->each(function ($list) {
             $items = DB::table('autolist_items')->where('autolist_id', $list->id)->orderBy('position')->orderBy('id')->get(['id', 'position']);
-            $last = $items->count() > 0 ? $items[(min($list->cursor, $items->count()) - 1) % $items->count()] : null;
+            $last = $items->count() > 0 ? $items[($list->recycle ? $list->cursor - 1 : min($list->cursor, $items->count()) - 1) % $items->count()] : null;
             if ($last) {
                 DB::table('autolists')->where('id', $list->id)->update(['last_position' => $last->position, 'last_item_id' => $last->id]);
             }

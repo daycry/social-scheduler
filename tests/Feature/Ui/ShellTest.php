@@ -107,3 +107,10 @@ it('Idioma: los mensajes de validacion y de auth salen en espanol', function () 
     $this->post('/register', [])->assertSessionHasErrors(['email' => 'El campo correo electrónico es obligatorio.']);
     expect(trans('auth.failed'))->toBe('Estas credenciales no coinciden con nuestros registros.');
 });
+
+it('Shell: comparte el contador de comentarios sin leer del Inbox (0 sin comentarios)', function () {
+    Brand::factory()->for($this->user)->create();
+
+    $this->actingAs($this->user)->get(route('dashboard'))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->where('unreadInbox', 0));
+});

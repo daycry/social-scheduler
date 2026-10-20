@@ -29,7 +29,7 @@ const go = (patch) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Meta Ads (solo lectura)</h2>
+            <h1 class="text-xl font-bold text-slate-900">Meta Ads (solo lectura)</h1>
         </template>
 
         <div class="space-y-5">
@@ -67,22 +67,22 @@ const go = (patch) => {
 
                 <div v-if="o.selected" class="grid gap-4 md:grid-cols-3 xl:grid-cols-5" data-testid="ads-kpis">
                     <section class="card p-5">
-                        <h3 class="text-sm font-medium text-slate-500">Gasto</h3>
+                        <h2 class="text-sm font-medium text-slate-500">Gasto</h2>
                         <p class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900">{{ money(o.totals?.spend) }}</p>
                     </section>
                     <KpiCard label="Impresiones" :total="o.totals?.impressions ?? null" :available="o.totals?.impressions != null" />
                     <KpiCard label="Clics" :total="o.totals?.clicks ?? null" :available="o.totals?.clicks != null" />
                     <section class="card p-5">
-                        <h3 class="text-sm font-medium text-slate-500">CTR</h3>
+                        <h2 class="text-sm font-medium text-slate-500">CTR</h2>
                         <p class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900">{{ pct(o.totals?.ctr) }}</p>
                     </section>
                     <section class="card p-5">
-                        <h3 class="text-sm font-medium text-slate-500">CPC</h3>
+                        <h2 class="text-sm font-medium text-slate-500">CPC</h2>
                         <p class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900">{{ money(o.totals?.cpc) }}</p>
                     </section>
                 </div>
 
-                <section v-if="o.selected" class="card overflow-x-auto">
+                <section v-if="o.selected" class="card overflow-x-auto" tabindex="0" role="region" aria-label="Campañas">
                     <table class="w-full text-left text-sm">
                         <caption class="sr-only">Campañas y métricas del periodo</caption>
                         <thead class="border-b text-xs text-slate-500">

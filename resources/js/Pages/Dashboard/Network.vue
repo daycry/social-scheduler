@@ -70,23 +70,23 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                     <template v-else>
                         <!-- Crecimiento -->
                         <section class="card p-5" data-section="growth">
-                            <h3 class="text-sm font-semibold text-slate-700">Crecimiento</h3>
+                            <h2 class="text-sm font-semibold text-slate-700">Crecimiento</h2>
                             <div class="mt-2 grid gap-4 sm:grid-cols-4">
                                 <div>
                                     <p class="text-xs text-slate-500">Seguidores (fin del periodo)</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.end === null ? 'text-slate-400 text-lg' : ''">{{ fmt(detail.growth.end) }}</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.end === null ? 'text-slate-500 text-lg' : ''">{{ fmt(detail.growth.end) }}</p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500">Seguidores (inicio)</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.start === null ? 'text-slate-400 text-lg' : ''">{{ fmt(detail.growth.start) }}</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.start === null ? 'text-slate-500 text-lg' : ''">{{ fmt(detail.growth.start) }}</p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500">Crecimiento</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.change === null ? 'text-slate-400 text-lg' : ''">{{ fmt(detail.growth.change) }}</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.change === null ? 'text-slate-500 text-lg' : ''">{{ fmt(detail.growth.change) }}</p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500">Crecimiento %</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.pct === null ? 'text-slate-400 text-lg' : ''">{{ detail.growth.pct === null ? UNAVAILABLE : fmtPct(detail.growth.pct) }}</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.pct === null ? 'text-slate-500 text-lg' : ''">{{ detail.growth.pct === null ? UNAVAILABLE : fmtPct(detail.growth.pct) }}</p>
                                 </div>
                             </div>
                             <p v-if="detail.comparison && detail.growth.previous" class="mt-1 text-xs text-slate-500">
@@ -101,14 +101,14 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
 
                         <!-- Visibilidad / Interacciones / Contenido -->
                         <section v-for="g in GROUPS.filter((x) => group(x).length)" :key="g.title" class="card p-5" :data-section="g.title">
-                            <h3 class="text-sm font-semibold text-slate-700">{{ g.title }}</h3>
+                            <h2 class="text-sm font-semibold text-slate-700">{{ g.title }}</h2>
                             <div class="mt-3 grid gap-4 lg:grid-cols-2">
                                 <div v-for="m in group(g)" :key="m.key" :data-metric="m.key">
                                     <div class="flex items-baseline justify-between">
                                         <p class="text-xs font-medium text-slate-500">{{ m.label }}</p>
                                         <span v-if="detail.comparison && m.delta_pct !== null" class="rounded px-1.5 text-xs" :class="deltaClass(m.delta_pct)">{{ fmtPct(m.delta_pct) }}</span>
                                     </div>
-                                    <p class="text-2xl font-semibold" :class="m.available ? 'text-slate-900' : 'text-slate-400 text-lg'">{{ fmt(m.total) }}</p>
+                                    <p class="text-2xl font-semibold" :class="m.available ? 'text-slate-900' : 'text-slate-500 text-lg'">{{ fmt(m.total) }}</p>
                                     <LineChart :series="chart(m)" :height="140" />
                                 </div>
                             </div>
@@ -116,7 +116,7 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
 
                         <!-- KPIs derivados -->
                         <section class="card p-5" data-section="kpis">
-                            <h3 class="text-sm font-semibold text-slate-700">KPIs</h3>
+                            <h2 class="text-sm font-semibold text-slate-700">KPIs</h2>
                             <dl class="mt-3 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
                                 <div><dt class="text-xs text-slate-500">Interacciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.interactions, 1) }}</dd></div>
                                 <div><dt class="text-xs text-slate-500">Visualizaciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.views, 1) }}</dd></div>
@@ -130,12 +130,12 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
 
                         <!-- Publicaciones -->
                         <section class="card p-5" data-section="posts">
-                            <h3 class="text-sm font-semibold text-slate-700">Publicaciones del periodo ({{ detail.posts_total }})</h3>
+                            <h2 class="text-sm font-semibold text-slate-700">Publicaciones del periodo ({{ detail.posts_total }})</h2>
                             <p v-if="detail.posts_truncated" class="mt-1 text-xs text-amber-700" data-testid="posts-truncated">
                                 Se muestran las {{ detail.posts.length }} con más interacciones de {{ detail.posts_total }}. Los KPIs por publicación incluyen todas.
                             </p>
                             <p v-if="detail.posts.length === 0" class="mt-2 text-sm text-slate-500">No hay publicaciones de esta red en el periodo.</p>
-                            <div v-else class="mt-3 overflow-x-auto">
+                            <div v-else class="mt-3 overflow-x-auto" tabindex="0" role="region" aria-label="Publicaciones con métricas">
                                 <table class="min-w-full text-sm">
                                     <thead class="text-left text-xs text-slate-500">
                                         <tr>
@@ -146,7 +146,7 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="p in detail.posts" :key="p.id" class="border-t border-gray-100" :class="p.has_data ? '' : 'text-slate-400'">
+                                        <tr v-for="p in detail.posts" :key="p.id" class="border-t border-gray-100" :class="p.has_data ? '' : 'text-slate-500'">
                                             <td class="whitespace-nowrap py-1.5 pr-3">{{ dt(p.published_at) }}</td>
                                             <td class="max-w-xs truncate pr-3">
                                                 <a v-if="p.url" :href="p.url" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">{{ p.text || p.content_type }}</a>

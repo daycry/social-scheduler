@@ -6,6 +6,7 @@ use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTemplate;
+use App\Models\SocialAccount;
 use App\Services\LibraryService;
 use App\Support\CurrentBrand;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -27,6 +28,8 @@ class LibraryController extends Controller
         $templates = PostTemplate::query()
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->with(['brand:id,name', 'media'])->latest()->limit(200)->get();
+        $accountIds = $templates->flatMap(fn (PostTemplate $t) => collect((array) $t->targets)->pluck('account_id'))->unique()->filter()->values();
+        $networkByAccount = SocialAccount::query()->whereIn('id', $accountIds)->get()->mapWithKeys(fn (SocialAccount $a) => [$a->id => $a->network->value]);
 
         return Inertia::render('Library/Index', [
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
@@ -37,6 +40,7 @@ class LibraryController extends Controller
                 'brand' => $t->brand?->name,
                 'media' => $t->media->map(fn ($m) => $m->toPublicArray())->values(),
                 'targets' => count((array) $t->targets),
+                'networks' => collect((array) $t->targets)->map(fn ($x) => $networkByAccount[$x['account_id'] ?? 0] ?? null)->filter()->unique()->values(),
                 'created_at' => $t->created_at?->toIso8601String(),
             ])->values(),
             'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],

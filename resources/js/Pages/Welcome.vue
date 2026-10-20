@@ -98,7 +98,7 @@ const FAQ = [
                                 <div v-for="(k, i) in [['Seguidores', '12,4 k', '+4,2 %'], ['Visualizaciones', '88,1 k', '+12 %'], ['Interacciones', '3,9 k', '+1,8 %']]" :key="i" class="rounded-xl border border-slate-200 p-3">
                                     <p class="text-[10px] font-medium text-slate-500">{{ k[0] }}</p>
                                     <p class="text-lg font-bold tabular-nums">{{ k[1] }}</p>
-                                    <p class="text-[10px] font-semibold text-emerald-600">{{ k[2] }}</p>
+                                    <p class="text-[10px] font-semibold text-emerald-700">{{ k[2] }}</p>
                                 </div>
                             </div>
                             <div class="mt-4 flex h-28 items-end gap-1.5 rounded-xl bg-slate-50 p-3">

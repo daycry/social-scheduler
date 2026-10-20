@@ -1,6 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import NetworkIcon from '@/Components/NetworkIcon.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 /**
@@ -36,37 +38,47 @@ const change = (params) => router.get(route('best-times.index'), { brand_id: pro
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Mejores horas para publicar</h2>
+            <h1 class="text-xl font-bold text-slate-900">Mejores horas para publicar</h1>
         </template>
 
         <div class="space-y-5">
-            <div v-if="!brand" class="card p-6 text-sm text-slate-700">Crea una marca y conecta una red para ver sus mejores horas.</div>
+            <FeatureEmpty
+                v-if="!brand"
+                title="Crea una marca para descubrir tus mejores horas"
+                description="Con el engagement de tus propias publicaciones, te mostramos qué día y a qué hora funcionan mejor en cada red."
+                :cards="[
+                    { title: 'Mapa de calor semanal', text: 'Siete días por veinticuatro horas, con la zona horaria de tu marca.', kind: 'calendar' },
+                    { title: 'Basado en tus datos', text: 'Solo cuenta tus publicaciones, sin estimaciones genéricas.', kind: 'chart' },
+                    { title: 'Mejores franjas', text: 'Las horas con más interacciones, listas para programar.', kind: 'report' },
+                ]"
+            >
+                <template #cta><Link :href="route('brands.create')" class="btn-primary">Crear mi primera marca</Link></template>
+            </FeatureEmpty>
 
             <template v-else>
                 <div class="card flex flex-wrap items-end gap-4 p-5">
-                    <label class="text-sm">
-                        <span class="block text-xs font-medium text-slate-500">Marca</span>
-                        <select class="field w-auto py-1.5" :value="brand.id" @change="change({ brand_id: $event.target.value })">
-                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
-                        </select>
-                    </label>
-                    <label class="text-sm">
-                        <span class="block text-xs font-medium text-slate-500">Red</span>
-                        <select class="field w-auto py-1.5" :value="network" @change="change({ network: $event.target.value })">
-                            <option v-for="n in networks" :key="n.value" :value="n.value">{{ n.label }}</option>
-                        </select>
-                    </label>
-                    <p class="text-xs text-slate-500">Últimos {{ result.days }} días · horas en {{ result.timezone }}</p>
+                    <div class="flex flex-wrap gap-2" role="group" aria-label="Red social">
+                        <button
+                            v-for="n in networks"
+                            :key="n.value"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-full border py-1 pe-3 ps-1 text-sm font-medium transition"
+                            :class="n.value === network ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
+                            :aria-pressed="n.value === network"
+                            @click="change({ network: n.value })"
+                        ><NetworkIcon :network="n.value" size="sm" />{{ n.label }}</button>
+                    </div>
+                    <p class="text-xs text-slate-600">Últimos {{ result.days }} días · horas en {{ result.timezone }}</p>
                 </div>
 
                 <div v-if="!result.available" class="card p-6 text-sm text-slate-700" role="status">
-                    <p class="font-medium">Datos insuficientes</p>
+                    <p class="font-semibold text-slate-900">Datos insuficientes</p>
                     <p class="mt-1">{{ result.reason }}</p>
                 </div>
 
                 <template v-else>
                     <section class="card p-5">
-                        <h3 class="text-sm font-medium text-slate-700">Mejores franjas</h3>
+                        <h2 class="text-sm font-medium text-slate-700">Mejores franjas</h2>
                         <ul class="mt-2 space-y-1 text-sm text-slate-700">
                             <li v-for="t in result.top" :key="`${t.dow}-${t.hour}`">
                                 {{ t.day }} a las {{ String(t.hour).padStart(2, '0') }}:00 · {{ t.avg_engagement }} interacciones de media ({{ t.posts }} publicaciones)
@@ -74,13 +86,13 @@ const change = (params) => router.get(route('best-times.index'), { brand_id: pro
                         </ul>
                     </section>
 
-                    <section class="card overflow-x-auto p-5">
+                    <section class="card overflow-x-auto p-5" tabindex="0" role="region" aria-label="Mapa de calor desplazable">
                         <table class="w-full border-separate border-spacing-1 text-center text-xs" aria-label="Mapa de calor de engagement medio por día y hora">
                             <caption class="sr-only">Engagement medio por día de la semana y hora</caption>
                             <thead>
                                 <tr>
                                     <th scope="col" class="w-16"></th>
-                                    <th v-for="h in 24" :key="h" scope="col" class="font-normal text-slate-500">{{ h - 1 }}</th>
+                                    <th v-for="h in 24" :key="h" scope="col" class="font-normal text-slate-600">{{ h - 1 }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -92,7 +104,7 @@ const change = (params) => router.get(route('best-times.index'), { brand_id: pro
                                 </tr>
                             </tbody>
                         </table>
-                        <p class="mt-3 text-xs text-slate-500">Cada celda es el promedio de interacciones por publicación. Basado en {{ result.posts }} publicaciones.</p>
+                        <p class="mt-3 text-xs text-slate-600">Cada celda es el promedio de interacciones por publicación. Basado en {{ result.posts }} publicaciones.</p>
                     </section>
                 </template>
             </template>

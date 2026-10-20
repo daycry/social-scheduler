@@ -20,6 +20,14 @@ const PATHS = {
     chevronRight: 'M9 6l6 6-6 6',
     check: 'M5 12l5 5 9-10',
     logout: 'M15 4h3a1 1 0 011 1v14a1 1 0 01-1 1h-3M10 8l-4 4 4 4m-4-4h11',
+    users: 'M9 11a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0m1-16a4 4 0 010 7.5M22 20a7 7 0 00-5-6.7',
+    clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zm0-14v5l3 2',
+    folder: 'M3 7a1 1 0 011-1h5l2 2h9a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z',
+    trash: 'M4 7h16M9 7V4h6v3m-8 0l1 13h8l1-13M10 11v6m4-6v6',
+    repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4m14 3v2a3 3 0 01-3 3H3',
+    inbox: 'M4 13l2-8h12l2 8M4 13v6a1 1 0 001 1h14a1 1 0 001-1v-6M4 13h5l1 2h4l1-2h5',
+    megaphone: 'M3 11v2a1 1 0 001 1h2l7 4V6L6 10H4a1 1 0 00-1 1zm14-3a4 4 0 010 8',
+    bookmark: 'M6 4h12v17l-6-4-6 4V4z',
     tag: 'M3 12V4a1 1 0 011-1h8l9 9-9 9-9-9zm5-4h.01',
 };
 </script>

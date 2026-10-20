@@ -35,7 +35,8 @@ const remove = (brand) => {
             <ul class="divide-y divide-slate-200">
                 <li v-for="brand in brands" :key="brand.id" class="flex flex-wrap items-center justify-between gap-3 p-4">
                     <div class="flex min-w-0 items-center gap-3">
-                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 font-bold text-indigo-700" aria-hidden="true">{{ brand.name.slice(0, 1).toUpperCase() }}</span>
+                        <img v-if="brand.avatar_url" :src="brand.avatar_url" alt="" class="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                        <span v-else class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 font-bold text-indigo-700" aria-hidden="true">{{ brand.name.slice(0, 1).toUpperCase() }}</span>
                         <div class="min-w-0">
                             <Link :href="route('brands.show', brand.id)" class="block truncate font-medium text-slate-900 hover:text-indigo-700">{{ brand.name }}</Link>
                             <p class="text-sm text-slate-500">{{ brand.timezone }}</p>

@@ -86,6 +86,8 @@ const shellBrand = computed(() => usePage().props.shell?.currentBrand?.id ?? nul
 const createBrand = computed(() => props.filters.brand_id ?? (props.brands.length === 1 ? props.brands[0].id : shellBrand.value));
 const createHref = computed(() => (createBrand.value ? route('brands.posts.create', createBrand.value) : null));
 const networkOf = (n) => NETWORK_STYLE[n] ?? { short: n, classes: 'bg-slate-100 text-slate-700 border-slate-300' };
+const saveToLibrary = (item) =>
+    router.post(route('library.store'), { post_id: item.id, name: (item.text || 'Mi plantilla').slice(0, 60) }, { preserveScroll: true });
 const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_time}` : 'Sin fecha');
 </script>
 
@@ -148,12 +150,12 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                 <p v-if="truncated" class="text-sm text-amber-700">Hay muchas publicaciones: se muestran las primeras 500. Filtra por marca o red.</p>
 
                 <!-- SEMANA: franjas horarias -->
-                <div v-if="view === 'week'" class="card overflow-x-auto">
+                <div v-if="view === 'week'" class="card overflow-x-auto" tabindex="0" role="region" aria-label="Calendario semanal">
                     <div class="grid min-w-[56rem]" style="grid-template-columns: 3.5rem repeat(7, minmax(0, 1fr))">
                         <div></div>
                         <div v-for="d in days" :key="d" class="border-b border-l border-slate-200 p-2 text-center text-xs font-medium" :class="d === today ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'">{{ weekdayLabel(d) }}</div>
                         <template v-for="h in hours" :key="h">
-                            <div class="border-b border-slate-100 pr-1 text-right text-[10px] text-slate-400">{{ pad(h) }}:00</div>
+                            <div class="border-b border-slate-100 pr-1 text-right text-[10px] text-slate-500">{{ pad(h) }}:00</div>
                             <div v-for="d in days" :key="`${d}-${h}`" class="min-h-[2.25rem] space-y-1 border-b border-l border-slate-100 p-0.5" @dragover.prevent @drop.prevent="drop(d, h)">
                                 <article v-for="item in itemsAt(d, h)" :key="item.id" :draggable="item.editable" class="rounded border p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'" @dragstart="dragStart(item, $event)">
                                     <Link :href="route('posts.edit', item.id)" class="block">
@@ -176,7 +178,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                         <div v-for="w in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']" :key="w" class="p-2">{{ w }}</div>
                     </div>
                     <div class="grid grid-cols-7">
-                        <div v-for="d in days" :key="d" class="min-h-[6.5rem] space-y-1 border-b border-l border-slate-100 p-1" :class="d.slice(0, 7) === monthOf ? '' : 'bg-slate-50 text-slate-400'" @dragover.prevent @drop.prevent="drop(d)">
+                        <div v-for="d in days" :key="d" class="min-h-[6.5rem] space-y-1 border-b border-l border-slate-100 p-1" :class="d.slice(0, 7) === monthOf ? '' : 'bg-slate-50 text-slate-500'" @dragover.prevent @drop.prevent="drop(d)">
                             <div class="text-xs" :class="d === today ? 'font-bold text-indigo-700' : ''">{{ Number(d.slice(8)) }}</div>
                             <article v-for="item in itemsAt(d)" :key="item.id" :draggable="item.editable" class="rounded border bg-white p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move' : 'opacity-80'" @dragstart="dragStart(item, $event)">
                                 <Link :href="route('posts.edit', item.id)" class="block">
@@ -192,7 +194,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                 </div>
 
                 <!-- LISTA: estado por red -->
-                <div v-else-if="items.length || undated.length" class="card overflow-x-auto">
+                <div v-else-if="items.length || undated.length" class="card overflow-x-auto" tabindex="0" role="region" aria-label="Lista de publicaciones">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
                             <tr>
@@ -230,10 +232,13 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                             <span v-if="t.status_note" class="block text-amber-700">{{ t.status_note }}</span>
                                             <span v-if="t.error_message" class="block text-red-600">{{ t.error_message }}</span>
                                         </li>
-                                        <li v-if="item.targets.length === 0" class="text-xs text-slate-400">Sin destinos</li>
+                                        <li v-if="item.targets.length === 0" class="text-xs text-slate-500">Sin destinos</li>
                                     </ul>
                                 </td>
-                                <td class="px-3 py-2 text-right"><Link :href="route('posts.edit', item.id)" class="link">{{ item.editable ? 'Editar' : 'Ver' }}</Link></td>
+                                <td class="whitespace-nowrap px-3 py-2 text-right">
+                                    <Link :href="route('posts.edit', item.id)" class="link">{{ item.editable ? 'Editar' : 'Ver' }}</Link>
+                                    <button type="button" class="link ms-3" :aria-label="`Guardar la publicación ${item.id} en la biblioteca`" @click="saveToLibrary(item)">Guardar en biblioteca</button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

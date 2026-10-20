@@ -53,7 +53,7 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Inbox de comentarios</h2>
+            <h1 class="text-xl font-bold text-slate-900">Inbox de comentarios</h1>
         </template>
 
         <div class="space-y-5">

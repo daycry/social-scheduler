@@ -19,7 +19,7 @@ import { Link } from '@inertiajs/vue3';
                     <li class="flex items-center gap-3"><span class="h-2 w-2 rounded-full bg-sky-400"></span>Informes PDF y CSV por marca</li>
                 </ul>
             </div>
-            <p class="relative z-10 text-xs text-slate-500">© {{ new Date().getFullYear() }} Social Scheduler</p>
+            <p class="relative z-10 text-xs text-slate-300">© {{ new Date().getFullYear() }} Social Scheduler</p>
         </aside>
 
         <main class="flex flex-col items-center justify-center bg-slate-50 px-4 py-10 sm:px-6">

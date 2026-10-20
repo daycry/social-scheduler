@@ -10,5 +10,5 @@ class Brand extends Model
 {
     use BelongsToUser, HasFactory;
 
-    protected $fillable = ['name', 'description', 'timezone'];
+    protected $fillable = ['name', 'description', 'timezone', 'avatar_media_id'];
 }

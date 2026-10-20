@@ -6,6 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
+import AiSuggest from '@/Components/AiSuggest.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -117,6 +118,22 @@ const remove = () => {
     if (confirm('¿Eliminar esta publicación?')) router.delete(route('posts.destroy', props.post.id));
 };
 
+const libraryName = ref((props.post?.text ?? '').slice(0, 60) || 'Mi plantilla');
+const savingToLibrary = ref(false);
+const saveToLibrary = () => {
+    if (!props.post || !libraryName.value.trim()) return;
+    router.post(route('library.store'), { post_id: props.post.id, name: libraryName.value.trim() }, {
+        preserveScroll: true,
+        onStart: () => (savingToLibrary.value = true),
+        onFinish: () => (savingToLibrary.value = false),
+    });
+};
+
+const selectedNetwork = computed(() => {
+    const first = form.targets[0];
+    return first ? (props.accounts.find((a) => a.id === first.account_id)?.network ?? null) : null;
+});
+
 const previewText = computed(() => form.text || 'Aquí verás el texto de tu publicación.');
 const firstPreview = computed(() => form.media.map((id) => previews.value[id]).find(Boolean));
 const charCount = computed(() => form.text.length);
@@ -147,7 +164,7 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
 
                     <!-- Cuentas y tipo -->
                     <section class="card p-4">
-                        <h3 class="mb-3 font-medium text-slate-900">Dónde publicar</h3>
+                        <h2 class="mb-3 font-medium text-slate-900">Dónde publicar</h2>
                         <p v-if="accounts.length === 0" class="text-sm text-slate-600">
                             Esta marca no tiene cuentas conectadas.
                             <Link :href="route('brands.connections.index', brand.id)" class="link">Conectar redes</Link>
@@ -229,11 +246,12 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                         <InputLabel for="text" value="Texto" />
                         <textarea id="text" v-model="form.text" :disabled="!editable" rows="5" class="field mt-1"></textarea>
                         <p class="text-right text-xs text-slate-500">{{ charCount }} caracteres</p>
+                        <AiSuggest v-if="editable" :brand-id="brand.id" :network="selectedNetwork" @use="(t) => (form.text = t)" />
                     </section>
 
                     <!-- Media -->
                     <section class="card p-4">
-                        <h3 class="mb-2 font-medium text-slate-900">Imágenes y vídeos</h3>
+                        <h2 class="mb-2 font-medium text-slate-900">Imágenes y vídeos</h2>
                         <ul v-if="form.media.length" class="mb-3 space-y-1">
                             <li v-for="(id, i) in form.media" :key="id" class="flex items-center justify-between rounded border border-slate-200 px-2 py-1 text-sm">
                                 <span>{{ i + 1 }}. {{ mediaById(id)?.name ?? `Archivo ${id}` }}
@@ -269,15 +287,23 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                 <!-- Previsualización y estado por red -->
                 <aside class="space-y-4">
                     <div class="card p-4">
-                        <h3 class="mb-2 font-medium text-slate-900">Previsualización</h3>
+                        <h2 class="mb-2 font-medium text-slate-900">Previsualización</h2>
                         <div class="space-y-2 rounded border border-slate-200 p-3">
                             <img v-if="firstPreview" :src="firstPreview" alt="" class="max-h-48 w-full rounded object-cover" />
                             <p v-else-if="form.media.length" class="rounded bg-slate-100 p-6 text-center text-sm text-slate-500">{{ mediaById(form.media[0])?.kind === 'video' ? 'Vídeo' : 'Imagen' }}</p>
                             <p class="whitespace-pre-line text-sm text-slate-800">{{ previewText }}</p>
                         </div>
                     </div>
-                    <div v-if="post && post.targets.length" class="card p-4">
-                        <h3 class="mb-2 font-medium text-slate-900">Estado por red</h3>
+                    <div v-if="post" class="card p-4" data-testid="save-library">
+                <h2 class="mb-2 font-medium text-slate-900">Biblioteca</h2>
+                <label class="block text-sm">
+                    <span class="block text-xs font-medium text-slate-600">Nombre de la plantilla</span>
+                    <input v-model="libraryName" type="text" maxlength="120" class="field" />
+                </label>
+                <button type="button" class="btn-secondary mt-2" :disabled="savingToLibrary || !libraryName.trim()" @click="saveToLibrary">Guardar en biblioteca</button>
+            </div>
+            <div v-if="post && post.targets.length" class="card p-4">
+                        <h2 class="mb-2 font-medium text-slate-900">Estado por red</h2>
                         <ul class="space-y-2 text-sm">
                             <li v-for="t in post.targets" :key="`${t.account_id}-${t.content_type}`">
                                 <span class="font-medium">{{ accountName(t.account_id) }}</span>

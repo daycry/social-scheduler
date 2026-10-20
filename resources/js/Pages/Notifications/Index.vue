@@ -27,7 +27,7 @@ const title = (n) => (n.type === 'publish_failed' ? `No se pudo publicar en ${n.
                 <article v-for="n in notifications" :key="n.id" class="card p-4" :class="n.read ? 'opacity-70' : 'border-l-4 border-red-400'">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="font-medium text-slate-900">{{ title(n) }}</h3>
+                            <h2 class="font-medium text-slate-900">{{ title(n) }}</h2>
                             <p class="text-sm text-slate-700">{{ n.message }}</p>
                             <p v-if="n.excerpt" class="mt-1 text-xs text-slate-500">«{{ n.excerpt }}»<span v-if="n.scheduled_at"> · programada para {{ n.scheduled_at }}</span></p>
                             <p v-if="n.brand_name || n.account_name" class="text-xs text-slate-500">{{ n.brand_name }} {{ n.account_name }}</p>

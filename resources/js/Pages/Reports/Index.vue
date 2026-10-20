@@ -102,7 +102,7 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                 </form>
 
                 <section class="card">
-                    <h3 class="border-b px-5 py-3 text-sm font-medium text-slate-700">Informes recientes</h3>
+                    <h2 class="border-b px-5 py-3 text-sm font-medium text-slate-700">Informes recientes</h2>
                     <p v-if="reports.length === 0" class="p-5 text-sm text-slate-500">Aún no has generado informes.</p>
                     <ul v-else class="divide-y">
                         <li v-for="r in reports" :key="r.id" class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm" :data-report="r.id">

@@ -2,7 +2,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import NetworkChip from '@/Components/NetworkChip.vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 /** Competidores de Instagram (PA-08): seguidores y publicaciones de otras cuentas profesionales (Business Discovery). */
@@ -35,29 +37,46 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Competidores de Instagram</h2>
+            <div class="flex flex-wrap items-center gap-3">
+                <h1 class="text-xl font-bold text-slate-900">Competidores</h1>
+                <NetworkChip network="instagram" />
+            </div>
         </template>
 
         <div class="space-y-5">
             <p v-if="flash?.success" class="text-sm text-emerald-700" role="status">{{ flash.success }}</p>
-            <div v-if="!brand" class="card p-6 text-sm text-slate-700">Crea una marca para comparar tu cuenta con otras.</div>
-            <div v-else-if="!has_instagram" class="card p-6 text-sm text-slate-700">Conecta una cuenta de Instagram profesional en esta marca para comparar con otras cuentas.</div>
+            <FeatureEmpty
+                v-if="!brand || !has_instagram"
+                network="instagram"
+                :title="brand ? 'Conecta Instagram para comparar competidores' : 'Crea una marca para comparar competidores'"
+                :description="brand ? `«${brand.name}» necesita una cuenta de Instagram profesional conectada para comparar su crecimiento con el de otras cuentas.` : 'Compara tu cuenta de Instagram con otras cuentas profesionales y mide su crecimiento.'"
+                :cards="[
+                    { title: 'Comparativa de seguidores', text: 'Tu cuenta frente a la de tus competidores, en un vistazo.', kind: 'chart' },
+                    { title: 'Crecimiento a 7 y 30 días', text: 'Quién gana seguidores y a qué ritmo.', kind: 'calendar' },
+                    { title: 'Solo datos públicos', text: 'Una lectura al día, sin pedir acceso a sus cuentas.', kind: 'report' },
+                ]"
+            >
+                <template #cta>
+                    <Link v-if="brand" :href="route('brands.connections.index', brand.id)" class="btn-primary">Conectar Instagram</Link>
+                    <Link v-else :href="route('brands.create')" class="btn-primary">Crear mi primera marca</Link>
+                </template>
+            </FeatureEmpty>
 
             <template v-else>
                 <form class="card space-y-3 p-5" @submit.prevent="submit">
                     <label class="block text-sm">
-                        <span class="block text-xs font-medium text-slate-500">Usuario de Instagram (cuenta Business o Creator)</span>
+                        <span class="block text-xs font-medium text-slate-600">Usuario de Instagram (cuenta Business o Creator)</span>
                         <input v-model="form.username" type="text" maxlength="31" required placeholder="@usuario" class="field max-w-xs" />
                     </label>
                     <InputError :message="form.errors.username || form.errors.brand_id" />
                     <PrimaryButton :disabled="form.processing">Seguir cuenta</PrimaryButton>
-                    <p class="text-xs text-slate-500">Hasta {{ max }} cuentas por marca. Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día.</p>
+                    <p class="text-xs text-slate-600">Hasta {{ max }} cuentas por marca. Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día.</p>
                 </form>
 
-                <section class="card overflow-x-auto">
+                <section class="card overflow-x-auto" tabindex="0" role="region" aria-label="Comparativa de competidores">
                     <table class="w-full text-left text-sm">
                         <caption class="sr-only">Comparativa de seguidores y publicaciones</caption>
-                        <thead class="border-b text-xs text-slate-500">
+                        <thead class="border-b text-xs text-slate-600">
                             <tr>
                                 <th scope="col" class="px-5 py-3 font-medium">Cuenta</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">Seguidores</th>
@@ -69,7 +88,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                         </thead>
                         <tbody class="divide-y">
                             <tr v-if="rows.length === 0">
-                                <td colspan="6" class="px-5 py-4 text-slate-500">Aún no sigues a ninguna cuenta.</td>
+                                <td colspan="6" class="px-5 py-4 text-slate-600">Aún no sigues a ninguna cuenta.</td>
                             </tr>
                             <tr v-for="r in rows" :key="r.id">
                                 <td class="px-5 py-3">
@@ -84,7 +103,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                                 <td class="px-3 py-3 text-right tabular-nums">{{ delta(r.growth_30d) }}</td>
                                 <td class="px-3 py-3 text-right tabular-nums">{{ n(r.media) }}</td>
                                 <td class="px-3 py-3 text-right">
-                                    <button v-if="!r.own" type="button" class="text-xs text-red-600 underline" @click="remove(r)">Dejar de seguir</button>
+                                    <button v-if="!r.own" type="button" class="text-xs font-medium text-red-700 underline" @click="remove(r)">Dejar de seguir</button>
                                 </td>
                             </tr>
                         </tbody>

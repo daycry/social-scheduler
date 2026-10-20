@@ -64,7 +64,7 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
 
                 <!-- Elección de cuentas tras un OAuth que devolvió varias (p. ej. Páginas de Meta) -->
                 <section v-if="pending" class="card space-y-3 border-indigo-300 p-6">
-                    <h3 class="font-medium text-slate-900">Elige qué cuentas conectar</h3>
+                    <h2 class="font-medium text-slate-900">Elige qué cuentas conectar</h2>
                     <label v-for="c in pending.candidates" :key="c.key" class="flex items-center gap-3 text-sm text-slate-700">
                         <input v-model="selection.keys" type="checkbox" :value="c.key" class="rounded border-slate-300" />
                         <span class="font-medium">{{ c.network_label }}</span>
@@ -86,9 +86,9 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                     :data-network="n.network"
                 >
                     <div class="flex items-center justify-between">
-                        <h3 class="flex items-center gap-2.5 font-semibold text-slate-900"><NetworkIcon :network="n.network" />{{ n.label }}</h3>
+                        <h2 class="flex items-center gap-2.5 font-semibold text-slate-900"><NetworkIcon :network="n.network" />{{ n.label }}</h2>
                         <SecondaryButton v-if="n.available" type="button" @click="connect(n.provider)">+ Conectar</SecondaryButton>
-                        <span v-else class="text-xs text-slate-400">No disponible</span>
+                        <span v-else class="text-xs text-slate-500">No disponible</span>
                     </div>
 
                     <p v-if="n.accounts.length === 0" class="mt-3 text-sm text-slate-500">Sin cuentas conectadas.</p>

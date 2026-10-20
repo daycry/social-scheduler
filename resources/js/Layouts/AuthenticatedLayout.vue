@@ -5,7 +5,7 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import Icon from '@/Components/Icon.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { activeModule, MODULES, sideItems } from '@/navigation';
+import { activeModule, sideItems, visibleModules } from '@/navigation';
 import { computed, onMounted, ref, watch } from 'vue';
 
 /**
@@ -34,11 +34,12 @@ const ctx = computed(() => ({
     page,
     route,
     is,
+    has: (name) => route().has(name),
 }));
 
 const current = computed(() => activeModule(ctx.value));
 const activeKey = computed(() => current.value.key);
-const modules = computed(() => MODULES.map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.href(ctx.value) })));
+const modules = computed(() => visibleModules(ctx.value).map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.href(ctx.value), badge: m.badge ? m.badge(ctx.value) : 0 })));
 const sideItemsList = computed(() => sideItems(current.value, ctx.value));
 const q = computed(() => ctx.value.q);
 const moduleTitle = computed(() => current.value.label);
@@ -64,12 +65,12 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
 
         <!-- Barra superior -->
         <header class="sticky top-0 z-40 bg-night-900 text-slate-200 shadow-md">
-            <div class="flex h-14 items-center gap-3 px-3 sm:px-5">
+            <div class="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-5">
                 <button type="button" class="rounded-md p-2 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Abrir menú" :aria-expanded="mobileOpen" @click="mobileOpen = !mobileOpen">
                     <Icon :name="mobileOpen ? 'x' : 'menu'" class="h-5 w-5" />
                 </button>
 
-                <Link :href="route('dashboard', q)" class="shrink-0" aria-label="Social Scheduler, inicio"><BrandLogo dark /></Link>
+                <Link :href="route('dashboard', q)" class="shrink-0" aria-label="Social Scheduler, inicio"><BrandLogo dark compact /></Link>
 
                 <nav class="ms-6 hidden items-center gap-1 lg:flex" aria-label="Módulos">
                     <Link
@@ -79,14 +80,14 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                         class="rounded-md px-3 py-1.5 text-sm font-medium transition hover:bg-white/10 hover:text-white"
                         :class="activeKey === m.key ? 'bg-white/10 text-white shadow-[inset_0_-2px_0_0_#818cf8]' : 'text-slate-300'"
                         :aria-current="activeKey === m.key ? 'page' : undefined"
-                    >{{ m.label }}</Link>
+                    >{{ m.label }}<span v-if="m.badge" class="ms-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white" data-testid="inbox-badge">{{ m.badge > 99 ? '99+' : m.badge }}</span></Link>
                 </nav>
 
-                <div class="ms-auto flex items-center gap-1 sm:gap-2">
+                <div class="ms-auto flex min-w-0 items-center gap-1 sm:gap-2">
                     <!-- Selector de marca -->
                     <Dropdown align="right" width="72">
                         <template #trigger>
-                            <button type="button" class="flex max-w-[11rem] items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-sm text-white hover:bg-white/10 sm:max-w-[16rem]" aria-label="Cambiar de marca" data-testid="brand-switcher">
+                            <button type="button" class="flex max-w-[7rem] items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white hover:bg-white/10 min-[420px]:max-w-[10rem] sm:max-w-[16rem] sm:gap-2 sm:px-2.5" aria-label="Cambiar de marca" data-testid="brand-switcher">
                                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold">{{ (brand?.name ?? '+').slice(0, 1).toUpperCase() }}</span>
                                 <span class="truncate">{{ brand?.name ?? 'Sin marca' }}</span>
                                 <Icon name="chevronDown" class="h-4 w-4 shrink-0 text-slate-400" />
@@ -142,11 +143,11 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
 
             <!-- Menú móvil -->
             <div v-show="mobileOpen" class="border-t border-white/10 bg-night-800 px-3 pb-4 pt-2 lg:hidden" data-testid="mobile-menu">
-                <p class="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Módulos</p>
+                <p class="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-300">Módulos</p>
                 <Link v-for="m in modules" :key="m.key" :href="m.href" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium" :class="activeKey === m.key ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'">
-                    <Icon :name="m.icon" class="h-5 w-5" />{{ m.label }}
+                    <Icon :name="m.icon" class="h-5 w-5" />{{ m.label }}<span v-if="m.badge" class="ms-auto rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ m.badge > 99 ? '99+' : m.badge }}</span>
                 </Link>
-                <p class="px-2 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ moduleTitle }}</p>
+                <p class="px-2 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-300">{{ moduleTitle }}</p>
                 <Link v-for="i in sideItemsList" :key="i.key" :href="i.href" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm" :class="i.active ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'">
                     <NetworkIcon v-if="i.network" :network="i.network" size="sm" />
                     <Icon v-else :name="i.icon" class="h-5 w-5" />
@@ -173,7 +174,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                         <Icon v-else :name="i.icon" class="h-5 w-5 shrink-0" />
                         <span v-if="!collapsed" class="min-w-0 flex-1">
                             <span class="block truncate">{{ i.label }}</span>
-                            <span v-if="i.sub" class="block truncate text-xs font-normal" :class="i.plus ? 'text-slate-400' : 'text-slate-500'">{{ i.sub }}</span>
+                            <span v-if="i.sub" class="block truncate text-xs font-normal" :class="'text-slate-600'">{{ i.sub }}</span>
                         </span>
                         <span v-if="i.plus && !collapsed" class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white" aria-hidden="true"><Icon name="plus" class="h-3.5 w-3.5" /></span>
                     </Link>

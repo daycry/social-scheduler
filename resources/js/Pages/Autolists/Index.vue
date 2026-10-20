@@ -75,7 +75,7 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Autolistas</h2>
+            <h1 class="text-xl font-bold text-slate-900">Autolistas</h1>
         </template>
 
         <div class="space-y-5">
@@ -95,7 +95,7 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
 
             <template v-else>
                 <form class="card space-y-4 p-5" @submit.prevent="submit">
-                    <h3 class="text-sm font-medium text-slate-700">Nueva autolista · {{ brand.name }}</h3>
+                    <h2 class="text-sm font-medium text-slate-700">Nueva autolista · {{ brand.name }}</h2>
                     <label class="block text-sm">
                         <span class="block text-xs font-medium text-slate-500">Nombre</span>
                         <input v-model="form.name" type="text" maxlength="120" required class="field max-w-md" />
@@ -144,10 +144,10 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
                 <section v-for="l in autolists" :key="l.id" class="card">
                     <header class="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-3">
                         <div>
-                            <h3 class="text-sm font-semibold text-slate-900">
+                            <h2 class="text-sm font-semibold text-slate-900">
                                 {{ l.name }}
                                 <span class="ms-2 rounded-full px-2 py-0.5 text-xs" :class="l.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'">{{ l.active ? 'Activa' : 'En pausa' }}</span>
-                            </h3>
+                            </h2>
                             <p class="text-xs text-slate-500">
                                 {{ l.slots.map((s) => `${dayLabel(s.day)} ${s.time}`).join(' · ') }} · {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación: {{ fmtDate(l.last_generated_at) }}
                             </p>
@@ -168,7 +168,7 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
                     <ol v-else class="divide-y">
                         <li v-for="(it, idx) in l.items" :key="it.id" class="flex items-center justify-between gap-3 px-5 py-2 text-sm">
                             <span class="min-w-0 truncate">
-                                <span class="me-2 text-xs text-slate-400">{{ idx + 1 }}.</span>{{ it.label || '(solo archivos)' }}
+                                <span class="me-2 text-xs text-slate-500">{{ idx + 1 }}.</span>{{ it.label || '(solo archivos)' }}
                                 <span v-if="it.is_template" class="ms-2 text-xs text-indigo-600">plantilla</span>
                                 <span v-if="idx === l.cursor % l.items.length" class="ms-2 text-xs text-emerald-700">siguiente</span>
                             </span>

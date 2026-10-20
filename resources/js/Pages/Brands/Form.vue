@@ -6,12 +6,13 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
-const props = defineProps({ brand: Object });
+const props = defineProps({ brand: Object, images: { type: Array, default: () => [] }, avatar_url: { type: String, default: null } });
 
 const form = useForm({
     name: props.brand?.name ?? '',
     description: props.brand?.description ?? '',
     timezone: props.brand?.timezone ?? 'Europe/Madrid',
+    avatar_media_id: props.brand?.avatar_media_id ?? null,
 });
 
 const submit = () => {
@@ -50,6 +51,18 @@ const submit = () => {
                         <InputLabel for="timezone" value="Zona horaria" />
                         <TextInput id="timezone" v-model="form.timezone" class="mt-1 block w-full" required />
                         <InputError class="mt-2" :message="form.errors.timezone" />
+                    </div>
+                    <div>
+                        <InputLabel for="avatar_media_id" value="Avatar (imagen de tu biblioteca de medios)" />
+                        <div class="mt-1 flex items-center gap-3">
+                            <img v-if="avatar_url && form.avatar_media_id === brand?.avatar_media_id" :src="avatar_url" alt="Avatar actual de la marca" class="h-10 w-10 rounded-lg object-cover" />
+                            <select id="avatar_media_id" v-model="form.avatar_media_id" class="field">
+                                <option :value="null">Sin avatar (inicial del nombre)</option>
+                                <option v-for="m in images" :key="m.id" :value="m.id">{{ m.name }}</option>
+                            </select>
+                        </div>
+                        <p v-if="images.length === 0" class="mt-1 text-xs text-slate-600">Aún no has subido imágenes; súbelas desde el editor de publicaciones.</p>
+                        <InputError class="mt-2" :message="form.errors.avatar_media_id" />
                     </div>
                     <PrimaryButton :disabled="form.processing">Guardar</PrimaryButton>
                 </form>

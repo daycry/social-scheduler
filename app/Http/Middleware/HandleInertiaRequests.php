@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Connectors\Network;
 use App\Models\SocialAccount;
+use App\Services\InboxService;
 use App\Support\CurrentBrand;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -42,6 +43,8 @@ class HandleInertiaRequests extends Middleware
             ],
             // Contador de avisos sin leer para la barra de navegacion.
             'unreadNotifications' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
+            // Comentarios sin leer del Inbox (una sola consulta COUNT, lazy y solo con sesion).
+            'unreadInbox' => fn () => $request->user() ? app(InboxService::class)->unreadCount($request->user()) : 0,
             'shell' => fn () => $request->user() ? $this->shell($request) : null,
         ];
     }

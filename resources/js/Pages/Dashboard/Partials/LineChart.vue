@@ -98,7 +98,7 @@ const hoverRows = computed(() =>
                 <div v-for="r in hoverRows" :key="r.name" class="flex items-center gap-1">
                     <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: r.color }"></span>
                     <span class="text-slate-600">{{ r.name }}:</span>
-                    <span :class="r.value === null ? 'text-slate-400' : 'text-slate-900'">{{ fmt(r.value) }}</span>
+                    <span :class="r.value === null ? 'text-slate-500' : 'text-slate-900'">{{ fmt(r.value) }}</span>
                 </div>
             </div>
             <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-slate-600">

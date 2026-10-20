@@ -22,8 +22,8 @@ defineProps({
     <section class="card p-5">
         <header class="flex items-start justify-between gap-3">
             <div>
-                <h3 class="text-sm font-medium text-slate-500">{{ label }}</h3>
-                <p class="mt-0.5 font-semibold tabular-nums" :class="available ? 'text-3xl text-slate-900' : 'text-xl text-slate-400'">{{ fmt(total) }}</p>
+                <h2 class="text-sm font-medium text-slate-500">{{ label }}</h2>
+                <p class="mt-0.5 font-semibold tabular-nums" :class="available ? 'text-3xl text-slate-900' : 'text-xl text-slate-500'">{{ fmt(total) }}</p>
             </div>
             <span v-if="comparing && deltaPct !== null" class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="deltaClass(deltaPct)">{{ fmtPct(deltaPct) }}</span>
         </header>

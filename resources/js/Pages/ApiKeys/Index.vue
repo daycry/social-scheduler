@@ -49,7 +49,7 @@ const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : 'nunca');
                 </div>
 
                 <section class="card p-4 sm:p-8">
-                    <h3 class="text-lg font-medium text-slate-900">Conectar un agente</h3>
+                    <h2 class="text-lg font-medium text-slate-900">Conectar un agente</h2>
                     <p class="mt-1 text-sm text-slate-600">
                         Servidor MCP por HTTP en <code class="rounded bg-slate-100 px-1">{{ endpoint }}</code>
                         con la cabecera <code class="rounded bg-slate-100 px-1">Authorization: Bearer &lt;tu key&gt;</code>.
@@ -58,7 +58,7 @@ const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : 'nunca');
                 </section>
 
                 <section class="card p-4 sm:p-8">
-                    <h3 class="text-lg font-medium text-slate-900">Nueva API key</h3>
+                    <h2 class="text-lg font-medium text-slate-900">Nueva API key</h2>
                     <form class="mt-4 max-w-xl space-y-4" @submit.prevent="create">
                         <div>
                             <InputLabel for="name" value="Nombre (p. ej. Claude Desktop)" />
@@ -83,7 +83,7 @@ const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : 'nunca');
                 </section>
 
                 <section class="card p-4 sm:p-8">
-                    <h3 class="text-lg font-medium text-slate-900">Tus API keys</h3>
+                    <h2 class="text-lg font-medium text-slate-900">Tus API keys</h2>
                     <p v-if="keys.length === 0" class="mt-2 text-sm text-slate-600">Aún no tienes ninguna.</p>
                     <ul v-else class="mt-2 divide-y divide-slate-200">
                         <li v-for="key in keys" :key="key.id" class="flex items-center justify-between py-3">

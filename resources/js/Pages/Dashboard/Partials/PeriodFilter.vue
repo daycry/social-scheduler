@@ -34,8 +34,8 @@ const apply = () =>
     <div class="card flex flex-wrap items-end gap-x-4 gap-y-3 p-4">
         <div class="text-sm">
             <label for="period-from" class="block text-xs font-medium text-slate-600">Periodo principal</label>
-            <span class="flex items-center gap-1.5">
-                <input id="period-from" v-model="form.from" type="date" class="field w-auto py-1.5" aria-label="Desde" @change="apply" />
+            <span class="flex flex-wrap items-center gap-1.5">
+                <input id="period-from" v-model="form.from" type="date" class="field w-auto min-w-0 py-1.5" aria-label="Desde" @change="apply" />
                 <span class="text-slate-400" aria-hidden="true">–</span>
                 <input v-model="form.to" type="date" class="field w-auto py-1.5" aria-label="Hasta" @change="apply" />
             </span>

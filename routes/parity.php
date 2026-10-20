@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AutolistController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CompetitorController;
 use App\Http\Controllers\LibraryController;
@@ -45,6 +46,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('competitors', [CompetitorController::class, 'index'])->name('competitors.index');
     Route::post('competitors', [CompetitorController::class, 'store'])->middleware('throttle:20,1')->name('competitors.store');
     Route::delete('competitors/{competitor}', [CompetitorController::class, 'destroy'])->whereNumber('competitor')->name('competitors.destroy');
+
+    // Planificacion · Autolistas (PA-09).
+    Route::get('autolists', [AutolistController::class, 'index'])->name('autolists.index');
+    Route::post('autolists', [AutolistController::class, 'store'])->name('autolists.store');
+    Route::patch('autolists/{autolist}', [AutolistController::class, 'update'])->whereNumber('autolist')->name('autolists.update');
+    Route::delete('autolists/{autolist}', [AutolistController::class, 'destroy'])->whereNumber('autolist')->name('autolists.destroy');
+    Route::post('autolists/{autolist}/items', [AutolistController::class, 'addItem'])->whereNumber('autolist')->name('autolists.items.store');
+    Route::delete('autolists/{autolist}/items/{item}', [AutolistController::class, 'removeItem'])->whereNumber(['autolist', 'item'])->name('autolists.items.destroy');
+    Route::post('autolists/{autolist}/generate', [AutolistController::class, 'generate'])->middleware('throttle:20,1')->whereNumber('autolist')->name('autolists.generate');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

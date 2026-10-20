@@ -41,6 +41,15 @@ return [
             'instagram_content_publish',
             'instagram_manage_insights',
             'instagram_manage_contents',
+            /*
+             * Fase P3 (PA-10, PA-11). Cada permiso hay que activarlo en los casos de uso de la app de Meta (developers.facebook.com)
+             * y RECONECTAR las cuentas para que se concedan: comentarios de Instagram, comentarios/moderacion de la Pagina y
+             * lectura de Meta Ads. Sin ellos el buzon y Ads muestran «no disponible» con la instruccion de activarlos.
+             */
+            'instagram_manage_comments',
+            'pages_read_user_content',
+            'pages_manage_engagement',
+            'ads_read',
         ],
     ],
 
@@ -183,5 +192,49 @@ return [
     'competitors' => [
         'daily_at' => env('SOCIAL_COMPETITORS_DAILY_AT', '13:00'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
+    ],
+
+    /*
+    | Autolistas (PA-09): el job diario genera las publicaciones programadas de los proximos `horizon_days` dias.
+    */
+    'autolists' => [
+        'daily_at' => env('SOCIAL_AUTOLISTS_DAILY_AT', '02:00'),
+        'horizon_days' => (int) env('SOCIAL_AUTOLISTS_HORIZON_DAYS', 7),
+        'queue' => env('SOCIAL_AUTOLISTS_QUEUE', 'poll'),
+    ],
+
+    /*
+    | Buzon de comentarios de Instagram/Facebook (PA-10): sincronizacion periodica en la cola `poll`. Solo publicaciones
+    | propias publicadas en los ultimos `post_days` dias (y como mucho `max_posts` por cuenta) para acotar las llamadas.
+    */
+    'inbox' => [
+        'queue' => env('SOCIAL_INBOX_QUEUE', 'poll'),
+        'post_days' => (int) env('SOCIAL_INBOX_POST_DAYS', 30),
+        'max_posts' => (int) env('SOCIAL_INBOX_MAX_POSTS', 25),
+        'comments_per_post' => (int) env('SOCIAL_INBOX_COMMENTS_PER_POST', 50),
+        'sync_minutes' => (int) env('SOCIAL_INBOX_SYNC_MINUTES', 15),
+        'reply_max_chars' => 2200,
+    ],
+
+    /* Meta Ads solo lectura (PA-11): cache corta de las respuestas de Graph (minutos) y topes de listado. */
+    'ads' => [
+        'cache_minutes' => (int) env('SOCIAL_ADS_CACHE_MINUTES', 10),
+        'max_accounts' => 25,
+        'max_campaigns' => 50,
+    ],
+
+    /*
+    | Asistente IA opcional (T-14). Desactivado por defecto: solo se ofrece con AI_ASSISTANT_ENABLED=true Y ANTHROPIC_API_KEY.
+    | Llama a la Messages API de Anthropic con Http (sin SDK). No se envian datos personales: solo el brief que escribe el
+    | usuario, el nombre de la marca y la red de destino.
+    */
+    'ai' => [
+        'enabled' => (bool) env('AI_ASSISTANT_ENABLED', false),
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('AI_ASSISTANT_MODEL', 'claude-sonnet-5-5'),
+        'max_tokens' => (int) env('AI_ASSISTANT_MAX_TOKENS', 600),
+        'timeout' => (int) env('AI_ASSISTANT_TIMEOUT', 30),
+        /* Limite por usuario: peticiones al dia. */
+        'daily_limit' => (int) env('AI_ASSISTANT_DAILY_LIMIT', 20),
     ],
 ];

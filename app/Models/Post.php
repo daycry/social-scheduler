@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Publicacion (texto + media + fecha) que se envia a una o varias cuentas mediante sus `PostTarget`.
@@ -20,10 +21,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Las relaciones internas quitan el UserScope: se llega a ellas desde un padre ya acotado al usuario
  * (o desde un job que opta explicitamente por withoutUserScope), y sin usuario autenticado el scope
  * las dejaria vacias.
+ *
+ * Borrar es un soft delete (papelera, PA-06): `TrashService` restaura y `posts:purge-trash` elimina pasados 30 dias.
  */
 class Post extends Model
 {
-    use BelongsToUser, HasFactory;
+    use BelongsToUser, HasFactory, SoftDeletes;
 
     protected $fillable = ['text', 'scheduled_at', 'status'];
 

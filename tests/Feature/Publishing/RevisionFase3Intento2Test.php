@@ -196,7 +196,8 @@ test('N2: el usuario puede borrar y cancelar (a borrador) una publicacion proces
 
     if ($op === 'borrar') {
         $this->service->delete($this->user, $post->fresh());
-        expect(Post::withoutUserScope()->find($post->id))->toBeNull()->and(PostTarget::withoutUserScope()->find($target->id))->toBeNull();
+        // Papelera (soft delete): el post sale de las consultas normales y su destino huerfano se conserva por si se restaura.
+        expect(Post::withoutUserScope()->find($post->id))->toBeNull()->and(Post::withoutUserScope()->onlyTrashed()->find($post->id))->not->toBeNull();
     } else {
         $this->service->unschedule($this->user, $post->fresh());
         $t = $target->fresh();

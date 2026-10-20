@@ -23,6 +23,16 @@ class PostPolicy
         return $this->owns($user, $post, 'delete');
     }
 
+    public function restore(User $user, Post $post): bool
+    {
+        return $this->owns($user, $post, 'restore');
+    }
+
+    public function forceDelete(User $user, Post $post): bool
+    {
+        return $this->owns($user, $post, 'forceDelete');
+    }
+
     private function owns(User $user, Post $post, string $ability): bool
     {
         if ($post->user_id === $user->id) {

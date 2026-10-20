@@ -180,14 +180,15 @@ test('Posts: reprogramar y desprogramar una pendiente; una publicada no se toca 
     expect(fn () => $this->service->delete($this->user, $post->fresh()))->toThrow(PostValidationException::class);
 });
 
-test('Posts: editar reemplaza contenido y destinos; borrar una pendiente la elimina', function () {
+test('Posts: editar reemplaza contenido y destinos; borrar una pendiente la envia a la papelera', function () {
     $post = $this->service->create($this->user, $this->brand, postData());
 
     $edited = $this->service->update($this->user, $post, postData(['text' => 'Nuevo', 'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_photo']]]));
     expect($edited->text)->toBe('Nuevo')->and($edited->targets)->toHaveCount(1)->and($edited->targets[0]->network)->toBe(Network::Facebook);
 
     $this->service->delete($this->user, $edited);
-    expect(Post::withoutUserScope()->count())->toBe(0)->and(PostTarget::withoutUserScope()->count())->toBe(0);
+    // Soft delete (papelera): el post sale de las consultas normales pero conserva sus destinos para poder restaurarlo.
+    expect(Post::withoutUserScope()->count())->toBe(0)->and(Post::withoutUserScope()->onlyTrashed()->count())->toBe(1)->and(PostTarget::withoutUserScope()->count())->toBe(1);
     // La media no se borra con la publicacion.
     expect(MediaAsset::withoutUserScope()->count())->toBe(1);
 });

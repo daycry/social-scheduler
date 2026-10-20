@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Connectors\Network;
-use App\Models\MediaAsset;
 use App\Models\SocialAccount;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
@@ -58,20 +57,13 @@ class HandleInertiaRequests extends Middleware
         $brands = CurrentBrand::brands($request);
         $current = CurrentBrand::resolve($request);
 
-        // Avatares de las marcas (URL temporal); si el disco no puede firmarlas, el selector muestra la inicial.
+        // Avatares de las marcas: URL ESTABLE (`brands.avatar`, autorizada, que redirige a la imagen con cache privada de 1 h), para que el
+        // `src` no cambie en cada navegacion. Si el disco no puede firmar, esa ruta da 404 y el selector muestra la inicial.
         $avatars = [];
-        $withAvatar = $brands->filter(fn ($b) => $b->avatar_media_id);
-        if ($withAvatar->isNotEmpty()) {
-            MediaAsset::query()->whereIn('id', $withAvatar->pluck('avatar_media_id'))->get()->each(function (MediaAsset $m) use ($withAvatar, &$avatars): void {
-                try {
-                    $url = $m->publicUrl(60);
-                } catch (\Throwable) {
-                    return;
-                }
-                foreach ($withAvatar->where('avatar_media_id', $m->id) as $b) {
-                    $avatars[$b->id] = $url;
-                }
-            });
+        foreach ($brands as $b) {
+            if ($b->avatar_media_id) {
+                $avatars[$b->id] = route('brands.avatar', $b, false).'?v='.$b->avatar_media_id;
+            }
         }
 
         $accounts = [];

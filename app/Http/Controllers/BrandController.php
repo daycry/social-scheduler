@@ -72,6 +72,27 @@ class BrandController extends Controller
         return redirect()->route('brands.index');
     }
 
+    /**
+     * Avatar de la marca con URL ESTABLE (la que usa el selector del layout): autoriza y redirige a la imagen con una URL temporal
+     * de vida mayor que la cache (el `src` no cambia en cada navegacion y el navegador la reutiliza 1 h).
+     */
+    public function avatar(Brand $brand): RedirectResponse
+    {
+        $this->authorize('view', $brand);
+        $media = $brand->avatar_media_id ? MediaAsset::query()->find($brand->avatar_media_id) : null;
+        if (! $media || ! $media->isReady()) {
+            abort(404);
+        }
+
+        try {
+            $url = $media->publicUrl(120);
+        } catch (\Throwable) {
+            abort(404);
+        }
+
+        return redirect()->away($url)->header('Cache-Control', 'private, max-age=3600');
+    }
+
     /** Imagenes listas del usuario que puede elegir como avatar. */
     private function images(Request $request): array
     {

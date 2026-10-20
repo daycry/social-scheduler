@@ -35,6 +35,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('brands', BrandController::class);
+    Route::get('brands/{brand}/avatar', [BrandController::class, 'avatar'])->whereNumber('brand')->name('brands.avatar');
 
     // Conexiones de redes sociales por marca (T-12..T-15).
     Route::get('brands/{brand}/connections', [ConnectionController::class, 'index'])->name('brands.connections.index');

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AutolistController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CompetitorController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\PublicSmartLinkController;
 use App\Http\Controllers\SmartLinkController;
@@ -55,6 +56,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('autolists/{autolist}/items', [AutolistController::class, 'addItem'])->whereNumber('autolist')->name('autolists.items.store');
     Route::delete('autolists/{autolist}/items/{item}', [AutolistController::class, 'removeItem'])->whereNumber(['autolist', 'item'])->name('autolists.items.destroy');
     Route::post('autolists/{autolist}/generate', [AutolistController::class, 'generate'])->middleware('throttle:20,1')->whereNumber('autolist')->name('autolists.generate');
+
+    // Inbox de comentarios de Instagram/Facebook (PA-10).
+    Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
+    Route::post('inbox/sync', [InboxController::class, 'sync'])->middleware('throttle:6,1')->name('inbox.sync');
+    Route::post('inbox/read-all', [InboxController::class, 'readAll'])->name('inbox.read-all');
+    Route::post('inbox/{comment}/read', [InboxController::class, 'read'])->whereNumber('comment')->name('inbox.read');
+    Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.reply');
+    Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

@@ -6,6 +6,7 @@ use App\Jobs\DispatchDuePosts;
 use App\Jobs\GenerateAutolistPosts;
 use App\Jobs\RefreshPostMetrics;
 use App\Jobs\RefreshTokens;
+use App\Jobs\SyncInboxComments;
 use App\Support\HealthCheck;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -51,3 +52,6 @@ Schedule::job(new CollectCompetitorSnapshots)->dailyAt((string) config('social.c
 
 // Autolistas (PA-09): genera las publicaciones programadas de los proximos dias (idempotente). Cola `poll`.
 Schedule::job(new GenerateAutolistPosts)->dailyAt((string) config('social.autolists.daily_at', '02:00'))->name('generate-autolist-posts')->withoutOverlapping();
+
+// Inbox de comentarios (PA-10): sincroniza los comentarios de las publicaciones propias de IG/FB. Cola `poll`.
+Schedule::job(new SyncInboxComments)->cron('*/'.max(5, (int) config('social.inbox.sync_minutes', 15)).' * * * *')->name('sync-inbox-comments')->withoutOverlapping();

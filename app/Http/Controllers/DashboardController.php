@@ -6,6 +6,7 @@ use App\Analytics\Period;
 use App\Connectors\Network;
 use App\Models\Brand;
 use App\Services\AnalyticsService;
+use App\Support\CurrentBrand;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,8 +58,8 @@ class DashboardController extends Controller
         ]);
 
         // El UserScope limita a las marcas del usuario: una marca ajena no existe para el.
-        $all = Brand::query()->orderBy('name')->get();
-        $brand = ! empty($data['brand_id']) ? ($all->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : $all->first();
+        $all = CurrentBrand::brands($request);
+        $brand = ! empty($data['brand_id']) ? ($all->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : CurrentBrand::resolve($request);
 
         try {
             $period = Period::make($data['from'] ?? null, $data['to'] ?? null, $brand?->timezone);

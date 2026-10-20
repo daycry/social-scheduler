@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdsController;
 use App\Http\Controllers\AutolistController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CompetitorController;
@@ -64,6 +65,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inbox/{comment}/read', [InboxController::class, 'read'])->whereNumber('comment')->name('inbox.read');
     Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.reply');
     Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
+
+    // Analytics · Meta Ads, solo lectura (PA-11).
+    Route::get('ads', [AdsController::class, 'index'])->middleware('throttle:30,1')->name('ads.index');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

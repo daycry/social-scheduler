@@ -28,15 +28,18 @@ test('behind a trusted TLS proxy route() builds https URLs so the OAuth redirect
 });
 
 test('without trusted proxies the forwarded headers are ignored', function () {
+    // Independiente del .env (en CI se copia .env.example con APP_URL https).
+    config(['app.trusted_proxies' => null]);
     $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->register(new FakeConnector('meta', [Network::Instagram])));
     $user = User::factory()->create();
     $brand = Brand::factory()->for($user)->create();
 
+    // URL absoluta en http: el resultado no depende del APP_URL del .env.
     $response = $this->actingAs($user)->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-Host' => 'evil.test'])
-        ->post(route('brands.connections.connect', [$brand, 'meta'], false));
+        ->post('http://localhost'.route('brands.connections.connect', [$brand, 'meta'], false));
 
     parse_str(parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
-    expect($query['redirect_uri'])->toStartWith('http://')->not->toContain('evil.test');
+    expect($query['redirect_uri'])->toBe('http://localhost/connections/meta/callback');
 });
 
 test('TRUSTED_PROXIES is read from config at request time, not at bootstrap', function () {

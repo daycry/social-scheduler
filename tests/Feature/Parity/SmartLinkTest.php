@@ -184,3 +184,31 @@ test('SmartLinks: una marca solo puede tener un microsite y se puede eliminar', 
     auth()->logout();
     $this->get('/l/otro-slug')->assertNotFound();
 });
+
+test('SafeUrl: C2 rechaza caracteres de control/formato Unicode, %00 y hosts con mezcla de escrituras', function () {
+    foreach ([
+        "https://evil.com\u{2028}", "https://e\u{200b}vil.com", "https://evil.com/\u{202e}txt", "https://evil.com/\u{0085}x", 'http://evil.com%00.good.com', 'https://evil.com/a%2500b',
+        "https://\u{0430}pple.com", 'https://xn--pple-43d.com', "https://pa\u{0443}pal.com/login", 'https://user@evil.com', 'https:evil.com', '//evil.com',
+    ] as $bad) {
+        expect(SafeUrl::isSafe($bad))->toBeFalse("deberia rechazar: $bad");
+    }
+    foreach (["https://b\u{00fc}cher.de/a", 'https://xn--bcher-kva.de', "https://\u{044f}\u{043d}\u{0434}\u{0435}\u{043a}\u{0441}.\u{0440}\u{0444}", 'https://example.com/ruta%20con%20espacio', 'http://127.0.0.1:8080/x'] as $good) {
+        expect(SafeUrl::isSafe($good))->toBeTrue("deberia aceptar: $good");
+    }
+});
+
+test('SmartLinks: C1 la pagina publica lleva aviso, enlace de denuncia y rel="nofollow noopener"', function () {
+    config(['social.smartlinks.report_email' => 'abuso@example.test']);
+    $this->actingAs($this->user)->post(route('smartlinks.save'), slPayload($this->brand))->assertSessionHasNoErrors();
+    auth()->logout();
+    $this->flushSession();
+
+    $this->get('/l/mi-marca')->assertOk()
+        ->assertSee('Denunciar esta pagina')->assertSee('mailto:abuso@example.test', false)
+        ->assertSee('rel="nofollow noopener"', false);
+});
+
+test('Registro: C1 REGISTRATION_ENABLED comparte la bandera con la UI (por defecto abierto)', function () {
+    expect(config('app.registration_enabled'))->toBeTrue();
+    $this->get('/login')->assertOk()->assertInertia(fn ($p) => $p->where('registrationEnabled', true));
+});

@@ -15,6 +15,12 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    /*
+    | Registro publico de cuentas. true por defecto (desarrollo/local); en una instalacion de uso personal en produccion,
+    | REGISTRATION_ENABLED=false cierra /register (y oculta los enlaces «Crear cuenta»): las cuentas se crean por consola.
+    */
+    'registration_enabled' => (bool) env('REGISTRATION_ENABLED', true),
+
     // Token del endpoint /health (healthcheck externo). Vacio = endpoint cerrado.
     'healthcheck_token' => env('HEALTHCHECK_TOKEN'),
 

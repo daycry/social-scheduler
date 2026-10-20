@@ -33,6 +33,8 @@
         .btn:hover, .btn:focus-visible { filter: brightness(1.1); outline: 3px solid var(--fg); outline-offset: 2px; }
         .header { margin-top: 1rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
         footer { margin-top: 2.5rem; font-size: .75rem; color: var(--muted); }
+        footer p { margin: .25rem 0; }
+        footer a { color: var(--fg); text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -51,11 +53,18 @@
             @if ($block->type === 'header')
                 <li class="header" role="heading" aria-level="2">{{ $block->label }}</li>
             @else
-                <li><a class="btn" rel="noopener nofollow" href="{{ url('/l/'.$link->slug.'/go/'.$block->id) }}">{{ $block->label }}</a></li>
+                <li><a class="btn" rel="nofollow noopener" href="{{ url('/l/'.$link->slug.'/go/'.$block->id) }}">{{ $block->label }}</a></li>
             @endif
         @endforeach
     </ul>
-    <footer>Hecho con Social Scheduler</footer>
+    @php $report = config('social.smartlinks.report_email') ?: config('mail.from.address'); @endphp
+    <footer>
+        <p>Contenido publicado por su autor; los enlaces llevan a sitios externos que no controlamos.</p>
+        @if ($report)
+            <p><a rel="nofollow noopener" href="mailto:{{ $report }}?subject={{ rawurlencode('Denuncia de la pagina '.$link->url()) }}">Denunciar esta pagina</a></p>
+        @endif
+        <p>Hecho con Social Scheduler</p>
+    </footer>
 </main>
 </body>
 </html>

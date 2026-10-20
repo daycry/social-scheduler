@@ -186,6 +186,8 @@ return [
     'best_times' => [
         'days' => (int) env('SOCIAL_BEST_TIMES_DAYS', 90),
         'min_posts' => (int) env('SOCIAL_BEST_TIMES_MIN_POSTS', 10),
+        /* Cache corta (min) del mapa de calor por usuario/marca/red; 0 = sin cache. */
+        'cache_minutes' => (int) env('SOCIAL_BEST_TIMES_CACHE_MINUTES', 10),
     ],
 
     /*
@@ -209,11 +211,21 @@ return [
     | Buzon de comentarios de Instagram/Facebook (PA-10): sincronizacion periodica en la cola `poll`. Solo publicaciones
     | propias publicadas en los ultimos `post_days` dias (y como mucho `max_posts` por cuenta) para acotar las llamadas.
     */
+    /* SmartLinks: contacto al que enviar denuncias de una pagina publica (por defecto, el remitente del correo). */
+    'smartlinks' => [
+        'report_email' => env('SMARTLINKS_REPORT_EMAIL'),
+    ],
+
     'inbox' => [
         'queue' => env('SOCIAL_INBOX_QUEUE', 'poll'),
         'post_days' => (int) env('SOCIAL_INBOX_POST_DAYS', 30),
         'max_posts' => (int) env('SOCIAL_INBOX_MAX_POSTS', 25),
         'comments_per_post' => (int) env('SOCIAL_INBOX_COMMENTS_PER_POST', 50),
+        /* Paginas de Graph que se siguen por publicacion (comentarios) y por hilo (respuestas). */
+        'max_pages' => (int) env('SOCIAL_INBOX_MAX_PAGES', 5),
+        'max_reply_pages' => (int) env('SOCIAL_INBOX_MAX_REPLY_PAGES', 3),
+        /* Presupuesto (s) por pasada del job de sincronizacion; < $timeout (90 s). Al agotarlo continua en otra pasada. */
+        'budget_seconds' => (float) env('SOCIAL_INBOX_BUDGET_SECONDS', 60),
         'sync_minutes' => (int) env('SOCIAL_INBOX_SYNC_MINUTES', 15),
         'reply_max_chars' => 2200,
     ],
@@ -238,5 +250,7 @@ return [
         'timeout' => (int) env('AI_ASSISTANT_TIMEOUT', 30),
         /* Limite por usuario: peticiones al dia. */
         'daily_limit' => (int) env('AI_ASSISTANT_DAILY_LIMIT', 20),
+        /* Tope diario GLOBAL (todos los usuarios) de sugerencias; 0 = sin tope. Protege el gasto de la clave compartida. */
+        'global_daily_limit' => (int) env('AI_ASSISTANT_GLOBAL_DAILY_LIMIT', 200),
     ],
 ];

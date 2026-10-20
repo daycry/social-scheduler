@@ -100,6 +100,6 @@ const submit = () => {
             </div>
         </form>
 
-        <p class="mt-6 text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p>
+        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p>
     </GuestLayout>
 </template>

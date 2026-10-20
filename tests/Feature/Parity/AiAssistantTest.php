@@ -105,3 +105,31 @@ test('IA: exige sesion', function () {
     $this->getJson(route('ai.status'))->assertUnauthorized();
     $this->postJson(route('ai.suggest'), ['brief' => 'x'])->assertUnauthorized();
 });
+
+test('IA: C4 tope diario GLOBAL entre usuarios y un reembolso nunca deja el contador en negativo', function () {
+    aiEnable(['global_daily_limit' => 2]);
+    Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'ok']]])]);
+    $other = User::factory()->create();
+
+    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'uno'])->assertOk();
+    $this->actingAs($other)->postJson(route('ai.suggest'), ['brief' => 'dos'])->assertOk();
+    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'tres'])->assertStatus(422);
+
+    expect((int) Cache::get('ai:global:'.now('UTC')->toDateString()))->toBe(2); // la rechazada se devolvio
+});
+
+test('IA: C4 un fallo del servicio tras cambiar de dia devuelve la reserva del dia original sin pasar de cero', function () {
+    aiEnable();
+    Carbon\Carbon::setTestNow('2026-11-01 23:59:59');
+    Http::fake(['api.anthropic.com/*' => function () {
+        Carbon\Carbon::setTestNow('2026-11-02 00:00:05'); // cambia el dia mientras la llamada esta en vuelo
+
+        return Http::response([], 500);
+    }]);
+
+    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'x'])->assertStatus(422);
+
+    expect((int) Cache::get('ai:'.$this->user->id.':2026-11-01'))->toBe(0)
+        ->and((int) Cache::get('ai:'.$this->user->id.':2026-11-02'))->toBe(0);
+    Carbon\Carbon::setTestNow();
+});

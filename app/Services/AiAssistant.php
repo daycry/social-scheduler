@@ -47,7 +47,7 @@ class AiAssistant
             throw new PostValidationException(['brief' => ['Describe la idea en '.self::MAX_BRIEF.' caracteres como máximo.']]);
         }
 
-        $this->consume($user);
+        $keys = $this->consume($user);
 
         try {
             $response = Http::timeout((int) config('social.ai.timeout', 30))->acceptJson()
@@ -59,13 +59,13 @@ class AiAssistant
                     'messages' => [['role' => 'user', 'content' => $this->prompt($this->redact($brief), $brandName, $network)]],
                 ]);
         } catch (ConnectionException) {
-            $this->refund($user);
+            $this->refund($keys);
             throw new PostValidationException(['brief' => ['El asistente no responde ahora mismo. Inténtalo de nuevo en unos minutos.']]);
         }
 
         $text = $response->successful() ? $this->extract($response->json()) : null;
         if ($text === null) {
-            $this->refund($user);
+            $this->refund($keys);
             // Sin la clave ni el cuerpo: solo el estado.
             Log::warning('ai.suggest_failed', ['status' => $response->status()]);
 
@@ -112,24 +112,52 @@ class AiAssistant
         return null;
     }
 
-    private function key(User $user): string
+    private function key(User $user, ?string $day = null): string
     {
-        return 'ai:'.$user->id.':'.now('UTC')->toDateString();
+        return 'ai:'.$user->id.':'.($day ?? now('UTC')->toDateString());
     }
 
-    private function consume(User $user): void
+    private function globalKey(string $day): string
     {
-        $key = $this->key($user);
-        Cache::add($key, 0, now('UTC')->endOfDay()->addMinutes(5));
+        return 'ai:global:'.$day;
+    }
 
-        if (Cache::increment($key) > (int) config('social.ai.daily_limit', 20)) {
-            Cache::decrement($key);
+    /**
+     * Reserva una sugerencia: tope diario por usuario y tope GLOBAL (`AI_ASSISTANT_GLOBAL_DAILY_LIMIT`, 0 = sin tope: protege
+     * el gasto aunque haya varias cuentas). Devuelve las claves del dia en que se reservo, para devolverlas aunque cambie el dia.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function consume(User $user): array
+    {
+        $day = now('UTC')->toDateString();
+        $keys = [$this->key($user, $day), $this->globalKey($day)];
+        $ttl = now('UTC')->endOfDay()->addMinutes(5);
+        foreach ($keys as $key) {
+            Cache::add($key, 0, $ttl);
+        }
+
+        if (Cache::increment($keys[0]) > (int) config('social.ai.daily_limit', 20)) {
+            $this->refund([$keys[0]]);
             throw new PostValidationException(['brief' => ['Has alcanzado el límite diario de sugerencias.']]);
         }
+
+        $global = (int) config('social.ai.global_daily_limit', 0);
+        if (Cache::increment($keys[1]) > $global && $global > 0) {
+            $this->refund($keys);
+            throw new PostValidationException(['brief' => ['Se alcanzó el límite diario del asistente. Inténtalo mañana.']]);
+        }
+
+        return $keys;
     }
 
-    private function refund(User $user): void
+    /** Devuelve una reserva SIN pasar nunca de cero (la clave puede haber caducado o ser de un dia anterior). @param list<string> $keys */
+    private function refund(array $keys): void
     {
-        Cache::decrement($this->key($user));
+        foreach ($keys as $key) {
+            if ((int) Cache::get($key, 0) > 0) {
+                Cache::decrement($key);
+            }
+        }
     }
 }

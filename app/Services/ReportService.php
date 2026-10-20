@@ -188,13 +188,16 @@ class ReportService
         $latest = DB::table('post_metric_snapshots')->selectRaw('post_target_id, MAX(date) as last_date')
             ->where('user_id', $user->id)->groupBy('post_target_id');
 
+        // Los dias del periodo son de la zona de la marca (como en el dashboard), no UTC.
+        [$from, $to] = $period->utcBounds($brand->timezone);
+
         $rows = DB::table('post_targets as t')
             ->join('post_metric_snapshots as s', 's.post_target_id', '=', 't.id')
             ->joinSub($latest, 'l', fn ($j) => $j->on('l.post_target_id', '=', 's.post_target_id')->on('l.last_date', '=', 's.date'))
             ->where('t.user_id', $user->id)
             ->whereIn('t.social_account_id', array_keys($networkByAccount))
             ->where('t.status', PostStatus::Published->value)
-            ->whereBetween('t.published_at', [$period->from->startOfDay(), $period->to->endOfDay()])
+            ->where('t.published_at', '>=', $from)->where('t.published_at', '<', $to)
             ->select('t.id', 't.social_account_id', 't.published_at', 's.metrics')
             ->cursor();
 

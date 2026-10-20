@@ -167,3 +167,38 @@ it('ReportFix M-12: el PDF elimina los emojis que la fuente no representa', func
 
     expect($data['a']['text'])->toBe('Lanzamiento  nuevo   ok')->and($data['b'])->toBe('Cañón árbol');
 });
+
+it('ReportFix M-a: las mejores publicaciones filtran el periodo en la zona horaria de la marca', function () {
+    $this->brand->update(['timezone' => 'Pacific/Auckland']);
+    // 2026-10-10 20:00 UTC = 2026-10-11 09:00 en Auckland: es del 11, no del 10.
+    $post = Post::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'text' => 'Borde']);
+    $t = PostTarget::factory()->create([
+        'post_id' => $post->id, 'social_account_id' => $this->ig->id, 'network' => Network::Instagram,
+        'status' => PostStatus::Published, 'external_id' => 'borde', 'published_at' => Carbon::parse('2026-10-10 20:00:00', 'UTC'),
+    ]);
+    PostMetricSnapshot::withoutUserScope()->create(['user_id' => $this->user->id, 'post_target_id' => $t->id, 'social_account_id' => $this->ig->id,
+        'network' => 'instagram', 'date' => '2026-10-20', 'metrics' => [Metric::VIEWS => 10, Metric::INTERACTIONS => 5]]);
+
+    $svc = app(ReportService::class);
+    $brand = $this->brand->fresh();
+
+    expect($svc->topPosts($this->user, $brand, Period::make('2026-10-10', '2026-10-10'), 5))->toBe([])
+        ->and($svc->topPosts($this->user, $brand, Period::make('2026-10-11', '2026-10-11'), 5)['instagram'])->toHaveCount(1);
+});
+
+it('ReportFix M-b: reports:prune purga TODOS los caducados aunque superen un bloque de paginacion (2100 > 1000) (sin saltarse filas al paginar)', function () {
+    $rows = [];
+
+    foreach (range(1, 2100) as $_) {
+        $rows[] = ['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'format' => 'csv', 'from' => '2026-01-01', 'to' => '2026-01-31',
+            'compare' => 'none', 'status' => 'ready', 'created_at' => now()->subDays(60), 'updated_at' => now()->subDays(60)];
+    }
+
+    foreach (array_chunk($rows, 200) as $chunk) {
+        DB::table('reports')->insert($chunk);
+    }
+
+    $this->artisan('reports:prune')->assertSuccessful();
+
+    expect(DB::table('reports')->count())->toBe(0);
+});

@@ -26,9 +26,11 @@ class PruneReports extends Command
         Report::withoutUserScope()
             ->where('created_at', '<', now()->subDays((int) config('reports.retention_days', 30)))
             ->whereNotIn('status', [Report::STATUS_PENDING, Report::STATUS_PROCESSING])
-            ->each(function (Report $report) use (&$purged) {
-                $report->delete(); // el evento `deleting` borra el fichero
-                $purged++;
+            ->chunkById(200, function ($reports) use (&$purged) { // por id: borrar mientras se pagina por offset se saltaria filas
+                foreach ($reports as $report) {
+                    $report->delete(); // el evento `deleting` borra el fichero
+                    $purged++;
+                }
             });
 
         $this->info("Informes atascados marcados: {$stuck}. Purgados por retencion: {$purged}.");

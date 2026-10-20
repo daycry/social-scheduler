@@ -10,17 +10,17 @@ defineProps({ brand: Object });
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ brand.name }}</h2>
+            <h1 class="text-xl font-bold text-slate-900">{{ brand.name }}</h1>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-3xl space-y-2 bg-white p-6 shadow-sm sm:rounded-lg">
-                <p class="text-gray-700">{{ brand.description }}</p>
-                <p class="text-sm text-gray-500">Zona horaria: {{ brand.timezone }}</p>
+        <div>
+            <div class="max-w-3xl space-y-3 card p-6">
+                <p class="text-slate-700">{{ brand.description }}</p>
+                <p class="text-sm text-slate-500">Zona horaria: {{ brand.timezone }}</p>
                 <div class="space-x-4">
-                    <Link :href="route('brands.posts.create', brand.id)" class="text-indigo-600">Nueva publicación</Link>
-                    <Link :href="route('brands.connections.index', brand.id)" class="text-indigo-600">Conexiones</Link>
-                    <Link :href="route('brands.edit', brand.id)" class="text-indigo-600">Editar</Link>
+                    <Link :href="route('brands.posts.create', brand.id)" class="link">Nueva publicación</Link>
+                    <Link :href="route('brands.connections.index', brand.id)" class="link">Conexiones</Link>
+                    <Link :href="route('brands.edit', brand.id)" class="link">Editar</Link>
                 </div>
             </div>
         </div>

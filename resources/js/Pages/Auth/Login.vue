@@ -31,15 +31,18 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head title="Entrar" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Entra en tu cuenta</h1>
+        <p class="mb-6 mt-1 text-sm text-slate-600">Bienvenido de nuevo a Social Scheduler.</p>
+
+        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700">
             {{ status }}
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="Correo electrónico" />
 
                 <TextInput
                     id="email"
@@ -55,7 +58,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" value="Contraseña" />
 
                 <TextInput
                     id="password"
@@ -72,8 +75,8 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600"
-                        >Remember me</span
+                    <span class="ms-2 text-sm text-slate-600"
+                        >Recordarme</span
                     >
                 </label>
             </div>
@@ -82,9 +85,9 @@ const submit = () => {
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    class="link text-sm"
                 >
-                    Forgot your password?
+                    ¿Has olvidado tu contraseña?
                 </Link>
 
                 <PrimaryButton
@@ -92,9 +95,11 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Log in
+                    Entrar
                 </PrimaryButton>
             </div>
         </form>
+
+        <p class="mt-6 text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p>
     </GuestLayout>
 </template>

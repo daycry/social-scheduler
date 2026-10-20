@@ -77,31 +77,31 @@ const hoverRows = computed(() =>
 
 <template>
     <div>
-        <div v-if="!hasData" class="flex items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500" :style="{ height: `${height}px` }">
+        <div v-if="!hasData" class="flex items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500" :style="{ height: `${height}px` }">
             {{ UNAVAILABLE }} en este periodo
         </div>
         <div v-else class="relative">
-            <svg :viewBox="`0 0 ${W} ${height}`" class="w-full" role="img" @mousemove="onMove" @mouseleave="hover = null">
+            <svg :viewBox="`0 0 ${W} ${height}`" class="w-full" role="img" aria-label="Gráfico de evolución" @mousemove="onMove" @mouseleave="hover = null">
                 <g v-for="t in ticks" :key="t.y">
-                    <line :x1="PAD.left" :x2="W - PAD.right" :y1="t.y" :y2="t.y" stroke="#e5e7eb" />
-                    <text :x="PAD.left - 6" :y="t.y + 3" text-anchor="end" font-size="10" fill="#6b7280">{{ t.label }}</text>
+                    <line :x1="PAD.left" :x2="W - PAD.right" :y1="t.y" :y2="t.y" stroke="#e2e8f0" />
+                    <text :x="PAD.left - 6" :y="t.y + 3" text-anchor="end" font-size="10" fill="#64748b">{{ t.label }}</text>
                 </g>
-                <text v-for="l in xLabels" :key="l.x" :x="l.x" :y="height - 6" text-anchor="middle" font-size="10" fill="#6b7280">{{ l.label }}</text>
+                <text v-for="l in xLabels" :key="l.x" :x="l.x" :y="height - 6" text-anchor="middle" font-size="10" fill="#64748b">{{ l.label }}</text>
                 <g v-for="p in paths" :key="p.name">
                     <polyline v-for="(seg, i) in p.segments.filter((s) => s.length > 1)" :key="i" :points="seg.map((pt) => pt.join(',')).join(' ')" fill="none" :stroke="p.color" stroke-width="2" stroke-linejoin="round" />
                     <circle v-for="(seg, i) in p.dots" :key="`d${i}`" :cx="seg[0][0]" :cy="seg[0][1]" r="3" :fill="p.color" />
                 </g>
-                <line v-if="hover !== null" :x1="x(hover)" :x2="x(hover)" :y1="PAD.top" :y2="height - PAD.bottom" stroke="#9ca3af" stroke-dasharray="3 3" />
+                <line v-if="hover !== null" :x1="x(hover)" :x2="x(hover)" :y1="PAD.top" :y2="height - PAD.bottom" stroke="#94a3b8" stroke-dasharray="3 3" />
             </svg>
-            <div v-if="hover !== null" class="pointer-events-none absolute right-2 top-1 rounded border border-gray-200 bg-white/95 px-2 py-1 text-xs shadow">
-                <div class="font-medium text-gray-700">{{ dates[hover] }}</div>
+            <div v-if="hover !== null" class="pointer-events-none absolute right-2 top-1 rounded border border-slate-200 bg-white/95 px-2 py-1 text-xs shadow">
+                <div class="font-medium text-slate-700">{{ dates[hover] }}</div>
                 <div v-for="r in hoverRows" :key="r.name" class="flex items-center gap-1">
                     <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: r.color }"></span>
-                    <span class="text-gray-600">{{ r.name }}:</span>
-                    <span :class="r.value === null ? 'text-gray-400' : 'text-gray-900'">{{ fmt(r.value) }}</span>
+                    <span class="text-slate-600">{{ r.name }}:</span>
+                    <span :class="r.value === null ? 'text-slate-400' : 'text-slate-900'">{{ fmt(r.value) }}</span>
                 </div>
             </div>
-            <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-gray-600">
+            <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-slate-600">
                 <span v-for="s in series" :key="s.name" class="flex items-center gap-1">
                     <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: s.color }"></span>{{ s.name }}
                 </span>

@@ -23,20 +23,20 @@ const verificationLinkSent = computed(
 
 <template>
     <GuestLayout>
-        <Head title="Email Verification" />
+        <Head title="Verifica tu correo" />
 
-        <div class="mb-4 text-sm text-gray-600">
-            Thanks for signing up! Before getting started, could you verify your
-            email address by clicking on the link we just emailed to you? If you
-            didn't receive the email, we will gladly send you another.
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Verifica tu correo</h1>
+        <p class="mb-6 mt-1 text-sm text-slate-600">Un último paso antes de entrar.</p>
+
+        <div class="mb-4 text-sm text-slate-600">
+            ¡Gracias por registrarte! Antes de empezar, verifica tu correo electrónico pulsando el enlace que te acabamos de enviar. Si no lo has recibido, te enviamos otro encantados.
         </div>
 
         <div
-            class="mb-4 text-sm font-medium text-green-600"
+            class="mb-4 text-sm font-medium text-emerald-700"
             v-if="verificationLinkSent"
         >
-            A new verification link has been sent to the email address you
-            provided during registration.
+            Te hemos enviado un nuevo enlace de verificación al correo con el que te registraste.
         </div>
 
         <form @submit.prevent="submit">
@@ -45,15 +45,15 @@ const verificationLinkSent = computed(
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Resend Verification Email
+                    Reenviar correo de verificación
                 </PrimaryButton>
 
                 <Link
                     :href="route('logout')"
                     method="post"
                     as="button"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >Log Out</Link
+                    class="link text-sm"
+                    >Salir</Link
                 >
             </div>
         </form>

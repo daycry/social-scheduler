@@ -1,6 +1,8 @@
 <script setup>
+import ConnectNetwork from '@/Components/ConnectNetwork.vue';
+import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import LineChart from './Partials/LineChart.vue';
 import NetworkTabs from './Partials/NetworkTabs.vue';
@@ -20,6 +22,7 @@ const props = defineProps({
     detail: Object,
 });
 
+const networkInfo = computed(() => (usePage().props.shell?.networks ?? []).find((n) => n.value === props.detail?.network.value));
 const color = computed(() => NETWORK_COLORS[props.detail?.network.value] ?? '#4f46e5');
 const metric = (key) => props.detail.metrics.find((m) => m.key === key);
 const GROUPS = [
@@ -45,99 +48,96 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
 </script>
 
 <template>
-    <Head :title="`Estadisticas ${detail?.network.label ?? ''}`" />
+    <Head :title="`Estadísticas ${detail?.network.label ?? ''}`" />
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ detail?.network.label }} · {{ brand?.name }}</h2>
+            <h1 class="text-xl font-bold text-slate-900">{{ detail?.network.label }}{{ brand ? ` · ${brand.name}` : '' }}</h1>
         </template>
 
-        <div class="py-8">
-            <div class="mx-auto max-w-7xl space-y-4 sm:px-6 lg:px-8">
-                <div v-if="!brand" class="rounded-lg bg-white p-6 text-gray-700 shadow-sm">
-                    Aun no tienes marcas. <Link :href="route('brands.create')" class="text-indigo-600 underline">Crea una marca</Link>.
-                </div>
+        <div class="space-y-5">
+                <FeatureEmpty v-if="!brand" title="Crea tu primera marca" description="Una marca agrupa las redes de un cliente o proyecto. Créala y conecta tus cuentas para ver estadísticas.">
+                    <template #cta><Link :href="route('brands.create')" class="btn-primary">Crear mi primera marca</Link></template>
+                </FeatureEmpty>
 
                 <template v-else>
                     <PeriodFilter route-name="dashboard.network" :route-params="{ network: detail.network.value }" :brands="brands" :filters="filters" />
                     <NetworkTabs :networks="networks" :active="detail.network.value" :filters="filters" />
 
-                    <div v-if="detail.accounts.length === 0" class="rounded-lg bg-white p-6 text-gray-700 shadow-sm">
-                        No hay ninguna cuenta de {{ detail.network.label }} conectada en esta marca.
-                        <Link :href="route('brands.connections.index', brand.id)" class="text-indigo-600 underline">Conectar</Link>
-                    </div>
+                    <ConnectNetwork v-if="detail.accounts.length === 0 && networkInfo" :network="networkInfo" :brand="brand" />
+                    <div v-else-if="detail.accounts.length === 0" class="card p-6 text-slate-700">No hay ninguna cuenta de {{ detail.network.label }} conectada en esta marca.</div>
 
                     <template v-else>
                         <!-- Crecimiento -->
-                        <section class="rounded-lg bg-white p-5 shadow-sm" data-section="growth">
-                            <h3 class="text-sm font-semibold text-gray-700">Crecimiento</h3>
+                        <section class="card p-5" data-section="growth">
+                            <h3 class="text-sm font-semibold text-slate-700">Crecimiento</h3>
                             <div class="mt-2 grid gap-4 sm:grid-cols-4">
                                 <div>
-                                    <p class="text-xs text-gray-500">Seguidores (fin del periodo)</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.end === null ? 'text-gray-400 text-lg' : ''">{{ fmt(detail.growth.end) }}</p>
+                                    <p class="text-xs text-slate-500">Seguidores (fin del periodo)</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.end === null ? 'text-slate-400 text-lg' : ''">{{ fmt(detail.growth.end) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-500">Seguidores (inicio)</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.start === null ? 'text-gray-400 text-lg' : ''">{{ fmt(detail.growth.start) }}</p>
+                                    <p class="text-xs text-slate-500">Seguidores (inicio)</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.start === null ? 'text-slate-400 text-lg' : ''">{{ fmt(detail.growth.start) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-500">Crecimiento</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.change === null ? 'text-gray-400 text-lg' : ''">{{ fmt(detail.growth.change) }}</p>
+                                    <p class="text-xs text-slate-500">Crecimiento</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.change === null ? 'text-slate-400 text-lg' : ''">{{ fmt(detail.growth.change) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-gray-500">Crecimiento %</p>
-                                    <p class="text-2xl font-semibold" :class="detail.growth.pct === null ? 'text-gray-400 text-lg' : ''">{{ detail.growth.pct === null ? UNAVAILABLE : fmtPct(detail.growth.pct) }}</p>
+                                    <p class="text-xs text-slate-500">Crecimiento %</p>
+                                    <p class="text-2xl font-semibold" :class="detail.growth.pct === null ? 'text-slate-400 text-lg' : ''">{{ detail.growth.pct === null ? UNAVAILABLE : fmtPct(detail.growth.pct) }}</p>
                                 </div>
                             </div>
-                            <p v-if="detail.comparison && detail.growth.previous" class="mt-1 text-xs text-gray-500">
-                                Periodo de comparacion: {{ fmt(detail.growth.previous.change) }} ({{ fmtPct(detail.growth.previous.pct) ?? UNAVAILABLE }})
+                            <p v-if="detail.comparison && detail.growth.previous" class="mt-1 text-xs text-slate-500">
+                                Periodo de comparación: {{ fmt(detail.growth.previous.change) }} ({{ fmtPct(detail.growth.previous.pct) ?? UNAVAILABLE }})
                             </p>
                             <div class="mt-3"><LineChart :series="growthSeries" /></div>
                             <div v-if="gainedLost.length" class="mt-4">
-                                <p class="mb-1 text-xs font-medium text-gray-500">Ganados / perdidos por dia</p>
+                                <p class="mb-1 text-xs font-medium text-slate-500">Ganados / perdidos por dia</p>
                                 <LineChart :series="gainedLost" :height="150" />
                             </div>
                         </section>
 
                         <!-- Visibilidad / Interacciones / Contenido -->
-                        <section v-for="g in GROUPS.filter((x) => group(x).length)" :key="g.title" class="rounded-lg bg-white p-5 shadow-sm" :data-section="g.title">
-                            <h3 class="text-sm font-semibold text-gray-700">{{ g.title }}</h3>
+                        <section v-for="g in GROUPS.filter((x) => group(x).length)" :key="g.title" class="card p-5" :data-section="g.title">
+                            <h3 class="text-sm font-semibold text-slate-700">{{ g.title }}</h3>
                             <div class="mt-3 grid gap-4 lg:grid-cols-2">
                                 <div v-for="m in group(g)" :key="m.key" :data-metric="m.key">
                                     <div class="flex items-baseline justify-between">
-                                        <p class="text-xs font-medium text-gray-500">{{ m.label }}</p>
+                                        <p class="text-xs font-medium text-slate-500">{{ m.label }}</p>
                                         <span v-if="detail.comparison && m.delta_pct !== null" class="rounded px-1.5 text-xs" :class="deltaClass(m.delta_pct)">{{ fmtPct(m.delta_pct) }}</span>
                                     </div>
-                                    <p class="text-2xl font-semibold" :class="m.available ? 'text-gray-900' : 'text-gray-400 text-lg'">{{ fmt(m.total) }}</p>
+                                    <p class="text-2xl font-semibold" :class="m.available ? 'text-slate-900' : 'text-slate-400 text-lg'">{{ fmt(m.total) }}</p>
                                     <LineChart :series="chart(m)" :height="140" />
                                 </div>
                             </div>
                         </section>
 
                         <!-- KPIs derivados -->
-                        <section class="rounded-lg bg-white p-5 shadow-sm" data-section="kpis">
-                            <h3 class="text-sm font-semibold text-gray-700">KPIs</h3>
+                        <section class="card p-5" data-section="kpis">
+                            <h3 class="text-sm font-semibold text-slate-700">KPIs</h3>
                             <dl class="mt-3 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                                <div><dt class="text-xs text-gray-500">Interacciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.interactions, 1) }}</dd></div>
-                                <div><dt class="text-xs text-gray-500">Visualizaciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.views, 1) }}</dd></div>
-                                <div><dt class="text-xs text-gray-500">Engagement (cuenta)</dt><dd class="text-lg font-semibold">{{ detail.kpis.engagement_rate === null ? UNAVAILABLE : `${fmt(detail.kpis.engagement_rate, 2)} %` }}</dd></div>
-                                <div><dt class="text-xs text-gray-500">Visualizaciones por publicacion</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_post.views, 1) }}</dd></div>
-                                <div><dt class="text-xs text-gray-500">Interacciones por publicacion</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_post.interactions, 1) }}</dd></div>
-                                <div><dt class="text-xs text-gray-500">Engagement por publicacion</dt><dd class="text-lg font-semibold">{{ detail.kpis.per_post.engagement_rate === null ? UNAVAILABLE : `${fmt(detail.kpis.per_post.engagement_rate, 2)} %` }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Interacciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.interactions, 1) }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Visualizaciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.views, 1) }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Engagement (cuenta)</dt><dd class="text-lg font-semibold">{{ detail.kpis.engagement_rate === null ? UNAVAILABLE : `${fmt(detail.kpis.engagement_rate, 2)} %` }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Visualizaciones por publicacion</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_post.views, 1) }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Interacciones por publicacion</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_post.interactions, 1) }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Engagement por publicacion</dt><dd class="text-lg font-semibold">{{ detail.kpis.per_post.engagement_rate === null ? UNAVAILABLE : `${fmt(detail.kpis.per_post.engagement_rate, 2)} %` }}</dd></div>
                             </dl>
-                            <p class="mt-2 text-xs text-gray-500">Engagement = interacciones / visualizaciones. Las medias por publicacion solo incluyen las publicadas desde esta aplicacion con datos.</p>
+                            <p class="mt-2 text-xs text-slate-500">Engagement = interacciones / visualizaciones. Las medias por publicacion solo incluyen las publicadas desde esta aplicacion con datos.</p>
                         </section>
 
                         <!-- Publicaciones -->
-                        <section class="rounded-lg bg-white p-5 shadow-sm" data-section="posts">
-                            <h3 class="text-sm font-semibold text-gray-700">Publicaciones del periodo ({{ detail.posts_total }})</h3>
+                        <section class="card p-5" data-section="posts">
+                            <h3 class="text-sm font-semibold text-slate-700">Publicaciones del periodo ({{ detail.posts_total }})</h3>
                             <p v-if="detail.posts_truncated" class="mt-1 text-xs text-amber-700" data-testid="posts-truncated">
                                 Se muestran las {{ detail.posts.length }} con más interacciones de {{ detail.posts_total }}. Los KPIs por publicación incluyen todas.
                             </p>
-                            <p v-if="detail.posts.length === 0" class="mt-2 text-sm text-gray-500">No hay publicaciones de esta red en el periodo.</p>
+                            <p v-if="detail.posts.length === 0" class="mt-2 text-sm text-slate-500">No hay publicaciones de esta red en el periodo.</p>
                             <div v-else class="mt-3 overflow-x-auto">
                                 <table class="min-w-full text-sm">
-                                    <thead class="text-left text-xs text-gray-500">
+                                    <thead class="text-left text-xs text-slate-500">
                                         <tr>
                                             <th class="py-1 pr-3">Fecha</th><th class="pr-3">Contenido</th>
                                             <th class="pr-3 text-right">Visualiz.</th><th class="pr-3 text-right">Alcance</th>
@@ -146,7 +146,7 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="p in detail.posts" :key="p.id" class="border-t border-gray-100" :class="p.has_data ? '' : 'text-gray-400'">
+                                        <tr v-for="p in detail.posts" :key="p.id" class="border-t border-gray-100" :class="p.has_data ? '' : 'text-slate-400'">
                                             <td class="whitespace-nowrap py-1.5 pr-3">{{ dt(p.published_at) }}</td>
                                             <td class="max-w-xs truncate pr-3">
                                                 <a v-if="p.url" :href="p.url" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">{{ p.text || p.content_type }}</a>
@@ -167,6 +167,5 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                     </template>
                 </template>
             </div>
-        </div>
     </AuthenticatedLayout>
 </template>

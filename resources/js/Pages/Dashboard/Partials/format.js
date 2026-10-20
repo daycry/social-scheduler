@@ -20,7 +20,7 @@ export const fmtPct = (v) => {
 };
 
 export const deltaClass = (v) => {
-    if (v === null || v === undefined || v === 0) return 'bg-gray-100 text-gray-600';
+    if (v === null || v === undefined || v === 0) return 'bg-slate-100 text-slate-600';
     return v > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
 };
 

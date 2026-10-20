@@ -1,15 +1,16 @@
 <script setup>
+import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import KpiCard from '@/Components/KpiCard.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import LineChart from './Partials/LineChart.vue';
 import NetworkTabs from './Partials/NetworkTabs.vue';
 import PeriodFilter from './Partials/PeriodFilter.vue';
-import { deltaClass, fmt, fmtPct, NETWORK_COLORS, UNAVAILABLE } from './Partials/format';
+import { NETWORK_COLORS } from './Partials/format';
 
 /**
- * Resumen de marca (T-37, inspirado en Analytics > Summary de Metricool): una tarjeta por metrica con el total
- * grande, el desglose por red en chips de color y la linea temporal debajo. Lo que una API no da se muestra como
- * «No disponible» (nunca 0). Mapa de calor de mejores horas: fuera de alcance de la v1.
+ * Resumen de marca: una tarjeta por métrica con el total grande, el desglose por red en chips de color y la
+ * línea temporal debajo. Lo que una API no da se muestra como «No disponible» (nunca 0).
  */
 const props = defineProps({
     brands: Array,
@@ -26,67 +27,68 @@ const seriesFor = (card) =>
             color: NETWORK_COLORS[n.value],
             points: card.series.map((p) => ({ date: p.date, value: p.values[n.value] ?? null })),
         }));
+
+const onboarding = [
+    { title: 'Agrupa tus cuentas', text: 'Una marca reúne las cuentas de un cliente o proyecto con su zona horaria.', kind: 'link' },
+    { title: 'Conecta tus redes', text: 'Instagram, Facebook, YouTube y TikTok con su acceso oficial.', kind: 'chart' },
+    { title: 'Programa y mide', text: 'Calendario, estadísticas e informes en un mismo lugar.', kind: 'calendar' },
+];
+const connectCards = [
+    { title: 'Estadísticas por red', text: 'Seguidores, visualizaciones y alcance con comparación de periodos.', kind: 'chart' },
+    { title: 'Publicaciones programadas', text: 'Crea y reprograma contenido desde el calendario.', kind: 'calendar' },
+    { title: 'Informes PDF y CSV', text: 'Descárgalos por marca cuando los necesites.', kind: 'report' },
+];
 </script>
 
 <template>
-    <Head title="Estadisticas" />
+    <Head title="Analítica" />
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Estadisticas{{ brand ? ` · ${brand.name}` : '' }}</h2>
+            <h1 class="text-xl font-bold text-slate-900">Resumen{{ brand ? ` · ${brand.name}` : '' }}</h1>
         </template>
 
-        <div class="py-8">
-            <div class="mx-auto max-w-7xl space-y-4 sm:px-6 lg:px-8">
-                <div v-if="!brand" class="rounded-lg bg-white p-6 text-gray-700 shadow-sm">
-                    Aun no tienes marcas.
-                    <Link :href="route('brands.create')" class="text-indigo-600 underline">Crea una marca</Link> y conecta tus redes para ver estadisticas.
+        <div class="space-y-5">
+            <FeatureEmpty
+                v-if="!brand"
+                title="Crea tu primera marca"
+                description="Una marca agrupa las redes sociales de un cliente o proyecto. Créala y conecta tus cuentas para ver estadísticas."
+                :cards="onboarding"
+            >
+                <template #cta><Link :href="route('brands.create')" class="btn-primary">Crear mi primera marca</Link></template>
+            </FeatureEmpty>
+
+            <template v-else>
+                <PeriodFilter route-name="dashboard" :brands="brands" :filters="filters" />
+                <NetworkTabs :networks="summary.networks" active="summary" :filters="filters" />
+
+                <FeatureEmpty
+                    v-if="summary.networks.length === 0"
+                    title="Conecta tu primera red"
+                    :description="`«${brand.name}» aún no tiene redes conectadas. Conecta una para empezar a ver sus estadísticas.`"
+                    :cards="connectCards"
+                >
+                    <template #cta><Link :href="route('brands.connections.index', brand.id)" class="btn-primary">Conectar una red</Link></template>
+                </FeatureEmpty>
+
+                <div v-else class="grid gap-4 lg:grid-cols-2">
+                    <KpiCard
+                        v-for="card in summary.cards"
+                        :key="card.key"
+                        :data-card="card.key"
+                        :label="card.label"
+                        :total="card.total"
+                        :available="card.available"
+                        :delta-pct="card.delta_pct"
+                        :comparing="!!summary.comparison"
+                        :previous="card.previous"
+                        :comparison-label="summary.comparison ? `Periodo de comparación (${summary.comparison.from} - ${summary.comparison.to})` : ''"
+                        :breakdown="card.by_network"
+                    >
+                        <LineChart :series="seriesFor(card)" :height="180" />
+                    </KpiCard>
                 </div>
-
-                <template v-else>
-                    <PeriodFilter route-name="dashboard" :brands="brands" :filters="filters" />
-                    <NetworkTabs :networks="summary.networks" active="summary" :filters="filters" />
-
-                    <div v-if="summary.networks.length === 0" class="rounded-lg bg-white p-6 text-gray-700 shadow-sm">
-                        Esta marca no tiene redes conectadas.
-                        <Link :href="route('brands.connections.index', brand.id)" class="text-indigo-600 underline">Conecta una red</Link>.
-                    </div>
-
-                    <div v-else class="grid gap-4 lg:grid-cols-2">
-                        <section v-for="card in summary.cards" :key="card.key" class="rounded-lg bg-white p-5 shadow-sm" :data-card="card.key">
-                            <header class="flex items-start justify-between">
-                                <div>
-                                    <h3 class="text-sm font-medium text-gray-500">{{ card.label }}</h3>
-                                    <p class="text-3xl font-semibold" :class="card.available ? 'text-gray-900' : 'text-gray-400 text-xl'">{{ fmt(card.total) }}</p>
-                                </div>
-                                <span v-if="summary.comparison && card.delta_pct !== null" class="rounded px-2 py-0.5 text-xs font-medium" :class="deltaClass(card.delta_pct)">
-                                    {{ fmtPct(card.delta_pct) }}
-                                </span>
-                            </header>
-                            <p v-if="summary.comparison && card.previous !== null" class="mt-1 text-xs text-gray-500">
-                                Periodo de comparacion ({{ summary.comparison.from }} - {{ summary.comparison.to }}): {{ fmt(card.previous) }}
-                            </p>
-
-                            <ul class="mt-3 flex flex-wrap gap-2">
-                                <li
-                                    v-for="b in card.by_network"
-                                    :key="b.network"
-                                    class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
-                                    :class="b.available ? 'border-gray-300 text-gray-800' : 'border-dashed border-gray-300 text-gray-400'"
-                                >
-                                    <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: NETWORK_COLORS[b.network] }"></span>
-                                    {{ b.label }}: {{ b.available ? fmt(b.value) : UNAVAILABLE }}
-                                    <span v-if="summary.comparison && b.delta_pct !== null" class="rounded px-1" :class="deltaClass(b.delta_pct)">{{ fmtPct(b.delta_pct) }}</span>
-                                </li>
-                            </ul>
-
-                            <div class="mt-4">
-                                <LineChart :series="seriesFor(card)" :height="180" />
-                            </div>
-                        </section>
-                    </div>
-                </template>
-            </div>
+            </template>
         </div>
     </AuthenticatedLayout>
 </template>

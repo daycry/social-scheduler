@@ -3,13 +3,13 @@ import { router } from '@inertiajs/vue3';
 import { reactive } from 'vue';
 
 /**
- * Selector global de marca, periodo y comparacion (ui-reference.md: «Main period» + «Comparison period»).
- * Cada cambio recarga la pagina con los parametros en la query (la URL es compartible).
+ * Selector de periodo y comparación («Periodo principal» + «Comparar con»). La marca la elige el selector del
+ * shell; aquí solo viaja en la query. Cada cambio recarga la página con los parámetros en la URL.
  */
 const props = defineProps({
     routeName: { type: String, required: true },
     routeParams: { type: Object, default: () => ({}) },
-    brands: { type: Array, required: true },
+    brands: { type: Array, default: () => [] },
     filters: { type: Object, required: true },
 });
 
@@ -28,36 +28,28 @@ const preset = (days) => {
 
 const apply = () =>
     router.get(route(props.routeName, props.routeParams), { brand_id: form.brand_id, from: form.from, to: form.to, compare: form.compare }, { preserveScroll: true, replace: true });
-
-const changeBrand = () => apply();
 </script>
 
 <template>
-    <div class="flex flex-wrap items-end gap-3 rounded-lg bg-white p-4 shadow-sm">
-        <label class="text-sm">
-            <span class="block text-xs font-medium text-gray-500">Marca</span>
-            <select v-model="form.brand_id" class="rounded-md border-gray-300 text-sm" @change="changeBrand">
-                <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
-            </select>
-        </label>
-        <label class="text-sm">
-            <span class="block text-xs font-medium text-gray-500">Periodo principal</span>
-            <span class="flex items-center gap-1">
-                <input v-model="form.from" type="date" class="rounded-md border-gray-300 text-sm" @change="apply" />
-                <span class="text-gray-400">-</span>
-                <input v-model="form.to" type="date" class="rounded-md border-gray-300 text-sm" @change="apply" />
+    <div class="card flex flex-wrap items-end gap-x-4 gap-y-3 p-4">
+        <div class="text-sm">
+            <label for="period-from" class="block text-xs font-medium text-slate-600">Periodo principal</label>
+            <span class="flex items-center gap-1.5">
+                <input id="period-from" v-model="form.from" type="date" class="field w-auto py-1.5" aria-label="Desde" @change="apply" />
+                <span class="text-slate-400" aria-hidden="true">–</span>
+                <input v-model="form.to" type="date" class="field w-auto py-1.5" aria-label="Hasta" @change="apply" />
             </span>
-        </label>
-        <div class="flex gap-1 text-xs">
-            <button v-for="d in [7, 30, 90]" :key="d" type="button" class="rounded border border-gray-300 px-2 py-1.5 hover:bg-gray-50" @click="preset(d)">{{ d }} d</button>
         </div>
-        <label class="text-sm">
-            <span class="block text-xs font-medium text-gray-500">Comparar con</span>
-            <select v-model="form.compare" class="rounded-md border-gray-300 text-sm" @change="apply">
-                <option value="none">Sin comparacion</option>
+        <div class="flex gap-1.5 text-xs" role="group" aria-label="Periodos rápidos">
+            <button v-for="d in [7, 30, 90]" :key="d" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-2 font-medium text-slate-700 hover:bg-slate-50" @click="preset(d)">{{ d }} días</button>
+        </div>
+        <div class="text-sm">
+            <label for="period-compare" class="block text-xs font-medium text-slate-600">Comparar con</label>
+            <select id="period-compare" v-model="form.compare" class="field w-auto py-1.5" @change="apply">
+                <option value="none">Sin comparación</option>
                 <option value="previous">Periodo anterior</option>
-                <option value="year">Mismo periodo del ano anterior</option>
+                <option value="year">Mismo periodo del año anterior</option>
             </select>
-        </label>
+        </div>
     </div>
 </template>

@@ -28,9 +28,9 @@ const form = useForm({
 const submit = () => form.post(route('reports.store'), { preserveScroll: true });
 
 const STATUS = {
-    pending: ['En cola', 'bg-gray-100 text-gray-700'],
+    pending: ['En cola', 'bg-slate-100 text-slate-700'],
     processing: ['Generando...', 'bg-blue-100 text-blue-700'],
-    ready: ['Listo', 'bg-green-100 text-green-700'],
+    ready: ['Listo', 'bg-emerald-100 text-emerald-700'],
     failed: ['Error', 'bg-red-100 text-red-700'],
 };
 
@@ -43,7 +43,7 @@ onMounted(() => {
 onBeforeUnmount(() => clearInterval(timer));
 
 const remove = (r) => {
-    if (confirm(`Eliminar el informe de ${r.brand} (${r.format.toUpperCase()}, ${r.from} - ${r.to})? Tambien se borra su fichero.`)) {
+    if (confirm(`Eliminar el informe de ${r.brand} (${r.format.toUpperCase()}, ${r.from} - ${r.to})? También se borra su fichero.`)) {
         router.delete(route('reports.destroy', r.id), { preserveScroll: true });
     }
 };
@@ -56,64 +56,64 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Informes</h2>
+            <h1 class="text-xl font-bold text-slate-900">Informes</h1>
         </template>
 
-        <div class="py-8">
-            <div class="mx-auto max-w-5xl space-y-6 sm:px-6 lg:px-8">
-                <div v-if="brands.length === 0" class="rounded-lg bg-white p-6 text-gray-700 shadow-sm">
-                    Aun no tienes marcas.
-                    <Link :href="route('brands.create')" class="text-indigo-600 underline">Crea una marca</Link> para generar informes.
+        <div>
+            <div class="space-y-5">
+                <div v-if="brands.length === 0" class="rounded-lg bg-white p-6 text-slate-700 shadow-sm">
+                    Aún no tienes marcas.
+                    <Link :href="route('brands.create')" class="link">Crea una marca</Link> para generar informes.
                 </div>
 
-                <form v-else class="space-y-4 rounded-lg bg-white p-5 shadow-sm" @submit.prevent="submit">
+                <form v-else class="space-y-4 card p-5" @submit.prevent="submit">
                     <div class="flex flex-wrap items-end gap-4">
                         <label class="text-sm">
-                            <span class="block text-xs font-medium text-gray-500">Marca</span>
-                            <select v-model="form.brand_id" class="rounded-md border-gray-300 text-sm">
+                            <span class="block text-xs font-medium text-slate-500">Marca</span>
+                            <select v-model="form.brand_id" class="field w-auto py-1.5">
                                 <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                         </label>
                         <label class="text-sm">
-                            <span class="block text-xs font-medium text-gray-500">Desde</span>
-                            <input v-model="form.from" type="date" class="rounded-md border-gray-300 text-sm" />
+                            <span class="block text-xs font-medium text-slate-500">Desde</span>
+                            <input v-model="form.from" type="date" class="field w-auto py-1.5" />
                         </label>
                         <label class="text-sm">
-                            <span class="block text-xs font-medium text-gray-500">Hasta</span>
-                            <input v-model="form.to" type="date" class="rounded-md border-gray-300 text-sm" />
+                            <span class="block text-xs font-medium text-slate-500">Hasta</span>
+                            <input v-model="form.to" type="date" class="field w-auto py-1.5" />
                         </label>
                         <label class="text-sm">
-                            <span class="block text-xs font-medium text-gray-500">Comparar con</span>
-                            <select v-model="form.compare" class="rounded-md border-gray-300 text-sm">
-                                <option value="none">Sin comparacion</option>
+                            <span class="block text-xs font-medium text-slate-500">Comparar con</span>
+                            <select v-model="form.compare" class="field w-auto py-1.5">
+                                <option value="none">Sin comparación</option>
                                 <option value="previous">Periodo anterior</option>
-                                <option value="year">Mismo periodo del ano anterior</option>
+                                <option value="year">Mismo periodo del año anterior</option>
                             </select>
                         </label>
                         <fieldset class="flex gap-3 text-sm">
-                            <legend class="mb-1 block text-xs font-medium text-gray-500">Formato</legend>
-                            <label class="flex items-center gap-1"><input v-model="form.formats" type="checkbox" value="pdf" class="rounded border-gray-300" /> PDF</label>
-                            <label class="flex items-center gap-1"><input v-model="form.formats" type="checkbox" value="csv" class="rounded border-gray-300" /> CSV</label>
+                            <legend class="mb-1 block text-xs font-medium text-slate-500">Formato</legend>
+                            <label class="flex items-center gap-1"><input v-model="form.formats" type="checkbox" value="pdf" class="rounded border-slate-300" /> PDF</label>
+                            <label class="flex items-center gap-1"><input v-model="form.formats" type="checkbox" value="csv" class="rounded border-slate-300" /> CSV</label>
                         </fieldset>
                         <PrimaryButton :disabled="form.processing || form.formats.length === 0">Generar informe</PrimaryButton>
                     </div>
                     <InputError :message="form.errors.from || form.errors.to || form.errors.formats || form.errors.brand_id" />
-                    <p v-if="flash?.success" class="text-sm text-green-700">{{ flash.success }}</p>
+                    <p v-if="flash?.success" class="text-sm text-emerald-700">{{ flash.success }}</p>
                 </form>
 
-                <section class="rounded-lg bg-white shadow-sm">
-                    <h3 class="border-b px-5 py-3 text-sm font-medium text-gray-700">Informes recientes</h3>
-                    <p v-if="reports.length === 0" class="p-5 text-sm text-gray-500">Aun no has generado informes.</p>
+                <section class="card">
+                    <h3 class="border-b px-5 py-3 text-sm font-medium text-slate-700">Informes recientes</h3>
+                    <p v-if="reports.length === 0" class="p-5 text-sm text-slate-500">Aún no has generado informes.</p>
                     <ul v-else class="divide-y">
                         <li v-for="r in reports" :key="r.id" class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm" :data-report="r.id">
                             <div>
-                                <p class="font-medium text-gray-900">{{ r.brand }} · {{ r.format.toUpperCase() }}</p>
-                                <p class="text-xs text-gray-500">{{ r.from }} - {{ r.to }} <span v-if="r.size">· {{ size(r.size) }}</span></p>
+                                <p class="font-medium text-slate-900">{{ r.brand }} · {{ r.format.toUpperCase() }}</p>
+                                <p class="text-xs text-slate-500">{{ r.from }} - {{ r.to }} <span v-if="r.size">· {{ size(r.size) }}</span></p>
                                 <p v-if="r.status === 'failed' && r.error" class="text-xs text-red-600">{{ r.error }}</p>
                             </div>
                             <div class="flex items-center gap-3">
                                 <span class="rounded-full px-2 py-0.5 text-xs" :class="STATUS[r.status][1]">{{ STATUS[r.status][0] }}</span>
-                                <a v-if="r.download_url" :href="r.download_url" class="text-indigo-600 underline">Descargar</a>
+                                <a v-if="r.download_url" :href="r.download_url" class="link">Descargar</a>
                                 <button v-if="r.deletable" type="button" class="text-xs text-red-600 underline" @click="remove(r)">Eliminar</button>
                             </div>
                         </li>

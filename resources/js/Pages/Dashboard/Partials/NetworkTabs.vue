@@ -1,8 +1,8 @@
 <script setup>
+import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { Link } from '@inertiajs/vue3';
-import { NETWORK_COLORS } from './format';
 
-/** Pestanas: Resumen + una por red conectada (ui-reference.md: barra lateral de Analytics). */
+/** Pestañas Resumen + una por red conectada. Solo en móvil: en escritorio lo cubre la barra lateral. */
 defineProps({
     networks: { type: Array, required: true },
     active: { type: String, default: 'summary' },
@@ -13,17 +13,17 @@ const query = (f) => ({ brand_id: f.brand_id, from: f.from, to: f.to, compare: f
 </script>
 
 <template>
-    <nav class="flex flex-wrap gap-2 border-b border-gray-200 pb-2 text-sm">
-        <Link :href="route('dashboard', query(filters))" :class="['rounded px-3 py-1.5', active === 'summary' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100']">
+    <nav class="flex gap-2 overflow-x-auto pb-1 text-sm lg:hidden" aria-label="Redes">
+        <Link :href="route('dashboard', query(filters))" :class="['shrink-0 rounded-full px-3 py-1.5 font-medium', active === 'summary' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200']">
             Resumen
         </Link>
         <Link
             v-for="n in networks"
             :key="n.value"
             :href="route('dashboard.network', { network: n.value, ...query(filters) })"
-            :class="['flex items-center gap-1.5 rounded px-3 py-1.5', active === n.value ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100']"
+            :class="['flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-medium', active === n.value ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200']"
         >
-            <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: NETWORK_COLORS[n.value] }"></span>{{ n.label }}
+            <NetworkIcon :network="n.value" size="sm" />{{ n.label }}
         </Link>
     </nav>
 </template>

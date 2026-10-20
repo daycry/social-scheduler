@@ -1,5 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import NetworkIcon from '@/Components/NetworkIcon.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
@@ -115,15 +117,6 @@ const remove = () => {
     if (confirm('¿Eliminar esta publicación?')) router.delete(route('posts.destroy', props.post.id));
 };
 
-const STATUS_CLASSES = {
-    borrador: 'bg-gray-100 text-gray-700',
-    programada: 'bg-blue-100 text-blue-800',
-    publicando: 'bg-amber-100 text-amber-800',
-    procesando: 'bg-amber-100 text-amber-800',
-    publicada: 'bg-green-100 text-green-800',
-    fallida: 'bg-red-100 text-red-800',
-};
-
 const previewText = computed(() => form.text || 'Aquí verás el texto de tu publicación.');
 const firstPreview = computed(() => form.media.map((id) => previews.value[id]).find(Boolean));
 const charCount = computed(() => form.text.length);
@@ -136,31 +129,31 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                <h1 class="text-xl font-bold text-slate-900">
                     {{ post ? 'Editar publicación' : 'Nueva publicación' }} · {{ brand.name }}
-                </h2>
-                <Link :href="route('brands.show', brand.id)" class="text-sm text-indigo-600">Volver a la marca</Link>
+                </h1>
+                <Link :href="route('brands.show', brand.id)" class="link text-sm">Volver a la marca</Link>
             </div>
         </template>
 
-        <div class="py-8">
-            <div class="mx-auto grid max-w-6xl gap-6 sm:px-6 lg:grid-cols-3 lg:px-8">
+        <div>
+            <div class="grid gap-6 lg:grid-cols-3">
                 <form class="space-y-6 lg:col-span-2" @submit.prevent="submit(true)">
-                    <p v-if="flash?.success" class="rounded bg-green-50 p-3 text-sm text-green-800" role="status">{{ flash.success }}</p>
+                    <p v-if="flash?.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
                     <div v-if="post" class="flex items-center gap-2 text-sm">
-                        <span class="rounded px-2 py-0.5" :class="STATUS_CLASSES[post.status]">{{ post.status_label }}</span>
-                        <span v-if="!editable" class="text-gray-600">Esta publicación ya no se puede editar.</span>
+                        <StatusBadge :status="post.status" :label="post.status_label" />
+                        <span v-if="!editable" class="text-slate-600">Esta publicación ya no se puede editar.</span>
                     </div>
 
                     <!-- Cuentas y tipo -->
-                    <section class="rounded-lg bg-white p-4 shadow-sm">
-                        <h3 class="mb-3 font-medium text-gray-900">Dónde publicar</h3>
-                        <p v-if="accounts.length === 0" class="text-sm text-gray-600">
+                    <section class="card p-4">
+                        <h3 class="mb-3 font-medium text-slate-900">Dónde publicar</h3>
+                        <p v-if="accounts.length === 0" class="text-sm text-slate-600">
                             Esta marca no tiene cuentas conectadas.
-                            <Link :href="route('brands.connections.index', brand.id)" class="text-indigo-600">Conectar redes</Link>
+                            <Link :href="route('brands.connections.index', brand.id)" class="link">Conectar redes</Link>
                         </p>
                         <ul class="space-y-3">
-                            <li v-for="account in accounts" :key="account.id" class="rounded border border-gray-200 p-3">
+                            <li v-for="account in accounts" :key="account.id" class="rounded border border-slate-200 p-3">
                                 <label class="flex items-center gap-2">
                                     <input
                                         type="checkbox"
@@ -168,8 +161,8 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                                         :disabled="!editable"
                                         @change="toggleAccount(account, $event.target.checked)"
                                     />
-                                    <span class="font-medium">{{ account.network_label }}</span>
-                                    <span class="text-gray-600">{{ account.name }}</span>
+                                    <NetworkIcon :network="account.network" size="sm" /><span class="font-medium">{{ account.network_label }}</span>
+                                    <span class="text-slate-600">{{ account.name }}</span>
                                     <span v-if="account.status !== 'activa'" class="rounded bg-amber-100 px-2 text-xs text-amber-800">Requiere reconexión</span>
                                 </label>
 
@@ -180,7 +173,7 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                                             :id="`type-${account.id}`"
                                             v-model="targetFor(account.id).content_type"
                                             :disabled="!editable"
-                                            class="mt-1 rounded-md border-gray-300 text-sm shadow-sm"
+                                            class="field mt-1 w-auto"
                                         >
                                             <option v-for="t in typesOf(account.network)" :key="t.value" :value="t.value">{{ t.label }}</option>
                                         </select>
@@ -194,16 +187,16 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                                     </label>
                                     <div v-if="targetFor(account.id).content_type === 'facebook_text'">
                                         <InputLabel :for="`link-${account.id}`" value="Enlace (opcional)" />
-                                        <input :id="`link-${account.id}`" v-model="targetFor(account.id).options.link" :disabled="!editable" type="url" class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm" placeholder="https://" />
+                                        <input :id="`link-${account.id}`" v-model="targetFor(account.id).options.link" :disabled="!editable" type="url" class="field mt-1" placeholder="https://" />
                                     </div>
                                     <div v-if="account.network === 'youtube'" class="space-y-2">
                                         <div>
                                             <InputLabel :for="`yt-title-${account.id}`" value="Título (por defecto, la primera línea del texto)" />
-                                            <input :id="`yt-title-${account.id}`" v-model="targetFor(account.id).options.title" :disabled="!editable" type="text" maxlength="100" class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm" />
+                                            <input :id="`yt-title-${account.id}`" v-model="targetFor(account.id).options.title" :disabled="!editable" type="text" maxlength="100" class="field mt-1" />
                                         </div>
                                         <div>
                                             <InputLabel :for="`yt-privacy-${account.id}`" value="Visibilidad" />
-                                            <select :id="`yt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy ?? 'public'" :disabled="!editable" class="mt-1 rounded-md border-gray-300 text-sm shadow-sm" @change="targetFor(account.id).options.privacy = $event.target.value">
+                                            <select :id="`yt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy ?? 'public'" :disabled="!editable" class="field mt-1 w-auto" @change="targetFor(account.id).options.privacy = $event.target.value">
                                                 <option value="public">Público</option>
                                                 <option value="unlisted">No listado</option>
                                                 <option value="private">Privado</option>
@@ -211,10 +204,10 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                                         </div>
                                     </div>
                                     <div v-if="account.network === 'tiktok'" class="space-y-1 text-sm">
-                                        <p v-if="!account.direct_post" class="text-xs text-gray-600">Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p>
+                                        <p v-if="!account.direct_post" class="text-xs text-slate-600">Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p>
                                         <div v-else>
                                             <InputLabel :for="`tt-privacy-${account.id}`" value="Visibilidad (Direct Post)" />
-                                            <select :id="`tt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy_level ?? 'SELF_ONLY'" :disabled="!editable" class="mt-1 rounded-md border-gray-300 text-sm shadow-sm" @change="targetFor(account.id).options.privacy_level = $event.target.value">
+                                            <select :id="`tt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy_level ?? 'SELF_ONLY'" :disabled="!editable" class="field mt-1 w-auto" @change="targetFor(account.id).options.privacy_level = $event.target.value">
                                                 <option value="PUBLIC_TO_EVERYONE">Público</option>
                                                 <option value="MUTUAL_FOLLOW_FRIENDS">Amigos</option>
                                                 <option value="FOLLOWER_OF_CREATOR">Seguidores</option>
@@ -232,23 +225,23 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                     </section>
 
                     <!-- Texto -->
-                    <section class="rounded-lg bg-white p-4 shadow-sm">
+                    <section class="card p-4">
                         <InputLabel for="text" value="Texto" />
-                        <textarea id="text" v-model="form.text" :disabled="!editable" rows="5" class="mt-1 w-full rounded-md border-gray-300 shadow-sm"></textarea>
-                        <p class="text-right text-xs text-gray-500">{{ charCount }} caracteres</p>
+                        <textarea id="text" v-model="form.text" :disabled="!editable" rows="5" class="field mt-1"></textarea>
+                        <p class="text-right text-xs text-slate-500">{{ charCount }} caracteres</p>
                     </section>
 
                     <!-- Media -->
-                    <section class="rounded-lg bg-white p-4 shadow-sm">
-                        <h3 class="mb-2 font-medium text-gray-900">Imágenes y vídeos</h3>
+                    <section class="card p-4">
+                        <h3 class="mb-2 font-medium text-slate-900">Imágenes y vídeos</h3>
                         <ul v-if="form.media.length" class="mb-3 space-y-1">
-                            <li v-for="(id, i) in form.media" :key="id" class="flex items-center justify-between rounded border border-gray-200 px-2 py-1 text-sm">
+                            <li v-for="(id, i) in form.media" :key="id" class="flex items-center justify-between rounded border border-slate-200 px-2 py-1 text-sm">
                                 <span>{{ i + 1 }}. {{ mediaById(id)?.name ?? `Archivo ${id}` }}
-                                    <span class="text-gray-500">({{ mediaById(id)?.kind === 'video' ? `vídeo ${mediaById(id)?.duration ?? '?'} s` : 'imagen' }}<template v-if="mediaById(id)?.width"> · {{ mediaById(id).width }}×{{ mediaById(id).height }}</template>)</span>
+                                    <span class="text-slate-500">({{ mediaById(id)?.kind === 'video' ? `vídeo ${mediaById(id)?.duration ?? '?'} s` : 'imagen' }}<template v-if="mediaById(id)?.width"> · {{ mediaById(id).width }}×{{ mediaById(id).height }}</template>)</span>
                                 </span>
                                 <span v-if="editable" class="space-x-2">
-                                    <button type="button" class="text-gray-600" @click="move(i, -1)">↑</button>
-                                    <button type="button" class="text-gray-600" @click="move(i, 1)">↓</button>
+                                    <button type="button" class="text-slate-600" @click="move(i, -1)">↑</button>
+                                    <button type="button" class="text-slate-600" @click="move(i, 1)">↓</button>
                                     <button type="button" class="text-red-600" @click="removeMedia(id)">Quitar</button>
                                 </span>
                             </li>
@@ -258,9 +251,9 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
                     </section>
 
                     <!-- Fecha -->
-                    <section class="rounded-lg bg-white p-4 shadow-sm">
+                    <section class="card p-4">
                         <InputLabel for="scheduled_at" :value="`Fecha y hora (${brand.timezone})`" />
-                        <input id="scheduled_at" v-model="form.scheduled_at" :disabled="!editable" type="datetime-local" class="mt-1 rounded-md border-gray-300 shadow-sm" />
+                        <input id="scheduled_at" v-model="form.scheduled_at" :disabled="!editable" type="datetime-local" class="field mt-1 w-auto" />
                         <p v-if="form.errors.scheduled_at" class="mt-1 text-sm text-red-600">{{ form.errors.scheduled_at }}</p>
                     </section>
 
@@ -275,21 +268,21 @@ const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cu
 
                 <!-- Previsualización y estado por red -->
                 <aside class="space-y-4">
-                    <div class="rounded-lg bg-white p-4 shadow-sm">
-                        <h3 class="mb-2 font-medium text-gray-900">Previsualización</h3>
-                        <div class="space-y-2 rounded border border-gray-200 p-3">
+                    <div class="card p-4">
+                        <h3 class="mb-2 font-medium text-slate-900">Previsualización</h3>
+                        <div class="space-y-2 rounded border border-slate-200 p-3">
                             <img v-if="firstPreview" :src="firstPreview" alt="" class="max-h-48 w-full rounded object-cover" />
-                            <p v-else-if="form.media.length" class="rounded bg-gray-100 p-6 text-center text-sm text-gray-500">{{ mediaById(form.media[0])?.kind === 'video' ? 'Vídeo' : 'Imagen' }}</p>
-                            <p class="whitespace-pre-line text-sm text-gray-800">{{ previewText }}</p>
+                            <p v-else-if="form.media.length" class="rounded bg-slate-100 p-6 text-center text-sm text-slate-500">{{ mediaById(form.media[0])?.kind === 'video' ? 'Vídeo' : 'Imagen' }}</p>
+                            <p class="whitespace-pre-line text-sm text-slate-800">{{ previewText }}</p>
                         </div>
                     </div>
-                    <div v-if="post && post.targets.length" class="rounded-lg bg-white p-4 shadow-sm">
-                        <h3 class="mb-2 font-medium text-gray-900">Estado por red</h3>
+                    <div v-if="post && post.targets.length" class="card p-4">
+                        <h3 class="mb-2 font-medium text-slate-900">Estado por red</h3>
                         <ul class="space-y-2 text-sm">
                             <li v-for="t in post.targets" :key="`${t.account_id}-${t.content_type}`">
                                 <span class="font-medium">{{ accountName(t.account_id) }}</span>
-                                <span class="ml-2 rounded px-2 py-0.5 text-xs" :class="STATUS_CLASSES[t.status]">{{ t.status_label }}</span>
-                                <a v-if="t.external_url" :href="t.external_url" target="_blank" rel="noopener" class="ml-2 text-indigo-600">Ver</a>
+                                <StatusBadge class="ml-2" :status="t.status" :label="t.status_label" />
+                                <a v-if="t.external_url" :href="t.external_url" target="_blank" rel="noopener" class="link ml-2">Ver</a>
                                 <p v-if="t.status_note" class="text-xs text-amber-700">{{ t.status_note }}</p>
                                 <p v-if="t.error_message" class="text-xs text-red-600">{{ t.error_message }}</p>
                             </li>

@@ -28,13 +28,13 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+            <h1 class="text-xl font-bold text-slate-900">
                 {{ brand ? 'Editar marca' : 'Nueva marca' }}
-            </h2>
+            </h1>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-xl bg-white p-6 shadow-sm sm:rounded-lg">
+        <div>
+            <div class="max-w-xl card p-6">
                 <form class="space-y-6" @submit.prevent="submit">
                     <div>
                         <InputLabel for="name" value="Nombre" />
@@ -42,7 +42,7 @@ const submit = () => {
                         <InputError class="mt-2" :message="form.errors.name" />
                     </div>
                     <div>
-                        <InputLabel for="description" value="Descripcion" />
+                        <InputLabel for="description" value="Descripción" />
                         <TextInput id="description" v-model="form.description" class="mt-1 block w-full" />
                         <InputError class="mt-2" :message="form.errors.description" />
                     </div>

@@ -1,6 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
+import NetworkIcon from '@/Components/NetworkIcon.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -14,9 +16,9 @@ const props = defineProps({
 });
 
 const STATUS = {
-    activa: { label: 'Conectada', classes: 'bg-green-100 text-green-800' },
+    activa: { label: 'Conectada', classes: 'bg-emerald-100 text-emerald-800' },
     requiere_reconexion: { label: 'Requiere reconexión', classes: 'bg-amber-100 text-amber-800' },
-    desconectada: { label: 'Desconectada', classes: 'bg-gray-100 text-gray-600' },
+    desconectada: { label: 'Desconectada', classes: 'bg-slate-100 text-slate-600' },
 };
 
 // Una tarjeta por red (como la barra lateral de Analytics en ui-reference.md): cuentas conectadas o «+».
@@ -50,24 +52,24 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Conexiones · {{ brand.name }}</h2>
-                <Link :href="route('brands.show', brand.id)" class="text-sm text-indigo-600">Volver a la marca</Link>
+                <h1 class="text-xl font-bold text-slate-900">Conexiones · {{ brand.name }}</h1>
+                <Link :href="route('brands.show', brand.id)" class="link text-sm">Volver a la marca</Link>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-4xl space-y-6 sm:px-6 lg:px-8">
-                <p v-if="flash.success" class="rounded bg-green-50 p-3 text-sm text-green-800" role="status">{{ flash.success }}</p>
-                <p v-if="flash.error" class="rounded bg-red-50 p-3 text-sm text-red-800" role="alert">{{ flash.error }}</p>
+        <div>
+            <div class="max-w-4xl space-y-5">
+                <p v-if="flash.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
+                <p v-if="flash.error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ flash.error }}</p>
 
                 <!-- Elección de cuentas tras un OAuth que devolvió varias (p. ej. Páginas de Meta) -->
-                <section v-if="pending" class="space-y-3 rounded-lg border border-indigo-200 bg-white p-6 shadow-sm">
-                    <h3 class="font-medium text-gray-900">Elige qué cuentas conectar</h3>
-                    <label v-for="c in pending.candidates" :key="c.key" class="flex items-center gap-3 text-sm text-gray-700">
-                        <input v-model="selection.keys" type="checkbox" :value="c.key" class="rounded border-gray-300" />
+                <section v-if="pending" class="card space-y-3 border-indigo-300 p-6">
+                    <h3 class="font-medium text-slate-900">Elige qué cuentas conectar</h3>
+                    <label v-for="c in pending.candidates" :key="c.key" class="flex items-center gap-3 text-sm text-slate-700">
+                        <input v-model="selection.keys" type="checkbox" :value="c.key" class="rounded border-slate-300" />
                         <span class="font-medium">{{ c.network_label }}</span>
                         <span>{{ c.name }}</span>
-                        <span v-if="c.username" class="text-gray-500">@{{ c.username }}</span>
+                        <span v-if="c.username" class="text-slate-500">@{{ c.username }}</span>
                         <span v-if="c.missing_scopes && c.missing_scopes.length" class="text-xs text-amber-700">
                             Faltan permisos para publicar: {{ c.missing_scopes.join(', ') }}
                         </span>
@@ -80,32 +82,30 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                 <section
                     v-for="n in networks"
                     :key="n.network"
-                    class="rounded-lg bg-white p-6 shadow-sm"
+                    class="card p-6"
                     :data-network="n.network"
                 >
                     <div class="flex items-center justify-between">
-                        <h3 class="font-medium text-gray-900">{{ n.label }}</h3>
+                        <h3 class="flex items-center gap-2.5 font-semibold text-slate-900"><NetworkIcon :network="n.network" />{{ n.label }}</h3>
                         <SecondaryButton v-if="n.available" type="button" @click="connect(n.provider)">+ Conectar</SecondaryButton>
-                        <span v-else class="text-xs text-gray-400">No disponible</span>
+                        <span v-else class="text-xs text-slate-400">No disponible</span>
                     </div>
 
-                    <p v-if="n.accounts.length === 0" class="mt-3 text-sm text-gray-500">Sin cuentas conectadas.</p>
+                    <p v-if="n.accounts.length === 0" class="mt-3 text-sm text-slate-500">Sin cuentas conectadas.</p>
 
-                    <ul v-else class="mt-3 divide-y divide-gray-100">
+                    <ul v-else class="mt-3 divide-y divide-slate-100">
                         <li v-for="a in n.accounts" :key="a.id" class="flex items-center justify-between py-3" :data-account="a.id">
                             <div>
-                                <p class="text-sm font-medium text-gray-900">
+                                <p class="text-sm font-medium text-slate-900">
                                     {{ a.name }}
-                                    <span v-if="a.username" class="font-normal text-gray-500">@{{ a.username }}</span>
+                                    <span v-if="a.username" class="font-normal text-slate-500">@{{ a.username }}</span>
                                 </p>
-                                <span class="mt-1 inline-block rounded px-2 py-0.5 text-xs" :class="STATUS[a.status].classes">
-                                    {{ STATUS[a.status].label }}
-                                </span>
-                                <label v-if="a.network === 'tiktok'" class="mt-2 flex items-start gap-2 text-xs text-gray-700">
-                                    <input type="checkbox" class="mt-0.5 rounded border-gray-300" :checked="a.direct_post" @change="toggleDirectPost(a, $event.target.checked)" />
+                                <span class="mt-1 inline-block"><StatusBadge :status="a.status" :label="STATUS[a.status].label" /></span>
+                                <label v-if="a.network === 'tiktok'" class="mt-2 flex items-start gap-2 text-xs text-slate-700">
+                                    <input type="checkbox" class="mt-0.5 rounded border-slate-300" :checked="a.direct_post" @change="toggleDirectPost(a, $event.target.checked)" />
                                     <span>
                                         Publicar directamente (Direct Post)
-                                        <span class="block text-gray-500">Requiere auditoría aprobada de TikTok. Desactivado: los vídeos se envían como borrador a tu bandeja y los terminas de publicar en la app.</span>
+                                        <span class="block text-slate-500">Requiere auditoría aprobada de TikTok. Desactivado: los vídeos se envían como borrador a tu bandeja y los terminas de publicar en la app.</span>
                                     </span>
                                 </label>
                                 <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
@@ -117,12 +117,12 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                                 <button
                                     v-if="a.status !== 'activa'"
                                     type="button"
-                                    class="text-indigo-600"
+                                    class="link"
                                     @click="connect(a.provider, a.provider === 'meta')"
                                 >
                                     {{ a.status === 'requiere_reconexion' ? 'Reconectar' : 'Conectar de nuevo' }}
                                 </button>
-                                <button v-if="a.status !== 'desconectada'" type="button" class="text-red-600" @click="disconnect(a)">
+                                <button v-if="a.status !== 'desconectada'" type="button" class="font-medium text-red-600 hover:underline" @click="disconnect(a)">
                                     Desconectar
                                 </button>
                             </div>

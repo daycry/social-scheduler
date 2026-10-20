@@ -168,4 +168,20 @@ return [
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),
     ],
+
+    /*
+    | Mejores horas (PA-05): ventana de analisis y minimo de publicaciones con metricas para mostrar el mapa.
+    */
+    'best_times' => [
+        'days' => (int) env('SOCIAL_BEST_TIMES_DAYS', 90),
+        'min_posts' => (int) env('SOCIAL_BEST_TIMES_MIN_POSTS', 10),
+    ],
+
+    /*
+    | Competidores de Instagram (PA-08, Business Discovery). Hora UTC del snapshot diario (tras el de cuentas) y tope por marca.
+    */
+    'competitors' => [
+        'daily_at' => env('SOCIAL_COMPETITORS_DAILY_AT', '13:00'),
+        'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
+    ],
 ];

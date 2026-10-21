@@ -18,9 +18,8 @@ return [
     /*
     | Las vencidas (VPS caido, cuenta sin reconectar) se publican al volver SOLO si no llevan mas de estas horas
     | de retraso; despues se marcan `fallida` (vencida) para no publicar contenido obsoleto de golpe.
-    | DECISION PENDIENTE DE CONFIRMAR (producto): design.md:158 dice «tras una caida se publican las vencidas»,
-    | sin limite; este tope de 24 h es un valor por defecto prudente, no una decision tomada. Subelo (o usa un valor muy
-    | alto) si se prefiere publicar siempre lo vencido.
+    | Decision de producto confirmada por el usuario (2026-10-21): tope de 24 h, que acota «tras una caida se publican
+    | las vencidas» (design.md:158). Subelo (o usa un valor muy alto) si se prefiere publicar siempre lo vencido.
     */
     'max_lateness_hours' => (int) env('PUBLISH_MAX_LATENESS_HOURS', 24),
 

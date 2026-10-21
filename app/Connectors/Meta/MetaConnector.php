@@ -240,9 +240,10 @@ class MetaConnector implements Connector
     private function debugToken(string $token, bool $strict = false): array
     {
         try {
-            // Token de APP (`client_id|client_secret`) en `Authorization: Bearer` y token inspeccionado (`input_token`) en el
-            // cuerpo de un POST: Graph acepta ambos en `debug_token` (comprobado) y asi nada sensible llega a la URL.
-            $data = $this->exchange('debug_token', ['input_token' => $token], config('services.meta.client_id').'|'.config('services.meta.client_secret'));
+            // `debug_token` solo admite GET (un POST devuelve 100/33 «Unsupported post request», comprobado 2026-10-21): el
+            // token de APP (`client_id|client_secret`) va en `Authorization: Bearer` y el inspeccionado (`input_token`) en la
+            // query, que Graph exige ahi. Es una llamada servidor a servidor por TLS; el secreto de la app nunca va en la URL.
+            $data = $this->fetch($this->graph('debug_token'), ['input_token' => $token], config('services.meta.client_id').'|'.config('services.meta.client_secret'));
         } catch (ConnectorException $e) {
             if ($e instanceof ReconnectRequiredException) {
                 throw $e;

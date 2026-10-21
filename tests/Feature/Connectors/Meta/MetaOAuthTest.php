@@ -278,14 +278,16 @@ test('MetaOAuth N6: ningun token ni secreto viaja en la URL: intercambios en el 
     $calls = Http::recorded()->map(fn ($pair) => $pair[0]);
     expect($calls)->not->toBeEmpty();
     foreach ($calls as $req) {
-        foreach (['access_token=', 'client_secret', 'APPSECRET', 'LONG-USER-TOKEN', 'SHORT-USER-TOKEN', 'CODE-SECRETO', 'fb_exchange_token'] as $secret) {
+        // debug_token es solo GET: Graph exige el token inspeccionado en la query; nada mas puede ir en la URL.
+        $userTokens = str_contains($req->url(), 'debug_token') ? [] : ['LONG-USER-TOKEN'];
+        foreach (['access_token=', 'client_secret', 'APPSECRET', 'SHORT-USER-TOKEN', 'CODE-SECRETO', 'fb_exchange_token', ...$userTokens] as $secret) {
             expect($req->url())->not->toContain($secret);
         }
     }
 
     $debug = $calls->first(fn ($r) => str_contains($r->url(), 'debug_token'));
-    expect($debug->header('Authorization'))->toBe(['Bearer APPID|APPSECRET'])->and($debug->method())->toBe('POST')
-        ->and($debug->data()['input_token'])->toBe('LONG-USER-TOKEN'); // el token inspeccionado va en el cuerpo
+    expect($debug->header('Authorization'))->toBe(['Bearer APPID|APPSECRET'])->and($debug->method())->toBe('GET')
+        ->and($debug->url())->toContain('input_token=LONG-USER-TOKEN'); // Graph no admite POST en debug_token
 
     $exchange = $calls->first(fn ($r) => isset($r->data()['fb_exchange_token']));
     expect($exchange->method())->toBe('POST')->and($exchange->data()['client_secret'])->toBe('APPSECRET');

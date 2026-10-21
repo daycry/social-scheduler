@@ -42,7 +42,8 @@ const disconnect = (account) => {
 const toggleDirectPost = (account, enabled) =>
     router.patch(route('brands.connections.direct-post', { brand: props.brand.id, account: account.id }), { enabled }, { preserveScroll: true });
 
-const selection = useForm({ keys: props.pending ? props.pending.candidates.map((c) => c.key) : [] });
+// Sin preselección: una cuenta de Meta puede gestionar muchas páginas/perfiles y solo se conecta lo que se marque.
+const selection = useForm({ keys: [] });
 const confirmSelection = () => selection.post(route('brands.connections.select', props.brand.id));
 </script>
 
@@ -65,6 +66,7 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                 <!-- Elección de cuentas tras un OAuth que devolvió varias (p. ej. Páginas de Meta) -->
                 <section v-if="pending" class="card space-y-3 border-indigo-300 p-6">
                     <h2 class="font-medium text-slate-900">Elige qué cuentas conectar</h2>
+                    <p class="text-sm text-slate-600">Marca solo las que pertenezcan a esta marca; el resto no se conecta.</p>
                     <label v-for="c in pending.candidates" :key="c.key" class="flex items-center gap-3 text-sm text-slate-700">
                         <input v-model="selection.keys" type="checkbox" :value="c.key" class="rounded border-slate-300" />
                         <span class="font-medium">{{ c.network_label }}</span>

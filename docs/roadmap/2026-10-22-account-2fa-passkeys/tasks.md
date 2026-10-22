@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 1 | 7 | 14% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 2 | 7 | 29% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **8** | **20** | **40%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **9** | **20** | **45%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -323,31 +323,32 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-09 — PasskeyGateway y auditoría por eventos
 
 - **Descripción**: `App\Services\Passkeys\PasskeyGateway` como único punto de contacto con `Laravel\Passkeys\*` (aísla el riesgo 0.x): opciones de registro y de login, alta, verificación y borrado, delegando en las Actions del paquete. Listeners de `PasskeyRegistered`, `PasskeyVerified` y `PasskeyDeleted` hacia `AuditLog`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las altas, entradas y bajas de passkeys quedan en el registro de auditoría de la cuenta, sin guardar nada de la credencial.
+- **Estado**: completado
 - **Tiempo humano**: est. 4,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.55h · real —
 - **Supervisión**: est. 0.14h (≈25 % IA) · real —
 - **Previsión IA**: 151k in / 15k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
-- **Archivos**: `app/Services/Passkeys/PasskeyGateway.php`, `app/Providers/AppServiceProvider.php`, `app/Listeners/AuditPasskeyEvents.php`, `tests/Feature/Auth/PasskeyGatewayTest.php`
+- **Archivos**: `app/Services/Passkeys/PasskeyGateway.php`, `app/Providers/AppServiceProvider.php`, `app/Listeners/AuditPasskeyEvents.php`, `app/Services/Passkeys/PasskeyFailure.php`, `tests/Support/FakePasskeys.php`, `tests/Feature/Auth/PasskeyGatewayTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=PasskeyGateway` → en verde
   - `grep -rln "Laravel.Passkeys" app` → solo `PasskeyGateway.php`, el listener, `AppServiceProvider.php` y `User.php`
 
 **Criterios de aceptación**
-- [ ] Fuera del gateway, del modelo, del provider y de los listeners no hay `use Laravel\Passkeys` en `app/`
-- [ ] Los eventos del paquete generan filas `auth.passkey.registered`, `auth.passkey.login` y `auth.passkey.deleted` con `channel: 'web'`
-- [ ] La auditoría no contiene `credential_id`, clave pública ni datos de la credencial
+- [x] Fuera del gateway, del modelo, del provider y de los listeners no hay `use Laravel\Passkeys` en `app/`
+- [x] Los eventos del paquete generan filas `auth.passkey.registered`, `auth.passkey.login` y `auth.passkey.deleted` con `channel: 'web'`
+- [x] La auditoría no contiene `credential_id`, clave pública ni datos de la credencial
 
 **Subtareas**
-- [ ] Gateway con métodos finos y tipados
-- [ ] Listeners y registro en el provider
-- [ ] Test con `bind` de una `VerifyPasskey` falsa
+- [x] Gateway con métodos finos y tipados
+- [x] Listeners y registro en el provider
+- [x] Test con `bind` de una `VerifyPasskey` falsa
 
-**Notas**: Documentar en el docblock la versión del paquete y la regla del ADR-003: revisar al subir de versión.
+**Notas**: Documentar en el docblock la versión del paquete y la regla del ADR-003: revisar al subir de versión. Añadidos a Archivos `PasskeyFailure.php` (excepción con motivo estable para la auditoría) y `tests/Support/FakePasskeys.php` (Actions falsas reutilizables en T-10/T-11; el listener de PasskeyVerified audita `auth.passkey.login`; renombrado y `login_failed` los audita el controlador). El gateway resuelve las Actions con `app()` en cada llamada para poder hacer `bind`. Contador que retrocede = `CounterException` de webauthn-lib → motivo `sign_count_regression`.
+**Evidencia**: `php artisan test --compact --filter=PasskeyGateway` → 9 passed (47 assertions); `grep -rln "Laravel.Passkeys" app` → PasskeyGateway.php, AuditPasskeyEvents.php, AppServiceProvider.php, User.php; `php artisan test` → 870 passed; pint OK.
 
 ### T-10 — Gestión de passkeys del perfil: opciones, alta, renombrado y borrado
 

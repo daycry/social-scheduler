@@ -15,14 +15,19 @@ use App\Connectors\Network;
 use App\Connectors\TikTok\Display as TikTokDisplay;
 use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
+use App\Listeners\AuditPasskeyEvents;
 use App\Models\Brand;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passkeys\Events\PasskeyDeleted;
+use Laravel\Passkeys\Events\PasskeyRegistered;
+use Laravel\Passkeys\Events\PasskeyVerified;
 use Laravel\Passkeys\Passkeys;
 
 class AppServiceProvider extends ServiceProvider
@@ -61,6 +66,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // Passkeys (T-09): los eventos del paquete van a la auditoria (channel web), sin material de la credencial.
+        Event::listen(PasskeyRegistered::class, [AuditPasskeyEvents::class, 'registered']);
+        Event::listen(PasskeyVerified::class, [AuditPasskeyEvents::class, 'verified']);
+        Event::listen(PasskeyDeleted::class, [AuditPasskeyEvents::class, 'deleted']);
 
         // Informes (M-9): los FK en cascada no disparan eventos de modelo; se borran antes los ficheros de la marca/usuario.
         Brand::deleting(fn (Brand $b) => Report::purgeFor('brand_id', $b->id));

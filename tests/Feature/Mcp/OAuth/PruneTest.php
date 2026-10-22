@@ -3,6 +3,7 @@
 use App\Models\OAuthAuthCode;
 use App\Models\OAuthClient;
 use App\Models\User;
+use Illuminate\Console\Scheduling\Schedule;
 
 function pruneClient(int $createdDaysAgo): OAuthClient
 {
@@ -68,7 +69,7 @@ test('OAuthPrune: no toca los tokens de un cliente borrado ni a los usuarios', f
 });
 
 test('OAuthPrune: el comando esta programado', function () {
-    $names = collect(app(Illuminate\Console\Scheduling\Schedule::class)->events())->map(fn ($e) => $e->description)->all();
+    $names = collect(app(Schedule::class)->events())->map(fn ($e) => $e->description)->all();
 
     expect($names)->toContain('mcp-oauth-prune');
 });

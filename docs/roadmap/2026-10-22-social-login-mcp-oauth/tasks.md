@@ -228,11 +228,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-06 — `AuthorizationServer` y `GET|POST /oauth/authorize` (backend del consentimiento)
 
 - **Descripción**: Servicio `AuthorizationServer` con la validación de la petición y la emisión del código (aleatorio, solo su hash SHA-256 en BD, 300 s, ligado a usuario, cliente, `redirect_uri`, `code_challenge`, abilities y `resource`). `AuthorizeController` en `routes/web.php` con `auth` (guarda `url.intended` y vuelve tras el login, con 2FA), muestra el consentimiento por Inertia (`OAuth/Authorize`) con presets de `App\Mcp\Abilities::presets()` (read por defecto) y la respuesta lleva `Content-Security-Policy: frame-ancestors 'none'`. `client_id` o `redirect_uri` inválidos: página de error propia y nunca redirige.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.81h · real —
-- **Supervisión**: est. 0.20h (≈25 % IA) · real —
+- **Changelog**: Al conectar un agente por OAuth, la app pide iniciar sesión (con 2FA si lo tienes) y mostrar una pantalla de autorización antes de darle acceso.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,0h · real 0.7h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.81h · real 0.6h (estimado)
+- **Supervisión**: est. 0.20h (≈25 % IA) · real 0.15h (estimado)
 - **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
 - **Tipo**: backend
@@ -241,19 +241,21 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Verificación**: `php artisan test --compact --filter=OAuthAuthorize` → CA-16 (redirige a `/login` y vuelve con los mismos parámetros), CA-17, CA-18 (cabecera), CA-19, CA-22 (`invalid_target`) y `access_denied` con `state` y auditoría `oauth.denied`
 
 **Criterios de aceptación**
-- [ ] CA-17: sin `code_challenge`, con `plain` o con `response_type=token` redirige con `error=invalid_request` y `state`; con `client_id`/`redirect_uri` no registrados NO redirige
-- [ ] CA-19: aprobar con `publish` redirige a `redirect_uri?code&state`; denegar, a `error=access_denied&state`
-- [ ] CA-22: `resource` distinto de `APP_URL/mcp` devuelve `invalid_target`
-- [ ] El código en claro nunca se guarda ni se audita; las abilities del código son las marcadas y nunca superan al preset `all`
-- [ ] POST con CSRF; GET sin efectos laterales
+- [x] CA-17: sin `code_challenge`, con `plain` o con `response_type=token` redirige con `error=invalid_request` y `state`; con `client_id`/`redirect_uri` no registrados NO redirige
+- [x] CA-19: aprobar con `publish` redirige a `redirect_uri?code&state`; denegar, a `error=access_denied&state`
+- [x] CA-22: `resource` distinto de `APP_URL/mcp` devuelve `invalid_target`
+- [x] El código en claro nunca se guarda ni se audita; las abilities del código son las marcadas y nunca superan al preset `all`
+- [x] POST con CSRF; GET sin efectos laterales
 
 **Subtareas**
-- [ ] Validación de parámetros y `RedirectPolicy`
-- [ ] Emisión y hash del código
-- [ ] Controlador, CSP y errores sin redirect
-- [ ] Eventos `oauth.authorized` / `oauth.denied`
+- [x] Validación de parámetros y `RedirectPolicy`
+- [x] Emisión y hash del código
+- [x] Controlador, CSP y errores sin redirect
+- [x] Eventos `oauth.authorized` / `oauth.denied`
 
 **Notas**: El 2FA en mitad del flujo lo cubre E2E-06; aquí basta con que `auth` guarde `intended`.
+
+**Evidencia de cierre**: --filter OAuthAuthorize 20 tests en verde (CA-16/17/18/19/22, hash del código, abilities, revalidación en POST). Authorize.vue es esqueleto hasta T-07.
 
 ---
 

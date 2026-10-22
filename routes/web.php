@@ -6,6 +6,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuth\OAuthController;
@@ -73,6 +74,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
     Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');
     Route::delete('reports/{report}', [ReportController::class, 'destroy'])->whereNumber('report')->name('reports.destroy');
+
+    // Consentimiento OAuth del MCP (ADR-004): `auth` guarda url.intended y vuelve tras el login (2FA incluido).
+    Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->name('mcp.oauth.authorize');
+    Route::post('oauth/authorize', [AuthorizeController::class, 'decide'])->name('mcp.oauth.authorize.decide');
 
     // API keys personales para el MCP (T-28).
     Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');

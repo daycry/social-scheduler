@@ -33,8 +33,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
-| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 3 | 6 | 50% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **17** | **20** | **85%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 4 | 6 | 67% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **18** | **20** | **90%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -616,29 +616,31 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-18 — axe y desbordamiento en Login, reto y Perfil → Seguridad
 
 - **Descripción**: Añade a `a11y.spec.ts` las páginas nuevas (reto 2FA, Login con passkey, Perfil con la tarjeta Seguridad en sus estados de activación) con axe en desktop, 375 y 360 px, y la comprobación de 0 px de desbordamiento horizontal. Actualiza `AUTH_PAGES` y `PUBLIC_PAGES` en `helpers.ts` si procede.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las pruebas de accesibilidad cubren ahora el acceso con passkey, el reto del doble factor y todos los estados de Perfil → Seguridad, también en móvil de 375 y 360 px.
+- **Estado**: completado
 - **Tiempo humano**: est. 4,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.55h · real —
 - **Supervisión**: est. 0.14h (≈25 % IA) · real —
 - **Previsión IA**: 150k in / 15k out tok · ⚠️ verificar €
 - **Dependencias**: T-16, T-17
 - **Tipo**: test
-- **Archivos**: `tests/e2e/a11y.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/pages.spec.ts`
+- **Archivos**: `tests/e2e/a11y.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/pages.spec.ts`, `tests/e2e/security.spec.ts`
 - **Cubre (tests)**: A11Y-01
 - **Verificación**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/a11y.spec.ts` → 0 violaciones `serious`/`critical` y sin desbordamiento horizontal en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] Login, reto 2FA y Perfil → Seguridad pasan axe sin violaciones `serious` ni `critical`
-- [ ] 0 px de desbordamiento horizontal a 375 y 360 px en esas páginas
-- [ ] CA-23 y CA-24 cubiertos en lo automatizable; el resto va a M-05
+- [x] Login, reto 2FA y Perfil → Seguridad pasan axe sin violaciones `serious` ni `critical`
+- [x] 0 px de desbordamiento horizontal a 375 y 360 px en esas páginas
+- [x] CA-23 y CA-24 cubiertos en lo automatizable; el resto va a M-05
 
 **Subtareas**
-- [ ] Rutas nuevas en `helpers.ts`
-- [ ] Estados del perfil (QR visible, códigos visibles)
-- [ ] Aserción de desbordamiento
+- [x] Rutas nuevas en `helpers.ts`
+- [x] Estados del perfil (QR visible, códigos visibles)
+- [x] Aserción de desbordamiento
 
-**Notas**: —
+**Notas**: — Desviaciones: (1) `/confirm-password` se añade a `AUTH_PAGES` (lo recorren `pages.spec` y `a11y.spec`); no hizo falta tocar `pages.spec.ts`. (2) `a11y.spec.ts` espera a que desaparezca la barra de progreso de Inertia (`#nprogress`, `role="bar"`, ARIA inválido de la librería) y aparta el ratón antes de medir. Hallazgo menor (no corregido, fuera de alcance): el botón primario con `:hover` (`bg-indigo-500`, blanco sobre #6366f1) mide 4,46:1, un pelo por debajo de 4,5:1; en reposo (indigo-600) pasa. CA-23/CA-24 automatizables: etiqueta, `autocomplete=one-time-code`, `inputmode`, `alt` del QR y secreto copiable se aseveran en T-16; el orden de lectura y los anuncios van a M-05.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/a11y.spec.ts tests/e2e/pages.spec.ts` → 187 passed (3 proyectos): 0 violaciones serious/critical y 0 px de desbordamiento horizontal en login con passkey, reto 2FA (código, recuperación y con error) y Perfil → Seguridad (sin 2FA, QR, 8 códigos, activo, diálogo de desactivar, alta de passkey, lista y diálogo de eliminar); `npx tsc --noEmit -p .` → 0 errores.
+
 
 ### T-19 — Documentación de usuario y operación, comprobación de sodium y cierre del ADR
 

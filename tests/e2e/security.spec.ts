@@ -7,6 +7,7 @@ import {
     enableTwoFactorDirect,
     expectNoOverflow,
     loginAs,
+    loginUntilChallenge,
     resetSecurity,
     totp,
     virtualAuthenticator,
@@ -40,16 +41,6 @@ async function submitChallenge(page: Page, field: 'code' | 'recovery', value: st
     const input = page.locator(field === 'code' ? '#code' : '#recovery_code');
     await expect.poll(async () => (await input.count()) === 0 || (await input.inputValue()) === '').toBe(true);
     return response;
-}
-
-/** Email y contraseña correctos hasta llegar al reto (sin completarlo). */
-async function loginUntilChallenge(page: Page, user: E2eUser, remember = false) {
-    await page.goto('/login');
-    await page.getByLabel('Correo electrónico').fill(user.email);
-    await page.getByLabel('Contraseña').fill(user.password);
-    if (remember) await page.getByLabel('Recordarme').check();
-    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-    await page.waitForURL(/two-factor-challenge/);
 }
 
 test.describe('2FA · doble factor (TOTP)', () => {

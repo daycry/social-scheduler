@@ -37,6 +37,7 @@ export const AUTH_PAGES: Array<[string, string]> = [
     ['api-keys', '/api-keys'],
     ['avisos', '/notifications'],
     ['perfil', '/profile'],
+    ['confirmar contraseña', '/confirm-password'],
     ['mejores horas', '/best-times'],
     ['biblioteca', '/library'],
     ['papelera', '/trash'],
@@ -276,4 +277,14 @@ export async function confirmPassword(page: Page, password: string) {
     await page.getByLabel('Contraseña').fill(password);
     await page.getByRole('button', { name: 'Confirmar' }).click();
     await page.waitForURL((u) => !/confirm-password/.test(u.pathname));
+}
+
+/** Email y contraseña correctos hasta llegar al reto (sin completarlo). */
+export async function loginUntilChallenge(page: Page, user: E2eUser, remember = false) {
+    await page.goto('/login');
+    await page.getByLabel('Correo electrónico').fill(user.email);
+    await page.getByLabel('Contraseña').fill(user.password);
+    if (remember) await page.getByLabel('Recordarme').check();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await page.waitForURL(/two-factor-challenge/);
 }

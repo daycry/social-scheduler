@@ -21,6 +21,15 @@ class PasskeyController extends Controller
 {
     public function __construct(private readonly PasskeyGateway $passkeys, private readonly AuditLog $audit) {}
 
+    /**
+     * Pide la contrasena (la ruta va tras `password.confirm`) y vuelve al perfil. Asi la UI confirma ANTES de abrir el
+     * dialogo del navegador y el fetch de las opciones nunca ve un 423. `?then=add` abre el formulario de alta al volver.
+     */
+    public function confirm(Request $request): RedirectResponse
+    {
+        return redirect()->route('profile.edit', $request->query('then') === 'add' ? ['passkey' => 'add'] : []);
+    }
+
     /** Opciones de alta (excluye los autenticadores ya registrados). */
     public function options(Request $request): JsonResponse
     {

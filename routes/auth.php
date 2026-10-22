@@ -83,6 +83,7 @@ Route::middleware('auth')->group(function () {
 
     // Gestion de passkeys (perfil): tras confirmar la contrasena. `id` (no `passkey`) para esquivar el binding global del paquete.
     Route::middleware(['password.confirm', 'throttle:passkey-manage'])->prefix('user/passkeys')->name('passkeys.')->group(function () {
+        Route::get('confirm', [PasskeyController::class, 'confirm'])->name('confirm');
         Route::get('options', [PasskeyController::class, 'options'])->name('options');
         Route::post('/', [PasskeyController::class, 'store'])->name('store');
         Route::patch('{id}', [PasskeyController::class, 'update'])->whereNumber('id')->name('update');

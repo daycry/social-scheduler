@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
+import PasskeysForm from './Partials/PasskeysForm.vue';
 import TwoFactorForm from './Partials/TwoFactorForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
@@ -25,6 +26,11 @@ defineProps({
     recoveryCodes: {
         type: Array,
         default: null,
+    },
+    // Passkeys: { confirmed, items: [{ id, name, created_at, last_used_at }] }, sin material de la credencial.
+    passkeys: {
+        type: Object,
+        default: () => ({ confirmed: false, items: [] }),
     },
 });
 </script>
@@ -65,6 +71,8 @@ defineProps({
                         :recovery-codes="recoveryCodes"
                         class="max-w-xl"
                     />
+
+                    <PasskeysForm :passkeys="passkeys" class="mt-10 max-w-xl border-t border-slate-200 pt-8" />
                 </div>
 
                 <div

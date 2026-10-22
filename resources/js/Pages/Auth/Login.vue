@@ -4,8 +4,12 @@ import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { passkeyErrorMessage, useSecureContext } from '@/Composables/useSecureContext';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { usePasskeyVerify } from '@laravel/passkeys/vue';
+import { computed, ref } from 'vue';
 
 defineProps({
     canResetPassword: {
@@ -21,6 +25,27 @@ const form = useForm({
     password: '',
     remember: false,
 });
+
+// Passkeys: solo en contexto seguro y con WebAuthn (CA-20). El autocompletado condicional ofrece la passkey desde el
+// propio campo de correo (autocomplete="username webauthn"). La passkey sustituye a contraseña + 2FA: el servidor
+// devuelve { redirect } y se navega ahí (sin doble redirección).
+const { canUsePasskeys, httpsNotice } = useSecureContext();
+const { verify: verifyPasskey, errorInstance: passkeyError } = usePasskeyVerify({
+    autofill: true,
+    remember: () => form.remember,
+    onSuccess: (response) => router.visit(response?.redirect ?? route('dashboard')),
+});
+// `isLoading` del cliente también vale true mientras espera el autocompletado: el botón usa su propio estado.
+const passkeyBusy = ref(false);
+const startPasskey = async () => {
+    passkeyBusy.value = true;
+    try {
+        await verifyPasskey();
+    } finally {
+        passkeyBusy.value = false;
+    }
+};
+const passkeyMessage = computed(() => passkeyErrorMessage(passkeyError.value));
 
 const submit = () => {
     form.post(route('login'), {
@@ -51,7 +76,7 @@ const submit = () => {
                     v-model="form.email"
                     required
                     autofocus
-                    autocomplete="username"
+                    autocomplete="username webauthn"
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
@@ -99,6 +124,18 @@ const submit = () => {
                 </PrimaryButton>
             </div>
         </form>
+
+        <div class="mt-6 border-t border-slate-200 pt-6">
+            <template v-if="canUsePasskeys">
+                <SecondaryButton class="w-full" :disabled="passkeyBusy" @click="startPasskey">
+                    {{ passkeyBusy ? 'Esperando a tu dispositivo…' : 'Entrar con passkey' }}
+                </SecondaryButton>
+                <p class="mt-2 text-center text-xs text-slate-500">Sin contraseña ni código: con tu huella, tu cara o el PIN del dispositivo.</p>
+            </template>
+            <p v-else class="text-center text-sm text-slate-600" role="status">{{ httpsNotice }}</p>
+
+            <p class="mt-3 text-center text-sm text-red-600" role="alert" aria-live="polite">{{ passkeyMessage }}</p>
+        </div>
 
         <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p>
     </GuestLayout>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Tests\Support\FakePasskeys;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -144,4 +145,48 @@ test('Security: los codigos recien generados llegan una sola vez', function () {
         ->from('/profile')->post('/user/two-factor/recovery-codes')->assertRedirect('/profile');
     $this->get('/profile')->assertInertia(fn ($page) => $page->has('recoveryCodes', 8));
     $this->get('/profile')->assertInertia(fn ($page) => $page->where('recoveryCodes', null));
+});
+
+test('Passkeys: Profile/Edit expone id, nombre y fechas de sus passkeys, sin material de la credencial', function () {
+    $user = User::factory()->create();
+    $mine = FakePasskeys::seed($user, 'Portátil de casa', 'credencial-secreta-1');
+    $mine->forceFill(['last_used_at' => now()->subDay()])->save();
+    $theirs = FakePasskeys::seed(User::factory()->create(), 'De otro', 'credencial-secreta-2');
+
+    $res = $this->actingAs($user)->get('/profile');
+
+    $res->assertInertia(fn ($page) => $page
+        ->component('Profile/Edit')
+        ->where('passkeys.confirmed', false)
+        ->has('passkeys.items', 1)
+        ->where('passkeys.items.0.id', $mine->id)
+        ->where('passkeys.items.0.name', 'Portátil de casa')
+        ->has('passkeys.items.0.created_at')
+        ->has('passkeys.items.0.last_used_at')
+        ->etc());
+
+    $items = $res->viewData('page')['props']['passkeys']['items'];
+    expect(array_keys($items[0]))->toBe(['id', 'name', 'created_at', 'last_used_at']);
+
+    // Ni el credential_id ni la clave publica ni la passkey ajena viajan al navegador.
+    $content = $res->getContent();
+    expect($content)->not->toContain($mine->credential_id)->not->toContain($theirs->credential_id)->not->toContain('De otro')
+        ->not->toContain('credential');
+});
+
+test('Passkeys: confirmed refleja la confirmacion reciente de la contrasena', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get('/profile')
+        ->assertInertia(fn ($page) => $page->where('passkeys.confirmed', true)->where('passkeys.items', []));
+});
+
+test('Passkeys: la ruta de confirmacion pide la contrasena y vuelve al perfil (con el alta abierta si se pide)', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/user/passkeys/confirm?then=add')->assertRedirect(route('password.confirm'));
+
+    $this->withSession(['auth.password_confirmed_at' => time()]);
+    $this->get('/user/passkeys/confirm')->assertRedirect(route('profile.edit'));
+    $this->get('/user/passkeys/confirm?then=add')->assertRedirect(route('profile.edit', ['passkey' => 'add']));
 });

@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 5 | 7 | 71% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 6 | 7 | 86% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **12** | **20** | **60%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **13** | **20** | **65%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -220,7 +220,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 317k in / 31k out tok · ⚠️ verificar €
 - **Dependencias**: T-03, T-04
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Auth/TwoFactorChallenge.vue`, `resources/js/Pages/Auth/Login.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Profile/Partials/TwoFactorForm.vue`, `app/Http/Controllers/ProfileController.php`, `tests/Feature/ProfileTest.php`
+- **Archivos**: `resources/js/Pages/Auth/TwoFactorChallenge.vue`, `resources/js/Pages/Auth/Login.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Profile/Partials/TwoFactorForm.vue`, `app/Http/Controllers/ProfileController.php`, `app/Http/Controllers/Profile/PasskeyController.php`, `routes/auth.php`, `tests/Feature/ProfileTest.php`
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, A11Y-01, M-03, M-05
 - **Verificación**:
   - `npm run build` → build sin errores
@@ -448,15 +448,15 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-13 — UI de passkeys: PasskeysForm, botón en Login y avisos de contexto
 
 - **Descripción**: `Profile/Partials/PasskeysForm.vue` (lista con nombre, alta y último uso; añadir con confirmación de contraseña previa; renombrar y borrar con confirmación) dentro de la tarjeta «Seguridad». `Auth/Login.vue` gana «Entrar con passkey» con `usePasskeyVerify` de `@laravel/passkeys/vue`, `autocomplete="username webauthn"` y el aviso «Las passkeys requieren HTTPS» si `!isSecureContext` o no hay WebAuthn (CA-20). Trata `NotAllowedError` con mensaje neutro y el 423.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Desde el perfil se gestionan las passkeys (añadir, renombrar, eliminar) y en la pantalla de acceso aparece «Entrar con passkey»; si el navegador o la conexión no son seguros se avisa y la contraseña sigue funcionando.
+- **Estado**: completado
 - **Tiempo humano**: est. 11,0h · real —
 - **Tiempo IA (ejec.)**: est. 1.52h · real —
 - **Supervisión**: est. 0.38h (≈25 % IA) · real —
 - **Previsión IA**: 416k in / 41k out tok · ⚠️ verificar €
 - **Dependencias**: T-10, T-11
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Profile/Partials/PasskeysForm.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Auth/Login.vue`, `resources/js/Composables/useSecureContext.js`, `app/Http/Controllers/ProfileController.php`, `tests/Feature/ProfileTest.php`
+- **Archivos**: `resources/js/Pages/Profile/Partials/PasskeysForm.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Auth/Login.vue`, `resources/js/Composables/useSecureContext.js`, `app/Http/Controllers/ProfileController.php`, `app/Http/Controllers/Profile/PasskeyController.php`, `routes/auth.php`, `tests/Feature/ProfileTest.php`
 - **Cubre (tests)**: E2E-05, E2E-06, E2E-07, A11Y-01, M-01, M-02, M-05
 - **Verificación**:
   - `npm run build` → build sin errores
@@ -464,18 +464,19 @@ Checklist firmada (orquestador, 2026-10-22):
   - `vendor/bin/pint --test` → sin cambios pendientes
 
 **Criterios de aceptación**
-- [ ] CA-20: sin WebAuthn o en `http://` que no sea `localhost` no aparecen botón ni tarjeta, sale «Las passkeys requieren HTTPS» y el login con contraseña funciona igual
-- [ ] CA-13/14/15/16: alta, segunda passkey, renombrado y borrado con confirmación desde la UI
-- [ ] Cancelar la biometría muestra «No se completó la passkey» sin auditar como ataque
-- [ ] El alta pide `password.confirm` ANTES de abrir el diálogo (no hay 423 visible)
-- [ ] Sin desbordamiento horizontal a 375 y 360 px (se valida en T-18)
+- [x] CA-20: sin WebAuthn o en `http://` que no sea `localhost` no aparecen botón ni tarjeta, sale «Las passkeys requieren HTTPS» y el login con contraseña funciona igual
+- [x] CA-13/14/15/16: alta, segunda passkey, renombrado y borrado con confirmación desde la UI
+- [x] Cancelar la biometría muestra «No se completó la passkey» sin auditar como ataque
+- [x] El alta pide `password.confirm` ANTES de abrir el diálogo (no hay 423 visible)
+- [x] Sin desbordamiento horizontal a 375 y 360 px (se valida en T-18)
 
 **Subtareas**
-- [ ] Composable de contexto seguro
-- [ ] PasskeysForm con estados vacío, lista y error
-- [ ] Botón en Login y autofill condicional
+- [x] Composable de contexto seguro
+- [x] PasskeysForm con estados vacío, lista y error
+- [x] Botón en Login y autofill condicional
 
-**Notas**: Reutiliza `Modal`, `DangerButton` y `EmptyState`.
+**Notas**: Reutiliza `Modal`, `DangerButton` y `EmptyState`. Desviaciones: (1) nueva ruta `GET /user/passkeys/confirm[?then=add]` (tras `password.confirm`) que redirige al perfil: así la UI pide la contraseña ANTES de abrir el diálogo y retoma el alta al volver; renombrar/eliminar sin confirmación reciente también pasan por ahí (props `passkeys.confirmed`). (2) `passkeyErrorMessage` vive en `useSecureContext.js` junto al composable. (3) El estado ocupado del botón de Login es propio (`isLoading` del cliente también vale true durante el autocompletado). (4) Hallazgo para E2E (T-16): el autenticador virtual contesta solo al autocompletado condicional, así que con una passkey registrada `/login` entra sola sin pulsar el botón; los E2E deben admitir ambos caminos. Con el autocompletado pendiente y un clic manual, el cliente cancela el autocompletado; si ambos llegan a enviarse, el reto de un solo uso hace que falle uno (mensaje genérico) y se reintenta con el botón. (5) El cliente del paquete usa `/user/passkeys/options` por GET: cada carga de /login hace 1 petición de opciones (cuenta para el límite de 10/min por IP).
+**Evidencia**: `npm run build` → built sin errores; `php artisan test --compact tests/Feature/ProfileTest.php` → 13 passed (passkeys con id, nombre y fechas; sin credential_id, clave ni passkeys ajenas); `vendor/bin/pint --test` → passed; `php artisan test` → 907 passed. Humo con Chromium + autenticador virtual contra un servidor temporal en http://localhost:8123 (ya parado, usuario de prueba borrado) a 1280, 375 y 360 px: alta tras confirmar contraseña (sin 423 visible), lista, renombrar, login con passkey, eliminar, 0 px de desbordamiento horizontal y 0 errores de consola; contexto no seguro → aviso «Las passkeys requieren HTTPS» sin botones en Login ni Perfil; cancelar la biometría → «No se completó la passkey.» sin tocar el servidor.
 
 ### T-14 — Revisión de seguridad de C-02
 

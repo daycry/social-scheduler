@@ -53,6 +53,18 @@ class ProfileController extends Controller
             ] : null,
             // Los codigos en claro viajan una sola vez (flash).
             'recoveryCodes' => session('recoveryCodes'),
+            // Passkeys: solo lo que pinta la lista (nada de credential_id, clave publica ni contador). `confirmed` dice si
+            // el alta/renombrado/borrado pasan ya por `password.confirm` o hay que pedir la contrasena antes (sin 423 visible).
+            'passkeys' => [
+                'confirmed' => $passwordConfirmed,
+                'items' => $user->passkeys()->orderBy('created_at')->orderBy('id')->get(['id', 'name', 'created_at', 'last_used_at'])
+                    ->map(fn ($p) => [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'created_at' => $p->created_at?->toIso8601String(),
+                        'last_used_at' => $p->last_used_at?->toIso8601String(),
+                    ])->all(),
+            ],
         ]);
     }
 

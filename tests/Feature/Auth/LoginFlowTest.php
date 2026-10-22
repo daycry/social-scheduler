@@ -28,9 +28,11 @@ test('sin 2FA abre la sesion y va a intended', function () {
 test('sin 2FA con remember crea la cookie recaller', function () {
     $user = User::factory()->create();
 
-    runLoginFlow($user, true);
+    $response = runLoginFlow($user, true);
 
     $this->assertAuthenticatedAs($user);
+    $recaller = collect($response->headers->getCookies())->first(fn ($c) => str_starts_with($c->getName(), 'remember_web_'));
+    expect($recaller)->not->toBeNull()->and($recaller->getValue())->not->toBe('');
 });
 
 test('con 2FA no autentica, deja login.* y redirige al reto', function (bool $remember) {

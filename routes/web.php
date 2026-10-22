@@ -76,8 +76,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('reports/{report}', [ReportController::class, 'destroy'])->whereNumber('report')->name('reports.destroy');
 
     // Consentimiento OAuth del MCP (ADR-004): `auth` guarda url.intended y vuelve tras el login (2FA incluido).
-    Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->name('mcp.oauth.authorize');
-    Route::post('oauth/authorize', [AuthorizeController::class, 'decide'])->name('mcp.oauth.authorize.decide');
+    Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->middleware('throttle:mcp-oauth-authorize')->name('mcp.oauth.authorize');
+    Route::post('oauth/authorize', [AuthorizeController::class, 'decide'])->middleware('throttle:mcp-oauth-authorize')->name('mcp.oauth.authorize.decide');
 
     // API keys personales para el MCP (T-28).
     Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');

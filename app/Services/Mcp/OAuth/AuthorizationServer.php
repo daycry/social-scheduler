@@ -55,7 +55,11 @@ class AuthorizationServer
             throw new OAuthException('invalid_request', 'La redireccion no coincide con ninguna registrada para el cliente.');
         }
 
-        $state = isset($q['state']) && is_string($q['state']) ? mb_substr($q['state'], 0, 500) : null;
+        $redirectSent = isset($q['redirect_uri']);
+        $state = isset($q['state']) && is_string($q['state']) ? $q['state'] : null;
+        if ($state !== null && mb_strlen($state) > 500) {
+            throw new OAuthException('invalid_request', 'state supera los 500 caracteres.', $redirectUri);
+        }
         $fail = fn (string $error, string $description) => new OAuthException($error, $description, $redirectUri, $state);
 
         if (($q['response_type'] ?? null) !== 'code') {
@@ -78,7 +82,7 @@ class AuthorizationServer
             throw $fail('invalid_target', 'El recurso solicitado no es este servidor MCP.');
         }
 
-        return new AuthorizeRequest($client, $redirectUri, $challenge, $state, self::resourceUrl());
+        return new AuthorizeRequest($client, $redirectUri, $challenge, $state, self::resourceUrl(), $redirectSent);
     }
 
     /**
@@ -96,6 +100,7 @@ class AuthorizationServer
             'client_id' => $req->client->id,
             'user_id' => $user->id,
             'redirect_uri' => $req->redirectUri,
+            'redirect_uri_sent' => $req->redirectUriSent,
             'code_challenge' => $req->codeChallenge,
             'abilities' => $abilities,
             'resource' => $req->resource,
@@ -163,7 +168,7 @@ class AuthorizationServer
         }
 
         $mismatch = $row->client_id !== $client->id
-            || $redirectUri === null || ! hash_equals($row->redirect_uri, $redirectUri)
+            || ($redirectUri === null ? $row->redirect_uri_sent : ! hash_equals($row->redirect_uri, $redirectUri))
             || ! self::pkceMatches($verifier, $row->code_challenge);
         if ($mismatch) {
             // Un intento fallido con el codigo lo quema: quien lo intercepte solo tiene una oportunidad.
@@ -191,7 +196,10 @@ class AuthorizationServer
                 ->where('oauth_client_id', $client->id)->lockForUpdate()->pluck('id');
             PersonalAccessToken::whereIn('id', $previous)->delete();
             $new = $user->createToken('OAuth · '.$client->name, $row->abilities, now()->addDays($days));
-            PersonalAccessToken::whereKey($new->accessToken->id)->update(['oauth_client_id' => $client->id]);
+            PersonalAccessToken::whereKey($new->accessToken->id)->update(['oauth_client_id' => $client->id, 'origin' => 'oauth']);
+            // Si dos canjes de codigos distintos del mismo par se cruzaron, queda solo el token recien emitido.
+            PersonalAccessToken::where('tokenable_type', $user->getMorphClass())->where('tokenable_id', $user->id)
+                ->where('oauth_client_id', $client->id)->whereKeyNot($new->accessToken->id)->delete();
             $row->forceFill(['token_id' => $new->accessToken->id])->save();
             $client->forceFill(['last_used_at' => now()])->save();
 
@@ -203,7 +211,7 @@ class AuthorizationServer
                 'expires_in' => $days * 86400,
                 'scope' => 'mcp:use',
             ];
-        });
+        }, 3);
 
         if ($issued === null) {
             // Perdio la carrera: el codigo ya estaba canjeado. Fuera de la transaccion para que la revocacion no se deshaga.

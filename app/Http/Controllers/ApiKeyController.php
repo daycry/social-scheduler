@@ -26,7 +26,7 @@ class ApiKeyController extends Controller
                 'expires_at' => $t->expires_at?->toIso8601String(),
                 'created_at' => $t->created_at?->toIso8601String(),
                 // Origen: manual (creada aqui) u OAuth (emitida por el servidor de autorizacion a un cliente MCP).
-                'origin' => $t->oauth_client_id !== null ? 'oauth' : 'manual',
+                'origin' => $t->origin === 'oauth' ? 'oauth' : 'manual',
                 'oauth_client' => $t->oauthClient?->name,
             ])->values(),
             'abilities' => Abilities::all(),

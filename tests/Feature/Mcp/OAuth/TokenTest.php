@@ -5,6 +5,7 @@ use App\Models\AuditLog;
 use App\Models\OAuthAuthCode;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 
 require_once __DIR__.'/Helpers.php';
@@ -161,4 +162,47 @@ test('OAuthToken: las abilities emitidas son las del codigo y nunca superan a al
     $token = PersonalAccessToken::findOrFail((int) explode('|', $r->json('access_token'))[0]);
 
     expect($token->abilities)->toBe(Abilities::keys());
+});
+
+test('OAuthToken: redirect_uri omitida en authorize es opcional en el token; si viene debe coincidir', function () {
+    $user = User::factory()->create();
+    $client = oauthClient();
+    $params = authorizeParams($client, ['redirect_uri' => null]);
+
+    $approve = fn () => locationQuery($this->actingAs($user)->post('/oauth/authorize', $params + ['decision' => 'approve', 'abilities' => ['posts:read']]))['code'];
+
+    redeem($approve(), $client, ['redirect_uri' => null])->assertOk();
+    redeem($approve(), $client, ['redirect_uri' => $client->redirect_uris[0]])->assertOk();
+    redeem($approve(), $client, ['redirect_uri' => 'http://127.0.0.1:1/otra'])->assertStatus(400)->assertJsonPath('error', 'invalid_grant');
+});
+
+test('OAuthToken: si el authorize envio redirect_uri, omitirla en el token falla', function () {
+    [$code, , , $client] = mintCode();
+
+    redeem($code, $client, ['redirect_uri' => null])->assertStatus(400)->assertJsonPath('error', 'invalid_grant');
+});
+
+test('OAuthToken: si otra peticion consume el codigo entre la lectura y el UPDATE, responde invalid_grant (rama issued null)', function () {
+    [$code, $row, , $client] = mintCode();
+    $fired = false;
+    DB::listen(function ($q) use (&$fired, $row) {
+        if (! $fired && str_starts_with(strtolower($q->sql), 'select') && str_contains($q->sql, 'oauth_auth_codes')) {
+            $fired = true;
+            DB::table('oauth_auth_codes')->where('id', $row->id)->update(['used_at' => now()]);
+        }
+    });
+
+    redeem($code, $client)->assertStatus(400)->assertJsonPath('error', 'invalid_grant');
+
+    expect($fired)->toBeTrue()->and(PersonalAccessToken::count())->toBe(0);
+});
+
+test('OAuthToken: tras canjear queda un solo token del par aunque hubiera otro vivo (carrera)', function () {
+    [$code, , $user, $client] = mintCode();
+    $other = $user->createToken('OAuth · x', ['posts:read'], now()->addDay())->accessToken;
+    $other->forceFill(['oauth_client_id' => $client->id, 'origin' => 'oauth'])->save();
+
+    $id = (int) explode('|', redeem($code, $client)->assertOk()->json('access_token'))[0];
+
+    expect(PersonalAccessToken::where('oauth_client_id', $client->id)->pluck('id')->all())->toBe([$id]);
 });

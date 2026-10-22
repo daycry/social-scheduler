@@ -13,6 +13,7 @@ final class AuthorizeRequest
         public readonly string $codeChallenge,
         public readonly ?string $state,
         public readonly string $resource,
+        public readonly bool $redirectUriSent = true,
     ) {}
 
     /** @return array<string, string> parametros a reenviar en el POST (el servidor los revalida) */
@@ -21,7 +22,8 @@ final class AuthorizeRequest
         return array_filter([
             'response_type' => 'code',
             'client_id' => $this->client->id,
-            'redirect_uri' => $this->redirectUri,
+            // Si el cliente la omitio no se reenvia: el POST la vuelve a inferir y el codigo recuerda que no se envio.
+            'redirect_uri' => $this->redirectUriSent ? $this->redirectUri : null,
             'code_challenge' => $this->codeChallenge,
             'code_challenge_method' => 'S256',
             'state' => $this->state,

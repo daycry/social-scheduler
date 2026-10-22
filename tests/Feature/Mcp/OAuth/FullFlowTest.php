@@ -35,8 +35,17 @@ test('OAuthFullFlow: el token solo tiene lo que se marco en el consentimiento (C
 test('OAuthFullFlow: autorizar dos veces el mismo cliente deja un solo token vivo', function () {
     $user = User::factory()->create();
 
-    $first = runOAuthFlow($user, ['brands:read']);
-    expect(PersonalAccessToken::where('oauth_client_id', $first['client_id'])->count())->toBe(1);
+    $client = oauthClient();
+    $tokens = [];
+    foreach (['a', 'b'] as $i) {
+        $approve = $this->actingAs($user)->post('/oauth/authorize', authorizeParams($client) + ['decision' => 'approve', 'abilities' => ['brands:read']]);
+        $code = locationQuery($approve)['code'];
+        $tokens[$i] = redeem($code, $client)->assertOk()->json('access_token');
+    }
+
+    expect($tokens['a'])->not->toBe($tokens['b'])
+        ->and(PersonalAccessToken::where('oauth_client_id', $client->id)->count())->toBe(1)
+        ->and(PersonalAccessToken::where('oauth_client_id', $client->id)->value('id'))->toBe((int) explode('|', $tokens['b'])[0]);
 });
 
 test('OAuthFullFlow: denegar vuelve con access_denied y no hay token', function () {

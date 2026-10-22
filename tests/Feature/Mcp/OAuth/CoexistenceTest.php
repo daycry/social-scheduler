@@ -104,3 +104,13 @@ test('OAuthCoexistence CA-28: McpGuard sigue dando 403 con Origin ajeno en /mcp;
     $this->postJson('/oauth/register', ['redirect_uris' => ['http://localhost:1/cb']], $evil)->assertCreated();
     $this->post('/oauth/token', ['grant_type' => 'x'], $evil)->assertStatus(400);
 });
+
+test('OAuthCoexistence: si se borra el cliente, el token sigue mostrandose como OAuth en /api-keys', function () {
+    $user = User::factory()->create();
+    [$code, , , $client] = mintCode(['posts:read'], [], $user);
+    redeem($code, $client)->assertOk();
+
+    $client->delete();
+
+    $this->actingAs($user)->get('/api-keys')->assertInertia(fn (Assert $p) => $p->where('keys.0.origin', 'oauth')->where('keys.0.oauth_client', null));
+});

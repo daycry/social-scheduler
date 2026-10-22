@@ -46,3 +46,9 @@ test('OAuthMetadata CA-24/28: una key valida sigue entrando y los metadatos no e
     $this->rpc($key, 'tools/list')->assertOk();
     $this->getJson('/.well-known/oauth-authorization-server', ['Origin' => 'https://evil.example'])->assertOk();
 });
+
+test('OAuthMetadata: el ASM tambien responde en la variante anidada /mcp', function () {
+    $plain = $this->getJson('/.well-known/oauth-authorization-server')->assertOk()->json();
+
+    $this->getJson('/.well-known/oauth-authorization-server/mcp')->assertOk()->assertJson($plain);
+});

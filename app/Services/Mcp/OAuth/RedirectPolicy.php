@@ -82,6 +82,13 @@ class RedirectPolicy
             return null;
         }
 
+        // Sin segmentos `.`/`..` (ni su forma codificada %2e, en cualquier caja): permiten escapar del prefijo permitido.
+        foreach (explode('/', str_ireplace('%2e', '.', $p['path'] ?? '')) as $seg) {
+            if ($seg === '.' || $seg === '..') {
+                return null;
+            }
+        }
+
         $scheme = strtolower($p['scheme']);
         if (! in_array($scheme, ['http', 'https'], true)) {
             return null;

@@ -69,6 +69,8 @@ return [
             'token_days' => min(max(1, (int) env('MCP_KEY_MAX_DAYS', 730)), max(1, (int) env('MCP_OAUTH_TOKEN_DAYS', 30))),
             // Vida del codigo de autorizacion, en segundos.
             'code_ttl' => (int) env('MCP_OAUTH_CODE_TTL', 300),
+            // Tope global de registros DCR por hora (ademas de 10/h por IP, o por /64 en IPv6).
+            'register_global_per_hour' => (int) env('MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR', 200),
             // Prefijos https:// extra permitidos como redirect_uri (CSV); loopback y los callbacks de Claude ya van por defecto.
             'redirect_allowed' => array_values(array_filter(array_map('trim', explode(',', (string) env('MCP_OAUTH_REDIRECT_ALLOWED', ''))))),
         ],

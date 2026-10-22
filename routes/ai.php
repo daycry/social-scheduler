@@ -17,6 +17,7 @@ Route::get('/.well-known/oauth-protected-resource', [MetadataController::class, 
 Route::get('/.well-known/oauth-protected-resource/{path}', [MetadataController::class, 'protectedResource'])
     ->where('path', '.*')->name('mcp.oauth.protected-resource.nested');
 Route::get('/.well-known/oauth-authorization-server', [MetadataController::class, 'authorizationServer'])->name('mcp.oauth.authorization-server');
+Route::get('/.well-known/oauth-authorization-server/mcp', [MetadataController::class, 'authorizationServer'])->name('mcp.oauth.authorization-server.nested');
 
 // DCR publico: limitado por IP (10/h) y con redirect_uri restringida por RedirectPolicy.
 Route::post('/oauth/register', RegisterController::class)->middleware('throttle:mcp-oauth-register')->name('mcp.oauth.register');

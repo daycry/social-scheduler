@@ -4,6 +4,9 @@ use App\Mcp\Abilities;
 use App\Models\AuditLog;
 use App\Models\OAuthAuthCode;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/Helpers.php';
@@ -171,4 +174,24 @@ test('OAuthAuthorize: el codigo en claro no queda en BD ni en la auditoria', fun
 
     expect(json_encode(OAuthAuthCode::all()->makeVisible('code_hash')))->not->toContain($code)
         ->and(json_encode(AuditLog::all()))->not->toContain($code);
+});
+
+test('OAuthAuthorize: un state de mas de 500 caracteres se rechaza con invalid_request, sin truncar', function () {
+    $user = User::factory()->create();
+    $client = oauthClient();
+
+    $r = $this->actingAs($user)->get(authorizeUrl(authorizeParams($client, ['state' => str_repeat('a', 501)])));
+    $q = locationQuery($r);
+    expect($q['error'])->toBe('invalid_request')->and($q)->not->toHaveKey('state');
+
+    $this->actingAs($user)->get(authorizeUrl(authorizeParams($client, ['state' => str_repeat('a', 500)])))->assertOk();
+});
+
+test('OAuthAuthorize: /oauth/authorize lleva el throttle con nombre, 30/min por usuario', function () {
+    foreach (['mcp.oauth.authorize', 'mcp.oauth.authorize.decide'] as $name) {
+        expect(Route::getRoutes()->getByName($name)->gatherMiddleware())->toContain('throttle:mcp-oauth-authorize');
+    }
+    $request = Request::create('/oauth/authorize');
+    $request->setUserResolver(fn () => User::factory()->make(['id' => 77]));
+    expect(RateLimiter::limiter('mcp-oauth-authorize')($request)->maxAttempts)->toBe(30);
 });

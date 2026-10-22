@@ -8,6 +8,7 @@ use App\Services\AuditLog;
 use App\Services\Mcp\OAuth\RedirectPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 /** POST /oauth/register: registro dinamico de clientes publicos (RFC 7591), sin secreto. */
 class RegisterController extends Controller
@@ -16,6 +17,13 @@ class RegisterController extends Controller
 
     public function __invoke(Request $request, RedirectPolicy $policy, AuditLog $audit): JsonResponse
     {
+        // Tope global ademas del limite por IP (C2): quien rote de IP no puede inundar la tabla.
+        $global = 'mcp-oauth-register:global';
+        if (RateLimiter::tooManyAttempts($global, max(1, (int) config('services.mcp.oauth.register_global_per_hour', 200)))) {
+            return response()->json(['error' => 'temporarily_unavailable', 'error_description' => 'Demasiados registros; reintenta mas tarde.'], 429, ['Cache-Control' => 'no-store', 'Retry-After' => (string) RateLimiter::availableIn($global)]);
+        }
+        RateLimiter::hit($global, 3600);
+
         $body = $request->json()->all();
 
         $uris = $body['redirect_uris'] ?? null;
@@ -38,12 +46,23 @@ class RegisterController extends Controller
         $grants = $body['grant_types'] ?? ['authorization_code'];
         $responses = $body['response_types'] ?? ['code'];
         if ($method !== 'none'
-            || ! is_array($grants) || array_diff($grants, ['authorization_code', 'refresh_token']) !== [] || ! in_array('authorization_code', $grants, true)
-            || ! is_array($responses) || $responses !== ['code']) {
+            || ! is_array($grants) || array_filter($grants, fn ($g) => ! is_string($g)) !== [] || array_diff($grants, ['authorization_code', 'refresh_token']) !== [] || ! in_array('authorization_code', $grants, true)
+            || ! is_array($responses) || array_filter($responses, fn ($g) => ! is_string($g)) !== [] || $responses !== ['code']) {
             return $this->error('invalid_client_metadata', 'Solo se admiten clientes publicos con authorization_code y response_type code.');
         }
 
+        $softwareId = $body['software_id'] ?? null;
+        $softwareVersion = $body['software_version'] ?? null;
+        foreach ([$softwareId, $softwareVersion] as $meta) {
+            if ($meta !== null && (! is_string($meta) || mb_strlen($meta) > 255)) {
+                return $this->error('invalid_client_metadata', 'software_id y software_version deben ser texto corto.');
+            }
+        }
+
         $client = OAuthClient::create([
+            'software_id' => $softwareId === null ? null : strip_tags($softwareId),
+            'software_version' => $softwareVersion === null ? null : mb_substr(strip_tags($softwareVersion), 0, 100),
+            'created_ip' => $request->ip(),
             'name' => trim(strip_tags($name)),
             'redirect_uris' => array_values(array_unique($uris)),
         ]);

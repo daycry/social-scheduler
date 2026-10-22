@@ -104,14 +104,13 @@ test('Security: Profile/Edit expone el estado del 2FA sin secretos', function ()
     expect($res->getContent())->not->toContain('JBSWY3DPEHPK3PXP')->not->toContain('hash-a');
 });
 
-test('Security: con una activacion pendiente solo hay estado, el secreto no va en props', function () {
+test('Security: con una activacion pendiente el perfil sirve el secreto desde el usuario', function () {
     $user = User::factory()->create();
     $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP'])->save();
 
     $res = $this->actingAs($user)->get('/profile');
 
-    $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.enabled', false)->where('twoFactorSetup', null));
-    expect($res->getContent())->not->toContain('JBSWY3DPEHPK3PXP');
+    $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.enabled', false)->where('twoFactorSetup.secret', 'JBSWY3DPEHPK3PXP'));
 });
 
 test('Security: los codigos recien generados llegan una sola vez', function () {

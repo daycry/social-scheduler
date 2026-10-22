@@ -12,7 +12,7 @@ import { computed, nextTick, ref } from 'vue';
 const props = defineProps({
     // Estado, sin secretos: { enabled, pending, recoveryRemaining }.
     twoFactor: { type: Object, required: true },
-    // Solo en la respuesta que genera el secreto: { secret, qrSvg }.
+    // Solo mientras la activación está a medias (lo sirve el perfil desde el usuario): { secret, qrSvg }.
     setup: { type: Object, default: null },
     // Solo en la respuesta que genera los códigos: lista de 8 códigos en claro.
     recoveryCodes: { type: Array, default: null },
@@ -21,6 +21,7 @@ const props = defineProps({
 const enableForm = useForm({});
 const confirmForm = useForm({ code: '' });
 const regenerateForm = useForm({});
+const cancelForm = useForm({});
 const disableForm = useForm({ password: '', code: '', recovery_code: '' });
 
 const confirmInput = ref(null);
@@ -49,6 +50,10 @@ const confirm = () => {
             nextTick(() => confirmInput.value?.focus());
         },
     });
+};
+
+const cancelSetup = () => {
+    cancelForm.delete(route('two-factor.cancel'), { preserveScroll: true });
 };
 
 const regenerate = () => {
@@ -103,7 +108,8 @@ const downloadCodes = () => {
     a.href = url;
     a.download = 'codigos-de-recuperacion.txt';
     a.click();
-    URL.revokeObjectURL(url);
+    // Revocar en el mismo tick puede abortar la descarga en algunos navegadores.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 </script>
 
@@ -171,11 +177,8 @@ const downloadCodes = () => {
                     </p>
                 </div>
             </template>
-            <p v-else class="text-sm text-slate-700">
-                Hay una activación a medias. Por seguridad la clave no se vuelve a mostrar: empieza de nuevo para generar un QR nuevo.
-            </p>
 
-            <form v-if="setup" class="space-y-3" @submit.prevent="confirm" novalidate>
+            <form class="space-y-3" @submit.prevent="confirm" novalidate>
                 <div>
                     <InputLabel for="tf_code" value="Código de verificación" />
                     <TextInput
@@ -200,9 +203,9 @@ const downloadCodes = () => {
                 <div class="flex flex-wrap gap-3">
                     <PrimaryButton :disabled="confirmForm.processing">Confirmar y activar</PrimaryButton>
                     <SecondaryButton :disabled="enableForm.processing" @click="enable">Generar otro QR</SecondaryButton>
+                    <SecondaryButton :disabled="cancelForm.processing" @click="cancelSetup">Cancelar activación</SecondaryButton>
                 </div>
             </form>
-            <PrimaryButton v-else :disabled="enableForm.processing" @click="enable">Empezar de nuevo</PrimaryButton>
         </div>
 
         <!-- Estado: activo -->

@@ -32,7 +32,7 @@ function confirmed()
 test('las rutas de gestion exigen auth y password.confirm', function () {
     $routes = collect(app('router')->getRoutes()->getRoutes())->filter(fn ($r) => str_starts_with($r->uri(), 'user/two-factor'));
 
-    expect($routes)->toHaveCount(4);
+    expect($routes)->toHaveCount(5);
     foreach ($routes as $r) {
         expect($r->gatherMiddleware())->toContain('auth')->toContain('password.confirm');
     }
@@ -50,8 +50,12 @@ test('activar genera un secreto pendiente con QR, sin activar aun', function () 
 
     $res = confirmed()->actingAs($user)->post('/user/two-factor');
 
-    $res->assertSessionHas('twoFactorSetup', fn ($s) => strlen($s['secret']) === 32 && str_contains($s['qrSvg'], '<svg'));
+    $res->assertSessionMissing('twoFactorSetup');
     $fresh = $user->fresh();
+    expect(strlen($fresh->two_factor_secret))->toBe(32);
+    $this->get('/profile')->assertInertia(fn ($p) => $p->where('twoFactor.pending', true)
+        ->where('twoFactorSetup.secret', $fresh->two_factor_secret)
+        ->where('twoFactorSetup.qrSvg', fn ($svg) => str_contains($svg, '<svg')));
     expect($fresh->two_factor_secret)->not->toBeNull()->and($fresh->hasTwoFactorEnabled())->toBeFalse();
 });
 
@@ -83,7 +87,7 @@ test('CA-02: TOTP incorrecto da error en el campo y conserva el secreto pendient
     $res = confirmed()->actingAs($user)->post('/user/two-factor/confirm', ['code' => '000000']);
 
     $res->assertSessionHasErrors('code');
-    $res->assertSessionHas('twoFactorSetup', fn ($s) => $s['secret'] === $secret);
+    $res->assertSessionMissing('twoFactorSetup');
     $fresh = $user->fresh();
     expect($fresh->hasTwoFactorEnabled())->toBeFalse()->and($fresh->two_factor_secret)->toBe($secret);
     expect(AuditLog::where('action', 'auth.2fa.enabled')->count())->toBe(0);
@@ -136,4 +140,62 @@ test('regenerar sin 2FA activo no hace nada', function () {
     $user = User::factory()->create();
 
     confirmed()->actingAs($user)->post('/user/two-factor/recovery-codes')->assertSessionMissing('recoveryCodes');
+});
+
+test('M2: ni el flash ni la sesion llevan el secreto pendiente', function () {
+    $user = User::factory()->create();
+
+    confirmed()->actingAs($user)->post('/user/two-factor');
+    $secret = $user->fresh()->two_factor_secret;
+    confirmed()->post('/user/two-factor/confirm', ['code' => '000000']);
+
+    expect(json_encode(session()->all()))->not->toContain($secret);
+});
+
+test('M3: un fallo de validacion del confirm no pierde el QR', function () {
+    [$user, $secret] = settingsUser();
+
+    $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->from('/profile')->post('/user/two-factor/confirm', ['code' => ''])
+        ->assertSessionHasErrors('code');
+    $this->get('/profile')->assertInertia(fn ($p) => $p->where('twoFactorSetup.secret', $secret)->has('twoFactorSetup.qrSvg'));
+});
+
+test('M9: cancelar la activacion borra el secreto pendiente y audita', function () {
+    [$user] = settingsUser();
+
+    confirmed()->actingAs($user)->delete('/user/two-factor/pending')->assertSessionHasNoErrors();
+
+    expect($user->fresh()->two_factor_secret)->toBeNull();
+    expect(AuditLog::where('action', 'auth.2fa.setup_cancelled')->where('user_id', $user->id)->count())->toBe(1);
+    $this->get('/profile')->assertInertia(fn ($p) => $p->where('twoFactor.pending', false)->where('twoFactorSetup', null));
+});
+
+test('M9: cancelar no toca un 2FA ya activo', function () {
+    [$user, $secret] = settingsUser(true);
+
+    confirmed()->actingAs($user)->delete('/user/two-factor/pending');
+    expect($user->fresh()->hasTwoFactorEnabled())->toBeTrue()->and($user->fresh()->two_factor_secret)->toBe($secret);
+});
+
+test('M9: cancelar exige confirmar la contraseña', function () {
+    [$user, $secret] = settingsUser();
+
+    $this->actingAs($user)->delete('/user/two-factor/pending')->assertRedirect(route('password.confirm'));
+    expect($user->fresh()->two_factor_secret)->toBe($secret);
+});
+
+test('M1: el perfil cifra el historial de Inertia y cerrar sesion lo limpia', function () {
+    $user = User::factory()->create();
+
+    expect($this->actingAs($user)->get('/profile')->viewData('page')['encryptHistory'])->toBeTrue();
+
+    $this->post('/logout');
+    expect(session('inertia.clear_history'))->toBeTrue();
+});
+
+test('M5: regenerar codigos tiene throttle', function () {
+    [$user] = settingsUser(true);
+
+    $route = collect(app('router')->getRoutes()->getRoutes())->first(fn ($r) => $r->uri() === 'user/two-factor/recovery-codes');
+    expect($route->gatherMiddleware())->toContain('throttle:10,1');
 });

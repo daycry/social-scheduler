@@ -233,7 +233,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] CA-23: el campo de código tiene etiqueta visible, `autocomplete="one-time-code"` e `inputmode="numeric"`; los errores se anuncian con `aria-live`; el enlace a «código de recuperación» es accesible por teclado
 - [x] CA-24: el QR tiene `alt`, el secreto aparece como texto copiable y los códigos se pueden copiar o descargar sin ratón
 - [x] Las props de Inertia no incluyen `two_factor_secret` ni códigos, salvo la respuesta única de generación
-- [x] Sin desbordamiento horizontal a 375 y 360 px (se valida en T-18)
+- [ ] Sin desbordamiento horizontal a 375 y 360 px — diferido a T-18
 
 **Subtareas**
 - [x] Página del reto con alternancia TOTP/recuperación
@@ -673,3 +673,21 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 **Notas**: Los M-xx no bloquean el cierre técnico; se entregan como checklist al usuario.
 
 ---
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-01..T-06) — 2 Important y 9 Minor
+
+Lentes A+B+C+D (C: rutas de auth/sesión/secretos; D: hashing en bucle). Diff `7b44972..HEAD`. `scope-check`: fuera de alcance solo ficheros sin seguimiento de herramientas y los artefactos PM de la propia iniciativa (commit 7b44972), sin código. Suite 841 passed.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| I1 | C (+D) | Important | Límite del reto 2FA esquivable: clave `usuario+IP` (rotar IP/IPv6 da 5 intentos nuevos por IP) y `tooManyAttempts`/`hit` no atómicos (ráfaga concurrente pasa N intentos) — CWE-307/367 | T-03 | corregido (bf54aed): limitador por cuenta `2fa:{id}` con `RateLimiter::increment` antes de verificar (TOTP y recuperación); `clear` al acertar. Tests: rotación de IP (6.º bloqueado), recuperación, clear | `TwoFactorChallengeController.php:59,78,123-125` |
+| I2 | A+B+C | Important | `validateCredentials()` perdió el `Timebox` de `SessionGuard::attempt` (enumeración de usuarios por tiempo, CWE-208) y el rehash de contraseña al entrar (`hashing.rehash_on_login`) | T-03 | corregido (bf54aed): `Timebox` (`auth.timebox_duration`) + `rehashPasswordIfRequired` si `hashing.rehash_on_login`. Tests de rehash con y sin 2FA (fallaban antes) | `LoginRequest.php:47-51`; `SessionGuard.php:444,539-543` |
+| M1 | C | Minor | Secreto TOTP y códigos en `history.state` de Inertia (sin `encryptHistory`/`clearHistory` al salir) — CWE-525 | T-04/T-06 | corregido (T-04 fix): `Inertia::encryptHistory()` en el perfil + `Inertia::clearHistory()` en logout. Test M1 | `ProfileController.php:31-32`; `AuthenticatedSessionController.php:59` |
+| M2 | C | Minor | Secreto pendiente en claro en `sessions.payload` (flash con `SESSION_ENCRYPT=false`) — CWE-312 | T-04 | corregido (T-04 fix): el secreto ya no va por flash; test M2 sobre la sesión | `Profile/TwoFactorController.php:40,56,67,123` |
+| M3 | B | Minor | Un fallo de validación del FormRequest de confirmación pierde el QR pendiente | T-04/T-06 | corregido (T-04 fix): el perfil sirve QR/secreto mientras la activación esté a medias (estado del usuario). Test M3 | `TwoFactorConfirmRequest.php:19`; `Profile/TwoFactorController.php:45-57` |
+| M4 | D | Minor | Código de recuperación inválido: 8 `Hash::check` (~1,2 s) dentro de `lockForUpdate`; con ráfaga, workers PHP-FPM ocupados | T-02/T-03 | corregido por I1 (bf54aed); los `Hash::check` siguen dentro de `lockForUpdate` (uso único) | `TotpService.php:116-121` |
+| M5 | D | Minor | `regenerate` sin throttle: 8 `Hash::make` por petición | T-04 | corregido (T-04 fix): `throttle:10,1` en recovery-codes. Test M5 | `routes/auth.php:72` |
+| M6 | D | Minor | Bloqueado, cada POST escribe auditoría y log | T-03 | corregido (bf54aed): lockout auditado solo al cruzar el umbral. Test M6 (1 lockout en 9 POST) | `TwoFactorChallengeController.php:59-60` |
+| M7 | B | Minor | `URL.revokeObjectURL` justo tras `click()` puede abortar la descarga de los códigos | T-06 | corregido (T-06 fix): `revokeObjectURL` en `setTimeout` 1 s | `TwoFactorForm.vue` `downloadCodes` |
+| M8 | A | Minor | «Sin desbordamiento a 375/360» marcado `[x]` sin evidencia (se valida en T-18) | T-06 | corregido: criterio desmarcado en T-06 con nota «diferido a T-18» | `tasks.md:236` |
+| M9 | B | Minor | No hay forma de cancelar una activación a medias | T-04 | corregido (T-04 fix): `DELETE /user/two-factor/pending` (auth+password.confirm, auditado `auth.2fa.setup_cancelled`) + botón «Cancelar activación». Tests M9 | — |

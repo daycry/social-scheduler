@@ -13,8 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Gestion del 2FA desde el perfil. Todas las rutas van tras `auth` + `password.confirm`.
- * Los secretos pendientes y los codigos de recuperacion en claro viajan SOLO como flash de sesion en la
- * respuesta de generacion: no hay ninguna ruta que permita volver a leerlos.
+ * El secreto pendiente lo sirve ProfileController desde el usuario (solo mientras la activacion esta a
+ * medias); los codigos de recuperacion en claro viajan SOLO como flash de sesion, una vez.
  */
 class TwoFactorController extends Controller
 {
@@ -37,7 +37,8 @@ class TwoFactorController extends Controller
             'two_factor_last_used_at' => null,
         ])->save();
 
-        return back()->with('twoFactorSetup', $this->setup($request, $secret));
+        // El secreto no viaja por flash: el perfil lo sirve desde el usuario mientras la activacion siga a medias.
+        return back();
     }
 
     /** Valida el primer TOTP: activa el 2FA, genera los 8 codigos (una sola vez) y rota remember_token. */
@@ -50,10 +51,8 @@ class TwoFactorController extends Controller
         }
 
         if (! $this->totp->verify($user, $request->validated('code'))) {
-            // El secreto pendiente se conserva: se vuelve a mostrar para reintentar sin re-escanear.
-            return back()
-                ->withErrors(['code' => 'El código no es válido. Comprueba la hora de tu móvil e inténtalo de nuevo.'])
-                ->with('twoFactorSetup', $this->setup($request, $user->two_factor_secret));
+            // El secreto pendiente se conserva y el perfil lo sigue sirviendo: se reintenta sin re-escanear.
+            return back()->withErrors(['code' => 'El código no es válido. Comprueba la hora de tu móvil e inténtalo de nuevo.']);
         }
 
         $user->forceFill(['two_factor_confirmed_at' => now()]);
@@ -65,6 +64,21 @@ class TwoFactorController extends Controller
         $this->audit->record($user, 'auth.2fa.enabled', AuditLog::OK, 'user', $user->id, null, 'web');
 
         return back()->with('recoveryCodes', $codes);
+    }
+
+    /** Cancela una activacion a medias: borra el secreto pendiente. */
+    public function cancel(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasTwoFactorEnabled() || $user->two_factor_secret === null) {
+            return back();
+        }
+
+        $user->forceFill(['two_factor_secret' => null, 'two_factor_last_used_at' => null])->save();
+        $this->audit->record($user, 'auth.2fa.setup_cancelled', AuditLog::OK, 'user', $user->id, null, 'web');
+
+        return back()->with('status', 'Activación cancelada.');
     }
 
     /** Desactiva el 2FA: exige la contraseña y un TOTP o código de recuperación válido. */
@@ -121,11 +135,5 @@ class TwoFactorController extends Controller
         $this->audit->record($user, 'auth.2fa.recovery_regenerated', AuditLog::OK, 'user', $user->id, null, 'web');
 
         return back()->with('recoveryCodes', $codes);
-    }
-
-    /** @return array{secret: string, qrSvg: string} */
-    private function setup(Request $request, string $secret): array
-    {
-        return ['secret' => $secret, 'qrSvg' => $this->totp->qrSvg($request->user(), $secret)];
     }
 }

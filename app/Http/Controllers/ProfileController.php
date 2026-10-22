@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\TwoFactor\TotpService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,17 +19,27 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        $pending = $user->two_factor_secret !== null && ! $user->hasTwoFactorEnabled();
+
+        // El historial del navegador guarda las props cifradas (secreto QR / codigos de recuperacion).
+        Inertia::encryptHistory();
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             // Solo estado: el secreto y los codigos nunca van en props normales.
             'twoFactor' => [
                 'enabled' => $request->user()->hasTwoFactorEnabled(),
-                'pending' => $request->user()->two_factor_secret !== null && ! $request->user()->hasTwoFactorEnabled(),
+                'pending' => $pending,
                 'recoveryRemaining' => count($request->user()->two_factor_recovery_codes ?? []),
             ],
-            // Respuesta unica de generacion (flash de sesion): se pierde en la siguiente peticion.
-            'twoFactorSetup' => session('twoFactorSetup'),
+            // Activacion a medias: el secreto sale del propio usuario (cifrado en BD), nunca de un flash de sesion.
+            'twoFactorSetup' => $pending ? [
+                'secret' => $user->two_factor_secret,
+                'qrSvg' => app(TotpService::class)->qrSvg($user, $user->two_factor_secret),
+            ] : null,
+            // Los codigos en claro viajan una sola vez (flash).
             'recoveryCodes' => session('recoveryCodes'),
         ]);
     }

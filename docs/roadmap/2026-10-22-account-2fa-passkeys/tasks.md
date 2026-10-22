@@ -8,6 +8,8 @@ generacion:
   horas_ia: 0.38
   duracion: 23m
   ratio_usado: 300000
+estado: completado
+changelog: Added
 verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige ledger-lint (exit 1 si falta)
 ---
 
@@ -15,7 +17,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | | |
 |---|---|
-| **Estado** | en-progreso |
+| **Estado** | completado |
 | **Fecha** | 2026-10-22 |
 | **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
 | **Diseño** | [`design.md`](./design.md) — opción O1 (Breeze + google2fa propio + `laravel/passkeys`) |
@@ -33,8 +35,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
-| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 5 | 6 | 83% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **19** | **20** | **95%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 6 | 6 | 100% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **20** | **20** | **100%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -521,7 +523,7 @@ Checklist firmada (orquestador, 2026-10-22):
 
 ## Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre
 
-**Estado**: en-progreso · **Estimado**: 32.0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1.32M
+**Estado**: completado · **Estimado**: 32.0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1.32M
 
 ### T-15 — Infraestructura E2E sobre localhost:8080
 
@@ -680,8 +682,8 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-20 — Revisión final, regresión completa y cierre del plan
 
 - **Descripción**: Pasada final: suite Pest completa, Pint, build, batería E2E completa en los tres proyectos, comprobación de que no cambian los ficheros del MCP, `ledger-lint` y actualización de estados, índice del roadmap y spec y diseño a `implementada`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las cuentas pueden activar el doble factor con app de autenticación (y códigos de recuperación) y entrar sin contraseña con passkeys; todo cubierto por la batería E2E en escritorio y móvil.
+- **Estado**: completado
 - **Tiempo humano**: est. 5,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.69h · real —
 - **Supervisión**: est. 0.17h (≈25 % IA) · real —
@@ -697,18 +699,22 @@ Checklist firmada (orquestador, 2026-10-22):
   - `E2E_BASE_URL=http://localhost:8080 npx playwright test` → batería completa en verde en desktop, mobile y mobile-360
 
 **Criterios de aceptación**
-- [ ] Todos los CA-01..CA-24 de la spec tienen test automático o ítem M-xx marcado
-- [ ] Los ficheros del MCP no cambian (`git diff --stat` vacío)
-- [ ] Los M-xx quedan listados como pendientes de la persona en el resumen de cierre
+- [x] Todos los CA-01..CA-24 de la spec tienen test automático o ítem M-xx marcado
+- [x] Los ficheros del MCP no cambian (`git diff --stat` vacío)
+- [x] Los M-xx quedan listados como pendientes de la persona en el resumen de cierre
 - [x] ADR-003 pasa a `aceptada` solo con el visto bueno explícito del usuario; si no lo hay, queda en `propuesta` y figura como pendiente en el resumen de cierre
 
 **Subtareas**
-- [ ] Suite, Pint, build y E2E
-- [ ] Actualizar estados y el índice
-- [ ] Resumen de cierre con los M-xx pendientes
+- [x] Suite, Pint, build y E2E
+- [x] Actualizar estados y el índice
+- [x] Resumen de cierre con los M-xx pendientes
 
 **Notas**: Los M-xx no bloquean el cierre técnico; se entregan como checklist al usuario.
 
+
+**Evidencia (2026-10-22)**: `php artisan test --compact` → 928 passed (6933 assertions); `vendor/bin/pint --test` → passed; `npm run build` → ok; `npx playwright test` → 223 passed · 0 failed · 0 flaky · 2 skipped (10,0 min) y `qa-gate` → VERDE; `git diff --stat feature/social-scheduler..HEAD -- app/Mcp routes/ai.php app/Http/Middleware/McpGuard.php config/mcp.php` → vacío; CA-01..CA-24: los 24 tienen al menos un test automático (`grep -rl CA-NN tests`). ADR-003 aceptada con el visto bueno del usuario.
+
+**Resumen de cierre — pendientes de la persona (M-xx, ver `test-plan.md`)**: M-01 (passkey con Windows Hello por ngrok), M-02 (passkey en el móvil por ngrok), M-03 (TOTP con una app de autenticación real), M-04 (`sodium` y RP ID en el PHP de Hestia), M-05 (teclado y lector de pantalla), M-06 (reset del doble factor por operador en el entorno real).
 ---
 
 ## Revisión de dos lentes — intento 1: Fase 1 (T-01..T-06) — 2 Important y 9 Minor

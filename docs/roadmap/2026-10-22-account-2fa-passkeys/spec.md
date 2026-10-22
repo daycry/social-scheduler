@@ -1,7 +1,7 @@
 ---
 spec: account-2fa-passkeys
 descripcion: Doble factor opcional (TOTP + códigos de recuperación) y passkeys como login sin contraseña, gestionados desde el perfil, sin tocar las API keys del MCP.
-estado: aprobada          # borrador | aprobada | implementada | obsoleta
+estado: implementada         # borrador | aprobada | implementada | obsoleta
 creado: 2026-10-22
 actualizado: 2026-10-22
 evaluacion: evaluation.md

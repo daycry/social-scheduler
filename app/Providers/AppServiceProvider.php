@@ -17,6 +17,7 @@ use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Listeners\AuditPasskeyEvents;
 use App\Models\Brand;
+use App\Models\PersonalAccessToken;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -30,6 +31,7 @@ use Laravel\Passkeys\Events\PasskeyDeleted;
 use Laravel\Passkeys\Events\PasskeyRegistered;
 use Laravel\Passkeys\Events\PasskeyVerified;
 use Laravel\Passkeys\Passkeys;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -67,6 +69,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // Tokens con origen OAuth opcional (oauth_client_id); las API keys msk_ existentes no cambian.
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
 
         // `php artisan about`: avisa si el handle de usuario de las passkeys cae en APP_KEY (ver config/passkeys.php).
         AboutCommand::add('Passkeys', fn () => [

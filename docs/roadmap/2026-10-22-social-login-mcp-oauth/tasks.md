@@ -121,11 +121,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-03 — Migraciones `oauth_clients`, `oauth_auth_codes` y `personal_access_tokens.oauth_client_id`, y modelos
 
 - **Descripción**: Crea las dos tablas del servidor de autorización (cliente DCR con UUID y `redirect_uris` JSON; código con hash SHA-256, `used_at`, `token_id` y `expires_at`) y la columna nullable `oauth_client_id` con `nullOnDelete`. Añade los modelos `OAuthClient`, `OAuthAuthCode` y `App\Models\PersonalAccessToken` (extiende el de Sanctum, relación `oauthClient`) y lo registra con `Sanctum::usePersonalAccessTokenModel`. Las API keys `msk_` existentes no se tocan: la columna es nullable y sin valor por defecto.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.41h · real —
-- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Changelog**: Preparada la base de datos para conectar clientes MCP por OAuth; las API keys existentes no cambian.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 0.4h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.41h · real 0.3h (estimado)
+- **Supervisión**: est. 0.10h (≈25 % IA) · real 0.08h (estimado)
 - **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: db
@@ -137,17 +137,19 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Mcp tests/Feature/Auth` → en verde (las API keys siguen funcionando con el modelo nuevo)
 
 **Criterios de aceptación**
-- [ ] La migración es posterior a `2026_11_05_*` y solo añade: no altera filas existentes
-- [ ] Borrar un cliente deja `oauth_client_id` a NULL en sus tokens (no los borra)
-- [ ] `ApiKeyController::index` y `createToken` siguen funcionando con `App\Models\PersonalAccessToken`
-- [ ] Ninguna migración ni test toca filas de `users` existentes (restricción: datos del usuario id 28 intactos)
+- [x] La migración es posterior a `2026_11_05_*` y solo añade: no altera filas existentes
+- [x] Borrar un cliente deja `oauth_client_id` a NULL en sus tokens (no los borra)
+- [x] `ApiKeyController::index` y `createToken` siguen funcionando con `App\Models\PersonalAccessToken`
+- [x] Ninguna migración ni test toca filas de `users` existentes (restricción: datos del usuario id 28 intactos)
 
 **Subtareas**
-- [ ] Tres migraciones aditivas
-- [ ] Modelos y casts (`redirect_uris` array, `abilities` array)
-- [ ] `usePersonalAccessTokenModel` y test de regresión de keys
+- [x] Tres migraciones aditivas
+- [x] Modelos y casts (`redirect_uris` array, `abilities` array)
+- [x] `usePersonalAccessTokenModel` y test de regresión de keys
 
 **Notas**: Si ya existe una migración con fecha `2026_11_06_*`, usar la siguiente libre.
+
+**Evidencia de cierre**: migrate:fresh --env=testing (BD metricool_testing) OK; OAuthModelsTest 5 tests + tests/Feature/Mcp + tests/Feature/Auth = 186 en verde; migrate local aditivo aplicado.
 
 ---
 

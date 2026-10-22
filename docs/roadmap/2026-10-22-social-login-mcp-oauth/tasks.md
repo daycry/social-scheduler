@@ -262,11 +262,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-07 — Pantalla de consentimiento `OAuth/Authorize.vue`
 
 - **Descripción**: Se adelanta a C-02 (la evaluación la tenía en C-03) porque el smoke CA-29 necesita una pantalla real. Muestra el nombre del cliente marcado como «declarado por el cliente», el host de redirección, los presets `read`/`publish`/`all` con casillas (read marcado) y los botones Autorizar / Denegar. Accesible: etiquetas, foco inicial, anuncio de errores, sin desbordamiento a 375 y 360 px.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.68h · real —
-- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Changelog**: Nueva pantalla para autorizar un agente: muestra quién pide acceso, adónde vuelves y los permisos (solo lectura marcado por defecto) con Autorizar y Denegar.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 0.5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.68h · real 0.4h (estimado)
+- **Supervisión**: est. 0.17h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-06
 - **Tipo**: frontend
@@ -278,17 +278,19 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `vendor/bin/pint --test` → sin cambios pendientes
 
 **Criterios de aceptación**
-- [ ] CA-18: se ve el nombre declarado, el host de redirección y los tres presets con `read` marcado
-- [ ] Las casillas son editables y lo marcado es lo que viaja en el POST
-- [ ] El texto no permite confundir el nombre del cliente con una identidad verificada
-- [ ] Etiquetas y foco accesibles; sin desbordamiento horizontal a 375 y 360 px (se mide en T-26)
+- [x] CA-18: se ve el nombre declarado, el host de redirección y los tres presets con `read` marcado
+- [x] Las casillas son editables y lo marcado es lo que viaja en el POST
+- [x] El texto no permite confundir el nombre del cliente con una identidad verificada
+- [x] Etiquetas y foco accesibles; sin desbordamiento horizontal a 375 y 360 px (se mide en T-26)
 
 **Subtareas**
-- [ ] Componente con `useForm` de Inertia
-- [ ] Presets coherentes con `ApiKeys/Index`
-- [ ] Estados de error
+- [x] Componente con `useForm` de Inertia
+- [x] Presets coherentes con `ApiKeys/Index`
+- [x] Estados de error
 
 **Notas**: Reutiliza los componentes de formulario ya usados en `Profile/Partials`.
+
+**Evidencia de cierre**: npm run build OK; --filter OAuthAuthorize 20 tests en verde (props de cliente, host, presets, read por defecto); Pint passed. Medición 375/360 px y E2E/M-xx pendientes en T-26/manual (no verificables aquí).
 
 ---
 

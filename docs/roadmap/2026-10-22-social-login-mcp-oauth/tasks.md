@@ -35,10 +35,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-02 · Servidor OAuth del MCP | 0 | 12 | 0% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
+| Fase 1 — C-02 · Servidor OAuth del MCP | 10 | 12 | 83% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
 | Fase 2 — C-01 · Login social | 0 | 7 | 0% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
-| **TOTAL** | **0** | **28** | **0%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
+| **TOTAL** | **10** | **28** | **36%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -46,7 +46,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 1 — C-02 · Servidor de autorización OAuth 2.1 del MCP (con la extracción de `LoginFlow`, la pantalla de consentimiento y el smoke CA-29)
 
-**Estado**: borrador · **Estimado**: 50.0h · **Real**: — · **Coste est.**: 2.500 € + tokens (⚠️ verificar) · **Tokens est.**: 2.03M
+**Estado**: en-progreso · **Estimado**: 50.0h · **Real**: — · **Coste est.**: 2.500 € + tokens (⚠️ verificar) · **Tokens est.**: 2.03M
 
 ### T-01 — Extraer `LoginFlow` de `AuthenticatedSessionController::store` sin cambiar el comportamiento
 
@@ -236,7 +236,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
 - **Tipo**: backend
-- **Archivos**: `app/Services/Mcp/OAuth/AuthorizationServer.php`, `app/Http/Controllers/Mcp/OAuth/AuthorizeController.php`, `routes/web.php`, `tests/Feature/Mcp/OAuth/AuthorizeTest.php`
+- **Archivos**: `app/Services/Mcp/OAuth/AuthorizationServer.php`, `app/Http/Controllers/Mcp/OAuth/AuthorizeController.php`, `routes/web.php`, `tests/Feature/Mcp/OAuth/AuthorizeTest.php`, `app/Services/Mcp/OAuth/AuthorizeRequest.php`, `app/Services/Mcp/OAuth/OAuthException.php`, `resources/js/Pages/OAuth/Authorize.vue`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=OAuthAuthorize` → CA-16 (redirige a `/login` y vuelve con los mismos parámetros), CA-17, CA-18 (cabecera), CA-19, CA-22 (`invalid_target`) y `access_denied` con `state` y auditoría `oauth.denied`
 
@@ -254,6 +254,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Eventos `oauth.authorized` / `oauth.denied`
 
 **Notas**: El 2FA en mitad del flujo lo cubre E2E-06; aquí basta con que `auth` guarde `intended`.
+
+**Desviación (T-06)**: dos clases de apoyo nuevas (`AuthorizeRequest`, `OAuthException`) para la validación y los errores con/sin redirect; `Authorize.vue` nace como esqueleto aquí (Inertia exige que la página exista) y se completa en T-07.
 
 **Evidencia de cierre**: --filter OAuthAuthorize 20 tests en verde (CA-16/17/18/19/22, hash del código, abilities, revalidación en POST). Authorize.vue es esqueleto hasta T-07.
 
@@ -372,7 +374,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 329k in / 36k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: test
-- **Archivos**: `tests/Feature/Mcp/OAuth/FullFlowTest.php`, `tests/Feature/Mcp/OAuth/NegativesTest.php`, `tests/Feature/Mcp/OAuth/OAuthAuditLeakTest.php`
+- **Archivos**: `tests/Feature/Mcp/OAuth/FullFlowTest.php`, `tests/Feature/Mcp/OAuth/NegativesTest.php`, `tests/Feature/Mcp/OAuth/OAuthAuditLeakTest.php`, `tests/Feature/Mcp/OAuth/Helpers.php`, `tests/Pest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=OAuth` → ≥ 30 tests en verde cubriendo CA-12..CA-28
@@ -390,7 +392,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Test de fugas
 - [x] Tabla CA → test
 
-**Evidencia de cierre**: --filter OAuth 145 tests en verde; OAuthAuditLeak sin código/verifier/token/hash en audit_logs ni log; suite completa en verde. Tabla CA→test: CA-12/13/14=MetadataTest; CA-15=RegisterTest+RedirectPolicyTest; CA-16/17/18/19=AuthorizeTest (+NegativesTest); CA-20/21/22=TokenTest+PkceTest; CA-23/24/25/26/28=CoexistenceTest; CA-27=OAuthAuditLeakTest (+TokenTest/AuthorizeTest); flujo extremo a extremo=FullFlowTest; CA-31=PruneTest.
+**Desviación (T-10)**: se añaden `tests/Feature/Mcp/OAuth/Helpers.php` (ayudantes compartidos) y un `afterEach(gc_collect_cycles)` en `tests/Pest.php`. Motivo: con >1050 tests el proceso supera los 128 MB y el worker de `queue:work` de `InfraTest` (test existente, sin modificar) se detiene tras el primer job; la línea base ya estaba en 122 MB. El GC por test lo deja en verde sin tocar ese test.
+
+**Evidencia de cierre**: --filter OAuth 145 tests en verde; suite completa 1075/1075; OAuthAuditLeak sin código/verifier/token/hash en audit_logs ni log; suite completa en verde. Tabla CA→test: CA-12/13/14=MetadataTest; CA-15=RegisterTest+RedirectPolicyTest; CA-16/17/18/19=AuthorizeTest (+NegativesTest); CA-20/21/22=TokenTest+PkceTest; CA-23/24/25/26/28=CoexistenceTest; CA-27=OAuthAuditLeakTest (+TokenTest/AuthorizeTest); flujo extremo a extremo=FullFlowTest; CA-31=PruneTest.
 
 ---
 
@@ -398,7 +402,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 - **Descripción**: Con el servidor tras el dominio ngrok reservado, el usuario conecta los cuatro clientes solo con el navegador, sin API key, y se registra en `testing/smoke-ca29.md` el comando o configuración y la versión de cada cliente. Verifica los supuestos ⚠️: DCR, `resource`, callbacks reales y si algún cliente exige refresh token o CIMD. Si alguno lo exige, la tarea no lo implementa: lo eleva al usuario (≈ +8h base para refresh) y ajusta la política de redirect con `MCP_OAUTH_REDIRECT_ALLOWED`.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 4,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.54h · real —
 - **Supervisión**: est. 0.14h (≈25 % IA) · real —
@@ -422,6 +426,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] Redactar la conclusión
 
 **Notas**: Tarea manual del usuario: las horas humanas son suyas; la IA solo prepara la plantilla del registro y lo redacta. Se usa la cuenta del usuario solo para autenticarse: no se modifica ningún dato del usuario id 28.
+
+**Preparado por el implementer (parte automatizable, hecha)**: smoke HTTP con curl contra `https://workable-humorous-rat.ngrok-free.app` (app local): 401 con `WWW-Authenticate ... resource_metadata=".../.well-known/oauth-protected-resource/mcp"`; PRM raíz y `/mcp` en 200; ASM correcto (solo `code`, `S256`, `none`); DCR 201 y 400 `invalid_redirect_uri` con `https://evil.example/cb`; login + consentimiento 200 con `Content-Security-Policy: frame-ancestors 'none'`; authorize → 302 a `http://127.0.0.1:53111/callback?code=…&state=…`; token con verifier erróneo → 400 `invalid_grant`; token correcto → 200 (`msk_`, `Bearer`, `expires_in` 2592000, `no-store`); replay → 400; llamada real `tools/call list_brands` con el token → OK. Usuario y datos de prueba (`e2e-sec-oauth-smoke`) borrados al terminar; usuario id 28 intacto. Versiones locales detectadas: Claude Code 2.1.308, Codex 0.162.1, OpenCode 2.0.18.
+
+**Checklist para el usuario (pendiente; la tarea NO está completada)**. `testing/smoke-ca29.md` no lo puede crear el implementer (guardrail de alcance de `docs/roadmap/`): créalo tú o con `qa`, con una fila por cliente (comando/config, versión, resultado, callback observado) y la conclusión sobre refresh token y CIMD. URL del MCP: `https://workable-humorous-rat.ngrok-free.app/mcp` (ngrok activo, sin API key en ningún paso).
+- [ ] **Claude Code** (2.1.308): `claude mcp add --transport http social-scheduler https://workable-humorous-rat.ngrok-free.app/mcp`; dentro de `claude` ejecuta `/mcp`, elige `social-scheduler` → *Authenticate*; se abre el navegador → inicia sesión → Autorizar. Callback esperado: loopback `http://localhost:<puerto>/callback`. Comprueba con `/mcp` que sale *connected* y pide que liste tus marcas.
+- [ ] **Claude Desktop**: Ajustes → *Connectors* → *Add custom connector* → nombre `social-scheduler`, URL `https://workable-humorous-rat.ngrok-free.app/mcp` → *Connect* (navegador → Autorizar). Callback esperado: `https://claude.ai/api/mcp/auth_callback` (o `claude.com`). No sirve `claude_desktop_config.json` (solo stdio). Anota la versión (Ayuda → Acerca de).
+- [ ] **Codex** (0.162.1): `codex mcp add social-scheduler --url https://workable-humorous-rat.ngrok-free.app/mcp` y después `codex mcp login social-scheduler` (navegador → Autorizar); `codex mcp list` debe mostrarlo con auth OAuth. Si pide activar el cliente RMCP, añade `--enable rmcp_client` o `features.rmcp_client=true` en `~/.codex/config.toml` (⚠️ verificar en esta versión). Pídele una tool del MCP.
+- [ ] **OpenCode** (2.0.18): `opencode mcp add social-scheduler --url https://workable-humorous-rat.ngrok-free.app/mcp --global` y después `opencode mcp auth social-scheduler` (navegador → Autorizar); `opencode mcp list` debe mostrarlo conectado. Si no hace OAuth solo, añade `"oauth": {}` al servidor en `opencode.json`.
+- [ ] Para cada cliente anota: comando/config, versión, resultado, `redirect_uri` observada (en *API keys* debe aparecer el token como «OAuth · <cliente>»; hoy la columna de origen llega en T-22, el nombre del token ya empieza por «OAuth ·»).
+- [ ] Si algún callback es rechazado (`invalid_redirect_uri` en el DCR): añade su prefijo `https://` a `MCP_OAUTH_REDIRECT_ALLOWED` en `.env` y reintenta.
+- [ ] Conclusión explícita: ¿algún cliente exige refresh token o CIMD? Si sí: NO se implementa aquí (≈ +8h base); decide tú antes de pasar a Fase 2.
+- [ ] Limpieza: revoca desde *API keys* los tokens «OAuth · …» de la prueba.
 
 ---
 

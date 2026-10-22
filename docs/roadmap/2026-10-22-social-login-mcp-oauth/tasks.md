@@ -88,11 +88,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-02 — Puerta de ADR-004 (visto bueno del usuario) y configuración `services.mcp.oauth.*`
 
 - **Descripción**: CA-32 exige ADR-004 aceptada antes de implementar C-02. El implementador pide el visto bueno al usuario y, solo con su respuesta afirmativa, cambia `estado: propuesta` a `aceptada` (en el ADR y en el índice `docs/knowledge/README.md`). Si el usuario no lo da, se detiene C-02. Además añade `token_days` (30, topado por `services.mcp.key_max_days`), `code_ttl` (300) y `redirect_allowed` (CSV) en `config/services.php` y `.env.example`.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.27h · real —
-- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Changelog**: Nuevas opciones de configuración para la vida del token OAuth del MCP, el código de autorización y los redirects permitidos.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 0.2h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.27h · real 0.2h (estimado)
+- **Supervisión**: est. 0.07h (≈25 % IA) · real 0.05h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
@@ -104,15 +104,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 **Criterios de aceptación**
 - [x] ADR-004 en `aceptada` con el visto bueno del usuario (dado el 2026-10-22 al aprobar el plan); sin él, la tarea queda bloqueada y las siguientes no arrancan
-- [ ] `.env.example` documenta `MCP_OAUTH_TOKEN_DAYS`, `MCP_OAUTH_CODE_TTL` y `MCP_OAUTH_REDIRECT_ALLOWED`
-- [ ] Un `MCP_OAUTH_TOKEN_DAYS` mayor que `MCP_KEY_MAX_DAYS` se topa
+- [x] `.env.example` documenta `MCP_OAUTH_TOKEN_DAYS`, `MCP_OAUTH_CODE_TTL` y `MCP_OAUTH_REDIRECT_ALLOWED`
+- [x] Un `MCP_OAUTH_TOKEN_DAYS` mayor que `MCP_KEY_MAX_DAYS` se topa
 
 **Subtareas**
-- [ ] Pedir el visto bueno al usuario (puerta humana)
-- [ ] Actualizar ADR-004 e índice de conocimiento
-- [ ] Config y test de defaults y tope
+- [x] Pedir el visto bueno al usuario (puerta humana)
+- [x] Actualizar ADR-004 e índice de conocimiento
+- [x] Config y test de defaults y tope
 
 **Notas**: Restricción del usuario: ADR-004 pasa a `aceptada` solo con su visto bueno; el agente no la acepta por su cuenta.
+
+**Evidencia de cierre**: grep estado aceptada: 1 línea (ADR aceptada por el usuario el 2026-10-22); McpOAuthConfigTest 3 tests en verde (defaults 30/300/vacío, tope por key_max_days, CSV).
 
 ---
 

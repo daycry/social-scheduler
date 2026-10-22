@@ -63,6 +63,15 @@ return [
         // Maximo de vida de una key en dias (la fecha elegida por el usuario manda dentro de este tope) y default.
         'key_max_days' => (int) env('MCP_KEY_MAX_DAYS', 730),
         'key_default_days' => (int) env('MCP_KEY_DEFAULT_DAYS', 365),
+        // Servidor de autorizacion OAuth 2.1 del MCP (ADR-004): clientes publicos, code + PKCE S256, sin refresh.
+        'oauth' => [
+            // Vida del token emitido por OAuth, en dias; nunca por encima de key_max_days.
+            'token_days' => min(max(1, (int) env('MCP_KEY_MAX_DAYS', 730)), max(1, (int) env('MCP_OAUTH_TOKEN_DAYS', 30))),
+            // Vida del codigo de autorizacion, en segundos.
+            'code_ttl' => (int) env('MCP_OAUTH_CODE_TTL', 300),
+            // Prefijos https:// extra permitidos como redirect_uri (CSV); loopback y los callbacks de Claude ya van por defecto.
+            'redirect_allowed' => array_values(array_filter(array_map('trim', explode(',', (string) env('MCP_OAUTH_REDIRECT_ALLOWED', ''))))),
+        ],
     ],
 
 ];

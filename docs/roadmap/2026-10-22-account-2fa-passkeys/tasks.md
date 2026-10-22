@@ -298,7 +298,7 @@ Checklist firmada (orquestador, 2026-10-22):
 - **Previsión IA**: 113k in / 11k out tok · ⚠️ verificar €
 - **Dependencias**: T-07
 - **Tipo**: backend
-- **Archivos**: `composer.json`, `composer.lock`, `package.json`, `package-lock.json`, `config/passkeys.php`, `database/migrations/2026_11_04_090100_create_passkeys_table.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `.env.production.example`, `tests/Unit/PasskeyConfigTest.php`
+- **Archivos**: `composer.json`, `composer.lock`, `package.json`, `package-lock.json`, `config/passkeys.php`, `database/migrations/2026_11_04_090100_create_passkeys_table.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `.env.production.example`, `tests/Unit/PasskeyConfigTest.php`, `database/migrations/2026_11_05_090000_widen_passkeys_credential_id.php` (añadido en la corrección P12)
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/PasskeyConfigTest.php` → RP ID y orígenes se derivan de la config (por defecto, de `APP_URL`)
@@ -361,7 +361,7 @@ Checklist firmada (orquestador, 2026-10-22):
 - **Previsión IA**: 265k in / 26k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Profile/PasskeyController.php`, `app/Http/Requests/Profile/PasskeyNameRequest.php`, `routes/auth.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/PasskeyManagementTest.php`
+- **Archivos**: `app/Http/Controllers/Profile/PasskeyController.php`, `app/Http/Requests/Profile/PasskeyNameRequest.php`, `routes/auth.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/PasskeyManagementTest.php`, `app/Notifications/PasskeyAdded.php` (añadido en la corrección P7)
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=PasskeyManagement` → CA-13..CA-16 y CA-19 en verde

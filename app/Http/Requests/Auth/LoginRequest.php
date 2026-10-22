@@ -9,6 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Support\Timebox;
 use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
@@ -46,9 +47,26 @@ class LoginRequest extends FormRequest
 
         $credentials = $this->only('email', 'password');
         $provider = Auth::guard()->getProvider();
-        $user = $provider->retrieveByCredentials($credentials);
 
-        if (! $user instanceof User || ! $provider->validateCredentials($user, $credentials)) {
+        // Igual que SessionGuard::attempt: el Timebox iguala el tiempo con usuario existente e inexistente
+        // (evita la enumeracion por tiempo) y se rehashea la contrasena si las rondas cambiaron.
+        $user = app(Timebox::class)->call(function ($timebox) use ($provider, $credentials) {
+            $user = $provider->retrieveByCredentials($credentials);
+
+            if ($user instanceof User && $provider->validateCredentials($user, $credentials)) {
+                if (config('hashing.rehash_on_login', true)) {
+                    $provider->rehashPasswordIfRequired($user, $credentials);
+                }
+
+                $timebox->returnEarly();
+
+                return $user;
+            }
+
+            return null;
+        }, (int) config('auth.timebox_duration', 200000));
+
+        if (! $user instanceof User) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

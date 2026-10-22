@@ -54,10 +54,16 @@ class TwoFactorChallengeController extends Controller
             throw ValidationException::withMessages([$field => 'Escribe el código.']);
         }
 
-        $key = $this->throttleKey($user, $request);
+        // Por CUENTA (no por IP: rotar IP no da intentos nuevos) y atomico: se cuenta ANTES de verificar,
+        // asi una rafaga concurrente no pasa de MAX_ATTEMPTS comprobaciones.
+        $key = $this->throttleKey($user);
+        $hits = RateLimiter::increment($key, 60);
 
-        if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
-            $this->audit->record($user, 'auth.2fa.lockout', AuditLog::DENIED, 'user', $user->id, null, 'web');
+        if ($hits > self::MAX_ATTEMPTS) {
+            // Solo la primera vez que se cruza el umbral: los POST bloqueados siguientes no escriben auditoria.
+            if ($hits === self::MAX_ATTEMPTS + 1) {
+                $this->audit->record($user, 'auth.2fa.lockout', AuditLog::DENIED, 'user', $user->id, null, 'web');
+            }
 
             $seconds = RateLimiter::availableIn($key);
 
@@ -75,7 +81,6 @@ class TwoFactorChallengeController extends Controller
         }
 
         if (! $valid) {
-            RateLimiter::hit($key);
             $this->audit->record($user, 'auth.2fa.challenge_failed', AuditLog::DENIED, 'user', $user->id, $usingRecovery ? 'recovery' : 'totp', 'web');
 
             throw ValidationException::withMessages([
@@ -120,8 +125,8 @@ class TwoFactorChallengeController extends Controller
         return redirect()->route('login')->with('status', 'La verificación caducó. Vuelve a escribir tu correo y contraseña.');
     }
 
-    private function throttleKey(User $user, Request $request): string
+    private function throttleKey(User $user): string
     {
-        return '2fa:'.$user->id.'|'.$request->ip();
+        return '2fa:'.$user->id;
     }
 }

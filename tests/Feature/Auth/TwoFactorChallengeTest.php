@@ -152,11 +152,75 @@ test('si el usuario desactiva el 2FA a mitad del reto, el reto deja de valer', f
     $this->assertGuest();
 });
 
-test('la clave del limitador es por usuario e IP', function () {
+test('I1: el limitador es por cuenta: rotar la IP no da intentos nuevos y el 6.o queda bloqueado', function () {
+    [$user, $secret] = userWith2fa();
+    loginStep($user);
+
+    foreach (range(1, 5) as $i) {
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.'.$i])->post('/two-factor-challenge', ['code' => '000000'])->assertSessionHasErrors('code');
+    }
+
+    // Sexto intento desde otra IP, incluso con el TOTP correcto: bloqueado.
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])->post('/two-factor-challenge', ['code' => otp($secret)])->assertSessionHasErrors('code');
+    expect(session('errors')->first('code'))->toContain('segundos');
+    $this->assertGuest();
+    expect(RateLimiter::attempts('2fa:'.$user->id))->toBe(6);
+});
+
+test('I1: el limite tambien cubre los codigos de recuperacion', function () {
+    [$user, , $codes] = userWith2fa();
+    loginStep($user);
+
+    foreach (range(1, 5) as $i) {
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.1.'.$i])->post('/two-factor-challenge', ['recovery_code' => 'xxxx-xxxx'])->assertSessionHasErrors('recovery_code');
+    }
+
+    $this->post('/two-factor-challenge', ['recovery_code' => $codes[0]])->assertSessionHasErrors('recovery_code');
+    $this->assertGuest();
+});
+
+test('I1: acertar limpia el contador', function () {
     [$user, $secret] = userWith2fa();
     loginStep($user);
     $this->post('/two-factor-challenge', ['code' => '000000']);
+    expect(RateLimiter::attempts('2fa:'.$user->id))->toBe(1);
 
-    expect(RateLimiter::attempts('2fa:'.$user->id.'|127.0.0.1'))->toBe(1);
-    expect(Hash::needsRehash($user->password))->toBeFalse();
+    $this->post('/two-factor-challenge', ['code' => otp($secret)])->assertRedirect();
+    expect(RateLimiter::attempts('2fa:'.$user->id))->toBe(0);
+});
+
+test('M6: el bloqueo se audita solo la primera vez en la ventana', function () {
+    [$user] = userWith2fa();
+    loginStep($user);
+
+    foreach (range(1, 9) as $i) {
+        $this->post('/two-factor-challenge', ['code' => '000000']);
+    }
+
+    expect(AuditLog::where('action', 'auth.2fa.lockout')->count())->toBe(1);
+    expect(AuditLog::where('action', 'auth.2fa.challenge_failed')->count())->toBe(5);
+});
+
+test('I2: el login con 2FA rehashea la contraseña si las rondas subieron', function () {
+    [$user] = userWith2fa();
+    $before = $user->password;
+    config(['hashing.bcrypt.rounds' => 6]);
+    app('hash')->forgetDrivers();
+
+    loginStep($user)->assertRedirect(route('two-factor.challenge', absolute: false));
+
+    $after = $user->fresh()->password;
+    expect($after)->not->toBe($before)->and(Hash::needsRehash($after))->toBeFalse();
+    expect(Hash::check('password', $after))->toBeTrue();
+});
+
+test('I2: el login sin 2FA tambien rehashea', function () {
+    $user = User::factory()->create();
+    $before = $user->password;
+    config(['hashing.bcrypt.rounds' => 6]);
+    app('hash')->forgetDrivers();
+
+    loginStep($user)->assertRedirect(route('dashboard', absolute: false));
+
+    expect($user->fresh()->password)->not->toBe($before);
 });

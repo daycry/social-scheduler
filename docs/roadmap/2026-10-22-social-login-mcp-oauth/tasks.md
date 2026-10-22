@@ -40,6 +40,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **10** | **28** | **36%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
+> **Horas reales (G7).** Las horas reales de la Fase 1 son una **estimación a juicio** (marcadas `(estimado)` en cada tarea): no se midieron con `usage-meter` (las tareas se cerraron sin marcadores de medición), así que no hay dato medido. Suma de las tareas cerradas T-01..T-10 ≈ 4,5h IA ejecución, ≈ 1,1h supervisión y ≈ 5,3h humanas (las tareas pesan muy por debajo de la estimación porque la IA ejecutó casi todo el trabajo); más ≈ 0,8h IA de la revisión F1 (intento 1). La tabla de arriba deja las columnas «real» a 0 hasta que existan datos medidos; estas cifras no se imputan a Jira.
+
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
 ---
@@ -82,6 +84,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 **Notas**: Si algún test existente de `Auth` falla, se revierte la extracción: no se retoca el test. `login.via` y el texto de `expired` NO entran aquí (sería cambiar comportamiento); van en T-15.
 
 **Evidencia de cierre**: tests/Feature/Auth 134 -> 138 tests en verde (4 nuevos de LoginFlow), ningún test existente modificado, Pint passed.
+
+**Evidencia añadida (revisión F1 intento 1, G6)**: `git diff --stat abb08af~1 HEAD -- app/Http/Controllers/Auth/TwoFactorChallengeController.php app/Http/Controllers/Auth/PasskeyLoginController.php` → vacío (ninguno de los dos se ha tocado en toda la iniciativa).
 
 ---
 
@@ -164,7 +168,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Mcp/OAuth/MetadataController.php`, `routes/ai.php`, `deploy/hestia/nginx-overrides.conf`, `tests/Feature/Mcp/OAuth/MetadataTest.php`
+- **Archivos**: `app/Http/Controllers/Mcp/OAuth/MetadataController.php`, `routes/ai.php`, `deploy/hestia/nginx-overrides.conf`, `deploy/hestia/nginx-http-map.conf`, `deploy/hestia/README.md`, `tests/Feature/Mcp/OAuth/MetadataTest.php`
 - **Cubre (tests)**: API-01
 - **Verificación**:
   - `php artisan test --compact --filter=OAuthMetadata` → CA-12, CA-13 y CA-14 en verde (PRM raíz y anidada, ASM sin `refresh_token` ni `client_secret_*`, 401 con `resource_metadata`)
@@ -183,9 +187,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Test del formato exacto de `WWW-Authenticate`
 - [x] `location` de Nginx con comentario del motivo
 
+**Revisión F1 (intento 1)**: G2 — el ASM responde también en `/.well-known/oauth-authorization-server/mcp` (spec.md:101), con test. C4 — la `Referrer-Policy` de Nginx ya no duplica la de PHP: `add_header` usa `$referrer_policy_default`, que sale de un `map` de nivel http (`deploy/hestia/nginx-http-map.conf`) y queda vacío si PHP ya envía la suya; `fastcgi_hide_header` se descartó porque borraría la de PHP, que es la que debe prevalecer.
+
 **Notas**: El `curl` de verificación en `despliegue.md` se escribe en T-27. M-07 (Hestia real) cierra la parte de M-F6-2.
 
 **Evidencia de cierre**: --filter=OAuthMetadata 7 tests en verde (CA-12/13/14, 404 de recurso ajeno, CA-24/28); route:list muestra mcp.oauth.protected-resource.nested; tests/Feature/Mcp en verde; git diff vendor + McpGuard vacío.
+
+**Evidencia añadida (revisión F1 intento 1, G6)**: `grep -n "well-known/oauth-" deploy/hestia/nginx-overrides.conf` → línea 36 (comentario) y 38 `location ^~ /.well-known/oauth- {` con `try_files $uri /index.php?$query_string`; `git diff --stat abb08af~1 HEAD -- vendor app/Http/Middleware/McpGuard.php` → vacío; `php artisan route:list --path=well-known` → PRM, PRM anidada (`mcp.oauth.protected-resource.nested`), ASM y ASM anidada (`mcp.oauth.authorization-server.nested`, añadida en la revisión, G2).
 
 ---
 
@@ -200,7 +208,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-03, T-04
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Mcp/OAuth/RegisterController.php`, `app/Services/Mcp/OAuth/RedirectPolicy.php`, `app/Console/Commands/McpOAuthPrune.php`, `routes/ai.php`, `routes/console.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Mcp/OAuth/RegisterTest.php`, `tests/Feature/Mcp/OAuth/PruneTest.php`, `tests/Unit/RedirectPolicyTest.php`
+- **Archivos**: `app/Http/Controllers/Mcp/OAuth/RegisterController.php`, `app/Services/Mcp/OAuth/RedirectPolicy.php`, `app/Console/Commands/McpOAuthPrune.php`, `routes/ai.php`, `routes/console.php`, `app/Providers/AppServiceProvider.php`, `config/services.php`, `database/migrations/2026_11_07_090000_oauth_fix1_columns.php`, `tests/Feature/Mcp/OAuth/RegisterTest.php`, `tests/Feature/Mcp/OAuth/PruneTest.php`, `tests/Unit/RedirectPolicyTest.php`
 - **Cubre (tests)**: API-02
 - **Verificación**:
   - `php artisan test --compact --filter=OAuthRegister` → CA-15 (201 con `token_endpoint_auth_method: none`, 400 `invalid_redirect_uri`, 400 `invalid_client_metadata`, 429 con `Retry-After` al 11.º)
@@ -219,7 +227,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Controlador y limitador
 - [x] Comando, programación y test
 
-**Notas**: Código de seguridad propio: lo revisa T-12.
+**Notas**: Código de seguridad propio: lo revisa T-12. **Decisión deliberada (G3)**: los eventos OAuth se auditan en un canal propio `oauth` (no `web`) para poder filtrarlos del resto del `AuditLog`; `spec.md` se ha actualizado en consecuencia.
+
+**Revisión F1 (intento 1)**: B2 — `mcp:oauth-prune` borra solo clientes sin token vivo y con `max(created_at, last_used_at) < now-30d`; `last_used_at` se actualiza al emitir un token (test «revocado hoy, cliente de hace 40 días → no se borra»). B1 — `grant_types`/`response_types` con elementos no string → 400 `invalid_client_metadata`. C1 — `RedirectPolicy` rechaza segmentos `.`/`..` y `%2e` en cualquier caja. C2 — tope global de DCR (`services.mcp.oauth.register_global_per_hour`, 200/h) y límite por /64 en IPv6. G1 — columnas `software_id`, `software_version`, `created_ip` en `oauth_clients` (migración aditiva `2026_11_07_090000_oauth_fix1_columns`) guardadas en el DCR. B10 — quitada la aserción vacía de `PruneTest`.
 
 **Evidencia de cierre**: --filter OAuthRegister|OAuthPrune|RedirectPolicy 49 tests en verde (CA-15, 429 con Retry-After, CA-31); schedule:list muestra mcp:oauth-prune.
 
@@ -236,7 +246,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
 - **Tipo**: backend
-- **Archivos**: `app/Services/Mcp/OAuth/AuthorizationServer.php`, `app/Http/Controllers/Mcp/OAuth/AuthorizeController.php`, `routes/web.php`, `tests/Feature/Mcp/OAuth/AuthorizeTest.php`, `app/Services/Mcp/OAuth/AuthorizeRequest.php`, `app/Services/Mcp/OAuth/OAuthException.php`, `resources/js/Pages/OAuth/Authorize.vue`
+- **Archivos**: `app/Services/Mcp/OAuth/AuthorizationServer.php`, `app/Http/Controllers/Mcp/OAuth/AuthorizeController.php`, `routes/web.php`, `tests/Feature/Mcp/OAuth/AuthorizeTest.php`, `app/Services/Mcp/OAuth/AuthorizeRequest.php`, `app/Services/Mcp/OAuth/OAuthException.php`, `resources/js/Pages/OAuth/Authorize.vue`, `routes/web.php`, `app/Providers/AppServiceProvider.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=OAuthAuthorize` → CA-16 (redirige a `/login` y vuelve con los mismos parámetros), CA-17, CA-18 (cabecera), CA-19, CA-22 (`invalid_target`) y `access_denied` con `state` y auditoría `oauth.denied`
 
@@ -256,6 +266,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 **Notas**: El 2FA en mitad del flujo lo cubre E2E-06; aquí basta con que `auth` guarde `intended`.
 
 **Desviación (T-06)**: dos clases de apoyo nuevas (`AuthorizeRequest`, `OAuthException`) para la validación y los errores con/sin redirect; `Authorize.vue` nace como esqueleto aquí (Inertia exige que la página exista) y se completa en T-07.
+
+**Desviaciones (G4, T-06)**: las rutas de `/oauth/authorize` llevan el middleware `verified` además de `auth` (un usuario sin verificar no puede conceder acceso al MCP; coherente con el resto de rutas autenticadas de la app). Revisión F1: C3 — throttle con nombre `mcp-oauth-authorize` (30/min por usuario); B6 — un `state` de más de 500 caracteres se rechaza con `invalid_request` en vez de truncarse.
 
 **Evidencia de cierre**: --filter OAuthAuthorize 20 tests en verde (CA-16/17/18/19/22, hash del código, abilities, revalidación en POST). Authorize.vue es esqueleto hasta T-07.
 
@@ -283,14 +295,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] CA-18: se ve el nombre declarado, el host de redirección y los tres presets con `read` marcado
 - [x] Las casillas son editables y lo marcado es lo que viaja en el POST
 - [x] El texto no permite confundir el nombre del cliente con una identidad verificada
-- [x] Etiquetas y foco accesibles; sin desbordamiento horizontal a 375 y 360 px (se mide en T-26)
+- [x] Etiquetas y foco accesibles
 
 **Subtareas**
 - [x] Componente con `useForm` de Inertia
 - [x] Presets coherentes con `ApiKeys/Index`
 - [x] Estados de error
 
-**Notas**: Reutiliza los componentes de formulario ya usados en `Profile/Partials`.
+**Notas**: Reutiliza los componentes de formulario ya usados en `Profile/Partials`. **Diferido (G5)**: la comprobación de «sin desbordamiento horizontal a 375 y 360 px» no se ha medido aquí; se mide en T-26 y no cuenta como cumplida en esta tarea.
 
 **Evidencia de cierre**: npm run build OK; --filter OAuthAuthorize 20 tests en verde (props de cliente, host, presets, read por defecto); Pint passed. Medición 375/360 px y E2E/M-xx pendientes en T-26/manual (no verificables aquí).
 
@@ -307,7 +319,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
 - **Dependencias**: T-06
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Mcp/OAuth/TokenController.php`, `app/Services/Mcp/OAuth/AuthorizationServer.php`, `routes/ai.php`, `app/Providers/AppServiceProvider.php`, `tests/Unit/PkceTest.php`, `tests/Feature/Mcp/OAuth/TokenTest.php`
+- **Archivos**: `app/Http/Controllers/Mcp/OAuth/TokenController.php`, `app/Services/Mcp/OAuth/AuthorizationServer.php`, `routes/ai.php`, `app/Providers/AppServiceProvider.php`, `tests/Unit/PkceTest.php`, `tests/Feature/Mcp/OAuth/TokenTest.php`, `app/Services/Mcp/OAuth/AuthorizeRequest.php`, `app/Http/Controllers/ApiKeyController.php`, `database/migrations/2026_11_07_090000_oauth_fix1_columns.php`, `tests/Feature/Mcp/OAuth/FullFlowTest.php`, `tests/Feature/Mcp/OAuth/CoexistenceTest.php`, `tests/Feature/Auth/LoginFlowTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/PkceTest.php` → vectores del RFC 7636 §B
@@ -326,6 +338,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Limitador y auditoría `oauth.token.issued` / `oauth.code.replayed`
 
 **Notas**: Núcleo del riesgo dominante de la evaluación. Alcance mínimo: cliente público, code+S256, sin refresh.
+
+**Desviaciones (G4, T-08)**: un `client_id` desconocido responde `invalid_grant` (igual que un código inválido) en vez de `invalid_client`, para no permitir enumerar clientes; un código se quema (`used_at`) ante un mismatch de `client_id`, `redirect_uri` o verifier, de modo que quien lo intercepte solo tiene un intento.
+
+**Revisión F1 (intento 1)**: B4 — el canje corre en `DB::transaction(…, 3)` y, tras emitir, borra los demás tokens OAuth del par (usuario, cliente); B5 — `redirect_uri` es opcional en `/oauth/token` si no se envió en authorize (el código guarda `redirect_uri_sent`) y, si viene, debe coincidir; B7 — test que fuerza la rama `$issued === null` (otra petición consume el código entre la lectura y el UPDATE); B3 — la columna `origin` (`manual`/`oauth`) de `personal_access_tokens` sobrevive al borrado del cliente y `ApiKeyController` la usa; B8/B9 — `FullFlowTest` autoriza dos veces de verdad y `LoginFlowTest` comprueba la cookie `remember_web_*`.
 
 **Evidencia de cierre**: PkceTest (vectores RFC 7636 B) + --filter OAuthToken en verde (CA-20, CA-21 con cada invalid_*, replay revoca el token, carrera simulada, CA-22, unsupported_grant_type, 429 al 31, sin secretos en auditoría); --filter OAuth 122 tests. El canje concurrente real no es reproducible en SQLite en memoria: se simula la carrera perdida; la atomicidad es el UPDATE ... WHERE used_at IS NULL.
 

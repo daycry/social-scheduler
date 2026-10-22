@@ -700,7 +700,7 @@ Checklist firmada (orquestador, 2026-10-22):
 - [ ] Todos los CA-01..CA-24 de la spec tienen test automático o ítem M-xx marcado
 - [ ] Los ficheros del MCP no cambian (`git diff --stat` vacío)
 - [ ] Los M-xx quedan listados como pendientes de la persona en el resumen de cierre
-- [ ] ADR-003 pasa a `aceptada` solo con el visto bueno explícito del usuario; si no lo hay, queda en `propuesta` y figura como pendiente en el resumen de cierre
+- [x] ADR-003 pasa a `aceptada` solo con el visto bueno explícito del usuario; si no lo hay, queda en `propuesta` y figura como pendiente en el resumen de cierre
 
 **Subtareas**
 - [ ] Suite, Pint, build y E2E

@@ -1,7 +1,7 @@
 ---
 id: ADR-003
 titulo: 2FA con TOTP propio sobre Breeze y passkeys con laravel/passkeys aislado tras un gateway
-estado: propuesta
+estado: aceptada (validada: revisión de dos lentes, 2026-10-22, intento 1 de la fase 3; visto bueno del usuario 2026-10-22)
 fecha: 2026-10-22
 iniciativa: 2026-10-22-account-2fa-passkeys
 ---
@@ -65,4 +65,4 @@ Operación (RP ID por entorno, rotación de claves, `user:two-factor-reset`): [`
 
 ## Estado
 
-`propuesta` — implementada y revisada (dos lentes en las fases 1 y 2), pero falta el visto bueno explícito del usuario (criterio de T-19: «pasa a `aceptada` con el usuario»); no se cambia hasta tenerlo. Pasa a `aceptada` cuando se valida; a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí la que la sustituye, nunca se borra el rastro).
+`aceptada` — implementada, revisada con dos lentes en las tres fases y aprobada explícitamente por el usuario el 2026-10-22. Pasa a `aceptada` cuando se valida; a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí la que la sustituye, nunca se borra el rastro).

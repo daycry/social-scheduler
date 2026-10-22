@@ -22,7 +22,7 @@ generacion:
 
 # Diseño — Seguridad de cuenta: doble factor (TOTP) y passkeys
 
-> **Spec:** [`spec.md`](spec.md) (aprobada) · **Evaluación:** [`evaluation.md`](evaluation.md) · **Plan:** [`improvement-plan.md`](improvement-plan.md) · **ADR:** [`ADR-003`](../../knowledge/adr/ADR-003-2fa-totp-propio-y-laravel-passkeys.md) (propuesta)
+> **Spec:** [`spec.md`](spec.md) (aprobada) · **Evaluación:** [`evaluation.md`](evaluation.md) · **Plan:** [`improvement-plan.md`](improvement-plan.md) · **ADR:** [`ADR-003`](../../knowledge/adr/ADR-003-2fa-totp-propio-y-laravel-passkeys.md) (aceptada)
 
 | | |
 |---|---|

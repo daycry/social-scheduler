@@ -17,7 +17,8 @@ const props = defineProps({
     passkeys: { type: Object, required: true },
 });
 
-const { canUsePasskeys, httpsNotice } = useSecureContext();
+// Sin contexto seguro la tarjeta entera se oculta (la pagina de perfil deja una linea discreta en su lugar, CA-20).
+const { canUsePasskeys } = useSecureContext();
 
 const adding = ref(false);
 const addName = ref('');
@@ -46,7 +47,7 @@ const { register, isLoading: registering } = usePasskeyRegister({
             askPassword('add');
             return;
         }
-        addError.value = message;
+        addError.value = message ?? '';
     },
 });
 
@@ -150,7 +151,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <section aria-labelledby="passkeys-title">
+    <section v-if="canUsePasskeys" aria-labelledby="passkeys-title">
         <header>
             <h2 id="passkeys-title" class="text-lg font-medium text-slate-900">Passkeys</h2>
 
@@ -160,12 +161,7 @@ onMounted(() => {
             </p>
         </header>
 
-        <!-- Sin WebAuthn o sin contexto seguro: ni botón ni lista, solo el aviso (CA-20). -->
-        <p v-if="!canUsePasskeys" class="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">
-            {{ httpsNotice }}
-        </p>
-
-        <template v-else>
+        <template v-if="canUsePasskeys">
             <p class="mt-4 text-sm text-emerald-700" role="status" aria-live="polite">{{ notice }}</p>
 
             <EmptyState

@@ -8,8 +8,9 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { passkeyErrorMessage, useSecureContext } from '@/Composables/useSecureContext';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Passkeys } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/vue';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 defineProps({
     canResetPassword: {
@@ -30,22 +31,50 @@ const form = useForm({
 // propio campo de correo (autocomplete="username webauthn"). La passkey sustituye a contraseña + 2FA: el servidor
 // devuelve { redirect } y se navega ahí (sin doble redirección).
 const { canUsePasskeys, httpsNotice } = useSecureContext();
+const goTo = (response) => router.visit(response?.redirect ?? route('dashboard'));
 const { verify: verifyPasskey, errorInstance: passkeyError } = usePasskeyVerify({
-    autofill: true,
     remember: () => form.remember,
-    onSuccess: (response) => router.visit(response?.redirect ?? route('dashboard')),
+    onSuccess: goTo,
 });
 // `isLoading` del cliente también vale true mientras espera el autocompletado: el botón usa su propio estado.
 const passkeyBusy = ref(false);
+const autofillError = ref(null);
+
+// El autofill se gestiona aquí (no con `autofill: true` del composable) para poder relanzarlo: el botón lo cancela al
+// empezar y, si el usuario cancela o la passkey falla, se vuelve a ofrecer sin recargar la página.
+const startAutofill = async () => {
+    if (!canUsePasskeys.value) {
+        return;
+    }
+    try {
+        if (!Passkeys.isSupported() || !(await Passkeys.isAutofillSupported())) {
+            return;
+        }
+        autofillError.value = null;
+        const response = await Passkeys.autofill({ remember: () => form.remember });
+        if (response) {
+            goTo(response);
+        }
+    } catch (error) {
+        autofillError.value = error;
+    }
+};
+onMounted(startAutofill);
+
 const startPasskey = async () => {
     passkeyBusy.value = true;
+    autofillError.value = null;
     try {
         await verifyPasskey();
     } finally {
         passkeyBusy.value = false;
+        // Si falló o se canceló (sigue en esta página), el autofill vuelve a estar disponible; si entró, se navega.
+        if (passkeyError.value) {
+            startAutofill();
+        }
     }
 };
-const passkeyMessage = computed(() => passkeyErrorMessage(passkeyError.value));
+const passkeyMessage = computed(() => passkeyErrorMessage(passkeyError.value ?? autofillError.value));
 
 const submit = () => {
     form.post(route('login'), {

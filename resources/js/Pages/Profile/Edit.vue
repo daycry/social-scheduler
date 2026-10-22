@@ -5,6 +5,7 @@ import PasskeysForm from './Partials/PasskeysForm.vue';
 import TwoFactorForm from './Partials/TwoFactorForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
+import { useSecureContext } from '@/Composables/useSecureContext';
 import { Head } from '@inertiajs/vue3';
 
 defineProps({
@@ -33,6 +34,9 @@ defineProps({
         default: () => ({ confirmed: false, items: [] }),
     },
 });
+
+// Sin contexto seguro (https) ni WebAuthn no se pinta la tarjeta de passkeys: solo una linea discreta (CA-20).
+const { canUsePasskeys, httpsNotice } = useSecureContext();
 </script>
 
 <template>
@@ -72,7 +76,8 @@ defineProps({
                         class="max-w-xl"
                     />
 
-                    <PasskeysForm :passkeys="passkeys" class="mt-10 max-w-xl border-t border-slate-200 pt-8" />
+                    <PasskeysForm v-if="canUsePasskeys" :passkeys="passkeys" class="mt-10 max-w-xl border-t border-slate-200 pt-8" />
+                    <p v-else class="mt-8 max-w-xl text-xs text-slate-500" role="note">{{ httpsNotice }}</p>
                 </div>
 
                 <div

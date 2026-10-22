@@ -21,7 +21,7 @@ generacion:
 | **Prioridad global** | Media |
 | **Solicitante** | daycry (usuario del proyecto) |
 | **Spec** | [`spec.md`](spec.md) |
-| **Plan** | pendiente (handoff a planner) |
+| **Plan** | [`improvement-plan.md`](improvement-plan.md) |
 | **Características evaluadas** | 3 |
 
 ---

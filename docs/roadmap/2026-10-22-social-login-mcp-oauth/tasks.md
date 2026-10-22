@@ -1,0 +1,926 @@
+---
+generacion:
+  inicio: 2026-10-22T19:27:46Z
+  fin: 2026-10-22T19:37:43Z
+  fuente: medido          # ventana compartida con improvement-plan.md
+  tokens_reales: { entrada: 30, salida: 80220, cache_creacion: 113566, cache_lectura: 2195213 }
+  eur: null               # precioTokens no fiable: ejecuta rates-verify
+  horas_ia: 0.65
+  duracion: 39m
+  ratio_usado: 300000
+estado: borrador
+changelog: Added
+verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige ledger-lint (exit 1 si falta)
+---
+
+# Checklist de Tareas — Login social (Google y Facebook) y OAuth 2.1 del servidor MCP
+
+| | |
+|---|---|
+| **Estado** | borrador |
+| **Fecha** | 2026-10-22 |
+| **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
+| **Diseño** | [`design.md`](./design.md) — opción O1 (Socialite y estado del servidor de autorización en tablas, [ADR-004](../../knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md)) |
+| **Plan de pruebas** | [`test-plan.md`](./test-plan.md) |
+
+> **⚠️ Ledger canónico de progreso.** Este fichero es la **fuente única de verdad** del avance del plan. **Cualquier** implementador —el agente `implementer`, el chat principal, o un orquestador SDD externo— **debe** marcar aquí cada tarea (checkbox + estado) al completarla y actualizar el resumen. Los ledgers propios de otras herramientas son **espejo**, no fuente.
+
+> Las horas de este fichero son **base** (sin el +20 % de contingencia); el plan muestra las cifras con margen. Orden fijo: Fase 1 (C-02) → Fase 2 (C-01) → Fase 3 (C-03). Tokens repartidos en proporción a las horas (≈ 40,5k por hora base, como la evaluación: 3,93M en 97h).
+
+> **Restricciones del usuario que valen para todas las tareas:** no tocar los datos del usuario id 28 (los E2E usan solo `e2e-sec-*`); las API keys `msk_` existentes siguen funcionando; ADR-004 pasa a `aceptada` solo con el visto bueno del usuario (T-02).
+
+---
+
+## Resumen de progreso
+
+| Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
+|------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
+| Fase 1 — C-02 · Servidor OAuth del MCP | 0 | 12 | 0% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
+| Fase 2 — C-01 · Login social | 0 | 7 | 0% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
+| **TOTAL** | **0** | **28** | **0%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
+
+> **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
+
+---
+
+## Fase 1 — C-02 · Servidor de autorización OAuth 2.1 del MCP (con la extracción de `LoginFlow`, la pantalla de consentimiento y el smoke CA-29)
+
+**Estado**: borrador · **Estimado**: 50.0h · **Real**: — · **Coste est.**: 2.500 € + tokens (⚠️ verificar) · **Tokens est.**: 2.03M
+
+### T-01 — Extraer `LoginFlow` de `AuthenticatedSessionController::store` sin cambiar el comportamiento
+
+- **Descripción**: Mueve la bifurcación «login directo / reto 2FA» a `App\Services\Auth\LoginFlow::complete($request, $user, $remember)`: con 2FA deja `login.id`, `login.remember` y `login.at` y redirige a `two-factor.challenge`; sin 2FA hace `Auth::login` + `regenerate` + `intended`. `store` solo delega. Es la primera tarea y no añade nada de lo social: es la red de seguridad de todo el plan (ADR-003, criterio 2 del diseño). `TwoFactorChallengeController` y `PasskeyLoginController` no se tocan.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: ninguna
+- **Tipo**: backend
+- **Archivos**: `app/Services/Auth/LoginFlow.php`, `app/Http/Controllers/Auth/AuthenticatedSessionController.php`, `tests/Feature/Auth/LoginFlowTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact tests/Feature/Auth` → todo en verde: los 18 ficheros de ADR-003 (2FA, passkeys, contraseña, reset) sin modificar
+  - `git status --porcelain tests/Feature/Auth` → solo `?? tests/Feature/Auth/LoginFlowTest.php` (ningún test existente modificado)
+  - `git diff --stat -- app/Http/Controllers/Auth/TwoFactorChallengeController.php app/Http/Controllers/Auth/PasskeyLoginController.php` → vacío
+  - `vendor/bin/pint --test` → passed
+
+**Criterios de aceptación**
+- [ ] Sin 2FA: el login con contraseña abre sesión, regenera el id y va a `intended`, idéntico a hoy
+- [ ] Con 2FA: `assertGuest`, sesión con `login.id`/`login.remember`/`login.at` y redirección a `two-factor.challenge`, idéntico a hoy
+- [ ] `LoginFlowTest` fija ambos caminos y `remember` true/false
+- [ ] La suite de 2FA y passkeys de ADR-003 pasa sin modificar ni una línea de sus tests
+
+**Subtareas**
+- [ ] Ejecutar `tests/Feature/Auth` antes de tocar nada y anotar el nº de tests como línea base
+- [ ] Crear `LoginFlow` y delegar desde `store`
+- [ ] Test de `LoginFlow` para ambos caminos
+- [ ] Volver a ejecutar la suite y comparar con la línea base
+
+**Notas**: Si algún test existente de `Auth` falla, se revierte la extracción: no se retoca el test. `login.via` y el texto de `expired` NO entran aquí (sería cambiar comportamiento); van en T-15.
+
+---
+
+### T-02 — Puerta de ADR-004 (visto bueno del usuario) y configuración `services.mcp.oauth.*`
+
+- **Descripción**: CA-32 exige ADR-004 aceptada antes de implementar C-02. El implementador pide el visto bueno al usuario y, solo con su respuesta afirmativa, cambia `estado: propuesta` a `aceptada` (en el ADR y en el índice `docs/knowledge/README.md`). Si el usuario no lo da, se detiene C-02. Además añade `token_days` (30, topado por `services.mcp.key_max_days`), `code_ttl` (300) y `redirect_allowed` (CSV) en `config/services.php` y `.env.example`.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: ninguna
+- **Tipo**: backend
+- **Archivos**: `docs/knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md`, `docs/knowledge/README.md`, `config/services.php`, `.env.example`, `tests/Unit/McpOAuthConfigTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `grep -n "^estado: aceptada" docs/knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md` → 1 línea (solo tras el visto bueno explícito del usuario)
+  - `php artisan test --compact tests/Unit/McpOAuthConfigTest.php` → defaults 30 / 300 / vacío y `token_days` nunca por encima de `key_max_days`
+
+**Criterios de aceptación**
+- [ ] ADR-004 en `aceptada` con el visto bueno del usuario; sin él, la tarea queda bloqueada y las siguientes no arrancan
+- [ ] `.env.example` documenta `MCP_OAUTH_TOKEN_DAYS`, `MCP_OAUTH_CODE_TTL` y `MCP_OAUTH_REDIRECT_ALLOWED`
+- [ ] Un `MCP_OAUTH_TOKEN_DAYS` mayor que `MCP_KEY_MAX_DAYS` se topa
+
+**Subtareas**
+- [ ] Pedir el visto bueno al usuario (puerta humana)
+- [ ] Actualizar ADR-004 e índice de conocimiento
+- [ ] Config y test de defaults y tope
+
+**Notas**: Restricción del usuario: ADR-004 pasa a `aceptada` solo con su visto bueno; el agente no la acepta por su cuenta.
+
+---
+
+### T-03 — Migraciones `oauth_clients`, `oauth_auth_codes` y `personal_access_tokens.oauth_client_id`, y modelos
+
+- **Descripción**: Crea las dos tablas del servidor de autorización (cliente DCR con UUID y `redirect_uris` JSON; código con hash SHA-256, `used_at`, `token_id` y `expires_at`) y la columna nullable `oauth_client_id` con `nullOnDelete`. Añade los modelos `OAuthClient`, `OAuthAuthCode` y `App\Models\PersonalAccessToken` (extiende el de Sanctum, relación `oauthClient`) y lo registra con `Sanctum::usePersonalAccessTokenModel`. Las API keys `msk_` existentes no se tocan: la columna es nullable y sin valor por defecto.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.41h · real —
+- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-02
+- **Tipo**: db
+- **Archivos**: `database/migrations/2026_11_06_090000_create_oauth_clients_table.php`, `database/migrations/2026_11_06_090100_create_oauth_auth_codes_table.php`, `database/migrations/2026_11_06_090200_add_oauth_client_id_to_personal_access_tokens_table.php`, `app/Models/OAuthClient.php`, `app/Models/OAuthAuthCode.php`, `app/Models/PersonalAccessToken.php`, `app/Providers/AppServiceProvider.php`, `tests/Unit/OAuthModelsTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan migrate:fresh --env=testing --no-interaction` → migra sin error; existen las dos tablas y la columna `oauth_client_id`
+  - `php artisan test --compact tests/Unit/OAuthModelsTest.php` → relaciones, `nullOnDelete` y el modelo de token registrado
+  - `php artisan test --compact tests/Feature/Mcp tests/Feature/Auth` → en verde (las API keys siguen funcionando con el modelo nuevo)
+
+**Criterios de aceptación**
+- [ ] La migración es posterior a `2026_11_05_*` y solo añade: no altera filas existentes
+- [ ] Borrar un cliente deja `oauth_client_id` a NULL en sus tokens (no los borra)
+- [ ] `ApiKeyController::index` y `createToken` siguen funcionando con `App\Models\PersonalAccessToken`
+- [ ] Ninguna migración ni test toca filas de `users` existentes (restricción: datos del usuario id 28 intactos)
+
+**Subtareas**
+- [ ] Tres migraciones aditivas
+- [ ] Modelos y casts (`redirect_uris` array, `abilities` array)
+- [ ] `usePersonalAccessTokenModel` y test de regresión de keys
+
+**Notas**: Si ya existe una migración con fecha `2026_11_06_*`, usar la siguiente libre.
+
+---
+
+### T-04 — Metadatos PRM y ASM, `WWW-Authenticate` en el 401 y `location` de Nginx
+
+- **Descripción**: `MetadataController` sirve `GET /.well-known/oauth-protected-resource[/{path}]` (con el nombre `mcp.oauth.protected-resource.nested` y `where('path', '.*')`, para reutilizar `AddWwwAuthenticateHeader` del vendor sin tocarlo) y `GET /.well-known/oauth-authorization-server` con los valores de CA-12 y CA-13. Las rutas viven en `routes/ai.php`, fuera de `web`. Añade `location ^~ /.well-known/oauth-` a `deploy/hestia/nginx-overrides.conf`. Es el quick win de la evaluación: hace el MCP descubrible.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.41h · real —
+- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-02
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Mcp/OAuth/MetadataController.php`, `routes/ai.php`, `deploy/hestia/nginx-overrides.conf`, `tests/Feature/Mcp/OAuth/MetadataTest.php`
+- **Cubre (tests)**: API-01
+- **Verificación**:
+  - `php artisan test --compact --filter=OAuthMetadata` → CA-12, CA-13 y CA-14 en verde (PRM raíz y anidada, ASM sin `refresh_token` ni `client_secret_*`, 401 con `resource_metadata`)
+  - `php artisan route:list --path=well-known` → PRM con nombre `mcp.oauth.protected-resource.nested` y ASM
+  - `grep -n "well-known/oauth-" deploy/hestia/nginx-overrides.conf` → la `location ^~` con `try_files $uri /index.php?$query_string`
+  - `git diff --stat -- vendor app/Http/Middleware/McpGuard.php` → vacío
+
+**Criterios de aceptación**
+- [ ] CA-12: PRM en 200 con `resource`, `authorization_servers` y `scopes_supported=["mcp:use"]`, en la raíz y en `/mcp`
+- [ ] CA-13: ASM con `code_challenge_methods_supported=["S256"]`, `grant_types_supported=["authorization_code"]` y `token_endpoint_auth_methods_supported=["none"]`
+- [ ] CA-14: `POST /mcp` sin Bearer o con uno inválido devuelve 401 con `WWW-Authenticate: Bearer realm="mcp", resource_metadata="…"`
+- [ ] Las API keys `msk_` válidas siguen entrando en `/mcp` (CA-24)
+
+**Subtareas**
+- [ ] Controlador y rutas
+- [ ] Test del formato exacto de `WWW-Authenticate`
+- [ ] `location` de Nginx con comentario del motivo
+
+**Notas**: El `curl` de verificación en `despliegue.md` se escribe en T-27. M-07 (Hestia real) cierra la parte de M-F6-2.
+
+---
+
+### T-05 — DCR: `POST /oauth/register`, política de redirect, limitador y `mcp:oauth-prune`
+
+- **Descripción**: `RegisterController` registra clientes públicos (RFC 7591) con `RedirectPolicy`: solo loopback (`localhost`, `127.0.0.1`, `[::1]`, cualquier puerto, RFC 8252), los callbacks de Claude y los prefijos `https://` de `MCP_OAUTH_REDIRECT_ALLOWED`. Limitador `mcp-oauth-register` de 10/h por IP. Comando programado `mcp:oauth-prune` que borra clientes sin token vivo en 30 días y los códigos caducados.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 5,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.68h · real —
+- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
+- **Dependencias**: T-03, T-04
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Mcp/OAuth/RegisterController.php`, `app/Services/Mcp/OAuth/RedirectPolicy.php`, `app/Console/Commands/McpOAuthPrune.php`, `routes/ai.php`, `routes/console.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Mcp/OAuth/RegisterTest.php`, `tests/Feature/Mcp/OAuth/PruneTest.php`, `tests/Unit/RedirectPolicyTest.php`
+- **Cubre (tests)**: API-02
+- **Verificación**:
+  - `php artisan test --compact --filter=OAuthRegister` → CA-15 (201 con `token_endpoint_auth_method: none`, 400 `invalid_redirect_uri`, 400 `invalid_client_metadata`, 429 con `Retry-After` al 11.º)
+  - `php artisan test --compact tests/Unit/RedirectPolicyTest.php` → loopback con puerto variable, `[::1]`, rechazo de `http://evil`, `https://evil`, userinfo y `localhost.evil.com`
+  - `php artisan test --compact --filter=OAuthPrune` → CA-31: borra solo clientes sin token vivo >30 días y códigos caducados
+  - `php artisan schedule:list` → aparece `mcp:oauth-prune`
+
+**Criterios de aceptación**
+- [ ] CA-15 completo, sin 500 con cuerpos malformados
+- [ ] La política compara host exacto (no prefijos de cadena) y esquema
+- [ ] CA-31: un cliente con un token vivo no se purga
+- [ ] El registro audita `oauth.client.registered` sin datos sensibles
+
+**Subtareas**
+- [ ] `RedirectPolicy` y su Unit
+- [ ] Controlador y limitador
+- [ ] Comando, programación y test
+
+**Notas**: Código de seguridad propio: lo revisa T-12.
+
+---
+
+### T-06 — `AuthorizationServer` y `GET|POST /oauth/authorize` (backend del consentimiento)
+
+- **Descripción**: Servicio `AuthorizationServer` con la validación de la petición y la emisión del código (aleatorio, solo su hash SHA-256 en BD, 300 s, ligado a usuario, cliente, `redirect_uri`, `code_challenge`, abilities y `resource`). `AuthorizeController` en `routes/web.php` con `auth` (guarda `url.intended` y vuelve tras el login, con 2FA), muestra el consentimiento por Inertia (`OAuth/Authorize`) con presets de `App\Mcp\Abilities::presets()` (read por defecto) y la respuesta lleva `Content-Security-Policy: frame-ancestors 'none'`. `client_id` o `redirect_uri` inválidos: página de error propia y nunca redirige.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 6,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.81h · real —
+- **Supervisión**: est. 0.20h (≈25 % IA) · real —
+- **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
+- **Dependencias**: T-05
+- **Tipo**: backend
+- **Archivos**: `app/Services/Mcp/OAuth/AuthorizationServer.php`, `app/Http/Controllers/Mcp/OAuth/AuthorizeController.php`, `routes/web.php`, `tests/Feature/Mcp/OAuth/AuthorizeTest.php`
+- **Cubre (tests)**: —
+- **Verificación**: `php artisan test --compact --filter=OAuthAuthorize` → CA-16 (redirige a `/login` y vuelve con los mismos parámetros), CA-17, CA-18 (cabecera), CA-19, CA-22 (`invalid_target`) y `access_denied` con `state` y auditoría `oauth.denied`
+
+**Criterios de aceptación**
+- [ ] CA-17: sin `code_challenge`, con `plain` o con `response_type=token` redirige con `error=invalid_request` y `state`; con `client_id`/`redirect_uri` no registrados NO redirige
+- [ ] CA-19: aprobar con `publish` redirige a `redirect_uri?code&state`; denegar, a `error=access_denied&state`
+- [ ] CA-22: `resource` distinto de `APP_URL/mcp` devuelve `invalid_target`
+- [ ] El código en claro nunca se guarda ni se audita; las abilities del código son las marcadas y nunca superan al preset `all`
+- [ ] POST con CSRF; GET sin efectos laterales
+
+**Subtareas**
+- [ ] Validación de parámetros y `RedirectPolicy`
+- [ ] Emisión y hash del código
+- [ ] Controlador, CSP y errores sin redirect
+- [ ] Eventos `oauth.authorized` / `oauth.denied`
+
+**Notas**: El 2FA en mitad del flujo lo cubre E2E-06; aquí basta con que `auth` guarde `intended`.
+
+---
+
+### T-07 — Pantalla de consentimiento `OAuth/Authorize.vue`
+
+- **Descripción**: Se adelanta a C-02 (la evaluación la tenía en C-03) porque el smoke CA-29 necesita una pantalla real. Muestra el nombre del cliente marcado como «declarado por el cliente», el host de redirección, los presets `read`/`publish`/`all` con casillas (read marcado) y los botones Autorizar / Denegar. Accesible: etiquetas, foco inicial, anuncio de errores, sin desbordamiento a 375 y 360 px.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 5,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.68h · real —
+- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
+- **Dependencias**: T-06
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Pages/OAuth/Authorize.vue`, `tests/Feature/Mcp/OAuth/AuthorizeTest.php`
+- **Cubre (tests)**: E2E-05, E2E-06, A11Y-01, M-03, M-04, M-05, M-06, M-08
+- **Verificación**:
+  - `npm run build` → build sin errores
+  - `php artisan test --compact --filter=OAuthAuthorize` → la página recibe cliente, host, presets y estado marcado por defecto (CA-18)
+  - `vendor/bin/pint --test` → sin cambios pendientes
+
+**Criterios de aceptación**
+- [ ] CA-18: se ve el nombre declarado, el host de redirección y los tres presets con `read` marcado
+- [ ] Las casillas son editables y lo marcado es lo que viaja en el POST
+- [ ] El texto no permite confundir el nombre del cliente con una identidad verificada
+- [ ] Etiquetas y foco accesibles; sin desbordamiento horizontal a 375 y 360 px (se mide en T-26)
+
+**Subtareas**
+- [ ] Componente con `useForm` de Inertia
+- [ ] Presets coherentes con `ApiKeys/Index`
+- [ ] Estados de error
+
+**Notas**: Reutiliza los componentes de formulario ya usados en `Profile/Partials`.
+
+---
+
+### T-08 — `POST /oauth/token`: PKCE S256, código de un solo uso y emisión del token Sanctum
+
+- **Descripción**: `TokenController` y `AuthorizationServer::redeemCode`: valida `grant_type`, `code`, `redirect_uri`, `client_id`, `code_verifier` (`hash_equals` sobre `base64url(sha256(verifier))`) y `resource`; consume el código con `UPDATE … SET used_at WHERE used_at IS NULL` atómico; emite un token `msk_` con las abilities del código, `expires_at = now + token_days` y `oauth_client_id`, y guarda `token_id` en el código. Un replay revoca el token emitido (CA-21). Respuesta con `Cache-Control: no-store`. Limitador `mcp-oauth-token` de 30/min por IP.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 6,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.81h · real —
+- **Supervisión**: est. 0.20h (≈25 % IA) · real —
+- **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
+- **Dependencias**: T-06
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Mcp/OAuth/TokenController.php`, `app/Services/Mcp/OAuth/AuthorizationServer.php`, `routes/ai.php`, `app/Providers/AppServiceProvider.php`, `tests/Unit/PkceTest.php`, `tests/Feature/Mcp/OAuth/TokenTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact tests/Unit/PkceTest.php` → vectores del RFC 7636 §B
+  - `php artisan test --compact --filter=OAuthToken` → CA-20 (200, `msk_`, `expires_in`, `no-store`, abilities exactas, `oauth_client_id`), CA-21 (verifier erróneo, usado, caducado, otro `redirect_uri` o `client_id` → `invalid_grant`; replay revoca el token) y `unsupported_grant_type`
+
+**Criterios de aceptación**
+- [ ] CA-20 completo
+- [ ] CA-21: cada `invalid_*` tiene un test negativo; el canje concurrente del mismo código emite un solo token
+- [ ] CA-22 en el token endpoint (`invalid_target`)
+- [ ] El hash del código es lo único guardado; el token en claro solo está en la respuesta; ninguna auditoría lleva código, verifier ni token
+
+**Subtareas**
+- [ ] PKCE y comparación en tiempo constante
+- [ ] Canje atómico y revocación por replay
+- [ ] Emisión del token y respuesta
+- [ ] Limitador y auditoría `oauth.token.issued` / `oauth.code.replayed`
+
+**Notas**: Núcleo del riesgo dominante de la evaluación. Alcance mínimo: cliente público, code+S256, sin refresh.
+
+---
+
+### T-09 — Coexistencia con `msk_`: sustitución al reautorizar, origen del token y `McpGuard` intacto
+
+- **Descripción**: Al emitir, revoca en una transacción con bloqueo de filas los tokens vivos de ese (usuario, cliente) (CA-26). `ApiKeyController::index` añade el origen (manual u «OAuth · cliente») como dato; la columna visible llega en T-22. Un test fija que `McpGuard` sigue devolviendo 403 con un `Origin` no permitido en `/mcp` y que `/oauth/*` y `/.well-known/*` responden sin `Origin` (CA-28).
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 1,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.14h · real —
+- **Supervisión**: est. 0.03h (≈25 % IA) · real —
+- **Previsión IA**: 37k in / 4k out tok · ⚠️ verificar €
+- **Dependencias**: T-08
+- **Tipo**: backend
+- **Archivos**: `app/Services/Mcp/OAuth/AuthorizationServer.php`, `app/Http/Controllers/ApiKeyController.php`, `tests/Feature/Mcp/OAuth/CoexistenceTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=OAuthCoexistence` → CA-23, CA-24, CA-25 (revocar → 401), CA-26 y CA-28 en verde
+  - `git diff --stat -- app/Http/Middleware/McpGuard.php app/Mcp/Tools/SchedulerTool.php app/Services/AuditLog.php` → vacío
+
+**Criterios de aceptación**
+- [ ] CA-26: tras reautorizar solo vive el token nuevo del par (usuario, cliente); los de otros clientes y las API keys manuales no se tocan
+- [ ] CA-23: un token OAuth `read` no puede `create_post`, igual que una API key sin `posts:write`
+- [ ] CA-24: `tests/Feature/Mcp` sin modificar y en verde
+- [ ] Ningún token manual existente cambia
+
+**Subtareas**
+- [ ] Sustitución transaccional
+- [ ] Dato de origen en `index`
+- [ ] Tests de coexistencia y de CA-28
+
+---
+
+### T-10 — Batería Pest del servidor OAuth: flujo completo, negativos y fugas
+
+- **Descripción**: Test de flujo completo register → authorize (actingAs) → token → `tools/call` en `/mcp`, más los negativos por cada `invalid_*` hasta unos 30 tests nuevos en total entre T-04..T-09 y esta tarea, y `OAuthAuditLeakTest` (CA-27: ningún evento OAuth lleva códigos, tokens, verifiers ni secretos). Cierra huecos de cobertura detectados al mirar CA-12..CA-28 uno a uno.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 9,0h · real —
+- **Tiempo IA (ejec.)**: est. 1.22h · real —
+- **Supervisión**: est. 0.30h (≈25 % IA) · real —
+- **Previsión IA**: 329k in / 36k out tok · ⚠️ verificar €
+- **Dependencias**: T-09
+- **Tipo**: test
+- **Archivos**: `tests/Feature/Mcp/OAuth/FullFlowTest.php`, `tests/Feature/Mcp/OAuth/NegativesTest.php`, `tests/Feature/Mcp/OAuth/OAuthAuditLeakTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=OAuth` → ≥ 30 tests en verde cubriendo CA-12..CA-28
+  - `php artisan test --compact --filter=OAuthAuditLeak` → ninguna fila de `audit_logs` ni línea de log contiene código, token, verifier ni secreto
+  - `php artisan test --compact` → suite completa en verde
+
+**Criterios de aceptación**
+- [ ] Cada CA-12..CA-28 tiene al menos un test que lo nombra (tabla CA → test en las Notas)
+- [ ] El flujo completo termina con una llamada real a una tool del MCP con el token emitido
+- [ ] Suite completa sin desactivar ni modificar tests existentes
+
+**Subtareas**
+- [ ] Flujo completo
+- [ ] Negativos que falten por CA
+- [ ] Test de fugas
+- [ ] Tabla CA → test
+
+---
+
+### T-11 — Smoke CA-29 con Claude Code, Claude Desktop, Codex y OpenCode (adelantado al final de C-02)
+
+- **Descripción**: Con el servidor tras el dominio ngrok reservado, el usuario conecta los cuatro clientes solo con el navegador, sin API key, y se registra en `testing/smoke-ca29.md` el comando o configuración y la versión de cada cliente. Verifica los supuestos ⚠️: DCR, `resource`, callbacks reales y si algún cliente exige refresh token o CIMD. Si alguno lo exige, la tarea no lo implementa: lo eleva al usuario (≈ +8h base para refresh) y ajusta la política de redirect con `MCP_OAUTH_REDIRECT_ALLOWED`.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.54h · real —
+- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
+- **Dependencias**: T-07, T-10
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md`, `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`
+- **Cubre (tests)**: M-03, M-04, M-05, M-06
+- **Verificación**:
+  - `ls docs/roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md` → existe
+  - lectura: el fichero tiene una fila por cliente (Claude Code CLI, Claude Desktop, Codex, OpenCode) con comando/configuración, versión, resultado y callback observado
+  - lectura: hay una conclusión explícita sobre refresh token y CIMD (necesario: sí/no)
+
+**Criterios de aceptación**
+- [ ] CA-29: los 4 clientes se conectan sin pegar ninguna API key y llaman a una tool; o queda documentado cuál falla y por qué
+- [ ] Los comandos de los tres clientes por CLI quedan verificados en su versión actual (⚠️ de la spec)
+- [ ] Decisión del usuario sobre refresh/CIMD si el smoke la dispara, antes de pasar a C-01
+
+**Subtareas**
+- [ ] Preparar ngrok y `.env` (`MCP_OAUTH_REDIRECT_ALLOWED` si hace falta)
+- [ ] Conectar cada cliente y anotar
+- [ ] Redactar la conclusión
+
+**Notas**: Tarea manual del usuario: las horas humanas son suyas; la IA solo prepara la plantilla del registro y lo redacta. Se usa la cuenta del usuario solo para autenticarse: no se modifica ningún dato del usuario id 28.
+
+---
+
+### T-12 — Revisión de seguridad adversarial de C-02
+
+- **Descripción**: Revisión dirigida del servidor de autorización propio: open redirect, replay y concurrencia del código, comparación PKCE, clickjacking (CSP de la pantalla de consentimiento), enumeración de clientes, timing, spam de DCR, secretos en log y auditoría, coexistencia con `msk_`. Resultado: checklist firmada en las Notas y huecos corregidos antes de abrir C-01. Es la puerta de salida de la fase 1.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.54h · real —
+- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
+- **Dependencias**: T-11
+- **Tipo**: docs
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `tests/Feature/Mcp/OAuth/OAuthSecurityReviewTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact` → suite completa en verde
+  - `php artisan test --compact --filter=OAuthSecurityReview` → los casos adversariales hallados quedan fijados
+  - `vendor/bin/pint --test` → passed
+  - lectura: checklist de revisión en Notas con cada punto marcado
+
+**Criterios de aceptación**
+- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
+- [ ] Cada hallazgo Important o Critical tiene test que lo fija y corrección
+- [ ] Ninguna fila de `audit_logs` ni línea de log contiene secreto, código, verifier ni token
+
+**Subtareas**
+- [ ] Revisar PKCE, canje y replay
+- [ ] Revisar redirect y consentimiento
+- [ ] Revisar DCR y limitadores
+- [ ] Suite completa y Pint
+
+**Notas**: Puerta de salida de la fase 1.
+
+---
+
+## Fase 2 — C-01 · Login social con Google y Facebook (backend)
+
+**Estado**: borrador · **Estimado**: 26.0h · **Real**: — · **Coste est.**: 1.300 € + tokens (⚠️ verificar) · **Tokens est.**: 1.05M
+
+### T-13 — Socialite, configuración de login y migración `social_identities`
+
+- **Descripción**: Instala `laravel/socialite` ^5.31 y verifica en el vendor que el driver de Google expone `email_verified` (si no, el login con Google falla cerrado). Config `services.google_login` y `services.facebook_login` (`GOOGLE_LOGIN_*`, `META_LOGIN_*`) separada de la de conectores. Migración y modelo `SocialIdentity` (`user_id`, `provider`, `provider_user_id` único por proveedor, `email`, `linked_at`, `last_login_at`, `blocked_at`) y relación en `User` con borrado en cascada.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.41h · real —
+- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-12
+- **Tipo**: backend
+- **Archivos**: `composer.json`, `composer.lock`, `config/services.php`, `.env.example`, `database/migrations/2026_11_06_090300_create_social_identities_table.php`, `app/Models/SocialIdentity.php`, `app/Models/User.php`, `tests/Unit/SocialIdentityTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `composer show laravel/socialite` → versión ^5.31 instalada sin conflictos
+  - `grep -rn "email_verified" vendor/laravel/socialite/src/Two/GoogleProvider.php` → el campo llega en el usuario crudo (anotar el resultado en Notas)
+  - `php artisan test --compact tests/Unit/SocialIdentityTest.php` → unicidad (proveedor, id), cascada y `blocked_at`
+  - `php artisan test --compact tests/Feature/Auth` → en verde
+
+**Criterios de aceptación**
+- [ ] `(provider, provider_user_id)` es único
+- [ ] Las claves `GOOGLE_LOGIN_*` y `META_LOGIN_*` vacías dejan el proveedor desactivado (CA-10, se prueba en T-14)
+- [ ] Los conectores de `app/Connectors` no se modifican (`git diff --stat -- app/Connectors` vacío)
+
+**Subtareas**
+- [ ] `composer require laravel/socialite`
+- [ ] Comprobación de `email_verified` en el vendor
+- [ ] Migración, modelo y relación
+
+**Notas**: Si Socialite no expone `email_verified`, se documenta y se obtiene del userinfo en el propio controlador, siempre fallando cerrado.
+
+---
+
+### T-14 — `SocialIdentityResolver` y `SocialLoginController` (redirect y callback de login)
+
+- **Descripción**: `SocialIdentityResolver` aplica P1 sobre `social_identities`: identidad existente no bloqueada → su usuario; Google con `email_verified=true` y cuenta local con `email_verified_at` → vincula y audita `social.linked` (auto); Facebook, sin email, sin verificar, bloqueada o sin cuenta → rechazo con mensaje genérico. `SocialLoginController` (`redirect` con `guest`, `callback` sin `guest` y bifurcado por `social.intent`) cierra el login con `LoginFlow::complete(…, remember: false)`. Nunca crea usuarios, ni con `REGISTRATION_ENABLED=true`. Proveedor sin configurar: 404.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.54h · real —
+- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
+- **Dependencias**: T-13, T-01
+- **Tipo**: backend
+- **Archivos**: `app/Services/Auth/SocialIdentityResolver.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `routes/auth.php`, `tests/Feature/Auth/Social/SocialLoginTest.php`, `tests/Unit/SocialIdentityResolverTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=SocialLogin` → CA-01 a CA-06 y CA-10 en verde con el driver de Socialite simulado
+  - `php artisan test --compact tests/Unit/SocialIdentityResolverTest.php` → tabla de decisión de P1 completa
+  - `php artisan test --compact tests/Feature/Auth` → ADR-003 sigue en verde
+
+**Criterios de aceptación**
+- [ ] CA-01/CA-02: login directo y vinculación automática solo con Google verificado
+- [ ] CA-03/CA-05: email no verificado, ausente o Facebook sin vincular → rechazo genérico, sin sesión, sin identidad
+- [ ] CA-04: el número de `users` no cambia con `REGISTRATION_ENABLED` a true o false
+- [ ] CA-06: con 2FA, `assertGuest` y redirección a `two-factor.challenge`; tras el código llega a `intended`
+- [ ] El mensaje no revela si el email existe
+
+**Subtareas**
+- [ ] Resolver y su tabla de decisión
+- [ ] Controlador y rutas
+- [ ] Rama de login del callback (la de vincular llega en T-17)
+
+---
+
+### T-15 — Errores, auditoría, limitador, `login.via` en el 2FA y texto neutro de `expired`
+
+- **Descripción**: Mapa de errores del callback (cancelar, `state` caducado, proveedor caído; CA-09), limitador `social-login` de 20/min (CA-11) y eventos `auth.social.login`, `social.linked`, `social.unlinked` sin secretos (CA-27). Resuelve las dos preguntas abiertas del diseño, ambas con «sí»: `LoginFlow` guarda `login.via` (contraseña, google, facebook) junto a `login.*`, `TwoFactorChallengeController` lo añade al `detail` de `auth.2fa.challenge_passed` y `auth.2fa.challenge_failed` y lo olvida en `expired`; `PasskeyLoginController` lo limpia junto a `login.*`; y `expired` pasa a un texto neutro («La verificación caducó. Vuelve a iniciar sesión.») con un test del mensaje.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.41h · real —
+- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-14
+- **Tipo**: backend
+- **Archivos**: `app/Services/Auth/LoginFlow.php`, `app/Http/Controllers/Auth/TwoFactorChallengeController.php`, `app/Http/Controllers/Auth/PasskeyLoginController.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/TwoFactorChallengeViaTest.php`, `tests/Feature/Auth/Social/SocialErrorsTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=TwoFactorChallengeVia` → el `detail` de la auditoría lleva `via` y el reto caducado muestra el texto neutro
+  - `php artisan test --compact --filter=SocialErrors` → CA-09 y CA-11
+  - `php artisan test --compact tests/Feature/Auth` → ADR-003 sigue en verde (los tests existentes no se modifican)
+
+**Criterios de aceptación**
+- [ ] `auth.2fa.challenge_passed` / `challenge_failed` registran `via` = password, google, facebook; la passkey no pasa por el 2FA y deja `login.via` limpio (`PasskeyLoginController`)
+- [ ] `expired` ya no dice «correo y contraseña» y un test fija el texto nuevo; ningún test previo lo asertaba
+- [ ] CA-09: cancelar o `state` inválido vuelve a `/login` con mensaje legible, sin 500
+- [ ] CA-11: la petición 21 en un minuto responde 429
+
+**Subtareas**
+- [ ] `login.via` en `LoginFlow` y auditoría
+- [ ] Limpieza en `PasskeyLoginController` y en `expired`
+- [ ] Texto neutro con test
+- [ ] Errores del callback y limitador
+
+**Notas**: Cambia `TwoFactorChallengeController` y `PasskeyLoginController`, que el diseño daba por «sin cambios»: lo aprueban las preguntas abiertas del diseño (ambas «sí»).
+
+---
+
+### T-16 — Particularidades de Facebook: versión de Graph, email ausente y `#_=_`
+
+- **Descripción**: Fija `usingGraphVersion(config('social.meta.graph_version'))` (la versión por defecto del driver puede ser antigua), pide `email` y `public_profile`, trata el email ausente (rechazo genérico) y el fragmento `#_=_` de la redirección. Test sobre el payload crudo.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: T-14
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Auth/SocialLoginController.php`, `config/services.php`, `tests/Feature/Auth/Social/FacebookLoginTest.php`
+- **Cubre (tests)**: —
+- **Verificación**: `php artisan test --compact --filter=FacebookLogin` → versión de Graph aplicada, email ausente rechazado, Facebook sin vincular rechazado (CA-05)
+
+**Criterios de aceptación**
+- [ ] La versión de Graph sale de la config y no del driver
+- [ ] Sin email: rechazo genérico, sin identidad creada
+- [ ] Facebook nunca vincula solo (P1)
+
+**Subtareas**
+- [ ] Versión de Graph
+- [ ] Email ausente
+- [ ] Fragmento `#_=_`
+
+---
+
+### T-17 — Vincular y desvincular desde el perfil (`password.confirm`) y bloqueo de la vinculación automática
+
+- **Descripción**: `SocialIdentityController` (`link` y `unlink`) con `password.confirm`. Vincular deja `social.intent=link` en sesión y el callback, con sesión iniciada, vincula o desbloquea; si la identidad pertenece a otro usuario, error en el perfil y ningún cambio (CA-07). Desvincular marca `blocked_at` y audita `social.unlinked`: la vinculación automática no la vuelve a enlazar (CA-08). `ProfileController` expone al Inertia las cuentas vinculadas.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 5,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.68h · real —
+- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
+- **Dependencias**: T-15
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Profile/SocialIdentityController.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Http/Controllers/ProfileController.php`, `routes/auth.php`, `tests/Feature/Auth/Social/LinkUnlinkTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=LinkUnlink` → CA-07 (incluida la identidad ya ajena) y CA-08 en verde
+  - `php artisan test --compact tests/Feature/ProfileTest.php` → sigue en verde
+
+**Criterios de aceptación**
+- [ ] CA-07: vincular Facebook con `password.confirm` lo añade a la lista; identidad ajena → error y sin cambios
+- [ ] CA-08: tras desvincular, el login con esa identidad no entra y Google no la re-vincula por email hasta vincularla a mano
+- [ ] Vincular y desvincular exigen `password.confirm`
+- [ ] Auditoría `social.linked` / `social.unlinked` sin secretos
+
+**Subtareas**
+- [ ] Rama `intent=link` del callback
+- [ ] Controlador y rutas
+- [ ] Props del perfil
+
+---
+
+### T-18 — Batería Pest del login social con Socialite simulado
+
+- **Descripción**: Cierra la matriz CA-01..CA-11 con el driver de Socialite simulado: pérdida de `url.intended` en el viaje al proveedor (la cookie `SameSite=lax` debe volver en el GET), `remember=false`, que la passkey y la contraseña siguen igual, y un test de fugas (`SocialAuditLeakTest`) sobre `audit_logs` y el log.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 7,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.95h · real —
+- **Supervisión**: est. 0.24h (≈25 % IA) · real —
+- **Previsión IA**: 256k in / 28k out tok · ⚠️ verificar €
+- **Dependencias**: T-16, T-17
+- **Tipo**: test
+- **Archivos**: `tests/Feature/Auth/Social/SocialIntendedTest.php`, `tests/Feature/Auth/Social/SocialAuditLeakTest.php`, `tests/Unit/SocialIdentityResolverTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=Social` → toda la matriz CA-01..CA-11 en verde
+  - `php artisan test --compact --filter=SocialAuditLeak` → ninguna fila de `audit_logs` ni línea de log contiene código, token ni secreto
+  - `php artisan test --compact` → suite completa en verde
+
+**Criterios de aceptación**
+- [ ] Cada CA-01..CA-11 tiene al menos un test que lo nombra
+- [ ] `url.intended` sobrevive al viaje (a `/oauth/authorize` incluido)
+- [ ] Suite completa sin modificar tests existentes
+
+**Subtareas**
+- [ ] Huecos de la matriz
+- [ ] `url.intended`
+- [ ] Fugas
+
+---
+
+### T-19 — Revisión de seguridad de C-01 (toma de cuenta y enumeración)
+
+- **Descripción**: Revisión dirigida del login social: toma de cuenta por email no verificado, identidad ajena, `state`, mensajes que no revelan el email, `LoginFlow` compartido y bloqueo al desvincular. Checklist firmada en las Notas y huecos corregidos antes de la UI. Puerta de salida de la fase 2.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: T-18
+- **Tipo**: docs
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `tests/Feature/Auth/Social/SocialSecurityReviewTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact` → suite completa en verde
+  - `vendor/bin/pint --test` → passed
+  - lectura: checklist de revisión en Notas con cada punto marcado
+
+**Criterios de aceptación**
+- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
+- [ ] Cada hallazgo Important o Critical tiene test y corrección
+- [ ] Ningún secreto en log ni auditoría
+
+**Subtareas**
+- [ ] Revisar la resolución de identidad
+- [ ] Revisar `LoginFlow` y el 2FA
+- [ ] Suite y Pint
+
+**Notas**: Puerta de salida de la fase 2.
+
+---
+
+## Fase 3 — C-03 · UI, E2E, accesibilidad, documentación y cierre
+
+**Estado**: borrador · **Estimado**: 21.0h · **Real**: — · **Coste est.**: 1.050 € + tokens (⚠️ verificar) · **Tokens est.**: 0.85M
+
+### T-20 — Botones «Continuar con Google» y «Continuar con Facebook» en `Login.vue`
+
+- **Descripción**: Los botones solo se muestran si el proveedor está configurado (prop compartida desde el controlador). Mismo estilo que el botón de passkey, accesibles y sin desbordamiento a 375 y 360 px.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: T-19
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Pages/Auth/Login.vue`, `app/Http/Controllers/Auth/AuthenticatedSessionController.php`, `tests/Feature/Auth/LoginPageProvidersTest.php`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, A11Y-01, M-01, M-02
+- **Verificación**:
+  - `npm run build` → build sin errores
+  - `php artisan test --compact --filter=LoginPageProviders` → CA-10: sin credenciales no hay botón y `auth/{provider}/redirect` da 404
+  - `vendor/bin/pint --test` → passed
+
+**Criterios de aceptación**
+- [ ] CA-10 en la UI: el botón aparece solo con el proveedor configurado
+- [ ] Los botones tienen texto visible y nombre accesible
+- [ ] El orden de tabulación no rompe el formulario
+
+**Subtareas**
+- [ ] Prop `socialProviders`
+- [ ] Botones
+- [ ] Test de props
+
+---
+
+### T-21 — Parcial «Cuentas vinculadas» (`LinkedAccountsForm.vue`) en el perfil
+
+- **Descripción**: Lista las identidades (proveedor, fecha, estado), vincular Google/Facebook (con confirmación de contraseña previa, como en passkeys) y desvincular con confirmación. Muestra los errores del callback (identidad ajena). Montado en `Profile/Edit.vue`.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.54h · real —
+- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
+- **Dependencias**: T-17, T-20
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Profile/Partials/LinkedAccountsForm.vue`, `tests/Feature/ProfileLinkedAccountsTest.php`
+- **Cubre (tests)**: E2E-04, A11Y-01, M-02, M-08
+- **Verificación**:
+  - `npm run build` → build sin errores
+  - `php artisan test --compact --filter=ProfileLinkedAccounts` → la página expone las cuentas vinculadas sin secretos
+  - `vendor/bin/pint --test` → passed
+
+**Criterios de aceptación**
+- [ ] CA-07/CA-08 visibles: vincular, ver, desvincular
+- [ ] La acción pide `password.confirm` antes de abrir el proveedor (un `fetch` no recibe 423)
+- [ ] Accesible por teclado y sin desbordamiento a 375/360 px
+
+**Subtareas**
+- [ ] Parcial y montaje
+- [ ] Confirmación de contraseña
+- [ ] Errores
+
+---
+
+### T-22 — Columna «Origen» en `ApiKeys/Index`
+
+- **Descripción**: Muestra «Manual» u «OAuth · <cliente>» con el dato que añadió T-09, y mantiene la revocación. Las API keys existentes se ven como «Manual», sin cambios.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: T-09
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Pages/ApiKeys/Index.vue`, `tests/Feature/ApiKeyOriginTest.php`
+- **Cubre (tests)**: E2E-07, M-08
+- **Verificación**:
+  - `npm run build` → build sin errores
+  - `php artisan test --compact --filter=ApiKeyOrigin` → CA-25: el listado distingue origen y revoca
+  - `php artisan test --compact tests/Feature/Mcp` → en verde (CA-24)
+
+**Criterios de aceptación**
+- [ ] CA-25: un token OAuth aparece como «OAuth · cliente» y se revoca
+- [ ] Las keys manuales siguen como «Manual»
+- [ ] Legible a 375 y 360 px
+
+**Subtareas**
+- [ ] Columna
+- [ ] Test de listado
+
+---
+
+### T-23 — Proveedor social falso solo en `APP_ENV=e2e` y servidor E2E
+
+- **Descripción**: Driver de Socialite `fake` registrado únicamente cuando `APP_ENV=e2e`, con identidades configurables por el test (email, `email_verified`, id). `playwright.config.ts` arranca el servidor con `APP_ENV: 'e2e'` y los helpers de `tests/e2e/helpers.ts` ganan utilidades de preparación para los usuarios `e2e-sec-*`. Un test Pest comprueba que en `production`, `local` y `testing` el driver no existe.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: T-14
+- **Tipo**: test
+- **Archivos**: `app/Providers/AppServiceProvider.php`, `app/Services/Auth/Social/FakeSocialiteProvider.php`, `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/Feature/Auth/FakeSocialProviderEnvTest.php`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03
+- **Verificación**:
+  - `php artisan test --compact --filter=FakeSocialProviderEnv` → el driver `fake` solo se registra con `APP_ENV=e2e`
+  - `npx playwright test --list` → la batería existente sigue listada sin errores de configuración
+
+**Criterios de aceptación**
+- [ ] El driver falso no se puede activar por petición ni por query
+- [ ] Producción nunca lo registra (test)
+- [ ] La batería E2E existente (2FA, passkeys) no cambia de comportamiento con `APP_ENV=e2e`
+
+**Subtareas**
+- [ ] Driver falso
+- [ ] Registro condicionado
+- [ ] Config de Playwright y helpers
+
+**Notas**: Google y Facebook reales no son automatizables: van a M-01 y M-02.
+
+---
+
+### T-24 — E2E del login social y de Cuentas vinculadas
+
+- **Descripción**: Specs de Playwright con el proveedor falso: login con Google sin 2FA y con 2FA, rechazos (email no verificado, sin cuenta, Facebook sin vincular, cancelar) y vincular/desvincular desde el perfil. Usa los usuarios `e2e-sec-*` y nunca el usuario id 28.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.34h · real —
+- **Supervisión**: est. 0.08h (≈25 % IA) · real —
+- **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
+- **Dependencias**: T-21, T-23
+- **Tipo**: test
+- **Archivos**: `tests/e2e/social.spec.ts`, `tests/e2e/helpers.ts`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04
+- **Verificación**: `npm run test:e2e -- social.spec.ts` → en verde en los tres proyectos (desktop, mobile, mobile-360)
+
+**Criterios de aceptación**
+- [ ] E2E-01..E2E-04 pasan con aserciones reales
+- [ ] Cada spec limpia lo que crea (usuarios e identidades `e2e-`)
+- [ ] Ningún spec lee ni escribe un usuario fuera de `e2e-sec-*`
+
+**Subtareas**
+- [ ] Login sin y con 2FA
+- [ ] Rechazos
+- [ ] Vincular y desvincular
+
+---
+
+### T-25 — E2E del flujo OAuth del MCP en el navegador
+
+- **Descripción**: El test genera el verifier, registra un cliente, abre `/oauth/authorize`, inicia sesión (con y sin 2FA), consiente, captura el redirect a loopback, canjea con `request` y llama a `/mcp`. Cubre denegar, la revocación desde API keys (401 después) y que una API key manual sigue funcionando.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.34h · real —
+- **Supervisión**: est. 0.08h (≈25 % IA) · real —
+- **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
+- **Dependencias**: T-22, T-23
+- **Tipo**: test
+- **Archivos**: `tests/e2e/oauth.spec.ts`, `tests/e2e/helpers.ts`
+- **Cubre (tests)**: E2E-05, E2E-06, E2E-07
+- **Verificación**: `npm run test:e2e -- oauth.spec.ts` → en verde en los tres proyectos
+
+**Criterios de aceptación**
+- [ ] E2E-05..E2E-07 pasan (CA-16, CA-18..CA-20, CA-24..CA-26)
+- [ ] El token canjeado funciona en `/mcp` y deja de hacerlo tras revocar
+- [ ] No queda ningún cliente ni token `e2e-` tras el teardown
+
+**Subtareas**
+- [ ] Flujo con PKCE
+- [ ] Denegar y 2FA en mitad
+- [ ] Revocación y API key manual
+
+---
+
+### T-26 — axe y desbordamiento en Login, Cuentas vinculadas y Consentimiento
+
+- **Descripción**: Añade las tres pantallas nuevas a `tests/e2e/a11y.spec.ts` con el umbral de la iniciativa anterior (0 violaciones `serious`/`critical`) y mide el desbordamiento a 375 y 360 px.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 1,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.14h · real —
+- **Supervisión**: est. 0.03h (≈25 % IA) · real —
+- **Previsión IA**: 37k in / 4k out tok · ⚠️ verificar €
+- **Dependencias**: T-24, T-25
+- **Tipo**: test
+- **Archivos**: `tests/e2e/a11y.spec.ts`
+- **Cubre (tests)**: A11Y-01
+- **Verificación**: `npm run test:e2e -- a11y.spec.ts` → 0 violaciones `serious`/`critical` y 0 px de desbordamiento horizontal en las pantallas nuevas
+
+**Criterios de aceptación**
+- [ ] Login con botones, Cuentas vinculadas y Consentimiento sin violaciones `serious`/`critical`
+- [ ] 0 px de desbordamiento a 375 y 360 px
+
+**Subtareas**
+- [ ] Casos nuevos en `a11y.spec.ts`
+
+---
+
+### T-27 — Documentación: instalación sin API key, despliegue, `.env.example` y guía de Google y Meta
+
+- **Descripción**: `docs/modulos/mcp.md` con la instalación OAuth de los cuatro clientes (comandos verificados en T-11), la API key como alternativa y el aviso del 401 con `resource_metadata` para keys caducadas. `docs/modulos/despliegue.md` con redirect URIs, `/.well-known`, `Authorization` y el `curl` de verificación (cierra la parte de M-F6-2). Guía de pasos manuales de Google y Meta, guía de usuario y `.env.example` completo (CA-30).
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.41h · real —
+- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-11, T-21
+- **Tipo**: docs
+- **Archivos**: `docs/modulos/mcp.md`, `docs/modulos/despliegue.md`, `docs/usuario/guia-de-usuario.md`, `docs/guias/login-social-google-meta.md`, `.env.example`
+- **Cubre (tests)**: M-07
+- **Verificación**:
+  - `grep -n "oauth-protected-resource" docs/modulos/despliegue.md docs/modulos/mcp.md` → el `curl` de verificación y la explicación del 401
+  - `grep -n "MCP_OAUTH_TOKEN_DAYS\|GOOGLE_LOGIN_CLIENT_ID\|META_LOGIN_APP_ID" .env.example` → las tres claves documentadas
+  - lectura: `mcp.md` tiene un apartado por cliente (Claude Code, Claude Desktop, Codex, OpenCode) con el comando probado en T-11
+
+**Criterios de aceptación**
+- [ ] CA-30 completo
+- [ ] La guía de Google y Meta recoge los pasos manuales de la spec (proyecto dedicado, caso de uso, redirect URIs, modo desarrollo)
+- [ ] No quedan comandos de clientes sin verificar presentados como definitivos
+
+**Subtareas**
+- [ ] `mcp.md`
+- [ ] `despliegue.md` y `curl`
+- [ ] Guía de Google y Meta y guía de usuario
+
+---
+
+### T-28 — Revisión final, regresión completa y cierre del plan
+
+- **Descripción**: Suite Pest completa, Pint, build y Playwright completo; comprueba que lo declarado «sin cambios» sigue intacto y que no se ha tocado ningún dato del usuario id 28. Entrega los M-xx como checklist para el usuario, actualiza el estado de la spec y el índice del roadmap. Puerta de salida de la fase 3.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 2,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.27h · real —
+- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **Dependencias**: T-26, T-27
+- **Tipo**: docs
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `docs/roadmap/2026-10-22-social-login-mcp-oauth/improvement-plan.md`, `docs/roadmap/README.md`
+- **Cubre (tests)**: M-01, M-02, M-03, M-04, M-05, M-06, M-07, M-08
+- **Verificación**:
+  - `php artisan test --compact` → suite completa en verde
+  - `npm run build && vendor/bin/pint --test` → sin errores
+  - `npm run test:e2e` → batería completa en verde (desktop, mobile y mobile-360)
+  - `git diff --stat main -- app/Http/Middleware/McpGuard.php app/Mcp/Tools/SchedulerTool.php app/Services/AuditLog.php vendor` → vacío
+  - `grep -rnE "find\(28\)|where\('id', *28\)|id *= *28" app database tests/e2e` → vacío (ningún código toca al usuario id 28)
+
+**Criterios de aceptación**
+- [ ] Todos los criterios globales del plan cumplidos
+- [ ] Los 8 M-xx entregados como checklist, con los de Google/Facebook reales y clientes MCP para el usuario
+- [ ] Spec en `implementada` solo si CA-29 está verificado por el usuario
+
+**Subtareas**
+- [ ] Regresión completa
+- [ ] Comprobaciones de «sin cambios»
+- [ ] Cierre de ledger y roadmap
+
+---

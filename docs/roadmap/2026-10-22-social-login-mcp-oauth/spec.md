@@ -6,7 +6,7 @@ creado: 2026-10-22
 actualizado: 2026-10-22
 evaluacion: evaluation.md
 design: design.md         # opción O1 aprobada por el usuario el 2026-10-22 (ADR-004)
-plan: pendiente
+plan: improvement-plan.md
 generacion:
   inicio: 2026-10-22T17:48:56Z
   fin: 2026-10-22T17:58:28Z
@@ -22,7 +22,7 @@ generacion:
 
 > **Evaluación:** [`evaluation.md`](evaluation.md)
 > **Diseño:** [`design.md`](design.md) (aprobado: O1, Socialite y estado del servidor de autorización en tablas; ADR-004)
-> **Plan de implementación:** pendiente
+> **Plan de implementación:** [`improvement-plan.md`](improvement-plan.md)
 
 > **Terminología:**
 >

@@ -6,7 +6,7 @@ creado: "2026-10-22"
 actualizado: "2026-10-22"
 spec: spec.md                 # enlace hacia atrás (misma carpeta)
 evaluacion: "evaluation.md"
-plan: pendiente               # improvement-plan.md cuando el planner lo cree
+plan: improvement-plan.md   # creado por el planner el 2026-10-22
 adr: "docs/knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md"
 opcion_elegida: "O1"          # validada por el usuario el 2026-10-22 (vía orquestador, sin variante)
 generacion:
@@ -23,7 +23,7 @@ generacion:
 
 # Diseño: login social (Google y Facebook) y OAuth 2.1 del servidor MCP
 
-> **Spec:** [`spec.md`](spec.md) (aprobada) · **Evaluación:** [`evaluation.md`](evaluation.md) · **Plan:** pendiente · **ADR:** [ADR-004](../../knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md) (propuesta)
+> **Spec:** [`spec.md`](spec.md) (aprobada) · **Evaluación:** [`evaluation.md`](evaluation.md) · **Plan:** [`improvement-plan.md`](improvement-plan.md) · **ADR:** [ADR-004](../../knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md) (propuesta)
 
 | | |
 |---|---|

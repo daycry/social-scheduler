@@ -5,7 +5,7 @@ estado: aprobada          # borrador | aprobada | implementada | obsoleta
 creado: 2026-10-22
 actualizado: 2026-10-22
 evaluacion: evaluation.md
-design: n/a               # pasará a design.md si el architect hace el paso de diseño (ADR-004, ver Decisiones)
+design: design.md         # opción O1 aprobada por el usuario el 2026-10-22 (ADR-004)
 plan: pendiente
 generacion:
   inicio: 2026-10-22T17:48:56Z
@@ -21,6 +21,7 @@ generacion:
 # Login social (Google y Facebook) y OAuth 2.1 del servidor MCP
 
 > **Evaluación:** [`evaluation.md`](evaluation.md)
+> **Diseño:** [`design.md`](design.md) (aprobado: O1, Socialite y estado del servidor de autorización en tablas; ADR-004)
 > **Plan de implementación:** pendiente
 
 > **Terminología:**

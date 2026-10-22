@@ -79,7 +79,7 @@ test('CA-05: aplica el intended', function () {
     [$user, $secret] = userWith2fa();
     $this->get('/profile');
     loginStep($user);
-    $this->post('/two-factor-challenge', ['code' => otp($secret)])->assertRedirect('http://localhost/profile');
+    $this->post('/two-factor-challenge', ['code' => otp($secret)])->assertRedirect(url('/profile'));
 });
 
 test('CA-06: 5 fallos y el sexto se bloquea aunque el codigo sea correcto', function () {

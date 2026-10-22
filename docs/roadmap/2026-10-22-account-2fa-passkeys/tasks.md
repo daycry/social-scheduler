@@ -33,8 +33,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
-| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 1 | 6 | 17% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **15** | **20** | **75%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 2 | 6 | 33% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **16** | **20** | **80%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -557,29 +557,31 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-16 — E2E del 2FA: activar, reto, recuperación, bloqueo y desactivar
 
 - **Descripción**: Bloque 2FA de `tests/e2e/security.spec.ts` con el TOTP calculado en Node: activación completa, login con reto, código de recuperación de un solo uso, bloqueo tras 5 fallos y desactivar y regenerar.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las pruebas automáticas recorren ya activar el doble factor, entrar con el reto, usar un código de recuperación, el bloqueo tras cinco fallos y desactivarlo.
+- **Estado**: completado
 - **Tiempo humano**: est. 5,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.75h · real —
 - **Supervisión**: est. 0.19h (≈25 % IA) · real —
 - **Previsión IA**: 206k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-15
 - **Tipo**: test
-- **Archivos**: `tests/e2e/security.spec.ts`
+- **Archivos**: `tests/e2e/security.spec.ts`, `tests/e2e/helpers.ts`
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04
 - **Verificación**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "2FA"` → verde en desktop, mobile y mobile-360
 
 **Criterios de aceptación**
-- [ ] CA-01, CA-03, CA-05, CA-06, CA-09 y CA-10 se recorren de extremo a extremo en la UI real
-- [ ] El spec deja al usuario E2E en «sin 2FA» al terminar (idempotente)
-- [ ] Capturas en los momentos clave (QR, códigos, reto, bloqueo)
+- [x] CA-01, CA-03, CA-05, CA-06, CA-09 y CA-10 se recorren de extremo a extremo en la UI real
+- [x] El spec deja al usuario E2E en «sin 2FA» al terminar (idempotente)
+- [x] Capturas en los momentos clave (QR, códigos, reto, bloqueo)
 
 **Subtareas**
-- [ ] Flujo de activación y descarga o copia de códigos
-- [ ] Login con reto y con recuperación
-- [ ] Bloqueo del sexto intento
+- [x] Flujo de activación y descarga o copia de códigos
+- [x] Login con reto y con recuperación
+- [x] Bloqueo del sexto intento
 
-**Notas**: —
+**Notas**: — Desviaciones: (1) E2E-04 no espera el minuto real del bloqueo: tras comprobar el mensaje de espera libera el limitador de la cuenta por tinker (`clearTotpReplay`) y prueba el desbloqueo; el limitador en sí lo cubre Pest (T-03). (2) Los flujos que no prueban la activación (E2E-02..04) dejan el 2FA activo por tinker (`enableTwoFactorDirect`) para no repetir el alta en cada test. (3) La app vacía el campo del reto tras cada envío (`form.reset`): `submitChallenge` espera ese vaciado antes de escribir el siguiente código.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "2FA"` → 12 passed (4 escenarios E2E-01..04 × desktop, mobile y mobile-360, 2.6 min); capturas adjuntas (QR con secreto, error de código, 8 códigos, reto, código reutilizado, bloqueo, tarjeta desactivada); `beforeEach/afterEach` dejan al usuario en «sin 2FA»; `npx tsc --noEmit -p .` → 0 errores.
+
 
 ### T-17 — E2E de passkeys con el autenticador virtual de Chromium
 

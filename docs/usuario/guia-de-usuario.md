@@ -60,6 +60,44 @@ En **Informes** elige marca, rango y formato (PDF, CSV o ambos) y, si quieres, u
 
 En **API keys** crea una clave para que un asistente (como Claude) programe y consulte por ti. La clave empieza por `msk_` y se muestra **una sola vez**: cópiala. Elige qué puede hacer (leer marcas, leer o escribir publicaciones, estadísticas, informes) y cuándo caduca. Puedes revocarla en cualquier momento. Detalles técnicos: [servidor MCP](../modulos/mcp.md).
 
+## Seguridad de la cuenta: doble factor y passkeys
+
+En **Perfil → Seguridad** puedes proteger tu cuenta con dos extras opcionales. Sigues pudiendo entrar con tu correo y contraseña.
+
+### Doble factor (código de tu móvil)
+
+Además de la contraseña, al entrar te pedimos un código de 6 dígitos que cambia cada 30 segundos y te da una app de autenticación (Google Authenticator, Authy, 1Password, Aegis…).
+
+**Activarlo**
+
+1. En Perfil → Seguridad pulsa **Activar doble factor** y confirma tu contraseña.
+2. Escanea el código QR con la app. Si no puedes escanearlo, copia la **clave de configuración** y escríbela a mano en la app.
+3. Escribe el código de 6 dígitos que muestra la app y pulsa **Confirmar y activar**.
+
+**Guarda tus códigos de recuperación.** Al activarlo te mostramos 8 códigos **una sola vez**. Cópialos o descárgalos y guárdalos en un lugar seguro (un gestor de contraseñas o impresos), **no** en el mismo móvil. Cada código sirve **una vez**. Más adelante puedes generar otros 8 con **Generar códigos nuevos** (los anteriores dejan de valer).
+
+**Entrar con doble factor.** Escribe tu correo y contraseña y, en la pantalla «Verificación en dos pasos», el código de la app. Tras 5 intentos fallidos esperas un minuto antes de volver a probar. Si no tienes la app a mano, pulsa **Usar un código de recuperación**.
+
+**Desactivarlo.** En Perfil → Seguridad pulsa **Desactivar doble factor** y escribe tu contraseña y un código (de la app o de recuperación).
+
+### Passkeys (entrar con huella, cara o PIN)
+
+Una passkey te deja entrar con la huella, la cara o el PIN de tu dispositivo, **sin escribir contraseña ni código del doble factor**. Cada passkey pertenece a un dispositivo o a tu gestor de contraseñas (iCloud, Google, 1Password…).
+
+- **Añadir:** Perfil → Seguridad → **Añadir passkey**, confirma tu contraseña, ponle un nombre (por ejemplo «Portátil de casa») y sigue las indicaciones de tu dispositivo. Te enviaremos un correo avisándote de que se añadió.
+- **Entrar:** en la pantalla de acceso pulsa **Entrar con passkey** (o elígela en el campo del correo si tu navegador la ofrece).
+- **Renombrar o eliminar:** desde la misma tarjeta. Una passkey eliminada deja de servir al instante.
+- Las passkeys solo funcionan en una conexión segura (https). Si ves «Las passkeys requieren HTTPS», entra con tu contraseña.
+- Si la dirección (dominio) de la aplicación cambia, las passkeys dejan de valer y tendrás que añadirlas otra vez; con tu contraseña sigues entrando.
+
+### ¿Y si pierdo el móvil?
+
+1. **Tienes una passkey** en otro dispositivo: entra con ella (no pide el código) y, en Perfil → Seguridad, genera códigos nuevos o desactiva el doble factor y vuélvelo a activar con tu móvil nuevo.
+2. **Tienes tus códigos de recuperación:** en la pantalla de verificación pulsa **Usar un código de recuperación** y escribe uno (sirve una sola vez). Después, genera códigos nuevos y activa el doble factor en el móvil nuevo.
+3. **No tienes ni passkey ni códigos:** contacta con la persona que administra la aplicación. Tras comprobar que eres tú, desactivará tu doble factor; entrarás solo con tu contraseña y podrás activarlo otra vez.
+
+Las API keys del asistente de IA (MCP) no se ven afectadas por el doble factor.
+
 ## Avisos
 
 El icono de avisos lista fallos de publicación y cuentas que necesitan reconexión. Reconectar conserva tus publicaciones pendientes. Desconectar una cuenta hace fallar las que tuviera pendientes.

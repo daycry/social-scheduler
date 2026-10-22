@@ -2,7 +2,7 @@
 
 Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube y TikTok. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-10-20
+Última actualización: 2026-10-22
 
 ## Por dónde empezar
 
@@ -12,7 +12,8 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Saber qué se decidió por red (Meta, YouTube, TikTok) | [Decisiones por red](referencia/decisiones-por-red.md) |
 | Rellenar el `.env` | [Configuración](referencia/configuracion.md) |
 | Levantar el proyecto en tu máquina | [Desarrollo local con Laragon](guias/desarrollo-local.md) |
-| Usar la aplicación | [Guía de usuario](usuario/guia-de-usuario.md) |
+| Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
+| Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)
@@ -32,11 +33,11 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Meta Ads (lectura) | [ads.md](modulos/ads.md) | `app/Connectors/Meta/Ads.php` |
 | Competidores de Instagram | [competidores.md](modulos/competidores.md) | `app/Services/CompetitorService.php` |
 | Asistente IA | [asistente-ia.md](modulos/asistente-ia.md) | `app/Services/AiAssistant.php` |
-| Despliegue (HestiaCP, systemd, R2) | [despliegue.md](modulos/despliegue.md) | `deploy/` |
+| Despliegue (HestiaCP, systemd, R2) y operación de 2FA/passkeys | [despliegue.md](modulos/despliegue.md) | `deploy/`, `config/passkeys.php` |
 
 ## Memoria técnica y planificación
 
-- Decisiones: [ADR-001 stack](knowledge/adr/ADR-001-stack-laravel-nativo-hestia.md) y [ADR-002 PDF con DomPDF](knowledge/adr/ADR-002-pdf-dompdf.md); índice en [knowledge/README.md](knowledge/README.md).
+- Decisiones: [ADR-001 stack](knowledge/adr/ADR-001-stack-laravel-nativo-hestia.md) y [ADR-002 PDF con DomPDF](knowledge/adr/ADR-002-pdf-dompdf.md) y [ADR-003 2FA y passkeys](knowledge/adr/ADR-003-2fa-totp-propio-y-laravel-passkeys.md) (propuesta); índice en [knowledge/README.md](knowledge/README.md).
 - Roadmap de la iniciativa (gestionado por otros agentes, solo enlazado): [roadmap](roadmap/README.md) · [spec](roadmap/2026-10-19-social-scheduler/spec.md) · [diseño](roadmap/2026-10-19-social-scheduler/design.md) · [informe del spike](roadmap/2026-10-19-social-scheduler/spike-report.md) · [ledger de tareas](roadmap/2026-10-19-social-scheduler/tasks.md) · [plan de pruebas](roadmap/2026-10-19-social-scheduler/test-plan.md).
 - Índice para IA/RAG: [RAG-INDEX.md](RAG-INDEX.md).
 

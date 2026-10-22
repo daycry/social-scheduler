@@ -33,8 +33,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
-| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 4 | 6 | 67% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **18** | **20** | **90%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 5 | 6 | 83% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **19** | **20** | **95%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -645,8 +645,8 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-19 — Documentación de usuario y operación, comprobación de sodium y cierre del ADR
 
 - **Descripción**: Sección de seguridad de cuenta en la guía de usuario (activar 2FA, guardar códigos, passkeys, qué pasa si se pierde el móvil), guía de operación (RP ID por entorno, rotar ngrok, `APP_PREVIOUS_KEYS`, `PASSKEYS_USER_HANDLE_SECRET`, `user:two-factor-reset`) y comprobación de `sodium` en el PHP de Hestia con `php -m` (con `paragonie/sodium_compat` si falta). ADR-003 pasa de `propuesta` a `aceptada` con el usuario.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva guía para activar el doble factor, guardar los códigos de recuperación y usar passkeys, con qué hacer si pierdes el móvil, y guía de operación para el servidor.
+- **Estado**: completado
 - **Tiempo humano**: est. 5,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.69h · real —
 - **Supervisión**: est. 0.17h (≈25 % IA) · real —
@@ -661,17 +661,19 @@ Checklist firmada (orquestador, 2026-10-22):
   - lectura: la guía de usuario explica activar 2FA, códigos de recuperación y passkeys con lenguaje no técnico
 
 **Criterios de aceptación**
-- [ ] La guía de operación explica el RP ID en Hestia y el efecto de rotar ngrok (criterio de proceso)
-- [ ] La guía de operación incluye `php -m | grep sodium` previo al despliegue y la alternativa `paragonie/sodium_compat`
-- [ ] La guía de usuario cubre la pérdida del móvil: passkey, códigos de recuperación o contacto con el operador
-- [ ] ADR-003 actualizado y el índice `docs/knowledge/README.md` coherente
+- [x] La guía de operación explica el RP ID en Hestia y el efecto de rotar ngrok (criterio de proceso)
+- [x] La guía de operación incluye `php -m | grep sodium` previo al despliegue y la alternativa `paragonie/sodium_compat`
+- [x] La guía de usuario cubre la pérdida del móvil: passkey, códigos de recuperación o contacto con el operador
+- [x] ADR-003 actualizado y el índice `docs/knowledge/README.md` coherente
 
 **Subtareas**
-- [ ] Guía de usuario
-- [ ] Guía de operación y despliegue
-- [ ] ADR-003 e índice
+- [x] Guía de usuario
+- [x] Guía de operación y despliegue
+- [x] ADR-003 e índice
 
-**Notas**: La verificación real de `sodium` en el servidor es una acción manual del usuario (M-04).
+**Notas**: La verificación real de `sodium` en el servidor es una acción manual del usuario (M-04). Desviaciones: (1) **ADR-003 se queda en `propuesta`**: el plan exige que pase a `aceptada` «con el usuario» (visto bueno explícito) y no lo hay; se actualizó su texto (limitadores reales, `sodium`, enlace a la guía de operación y a los E2E) y el índice `docs/knowledge/README.md` sigue coherente (propuesta). Pendiente del orquestador/usuario. (2) `sodium` comprobado solo en local (`php -m` → `sodium`); en Hestia queda como M-04 manual (se llama «M-04 de seguridad de cuenta» en `despliegue.md` para no confundirlo con el M-04 de despliegue). (3) Se añadió además `APP_PREVIOUS_KEYS` (vacía, comentada) a `.env.production.example` y una sección «Passkeys y doble factor en local» en `desarrollo-local.md`.
+**Evidencia**: grep de WEBAUTHN_RP_ID, PASSKEYS_USER_HANDLE_SECRET, user:two-factor-reset y APP_PREVIOUS_KEYS sobre despliegue.md y desarrollo-local.md → las cuatro documentadas (despliegue.md: tabla de variables, rotación de APP_KEY, comando de reset; desarrollo-local.md: RP ID local y E2E); `php -m | grep -i sodium` → `sodium`; guía de usuario: sección «Seguridad de la cuenta» (activar 2FA, 8 códigos de recuperación, passkeys, «¿Y si pierdo el móvil?»: passkey, códigos u operador) en lenguaje no técnico; despliegue.md incluye `php -m | grep -i sodium` previo y `paragonie/sodium_compat`.
+
 
 ### T-20 — Revisión final, regresión completa y cierre del plan
 

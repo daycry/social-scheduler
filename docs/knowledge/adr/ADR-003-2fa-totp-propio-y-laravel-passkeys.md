@@ -28,7 +28,7 @@ El `composer require --dry-run` sobre el lock real (`laravel/framework` v13.37.0
 
 **Las passkeys usan `laravel/passkeys` ~0.2.1 sin sus rutas:**
 
-- Se llama a `Passkeys::ignoreRoutes()`. Las rutas son propias, en `routes/auth.php`, con `throttle:10,1` y 404 ante una passkey ajena.
+- Se llama a `Passkeys::ignoreRoutes()`. Las rutas son propias, en `routes/auth.php`, con limitadores por IP (`passkey-login-options` 30/min y `passkey-login` 10/min) o por usuario (`passkey-manage` 20/min) y 404 ante una passkey ajena.
 - Las rutas propias llaman a las Actions del paquete a través de `App\Services\Passkeys\PasskeyGateway`, que es el único punto de contacto con el paquete.
 - El cliente es `@laravel/passkeys/vue`.
 
@@ -59,7 +59,10 @@ El `composer require --dry-run` sobre el lock real (`laravel/framework` v13.37.0
 
 - El dominio de producción debe ser estable: cambiar el RP ID invalida todas las passkeys.
 - Rotar `APP_KEY` exige `APP_PREVIOUS_KEYS`, o se pierden los secretos TOTP.
+- `sodium` debe estar en el PHP de Hestia (o `paragonie/sodium_compat`); la comprobación en el servidor es manual (M-04 del plan).
+
+Operación (RP ID por entorno, rotación de claves, `user:two-factor-reset`): [`docs/modulos/despliegue.md`](../../modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys). Verificación: Pest (suite completa) y la batería E2E con el autenticador virtual de Chromium (`tests/e2e/security.spec.ts`).
 
 ## Estado
 
-`propuesta` — validar por la revisión de dos lentes o el usuario en la puerta. Pasa a `aceptada` cuando se valida; a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí la que la sustituye, nunca se borra el rastro).
+`propuesta` — implementada y revisada (dos lentes en las fases 1 y 2), pero falta el visto bueno explícito del usuario (criterio de T-19: «pasa a `aceptada` con el usuario»); no se cambia hasta tenerlo. Pasa a `aceptada` cuando se valida; a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí la que la sustituye, nunca se borra el rastro).

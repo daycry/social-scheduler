@@ -39,6 +39,10 @@ Meta, Google y TikTok exigen HTTPS y redirect URIs registrados. Con ngrok:
 2. Registra `${APP_URL}/connections/{meta,google,tiktok}/callback` en cada app y el dominio en "Dominios de la app" de Meta.
 3. Guía de credenciales: [configuración](../referencia/configuracion.md) y [decisiones por red](../referencia/decisiones-por-red.md).
 
+## Passkeys y doble factor en local
+
+Con Laragon (`https://metricool.test`) el RP ID de las passkeys sale de `APP_URL` (`metricool.test`) y no hay que definir nada más; para el doble factor basta una app de autenticación o el TOTP calculado en los E2E. Una passkey creada en un entorno **no vale en otro** (cada RP ID tiene las suyas): con ngrok el RP ID es el dominio de ngrok y rotarlo invalida las passkeys de pruebas. `sodium` viene en el PHP de Laragon (`php -m | grep -i sodium`). Variables, rotación de `APP_KEY` (`APP_PREVIOUS_KEYS`), `PASSKEYS_USER_HANDLE_SECRET`, `WEBAUTHN_RP_ID` y el comando `user:two-factor-reset`: ver [despliegue → seguridad de cuenta](../modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys).
+
 ## Calidad
 
 ```bash

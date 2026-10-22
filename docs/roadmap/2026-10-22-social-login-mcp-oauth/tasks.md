@@ -8,7 +8,7 @@ generacion:
   horas_ia: 0.65
   duracion: 39m
   ratio_usado: 300000
-estado: borrador
+estado: en-progreso
 changelog: Added
 verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige ledger-lint (exit 1 si falta)
 ---
@@ -17,7 +17,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | | |
 |---|---|
-| **Estado** | borrador |
+| **Estado** | en-progreso |
 | **Fecha** | 2026-10-22 |
 | **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
 | **Diseño** | [`design.md`](./design.md) — opción O1 (Socialite y estado del servidor de autorización en tablas, [ADR-004](../../knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md)) |
@@ -101,7 +101,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Unit/McpOAuthConfigTest.php` → defaults 30 / 300 / vacío y `token_days` nunca por encima de `key_max_days`
 
 **Criterios de aceptación**
-- [ ] ADR-004 en `aceptada` con el visto bueno del usuario; sin él, la tarea queda bloqueada y las siguientes no arrancan
+- [x] ADR-004 en `aceptada` con el visto bueno del usuario (dado el 2026-10-22 al aprobar el plan); sin él, la tarea queda bloqueada y las siguientes no arrancan
 - [ ] `.env.example` documenta `MCP_OAUTH_TOKEN_DAYS`, `MCP_OAUTH_CODE_TTL` y `MCP_OAUTH_REDIRECT_ALLOWED`
 - [ ] Un `MCP_OAUTH_TOKEN_DAYS` mayor que `MCP_KEY_MAX_DAYS` se topa
 

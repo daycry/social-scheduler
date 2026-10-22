@@ -1,7 +1,7 @@
 ---
 id: ADR-004
 titulo: Servidor de autorización OAuth 2.1 del MCP propio sobre Sanctum y login social con Socialite
-estado: propuesta
+estado: aceptada (visto bueno del usuario 2026-10-22 al aprobar el plan)
 fecha: 2026-10-22
 iniciativa: 2026-10-22-social-login-mcp-oauth
 ---
@@ -74,4 +74,4 @@ El `Mcp::oauthRoutes()` de `laravel/mcp` 1.0.2 depende de Passport, que no está
 
 ## Estado
 
-`propuesta`: falta validarla con la revisión de dos lentes o con el usuario en la puerta. Pasa a `aceptada` cuando se valida y a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí la que la sustituye, nunca se borra el rastro).
+`aceptada`: visto bueno explícito del usuario el 2026-10-22, al aprobar el plan. Pasa a `aceptada` cuando se valida y a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí la que la sustituye, nunca se borra el rastro).

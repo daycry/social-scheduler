@@ -11,6 +11,7 @@ use Laravel\Passkeys\Events\PasskeyRegistered;
 use Laravel\Passkeys\Events\PasskeyVerified;
 use Laravel\Passkeys\Exceptions\InvalidPasskeyException;
 use Laravel\Passkeys\Passkey;
+use Laravel\Passkeys\Passkeys;
 use ParagonIE\ConstantTime\Base64UrlSafe;
 use RuntimeException;
 use Webauthn\AuthenticatorAssertionResponse;
@@ -104,7 +105,8 @@ final class FakePasskeys
             'response' => $type === 'assertion'
                 ? [
                     'clientDataJSON' => $clientData('webauthn.get'),
-                    'authenticatorData' => base64_encode(str_repeat("\0", 37)),
+                    // Hash del RP ID configurado (el gateway lo comprueba antes de buscar la credencial) + flags y contador.
+                    'authenticatorData' => base64_encode(hash('sha256', Passkeys::relyingPartyId(), true).str_repeat("\0", 5)),
                     'signature' => base64_encode('firma'),
                     'userHandle' => base64_encode('handle'),
                 ]

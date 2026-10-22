@@ -58,6 +58,13 @@ class PasskeyAdded extends Notification implements ShouldQueue
             return preg_replace('/\.\d+$/', '.x', $ip);
         }
 
-        return implode(':', array_slice(explode(':', $ip), 0, 4)).'::x';
+        // IPv6: se expande (las formas comprimidas como `2001:db8::1` no se pueden cortar por `:`) y se conserva el /64.
+        $bytes = inet_pton($ip);
+        if (str_starts_with($bytes, str_repeat(chr(0), 10).chr(255).chr(255))) {
+            return self::maskIp(inet_ntop(substr($bytes, 12))); // IPv4 mapeada (::ffff:a.b.c.d)
+        }
+        $groups = array_map(fn ($g) => dechex($g), array_values(unpack('n4', $bytes)));
+
+        return implode(':', $groups).':x:x:x:x';
     }
 }

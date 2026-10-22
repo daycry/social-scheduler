@@ -266,3 +266,10 @@ test('PasskeyLogin: el login con contrasena no consume el limitador de passkeys'
 
     $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect('/dashboard');
 });
+
+test('PasskeyLogin N3: las rutas que leen y escriben los retos en sesion se serializan por sesion (block)', function () {
+    foreach (['passkeys.login.options', 'passkeys.login', 'passkeys.options', 'passkeys.store'] as $name) {
+        $route = app('router')->getRoutes()->getByName($name);
+        expect($route->locksFor())->toBe(5)->and($route->waitsFor())->toBe(5);
+    }
+});

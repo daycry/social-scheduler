@@ -212,7 +212,11 @@ test('PasskeyManagement P7: un alta rechazada no avisa por correo', function () 
 
 test('PasskeyManagement P7: la IP del aviso se muestra aproximada y el nombre no inyecta marcado', function () {
     expect(PasskeyAdded::maskIp('203.0.113.77'))->toBe('203.0.113.x')
-        ->and(PasskeyAdded::maskIp('2001:db8:85a3:8d3:1319:8a2e:370:7348'))->toBe('2001:db8:85a3:8d3::x')
+        ->and(PasskeyAdded::maskIp('2001:db8:85a3:8d3:1319:8a2e:370:7348'))->toBe('2001:db8:85a3:8d3:x:x:x:x')
+        // Formas comprimidas e IPv4 mapeada (N2): nunca se devuelve la IP completa.
+        ->and(PasskeyAdded::maskIp('2001:db8::1'))->toBe('2001:db8:0:0:x:x:x:x')
+        ->and(PasskeyAdded::maskIp('::1'))->toBe('0:0:0:0:x:x:x:x')
+        ->and(PasskeyAdded::maskIp('::ffff:1.2.3.4'))->toBe('1.2.3.x')
         ->and(PasskeyAdded::maskIp(null))->toBe('desconocida')
         ->and(PasskeyAdded::maskIp('no-es-una-ip'))->toBe('desconocida');
 

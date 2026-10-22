@@ -257,3 +257,38 @@ test('PasskeyCeremony: el vector solo contiene datos publicos de una credencial 
         ->and($vector['assertions'])->toHaveCount(3)
         ->and($vector['registration']['options']['user']['name'])->toBe('vector@example.test');
 });
+
+test('PasskeyCeremony: con el hash de RP ID de otro dominio responde igual exista o no la credencial (N2b)', function () {
+    $vector = passkeyVector();
+    // La assertion firma el hash de `localhost`; el servidor ahora es otro dominio (el origen sigue permitido).
+    $asOtherDomain = function () use ($vector) {
+        config(['passkeys.relying_party_id' => 'metricool.test']);
+        seedVerificationOptions($vector['assertions'][0]['options']);
+
+        return $this->postJson('/passkeys/login', ['credential' => $vector['assertions'][0]['credential']]);
+    };
+
+    $without = $asOtherDomain();
+    userWithVectorPasskey();
+    $with = $asOtherDomain();
+
+    foreach ([$without, $with] as $res) {
+        $res->assertStatus(422)->assertJsonPath('code', 'invalid_domain');
+    }
+    expect($with->json())->toBe($without->json());
+    $this->assertGuest();
+});
+
+test('PasskeyCeremony: una firma malformada es un rechazo del cliente (422), no un error del servidor (N1)', function () {
+    userWithVectorPasskey();
+    $vector = passkeyVector();
+    $credential = $vector['assertions'][0]['credential'];
+    $credential['response']['signature'] = rtrim(strtr(base64_encode(random_bytes(70)), '+/', '-_'), '=');
+    Log::spy();
+
+    seedVerificationOptions($vector['assertions'][0]['options']);
+    $this->postJson('/passkeys/login', ['credential' => $credential])->assertStatus(422)->assertJsonMissingPath('code', 'server_error');
+
+    $this->assertGuest();
+    Log::shouldNotHaveReceived('error');
+});

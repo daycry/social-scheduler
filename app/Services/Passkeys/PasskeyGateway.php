@@ -119,9 +119,10 @@ class PasskeyGateway
         $parsed = $this->parseCredential($credential);
         $options = $this->pullOptions(self::VERIFICATION_SESSION_KEY, PublicKeyCredentialRequestOptions::class, $parsed);
 
-        // El dominio se comprueba ANTES de buscar la credencial: asi el aviso de «otro dominio» sale igual exista o no
-        // la cuenta (no es un oraculo).
+        // El dominio (origen del navegador y hash del RP ID del autenticador) se comprueba ANTES de buscar la credencial:
+        // asi el aviso de «otro dominio» sale igual exista o no la credencial (no es un oraculo).
         $this->assertAllowedOrigin($parsed, null);
+        $this->assertRelyingPartyHash($parsed, null);
 
         try {
             return app(VerifyPasskey::class)($parsed, $options);
@@ -232,15 +233,45 @@ class PasskeyGateway
         }
     }
 
+    /** El hash del RP ID que firma el autenticador debe ser el de este dominio (lo mismo que `CheckRelyingPartyIdIdHash`). */
+    private function assertRelyingPartyHash(PublicKeyCredential $credential, ?int $userId): void
+    {
+        $response = $credential->response;
+        if (! $response instanceof AuthenticatorAssertionResponse) {
+            return; // la libreria lo rechaza despues como respuesta invalida
+        }
+
+        try {
+            $expected = hash('sha256', Passkeys::relyingPartyId(), true);
+        } catch (Throwable $e) {
+            throw $this->serverFailure($e, 'rp-id', $userId);
+        }
+
+        if (! hash_equals($expected, $response->authenticatorData->rpIdHash)) {
+            throw $this->domainFailure($userId);
+        }
+    }
+
     private function domainFailure(?int $userId): PasskeyFailure
     {
         return new PasskeyFailure(PasskeyFailure::INVALID_DOMAIN, 'Esta passkey no es válida en este dominio.', $userId);
     }
 
-    /** Rechazo esperado de la ceremonia (respuesta invalida, contador, origen, duplicada), no un fallo del servidor. */
+    /**
+     * Rechazo esperado de la ceremonia (respuesta invalida, contador, origen, duplicada), no un fallo del servidor. Incluye
+     * lo que lanzan sin envolver las librerias de CBOR/COSE/WebAuthn al decodificar datos del cliente (p. ej. una firma
+     * que no es DER: `InvalidArgumentException` de cose-lib): lo provoca quien envia la respuesta, no la configuracion.
+     */
     private function isExpected(Throwable $e): bool
     {
-        return $e instanceof WebauthnException || $e instanceof InvalidPasskeyException;
+        if ($e instanceof WebauthnException || $e instanceof InvalidPasskeyException) {
+            return true;
+        }
+
+        $file = str_replace(DIRECTORY_SEPARATOR, '/', $e->getFile());
+
+        return ! $e instanceof QueryException
+            && (str_contains($file, '/vendor/web-auth/') || str_contains($file, '/vendor/spomky-labs/'));
     }
 
     /** La libreria rechazo el origen o el RP ID (mensajes de `CheckAllowedOrigins`/`CheckOrigin`/`CheckRelyingPartyIdIdHash`). */

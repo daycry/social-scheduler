@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 6 | 7 | 86% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **13** | **20** | **65%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **14** | **20** | **70%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -285,7 +285,7 @@ Checklist firmada (orquestador, 2026-10-22):
 
 ## Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI)
 
-**Estado**: en-progreso · **Estimado**: 45.0h · **Real**: — · **Coste est.**: 2.250 € + tokens (⚠️ verificar) · **Tokens est.**: 1.87M
+**Estado**: completado · **Estimado**: 45.0h · **Real**: — · **Coste est.**: 2.250 € + tokens (⚠️ verificar) · **Tokens est.**: 1.87M
 
 ### T-08 — Dependencias de passkeys, esquema y configuración WebAuthn
 
@@ -481,8 +481,8 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-14 — Revisión de seguridad de C-02
 
 - **Descripción**: Revisión dirigida de passkeys: aislamiento por usuario, throttle, RP ID y orígenes, `user_handle_secret`, mensajes que no revelan cuentas, auditoría sin material de credencial, y comprobación de que Breeze y el MCP no se han tocado.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las passkeys pasaron una revisión de seguridad independiente: avisos por correo de passkeys nuevas, errores honestos y sin delatar qué cuentas existen.
+- **Estado**: completado
 - **Tiempo humano**: est. 5,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.76h · real —
 - **Supervisión**: est. 0.19h (≈25 % IA) · real —
@@ -497,16 +497,25 @@ Checklist firmada (orquestador, 2026-10-22):
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa (796 + los de C-01 y C-02)
-- [ ] Ninguna fila de `audit_logs` ni línea de log contiene material de credencial WebAuthn (`PasskeyAuditLeakTest`)
-- [ ] `PASSKEYS_USER_HANDLE_SECRET` es explícito en `.env.example` (no depende de `APP_KEY`)
+- [x] La suite completa pasa (796 + los de C-01 y C-02)
+- [x] Ninguna fila de `audit_logs` ni línea de log contiene material de credencial WebAuthn (`PasskeyAuditLeakTest`)
+- [x] `PASSKEYS_USER_HANDLE_SECRET` es explícito en `.env.example` (no depende de `APP_KEY`)
 
 **Subtareas**
-- [ ] Revisar controladores y rutas
-- [ ] Test de fugas en auditoría y log
-- [ ] Suite completa y Pint
+- [x] Revisar controladores y rutas
+- [x] Test de fugas en auditoría y log
+- [x] Suite completa y Pint
 
-**Notas**: Puerta de salida de la fase 2.
+**Notas**: Puerta de salida de la fase 2. Revisión adversarial en dos intentos (lentes A+B+C+D; tablas al final del ledger): intento 1 → 1 Important + 13 Minor corregidos; intento 2 → 3 Minor nuevos + 2 a medias, corregidos. Sin gaps abiertos.
+Checklist firmada (orquestador, 2026-10-22):
+- [x] Aislamiento: `{id}` de 1–18 dígitos, `$user->passkeys()->findOrFail()` → 404 ajena o desbordada; el `Route::bind('passkey')` global del paquete no lo usa ninguna ruta.
+- [x] Throttle: `passkey-login-options` 30/min y `passkey-login` 10/min por IP; `passkey-manage` 20/min por usuario; rutas de retos serializadas por sesión (`block`).
+- [x] RP ID y orígenes: lista fija desde env o APP_URL, nunca de la petición; origen y hash del RP ID comprobados antes de buscar la credencial; vacíos → fallo cerrado.
+- [x] `PASSKEYS_USER_HANDLE_SECRET` explícito en `.env.example`/`.env.production.example`, aviso en log y `about` si falta en producción.
+- [x] Mensajes: el mismo 422 exista o no la cuenta; rechazos del cliente 422 y fallos del servidor 500 con log.
+- [x] Auditoría sin material de credencial: `PasskeyAuditLeakTest`.
+- [x] Breeze y MCP: `git diff feature/social-scheduler -- routes/ai.php app/Http/Middleware/McpGuard.php config/sanctum.php app/Http/Controllers/ApiKeyController.php` → sin salida.
+**Evidencia**: `php artisan test --compact --filter=PasskeyAuditLeak` → 1 passed (31 assertions: id, rawId, attestationObject, clientDataJSON, authenticatorData, firma, userHandle y los dos nombres ausentes de `audit_logs` y del log); `php artisan test` → 928 passed; `vendor/bin/pint --test` → passed.
 
 ---
 
@@ -739,3 +748,16 @@ Lentes A+B+C+D (C: auth/sesión/secretos; D: consultas y bundle). Diff `3a981b2.
 | P12 | D | Minor | `credential_id` es `string(255)`; WebAuthn permite IDs de hasta 1023 bytes (~1364 en base64url): un autenticador con ID largo falla con el mensaje genérico | T-08 | Corregido: migracion `2026_11_05_090000` amplia `credential_id` a `string(1400)` (MySQL: `ascii`/`ascii_bin`, 1400 bytes < 3072 del indice unico; ademas evita colisiones por mayusculas). Verificada en MySQL real (BD temporal, ya borrada: `varchar(1400) ascii_bin` + unique, dos IDs de 1364 chars distintos solo en mayusculas conviven). Test `PasskeyManagement P12` (ID de 1023 bytes, alta y login; sqlite no limita la longitud, la garantia es la prueba MySQL). | `create_passkeys_table.php:16` |
 | P13 | B | Minor | `tests/Support/FakePasskeys.php` lleva bytes NUL literales: git lo trata como binario y su diff no se puede revisar | T-12 | Corregido: los NUL literales de `FakePasskeys.php` son `str_repeat("\0", 37)`; git ya lo trata como texto (`grep` sin «Binary file»). | `FakePasskeys.php:83,92` |
 | P14 | C | Minor | `ownerOf` atribuye `login_failed` al dueño de cualquier `credential_id` presentado (ruido en su auditoría) | T-09 | Corregido y documentado en el docblock de `authenticate`: el dueño solo se atribuye a `login_failed` cuando la verificacion llego a la firma (contador que retrocede); firma invalida, reto/origen, credencial desconocida o respuesta no valida dejan `user_id` nulo. Tests `PasskeyLogin CA-18`, `PasskeyCeremony` (reto distinto) y `PasskeyGateway` (clasificacion). | `PasskeyGateway.php:545` |
+
+## Revisión de dos lentes — intento 2: Fase 2 (T-08..T-13) — 12 de 14 cerrados, 2 a medias y 3 Minor nuevos, corregidos
+
+Lentes A+B+C+D re-evalúan solo lo corregido (`git diff 7507268..HEAD`). P2, P4–P14 → ✓ cerrados (P8: reto consumido antes de verificar, búsqueda exacta en la sesión, firma sobre `clientDataJSON`; reenvío → `session_expired`). Sin Critical ni Important.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| N1 | B+C | Minor | Arreglo de P1: una firma ES256 no DER lanza `InvalidArgumentException` de cose-lib (sin envolver) → 500 + `Log::error` provocables por cualquiera (CWE-755); P1 quedaba a medias | T-09 | corregido: `isExpected()` trata como rechazo del cliente lo que lanzan sin envolver `vendor/web-auth/*` y `vendor/spomky-labs/*` al decodificar (salvo `QueryException`) | `PasskeyCeremonyTest` «una firma malformada es un rechazo del cliente (422)… (N1)» con `Log::shouldNotHaveReceived('error')` |
+| N2 | B | Minor | Máscara de IPv6 del correo: formas comprimidas salían completas (`2001:db8::1` → `2001:db8::1::x`) | T-10 | corregido: `maskIp` expande con `inet_pton`, conserva el /64 (`2001:db8:0:0:x:x:x:x`) y enmascara la IPv4 mapeada como IPv4 | `PasskeyManagementTest` (compacta, `::1`, `::ffff:1.2.3.4`) |
+| N2b | C | Minor | El hash del RP ID solo lo comprobaba la librería tras buscar la credencial: `invalid_domain` vs `unknown_credential` delataba si un `credential_id` existe (CWE-204) | T-09 | corregido: `assertRelyingPartyHash()` compara `authenticatorData.rpIdHash` con el RP ID configurado antes de buscar la credencial; los fakes de los tests usan ahora el hash real | `PasskeyCeremonyTest` «…responde igual exista o no la credencial (N2b)» (cuerpos idénticos) |
+| N3 | B | Minor | Resto de P3: `storeOptions`/`pullOptions` leen-modifican-escriben la sesión sin bloqueo: dos GET concurrentes (dos pestañas) pierden un reto | T-09/T-13 | corregido: `->block(5, 5)` en las 4 rutas que tocan los retos (serializa por sesión; `CACHE_STORE=database` es `LockProvider`) | `PasskeyLoginTest` «N3»; tinker: `locksFor()=5`, `DatabaseStore` con locks |
+
+**Evidencia (intento 2)**: `php artisan test` → 928 passed (6933 assertions); `vendor/bin/pint --test` ok. Sin gaps Critical/Important abiertos: el bucle de la Fase 2 cierra en el intento 2.

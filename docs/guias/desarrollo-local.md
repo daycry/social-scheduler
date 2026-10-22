@@ -49,6 +49,35 @@ npm run build            # compila assets
 
 Los tests usan conectores simulados: no tocan las redes. Estructura de `tests/Feature/`: `Analytics`, `Auth`, `Backfill`, `Calendar`, `Connections`, `Connectors`, `Dashboard`, `Infra`, `Isolation`, `Jobs`, `Mcp`, `Media`, `Notifications`, `Posts`, `Publishing`, `Reports`, `Snapshots`.
 
+## Pruebas E2E (Playwright)
+
+La batería está en `tests/e2e` (proyectos `desktop`, `mobile` 375 px y `mobile-360`). Necesita `npm run build` y las credenciales del usuario demo (`DEMO_USER_*` en `.env`, sembrado con `php artisan db:seed --class=DemoSeeder`).
+
+```bash
+npm run test:e2e                                  # arranca el servidor de pruebas y corre los 3 proyectos
+npx playwright test tests/e2e/security.spec.ts    # solo 2FA y passkeys
+E2E_NO_SERVER=1 npm run test:e2e                  # el servidor ya está en marcha (ver abajo)
+E2E_JSON_REPORT=ruta/results.json npm run test:e2e   # además escribe el informe json
+npx tsc --noEmit -p .                             # tipos de tests/e2e
+```
+
+**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:8080` con variables del proceso, sin tocar el `.env`:
+
+| Variable | Valor E2E | Por qué |
+|---|---|---|
+| `APP_URL` | `http://localhost:8080` | `McpGuard` acepta el `Origin` del navegador si es `APP_URL` (el E2E de API keys hace «Probar conexión») |
+| `WEBAUTHN_RP_ID` | `localhost` | WebAuthn no admite una IP como RP ID: por eso `localhost` y no `127.0.0.1` |
+| `WEBAUTHN_ORIGINS` | `http://localhost:8080` | origen exacto que firma el autenticador |
+| `SESSION_SECURE_COOKIE` | `false` | la cookie de sesión viaja por http |
+
+`php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`, que es lo que usa el `webServer`. Para arrancarlo a mano (y usar `E2E_NO_SERVER=1`), con las mismas variables:
+
+```bash
+APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false php artisan serve --host=localhost --port=8080 --no-reload
+```
+
+**Datos de prueba.** `global-setup.ts` crea un usuario `e2e-sec-<proyecto>@example.test` por proyecto (contraseña aleatoria en `tests/e2e/.auth/`, ignorado por git) para el 2FA y las passkeys; `global-teardown.ts` los borra con sus datos. El usuario demo solo se usa para el resto de la batería y nunca para 2FA/passkeys. Las marcas y demás datos creados llevan el prefijo `e2e-` y se limpian. El TOTP se calcula en Node (RFC 6238) a partir del secreto que muestra la pantalla; las passkeys usan el autenticador virtual de Chromium (CDP).
+
 ## Convenciones
 
 - Toda consulta del dominio pasa por `UserScope`; en jobs usa `withoutUserScope()` de forma explícita.

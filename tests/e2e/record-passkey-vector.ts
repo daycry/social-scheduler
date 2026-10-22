@@ -49,13 +49,13 @@ try {
         user: { id: b64url(randomBytes(32)), name: 'vector@example.test', displayName: 'Vector de prueba' },
         challenge: b64url(randomBytes(32)),
         pubKeyCredParams: [
-            { type: 'public-key', alg: -7 },
-            { type: 'public-key', alg: -257 },
+            { type: 'public-key' as const, alg: -7 },
+            { type: 'public-key' as const, alg: -257 },
         ],
         timeout: 60000,
         excludeCredentials: [],
-        authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-        attestation: 'none',
+        authenticatorSelection: { residentKey: 'required' as const, userVerification: 'required' as const },
+        attestation: 'none' as const,
     };
 
     const registrationCredential = await page.evaluate(async (options) => {
@@ -76,7 +76,7 @@ try {
             challenge: b64url(randomBytes(32)),
             rpId: RP_ID,
             timeout: 60000,
-            userVerification: 'required',
+            userVerification: 'required' as const,
             allowCredentials: [],
         };
         const credential = await page.evaluate(async (opts) => {

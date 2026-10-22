@@ -33,8 +33,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
-| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **14** | **20** | **70%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 1 | 6 | 17% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **15** | **20** | **75%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -521,36 +521,38 @@ Checklist firmada (orquestador, 2026-10-22):
 
 ## Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre
 
-**Estado**: borrador · **Estimado**: 32.0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1.32M
+**Estado**: en-progreso · **Estimado**: 32.0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1.32M
 
 ### T-15 — Infraestructura E2E sobre localhost:8080
 
 - **Descripción**: Mueve la batería a `http://localhost:8080` (WebAuthn no admite una IP como RP ID): arranque con `APP_URL=http://localhost:8080`, `WEBAUTHN_RP_ID=localhost`, `WEBAUTHN_ORIGINS=http://localhost:8080`. Helpers `totp()` (RFC 6238 con `crypto`) y `virtualAuthenticator()` (CDP), y un usuario E2E dedicado creado en `global-setup.ts` y borrado en `global-teardown.ts`, para no tocar al usuario demo.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las pruebas automáticas de extremo a extremo corren ahora sobre localhost con usuarios de prueba propios, listas para comprobar el doble factor y las passkeys.
+- **Estado**: completado
 - **Tiempo humano**: est. 6,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.82h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 225k in / 22k out tok · ⚠️ verificar €
 - **Dependencias**: T-14
 - **Tipo**: test
-- **Archivos**: `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `package.json`, `docs/guias/desarrollo-local.md`
+- **Archivos**: `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `package.json`, `package-lock.json`, `tsconfig.json`, `tests/e2e/record-passkey-vector.ts`, `docs/guias/desarrollo-local.md`
 - **Cubre (tests)**: E2E-01, E2E-05
 - **Verificación**:
   - `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/pages.spec.ts tests/e2e/flows.spec.ts` → la batería existente pasa en los tres proyectos sobre `localhost`
   - `npx tsc --noEmit -p .` → sin errores de tipos en `tests/e2e`
 
 **Criterios de aceptación**
-- [ ] Toda la batería existente (`pages`, `flows`, `a11y`) pasa sobre `http://localhost:8080` en desktop, mobile y mobile-360
-- [ ] El usuario E2E dedicado se crea y se elimina; el usuario demo no se modifica
-- [ ] `totp()` genera un código que `TotpService` acepta (se comprueba en E2E-01)
+- [x] Toda la batería existente (`pages`, `flows`, `a11y`) pasa sobre `http://localhost:8080` en desktop, mobile y mobile-360
+- [x] El usuario E2E dedicado se crea y se elimina; el usuario demo no se modifica
+- [x] `totp()` genera un código que `TotpService` acepta (se comprueba en E2E-01)
 
 **Subtareas**
-- [ ] Variables de arranque del servidor documentadas
-- [ ] Helpers `totp` y CDP
-- [ ] Setup y teardown del usuario E2E
+- [x] Variables de arranque del servidor documentadas
+- [x] Helpers `totp` y CDP
+- [x] Setup y teardown del usuario E2E
 
-**Notas**: Riesgo del diseño: cookies o URLs del resto de la batería sobre `localhost`; se confirma aquí antes de escribir los specs.
+**Notas**: Riesgo del diseño: cookies o URLs del resto de la batería sobre `localhost`; se confirma aquí antes de escribir los specs. Desviaciones: (1) el servidor de pruebas lo lanza el `webServer` de Playwright con variables del proceso (APP_URL, WEBAUTHN_RP_ID, WEBAUTHN_ORIGINS, SESSION_SECURE_COOKIE) y `artisan serve --no-reload` (sin ese flag `serve` descarta las variables si existe .env); `E2E_NO_SERVER=1` permite usar uno arrancado a mano; `E2E_JSON_REPORT` activa el reporter json. (2) Un usuario `e2e-sec-<proyecto>` por proyecto (no uno solo) para que los tres proyectos no compartan estado; se crean/borran por tinker (`artisan()` en helpers) y la contraseña aleatoria va a `tests/e2e/.auth/` (ignorado). (3) Hallazgo: el helper `login()` del demo falló al aparecer el botón «Entrar con passkey» (strict mode): ahora `exact: true`. (4) Se añade `tsconfig.json` y las dependencias de desarrollo `typescript` y `@types/node` (no había forma de ejecutar `tsc`), y tres anotaciones `as const` en `record-passkey-vector.ts` para que compile. (5) Helpers extra: `enableTwoFactorDirect`, `clearTotpReplay`, `resetSecurity`, `confirmPassword`, `loginAs`, `wrongTotp`. Documentado en `docs/guias/desarrollo-local.md`.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/pages.spec.ts tests/e2e/flows.spec.ts` → 100 passed (3 proyectos, 3.0 min); batería previa completa (pages+flows+a11y) sobre localhost → 184 passed en desktop/mobile/mobile-360; `npx tsc --noEmit -p .` → 0 errores; `totp()` validado contra `Google2FA::getCurrentOtp` y aceptado por TotpService en E2E-01 (activación real con el código calculado en Node).
+
 
 ### T-16 — E2E del 2FA: activar, reto, recuperación, bloqueo y desactivar
 

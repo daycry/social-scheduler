@@ -156,11 +156,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-04 — Metadatos PRM y ASM, `WWW-Authenticate` en el 401 y `location` de Nginx
 
 - **Descripción**: `MetadataController` sirve `GET /.well-known/oauth-protected-resource[/{path}]` (con el nombre `mcp.oauth.protected-resource.nested` y `where('path', '.*')`, para reutilizar `AddWwwAuthenticateHeader` del vendor sin tocarlo) y `GET /.well-known/oauth-authorization-server` con los valores de CA-12 y CA-13. Las rutas viven en `routes/ai.php`, fuera de `web`. Añade `location ^~ /.well-known/oauth-` a `deploy/hestia/nginx-overrides.conf`. Es el quick win de la evaluación: hace el MCP descubrible.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.41h · real —
-- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Changelog**: Los clientes MCP ya pueden descubrir cómo autorizarse: el servidor publica sus metadatos OAuth y el 401 indica dónde encontrarlos.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 0.4h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.41h · real 0.3h (estimado)
+- **Supervisión**: est. 0.10h (≈25 % IA) · real 0.08h (estimado)
 - **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: backend
@@ -173,17 +173,19 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `git diff --stat -- vendor app/Http/Middleware/McpGuard.php` → vacío
 
 **Criterios de aceptación**
-- [ ] CA-12: PRM en 200 con `resource`, `authorization_servers` y `scopes_supported=["mcp:use"]`, en la raíz y en `/mcp`
-- [ ] CA-13: ASM con `code_challenge_methods_supported=["S256"]`, `grant_types_supported=["authorization_code"]` y `token_endpoint_auth_methods_supported=["none"]`
-- [ ] CA-14: `POST /mcp` sin Bearer o con uno inválido devuelve 401 con `WWW-Authenticate: Bearer realm="mcp", resource_metadata="…"`
-- [ ] Las API keys `msk_` válidas siguen entrando en `/mcp` (CA-24)
+- [x] CA-12: PRM en 200 con `resource`, `authorization_servers` y `scopes_supported=["mcp:use"]`, en la raíz y en `/mcp`
+- [x] CA-13: ASM con `code_challenge_methods_supported=["S256"]`, `grant_types_supported=["authorization_code"]` y `token_endpoint_auth_methods_supported=["none"]`
+- [x] CA-14: `POST /mcp` sin Bearer o con uno inválido devuelve 401 con `WWW-Authenticate: Bearer realm="mcp", resource_metadata="…"`
+- [x] Las API keys `msk_` válidas siguen entrando en `/mcp` (CA-24)
 
 **Subtareas**
-- [ ] Controlador y rutas
-- [ ] Test del formato exacto de `WWW-Authenticate`
-- [ ] `location` de Nginx con comentario del motivo
+- [x] Controlador y rutas
+- [x] Test del formato exacto de `WWW-Authenticate`
+- [x] `location` de Nginx con comentario del motivo
 
 **Notas**: El `curl` de verificación en `despliegue.md` se escribe en T-27. M-07 (Hestia real) cierra la parte de M-F6-2.
+
+**Evidencia de cierre**: --filter=OAuthMetadata 7 tests en verde (CA-12/13/14, 404 de recurso ajeno, CA-24/28); route:list muestra mcp.oauth.protected-resource.nested; tests/Feature/Mcp en verde; git diff vendor + McpGuard vacío.
 
 ---
 

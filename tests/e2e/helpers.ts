@@ -1,4 +1,8 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 
 export const DEMO = {
     email: process.env.DEMO_USER_EMAIL || 'demo@social-scheduler.test',
@@ -33,6 +37,7 @@ export const AUTH_PAGES: Array<[string, string]> = [
     ['api-keys', '/api-keys'],
     ['avisos', '/notifications'],
     ['perfil', '/profile'],
+    ['confirmar contraseña', '/confirm-password'],
     ['mejores horas', '/best-times'],
     ['biblioteca', '/library'],
     ['papelera', '/trash'],
@@ -68,7 +73,7 @@ export async function login(page: Page, email = DEMO.email, password = DEMO.pass
     await page.goto('/login');
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña').fill(password);
-    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await page.waitForURL(/\/dashboard/);
 }
 
@@ -89,4 +94,202 @@ export async function borrarMarcasE2e(page: Page, prefix = 'e2e-') {
         await row.getByRole('button', { name: 'Eliminar' }).click();
         await settle(page);
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Usuarios E2E dedicados (seguridad de cuenta): uno por proyecto, para no tocar al demo ni compartir estado entre
+// proyectos. Se crean en global-setup y se borran en global-teardown; todos llevan el prefijo `e2e-`.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const E2E_USERS_FILE = 'tests/e2e/.auth/e2e-users.json';
+export const E2E_PROJECTS = ['desktop', 'mobile', 'mobile-360'] as const;
+
+export type E2eUser = { email: string; password: string; name: string };
+
+export const e2eEmail = (project: string) => `e2e-sec-${project}@example.test`;
+
+/** Ejecuta PHP en el contexto de la app (tinker) y devuelve su salida. Solo para preparar/limpiar datos `e2e-`. */
+export function artisan(code: string): string {
+    const out = execFileSync('php', ['artisan', 'tinker', '--execute', code], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    // tinker devuelve exit 0 aunque el código falle: se detecta por el nombre de la excepción en la salida.
+    if (/^([A-Za-z]+[\\])*[A-Za-z]*(Error|Exception)\b/m.test(out)) throw new Error(`artisan tinker falló: ${out.slice(0, 300)}`);
+    return out;
+}
+
+/** Literal PHP entre comillas simples. */
+const q = (value: string) => `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+
+/** Vuelve al estado «sin 2FA, sin passkeys, sin bloqueos» (PHP). `$u` queda definido. */
+const cleanUserPhp = (email: string) =>
+    `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+    `$u->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null, 'two_factor_last_used_at' => null])->save(); ` +
+    `$u->passkeys()->delete(); Illuminate\\Support\\Facades\\RateLimiter::clear('2fa:' . $u->id); ` +
+    `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(Illuminate\\Support\\Str::lower(${q(email)}) . '|' . $ip); }`;
+
+/** Crea (o deja limpios) los usuarios E2E y guarda sus credenciales en `.auth` (ignorado por git). */
+export function createE2eUsers(): Record<string, E2eUser> {
+    const users: Record<string, E2eUser> = {};
+    for (const project of E2E_PROJECTS) {
+        const user = { email: e2eEmail(project), name: `e2e Seguridad ${project}`, password: `E2e-${crypto.randomBytes(9).toString('hex')}-Aa1!` };
+        artisan(
+            `$u = App\\Models\\User::firstOrNew(['email' => ${q(user.email)}]); ` +
+                `$u->forceFill(['name' => ${q(user.name)}, 'password' => Illuminate\\Support\\Facades\\Hash::make(${q(user.password)}), 'email_verified_at' => now()])->save();`,
+        );
+        resetSecurity(user.email);
+        users[project] = user;
+    }
+    fs.mkdirSync(path.dirname(E2E_USERS_FILE), { recursive: true });
+    fs.writeFileSync(E2E_USERS_FILE, JSON.stringify(users));
+    return users;
+}
+
+/** Borra los usuarios E2E (con ellos se van sus passkeys, marcas y sesiones asociadas por cascada). */
+export function deleteE2eUsers() {
+    // La auditoria pone user_id a NULL al borrar el usuario: sus filas se borran antes para no dejar huerfanas.
+    artisan(
+        `$ids = App\\Models\\User::where('email', 'like', 'e2e-sec-%@example.test')->pluck('id'); ` +
+            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereIn('user_id', $ids)->delete(); ` +
+            `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
+    );
+    fs.rmSync(E2E_USERS_FILE, { force: true });
+}
+
+export function e2eUser(project: string): E2eUser {
+    return JSON.parse(fs.readFileSync(E2E_USERS_FILE, 'utf8'))[project];
+}
+
+/** Deja al usuario sin 2FA ni passkeys y sin bloqueos del reto (estado inicial de cada test). */
+export function resetSecurity(email: string) {
+    artisan(cleanUserPhp(email));
+}
+
+/** Libera el antirreplay del TOTP (`two_factor_last_used_at`) y el bloqueo del reto: para flujos que no prueban eso. */
+export function clearTotpReplay(email: string) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `$u->forceFill(['two_factor_last_used_at' => null])->save(); Illuminate\\Support\\Facades\\RateLimiter::clear('2fa:' . $u->id);`,
+    );
+}
+
+/** Deja activo el 2FA del usuario sin pasar por la UI (para los tests que no prueban la activación). Devuelve secreto y códigos. */
+export function enableTwoFactorDirect(email: string): { secret: string; recoveryCodes: string[] } {
+    const out = artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); $svc = app(App\\Services\\TwoFactor\\TotpService::class); ` +
+            `$secret = $svc->generateSecret(); $u->forceFill(['two_factor_secret' => $secret, 'two_factor_confirmed_at' => now(), 'two_factor_last_used_at' => null])->save(); ` +
+            `echo json_encode(['secret' => $secret, 'recoveryCodes' => $svc->generateRecoveryCodes($u)]);`,
+    );
+    return JSON.parse(out.slice(out.indexOf('{')));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// TOTP (RFC 6238, SHA-1, 6 dígitos, paso de 30 s) calculado en Node a partir del secreto mostrado en la UI.
+// ---------------------------------------------------------------------------------------------------------------
+
+function base32Decode(input: string): Buffer {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    for (const char of input.toUpperCase().replace(/[^A-Z2-7]/g, '')) bits += alphabet.indexOf(char).toString(2).padStart(5, '0');
+    const bytes: number[] = [];
+    for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2));
+    return Buffer.from(bytes);
+}
+
+/** Código TOTP del secreto base32. `stepOffset` desplaza el paso (-1, 0, +1 entran en la ventana del servidor). */
+export function totp(secret: string, stepOffset = 0, now = Date.now()): string {
+    const counter = Math.floor(now / 1000 / 30) + stepOffset;
+    const buffer = Buffer.alloc(8);
+    buffer.writeBigUInt64BE(BigInt(counter));
+    const hmac = crypto.createHmac('sha1', base32Decode(secret)).update(buffer).digest();
+    const offset = hmac[hmac.length - 1] & 0xf;
+    const value = ((hmac[offset] & 0x7f) << 24) | (hmac[offset + 1] << 16) | (hmac[offset + 2] << 8) | hmac[offset + 3];
+    return (value % 1_000_000).toString().padStart(6, '0');
+}
+
+/** Un código de 6 dígitos que seguro NO es válido ahora (ni en la ventana ±1). */
+export function wrongTotp(secret: string): string {
+    const valid = new Set([-2, -1, 0, 1, 2].map((o) => totp(secret, o)));
+    for (let n = 123456; ; n++) {
+        const code = n.toString().padStart(6, '0');
+        if (!valid.has(code)) return code;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Autenticador virtual de WebAuthn (Chromium, CDP). Con residente + verificación de usuario, igual que una passkey real.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type VirtualAuthenticator = {
+    id: string;
+    credentials: () => Promise<number>;
+    /** Con `false` el autenticador deja de contestar solo (para que otro autenticador de la misma página sea el que responda). */
+    respond: (enabled: boolean) => Promise<void>;
+    remove: () => Promise<void>;
+};
+
+export async function virtualAuthenticator(context: BrowserContext, page: Page): Promise<VirtualAuthenticator> {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('WebAuthn.enable', { enableUI: false });
+    const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
+        options: {
+            protocol: 'ctap2',
+            transport: 'internal',
+            hasResidentKey: true,
+            hasUserVerification: true,
+            isUserVerified: true,
+            automaticPresenceSimulation: true,
+        },
+    });
+    return {
+        id: authenticatorId,
+        credentials: async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length,
+        respond: async (enabled: boolean) => {
+            await cdp.send('WebAuthn.setAutomaticPresenceSimulation', { authenticatorId, enabled });
+        },
+        remove: async () => {
+            await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
+        },
+    };
+}
+
+/** Inicia sesión con el formulario clásico (y el reto 2FA si se pasa un secreto). */
+export async function loginAs(page: Page, user: E2eUser, secret?: string) {
+    await page.goto('/login');
+    await page.getByLabel('Correo electrónico').fill(user.email);
+    await page.getByLabel('Contraseña').fill(user.password);
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    if (secret) {
+        await page.waitForURL(/two-factor-challenge/);
+        await page.getByLabel('Código de verificación').fill(totp(secret));
+        await page.getByRole('button', { name: 'Verificar' }).click();
+    }
+    await page.waitForURL(/\/dashboard/);
+}
+
+/** Si la página cae en «Confirma tu contraseña», la rellena (una confirmación por sesión y ventana de `auth.password_timeout`). */
+export async function confirmPasswordIfAsked(page: Page, password: string) {
+    await page.waitForLoadState('networkidle');
+    if (/confirm-password/.test(page.url())) {
+        await page.getByLabel('Contraseña').fill(password);
+        await page.getByRole('button', { name: 'Confirmar' }).click();
+        await page.waitForURL((u) => !/confirm-password/.test(u.pathname));
+        await page.waitForLoadState('networkidle');
+    }
+}
+
+/** Confirma la contraseña de antemano (ventana de `auth.password_timeout`): las acciones de seguridad ya no redirigen. */
+export async function confirmPassword(page: Page, password: string) {
+    await page.goto('/confirm-password');
+    await page.getByLabel('Contraseña').fill(password);
+    await page.getByRole('button', { name: 'Confirmar' }).click();
+    await page.waitForURL((u) => !/confirm-password/.test(u.pathname));
+}
+
+/** Email y contraseña correctos hasta llegar al reto (sin completarlo). */
+export async function loginUntilChallenge(page: Page, user: E2eUser, remember = false) {
+    await page.goto('/login');
+    await page.getByLabel('Correo electrónico').fill(user.email);
+    await page.getByLabel('Contraseña').fill(user.password);
+    if (remember) await page.getByLabel('Recordarme').check();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await page.waitForURL(/two-factor-challenge/);
 }

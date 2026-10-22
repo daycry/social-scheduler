@@ -114,4 +114,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Doble factor (TOTP)
+    |--------------------------------------------------------------------------
+    |
+    | challenge_ttl: segundos que vale un reto 2FA pendiente tras enviar email y
+    | contrasena correctos (5 min). Pasado ese tiempo hay que volver a escribirla.
+    |
+    */
+
+    'two_factor' => [
+        'challenge_ttl' => (int) env('AUTH_TWO_FACTOR_CHALLENGE_TTL', 300),
+    ],
+
 ];

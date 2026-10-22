@@ -39,3 +39,17 @@ test('users can logout', function () {
     $this->assertGuest();
     $response->assertRedirect('/');
 });
+
+test('el login sigue limitado a 5 intentos por email e IP con el mismo mensaje', function () {
+    $user = User::factory()->create();
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->post('/login', ['email' => $user->email, 'password' => 'mal'])
+            ->assertSessionHasErrors(['email' => trans('auth.failed')]);
+    }
+
+    $res = $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+    $this->assertGuest();
+    $res->assertSessionHasErrors('email');
+    expect($res->getSession()->get('errors')->first('email'))->toContain('segundos');
+});

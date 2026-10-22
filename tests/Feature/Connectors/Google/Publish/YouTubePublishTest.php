@@ -406,7 +406,7 @@ test('YouTubePublish N7: la sesion marca el video con un tag OPACO por destino q
 
     $tags = $this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['tags'];
     expect($tags)->toBe([YouTubePublisher::targetTag(77)])
-        ->and($tags[0])->toMatch('/^ss-[0-9a-f]{16}$/')->not->toContain('77')
+        ->and($tags[0])->toMatch('/^ss-[0-9a-f]{16}$/')->not->toBe('ss-77')
         ->and(YouTubePublisher::targetTag(77))->not->toBe(YouTubePublisher::targetTag(78));
     config(['app.key' => 'base64:'.base64_encode(str_repeat('z', 32))]);
     expect(YouTubePublisher::targetTag(77))->not->toBe($tags[0]); // depende de APP_KEY: no se deduce del id

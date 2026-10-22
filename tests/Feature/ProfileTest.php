@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Tests\Support\FakePasskeys;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -82,4 +83,110 @@ test('correct password must be provided to delete account', function () {
         ->assertRedirect('/profile');
 
     $this->assertNotNull($user->fresh());
+});
+
+test('Security: Profile/Edit expone el estado del 2FA sin secretos', function () {
+    $user = User::factory()->create();
+    $user->forceFill([
+        'two_factor_secret' => 'JBSWY3DPEHPK3PXP',
+        'two_factor_recovery_codes' => ['hash-a', 'hash-b', 'hash-c'],
+        'two_factor_confirmed_at' => now(),
+    ])->save();
+
+    $res = $this->actingAs($user)->get('/profile');
+
+    $res->assertInertia(fn ($page) => $page
+        ->component('Profile/Edit')
+        ->where('twoFactor', ['enabled' => true, 'pending' => false, 'setupLocked' => false, 'recoveryRemaining' => 3])
+        ->where('twoFactorSetup', null)
+        ->where('recoveryCodes', null)
+        ->missing('auth.user.two_factor_secret')
+        ->missing('auth.user.two_factor_recovery_codes'));
+    expect($res->getContent())->not->toContain('JBSWY3DPEHPK3PXP')->not->toContain('hash-a');
+});
+
+test('Security: con una activacion pendiente y la contrasena recien confirmada el perfil sirve el secreto desde el usuario', function () {
+    $user = User::factory()->create();
+    $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP'])->save();
+
+    $res = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get('/profile');
+
+    $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.setupLocked', false)->where('twoFactorSetup.secret', 'JBSWY3DPEHPK3PXP'));
+});
+
+test('Security: una sesion sin confirmacion reciente de la contrasena no puede leer el secreto pendiente (N1)', function () {
+    $user = User::factory()->create();
+    $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP'])->save();
+
+    foreach ([null, time() - config('auth.password_timeout', 10800) - 1] as $confirmedAt) {
+        $session = $confirmedAt === null ? [] : ['auth.password_confirmed_at' => $confirmedAt];
+        $res = $this->actingAs($user)->withSession($session)->get('/profile');
+
+        $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.setupLocked', true)->where('twoFactorSetup', null));
+        expect($res->getContent())->not->toContain('JBSWY3DPEHPK3PXP');
+    }
+});
+
+test('Security: el historial cifrado solo se activa en contexto seguro (N2)', function () {
+    $user = User::factory()->create();
+
+    $http = $this->actingAs($user)->get('http://metricool.test/profile');
+    expect($http->viewData('page')['encryptHistory'])->toBeFalse();
+
+    $https = $this->actingAs($user)->get('https://metricool.test/profile');
+    expect($https->viewData('page')['encryptHistory'])->toBeTrue();
+});
+
+test('Security: los codigos recien generados llegan una sola vez', function () {
+    $user = User::factory()->create();
+    $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP', 'two_factor_confirmed_at' => now()])->save();
+
+    $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])
+        ->from('/profile')->post('/user/two-factor/recovery-codes')->assertRedirect('/profile');
+    $this->get('/profile')->assertInertia(fn ($page) => $page->has('recoveryCodes', 8));
+    $this->get('/profile')->assertInertia(fn ($page) => $page->where('recoveryCodes', null));
+});
+
+test('Passkeys: Profile/Edit expone id, nombre y fechas de sus passkeys, sin material de la credencial', function () {
+    $user = User::factory()->create();
+    $mine = FakePasskeys::seed($user, 'Portátil de casa', 'credencial-secreta-1');
+    $mine->forceFill(['last_used_at' => now()->subDay()])->save();
+    $theirs = FakePasskeys::seed(User::factory()->create(), 'De otro', 'credencial-secreta-2');
+
+    $res = $this->actingAs($user)->get('/profile');
+
+    $res->assertInertia(fn ($page) => $page
+        ->component('Profile/Edit')
+        ->where('passkeys.confirmed', false)
+        ->has('passkeys.items', 1)
+        ->where('passkeys.items.0.id', $mine->id)
+        ->where('passkeys.items.0.name', 'Portátil de casa')
+        ->has('passkeys.items.0.created_at')
+        ->has('passkeys.items.0.last_used_at')
+        ->etc());
+
+    $items = $res->viewData('page')['props']['passkeys']['items'];
+    expect(array_keys($items[0]))->toBe(['id', 'name', 'created_at', 'last_used_at']);
+
+    // Ni el credential_id ni la clave publica ni la passkey ajena viajan al navegador.
+    $content = $res->getContent();
+    expect($content)->not->toContain($mine->credential_id)->not->toContain($theirs->credential_id)->not->toContain('De otro')
+        ->not->toContain('credential');
+});
+
+test('Passkeys: confirmed refleja la confirmacion reciente de la contrasena', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get('/profile')
+        ->assertInertia(fn ($page) => $page->where('passkeys.confirmed', true)->where('passkeys.items', []));
+});
+
+test('Passkeys: la ruta de confirmacion pide la contrasena y vuelve al perfil (con el alta abierta si se pide)', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/user/passkeys/confirm?then=add')->assertRedirect(route('password.confirm'));
+
+    $this->withSession(['auth.password_confirmed_at' => time()]);
+    $this->get('/user/passkeys/confirm')->assertRedirect(route('profile.edit'));
+    $this->get('/user/passkeys/confirm?then=add')->assertRedirect(route('profile.edit', ['passkey' => 'add']));
 });

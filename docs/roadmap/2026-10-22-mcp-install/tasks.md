@@ -1,4 +1,5 @@
 ---
+estado: completado
 verificacion: obligatoria
 ---
 

@@ -29,7 +29,22 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $user = $request->validateCredentials();
+        $remember = $request->boolean('remember');
+
+        if ($user->hasTwoFactorEnabled()) {
+            // Credenciales correctas pero sin sesion: queda un reto 2FA pendiente (TTL en config/auth.php).
+            $request->session()->regenerate();
+            $request->session()->put([
+                'login.id' => $user->getKey(),
+                'login.remember' => $remember,
+                'login.at' => now()->timestamp,
+            ]);
+
+            return redirect()->route('two-factor.challenge');
+        }
+
+        Auth::login($user, $remember);
 
         $request->session()->regenerate();
 
@@ -46,6 +61,9 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+
+        // Que el navegador descarte el historial cifrado (puede haber llevado secretos / codigos).
+        Inertia::clearHistory();
 
         return redirect('/');
     }

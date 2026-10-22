@@ -31,10 +31,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 6 | 7 | 86% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
+| Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 0 | 7 | 0% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **6** | **20** | **30%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **7** | **20** | **35%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -42,7 +42,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI)
 
-**Estado**: en-progreso · **Estimado**: 37.0h · **Real**: — · **Coste est.**: 1.850 € + tokens (⚠️ verificar) · **Tokens est.**: 1.43M
+**Estado**: completado · **Estimado**: 37.0h · **Real**: — · **Coste est.**: 1.850 € + tokens (⚠️ verificar) · **Tokens est.**: 1.43M
 
 ### T-01 — Dependencias, migración de 2FA y modelo User
 
@@ -245,8 +245,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-07 — Revisión de seguridad de C-01
 
 - **Descripción**: Revisión dirigida del código de seguridad propio: reto 2FA, partición del login, hashes de recuperación, antirreplay, rate limit y ausencia de secretos en log y auditoría. Resultado: checklist firmada en las notas y huecos corregidos antes de abrir C-02.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El doble factor pasó una revisión de seguridad independiente; se reforzó el límite de intentos del código y la protección del secreto durante la activación.
+- **Estado**: completado
 - **Tiempo humano**: est. 4,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.52h · real —
 - **Supervisión**: est. 0.13h (≈25 % IA) · real —
@@ -261,16 +261,25 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes salvo el flujo de login documentado
-- [ ] Ninguna fila de `audit_logs` ni línea de log contiene secreto, TOTP ni código de recuperación
-- [ ] `vendor/bin/pint --test` sin cambios pendientes
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes salvo el flujo de login documentado
+- [x] Ninguna fila de `audit_logs` ni línea de log contiene secreto, TOTP ni código de recuperación
+- [x] `vendor/bin/pint --test` sin cambios pendientes
 
 **Subtareas**
-- [ ] Revisar reto, rate limit y TTL
-- [ ] Test de fugas en log y auditoría
-- [ ] Ejecutar suite completa y Pint
+- [x] Revisar reto, rate limit y TTL
+- [x] Test de fugas en log y auditoría
+- [x] Ejecutar suite completa y Pint
 
-**Notas**: Puerta de salida de la fase 1.
+**Notas**: Puerta de salida de la fase 1. Revisión adversarial de dos intentos (lentes A+B+C+D; tablas al final del ledger): intento 1 → 2 Important + 9 Minor corregidos; intento 2 → 1 Important (N1) + 2 Minor corregidos, sin gaps abiertos.
+Checklist firmada (orquestador, 2026-10-22):
+- [x] Reto: sin bypass (recordarme solo tras el reto, reset de contraseña no inicia sesión, sesión pendiente con TTL y re-chequeo de 2FA, `regenerate` en cada paso).
+- [x] Rate limit: por cuenta (`2fa:{id}`), incremento atómico antes de verificar (MySQL `lockForUpdate`), lockout auditado una vez.
+- [x] TTL del reto 5 min (`auth.two_factor.challenge_ttl`).
+- [x] Antirreplay por paso TOTP en columna con UPDATE condicional; códigos de recuperación con hash bcrypt y uso único.
+- [x] Login: `Timebox` y rehash como `SessionGuard::attempt`.
+- [x] Secreto pendiente solo con contraseña confirmada reciente; historial cifrado en contexto seguro y borrado al salir.
+- [x] Sin secretos en log ni auditoría: `TwoFactorAuditLeakTest`.
+**Evidencia**: `php artisan test --compact --filter=TwoFactorAuditLeak` → 1 passed (35 assertions: secreto, 3 TOTP, 7 códigos erróneos y 16 de recuperación ausentes de `audit_logs` y del log en todos los niveles); `php artisan test` → 856 passed (6394 assertions); `vendor/bin/pint --test` → passed.
 
 ---
 
@@ -691,3 +700,15 @@ Lentes A+B+C+D (C: rutas de auth/sesión/secretos; D: hashing en bucle). Diff `7
 | M7 | B | Minor | `URL.revokeObjectURL` justo tras `click()` puede abortar la descarga de los códigos | T-06 | corregido (T-06 fix): `revokeObjectURL` en `setTimeout` 1 s | `TwoFactorForm.vue` `downloadCodes` |
 | M8 | A | Minor | «Sin desbordamiento a 375/360» marcado `[x]` sin evidencia (se valida en T-18) | T-06 | corregido: criterio trasladado a T-18 (ya lo cubre su criterio de 0 px) | `tasks.md:236` |
 | M9 | B | Minor | No hay forma de cancelar una activación a medias | T-04 | corregido (T-04 fix): `DELETE /user/two-factor/pending` (auth+password.confirm, auditado `auth.2fa.setup_cancelled`) + botón «Cancelar activación». Tests M9 | — |
+
+## Revisión de dos lentes — intento 2: Fase 1 (T-01..T-06) — gaps del intento 1 cerrados, 1 Important y 2 Minor nuevos corregidos
+
+Lentes A+B+C+D re-evalúan solo lo corregido (`git diff 5cd81a3..HEAD`): I1, I2, M1–M9 → ✓ cerrados (I1 contrastado con `DatabaseStore::incrementOrDecrement` + `lockForUpdate` en MySQL; I2 con `SessionGuard::attempt`).
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| N1 | A (+C) | Important | El arreglo de M3 servía el secreto TOTP pendiente en cada `GET /profile` (solo `auth`), sin `password.confirm`: una sesión robada leía la semilla — CWE-200/522 | T-04/T-06 | corregido: `ProfileController::edit` solo revela `twoFactorSetup` con `auth.password_confirmed_at` dentro de `auth.password_timeout`; si no, `twoFactor.setupLocked` y la UI pide «Generar otro QR» (que pasa por `password.confirm`) | `ProfileTest`: «una sesion sin confirmacion reciente… no puede leer el secreto pendiente (N1)» (sin confirmar y caducada) |
+| N2 | C | Minor | `encryptHistory` en http (no localhost) cuelga la navegación: sin `crypto.subtle` Inertia no escribe el historial | T-04/T-06 | corregido: `encryptHistory` solo con `$request->secure()` o host localhost/127.0.0.1/[::1] | `ProfileTest`: «el historial cifrado solo se activa en contexto seguro (N2)» |
+| N3 | B | Minor | `throttle:10,1` anónimo comparte contador por usuario con `reports.store` y `ai.suggest` | T-04 | corregido: limitador con nombre `two-factor-manage` (`2fa-manage:{id}`, 10/min) | `RateLimiter::limiter('two-factor-manage')` → `2fa-manage:999999 10`; test M5 actualizado |
+
+**Evidencia (intento 2)**: `php artisan test` → 855 passed (6359 assertions); `vendor/bin/pint --dirty` ok; `npm run build` ok. Sin gaps Critical/Important abiertos: el bucle de la Fase 1 cierra en el intento 2.

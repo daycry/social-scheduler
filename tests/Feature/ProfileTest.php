@@ -96,7 +96,7 @@ test('Security: Profile/Edit expone el estado del 2FA sin secretos', function ()
 
     $res->assertInertia(fn ($page) => $page
         ->component('Profile/Edit')
-        ->where('twoFactor', ['enabled' => true, 'pending' => false, 'recoveryRemaining' => 3])
+        ->where('twoFactor', ['enabled' => true, 'pending' => false, 'setupLocked' => false, 'recoveryRemaining' => 3])
         ->where('twoFactorSetup', null)
         ->where('recoveryCodes', null)
         ->missing('auth.user.two_factor_secret')
@@ -104,13 +104,36 @@ test('Security: Profile/Edit expone el estado del 2FA sin secretos', function ()
     expect($res->getContent())->not->toContain('JBSWY3DPEHPK3PXP')->not->toContain('hash-a');
 });
 
-test('Security: con una activacion pendiente el perfil sirve el secreto desde el usuario', function () {
+test('Security: con una activacion pendiente y la contrasena recien confirmada el perfil sirve el secreto desde el usuario', function () {
     $user = User::factory()->create();
     $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP'])->save();
 
-    $res = $this->actingAs($user)->get('/profile');
+    $res = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get('/profile');
 
-    $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.enabled', false)->where('twoFactorSetup.secret', 'JBSWY3DPEHPK3PXP'));
+    $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.setupLocked', false)->where('twoFactorSetup.secret', 'JBSWY3DPEHPK3PXP'));
+});
+
+test('Security: una sesion sin confirmacion reciente de la contrasena no puede leer el secreto pendiente (N1)', function () {
+    $user = User::factory()->create();
+    $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP'])->save();
+
+    foreach ([null, time() - config('auth.password_timeout', 10800) - 1] as $confirmedAt) {
+        $session = $confirmedAt === null ? [] : ['auth.password_confirmed_at' => $confirmedAt];
+        $res = $this->actingAs($user)->withSession($session)->get('/profile');
+
+        $res->assertInertia(fn ($page) => $page->where('twoFactor.pending', true)->where('twoFactor.setupLocked', true)->where('twoFactorSetup', null));
+        expect($res->getContent())->not->toContain('JBSWY3DPEHPK3PXP');
+    }
+});
+
+test('Security: el historial cifrado solo se activa en contexto seguro (N2)', function () {
+    $user = User::factory()->create();
+
+    $http = $this->actingAs($user)->get('http://metricool.test/profile');
+    expect($http->viewData('page')['encryptHistory'])->toBeFalse();
+
+    $https = $this->actingAs($user)->get('https://metricool.test/profile');
+    expect($https->viewData('page')['encryptHistory'])->toBeTrue();
 });
 
 test('Security: los codigos recien generados llegan una sola vez', function () {

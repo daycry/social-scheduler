@@ -197,5 +197,5 @@ test('M5: regenerar codigos tiene throttle', function () {
     [$user] = settingsUser(true);
 
     $route = collect(app('router')->getRoutes()->getRoutes())->first(fn ($r) => $r->uri() === 'user/two-factor/recovery-codes');
-    expect($route->gatherMiddleware())->toContain('throttle:10,1');
+    expect($route->gatherMiddleware())->toContain('throttle:two-factor-manage');
 });

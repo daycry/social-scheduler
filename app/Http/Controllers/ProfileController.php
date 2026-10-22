@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,9 +22,18 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $pending = $user->two_factor_secret !== null && ! $user->hasTwoFactorEnabled();
+        // El secreto pendiente solo se sirve con la contrasena confirmada hace poco (como las rutas de gestion, bajo
+        // `password.confirm`): una sesion robada o abierta en otro dispositivo no puede leer la semilla de la activacion.
+        $passwordConfirmed = Date::now()->unix() - (int) $request->session()->get('auth.password_confirmed_at', 0)
+            < (int) config('auth.password_timeout', 10800);
+        $revealSetup = $pending && $passwordConfirmed;
 
-        // El historial del navegador guarda las props cifradas (secreto QR / codigos de recuperacion).
-        Inertia::encryptHistory();
+        // El historial del navegador guarda las props cifradas (secreto QR / codigos). El cifrado usa crypto.subtle, que
+        // solo existe en contexto seguro: en http (salvo localhost) Inertia no podria escribir el historial y la pagina
+        // se quedaria colgada, asi que alli no se activa (y entonces no hay secreto que proteger en transito tampoco).
+        if ($request->secure() || in_array($request->getHost(), ['localhost', '127.0.0.1', '[::1]'], true)) {
+            Inertia::encryptHistory();
+        }
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
@@ -32,10 +42,12 @@ class ProfileController extends Controller
             'twoFactor' => [
                 'enabled' => $request->user()->hasTwoFactorEnabled(),
                 'pending' => $pending,
+                // Pendiente pero sin confirmacion reciente: la UI pide la contrasena para volver a mostrar el QR.
+                'setupLocked' => $pending && ! $revealSetup,
                 'recoveryRemaining' => count($request->user()->two_factor_recovery_codes ?? []),
             ],
             // Activacion a medias: el secreto sale del propio usuario (cifrado en BD), nunca de un flash de sesion.
-            'twoFactorSetup' => $pending ? [
+            'twoFactorSetup' => $revealSetup ? [
                 'secret' => $user->two_factor_secret,
                 'qrSvg' => app(TotpService::class)->qrSvg($user, $user->two_factor_secret),
             ] : null,

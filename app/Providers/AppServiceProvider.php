@@ -64,6 +64,8 @@ class AppServiceProvider extends ServiceProvider
         // MCP (T-28/T-30): limite por API key (tras autenticar) y por IP (antes, contra adivinacion de keys).
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
+        // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).
+        RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute(10)->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));
     }
 }

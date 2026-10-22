@@ -10,7 +10,7 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 
 const props = defineProps({
-    // Estado, sin secretos: { enabled, pending, recoveryRemaining }.
+    // Estado, sin secretos: { enabled, pending, setupLocked, recoveryRemaining }.
     twoFactor: { type: Object, required: true },
     // Solo mientras la activación está a medias (lo sirve el perfil desde el usuario): { secret, qrSvg }.
     setup: { type: Object, default: null },
@@ -177,6 +177,10 @@ const downloadCodes = () => {
                     </p>
                 </div>
             </template>
+            <p v-else-if="twoFactor.setupLocked" class="text-sm text-slate-700" role="status">
+                Tienes una activación a medias. Por seguridad, la clave solo se muestra tras confirmar tu contraseña: si ya la
+                añadiste a tu app, escribe el código; si no, pulsa «Generar otro QR».
+            </p>
 
             <form class="space-y-3" @submit.prevent="confirm" novalidate>
                 <div>

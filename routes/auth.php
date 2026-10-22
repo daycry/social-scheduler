@@ -67,10 +67,10 @@ Route::middleware('auth')->group(function () {
     // Gestion del 2FA (perfil): siempre tras confirmar la contrasena recientemente.
     Route::middleware('password.confirm')->prefix('user/two-factor')->name('two-factor.')->group(function () {
         Route::post('/', [TwoFactorController::class, 'store'])->name('enable');
-        Route::post('confirm', [TwoFactorController::class, 'confirm'])->middleware('throttle:10,1')->name('confirm');
+        Route::post('confirm', [TwoFactorController::class, 'confirm'])->middleware('throttle:two-factor-manage')->name('confirm');
         Route::delete('pending', [TwoFactorController::class, 'cancel'])->name('cancel');
-        Route::delete('/', [TwoFactorController::class, 'destroy'])->middleware('throttle:10,1')->name('disable');
-        Route::post('recovery-codes', [TwoFactorController::class, 'regenerate'])->middleware('throttle:10,1')->name('recovery-codes');
+        Route::delete('/', [TwoFactorController::class, 'destroy'])->middleware('throttle:two-factor-manage')->name('disable');
+        Route::post('recovery-codes', [TwoFactorController::class, 'regenerate'])->middleware('throttle:two-factor-manage')->name('recovery-codes');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

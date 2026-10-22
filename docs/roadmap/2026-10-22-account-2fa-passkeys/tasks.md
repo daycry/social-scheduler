@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 0 | 7 | 0% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 1 | 7 | 14% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **7** | **20** | **35%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **8** | **20** | **40%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -285,13 +285,13 @@ Checklist firmada (orquestador, 2026-10-22):
 
 ## Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI)
 
-**Estado**: borrador · **Estimado**: 45.0h · **Real**: — · **Coste est.**: 2.250 € + tokens (⚠️ verificar) · **Tokens est.**: 1.87M
+**Estado**: en-progreso · **Estimado**: 45.0h · **Real**: — · **Coste est.**: 2.250 € + tokens (⚠️ verificar) · **Tokens est.**: 1.87M
 
 ### T-08 — Dependencias de passkeys, esquema y configuración WebAuthn
 
 - **Descripción**: Instala `laravel/passkeys ~0.2.1` y `@laravel/passkeys ~0.4.0`, publica `config/passkeys.php` con `relying_party_id` ← `WEBAUTHN_RP_ID`, `allowed_origins` ← `WEBAUTHN_ORIGINS` (CSV) y `user_handle_secret` ← `PASSKEYS_USER_HANDLE_SECRET`, crea la migración de `passkeys` con `name` de 100 caracteres (siguiente fecha libre), añade `PasskeyUser`/`PasskeyAuthenticatable` a `User` y `Passkeys::ignoreRoutes()`. **Sin `WEBAUTHN_RP_NAME`** (decisión 1 de §4).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Preparada la base técnica de las passkeys: dependencias, tabla en la base de datos y configuración del dominio por entorno; el login actual no cambia.
+- **Estado**: completado
 - **Tiempo humano**: est. 3,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.41h · real —
 - **Supervisión**: est. 0.10h (≈25 % IA) · real —
@@ -306,18 +306,19 @@ Checklist firmada (orquestador, 2026-10-22):
   - `php artisan route:list --name=passkeys` → sin rutas del paquete (están ignoradas)
 
 **Criterios de aceptación**
-- [ ] `laravel/passkeys` queda fijado en `~0.2.1` en `composer.json`
-- [ ] `.env.example` y `.env.production.example` documentan `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGINS` y `PASSKEYS_USER_HANDLE_SECRET`, y no `WEBAUTHN_RP_NAME`
-- [ ] El RP ID por defecto sale del host de `APP_URL` y los orígenes son una lista CSV
-- [ ] La migración queda posterior a la de 2FA y a `2026_11_03_*`
-- [ ] `tests/Feature/Auth/*` y la suite de C-01 siguen en verde
+- [x] `laravel/passkeys` queda fijado en `~0.2.1` en `composer.json`
+- [x] `.env.example` y `.env.production.example` documentan `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGINS` y `PASSKEYS_USER_HANDLE_SECRET`, y no `WEBAUTHN_RP_NAME`
+- [x] El RP ID por defecto sale del host de `APP_URL` y los orígenes son una lista CSV
+- [x] La migración queda posterior a la de 2FA y a `2026_11_03_*`
+- [x] `tests/Feature/Auth/*` y la suite de C-01 siguen en verde
 
 **Subtareas**
-- [ ] `composer require laravel/passkeys:~0.2.1` y `npm i @laravel/passkeys@~0.4.0`
-- [ ] Publicar config y migración; añadir `name`
-- [ ] `Passkeys::ignoreRoutes()` y traits del modelo
+- [x] `composer require laravel/passkeys:~0.2.1` y `npm i @laravel/passkeys@~0.4.0`
+- [x] Publicar config y migración; añadir `name`
+- [x] `Passkeys::ignoreRoutes()` y traits del modelo
 
-**Notas**: Antes del `composer require`, repetir el `--dry-run` del diseño sobre el lock vigente.
+**Notas**: Antes del `composer require`, repetir el `--dry-run` del diseño sobre el lock vigente. Desviaciones: composer fijó `laravel/passkeys ~0.2.1`; npm escribió `^0.4.0` y se corrigió a `~0.4.0`. La config no usa `env()` fuera de config (lee `WEBAUTHN_*` con fallback a APP_URL; vacío = por defecto). `PASSKEYS_USER_HANDLE_SECRET` generado en el `.env` local (solo variable añadida; APP_URL intacto). El paquete trae `Passkeys::ignoreRoutes()` que debe llamarse en `register()` (antes del boot del provider del paquete).
+**Evidencia**: `php artisan test --compact tests/Unit/PasskeyConfigTest.php` → 5 passed (RP ID y orígenes desde APP_URL, CSV, override y secreto); `grep -rn WEBAUTHN_RP_NAME .env.example .env.production.example config` → sin coincidencias de variable (solo un comentario en config que aclara que no existe); `route:list --name=passkey` → «no routes» (ignoradas); `php artisan migrate` OK; `php artisan test` → 861 passed; pint OK.
 
 ### T-09 — PasskeyGateway y auditoría por eventos
 

@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passkeys\Passkeys;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Passkeys (T-08): las rutas del paquete no se cargan; las propias (routes/auth.php) llaman a sus Actions
+        // a traves de PasskeyGateway. Hay que ignorarlas antes de que arranque el provider del paquete.
+        Passkeys::ignoreRoutes();
+
         // Los conectores de cada proveedor se registran aqui (T-12 Meta, T-13 Google, T-14 TikTok).
         $this->app->singleton(ConnectorRegistry::class, function () {
             return (new ConnectorRegistry)

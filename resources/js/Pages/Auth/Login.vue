@@ -36,7 +36,7 @@ const submit = () => {
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">Entra en tu cuenta</h1>
         <p class="mb-6 mt-1 text-sm text-slate-600">Bienvenido de nuevo a Social Scheduler.</p>
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700">
+        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700" role="status">
             {{ status }}
         </div>
 

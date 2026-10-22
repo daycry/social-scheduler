@@ -21,6 +21,15 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            // Solo estado: el secreto y los codigos nunca van en props normales.
+            'twoFactor' => [
+                'enabled' => $request->user()->hasTwoFactorEnabled(),
+                'pending' => $request->user()->two_factor_secret !== null && ! $request->user()->hasTwoFactorEnabled(),
+                'recoveryRemaining' => count($request->user()->two_factor_recovery_codes ?? []),
+            ],
+            // Respuesta unica de generacion (flash de sesion): se pierde en la siguiente peticion.
+            'twoFactorSetup' => session('twoFactorSetup'),
+            'recoveryCodes' => session('recoveryCodes'),
         ]);
     }
 

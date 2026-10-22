@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
+import TwoFactorForm from './Partials/TwoFactorForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
 import { Head } from '@inertiajs/vue3';
@@ -11,6 +12,19 @@ defineProps({
     },
     status: {
         type: String,
+    },
+    // Estado del doble factor, sin secretos. `twoFactorSetup` y `recoveryCodes` solo llegan en la respuesta que los genera.
+    twoFactor: {
+        type: Object,
+        default: () => ({ enabled: false, pending: false, recoveryRemaining: 0 }),
+    },
+    twoFactorSetup: {
+        type: Object,
+        default: null,
+    },
+    recoveryCodes: {
+        type: Array,
+        default: null,
     },
 });
 </script>
@@ -39,6 +53,18 @@ defineProps({
                     class="card p-4 sm:p-8"
                 >
                     <UpdatePasswordForm class="max-w-xl" />
+                </div>
+
+                <div
+                    class="card p-4 sm:p-8"
+                    aria-label="Seguridad"
+                >
+                    <TwoFactorForm
+                        :two-factor="twoFactor"
+                        :setup="twoFactorSetup"
+                        :recovery-codes="recoveryCodes"
+                        class="max-w-xl"
+                    />
                 </div>
 
                 <div

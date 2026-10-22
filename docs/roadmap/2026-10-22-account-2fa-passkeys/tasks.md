@@ -31,10 +31,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 0 | 7 | 0% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
+| Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 6 | 7 | 86% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 0 | 7 | 0% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **0** | **20** | **0%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **6** | **20** | **30%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -212,8 +212,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-06 — UI del 2FA: reto, Login y tarjeta «Seguridad» con TwoFactorForm
 
 - **Descripción**: `Auth/TwoFactorChallenge.vue` (campo `one-time-code`, `inputmode=numeric`, alternar a código de recuperación, `aria-live`), ajuste mínimo de `Auth/Login.vue`, y `Profile/Partials/TwoFactorForm.vue` (activar con QR con texto alternativo y secreto copiable, confirmar, mostrar los 8 códigos una vez con copiar y descargar, desactivar, regenerar) montado en una tarjeta «Seguridad» de `Profile/Edit.vue`. La UI de C-01 va en la fase 1 (no se aplaza a C-03) para poder verificar el 2FA de extremo a extremo antes de abrir passkeys.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva pantalla de verificación en dos pasos al entrar, y en tu perfil una sección de doble factor con QR, clave copiable y códigos de recuperación que puedes copiar o descargar.
+- **Estado**: completado
 - **Tiempo humano**: est. 9,0h · real —
 - **Tiempo IA (ejec.)**: est. 1.16h · real —
 - **Supervisión**: est. 0.29h (≈25 % IA) · real —
@@ -227,16 +227,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/ProfileTest.php --filter=Security` → la página `Profile/Edit` expone `twoFactor` (estado, sin secretos) por Inertia
   - `vendor/bin/pint --test` → sin cambios pendientes
 
+- **Evidencia**: npm run build OK (built in 807ms); ProfileTest --filter=Security: 3 passed (twoFactor sin secretos, códigos una sola vez); vendor/bin/pint --test: passed; php artisan test completo: 841 passed (796 + 45 nuevos). Desviaciones: Login.vue solo recibe role=status en el aviso (el reto no necesita más cambios); props twoFactorSetup/recoveryCodes llegan por flash de sesión en Inertia; QR como data-URI en <img alt>. A11y/375px se valida en T-18.
+
 **Criterios de aceptación**
-- [ ] CA-23: el campo de código tiene etiqueta visible, `autocomplete="one-time-code"` e `inputmode="numeric"`; los errores se anuncian con `aria-live`; el enlace a «código de recuperación» es accesible por teclado
-- [ ] CA-24: el QR tiene `alt`, el secreto aparece como texto copiable y los códigos se pueden copiar o descargar sin ratón
-- [ ] Las props de Inertia no incluyen `two_factor_secret` ni códigos, salvo la respuesta única de generación
-- [ ] Sin desbordamiento horizontal a 375 y 360 px (se valida en T-18)
+- [x] CA-23: el campo de código tiene etiqueta visible, `autocomplete="one-time-code"` e `inputmode="numeric"`; los errores se anuncian con `aria-live`; el enlace a «código de recuperación» es accesible por teclado
+- [x] CA-24: el QR tiene `alt`, el secreto aparece como texto copiable y los códigos se pueden copiar o descargar sin ratón
+- [x] Las props de Inertia no incluyen `two_factor_secret` ni códigos, salvo la respuesta única de generación
+- [x] Sin desbordamiento horizontal a 375 y 360 px (se valida en T-18)
 
 **Subtareas**
-- [ ] Página del reto con alternancia TOTP/recuperación
-- [ ] TwoFactorForm: estados desactivado, pendiente de confirmar y activo
-- [ ] Props de `ProfileController::edit` (solo estado y nº de códigos restantes)
+- [x] Página del reto con alternancia TOTP/recuperación
+- [x] TwoFactorForm: estados desactivado, pendiente de confirmar y activo
+- [x] Props de `ProfileController::edit` (solo estado y nº de códigos restantes)
 
 **Notas**: Reutiliza `TextInput`, `InputLabel`, `InputError`, `PrimaryButton` y `Modal`.
 

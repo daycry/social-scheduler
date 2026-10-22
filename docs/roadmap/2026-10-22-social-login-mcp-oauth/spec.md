@@ -81,7 +81,7 @@ Fuentes: petición del usuario en la fase 1 de `/dev-cycle` (2026-10-22). Recon 
 - `AuthenticatedSessionController::store`: la bifurcación entre «login directo» y «reto 2FA» se extrae a un servicio (`App\Services\Auth\LoginFlow`), que comparten la contraseña y el login social.
 - `TwoFactorChallengeController`, sin cambios.
 - `redirect()->intended()`: lo usan ya la contraseña, la passkey y el 2FA, y es lo que devuelve al usuario a `/oauth/authorize`.
-- Sanctum (`createToken`, abilities, `expires_at`), `App\Mcp\Abilities::presets()`, `App\Services\AuditLog` (canal `web`), `McpGuard`, `AddWwwAuthenticateHeader` del vendor (emite `resource_metadata` si existe la ruta con nombre `mcp.oauth.protected-resource.nested`) y la página `ApiKeys/Index`.
+- Sanctum (`createToken`, abilities, `expires_at`), `App\Mcp\Abilities::presets()`, `App\Services\AuditLog` (canal propio `oauth` para los eventos OAuth, para poder filtrarlos; el resto sigue en `web`), `McpGuard`, `AddWwwAuthenticateHeader` del vendor (emite `resource_metadata` si existe la ruta con nombre `mcp.oauth.protected-resource.nested`) y la página `ApiKeys/Index`.
 - Las páginas `/privacy` y `/terms` (`routes/web.php`), para el registro de la app de Meta.
 
 **Nuevo, parte 1 (login social):**

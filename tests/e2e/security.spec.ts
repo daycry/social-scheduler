@@ -9,6 +9,7 @@ import {
     loginAs,
     resetSecurity,
     totp,
+    virtualAuthenticator,
     watch,
     wrongTotp,
     type E2eUser,
@@ -245,5 +246,186 @@ test.describe('2FA · doble factor (TOTP)', () => {
         await logout(page);
         await loginAs(page, user);
         await expect(page).toHaveURL(/\/dashboard/);
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Passkeys con el autenticador virtual de Chromium (CDP WebAuthn.addVirtualAuthenticator: residente + verificación de usuario).
+// Con una passkey registrada, el autocompletado condicional de /login puede entrar solo (el autenticador virtual contesta).
+// Los tests de «botón» lo desactivan para ser deterministas; el de autocompletado admite ambos caminos.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Sin autocompletado condicional: /login solo entra al pulsar «Entrar con passkey». */
+const sinAutocompletado = (page: Page) =>
+    page.addInitScript(() => {
+        PublicKeyCredential.isConditionalMediationAvailable = async () => false;
+    });
+
+/** Añade una passkey desde Perfil → Seguridad (contraseña ya confirmada en la sesión). */
+async function addPasskey(page: Page, name: string, boton: string) {
+    await page.getByRole('button', { name: boton }).click();
+    await page.getByLabel('Nombre de la passkey').fill(name);
+    await page.getByRole('button', { name: 'Continuar' }).click();
+}
+
+test.describe('passkey · alta, login y avisos', () => {
+    let user: E2eUser;
+
+    test.beforeEach(async ({}, info) => {
+        user = e2eUser(info.project.name);
+        resetSecurity(user.email);
+    });
+    test.afterEach(() => resetSecurity(user.email));
+
+    test('passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)', async ({ page, context }, info) => {
+        const w = watch(page);
+        const portatil = await virtualAuthenticator(context, page);
+        await loginAs(page, user);
+        await confirmPassword(page, user.password);
+        await page.goto('/profile');
+        await expect(page.getByRole('heading', { name: 'Passkeys', exact: true })).toBeVisible();
+        await expect(page.getByText('Aún no tienes passkeys')).toBeVisible();
+
+        // CA-13: alta con nombre.
+        await addPasskey(page, 'Portátil', 'Añadir passkey');
+        const lista = page.getByRole('list', { name: 'Tus passkeys' });
+        await expect(lista.getByRole('listitem')).toHaveCount(1);
+        await expect(lista.getByText('Portátil')).toBeVisible();
+        expect(await portatil.credentials()).toBe(1);
+
+        // CA-14: segunda passkey en OTRO autenticador (el primero deja de contestar para que responda el nuevo).
+        await portatil.respond(false);
+        const movil = await virtualAuthenticator(context, page);
+        await addPasskey(page, 'Móvil', 'Añadir otra passkey');
+        await expect(lista.getByRole('listitem')).toHaveCount(2);
+        await expect(lista.getByText('Móvil', { exact: true })).toBeVisible();
+        await expect(lista.getByText(/Añadida el/).first()).toBeVisible();
+        expect(await movil.credentials()).toBe(1);
+        await shot(page, info, 'e2e-05-dos-passkeys');
+        await expectNoOverflow(page);
+
+        // Registrar otra vez el primer autenticador se rechaza (excludeCredentials) y no crea una tercera.
+        await movil.respond(false);
+        await portatil.respond(true);
+        await addPasskey(page, 'Repetida', 'Añadir otra passkey');
+        await expect(page.getByRole('alert').filter({ hasText: /ya está registrad|ya esté registrad/ }).first()).toBeVisible();
+        await shot(page, info, 'e2e-05-duplicada');
+        await page.getByRole('button', { name: 'Cancelar' }).click();
+        await expect(lista.getByRole('listitem')).toHaveCount(2);
+
+        // CA-15: renombrar; vacío y de más de 100 caracteres se rechazan.
+        const rename = page.locator('form', { hasText: 'Renombrar la passkey' });
+        await page.getByRole('button', { name: 'Renombrar la passkey Móvil' }).click();
+        await rename.getByLabel('Nombre de la passkey').fill('Móvil 2');
+        await rename.getByRole('button', { name: 'Guardar' }).click();
+        await expect(lista.getByText('Móvil 2')).toBeVisible();
+
+        await page.getByRole('button', { name: 'Renombrar la passkey Móvil 2' }).click();
+        const campo = rename.getByLabel('Nombre de la passkey');
+        await campo.fill('');
+        await rename.getByRole('button', { name: 'Guardar' }).click();
+        await page.waitForLoadState('networkidle');
+        await expect(rename.getByRole('alert').filter({ hasText: /\S/ }).first()).toBeVisible();
+        await expect(rename).toBeVisible();
+        await campo.evaluate((el: HTMLInputElement) => el.removeAttribute('maxlength')); // el navegador ya limita a 100: se salta para probar el servidor
+        await campo.fill('x'.repeat(101));
+        await rename.getByRole('button', { name: 'Guardar' }).click();
+        await expect(rename.getByRole('alert').filter({ hasText: /\S/ }).first()).toBeVisible();
+        await page.waitForLoadState('networkidle');
+        await expect(rename).toBeVisible(); // un guardado correcto cerraría el diálogo
+        await expect(lista).not.toContainText('xxxxxxxxxx');
+        await shot(page, info, 'e2e-05-error-de-nombre');
+        await rename.getByRole('button', { name: 'Cancelar' }).click();
+        await expect(lista.getByText('Móvil 2')).toBeVisible();
+        expect(w.errors.filter((e) => !/status of (4\d\d|5\d\d)|Failed to load resource/.test(e))).toEqual([]);
+    });
+
+    test('passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06)', async ({ page, context }, info) => {
+        const { secret } = enableTwoFactorDirect(user.email);
+        await sinAutocompletado(page);
+        const autenticador = await virtualAuthenticator(context, page);
+
+        // Alta con una sesión que SÍ pasó el reto (el usuario tiene 2FA).
+        await loginAs(page, user, secret);
+        await confirmPassword(page, user.password);
+        await page.goto('/profile');
+        await addPasskey(page, 'Portátil', 'Añadir passkey');
+        await expect(page.getByRole('list', { name: 'Tus passkeys' }).getByText('Portátil')).toBeVisible();
+
+        // CA-17: sin contraseña ni código, y sin pasar nunca por el reto.
+        await logout(page);
+        const visitadas: string[] = [];
+        page.on('framenavigated', (f) => f === page.mainFrame() && visitadas.push(new URL(f.url()).pathname));
+        await page.goto('/login');
+        await page.getByRole('button', { name: 'Entrar con passkey' }).click();
+        await page.waitForURL(/\/dashboard/);
+        expect(visitadas.filter((u) => u.includes('two-factor-challenge'))).toEqual([]);
+        await shot(page, info, 'e2e-06-dashboard-con-passkey');
+
+        // CA-16: borrarla pide la contraseña (la sesión de passkey no la confirmó) y la quita de la lista.
+        await page.goto('/profile');
+        await page.getByRole('button', { name: 'Eliminar la passkey Portátil' }).click();
+        await confirmPasswordIfAsked(page, user.password);
+        await page.getByRole('button', { name: 'Eliminar la passkey Portátil' }).click();
+        await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();
+        await expect(page.getByText('Aún no tienes passkeys')).toBeVisible();
+
+        // CA-18: el autenticador aún tiene la credencial, pero el servidor ya no: mensaje neutro, sin revelar la cuenta.
+        expect(await autenticador.credentials()).toBe(1);
+        await logout(page);
+        await page.goto('/login');
+        await page.getByRole('button', { name: 'Entrar con passkey' }).click();
+        const fallo = page.getByRole('alert').filter({ hasText: /No se pudo/ });
+        await expect(fallo).toBeVisible();
+        await expect(page.getByRole('main')).not.toContainText(/no existe|ninguna cuenta|no hay ninguna/i);
+        await expect(page).toHaveURL(/\/login/);
+        await shot(page, info, 'e2e-06-passkey-borrada');
+    });
+
+    test('passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06)', async ({ page, context }) => {
+        const autenticador = await virtualAuthenticator(context, page);
+        await loginAs(page, user);
+        await confirmPassword(page, user.password);
+        await page.goto('/profile');
+        await addPasskey(page, 'Portátil', 'Añadir passkey');
+        await expect(page.getByRole('list', { name: 'Tus passkeys' }).getByText('Portátil')).toBeVisible();
+        expect(await autenticador.credentials()).toBe(1);
+
+        await logout(page);
+        await page.goto('/login');
+        // El autenticador virtual contesta al autocompletado condicional: puede entrar sin tocar nada.
+        const entroSola = await page.waitForURL(/\/dashboard/, { timeout: 6000 }).then(() => true, () => false);
+        if (!entroSola) {
+            await page.getByRole('button', { name: 'Entrar con passkey' }).click();
+            await page.waitForURL(/\/dashboard/);
+        }
+        await expect(page).toHaveURL(/\/dashboard/);
+    });
+
+    test('passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)', async ({ page }, info) => {
+        await page.addInitScript(() => {
+            Object.defineProperty(window, 'PublicKeyCredential', { value: undefined, configurable: true });
+        });
+
+        // CA-20: /login sin botón y con aviso.
+        await page.goto('/login');
+        await expect(page.getByRole('button', { name: 'Entrar con passkey' })).toHaveCount(0);
+        await expect(page.getByText('Las passkeys requieren HTTPS')).toBeVisible();
+        await shot(page, info, 'e2e-07-login-con-aviso');
+        await expectNoOverflow(page);
+
+        // El login con contraseña funciona igual.
+        await page.getByLabel('Correo electrónico').fill(user.email);
+        await page.getByLabel('Contraseña').fill(user.password);
+        await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+        await page.waitForURL(/\/dashboard/);
+
+        // Perfil: ni tarjeta de passkeys ni botones; solo el aviso.
+        await page.goto('/profile');
+        await expect(page.getByRole('heading', { name: 'Passkeys', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /Añadir (otra )?passkey/ })).toHaveCount(0);
+        await expect(page.getByText('Las passkeys requieren HTTPS')).toBeVisible();
+        await shot(page, info, 'e2e-07-perfil-con-aviso');
+        await expectNoOverflow(page);
     });
 });

@@ -212,7 +212,13 @@ export function wrongTotp(secret: string): string {
 // Autenticador virtual de WebAuthn (Chromium, CDP). Con residente + verificación de usuario, igual que una passkey real.
 // ---------------------------------------------------------------------------------------------------------------
 
-export type VirtualAuthenticator = { id: string; credentials: () => Promise<number>; remove: () => Promise<void> };
+export type VirtualAuthenticator = {
+    id: string;
+    credentials: () => Promise<number>;
+    /** Con `false` el autenticador deja de contestar solo (para que otro autenticador de la misma página sea el que responda). */
+    respond: (enabled: boolean) => Promise<void>;
+    remove: () => Promise<void>;
+};
 
 export async function virtualAuthenticator(context: BrowserContext, page: Page): Promise<VirtualAuthenticator> {
     const cdp = await context.newCDPSession(page);
@@ -230,6 +236,9 @@ export async function virtualAuthenticator(context: BrowserContext, page: Page):
     return {
         id: authenticatorId,
         credentials: async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length,
+        respond: async (enabled: boolean) => {
+            await cdp.send('WebAuthn.setAutomaticPresenceSimulation', { authenticatorId, enabled });
+        },
         remove: async () => {
             await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
         },

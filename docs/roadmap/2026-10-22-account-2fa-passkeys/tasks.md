@@ -33,8 +33,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
 | Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
-| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 2 | 6 | 33% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **16** | **20** | **80%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 3 | 6 | 50% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **17** | **20** | **85%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -586,8 +586,8 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-17 — E2E de passkeys con el autenticador virtual de Chromium
 
 - **Descripción**: Bloque de passkeys de `security.spec.ts` con CDP `WebAuthn.addVirtualAuthenticator` (`hasResidentKey`, `hasUserVerification`, `isUserVerified`): alta, segunda passkey, renombrado, borrado, login sin contraseña ni reto, passkey borrada y aviso de contexto no seguro.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las pruebas automáticas comprueban ya el alta, el renombrado y el borrado de passkeys, la entrada sin contraseña ni código y el aviso cuando el navegador no admite passkeys.
+- **Estado**: completado
 - **Tiempo humano**: est. 6,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.89h · real —
 - **Supervisión**: est. 0.22h (≈25 % IA) · real —
@@ -599,17 +599,19 @@ Checklist firmada (orquestador, 2026-10-22):
 - **Verificación**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "passkey"` → verde en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] CA-13..CA-17 recorridos en la UI real con autenticador virtual
-- [ ] CA-18: tras borrar la passkey, el login con ella falla con el mensaje neutro
-- [ ] CA-20: con WebAuthn deshabilitado en el contexto no hay controles y sale el aviso
-- [ ] El usuario con 2FA entra con passkey sin ver el reto
+- [x] CA-13..CA-17 recorridos en la UI real con autenticador virtual
+- [x] CA-18: tras borrar la passkey, el login con ella falla con el mensaje neutro
+- [x] CA-20: con WebAuthn deshabilitado en el contexto no hay controles y sale el aviso
+- [x] El usuario con 2FA entra con passkey sin ver el reto
 
 **Subtareas**
-- [ ] Alta, renombrado y borrado
-- [ ] Login con passkey (con y sin 2FA)
-- [ ] Escenario sin WebAuthn
+- [x] Alta, renombrado y borrado
+- [x] Login con passkey (con y sin 2FA)
+- [x] Escenario sin WebAuthn
 
-**Notas**: CA-19 (passkey ajena → 404) queda cubierto por Pest en T-10; no se duplica en E2E.
+**Notas**: CA-19 (passkey ajena → 404) queda cubierto por Pest en T-10; no se duplica en E2E. Desviaciones: (1) la segunda passkey usa un segundo autenticador virtual y el primero deja de contestar (`respond(false)`) mientras se registra; el duplicado reactiva solo el primero. (2) Los tests de botón desactivan el autocompletado condicional (`isConditionalMediationAvailable = false`) para ser deterministas; un test aparte admite ambos caminos (entra sola por autofill o con el botón). (3) CA-20 se simula con un script de inicio que deja `PublicKeyCredential` indefinido (127.0.0.1 también es contexto seguro, así que no sirve para ese caso). (4) El nombre de >100 caracteres se prueba quitando el `maxlength` del campo para llegar al servidor. (5) El borrado desde una sesión iniciada con passkey pasa por la confirmación de contraseña previa, como en el diseño.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "passkey"` → 12 passed (4 escenarios × desktop, mobile y mobile-360; repetido 2 veces, estable); el usuario con 2FA entra con passkey sin visitar `/two-factor-challenge`; passkey borrada → «No se pudo completar…» sin revelar la cuenta; `npx tsc --noEmit -p .` → 0 errores.
+
 
 ### T-18 — axe y desbordamiento en Login, reto y Perfil → Seguridad
 

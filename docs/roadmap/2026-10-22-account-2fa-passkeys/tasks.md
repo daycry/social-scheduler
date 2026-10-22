@@ -79,8 +79,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-02 — TotpService: secreto, QR SVG, verificación ±1 con antirreplay y códigos con hash
 
 - **Descripción**: Crea `App\Services\TwoFactor\TotpService` sobre `google2fa`: genera el secreto y el QR SVG (bacon), verifica con ventana ±1 con `verifyKeyNewer` y persiste el último paso en `two_factor_last_used_at`, y genera y consume los 8 códigos de recuperación guardados con hash, uno por código (decisión 2 de §4 del diseño).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Ya se pueden generar secretos y códigos QR de doble factor, validar los códigos de la app y usar códigos de recuperación de un solo uso.
+- **Estado**: completado
 - **Tiempo humano**: est. 5,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.64h · real —
 - **Supervisión**: est. 0.16h (≈25 % IA) · real —
@@ -91,17 +91,19 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Unit/TotpServiceTest.php` → todos en verde (ventana ±1, rechazo de reutilización, 8 códigos, consumo único)
 
+- **Evidencia**: tests/Unit/TotpServiceTest.php: 7 passed (38 assertions): ventana ±1, antirreplay, 8 códigos con hash, consumo único, sin logs. Nota: verifyKeyNewer devuelve true (no el paso) con oldTimestamp null, se pasa 0; reclamo del paso con UPDATE condicional atómico; two_factor_recovery_codes = array JSON de hashes bcrypt.
+
 **Criterios de aceptación**
-- [ ] Un código válido de la ventana actual y de ±1 paso se acepta; fuera de la ventana se rechaza (CA-05)
-- [ ] El mismo código aceptado una vez se rechaza la segunda vez dentro de su ventana (CA-07; antirreplay en columna, no en cache)
-- [ ] Se generan 8 códigos; en BD solo hay hashes y el texto en claro se devuelve una única vez (CA-01, CA-10)
-- [ ] Consumir un código de recuperación lo invalida y devuelve cuántos quedan (CA-09)
-- [ ] Ninguna cadena de secreto, TOTP o código se escribe en el log
+- [x] Un código válido de la ventana actual y de ±1 paso se acepta; fuera de la ventana se rechaza (CA-05)
+- [x] El mismo código aceptado una vez se rechaza la segunda vez dentro de su ventana (CA-07; antirreplay en columna, no en cache)
+- [x] Se generan 8 códigos; en BD solo hay hashes y el texto en claro se devuelve una única vez (CA-01, CA-10)
+- [x] Consumir un código de recuperación lo invalida y devuelve cuántos quedan (CA-09)
+- [x] Ninguna cadena de secreto, TOTP o código se escribe en el log
 
 **Subtareas**
-- [ ] `generateSecret()`, `qrSvg()`, `verify()`, `generateRecoveryCodes()`, `consumeRecoveryCode()`
-- [ ] Test que calcula el TOTP con el propio `Google2FA` y el secreto conocido
-- [ ] Test de log con `Log::spy()` sin secretos
+- [x] `generateSecret()`, `qrSvg()`, `verify()`, `generateRecoveryCodes()`, `consumeRecoveryCode()`
+- [x] Test que calcula el TOTP con el propio `Google2FA` y el secreto conocido
+- [x] Test de log con `Log::spy()` sin secretos
 
 **Notas**: Código de seguridad propio: pasa por la revisión de T-07.
 

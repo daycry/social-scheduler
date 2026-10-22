@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Profile\PasskeyController;
 use App\Http\Controllers\Profile\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
@@ -71,6 +72,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('pending', [TwoFactorController::class, 'cancel'])->name('cancel');
         Route::delete('/', [TwoFactorController::class, 'destroy'])->middleware('throttle:two-factor-manage')->name('disable');
         Route::post('recovery-codes', [TwoFactorController::class, 'regenerate'])->middleware('throttle:two-factor-manage')->name('recovery-codes');
+    });
+
+    // Gestion de passkeys (perfil): tras confirmar la contrasena. `id` (no `passkey`) para esquivar el binding global del paquete.
+    Route::middleware(['password.confirm', 'throttle:passkey-manage'])->prefix('user/passkeys')->name('passkeys.')->group(function () {
+        Route::get('options', [PasskeyController::class, 'options'])->name('options');
+        Route::post('/', [PasskeyController::class, 'store'])->name('store');
+        Route::patch('{id}', [PasskeyController::class, 'update'])->whereNumber('id')->name('update');
+        Route::delete('{id}', [PasskeyController::class, 'destroy'])->whereNumber('id')->name('destroy');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

@@ -81,6 +81,8 @@ class AppServiceProvider extends ServiceProvider
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
         // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).
         RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute(10)->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
+        // Gestion de passkeys (perfil): contador propio por usuario, no compartido con el 2FA ni con el login.
+        RateLimiter::for('passkey-manage', fn (Request $request) => Limit::perMinute(20)->by('passkey-manage:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));
     }
 }

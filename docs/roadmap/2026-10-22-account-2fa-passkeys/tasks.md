@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 2 | 7 | 29% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 3 | 7 | 43% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **9** | **20** | **45%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **10** | **20** | **50%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -353,33 +353,34 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-10 — Gestión de passkeys del perfil: opciones, alta, renombrado y borrado
 
 - **Descripción**: `App\Http\Controllers\Profile\PasskeyController` con las URL que espera el cliente (`/user/passkeys/options`, `/user/passkeys`), `update` (renombrar, ≤100) y `destroy`. Las búsquedas van con `$request->user()->passkeys()->findOrFail()` (404 ante una ajena, CA-19). `excludeCredentials` y la unicidad en BD evitan duplicar el mismo autenticador.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Ya se pueden añadir, renombrar y borrar passkeys desde el perfil (con la contraseña confirmada); no se pueden tocar las de otra cuenta.
+- **Estado**: completado
 - **Tiempo humano**: est. 7,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.97h · real —
 - **Supervisión**: est. 0.24h (≈25 % IA) · real —
 - **Previsión IA**: 265k in / 26k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Profile/PasskeyController.php`, `app/Http/Requests/Profile/PasskeyNameRequest.php`, `routes/auth.php`, `tests/Feature/Auth/PasskeyManagementTest.php`
+- **Archivos**: `app/Http/Controllers/Profile/PasskeyController.php`, `app/Http/Requests/Profile/PasskeyNameRequest.php`, `routes/auth.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/PasskeyManagementTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=PasskeyManagement` → CA-13..CA-16 y CA-19 en verde
   - `php artisan route:list --path=user/passkeys` → rutas con `auth` y `password.confirm`
 
 **Criterios de aceptación**
-- [ ] CA-13: el alta con nombre aparece en la lista y audita `auth.passkey.registered`
-- [ ] CA-14: dos passkeys conviven; registrar de nuevo el mismo autenticador se rechaza
-- [ ] CA-15: renombrar actualiza el nombre y audita `auth.passkey.renamed`; nombre vacío o de más de 100 caracteres se rechaza
-- [ ] CA-16: borrar tras confirmar quita la passkey, deja de servir para entrar y audita `auth.passkey.deleted`
-- [ ] CA-19: renombrar o borrar una passkey de otro usuario devuelve 404 y no la altera
+- [x] CA-13: el alta con nombre aparece en la lista y audita `auth.passkey.registered`
+- [x] CA-14: dos passkeys conviven; registrar de nuevo el mismo autenticador se rechaza
+- [x] CA-15: renombrar actualiza el nombre y audita `auth.passkey.renamed`; nombre vacío o de más de 100 caracteres se rechaza
+- [x] CA-16: borrar tras confirmar quita la passkey, deja de servir para entrar y audita `auth.passkey.deleted`
+- [x] CA-19: renombrar o borrar una passkey de otro usuario devuelve 404 y no la altera
 
 **Subtareas**
-- [ ] Rutas y Form Request del nombre
-- [ ] Aislamiento por usuario con `findOrFail` sobre la relación
-- [ ] Tests con la Action falsa vía gateway
+- [x] Rutas y Form Request del nombre
+- [x] Aislamiento por usuario con `findOrFail` sobre la relación
+- [x] Tests con la Action falsa vía gateway
 
-**Notas**: `password.confirm` responde 423 JSON a un `fetch`: la UI confirma antes de abrir el alta (riesgo del diseño, se resuelve en T-13).
+**Notas**: `password.confirm` responde 423 JSON a un `fetch`: la UI confirma antes de abrir el alta (riesgo del diseño, se resuelve en T-13). Desviaciones: el parámetro de ruta se llama `{id}` (no `{passkey}`) porque el paquete registra un `Route::bind('passkey')` global sin filtrar por usuario; la búsqueda es `user->passkeys()->findOrFail($id)`. Limitador con nombre propio `passkey-manage` (20/min por usuario, en AppServiceProvider) en lugar de `throttle:10,1` anónimo. Renombrado vía PATCH `/user/passkeys/{id}`. Fallo de alta se audita como `auth.passkey.register_failed` (extra). El nombre no se guarda en la auditoría. Alta duplicada = 422 con mensaje genérico.
+**Evidencia**: `php artisan test --compact --filter=PasskeyManagement` → 9 passed (100 assertions: CA-13..16, CA-19, 423 sin confirmar, limitador); `route:list --path=user/passkeys` → 4 rutas con Authenticate, RequirePassword y throttle:passkey-manage; pint OK.
 
 ### T-11 — Login con passkey: opciones y verificación como `guest`
 

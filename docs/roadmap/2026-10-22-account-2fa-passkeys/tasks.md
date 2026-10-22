@@ -15,7 +15,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | | |
 |---|---|
-| **Estado** | borrador |
+| **Estado** | en-progreso |
 | **Fecha** | 2026-10-22 |
 | **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
 | **Diseño** | [`design.md`](./design.md) — opción O1 (Breeze + google2fa propio + `laravel/passkeys`) |
@@ -42,13 +42,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI)
 
-**Estado**: borrador · **Estimado**: 37.0h · **Real**: — · **Coste est.**: 1.850 € + tokens (⚠️ verificar) · **Tokens est.**: 1.43M
+**Estado**: en-progreso · **Estimado**: 37.0h · **Real**: — · **Coste est.**: 1.850 € + tokens (⚠️ verificar) · **Tokens est.**: 1.43M
 
 ### T-01 — Dependencias, migración de 2FA y modelo User
 
 - **Descripción**: Instala `pragmarx/google2fa ^9.1` y `bacon/bacon-qr-code ^3.1`, añade la migración de las columnas de 2FA en `users` (con la siguiente fecha libre tras `2026_11_03_*`) y prepara el modelo `User` (cast `encrypted`, `#[Hidden]`, borrado en cascada). El login clásico queda intacto: es la red de seguridad de todo C-01.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Preparada la base de datos y el modelo de usuario para el doble factor; el login actual no cambia.
+- **Estado**: completado
 - **Tiempo humano**: est. 2,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.32h · real —
 - **Supervisión**: est. 0.08h (≈25 % IA) · real —
@@ -61,16 +61,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Unit/UserTwoFactorColumnsTest.php tests/Feature/Auth` → todo en verde (los 8 ficheros de Auth sin tocar)
   - `php artisan migrate:fresh --env=testing --no-interaction` → migra sin error y existen `two_factor_secret`, `two_factor_recovery_codes`, `two_factor_confirmed_at` y `two_factor_last_used_at`
 
+- **Evidencia**: tests Unit+Feature/Auth: 30 passed (77 assertions); migrate:fresh --env=testing OK y migrate local OK, 4 columnas two_factor_* presentes. Nota: two_factor_last_used_at es unsignedBigInteger (paso TOTP), no timestamp; casts extra recovery_codes=array y confirmed_at=datetime; helper hasTwoFactorEnabled().
+
 **Criterios de aceptación**
-- [ ] Las 4 columnas existen y la migración es posterior a `2026_11_03_*` (`ls database/migrations | tail -3`)
-- [ ] `$user->toArray()` no contiene `two_factor_secret` ni `two_factor_recovery_codes` (criterio de proceso, `#[Hidden]`)
-- [ ] Un `SELECT two_factor_secret FROM users` tras guardar un secreto no devuelve el texto en claro (cast `encrypted`)
-- [ ] `tests/Feature/Auth/*` pasa sin modificar
+- [x] Las 4 columnas existen y la migración es posterior a `2026_11_03_*` (`ls database/migrations | tail -3`)
+- [x] `$user->toArray()` no contiene `two_factor_secret` ni `two_factor_recovery_codes` (criterio de proceso, `#[Hidden]`)
+- [x] Un `SELECT two_factor_secret FROM users` tras guardar un secreto no devuelve el texto en claro (cast `encrypted`)
+- [x] `tests/Feature/Auth/*` pasa sin modificar
 
 **Subtareas**
-- [ ] `composer require pragmarx/google2fa:^9.1 bacon/bacon-qr-code:^3.1`
-- [ ] Migración nullable con los nombres de columna de Fortify (reversibilidad del diseño)
-- [ ] Cast `encrypted`, `#[Hidden]` y tests de ocultación y cifrado
+- [x] `composer require pragmarx/google2fa:^9.1 bacon/bacon-qr-code:^3.1`
+- [x] Migración nullable con los nombres de columna de Fortify (reversibilidad del diseño)
+- [x] Cast `encrypted`, `#[Hidden]` y tests de ocultación y cifrado
 
 **Notas**: Si `2026_11_04_*` ya existe al implementar, usar la siguiente fecha libre (§7 del diseño).
 

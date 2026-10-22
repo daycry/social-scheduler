@@ -2,11 +2,20 @@
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Notifications\PasskeyAdded;
 use App\Services\Passkeys\PasskeyFailure;
 use App\Services\Passkeys\PasskeyGateway;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
+use Laravel\Passkeys\Actions\StorePasskey;
+use Laravel\Passkeys\Passkey;
 use Tests\Support\FakePasskeys;
+use Webauthn\PublicKeyCredential;
+use Webauthn\PublicKeyCredentialCreationOptions;
 
 beforeEach(fn () => FakePasskeys::bind());
 
@@ -161,4 +170,145 @@ test('PasskeyManagement: la gestion tiene su propio limitador por usuario', func
         $this->getJson('/user/passkeys/options')->assertOk();
     }
     $this->getJson('/user/passkeys/options')->assertStatus(429);
+});
+
+test('PasskeyManagement P5: un {id} que desborda el entero es un 404, no un 500', function () {
+    confirmedPasskeyUser();
+    $huge = '99999999999999999999999';
+
+    $this->patch("/user/passkeys/{$huge}", ['name' => 'X'])->assertNotFound();
+    $this->deleteJson("/user/passkeys/{$huge}")->assertNotFound();
+    $this->delete('/user/passkeys/9223372036854775807')->assertNotFound();
+});
+
+test('PasskeyManagement P7: dar de alta una passkey avisa por correo con nombre, fecha e IP aproximada', function () {
+    Notification::fake();
+    $user = confirmedPasskeyUser();
+
+    registerPasskey('Portátil de casa', 'cred-mail')->assertCreated();
+
+    Notification::assertSentTo($user, PasskeyAdded::class, function (PasskeyAdded $n) use ($user) {
+        $mail = $n->toMail($user);
+        $text = implode(' ', $mail->introLines);
+
+        return $n->via($user) === ['mail']
+            && str_contains($text, 'Portátil de casa')
+            && str_contains($text, now()->format('d/m/Y'))
+            && str_contains($text, '127.0.0.x')
+            && $mail->actionUrl === route('profile.edit');
+    });
+});
+
+test('PasskeyManagement P7: un alta rechazada no avisa por correo', function () {
+    Notification::fake();
+    confirmedPasskeyUser();
+    registerPasskey('A', 'misma')->assertCreated();
+    Notification::assertCount(1);
+
+    registerPasskey('B', 'misma')->assertStatus(422);
+
+    Notification::assertCount(1);
+});
+
+test('PasskeyManagement P7: la IP del aviso se muestra aproximada y el nombre no inyecta marcado', function () {
+    expect(PasskeyAdded::maskIp('203.0.113.77'))->toBe('203.0.113.x')
+        ->and(PasskeyAdded::maskIp('2001:db8:85a3:8d3:1319:8a2e:370:7348'))->toBe('2001:db8:85a3:8d3::x')
+        ->and(PasskeyAdded::maskIp(null))->toBe('desconocida')
+        ->and(PasskeyAdded::maskIp('no-es-una-ip'))->toBe('desconocida');
+
+    $mail = (new PasskeyAdded('[click](http://x) <b>hola</b>', '01/01/2027 10:00', '203.0.113.5'))->toMail(User::factory()->make());
+    expect(implode(' ', $mail->introLines))->not->toContain('](')->not->toContain('<b>');
+});
+
+test('PasskeyManagement P12: un credential ID de 1023 bytes (1364 caracteres en base64url) se guarda y sirve para entrar', function () {
+    $user = confirmedPasskeyUser();
+    $raw = random_bytes(1023);
+
+    $this->getJson('/user/passkeys/options')->assertOk();
+    $this->postJson('/user/passkeys', [
+        'name' => 'ID largo',
+        'credential' => FakePasskeys::credential($raw, 'attestation'),
+    ])->assertCreated();
+
+    $stored = $user->passkeys()->sole()->credential_id;
+    expect(strlen($stored))->toBe(1364)->and($stored)->toBe(rtrim(strtr(base64_encode($raw), '+/', '-_'), '='));
+
+    auth()->logout();
+    $gateway = app(PasskeyGateway::class);
+    $gateway->loginOptions();
+    expect($gateway->authenticate(FakePasskeys::credential($raw))->user->is($user))->toBeTrue();
+});
+
+test('PasskeyManagement P1: un error inesperado en el alta queda en el log y el mensaje no culpa al dispositivo', function () {
+    $user = confirmedPasskeyUser();
+    app()->bind(StorePasskey::class, fn () => new class extends StorePasskey
+    {
+        public function __invoke(Authenticatable $user, string $name, PublicKeyCredential $credential, PublicKeyCredentialCreationOptions $options): Passkey
+        {
+            throw new QueryException('mysql', 'insert into passkeys (credential_id) values (?)', ['SECRETO-DE-LA-CREDENCIAL'], new Exception('SQLSTATE[HY000]'));
+        }
+    });
+    Log::spy();
+
+    $response = registerPasskey('X', 'cred-err')->assertStatus(500)->assertJsonPath('code', 'server_error');
+
+    expect($response->json('message'))->toContain('problema del servidor')->not->toContain('ya esté registrado');
+    Log::shouldHaveReceived('error')->once()->withArgs(fn ($message, $context) => $context['exception'] === QueryException::class
+        && ! str_contains(json_encode($context), 'SECRETO-DE-LA-CREDENCIAL')
+        && $context['user_id'] === $user->id);
+    expect($user->passkeys()->count())->toBe(0);
+});
+
+test('PasskeyManagement P10: una attestation de otro origen se rechaza con el aviso de dominio', function () {
+    confirmedPasskeyUser();
+    $this->getJson('/user/passkeys/options')->assertOk();
+    $credential = FakePasskeys::credential('cred-dom', 'attestation');
+
+    config(['passkeys.allowed_origins' => ['https://otro.example']]);
+
+    $this->postJson('/user/passkeys', ['name' => 'X', 'credential' => $credential])->assertStatus(422)
+        ->assertJsonPath('code', 'invalid_domain')
+        ->assertJsonPath('message', 'Esta passkey no es válida en este dominio.');
+});
+
+test('PasskeyManagement P8: el reto de alta caduca en el servidor', function () {
+    confirmedPasskeyUser();
+    $this->getJson('/user/passkeys/options')->assertOk();
+    $credential = FakePasskeys::credential('cred-ttl', 'attestation');
+
+    $this->travel(301)->seconds();
+
+    $this->postJson('/user/passkeys', ['name' => 'X', 'credential' => $credential])->assertStatus(422)
+        ->assertJsonPath('message', 'La operación con la passkey caducó. Vuelve a intentarlo.');
+});
+
+/** Pide las opciones de alta directamente al gateway (sin HTTP: el entorno de produccion toca estado estatico de peticion). */
+function registrationOptionsInEnv(string $env, bool $explicitSecret): void
+{
+    $user = User::factory()->create();
+    config(['passkeys.user_handle_secret_explicit' => $explicitSecret]);
+    app()['env'] = $env;
+
+    try {
+        app(PasskeyGateway::class)->registrationOptions($user);
+    } finally {
+        app()['env'] = 'testing';
+    }
+}
+
+test('PasskeyManagement P11: en produccion sin PASSKEYS_USER_HANDLE_SECRET se avisa en el log', function () {
+    Log::spy();
+
+    registrationOptionsInEnv('production', explicitSecret: false);
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn ($message) => str_contains($message, 'PASSKEYS_USER_HANDLE_SECRET'));
+});
+
+test('PasskeyManagement P11: con el secreto definido, o fuera de produccion, no hay aviso', function () {
+    Log::spy();
+
+    registrationOptionsInEnv('production', explicitSecret: true);
+    registrationOptionsInEnv('testing', explicitSecret: false);
+
+    Log::shouldNotHaveReceived('warning');
 });

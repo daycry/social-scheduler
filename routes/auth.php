@@ -34,11 +34,10 @@ Route::middleware('guest')->group(function () {
     Route::post('two-factor-challenge', [TwoFactorChallengeController::class, 'store'])
         ->name('two-factor.challenge.store');
 
-    // Login con passkey: sustituye a contrasena + 2FA. Limitador propio (10/min por IP, compartido por las dos URL).
-    Route::middleware('throttle:passkey-login')->group(function () {
-        Route::get('passkeys/login/options', [PasskeyLoginController::class, 'options'])->name('passkeys.login.options');
-        Route::post('passkeys/login', [PasskeyLoginController::class, 'store'])->name('passkeys.login');
-    });
+    // Login con passkey: sustituye a contrasena + 2FA. Limitadores separados por IP: el GET de opciones (lo pide el
+    // autofill en cada carga de Login) con holgura, y el envio de la assertion (10/min) para frenar la fuerza bruta.
+    Route::get('passkeys/login/options', [PasskeyLoginController::class, 'options'])->middleware('throttle:passkey-login-options')->name('passkeys.login.options');
+    Route::post('passkeys/login', [PasskeyLoginController::class, 'store'])->middleware('throttle:passkey-login')->name('passkeys.login');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -81,13 +80,13 @@ Route::middleware('auth')->group(function () {
         Route::post('recovery-codes', [TwoFactorController::class, 'regenerate'])->middleware('throttle:two-factor-manage')->name('recovery-codes');
     });
 
-    // Gestion de passkeys (perfil): tras confirmar la contrasena. `id` (no `passkey`) para esquivar el binding global del paquete.
+    // Gestion de passkeys (perfil): tras confirmar la contrasena. {id} de 1 a 18 digitos (mas desborda int: 404, no 500). `id` (no `passkey`) para esquivar el binding global del paquete.
     Route::middleware(['password.confirm', 'throttle:passkey-manage'])->prefix('user/passkeys')->name('passkeys.')->group(function () {
         Route::get('confirm', [PasskeyController::class, 'confirm'])->name('confirm');
         Route::get('options', [PasskeyController::class, 'options'])->name('options');
         Route::post('/', [PasskeyController::class, 'store'])->name('store');
-        Route::patch('{id}', [PasskeyController::class, 'update'])->whereNumber('id')->name('update');
-        Route::delete('{id}', [PasskeyController::class, 'destroy'])->whereNumber('id')->name('destroy');
+        Route::patch('{id}', [PasskeyController::class, 'update'])->where('id', '[0-9]{1,18}')->name('update');
+        Route::delete('{id}', [PasskeyController::class, 'destroy'])->where('id', '[0-9]{1,18}')->name('destroy');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

@@ -2,6 +2,8 @@
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Passkeys\PasskeyGateway;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
@@ -10,6 +12,7 @@ use Tests\Support\FakePasskeys;
 beforeEach(function () {
     FakePasskeys::bind();
     RateLimiter::clear('passkey-login:127.0.0.1');
+    RateLimiter::clear('passkey-login-options:127.0.0.1');
 });
 
 /** Pide las opciones (guarda el reto en sesion) y envia la assertion de la credencial dada. */
@@ -28,14 +31,16 @@ function userWithTwoFactor(): User
     return $user;
 }
 
-test('PasskeyLogin: las rutas son guest y usan su limitador propio de 10 por minuto', function () {
-    foreach (['passkeys.login.options', 'passkeys.login'] as $name) {
-        expect(Route::getRoutes()->getByName($name)->gatherMiddleware())->toContain('guest')->toContain('throttle:passkey-login');
+test('PasskeyLogin: las rutas son guest y cada una usa su limitador por IP (envio 10/min, opciones 30/min)', function () {
+    foreach (['passkeys.login.options' => 'passkey-login-options', 'passkeys.login' => 'passkey-login'] as $name => $limiter) {
+        expect(Route::getRoutes()->getByName($name)->gatherMiddleware())->toContain('guest')->toContain("throttle:{$limiter}");
     }
 
-    // El limitador es de 10/min y por IP.
-    $limit = RateLimiter::limiter('passkey-login')(Request::create('/', 'GET', server: ['REMOTE_ADDR' => '203.0.113.9']));
-    expect($limit->maxAttempts)->toBe(10)->and($limit->key)->toBe('passkey-login:203.0.113.9');
+    $request = Request::create('/', 'GET', server: ['REMOTE_ADDR' => '203.0.113.9']);
+    $send = RateLimiter::limiter('passkey-login')($request);
+    $options = RateLimiter::limiter('passkey-login-options')($request);
+    expect($send->maxAttempts)->toBe(10)->and($send->key)->toBe('passkey-login:203.0.113.9')
+        ->and($options->maxAttempts)->toBe(30)->and($options->key)->toBe('passkey-login-options:203.0.113.9');
 });
 
 test('PasskeyLogin CA-17: entra al dashboard sin contrasena ni reto 2FA y audita auth.passkey.login', function () {
@@ -96,7 +101,8 @@ test('PasskeyLogin CA-18: passkey borrada o desconocida no entra, con el mismo m
     $rows = AuditLog::where('action', 'auth.passkey.login_failed')->orderBy('id')->get();
     expect($rows)->toHaveCount(2)
         ->and($rows[0]->user_id)->toBeNull()->and($rows[0]->detail)->toBe('unknown_credential')
-        ->and($rows[1]->user_id)->toBe($user2->id)->and($rows[1]->detail)->toBe('verification_failed')
+        // P14: una firma que no verifica no se atribuye al dueño de la credencial presentada.
+        ->and($rows[1]->user_id)->toBeNull()->and($rows[1]->detail)->toBe('verification_failed')
         ->and($rows->every(fn ($r) => $r->outcome === 'denied' && $r->channel === 'web'))->toBeTrue();
     expect(AuditLog::where('action', 'auth.passkey.login')->count())->toBe(0);
 });
@@ -148,19 +154,113 @@ test('PasskeyLogin: un usuario con sesion no usa estas rutas (guest)', function 
     $this->actingAs(User::factory()->create())->getJson('/passkeys/login/options')->assertRedirect();
 });
 
-test('PasskeyLogin CA-21: la peticion 11 en un minuto desde la misma IP recibe 429', function () {
+test('PasskeyLogin CA-21: el envio numero 11 en un minuto desde la misma IP recibe 429', function () {
+    $this->getJson('/passkeys/login/options')->assertOk();
+
     for ($i = 1; $i <= 10; $i++) {
-        $this->getJson('/passkeys/login/options')->assertOk();
+        $this->postJson('/passkeys/login', ['credential' => FakePasskeys::credential('x')])->assertStatus(422);
     }
 
-    $this->getJson('/passkeys/login/options')->assertStatus(429);
-    // El contador es comun a las dos URL.
     $this->postJson('/passkeys/login', ['credential' => FakePasskeys::credential('x')])->assertStatus(429);
 });
 
-test('PasskeyLogin: el login con contrasena no consume el limitador de passkeys', function () {
-    for ($i = 1; $i <= 10; $i++) {
+test('PasskeyLogin P2: el autofill (GET de opciones) no gasta el cupo del envio, y tiene el suyo de 30/min', function () {
+    for ($i = 1; $i <= 30; $i++) {
         $this->getJson('/passkeys/login/options')->assertOk();
+    }
+    $this->getJson('/passkeys/login/options')->assertStatus(429);
+
+    // El envio sigue disponible (no 429): su contador es otro.
+    $user = User::factory()->create();
+    FakePasskeys::seed($user, 'Mia', 'cred-p2');
+    $this->postJson('/passkeys/login', ['credential' => FakePasskeys::credential('cred-p2')])->assertOk();
+});
+
+test('PasskeyLogin P3: autofill y boton piden opciones a la vez y ninguno invalida al otro (reto por ceremonia)', function () {
+    $user = User::factory()->create();
+    FakePasskeys::seed($user, 'Mia', 'cred-p3');
+
+    $autofill = $this->getJson('/passkeys/login/options')->json('options.challenge');
+    $button = $this->getJson('/passkeys/login/options')->json('options.challenge');
+    expect($autofill)->not->toBe($button);
+
+    // El boton entra primero con su reto; el del autofill sigue vigente en la sesion (aunque esta se regenera al entrar).
+    expect(array_keys(session('passkey.verification_options')))->toBe([$autofill, $button]);
+    $this->postJson('/passkeys/login', ['credential' => FakePasskeys::credential('cred-p3', challenge: $button)])->assertOk();
+    $this->assertAuthenticatedAs($user);
+});
+
+test('PasskeyLogin P3: el reto del autofill sigue valiendo despues de consumir el del boton', function () {
+    $user = User::factory()->create();
+    FakePasskeys::seed($user, 'Mia', 'cred-p3b');
+    $gateway = app(PasskeyGateway::class);
+
+    $autofill = $gateway->loginOptions()['challenge'];
+    $button = $gateway->loginOptions()['challenge'];
+    $gateway->authenticate(FakePasskeys::credential('cred-p3b', challenge: $button));
+
+    expect(array_keys(session('passkey.verification_options')))->toBe([$autofill]);
+    $gateway->authenticate(FakePasskeys::credential('cred-p3b', challenge: $autofill));
+});
+
+test('PasskeyLogin P3: la sesion solo guarda un punado de ceremonias vigentes', function () {
+    for ($i = 1; $i <= 8; $i++) {
+        $this->getJson('/passkeys/login/options')->assertOk();
+    }
+
+    expect(session('passkey.verification_options'))->toHaveCount(5);
+});
+
+test('PasskeyLogin P8: un reto caducado en el servidor no vale aunque la sesion siga viva', function () {
+    $user = User::factory()->create();
+    FakePasskeys::seed($user, 'Mia', 'cred-p8');
+    $this->getJson('/passkeys/login/options')->assertOk();
+    $credential = FakePasskeys::credential('cred-p8');
+
+    $this->travel(301)->seconds();
+    $this->postJson('/passkeys/login', ['credential' => $credential])->assertStatus(422);
+    $this->assertGuest();
+    expect(AuditLog::where('action', 'auth.passkey.login_failed')->sole()->detail)->toBe('session_expired');
+
+    // Dentro del plazo si entra.
+    $this->travelBack();
+    $this->getJson('/passkeys/login/options')->assertOk();
+    $this->travel(290)->seconds();
+    $this->postJson('/passkeys/login', ['credential' => FakePasskeys::credential('cred-p8')])->assertOk();
+});
+
+test('PasskeyLogin P6: una attestation enviada al login se audita como invalid_response, no como credencial desconocida', function () {
+    $user = User::factory()->create();
+    FakePasskeys::seed($user, 'Mia', 'cred-p6');
+    $this->getJson('/passkeys/login/options')->assertOk();
+    $attestation = FakePasskeys::credential('cred-p6', 'attestation', challenge: array_key_first(session('passkey.verification_options')));
+
+    $this->postJson('/passkeys/login', ['credential' => $attestation])->assertStatus(422);
+
+    $row = AuditLog::where('action', 'auth.passkey.login_failed')->sole();
+    expect($row->detail)->toBe('invalid_response')->and($row->user_id)->toBeNull();
+});
+
+test('PasskeyLogin P1: un error inesperado queda en el log sin material de la credencial y no culpa al dispositivo', function () {
+    $user = User::factory()->create();
+    FakePasskeys::seed($user, 'Mia', 'cred-p1');
+    FakePasskeys::$verifyFailure = 'server';
+    Log::spy();
+
+    passkeyLogin('cred-p1')->assertStatus(500)
+        ->assertJsonPath('code', 'server_error')
+        ->assertJsonPath('message', 'No se pudo completar la passkey por un problema del servidor; inténtalo más tarde.');
+
+    Log::shouldHaveReceived('error')->once()->withArgs(fn ($message, $context) => str_contains($message, 'Passkeys')
+        && $context['exception'] === RuntimeException::class
+        && ! str_contains(json_encode($context), 'cred-p1'));
+    $this->assertGuest();
+});
+
+test('PasskeyLogin: el login con contrasena no consume el limitador de passkeys', function () {
+    $this->getJson('/passkeys/login/options')->assertOk();
+    for ($i = 1; $i <= 10; $i++) {
+        $this->postJson('/passkeys/login', ['credential' => FakePasskeys::credential('x')])->assertStatus(422);
     }
     $user = User::factory()->create();
 

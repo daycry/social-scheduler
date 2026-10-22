@@ -31,15 +31,23 @@ beforeEach(function () {
     config(['passkeys.relying_party_id' => $vector['rpId'], 'passkeys.allowed_origins' => [$vector['origin']]]);
 });
 
-/** Deja en la sesion las opciones de alta tal y como las guardaria PasskeyGateway. */
-function seedRegistrationOptions(array $options): void
+/**
+ * Deja en la sesion las opciones de alta tal y como las guardaria PasskeyGateway: por reto. `$forChallenge` (base64url)
+ * es el reto bajo el que se guardan; por defecto el de las propias opciones (si difiere del de la respuesta, el
+ * gateway entrega estas opciones a una respuesta de otro reto y la libreria debe rechazarlo).
+ */
+function seedRegistrationOptions(array $options, ?string $forChallenge = null): void
 {
-    session()->put('passkey.registration_options', WebAuthn::toJson(WebAuthn::fromJson(json_encode($options), PublicKeyCredentialCreationOptions::class)));
+    session()->put('passkey.registration_options', [
+        $forChallenge ?? $options['challenge'] => ['at' => time(), 'options' => WebAuthn::toJson(WebAuthn::fromJson(json_encode($options), PublicKeyCredentialCreationOptions::class))],
+    ]);
 }
 
-function seedVerificationOptions(array $options): void
+function seedVerificationOptions(array $options, ?string $forChallenge = null): void
 {
-    session()->put('passkey.verification_options', WebAuthn::toJson(WebAuthn::fromJson(json_encode($options), PublicKeyCredentialRequestOptions::class)));
+    session()->put('passkey.verification_options', [
+        $forChallenge ?? $options['challenge'] => ['at' => time(), 'options' => WebAuthn::toJson(WebAuthn::fromJson(json_encode($options), PublicKeyCredentialRequestOptions::class))],
+    ]);
 }
 
 /** Alta real con el vector para $user; devuelve la respuesta. */
@@ -56,7 +64,7 @@ function registerVectorPasskey(User $user, string $name = 'Vector'): TestRespons
 function loginWithVector(int $index, ?int $optionsFrom = null): TestResponse
 {
     $vector = passkeyVector();
-    seedVerificationOptions($vector['assertions'][$optionsFrom ?? $index]['options']);
+    seedVerificationOptions($vector['assertions'][$optionsFrom ?? $index]['options'], $vector['assertions'][$index]['options']['challenge']);
 
     return test()->postJson('/passkeys/login', ['credential' => $vector['assertions'][$index]['credential']]);
 }
@@ -116,7 +124,8 @@ test('PasskeyCeremony: un reto distinto al de la assertion se rechaza', function
 
     $this->assertGuest();
     $row = AuditLog::where('action', 'auth.passkey.login_failed')->sole();
-    expect($row->detail)->toBe('verification_failed')->and($row->user_id)->toBe($user->id);
+    // Falla antes de la firma: la credencial solo estaba «presentada», no se atribuye a su dueño (P14).
+    expect($row->detail)->toBe('verification_failed')->and($row->user_id)->toBeNull();
     expect($user->passkeys()->sole()->credential['counter'])->toBe(1);
 });
 
@@ -124,10 +133,13 @@ test('PasskeyCeremony: un origen distinto al permitido se rechaza', function () 
     userWithVectorPasskey();
     config(['passkeys.allowed_origins' => ['http://localhost:9999']]);
 
-    loginWithVector(0)->assertStatus(422);
+    // P10: «otro dominio» tiene su codigo y su mensaje, y es el mismo exista o no la cuenta.
+    loginWithVector(0)->assertStatus(422)
+        ->assertJsonPath('code', 'invalid_domain')
+        ->assertJsonPath('message', 'Esta passkey no es válida en este dominio.');
 
     $this->assertGuest();
-    expect(AuditLog::where('action', 'auth.passkey.login_failed')->sole()->detail)->toBe('verification_failed');
+    expect(AuditLog::where('action', 'auth.passkey.login_failed')->sole()->detail)->toBe('invalid_domain');
 });
 
 test('PasskeyCeremony: un RP ID distinto se rechaza', function () {
@@ -136,10 +148,10 @@ test('PasskeyCeremony: un RP ID distinto se rechaza', function () {
 
     // El servidor pidio la ceremonia para otro dominio (RP ID), pero la assertion es de `localhost`.
     seedVerificationOptions([...$vector['assertions'][0]['options'], 'rpId' => 'metricool.test']);
-    $this->postJson('/passkeys/login', ['credential' => $vector['assertions'][0]['credential']])->assertStatus(422);
+    $this->postJson('/passkeys/login', ['credential' => $vector['assertions'][0]['credential']])->assertStatus(422)->assertJsonPath('code', 'invalid_domain');
 
     $this->assertGuest();
-    expect(AuditLog::where('action', 'auth.passkey.login_failed')->sole()->detail)->toBe('verification_failed');
+    expect(AuditLog::where('action', 'auth.passkey.login_failed')->sole()->detail)->toBe('invalid_domain');
 });
 
 test('PasskeyCeremony: el alta con otro origen, otro RP ID o otro reto se rechaza y no guarda nada', function () {
@@ -155,7 +167,7 @@ test('PasskeyCeremony: el alta con otro origen, otro RP ID o otro reto se rechaz
     $this->postJson('/user/passkeys', ['name' => 'X', 'credential' => $vector['registration']['credential']])->assertStatus(422);
 
     $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()]);
-    seedRegistrationOptions([...$vector['registration']['options'], 'challenge' => $vector['assertions'][0]['options']['challenge']]);
+    seedRegistrationOptions([...$vector['registration']['options'], 'challenge' => $vector['assertions'][0]['options']['challenge']], $vector['registration']['options']['challenge']);
     $this->postJson('/user/passkeys', ['name' => 'X', 'credential' => $vector['registration']['credential']])->assertStatus(422);
 
     expect($user->passkeys()->count())->toBe(0);

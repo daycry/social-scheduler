@@ -20,6 +20,7 @@ use App\Models\Brand;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -67,6 +68,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
+        // `php artisan about`: avisa si el handle de usuario de las passkeys cae en APP_KEY (ver config/passkeys.php).
+        AboutCommand::add('Passkeys', fn () => [
+            'RP ID' => config('passkeys.relying_party_id'),
+            'Handle secret' => config('passkeys.user_handle_secret_explicit') ? 'propio' : '<fg=yellow>sale de APP_KEY (define PASSKEYS_USER_HANDLE_SECRET)</>',
+        ]);
+
         // Passkeys (T-09): los eventos del paquete van a la auditoria (channel web), sin material de la credencial.
         Event::listen(PasskeyRegistered::class, [AuditPasskeyEvents::class, 'registered']);
         Event::listen(PasskeyVerified::class, [AuditPasskeyEvents::class, 'verified']);
@@ -81,8 +88,10 @@ class AppServiceProvider extends ServiceProvider
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
         // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).
         RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute(10)->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
-        // Login con passkey (guest): 10/min por IP, contador propio compartido por /options y el envio (CA-21).
+        // Login con passkey (guest), por IP y con contadores separados: el envio de la assertion (10/min, CA-21) y el GET de
+        // opciones (30/min: el autofill lo pide en cada carga de Login y no debe gastar el cupo del envio).
         RateLimiter::for('passkey-login', fn (Request $request) => Limit::perMinute(10)->by('passkey-login:'.$request->ip()));
+        RateLimiter::for('passkey-login-options', fn (Request $request) => Limit::perMinute(30)->by('passkey-login-options:'.$request->ip()));
         // Gestion de passkeys (perfil): contador propio por usuario, no compartido con el 2FA ni con el login.
         RateLimiter::for('passkey-manage', fn (Request $request) => Limit::perMinute(20)->by('passkey-manage:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));

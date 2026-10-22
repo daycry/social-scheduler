@@ -133,7 +133,8 @@ test('PasskeyGateway: los fallos se clasifican y llevan el dueno solo para la au
     expect($counter->reason)->toBe(PasskeyFailure::SIGN_COUNT_REGRESSION)->and($counter->userId)->toBe($user->id);
 
     $crypto = $fail('cred-c', 'crypto');
-    expect($crypto->reason)->toBe(PasskeyFailure::VERIFICATION_FAILED);
+    // P14: una firma que no verifica no se atribuye al dueño de la credencial presentada (solo el contador, tras la firma).
+    expect($crypto->reason)->toBe(PasskeyFailure::VERIFICATION_FAILED)->and($crypto->userId)->toBeNull();
 
     // El mensaje al cliente es el mismo en todos los casos.
     expect($unknown->getMessage())->toBe($counter->getMessage())->toBe($crypto->getMessage());

@@ -22,9 +22,17 @@ return [
         explode(',', (string) (env('WEBAUTHN_ORIGINS') ?: $appUrl)),
     ))),
 
-    // Secreto del que sale el user handle estable de cada usuario. Explicito en .env para que rotar APP_KEY no
-    // invalide las passkeys; si esta vacio cae en APP_KEY (comportamiento del paquete).
+    // Secreto del que sale el user handle de cada usuario al REGISTRAR una passkey. Si esta vacio cae en APP_KEY
+    // (comportamiento del paquete) y en produccion se avisa en el log y en `php artisan about`. Rotarlo (o rotar
+    // APP_KEY) NO invalida las passkeys ya registradas, porque el handle se guarda en su registro; solo cambia el
+    // handle de las nuevas.
     'user_handle_secret' => env('PASSKEYS_USER_HANDLE_SECRET') ?: config('app.key'),
+
+    // ¿Esta definido PASSKEYS_USER_HANDLE_SECRET? (para el aviso de produccion; no es un secreto).
+    'user_handle_secret_explicit' => filled(env('PASSKEYS_USER_HANDLE_SECRET')),
+
+    // Segundos que vale un reto en la sesion del servidor (el timeout de las opciones, 60 s, mas margen).
+    'challenge_ttl' => 300,
 
     // Milisegundos que tiene el usuario para completar el dialogo del navegador.
     'timeout' => 60000,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Profile;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\PasskeyNameRequest;
+use App\Notifications\PasskeyAdded;
 use App\Services\AuditLog;
 use App\Services\Passkeys\PasskeyFailure;
 use App\Services\Passkeys\PasskeyGateway;
@@ -52,8 +53,11 @@ class PasskeyController extends Controller
         } catch (PasskeyFailure $e) {
             $this->audit->record($request->user(), 'auth.passkey.register_failed', AuditLog::DENIED, 'user', $request->user()->id, $e->reason, 'web');
 
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json($e->payload(), $e->status());
         }
+
+        // Credencial que sustituye a contraseña + 2FA: se avisa por correo (nombre, fecha, IP aproximada).
+        $request->user()->notify(new PasskeyAdded($passkey->name, now()->format('d/m/Y H:i'), $request->ip()));
 
         return response()->json(['id' => $passkey->id, 'name' => $passkey->name], 201);
     }

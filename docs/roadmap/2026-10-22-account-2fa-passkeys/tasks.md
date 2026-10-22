@@ -179,8 +179,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-05 — Comando `user:two-factor-reset`, reset de contraseña con 2FA y MCP intacto
 
 - **Descripción**: Comando de operador que desactiva el 2FA de un usuario por email y lo audita (`auth.2fa.reset_by_operator`). Tests de regresión transversales: el reset de contraseña no abre sesión ni desactiva el 2FA (CA-11) y un usuario con 2FA sigue usando el MCP por API key sin reto (CA-22). No se tocan `routes/ai.php`, `McpGuard`, `config/sanctum.php` ni `ApiKeyController`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Soporte puede desactivar el doble factor de un usuario que perdió el móvil con un comando; el reset de contraseña y las claves del MCP no se ven afectados.
+- **Estado**: completado
 - **Tiempo humano**: est. 3,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.45h · real —
 - **Supervisión**: est. 0.11h (≈25 % IA) · real —
@@ -194,16 +194,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `git diff --stat -- routes/ai.php app/Http/Middleware/McpGuard.php config/sanctum.php app/Http/Controllers/ApiKeyController.php` → sin salida (no cambian)
   - `php artisan test --compact tests/Feature/Mcp` → en verde sin tocar esos tests
 
+- **Evidencia**: --filter='TwoFactorResetCommand|McpWithTwoFactor|PasswordReset': 11 passed (42 assertions); tests/Feature/Mcp: 43 passed sin tocar; git diff 7b44972 --stat de routes/ai.php, McpGuard, sanctum.php, ApiKeyController: sin salida.
+
 **Criterios de aceptación**
-- [ ] CA-11: tras el reset de contraseña con 2FA activo no hay sesión, el 2FA sigue activo y el siguiente login pasa por el reto
-- [ ] CA-12: `php artisan user:two-factor-reset {email}` deja el 2FA desactivado y audita `auth.2fa.reset_by_operator`; el usuario entra solo con contraseña
-- [ ] CA-22: `POST /mcp` con `Bearer` de un usuario con 2FA responde igual que sin 2FA, y una sesión a medio reto no autentica `/mcp`
-- [ ] El comando falla con mensaje claro si el email no existe
+- [x] CA-11: tras el reset de contraseña con 2FA activo no hay sesión, el 2FA sigue activo y el siguiente login pasa por el reto
+- [x] CA-12: `php artisan user:two-factor-reset {email}` deja el 2FA desactivado y audita `auth.2fa.reset_by_operator`; el usuario entra solo con contraseña
+- [x] CA-22: `POST /mcp` con `Bearer` de un usuario con 2FA responde igual que sin 2FA, y una sesión a medio reto no autentica `/mcp`
+- [x] El comando falla con mensaje claro si el email no existe
 
 **Subtareas**
-- [ ] Comando con confirmación y `--force`
-- [ ] Tests CA-11, CA-12 y CA-22
-- [ ] Comprobar que los ficheros del MCP no aparecen en el diff
+- [x] Comando con confirmación y `--force`
+- [x] Tests CA-11, CA-12 y CA-22
+- [x] Comprobar que los ficheros del MCP no aparecen en el diff
 
 **Notas**: —
 

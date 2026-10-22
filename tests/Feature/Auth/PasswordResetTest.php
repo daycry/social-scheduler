@@ -58,3 +58,30 @@ test('password can be reset with valid token', function () {
         return true;
     });
 });
+
+test('CA-11: el reset de contraseña con 2FA no abre sesion ni lo desactiva, y el siguiente login pasa por el reto', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $user->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP', 'two_factor_confirmed_at' => now()])->save();
+
+    $this->post('/forgot-password', ['email' => $user->email]);
+
+    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+        $this->post('/reset-password', [
+            'token' => $notification->token,
+            'email' => $user->email,
+            'password' => 'nueva-clave-123',
+            'password_confirmation' => 'nueva-clave-123',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
+
+        return true;
+    });
+
+    $this->assertGuest();
+    expect($user->fresh()->hasTwoFactorEnabled())->toBeTrue();
+
+    $this->post('/login', ['email' => $user->email, 'password' => 'nueva-clave-123'])
+        ->assertRedirect(route('two-factor.challenge'));
+    $this->assertGuest();
+});

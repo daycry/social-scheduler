@@ -110,8 +110,18 @@ class AppServiceProvider extends ServiceProvider
     /** IPv4 tal cual; IPv6 agrupada por su /64 (un cliente recibe un /64 entero y rotaria de direccion). */
     private static function ipKey(?string $ip): string
     {
-        $bin = $ip === null || ! str_contains($ip, ':') ? false : inet_pton($ip);
+        $bin = $ip === null || ! str_contains($ip, ':') ? false : @inet_pton($ip);
+        if ($bin === false) {
+            return (string) $ip;
+        }
+        // IPv4 mapeada (::ffff:a.b.c.d, Nginx en dual-stack) y loopback: la direccion entera, no su /64 a ceros.
+        if (str_starts_with($bin, str_repeat(chr(0), 10).chr(255).chr(255))) {
+            return inet_ntop(substr($bin, 12));
+        }
+        if ($bin === str_repeat(chr(0), 15).chr(1)) {
+            return '::1';
+        }
 
-        return $bin === false ? (string) $ip : bin2hex(substr($bin, 0, 8)).'/64';
+        return bin2hex(substr($bin, 0, 8)).'/64';
     }
 }

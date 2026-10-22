@@ -59,3 +59,13 @@ test('matchesRegistered: exacta y, en loopback, con puerto variable', function (
         ->and($policy->matchesRegistered($registered, 'https://claude.ai/api/mcp/auth_callback'))->toBeTrue()
         ->and($policy->matchesRegistered($registered, 'https://claude.com/api/mcp/auth_callback'))->toBeFalse();
 });
+
+test('rechaza separadores y puntos codificados que el destino normalizaria fuera del prefijo', function (string $uri) {
+    expect((new RedirectPolicy(['https://app.example/mcp']))->isAllowed($uri))->toBeFalse();
+})->with([
+    'https://app.example/mcp/x%2f..%2f..%2fadmin',
+    'https://app.example/mcp/x/..%2F..%2Fadmin',
+    'https://app.example/mcp/x%2f%2e%2e%2f%2e%2e%2fadmin',
+    'https://app.example/mcp/x%5c..%5c..%5cadmin',
+    'https://app.example/mcp/%252e%252e/admin',
+]);

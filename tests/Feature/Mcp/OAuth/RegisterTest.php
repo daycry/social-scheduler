@@ -124,3 +124,11 @@ test('OAuthRegister: el limite por IP agrupa un /64 de IPv6', function () {
 
     expect($a)->toBe($b)->and($key->invoke(null, '2001:db8:1:3::1'))->not->toBe($a)->and($key->invoke(null, '9.9.9.9'))->toBe('9.9.9.9');
 });
+
+test('OAuthRegister: la IPv4 mapeada y el loopback no comparten cupo con todo IPv4', function () {
+    $key = new ReflectionMethod(AppServiceProvider::class, 'ipKey');
+
+    expect($key->invoke(null, '::ffff:1.2.3.4'))->toBe('1.2.3.4')
+        ->and($key->invoke(null, '::ffff:5.6.7.8'))->toBe('5.6.7.8')
+        ->and($key->invoke(null, '::1'))->toBe('::1');
+});

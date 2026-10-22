@@ -82,8 +82,12 @@ class RedirectPolicy
             return null;
         }
 
-        // Sin segmentos `.`/`..` (ni su forma codificada %2e, en cualquier caja): permiten escapar del prefijo permitido.
-        foreach (explode('/', str_ireplace('%2e', '.', $p['path'] ?? '')) as $seg) {
+        // Sin separadores ni puntos codificados (%2f, %5c, %2e, %25 en cualquier caja: el servidor de destino puede
+        // decodificarlos y normalizar la ruta) ni segmentos `.`/`..`: permiten escapar del prefijo permitido.
+        if (preg_match('/%(2f|5c|2e|25)/i', $p['path'] ?? '')) {
+            return null;
+        }
+        foreach (explode('/', $p['path'] ?? '') as $seg) {
             if ($seg === '.' || $seg === '..') {
                 return null;
             }

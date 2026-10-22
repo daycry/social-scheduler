@@ -35,10 +35,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-02 · Servidor OAuth del MCP | 10 | 12 | 83% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
+| Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
 | Fase 2 — C-01 · Login social | 0 | 7 | 0% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
-| **TOTAL** | **10** | **28** | **36%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
+| **TOTAL** | **11** | **28** | **39%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
 > **Horas reales (G7).** Las horas reales de la Fase 1 son una **estimación a juicio** (marcadas `(estimado)` en cada tarea): no se midieron con `usage-meter` (las tareas se cerraron sin marcadores de medición), así que no hay dato medido. Suma de las tareas cerradas T-01..T-10 ≈ 4,5h IA ejecución, ≈ 1,1h supervisión y ≈ 5,3h humanas (las tareas pesan muy por debajo de la estimación porque la IA ejecutó casi todo el trabajo); más ≈ 0,8h IA de la revisión F1 (intento 1). La tabla de arriba deja las columnas «real» a 0 hasta que existan datos medidos; estas cifras no se imputan a Jira.
 
@@ -460,15 +460,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-12 — Revisión de seguridad adversarial de C-02
 
 - **Descripción**: Revisión dirigida del servidor de autorización propio: open redirect, replay y concurrencia del código, comparación PKCE, clickjacking (CSP de la pantalla de consentimiento), enumeración de clientes, timing, spam de DCR, secretos en log y auditoría, coexistencia con `msk_`. Resultado: checklist firmada en las Notas y huecos corregidos antes de abrir C-01. Es la puerta de salida de la fase 1.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El servidor OAuth del MCP pasó una revisión de seguridad independiente: se cerraron redirecciones que escapaban del dominio permitido, se limitaron el registro de clientes y el consentimiento, y la limpieza ya no borra clientes recién revocados.
+- **Estado**: completado
 - **Tiempo humano**: est. 4,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.54h · real —
 - **Supervisión**: est. 0.14h (≈25 % IA) · real —
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-11
 - **Tipo**: docs
-- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `tests/Feature/Mcp/OAuth/OAuthSecurityReviewTest.php`
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `tests/Feature/Mcp/OAuth/OAuthSecurityReviewTest.php`, `app/Services/Mcp/OAuth/RedirectPolicy.php`, `app/Providers/AppServiceProvider.php`, `deploy/hestia/nginx-overrides.conf`, `tests/Unit/RedirectPolicyTest.php`, `tests/Feature/Mcp/OAuth/RegisterTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
@@ -477,18 +477,21 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
-- [ ] Cada hallazgo Important o Critical tiene test que lo fija y corrección
-- [ ] Ninguna fila de `audit_logs` ni línea de log contiene secreto, código, verifier ni token
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] Cada hallazgo Important o Critical tiene test que lo fija y corrección
+- [x] Ninguna fila de `audit_logs` ni línea de log contiene secreto, código, verifier ni token
 
 **Subtareas**
-- [ ] Revisar PKCE, canje y replay
-- [ ] Revisar redirect y consentimiento
-- [ ] Revisar DCR y limitadores
-- [ ] Suite completa y Pint
+- [x] Revisar PKCE, canje y replay
+- [x] Revisar redirect y consentimiento
+- [x] Revisar DCR y limitadores
+- [x] Suite completa y Pint
 
 **Notas**: Puerta de salida de la fase 1.
 
+
+**Evidencia (2026-10-22)**: revisión de dos lentes, intentos 1 y 2 (tablas al final del ledger); `php artisan test --compact` → 1102 passed; `--filter=OAuthSecurityReview` → 10 passed (escape de prefijo con `..`, `%2e`, `%2f`, `%5c`, `%252e`, userinfo, host parecido, esquema javascript; metadatos no string → 400); `vendor/bin/pint --test` → passed. Ningún secreto en auditoría ni log: `OAuthAuditLeakTest`.
+**Checklist**: PKCE S256 obligatorio y verifier en tiempo constante ✓ · canje atómico y replay que revoca ✓ · redirect exacta, loopback RFC 8252 y prefijos sin escape ✓ · consentimiento con CSRF, frame-ancestors none y sin aprobación implícita ✓ · DCR 10/h por IP (IPv6 por /64, IPv4 mapeada por dirección) y tope global 200/h ✓ · token 30/min ✓ · authorize 30/min por usuario ✓ · metadatos desde APP_URL ✓.
 ---
 
 ## Fase 2 — C-01 · Login social con Google y Facebook (backend)
@@ -976,3 +979,42 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] Cierre de ledger y roadmap
 
 ---
+
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-01..T-10) — 1 Important y 20 Minor
+
+Lentes A+B+C+D (C: rutas de auth/OAuth; D: migraciones de `oauth_*`). Diff `594ba59..HEAD`. `scope-check --base 594ba59` → 0 fuera de alcance.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| B2 | B | Important | El prune borraba un cliente de más de 30 días la misma noche en que se revocaba su token (CA-31 pide 30 días sin token vivo) | T-05 | corregido (41f1db4): filtra también por `last_used_at` nulo o anterior al límite | `McpOAuthPrune.php:27`; `PruneTest.php:45` |
+| B1 | B | Minor | `grant_types`/`response_types` no string → 500 | T-05 | corregido (a784cbb) → 400 `invalid_client_metadata` | `RegisterController.php:49-50` |
+| B3 | B | Minor | Al borrar el cliente el token pasaba a «manual» | T-09 | corregido: columna `origin` con backfill | `2026_11_07_090000_oauth_fix1_columns.php`; `ApiKeyController.php:29` |
+| B4 | B | Minor | Canjes concurrentes del mismo par: deadlock (500) o dos tokens | T-08 | corregido: transacción con 3 intentos y borrado de los demás tokens OAuth del par | `AuthorizationServer.php:195-214` |
+| B5 | B | Minor | `redirect_uri` obligatorio en token aunque se omitiera en authorize | T-08 | corregido: `redirect_uri_sent` | `AuthorizationServer.php:58,103,171` |
+| B6 | B | Minor | `state` truncado a 500 en silencio | T-06 | corregido → `invalid_request` | `AuthorizationServer.php:59-62` |
+| B7-B10 | B | Minor | Tests que no probaban lo que decían (rama `issued === null`, doble autorización, cookie recaller, aserción vacía) | T-01, T-08, T-10 | corregidos | `TokenTest.php:185`; `FullFlowTest`; `LoginFlowTest`; `PruneTest` |
+| C1 | C | Minor | El prefijo de `MCP_OAUTH_REDIRECT_ALLOWED` no normalizaba `..` ni `%2e` (CWE-601/22) | T-05 | corregido (a784cbb) y completado en el intento 2 | `RedirectPolicy.php` |
+| C2 | C | Minor | DCR limitado solo por IP (CWE-770) | T-05 | corregido: /64 en IPv6 y tope global 200/h | `AppServiceProvider.php:103-116`; `RegisterController.php:21-25` |
+| C3 | C | Minor | `/oauth/authorize` sin throttle | T-06 | corregido: `mcp-oauth-authorize` 30/min por usuario | `routes/web.php:79-80` |
+| C4 | C | Minor | Nginx duplicaba `Referrer-Policy` y anulaba el no-referrer del consentimiento | T-04 | corregido: `map` a nivel http (`nginx-http-map.conf`); `nginx -t` y runtime comprobados por el revisor con nginx 1.30 local | `deploy/hestia/` |
+| G1 | A | Minor | Faltaban `software_id`, `software_version` y `created_ip` | T-03 | corregido (migración aditiva) | `RegisterController.php:54-67` |
+| G2 | A | Minor | Faltaba el ASM anidado | T-04 | corregido | `routes/ai.php:20` |
+| G3 | A | Minor | Canal de auditoría `oauth` en vez de `web` | T-05 | descartado (rebatido): canal propio deliberado para poder filtrar los eventos OAuth; spec ajustada | `spec.md` |
+| G4-G7 | A | Minor | Desviaciones sin anotar, criterio 375/360 marcado sin medir, evidencias incompletas, horas reales | T-01..T-10 | corregidos en el ledger | este ledger |
+| D | D | — | Sin hallazgos de rendimiento | — | — | EXPLAIN del prune; índices verificados |
+
+## Revisión de dos lentes — intento 2: Fase 1 (fix1) — 1 Important y 5 Minor, cerrados
+
+Lentes B+C sobre `42bd1f0..HEAD`. Lo aprobado y lo rebatido en el intento 1 no se reabre.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | C1 seguía abierto con separadores codificados: `x%2f..%2f..%2fadmin`, `%5c` y `%252e` pasaban el prefijo y un nginx real los normaliza a `/admin` (CWE-22/601) | T-05 | corregido: se rechaza cualquier `%2f`, `%5c`, `%2e` o `%25` en la ruta | `RedirectPolicy.php` (parse); `RedirectPolicyTest`; `OAuthSecurityReviewTest` |
+| N2 | Minor | `ipKey` metía toda IPv4 mapeada y `::1` en un único cubo (un atacante bloqueaba el DCR de todos con Nginx dual-stack) | T-05 | corregido: IPv4 mapeada → su IPv4; `::1` aparte | `AppServiceProvider::ipKey`; `RegisterTest` |
+| N3 | Minor | El tope global de DCR permite bloquear el registro de clientes nuevos durante 1 h | T-05 | deuda aceptada (Minor): compromiso inherente al tope global; los tokens existentes no se ven afectados y el valor es configurable (`MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR`) | `RegisterController.php:21-25` |
+| N4 | Minor | La carrera real de B4 no tiene test ejecutado (SQLite) | T-08 | deuda aceptada (Minor): en MySQL la cubren `lockForUpdate` y el borrado de los demás tokens del par | `AuthorizationServer.php:195-214` |
+| N5 | Minor | El orden de instalación de Nginx (rebuild antes de copiar el `map`) rompe `nginx -t` | T-04 | corregido: el `map` se copia antes y el reload va tras `nginx -t` | `deploy/hestia/nginx-overrides.conf:4-9` |
+| N6 | Minor | El ASM anidado devuelve `issuer` sin `/mcp` (RFC 8414 §3.3) | T-04 | descartado (rebatido): el PRM anuncia el servidor de autorización en la raíz, así que los clientes piden el ASM raíz, cuyo issuer coincide; la variante anidada es un alias | `MetadataController.php:34`; `MetadataTest` |
+
+Resultado: sin gaps Critical ni Important pendientes. Suite 1102 passed.

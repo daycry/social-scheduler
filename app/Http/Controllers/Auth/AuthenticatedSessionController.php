@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\Auth\LoginFlow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,28 +28,11 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, LoginFlow $loginFlow): RedirectResponse
     {
         $user = $request->validateCredentials();
-        $remember = $request->boolean('remember');
 
-        if ($user->hasTwoFactorEnabled()) {
-            // Credenciales correctas pero sin sesion: queda un reto 2FA pendiente (TTL en config/auth.php).
-            $request->session()->regenerate();
-            $request->session()->put([
-                'login.id' => $user->getKey(),
-                'login.remember' => $remember,
-                'login.at' => now()->timestamp,
-            ]);
-
-            return redirect()->route('two-factor.challenge');
-        }
-
-        Auth::login($user, $remember);
-
-        $request->session()->regenerate();
-
-        return redirect()->intended(route('dashboard', absolute: false));
+        return $loginFlow->complete($request, $user, $request->boolean('remember'));
     }
 
     /**

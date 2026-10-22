@@ -51,11 +51,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-01 — Extraer `LoginFlow` de `AuthenticatedSessionController::store` sin cambiar el comportamiento
 
 - **Descripción**: Mueve la bifurcación «login directo / reto 2FA» a `App\Services\Auth\LoginFlow::complete($request, $user, $remember)`: con 2FA deja `login.id`, `login.remember` y `login.at` y redirige a `two-factor.challenge`; sin 2FA hace `Auth::login` + `regenerate` + `intended`. `store` solo delega. Es la primera tarea y no añade nada de lo social: es la red de seguridad de todo el plan (ADR-003, criterio 2 del diseño). `TwoFactorChallengeController` y `PasskeyLoginController` no se tocan.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.27h · real —
-- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Changelog**: El inicio de sesión con contraseña y el reto 2FA se comportan igual que antes.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 0.3h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.27h · real 0.3h (estimado)
+- **Supervisión**: est. 0.07h (≈25 % IA) · real 0.08h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
@@ -68,18 +68,20 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `vendor/bin/pint --test` → passed
 
 **Criterios de aceptación**
-- [ ] Sin 2FA: el login con contraseña abre sesión, regenera el id y va a `intended`, idéntico a hoy
-- [ ] Con 2FA: `assertGuest`, sesión con `login.id`/`login.remember`/`login.at` y redirección a `two-factor.challenge`, idéntico a hoy
-- [ ] `LoginFlowTest` fija ambos caminos y `remember` true/false
-- [ ] La suite de 2FA y passkeys de ADR-003 pasa sin modificar ni una línea de sus tests
+- [x] Sin 2FA: el login con contraseña abre sesión, regenera el id y va a `intended`, idéntico a hoy
+- [x] Con 2FA: `assertGuest`, sesión con `login.id`/`login.remember`/`login.at` y redirección a `two-factor.challenge`, idéntico a hoy
+- [x] `LoginFlowTest` fija ambos caminos y `remember` true/false
+- [x] La suite de 2FA y passkeys de ADR-003 pasa sin modificar ni una línea de sus tests
 
 **Subtareas**
-- [ ] Ejecutar `tests/Feature/Auth` antes de tocar nada y anotar el nº de tests como línea base
-- [ ] Crear `LoginFlow` y delegar desde `store`
-- [ ] Test de `LoginFlow` para ambos caminos
-- [ ] Volver a ejecutar la suite y comparar con la línea base
+- [x] Ejecutar `tests/Feature/Auth` antes de tocar nada y anotar el nº de tests como línea base
+- [x] Crear `LoginFlow` y delegar desde `store`
+- [x] Test de `LoginFlow` para ambos caminos
+- [x] Volver a ejecutar la suite y comparar con la línea base
 
 **Notas**: Si algún test existente de `Auth` falla, se revierte la extracción: no se retoca el test. `login.via` y el texto de `expired` NO entran aquí (sería cambiar comportamiento); van en T-15.
+
+**Evidencia de cierre**: tests/Feature/Auth 134 -> 138 tests en verde (4 nuevos de LoginFlow), ningún test existente modificado, Pint passed.
 
 ---
 

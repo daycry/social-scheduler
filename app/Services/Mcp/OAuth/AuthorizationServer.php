@@ -5,7 +5,10 @@ namespace App\Services\Mcp\OAuth;
 use App\Mcp\Abilities;
 use App\Models\OAuthAuthCode;
 use App\Models\OAuthClient;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Services\AuditLog;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -14,7 +17,7 @@ use Illuminate\Support\Str;
  */
 class AuthorizationServer
 {
-    public function __construct(private RedirectPolicy $redirects) {}
+    public function __construct(private RedirectPolicy $redirects, private AuditLog $audit) {}
 
     /** URL canonica del recurso protegido (la que debe llevar `resource`). */
     public static function resourceUrl(): string
@@ -100,5 +103,120 @@ class AuthorizationServer
         ]);
 
         return $code;
+    }
+
+    /** challenge = BASE64URL(SHA256(verifier)) (RFC 7636 4.2). */
+    public static function pkceChallenge(string $verifier): string
+    {
+        return rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
+    }
+
+    /** Comparacion en tiempo constante entre el challenge guardado y el derivado del verifier. */
+    public static function pkceMatches(string $verifier, string $challenge): bool
+    {
+        return preg_match('/^[A-Za-z0-9._~-]{43,128}$/', $verifier) === 1
+            && hash_equals($challenge, self::pkceChallenge($verifier));
+    }
+
+    /**
+     * Canjea un codigo por un token Sanctum `msk_` (grant authorization_code + PKCE S256). Un codigo es de UN solo uso:
+     * se consume con un UPDATE atomico y su reutilizacion revoca el token que emitio (CA-21).
+     *
+     * @param  array<string, mixed>  $in  parametros de POST /oauth/token
+     * @return array{access_token: string, token_type: string, expires_in: int, scope: string}
+     *
+     * @throws OAuthException
+     */
+    public function redeemCode(array $in): array
+    {
+        $str = fn (string $k) => isset($in[$k]) && is_string($in[$k]) && $in[$k] !== '' ? $in[$k] : null;
+
+        if (($in['grant_type'] ?? null) !== 'authorization_code') {
+            throw new OAuthException('unsupported_grant_type', 'Solo se admite grant_type=authorization_code.');
+        }
+
+        [$code, $redirectUri, $clientId, $verifier] = [$str('code'), $str('redirect_uri'), $str('client_id'), $str('code_verifier')];
+        if ($code === null || $clientId === null || $verifier === null) {
+            throw new OAuthException('invalid_request', 'Faltan code, client_id o code_verifier.');
+        }
+
+        // Un client_id desconocido responde igual que un codigo invalido (no permite enumerar clientes).
+        $invalid = new OAuthException('invalid_grant', 'El codigo no es valido, ha caducado o ya se uso.');
+        $client = Str::isUuid($clientId) ? OAuthClient::find($clientId) : null;
+        if ($client === null) {
+            throw $invalid;
+        }
+
+        if (isset($in['resource']) && $in['resource'] !== self::resourceUrl()) {
+            throw new OAuthException('invalid_target', 'El recurso solicitado no es este servidor MCP.');
+        }
+
+        $row = OAuthAuthCode::where('code_hash', hash('sha256', $code))->first();
+        if ($row === null) {
+            throw $invalid;
+        }
+
+        // Reutilizacion de un codigo ya canjeado: se revoca el token que emitio.
+        if ($row->used_at !== null) {
+            $this->replayed($row);
+            throw $invalid;
+        }
+
+        $mismatch = $row->client_id !== $client->id
+            || $redirectUri === null || ! hash_equals($row->redirect_uri, $redirectUri)
+            || ! self::pkceMatches($verifier, $row->code_challenge);
+        if ($mismatch) {
+            // Un intento fallido con el codigo lo quema: quien lo intercepte solo tiene una oportunidad.
+            OAuthAuthCode::whereKey($row->id)->whereNull('used_at')->update(['used_at' => now()]);
+            throw $invalid;
+        }
+
+        if ($row->expires_at->isPast()) {
+            throw $invalid;
+        }
+
+        $issued = DB::transaction(function () use ($row, $client) {
+            // Un solo uso atomico: si otra peticion lo consumio entre medias, esta es una reutilizacion.
+            if (OAuthAuthCode::whereKey($row->id)->whereNull('used_at')->update(['used_at' => now()]) !== 1) {
+                return null;
+            }
+
+            $days = max(1, (int) config('services.mcp.oauth.token_days', 30));
+            $user = User::findOrFail($row->user_id);
+            $new = $user->createToken('OAuth · '.$client->name, $row->abilities, now()->addDays($days));
+            PersonalAccessToken::whereKey($new->accessToken->id)->update(['oauth_client_id' => $client->id]);
+            $row->forceFill(['token_id' => $new->accessToken->id])->save();
+            $client->forceFill(['last_used_at' => now()])->save();
+
+            $this->audit->record($user, 'oauth.token.issued', AuditLog::OK, 'api_key', $new->accessToken->id, 'client_id='.$client->id, 'oauth');
+
+            return [
+                'access_token' => $new->plainTextToken,
+                'token_type' => 'Bearer',
+                'expires_in' => $days * 86400,
+                'scope' => 'mcp:use',
+            ];
+        });
+
+        if ($issued === null) {
+            // Perdio la carrera: el codigo ya estaba canjeado. Fuera de la transaccion para que la revocacion no se deshaga.
+            $this->replayed($row->fresh());
+            throw $invalid;
+        }
+
+        return $issued;
+    }
+
+    private function replayed(?OAuthAuthCode $row): void
+    {
+        if ($row === null) {
+            return;
+        }
+
+        if ($row->token_id !== null) {
+            PersonalAccessToken::whereKey($row->token_id)->delete();
+        }
+
+        $this->audit->record($row->user, 'oauth.code.replayed', AuditLog::DENIED, 'oauth_client', null, 'client_id='.$row->client_id, 'oauth');
     }
 }

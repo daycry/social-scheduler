@@ -297,11 +297,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-08 — `POST /oauth/token`: PKCE S256, código de un solo uso y emisión del token Sanctum
 
 - **Descripción**: `TokenController` y `AuthorizationServer::redeemCode`: valida `grant_type`, `code`, `redirect_uri`, `client_id`, `code_verifier` (`hash_equals` sobre `base64url(sha256(verifier))`) y `resource`; consume el código con `UPDATE … SET used_at WHERE used_at IS NULL` atómico; emite un token `msk_` con las abilities del código, `expires_at = now + token_days` y `oauth_client_id`, y guarda `token_id` en el código. Un replay revoca el token emitido (CA-21). Respuesta con `Cache-Control: no-store`. Limitador `mcp-oauth-token` de 30/min por IP.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.81h · real —
-- **Supervisión**: est. 0.20h (≈25 % IA) · real —
+- **Changelog**: Los agentes MCP pueden canjear la autorización por un token de 30 días que se revoca desde API keys; un código reutilizado queda anulado junto con su token.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,0h · real 0.8h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.81h · real 0.7h (estimado)
+- **Supervisión**: est. 0.20h (≈25 % IA) · real 0.18h (estimado)
 - **Previsión IA**: 220k in / 23k out tok · ⚠️ verificar €
 - **Dependencias**: T-06
 - **Tipo**: backend
@@ -312,18 +312,20 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact --filter=OAuthToken` → CA-20 (200, `msk_`, `expires_in`, `no-store`, abilities exactas, `oauth_client_id`), CA-21 (verifier erróneo, usado, caducado, otro `redirect_uri` o `client_id` → `invalid_grant`; replay revoca el token) y `unsupported_grant_type`
 
 **Criterios de aceptación**
-- [ ] CA-20 completo
-- [ ] CA-21: cada `invalid_*` tiene un test negativo; el canje concurrente del mismo código emite un solo token
-- [ ] CA-22 en el token endpoint (`invalid_target`)
-- [ ] El hash del código es lo único guardado; el token en claro solo está en la respuesta; ninguna auditoría lleva código, verifier ni token
+- [x] CA-20 completo
+- [x] CA-21: cada `invalid_*` tiene un test negativo; el canje concurrente del mismo código emite un solo token
+- [x] CA-22 en el token endpoint (`invalid_target`)
+- [x] El hash del código es lo único guardado; el token en claro solo está en la respuesta; ninguna auditoría lleva código, verifier ni token
 
 **Subtareas**
-- [ ] PKCE y comparación en tiempo constante
-- [ ] Canje atómico y revocación por replay
-- [ ] Emisión del token y respuesta
-- [ ] Limitador y auditoría `oauth.token.issued` / `oauth.code.replayed`
+- [x] PKCE y comparación en tiempo constante
+- [x] Canje atómico y revocación por replay
+- [x] Emisión del token y respuesta
+- [x] Limitador y auditoría `oauth.token.issued` / `oauth.code.replayed`
 
 **Notas**: Núcleo del riesgo dominante de la evaluación. Alcance mínimo: cliente público, code+S256, sin refresh.
+
+**Evidencia de cierre**: PkceTest (vectores RFC 7636 B) + --filter OAuthToken en verde (CA-20, CA-21 con cada invalid_*, replay revoca el token, carrera simulada, CA-22, unsupported_grant_type, 429 al 31, sin secretos en auditoría); --filter OAuth 122 tests. El canje concurrente real no es reproducible en SQLite en memoria: se simula la carrera perdida; la atomicidad es el UPDATE ... WHERE used_at IS NULL.
 
 ---
 

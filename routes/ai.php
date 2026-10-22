@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Mcp\OAuth\MetadataController;
 use App\Http\Controllers\Mcp\OAuth\RegisterController;
+use App\Http\Controllers\Mcp\OAuth\TokenController;
 use App\Mcp\Servers\SchedulerServer;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
@@ -19,3 +20,6 @@ Route::get('/.well-known/oauth-authorization-server', [MetadataController::class
 
 // DCR publico: limitado por IP (10/h) y con redirect_uri restringida por RedirectPolicy.
 Route::post('/oauth/register', RegisterController::class)->middleware('throttle:mcp-oauth-register')->name('mcp.oauth.register');
+
+// Canje del codigo por el token (cliente publico + PKCE S256), 30/min por IP.
+Route::post('/oauth/token', TokenController::class)->middleware('throttle:mcp-oauth-token')->name('mcp.oauth.token');

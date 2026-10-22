@@ -110,8 +110,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-03 — Login partido y reto 2FA (`/two-factor-challenge`)
 
 - **Descripción**: Parte `LoginRequest::authenticate()` en `ensureIsNotRateLimited()` + `validateCredentials(): User` (sin `Auth::attempt`, mismo `throttleKey` y mismos mensajes). `AuthenticatedSessionController::store` abre la sesión como hoy si no hay 2FA, o guarda `login.id`, `login.remember` y `login.at` y redirige al reto. Nuevo `TwoFactorChallengeController` (`create`/`store`) con TOTP o recuperación, rate limit `2fa:{login_id}|{ip}` de 5/min, TTL de 5 min (`auth.two_factor.challenge_ttl`), `Auth::login($user, $remember)` + `regenerate` y auditoría.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Si tienes el doble factor activado, tras escribir tu contraseña se te pide el código de la app (o uno de recuperación) antes de entrar; 5 fallos bloquean un minuto.
+- **Estado**: completado
 - **Tiempo humano**: est. 7,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.90h · real —
 - **Supervisión**: est. 0.23h (≈25 % IA) · real —
@@ -124,19 +124,21 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Auth` → todo en verde, incluido el caso «usuario sin 2FA entra igual»
   - `php artisan test --compact --filter=TwoFactorChallenge` → CA-04..CA-09 en verde
 
+- **Evidencia**: tests/Feature/Auth: 39 passed (145 assertions) incl. caso sin 2FA y throttle clásico; --filter=TwoFactorChallenge: 12 passed (CA-04..CA-09). Desviaciones: authenticate() sustituido por validateCredentials() (no se conserva el wrapper); ruta names two-factor.challenge[.store]; sesión regenerada también al abrir el reto; Auth::login directo omite eventos Attempting/Failed de Auth::attempt.
+
 **Criterios de aceptación**
-- [ ] CA-04: con 2FA, email y contraseña correctos NO autentican (`assertGuest`) y redirigen a `two-factor-challenge`
-- [ ] CA-05: TOTP válido → `dashboard`/`intended`, sesión regenerada, `remember` respetado y `auth.2fa.challenge_passed`
-- [ ] CA-06: 5 fallos → el 6.º se bloquea con segundos de espera aunque el código sea correcto; `auth.2fa.challenge_failed` ×5 y `auth.2fa.lockout`
-- [ ] CA-07: un TOTP reutilizado se rechaza
-- [ ] CA-08: reto con más de 5 min o sin `login.id` → `/login` con aviso, sin sesión
-- [ ] CA-09: un código de recuperación válido entra, no sirve dos veces y `auth.2fa.recovery_used` lleva el número restante y nunca el código
-- [ ] Usuario sin 2FA: login idéntico a hoy (mismo throttle y mismo mensaje)
+- [x] CA-04: con 2FA, email y contraseña correctos NO autentican (`assertGuest`) y redirigen a `two-factor-challenge`
+- [x] CA-05: TOTP válido → `dashboard`/`intended`, sesión regenerada, `remember` respetado y `auth.2fa.challenge_passed`
+- [x] CA-06: 5 fallos → el 6.º se bloquea con segundos de espera aunque el código sea correcto; `auth.2fa.challenge_failed` ×5 y `auth.2fa.lockout`
+- [x] CA-07: un TOTP reutilizado se rechaza
+- [x] CA-08: reto con más de 5 min o sin `login.id` → `/login` con aviso, sin sesión
+- [x] CA-09: un código de recuperación válido entra, no sirve dos veces y `auth.2fa.recovery_used` lleva el número restante y nunca el código
+- [x] Usuario sin 2FA: login idéntico a hoy (mismo throttle y mismo mensaje)
 
 **Subtareas**
-- [ ] TDD: primero el test de no-regresión de `AuthenticationTest` y el caso sin 2FA
-- [ ] Partir `authenticate()` conservando `Lockout` y `auth.throttle`
-- [ ] Reto: TTL, rate limiter, alternar TOTP/recuperación y auditoría sin secretos
+- [x] TDD: primero el test de no-regresión de `AuthenticationTest` y el caso sin 2FA
+- [x] Partir `authenticate()` conservando `Lockout` y `auth.throttle`
+- [x] Reto: TTL, rate limiter, alternar TOTP/recuperación y auditoría sin secretos
 
 **Notas**: Es el punto de mayor riesgo de regresión (riesgo Alto del diseño). `AuthenticationTest` se adapta solo en lo que documenta el nuevo flujo.
 

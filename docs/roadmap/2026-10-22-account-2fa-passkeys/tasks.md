@@ -233,7 +233,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] CA-23: el campo de código tiene etiqueta visible, `autocomplete="one-time-code"` e `inputmode="numeric"`; los errores se anuncian con `aria-live`; el enlace a «código de recuperación» es accesible por teclado
 - [x] CA-24: el QR tiene `alt`, el secreto aparece como texto copiable y los códigos se pueden copiar o descargar sin ratón
 - [x] Las props de Inertia no incluyen `two_factor_secret` ni códigos, salvo la respuesta única de generación
-- [ ] Sin desbordamiento horizontal a 375 y 360 px — diferido a T-18
+- Nota: «Sin desbordamiento horizontal a 375 y 360 px» se traslada a T-18 (su criterio «0 px de desbordamiento horizontal a 375 y 360 px»), donde se verifica con Playwright.
 
 **Subtareas**
 - [x] Página del reto con alternancia TOTP/recuperación
@@ -689,5 +689,5 @@ Lentes A+B+C+D (C: rutas de auth/sesión/secretos; D: hashing en bucle). Diff `7
 | M5 | D | Minor | `regenerate` sin throttle: 8 `Hash::make` por petición | T-04 | corregido (T-04 fix): `throttle:10,1` en recovery-codes. Test M5 | `routes/auth.php:72` |
 | M6 | D | Minor | Bloqueado, cada POST escribe auditoría y log | T-03 | corregido (bf54aed): lockout auditado solo al cruzar el umbral. Test M6 (1 lockout en 9 POST) | `TwoFactorChallengeController.php:59-60` |
 | M7 | B | Minor | `URL.revokeObjectURL` justo tras `click()` puede abortar la descarga de los códigos | T-06 | corregido (T-06 fix): `revokeObjectURL` en `setTimeout` 1 s | `TwoFactorForm.vue` `downloadCodes` |
-| M8 | A | Minor | «Sin desbordamiento a 375/360» marcado `[x]` sin evidencia (se valida en T-18) | T-06 | corregido: criterio desmarcado en T-06 con nota «diferido a T-18» | `tasks.md:236` |
+| M8 | A | Minor | «Sin desbordamiento a 375/360» marcado `[x]` sin evidencia (se valida en T-18) | T-06 | corregido: criterio trasladado a T-18 (ya lo cubre su criterio de 0 px) | `tasks.md:236` |
 | M9 | B | Minor | No hay forma de cancelar una activación a medias | T-04 | corregido (T-04 fix): `DELETE /user/two-factor/pending` (auth+password.confirm, auditado `auth.2fa.setup_cancelled`) + botón «Cancelar activación». Tests M9 | — |

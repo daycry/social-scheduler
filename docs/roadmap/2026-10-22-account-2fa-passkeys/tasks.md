@@ -145,8 +145,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-04 — Gestión del 2FA desde el perfil: activar, confirmar, desactivar y regenerar códigos
 
 - **Descripción**: `App\Http\Controllers\Profile\TwoFactorController` con activar (secreto pendiente + QR), confirmar (valida el primer TOTP, guarda `two_factor_confirmed_at`, genera los 8 códigos y **rota `remember_token`**, decisión 3 de §4), desactivar (contraseña + TOTP o recuperación) y regenerar códigos. Rutas bajo `auth` + `password.confirm`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Desde tu perfil puedes activar el doble factor con tu app de autenticación, desactivarlo y generar códigos de recuperación nuevos.
+- **Estado**: completado
 - **Tiempo humano**: est. 6,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.77h · real —
 - **Supervisión**: est. 0.19h (≈25 % IA) · real —
@@ -159,18 +159,20 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact --filter=TwoFactorSettings` → CA-01, CA-02, CA-03 y CA-10 en verde
   - `php artisan route:list --path=two-factor --json` → todas las rutas de gestión llevan `auth` y `password.confirm`
 
+- **Evidencia**: --filter=TwoFactorSettings: 11 passed (46 assertions) CA-01/02/03/10 + rotación remember_token; route:list --path=two-factor: las 4 rutas de gestión (user/two-factor, /confirm, DELETE, /recovery-codes) llevan Authenticate + RequirePassword. Desviaciones: rutas bajo prefijo user/two-factor con nombres two-factor.enable|confirm|disable|recovery-codes; secreto pendiente y códigos viajan como flash de sesión (twoFactorSetup / recoveryCodes) que T-06 expondrá por Inertia; throttle 10/min extra en confirm y disable.
+
 **Criterios de aceptación**
-- [ ] CA-01: con TOTP válido se confirma, se devuelven 8 códigos una sola vez y se audita `auth.2fa.enabled`
-- [ ] CA-02: TOTP incorrecto → error en el campo, el 2FA no se activa y el secreto pendiente se conserva
-- [ ] CA-03: desactivar sin contraseña o sin código válido se rechaza; con ambos se borran secreto y códigos y se audita `auth.2fa.disabled`
-- [ ] CA-10: regenerar da 8 códigos nuevos, los anteriores dejan de valer y se audita `auth.2fa.recovery_regenerated`
-- [ ] Al confirmar, `remember_token` cambia (test que compara antes y después)
-- [ ] Los códigos no se pueden volver a mostrar tras la respuesta de generación
+- [x] CA-01: con TOTP válido se confirma, se devuelven 8 códigos una sola vez y se audita `auth.2fa.enabled`
+- [x] CA-02: TOTP incorrecto → error en el campo, el 2FA no se activa y el secreto pendiente se conserva
+- [x] CA-03: desactivar sin contraseña o sin código válido se rechaza; con ambos se borran secreto y códigos y se audita `auth.2fa.disabled`
+- [x] CA-10: regenerar da 8 códigos nuevos, los anteriores dejan de valer y se audita `auth.2fa.recovery_regenerated`
+- [x] Al confirmar, `remember_token` cambia (test que compara antes y después)
+- [x] Los códigos no se pueden volver a mostrar tras la respuesta de generación
 
 **Subtareas**
-- [ ] Rutas y Form Requests
-- [ ] Rotación de `remember_token` al confirmar
-- [ ] Auditoría `auth.2fa.*` con `channel: 'web'`
+- [x] Rutas y Form Requests
+- [x] Rotación de `remember_token` al confirmar
+- [x] Auditoría `auth.2fa.*` con `channel: 'web'`
 
 **Notas**: Respeta las decisiones 2 y 3 de §4 del diseño.
 

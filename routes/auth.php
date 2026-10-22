@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Profile\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -62,6 +63,14 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+    // Gestion del 2FA (perfil): siempre tras confirmar la contrasena recientemente.
+    Route::middleware('password.confirm')->prefix('user/two-factor')->name('two-factor.')->group(function () {
+        Route::post('/', [TwoFactorController::class, 'store'])->name('enable');
+        Route::post('confirm', [TwoFactorController::class, 'confirm'])->middleware('throttle:10,1')->name('confirm');
+        Route::delete('/', [TwoFactorController::class, 'destroy'])->middleware('throttle:10,1')->name('disable');
+        Route::post('recovery-codes', [TwoFactorController::class, 'regenerate'])->name('recovery-codes');
+    });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');

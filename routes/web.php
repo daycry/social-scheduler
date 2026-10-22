@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Conexiones de redes sociales por marca (T-12..T-15).
     Route::get('brands/{brand}/connections', [ConnectionController::class, 'index'])->name('brands.connections.index');
     Route::post('brands/{brand}/connections/select', [ConnectionController::class, 'select'])->name('brands.connections.select');
+    Route::delete('brands/{brand}/connections/pending', [ConnectionController::class, 'discardPending'])->name('brands.connections.pending.discard');
     Route::delete('brands/{brand}/connections/{account}', [ConnectionController::class, 'destroy'])->name('brands.connections.destroy');
     Route::patch('brands/{brand}/connections/{account}/direct-post', [ConnectionController::class, 'directPost'])->name('brands.connections.direct-post');
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET

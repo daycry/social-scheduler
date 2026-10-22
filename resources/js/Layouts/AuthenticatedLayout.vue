@@ -17,6 +17,10 @@ const page = usePage();
 const shell = computed(() => page.props.shell ?? { brands: [], currentBrand: null, accounts: {}, networks: [] });
 const user = computed(() => page.props.auth.user);
 const unread = computed(() => page.props.unreadNotifications ?? 0);
+// OAuth de varias cuentas sin confirmar: se avisa en cualquier página salvo en la propia de Conexiones de esa marca (ya muestra la tarjeta).
+const pendingConnections = computed(() =>
+    (page.props.pendingConnections ?? []).filter((p) => !route().current('brands.connections.index', p.brand_id)),
+);
 const brand = computed(() => shell.value.currentBrand);
 
 const mobileOpen = ref(false);
@@ -194,6 +198,18 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                 </div>
 
                 <main id="contenido" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                    <div
+                        v-for="p in pendingConnections"
+                        :key="p.brand_id"
+                        class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-amber-400 bg-amber-50 p-3 text-sm text-amber-900"
+                        role="status"
+                        data-pending-connection
+                    >
+                        <span>Falta un paso para terminar de conectar las cuentas de «{{ p.brand_name }}»: elige cuáles conectar.</span>
+                        <Link :href="route('brands.connections.index', p.brand_id) + '#eleccion-cuentas'" class="font-semibold underline">
+                            Elegir cuentas
+                        </Link>
+                    </div>
                     <slot />
                 </main>
             </div>

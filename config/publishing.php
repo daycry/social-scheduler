@@ -31,7 +31,7 @@ return [
     'reconnect_grace_hours' => (int) env('PUBLISH_RECONNECT_GRACE_HOURS', 72),
 
     /*
-    | Cuota de publicacion agotada (p. ej. 25 publicaciones/24 h de Instagram). Decision de producto por confirmar:
+    | Cuota de publicacion agotada (p. ej. 25 publicaciones/24 h de Instagram). Decision de producto confirmada por el usuario (2026-10-21):
     |   reschedule = aplazar hasta que la red libere cupo (por defecto; falla si no llega dentro del margen de retraso)
     |   fail       = fallar de inmediato con motivo «cuota» y avisar
     */

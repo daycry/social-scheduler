@@ -107,7 +107,8 @@ class OAuthController extends Controller
             'candidates' => $candidates,
         ]));
 
-        return $back('success', 'Elige las cuentas que quieres conectar a la marca.');
+        // Sin aviso verde: aun no se ha conectado nada. La tarjeta de eleccion (y el aviso global) piden el paso que falta.
+        return redirect()->route('brands.connections.index', $brand);
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Connectors\Network;
+use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\SocialAccount;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
@@ -48,10 +49,27 @@ class HandleInertiaRequests extends Middleware
             // Registro publico abierto: oculta los enlaces «Crear cuenta» cuando REGISTRATION_ENABLED=false.
             'registrationEnabled' => (bool) config('app.registration_enabled', true),
             'shell' => fn () => $request->user() ? $this->shell($request) : null,
+            // Marcas con un OAuth de varias cuentas sin confirmar: aviso en toda la app hasta que se elijan (o se descarten).
+            'pendingConnections' => fn () => $request->user() ? $this->pendingConnections($request) : [],
         ];
     }
 
     /** @return array<string, mixed> */
+    /** @return list<array{brand_id: int, brand_name: string}> */
+    private function pendingConnections(Request $request): array
+    {
+        $pending = $request->session()->get(OAuthController::PENDING_KEY, []);
+        if (! is_array($pending) || $pending === []) {
+            return [];
+        }
+
+        return CurrentBrand::brands($request)
+            ->filter(fn ($b) => array_key_exists($b->id, $pending))
+            ->map(fn ($b) => ['brand_id' => $b->id, 'brand_name' => $b->name])
+            ->values()
+            ->all();
+    }
+
     private function shell(Request $request): array
     {
         $brands = CurrentBrand::brands($request);

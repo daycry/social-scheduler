@@ -93,6 +93,17 @@ class ConnectionController extends Controller
         );
     }
 
+    /** Descarta la eleccion pendiente del ultimo OAuth sin conectar ninguna cuenta. */
+    public function discardPending(Request $request, Brand $brand): RedirectResponse
+    {
+        $this->authorize('update', $brand);
+
+        $request->session()->forget(OAuthController::PENDING_KEY.".{$brand->id}");
+
+        return redirect()->route('brands.connections.index', $brand)
+            ->with('success', 'Conexion descartada: no se ha conectado ninguna cuenta.');
+    }
+
     /** Activa/desactiva Direct Post de una cuenta de TikTok (por defecto desactivado: borrador a la bandeja). */
     public function directPost(Request $request, Brand $brand, SocialAccount $account): RedirectResponse
     {

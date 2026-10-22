@@ -155,6 +155,14 @@ test('MetaOAuth controller flow: redirect stores state, callback with several ac
         ->has('pending.candidates', 3)
         ->where('pending.provider', 'meta'));
     expect($page->getContent())->not->toContain('PAGE-TOKEN')->not->toContain('LONG-USER-TOKEN');
+    // Sin aviso verde de exito: aun no se ha conectado nada.
+    expect(session('success'))->toBeNull();
+
+    // Mientras falte elegir, el aviso global acompaña al usuario por el resto de la app.
+    $this->get(route('dashboard', absolute: false))->assertInertia(fn ($p) => $p
+        ->has('pendingConnections', 1)
+        ->where('pendingConnections.0.brand_id', $this->brand->id)
+        ->where('pendingConnections.0.brand_name', $this->brand->name));
 
     $this->post(route('brands.connections.select', $this->brand, false), ['keys' => ['facebook:1065269806670394', 'instagram:17841400000000000']])
         ->assertRedirect();
@@ -164,6 +172,29 @@ test('MetaOAuth controller flow: redirect stores state, callback with several ac
         ->and($accounts->pluck('network')->map->value->all())->toBe(['facebook', 'instagram'])
         ->and($accounts->every(fn ($a) => $a->status === 'activa' && $a->brand_id === $this->brand->id))->toBeTrue()
         ->and($accounts[1]->access_token)->toBe('PAGE-TOKEN-1');
+
+    $this->get(route('dashboard', absolute: false))->assertInertia(fn ($p) => $p->where('pendingConnections', []));
+});
+
+test('MetaOAuth a pending choice can be discarded without connecting anything, and only by the brand owner', function () {
+    metaFake();
+    $this->actingAs($this->user);
+
+    $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $this->get('/connections/meta/callback?code=CODE&state='.session('oauth.meta.state'));
+
+    $intruder = User::factory()->create();
+    $this->actingAs($intruder)->delete(route('brands.connections.pending.discard', $this->brand, false))->assertNotFound();
+
+    $this->actingAs($this->user)->get(route('dashboard', absolute: false))
+        ->assertInertia(fn ($p) => $p->has('pendingConnections', 1));
+
+    $this->delete(route('brands.connections.pending.discard', $this->brand, false))
+        ->assertRedirect(route('brands.connections.index', $this->brand, false));
+
+    expect(SocialAccount::count())->toBe(0);
+    $this->get(route('brands.connections.index', $this->brand, false))
+        ->assertInertia(fn ($p) => $p->where('pending', null)->where('pendingConnections', []));
 });
 
 test('MetaOAuth callback rejects an invalid state and a cancelled authorization', function () {

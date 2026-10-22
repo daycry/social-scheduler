@@ -45,6 +45,7 @@ const toggleDirectPost = (account, enabled) =>
 // Sin preselección: una cuenta de Meta puede gestionar muchas páginas/perfiles y solo se conecta lo que se marque.
 const selection = useForm({ keys: [] });
 const confirmSelection = () => selection.post(route('brands.connections.select', props.brand.id));
+const discardPending = () => router.delete(route('brands.connections.pending.discard', props.brand.id));
 </script>
 
 <template>
@@ -63,10 +64,18 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                 <p v-if="flash.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
                 <p v-if="flash.error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ flash.error }}</p>
 
-                <!-- Elección de cuentas tras un OAuth que devolvió varias (p. ej. Páginas de Meta) -->
-                <section v-if="pending" class="card space-y-3 border-indigo-300 p-6">
-                    <h2 class="font-medium text-slate-900">Elige qué cuentas conectar</h2>
-                    <p class="text-sm text-slate-600">Marca solo las que pertenezcan a esta marca; el resto no se conecta.</p>
+                <!-- Elección de cuentas tras un OAuth que devolvió varias (p. ej. Páginas de Meta). Hasta confirmar no se conecta nada. -->
+                <section
+                    v-if="pending"
+                    id="eleccion-cuentas"
+                    class="card space-y-3 border-2 border-amber-400 bg-amber-50 p-6"
+                    aria-labelledby="eleccion-cuentas-titulo"
+                >
+                    <h2 id="eleccion-cuentas-titulo" class="font-semibold text-amber-900">Falta un paso: elige qué cuentas conectar</h2>
+                    <p class="text-sm text-amber-900">
+                        La red ha devuelto varias cuentas. Marca las que pertenezcan a esta marca y pulsa «Conectar seleccionadas»;
+                        hasta entonces no se conecta ninguna.
+                    </p>
                     <label v-for="c in pending.candidates" :key="c.key" class="flex items-center gap-3 text-sm text-slate-700">
                         <input v-model="selection.keys" type="checkbox" :value="c.key" class="rounded border-slate-300" />
                         <span class="font-medium">{{ c.network_label }}</span>
@@ -76,9 +85,12 @@ const confirmSelection = () => selection.post(route('brands.connections.select',
                             Faltan permisos para publicar: {{ c.missing_scopes.join(', ') }}
                         </span>
                     </label>
-                    <PrimaryButton :disabled="selection.processing || selection.keys.length === 0" @click="confirmSelection">
-                        Conectar seleccionadas
-                    </PrimaryButton>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <PrimaryButton :disabled="selection.processing || selection.keys.length === 0" @click="confirmSelection">
+                            Conectar seleccionadas
+                        </PrimaryButton>
+                        <button type="button" class="link text-sm" @click="discardPending">Descartar</button>
+                    </div>
                 </section>
 
                 <section

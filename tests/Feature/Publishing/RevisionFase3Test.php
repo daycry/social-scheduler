@@ -193,8 +193,8 @@ test('Revision #6: el minimo «recomendado» de 540 px de un reel es un aviso, n
 
 // ------------------------------------------------------------------ #10 / #16
 
-test('Revision #10/#16: max_lateness_hours queda marcado como decision pendiente y posts tiene indice por scheduled_at', function () {
-    expect(file_get_contents(config_path('publishing.php')))->toContain('DECISION PENDIENTE DE CONFIRMAR');
+test('Revision #10/#16: max_lateness_hours documenta la decision confirmada por el usuario y posts tiene indice por scheduled_at', function () {
+    expect(file_get_contents(config_path('publishing.php')))->toContain('Decision de producto confirmada por el usuario');
     expect(Schema::hasIndex('posts', ['scheduled_at']))->toBeTrue()->and(Schema::hasColumn('post_targets', 'progress'))->toBeTrue();
 });
 

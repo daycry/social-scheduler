@@ -38,9 +38,24 @@ test('OAuthPrune CA-31: borra solo clientes sin token vivo hace mas de 30 dias',
     expect(OAuthClient::pluck('id')->all())->toEqualCanonicalizing([
         $nuevoSinToken->id, $viejoConTokenVivo->id, $viejoConTokenCaducadoReciente->id,
     ]);
-    expect($viejoSinToken->exists)->toBeTrue()
-        ->and(OAuthClient::find($viejoSinToken->id))->toBeNull()
+    expect(OAuthClient::find($viejoSinToken->id))->toBeNull()
         ->and(OAuthClient::find($viejoConTokenCaducadoHaceMucho->id))->toBeNull();
+});
+
+test('OAuthPrune CA-31: un token revocado hoy en un cliente de hace 40 dias no borra el cliente', function () {
+    $user = User::factory()->create();
+    $client = pruneClient(40);
+    $client->forceFill(['last_used_at' => now()->subDay()])->save();
+    pruneToken($user, $client, 30)->delete();
+
+    $this->artisan('mcp:oauth-prune')->assertSuccessful();
+
+    expect(OAuthClient::find($client->id))->not->toBeNull();
+
+    // 30 dias despues sin emitir nada, ya si.
+    $client->forceFill(['last_used_at' => now()->subDays(31)])->save();
+    $this->artisan('mcp:oauth-prune')->assertSuccessful();
+    expect(OAuthClient::find($client->id))->toBeNull();
 });
 
 test('OAuthPrune: borra los codigos caducados y deja los vigentes', function () {

@@ -21,7 +21,10 @@ class McpOAuthPrune extends Command
 
         // Vivo = sin caducidad o con caducidad posterior al limite. Borrar el cliente deja los tokens a NULL (nullOnDelete)
         // y borra sus codigos (cascade).
+        // La edad del cliente cuenta desde su alta o desde la ultima emision de un token (`last_used_at`), lo que sea mas
+        // reciente: un cliente con un token revocado hoy no se borra esa misma noche.
         $clients = OAuthClient::where('created_at', '<', $limit)
+            ->where(fn ($q) => $q->whereNull('last_used_at')->orWhere('last_used_at', '<', $limit))
             ->whereDoesntHave('tokens', fn ($q) => $q->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', $limit)))
             ->delete();
 

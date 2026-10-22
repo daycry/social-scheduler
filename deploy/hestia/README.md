@@ -33,7 +33,7 @@ clonar la app en `/home/<USUARIO>/web/<DOMINIO>/app` y enlazar `public_html -> a
 
 ## 3. Ajustes de Nginx / PHP-FPM versionados [VPS]
 
-- `nginx-overrides.conf`: `client_max_body_size`, cabeceras de seguridad, bloqueo de ficheros ocultos y `/up` sin logs. Las instrucciones de copia estan en la cabecera del fichero.
+- `nginx-overrides.conf`: `client_max_body_size`, cabeceras de seguridad, bloqueo de ficheros ocultos y `/up` sin logs. Las instrucciones de copia estan en la cabecera del fichero. `nginx-http-map.conf` va aparte, a `/etc/nginx/conf.d/` (nivel http): evita que Nginx duplique la `Referrer-Policy` que ya envia PHP en `/oauth/authorize`.
 - PHP-FPM (pool del dominio, `/etc/php/8.4/fpm/pool.d/<DOMINIO>.conf`): `upload_max_filesize = 64M`, `post_max_size = 64M`, `memory_limit = 256M`, `max_execution_time = 120`. Hestia permite fijarlos desde el panel (Editar dominio -> PHP) o con `v-change-web-domain-backend-tpl`.
 - Tras cambiar: `systemctl reload nginx php8.4-fpm`.
 

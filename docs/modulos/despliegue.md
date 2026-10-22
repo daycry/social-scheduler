@@ -72,7 +72,7 @@ Si falta y no puedes activarla (paquete `php8.4-sodium` o equivalente), la alter
 | `PASSKEYS_USER_HANDLE_SECRET` | Secreto propio del que sale el identificador de usuario de cada passkey nueva | `php -r "echo bin2hex(random_bytes(32));"`; si falta cae en `APP_KEY` y la app avisa en el log y en `php artisan about` |
 | `APP_PREVIOUS_KEYS` | Claves de aplicación anteriores | vacía; solo se rellena al rotar `APP_KEY` |
 
-Si `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGINS` no se definen se usan el host y el origen de `APP_URL`. Con valores vacíos o incoherentes el login con passkey **falla cerrado** (devuelve error y deja rastro en `laravel.log`).
+Si `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGINS` no se definen **o están vacías** se usan el host y el origen de `APP_URL` (una variable vacía cuenta como no definida). Con valores incoherentes (un RP ID que no es el dominio de la app o un origen que no coincide) el login con passkey **falla cerrado**: devuelve un error neutro y no deja entrar.
 
 ### El RP ID es para siempre (por entorno)
 

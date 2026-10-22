@@ -535,7 +535,7 @@ Checklist firmada (orquestador, 2026-10-22):
 - **Dependencias**: T-14
 - **Tipo**: test
 - **Archivos**: `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `package.json`, `package-lock.json`, `tsconfig.json`, `tests/e2e/record-passkey-vector.ts`, `docs/guias/desarrollo-local.md`
-- **Cubre (tests)**: E2E-01, E2E-05
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-05, E2E-06
 - **Verificación**:
   - `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/pages.spec.ts tests/e2e/flows.spec.ts` → la batería existente pasa en los tres proyectos sobre `localhost`
   - `npx tsc --noEmit -p .` → sin errores de tipos en `tests/e2e`
@@ -700,6 +700,7 @@ Checklist firmada (orquestador, 2026-10-22):
 - [ ] Todos los CA-01..CA-24 de la spec tienen test automático o ítem M-xx marcado
 - [ ] Los ficheros del MCP no cambian (`git diff --stat` vacío)
 - [ ] Los M-xx quedan listados como pendientes de la persona en el resumen de cierre
+- [ ] ADR-003 pasa a `aceptada` solo con el visto bueno explícito del usuario; si no lo hay, queda en `propuesta` y figura como pendiente en el resumen de cierre
 
 **Subtareas**
 - [ ] Suite, Pint, build y E2E
@@ -773,3 +774,24 @@ Lentes A+B+C+D re-evalúan solo lo corregido (`git diff 7507268..HEAD`). P2, P4�
 | N3 | B | Minor | Resto de P3: `storeOptions`/`pullOptions` leen-modifican-escriben la sesión sin bloqueo: dos GET concurrentes (dos pestañas) pierden un reto | T-09/T-13 | corregido: `->block(5, 5)` en las 4 rutas que tocan los retos (serializa por sesión; `CACHE_STORE=database` es `LockProvider`) | `PasskeyLoginTest` «N3»; tinker: `locksFor()=5`, `DatabaseStore` con locks |
 
 **Evidencia (intento 2)**: `php artisan test` → 928 passed (6933 assertions); `vendor/bin/pint --test` ok. Sin gaps Critical/Important abiertos: el bucle de la Fase 2 cierra en el intento 2.
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-15..T-19) — sin gaps Critical ni Important
+
+Lentes: A+B+C. C se activó por la ruta `.env.production.example`. Puerta `scope-check`: los únicos ficheros fuera de alcance son herramientas sin seguimiento (`.serena/`, `metricool-parity/.claude/`) y los documentos PM de la propia iniciativa (`spec.md`, `evaluation.md`, `design.md`, `test-plan.md`, `testing/results.json`); ya se rebatió en fases anteriores. `qa-gate` sobre `testing/results.json` → VERDE (223 passed · 0 failed · 0 flaky · 2 skipped).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Minor | La guía de operación decía que un `WEBAUTHN_*` vacío «falla cerrado», pero cae en `APP_URL` | T-19 | corregido: texto ajustado (vacía = no definida; solo un valor incoherente falla cerrado) | `docs/modulos/despliegue.md`; `config/passkeys.php:16,22` |
+| A2 | Minor | La guía de usuario ofrecía «desactiva el doble factor» sin código, y desactivar exige TOTP o un código de recuperación | T-19 | corregido: primero se generan códigos nuevos y luego se desactiva con uno de ellos | `docs/usuario/guia-de-usuario.md`; `TwoFactorController.php:99-104` |
+| A3 | Minor | E2E-04 decía cubrir CA-08 (reto caducado) y el comentario del spec llamaba CA-08 a la desactivación | T-16 | corregido: E2E-04 remite CA-08 a Pest (`TwoFactorChallengeTest`); el comentario pasa a CA-03 | `test-plan.md`; `tests/e2e/security.spec.ts:202` |
+| A4 | Minor | «Cubre (tests)» de T-15 no casaba con la tabla del test-plan | T-15 | corregido: E2E-01, E2E-02, E2E-05, E2E-06 | `tasks.md` T-15 |
+| A5 | Minor | Ningún criterio de T-20 recogía la aceptación pendiente de ADR-003 | T-20 | corregido: criterio nuevo en T-20 (visto bueno explícito del usuario o pendiente en el resumen) | `tasks.md` T-20 |
+| A6 | Minor | El arranque manual del servidor E2E omitía `TRUSTED_PROXIES=` | T-15 | corregido en la tabla y en el comando | `docs/guias/desarrollo-local.md` |
+| B1 | Minor | El test de autocompletado pasa también por el botón, así que no detecta si el autocompletado deja de arrancar | T-17 | deuda aceptada (Minor): el autocompletado condicional del autenticador virtual no es determinista en Chromium; el botón lo cubre E2E-06 y el autocompletado real queda en la prueba manual M-02 | `tests/e2e/security.spec.ts:376` |
+| B2 | Minor | El teardown dejaba huérfanas en `audit_logs` (user_id NULL) las filas de los usuarios e2e | T-15 | corregido: `deleteE2eUsers` borra antes sus filas de auditoría. Tras la ejecución solo queda `auth.passkey.login_failed` de la passkey borrada, que no tiene usuario por diseño | `tests/e2e/helpers.ts:147-155` |
+| B3 | Minor | `dotenv` no expande `${VAR}`, así que el servidor E2E heredaba `MAIL_FROM_NAME="${APP_NAME}"` literal | T-15 | corregido: expansión en `playwright.config.ts` | `playwright.config.ts:6-12` |
+| B4 | Minor | Con `E2E_BASE_URL` apuntando a una IP o sin puerto, el `webServer` arrancaba mal sin dar un error claro | T-15 | corregido: error explícito al cargar la configuración | `playwright.config.ts:15-21` |
+| B5 | Minor | Posible carrera en `confirmPasswordIfAsked` (`networkidle` antes del XHR de Inertia) | T-16, T-17 | deuda aceptada (Minor): no se ha reproducido; 3 proyectos verdes en 3 ejecuciones | `tests/e2e/helpers.ts` |
+
+Lente C: sin hallazgos. Verificado además que rotar `APP_KEY` o `PASSKEYS_USER_HANDLE_SECRET` no invalida las passkeys, porque la verificación usa el `userHandle` guardado (`vendor/laravel/passkeys/src/Actions/VerifyPasskey.php:121`).
+**Verificación de las correcciones (2026-10-22)**: `npx tsc --noEmit -p .` → 0 errores; `npx playwright test tests/e2e/security.spec.ts --project=desktop` → 8 passed; 0 usuarios `e2e-sec-*` tras el teardown.

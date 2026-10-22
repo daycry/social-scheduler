@@ -73,11 +73,12 @@ npx tsc --noEmit -p .                             # tipos de tests/e2e
 | `WEBAUTHN_RP_ID` | `localhost` | WebAuthn no admite una IP como RP ID: por eso `localhost` y no `127.0.0.1` |
 | `WEBAUTHN_ORIGINS` | `http://localhost:8080` | origen exacto que firma el autenticador |
 | `SESSION_SECURE_COOKIE` | `false` | la cookie de sesión viaja por http |
+| `TRUSTED_PROXIES` | vacío | sin proxies de confianza: anula el `*` que el `.env` pone para ngrok |
 
 `php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`, que es lo que usa el `webServer`. Para arrancarlo a mano (y usar `E2E_NO_SERVER=1`), con las mismas variables:
 
 ```bash
-APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false php artisan serve --host=localhost --port=8080 --no-reload
+APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false TRUSTED_PROXIES= php artisan serve --host=localhost --port=8080 --no-reload
 ```
 
 **Datos de prueba.** `global-setup.ts` crea un usuario `e2e-sec-<proyecto>@example.test` por proyecto (contraseña aleatoria en `tests/e2e/.auth/`, ignorado por git) para el 2FA y las passkeys; `global-teardown.ts` los borra con sus datos. El usuario demo solo se usa para el resto de la batería y nunca para 2FA/passkeys. Las marcas y demás datos creados llevan el prefijo `e2e-` y se limpian. El TOTP se calcula en Node (RFC 6238) a partir del secreto que muestra la pantalla; las passkeys usan el autenticador virtual de Chromium (CDP).

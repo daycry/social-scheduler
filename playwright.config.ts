@@ -3,9 +3,23 @@ import dotenv from 'dotenv';
 
 // Credenciales del usuario demo (DEMO_USER_*) del .env; nunca se versionan ni se imprimen.
 dotenv.config({ path: '.env' });
+// dotenv no expande `${VAR}` y PHP no pisa variables que ya estan en el entorno: se expanden aqui para que el servidor
+// E2E y tinker vean lo mismo que con el .env (p. ej. MAIL_FROM_NAME="${APP_NAME}").
+for (const [key, value] of Object.entries(process.env)) {
+    if (value?.includes('${')) {
+        process.env[key] = value.replace(/\$\{(\w+)\}/g, (_, name: string) => process.env[name] ?? '');
+    }
+}
 
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8080';
-const { port } = new URL(baseURL);
+const { hostname, port } = new URL(baseURL);
+// WebAuthn no admite una IP como RP ID y el servidor necesita un puerto explicito: mejor un error claro que fallos raros.
+if (/^[\d.]+$|^\[/.test(hostname)) {
+    throw new Error(`E2E_BASE_URL (${baseURL}) usa una IP: WebAuthn exige un dominio como RP ID; usa http://localhost:<puerto>.`);
+}
+if (!process.env.E2E_NO_SERVER && !port) {
+    throw new Error(`E2E_BASE_URL (${baseURL}) necesita un puerto explicito para el servidor de pruebas.`);
+}
 
 /**
  * Batería E2E (requiere `npm run build`). Playwright arranca solo el servidor de pruebas (`webServer`) en localhost:8080

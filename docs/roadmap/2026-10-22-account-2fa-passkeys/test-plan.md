@@ -54,7 +54,7 @@
 - **Capturas esperadas**: reto en modo recuperación, lista regenerada.
 - **Cubre tareas**: T-03, T-04, T-06, T-16
 
-### E2E-04 — Bloqueo del reto y desactivación (CA-03, CA-06, CA-08)
+### E2E-04 — Bloqueo del reto y desactivación (CA-03, CA-06; CA-08, reto caducado a los 5 min, lo cubre Pest en `TwoFactorChallengeTest`)
 - **Objetivo**: 5 fallos bloquean el sexto intento y el 2FA se desactiva con contraseña + código.
 - **Precondiciones**: usuario E2E con 2FA activo y sin sesión.
 - **Pasos**:

@@ -145,7 +145,12 @@ export function createE2eUsers(): Record<string, E2eUser> {
 
 /** Borra los usuarios E2E (con ellos se van sus passkeys, marcas y sesiones asociadas por cascada). */
 export function deleteE2eUsers() {
-    artisan(`App\\Models\\User::where('email', 'like', 'e2e-sec-%@example.test')->get()->each->delete();`);
+    // La auditoria pone user_id a NULL al borrar el usuario: sus filas se borran antes para no dejar huerfanas.
+    artisan(
+        `$ids = App\\Models\\User::where('email', 'like', 'e2e-sec-%@example.test')->pluck('id'); ` +
+            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereIn('user_id', $ids)->delete(); ` +
+            `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
+    );
     fs.rmSync(E2E_USERS_FILE, { force: true });
 }
 

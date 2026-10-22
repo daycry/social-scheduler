@@ -199,7 +199,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
         await submitChallenge(page, 'code', totp(secret));
         await expect(page).toHaveURL(/\/dashboard/);
 
-        // CA-08: desactivar exige contraseña Y un código válido.
+        // CA-03: desactivar exige contraseña Y un código válido.
         await confirmPassword(page, user.password);
         await page.goto('/profile');
         await page.getByRole('button', { name: 'Desactivar doble factor' }).click();

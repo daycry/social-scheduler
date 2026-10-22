@@ -92,7 +92,7 @@ Una passkey te deja entrar con la huella, la cara o el PIN de tu dispositivo, **
 
 ### ¿Y si pierdo el móvil?
 
-1. **Tienes una passkey** en otro dispositivo: entra con ella (no pide el código) y, en Perfil → Seguridad, genera códigos nuevos o desactiva el doble factor y vuélvelo a activar con tu móvil nuevo.
+1. **Tienes una passkey** en otro dispositivo: entra con ella (no pide el código) y, en Perfil → Seguridad, genera códigos de recuperación nuevos (no pide código). Para pasar el doble factor al móvil nuevo, desactívalo con uno de esos códigos y vuelve a activarlo escaneando el QR con el móvil nuevo.
 2. **Tienes tus códigos de recuperación:** en la pantalla de verificación pulsa **Usar un código de recuperación** y escribe uno (sirve una sola vez). Después, genera códigos nuevos y activa el doble factor en el móvil nuevo.
 3. **No tienes ni passkey ni códigos:** contacta con la persona que administra la aplicación. Tras comprobar que eres tú, desactivará tu doble factor; entrarás solo con tu contraseña y podrás activarlo otra vez.
 

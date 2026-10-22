@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 4 | 7 | 57% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 5 | 7 | 71% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **11** | **20** | **55%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **12** | **20** | **60%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -417,32 +417,33 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-12 — Tests de la ceremonia WebAuthn con vector grabado
 
 - **Descripción**: Graba una vez con el autenticador virtual de Chromium un vector real de *attestation* y *assertion* contra `localhost` y lo usa en Pest inyectando en sesión `passkey.verification_options` con su reto, para probar la verificación criptográfica real a través del gateway. Cubre contador 0 y contador que retrocede.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las passkeys se prueban de extremo a extremo con una grabación real de un autenticador, no solo con simulaciones.
+- **Estado**: completado
 - **Tiempo humano**: est. 8,0h · real —
 - **Tiempo IA (ejec.)**: est. 1.11h · real —
 - **Supervisión**: est. 0.28h (≈25 % IA) · real —
 - **Previsión IA**: 303k in / 30k out tok · ⚠️ verificar €
 - **Dependencias**: T-10, T-11
 - **Tipo**: test
-- **Archivos**: `tests/Feature/Auth/PasskeyCeremonyTest.php`, `tests/Fixtures/passkeys/`, `tests/e2e/record-passkey-vector.ts`
+- **Archivos**: `tests/Feature/Auth/PasskeyCeremonyTest.php`, `tests/Fixtures/passkeys/`, `tests/e2e/record-passkey-vector.ts`, `tests/Fixtures/passkeys/README.md`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=PasskeyCeremony` → en verde con el vector real (origen `http://localhost:8080`, RP ID `localhost`)
   - `php artisan test --compact tests/Feature/Auth` → sin regresiones
 
 **Criterios de aceptación**
-- [ ] Una assertion válida del vector autentica al usuario de la fixture
-- [ ] Un reto distinto, un origen distinto o un RP ID distinto se rechazan
-- [ ] Contador 0 → 0 se tolera; un contador que retrocede con valores distintos de 0 se rechaza y se audita `sign_count_regression`
-- [ ] El vector solo contiene una credencial de prueba, sin material reutilizable fuera del test
+- [x] Una assertion válida del vector autentica al usuario de la fixture
+- [x] Un reto distinto, un origen distinto o un RP ID distinto se rechazan
+- [x] Contador 0 → 0 se tolera; un contador que retrocede con valores distintos de 0 se rechaza y se audita `sign_count_regression`
+- [x] El vector solo contiene una credencial de prueba, sin material reutilizable fuera del test
 
 **Subtareas**
-- [ ] Script de grabación con CDP `WebAuthn.addVirtualAuthenticator`
-- [ ] Fixtures versionadas con un README del vector
-- [ ] Tests de contador y de origen
+- [x] Script de grabación con CDP `WebAuthn.addVirtualAuthenticator`
+- [x] Fixtures versionadas con un README del vector
+- [x] Tests de contador y de origen
 
-**Notas**: Incógnita del diseño: si el vector resulta inestable, plan B = `bind` de la Action y cubrir la ceremonia real solo en E2E (+3-4 h).
+**Notas**: Incógnita del diseño: si el vector resulta inestable, plan B = `bind` de la Action y cubrir la ceremonia real solo en E2E (+3-4 h). Desviaciones: (1) el script de grabación intercepta http://localhost:8080 con `page.route` (el puerto 8080 estaba ocupado por otro servidor local; no abre puertos) y se ejecuta con `node tests/e2e/record-passkey-vector.ts`. (2) El autenticador virtual de Chromium (131) no emite contador 0 (alta=1, assertions=2,3,4): el 0→0 se prueba ejecutando el paso `CheckCounter` de webauthn-lib sobre una assertion real con el contador forzado (0→0 pasa; igual/menor/0 tras >0 lanzan `CounterException`); la regresión real 4→3 y la repetición de una assertion sí se prueban con login completo y auditan `sign_count_regression`. (3) `login_failed` + detalle `sign_count_regression` (no una acción aparte), como pide la spec.
+**Evidencia**: `php artisan test --compact --filter=PasskeyCeremony` → 13 passed (77 assertions, vector real origen http://localhost:8080 / RP ID localhost); `php artisan test --compact tests/Feature/Auth` → verde; suite completa verde; vector estable (no se necesitó plan B).
 
 ### T-13 — UI de passkeys: PasskeysForm, botón en Login y avisos de contexto
 

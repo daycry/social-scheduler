@@ -41,3 +41,8 @@ spike/.results-*.json
 /test-results
 /playwright-report
 /tests/e2e/.auth
+
+# Artefactos locales que no se versionan
+docs/roadmap/*/testing/results.json
+docs/roadmap/*/.claude/
+.serena/

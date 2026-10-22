@@ -55,3 +55,6 @@ Schedule::job(new GenerateAutolistPosts)->dailyAt((string) config('social.autoli
 
 // Inbox de comentarios (PA-10): sincroniza los comentarios de las publicaciones propias de IG/FB. Cola `poll`.
 Schedule::job(new SyncInboxComments)->cron('*/'.max(5, (int) config('social.inbox.sync_minutes', 15)).' * * * *')->name('sync-inbox-comments')->withoutOverlapping();
+
+// Servidor OAuth del MCP (CA-31): clientes sin token vivo en 30 dias y codigos caducados.
+Schedule::command('mcp:oauth-prune')->dailyAt('04:40')->name('mcp-oauth-prune')->withoutOverlapping();

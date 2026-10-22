@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Mcp\OAuth\MetadataController;
+use App\Http\Controllers\Mcp\OAuth\RegisterController;
 use App\Mcp\Servers\SchedulerServer;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
@@ -15,3 +16,6 @@ Route::get('/.well-known/oauth-protected-resource', [MetadataController::class, 
 Route::get('/.well-known/oauth-protected-resource/{path}', [MetadataController::class, 'protectedResource'])
     ->where('path', '.*')->name('mcp.oauth.protected-resource.nested');
 Route::get('/.well-known/oauth-authorization-server', [MetadataController::class, 'authorizationServer'])->name('mcp.oauth.authorization-server');
+
+// DCR publico: limitado por IP (10/h) y con redirect_uri restringida por RedirectPolicy.
+Route::post('/oauth/register', RegisterController::class)->middleware('throttle:mcp-oauth-register')->name('mcp.oauth.register');

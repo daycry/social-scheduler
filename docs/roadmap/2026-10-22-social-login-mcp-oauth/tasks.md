@@ -192,11 +192,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-05 — DCR: `POST /oauth/register`, política de redirect, limitador y `mcp:oauth-prune`
 
 - **Descripción**: `RegisterController` registra clientes públicos (RFC 7591) con `RedirectPolicy`: solo loopback (`localhost`, `127.0.0.1`, `[::1]`, cualquier puerto, RFC 8252), los callbacks de Claude y los prefijos `https://` de `MCP_OAUTH_REDIRECT_ALLOWED`. Limitador `mcp-oauth-register` de 10/h por IP. Comando programado `mcp:oauth-prune` que borra clientes sin token vivo en 30 días y los códigos caducados.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.68h · real —
-- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Changelog**: Los clientes MCP pueden registrarse solos (solo con redirecciones seguras) y los registros abandonados se limpian a diario.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 0.7h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.68h · real 0.6h (estimado)
+- **Supervisión**: est. 0.17h (≈25 % IA) · real 0.15h (estimado)
 - **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-03, T-04
 - **Tipo**: backend
@@ -209,17 +209,19 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan schedule:list` → aparece `mcp:oauth-prune`
 
 **Criterios de aceptación**
-- [ ] CA-15 completo, sin 500 con cuerpos malformados
-- [ ] La política compara host exacto (no prefijos de cadena) y esquema
-- [ ] CA-31: un cliente con un token vivo no se purga
-- [ ] El registro audita `oauth.client.registered` sin datos sensibles
+- [x] CA-15 completo, sin 500 con cuerpos malformados
+- [x] La política compara host exacto (no prefijos de cadena) y esquema
+- [x] CA-31: un cliente con un token vivo no se purga
+- [x] El registro audita `oauth.client.registered` sin datos sensibles
 
 **Subtareas**
-- [ ] `RedirectPolicy` y su Unit
-- [ ] Controlador y limitador
-- [ ] Comando, programación y test
+- [x] `RedirectPolicy` y su Unit
+- [x] Controlador y limitador
+- [x] Comando, programación y test
 
 **Notas**: Código de seguridad propio: lo revisa T-12.
+
+**Evidencia de cierre**: --filter OAuthRegister|OAuthPrune|RedirectPolicy 49 tests en verde (CA-15, 429 con Retry-After, CA-31); schedule:list muestra mcp:oauth-prune.
 
 ---
 

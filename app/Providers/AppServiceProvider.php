@@ -99,6 +99,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('passkey-login-options', fn (Request $request) => Limit::perMinute(30)->by('passkey-login-options:'.$request->ip()));
         // Gestion de passkeys (perfil): contador propio por usuario, no compartido con el 2FA ni con el login.
         RateLimiter::for('passkey-manage', fn (Request $request) => Limit::perMinute(20)->by('passkey-manage:'.($request->user()?->id ?? $request->ip())));
+        // Servidor OAuth del MCP (ADR-004): DCR abierto a Internet, 10/h por IP; token endpoint, 30/min por IP.
+        RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour(10)->by('mcp-oauth-register:'.$request->ip()));
+        RateLimiter::for('mcp-oauth-token', fn (Request $request) => Limit::perMinute(30)->by('mcp-oauth-token:'.$request->ip()));
         RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));
     }
 }

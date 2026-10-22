@@ -33,6 +33,22 @@ final class Abilities
         ];
     }
 
+    /**
+     * Conjuntos predefinidos para la UI (las casillas siguen editables). `read` ⊂ `publish` ⊂ `all`.
+     *
+     * @return array<string, array{label: string, abilities: list<string>}>
+     */
+    public static function presets(): array
+    {
+        $read = array_values(array_filter(self::keys(), fn (string $a) => str_ends_with($a, ':read')));
+
+        return [
+            'read' => ['label' => 'Solo lectura', 'abilities' => $read],
+            'publish' => ['label' => 'Publicar', 'abilities' => [...$read, self::POSTS_WRITE, self::REPORTS_WRITE]],
+            'all' => ['label' => 'Todo', 'abilities' => self::keys()],
+        ];
+    }
+
     /** @return list<string> */
     public static function keys(): array
     {

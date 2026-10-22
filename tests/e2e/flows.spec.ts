@@ -162,10 +162,41 @@ test.describe('con sesión demo', () => {
 
         await page.goto('/api-keys');
         await page.getByLabel(/Nombre \(p\. ej\./).fill(name);
+        // Atajo «Solo lectura»: deja marcadas solo las casillas *:read.
+        await page.getByRole('button', { name: 'Solo lectura' }).click();
+        await expect(page.getByRole('button', { name: 'Solo lectura' })).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.getByRole('checkbox', { name: /posts:write/ })).not.toBeChecked();
+        await expect(page.getByRole('checkbox', { name: /posts:read/ })).toBeChecked();
         await page.getByRole('button', { name: 'Crear API key' }).click();
         await expect(page.getByTestId('new-key')).toBeVisible();
         await expect(page.getByText(name)).toBeVisible();
+
+        // Instalación por cliente con la key recién creada ya rellena.
+        const key = (await page.getByTestId('new-key').textContent())!.trim();
+        const install = page.getByTestId('mcp-install');
+        await expect(install).toContainText(`claude mcp add --transport http --scope user social-scheduler`);
+        await expect(install).toContainText(key);
+        for (const [tab, text] of [['Claude Desktop', 'mcp-remote'], ['Codex', 'bearer_token_env_var'], ['OpenCode', '{env:SCHEDULER_MCP_KEY}']]) {
+            await page.getByRole('tab', { name: tab }).click();
+            await expect(install).toContainText(text);
+            // Las plantillas JSON se pegan tal cual en el fichero del cliente: tienen que parsear.
+            if (tab !== 'Codex') {
+                const blocks = await install.locator('pre').allTextContents();
+                expect(() => JSON.parse(blocks[blocks.length - 1])).not.toThrow();
+            }
+        }
+
+        // El navegador envía Origin = E2E_BASE_URL: tiene que ser APP_URL o estar en MCP_ALLOWED_ORIGINS (McpGuard).
+        await page.getByRole('button', { name: 'Probar conexión' }).click();
+        await expect(page.getByTestId('mcp-probe')).toContainText(/Conexión correcta: el servidor ofrece \d+ herramientas/);
         await expectNoOverflow(page);
+
+        // La key no queda en el historial: al volver atrás desde otra página ya no se muestra.
+        await page.goto('/dashboard');
+        await page.goBack();
+        await expect(page.getByRole('heading', { name: 'API keys (MCP)' })).toBeVisible();
+        await expect(page.getByTestId('new-key')).toHaveCount(0);
+        await expect(page.getByTestId('mcp-install')).toContainText('<TU_API_KEY>');
 
         await page.getByText(name, { exact: true }).locator('xpath=ancestor::li').getByRole('button', { name: 'Revocar' }).click();
         await settle(page);

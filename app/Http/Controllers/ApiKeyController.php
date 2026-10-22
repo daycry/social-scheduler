@@ -27,6 +27,7 @@ class ApiKeyController extends Controller
                 'created_at' => $t->created_at?->toIso8601String(),
             ])->values(),
             'abilities' => Abilities::all(),
+            'presets' => Abilities::presets(),
             'endpoint' => url('/mcp'),
             'newKey' => session('new_key'),
         ]);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Mcp\Abilities;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -116,6 +117,24 @@ test('McpAuth: la key se guarda con hash y el secreto solo se muestra una vez', 
     $this->actingAs($user)->get(route('api-keys.index', absolute: false))->assertInertia(fn ($page) => $page->where('newKey', $plain));
     $this->actingAs($user)->get(route('api-keys.index', absolute: false))
         ->assertInertia(fn ($page) => $page->component('ApiKeys/Index')->where('newKey', null)->has('keys', 1)->missing('keys.0.token'));
+});
+
+test('McpAuth: los permisos predefinidos son validos, anidados y llegan a la pagina de API keys', function () {
+    $presets = Abilities::presets();
+
+    expect(array_keys($presets))->toBe(['read', 'publish', 'all']);
+    foreach ($presets as $preset) {
+        expect($preset['abilities'])->not->toBeEmpty()->and(array_diff($preset['abilities'], Abilities::keys()))->toBe([]);
+    }
+    expect($presets['read']['abilities'])->each->toEndWith(':read')
+        ->and(array_diff($presets['read']['abilities'], $presets['publish']['abilities']))->toBe([])
+        ->and($presets['publish']['abilities'])->toContain(Abilities::POSTS_WRITE)->not->toContain(Abilities::INBOX_WRITE)
+        ->and($presets['all']['abilities'])->toBe(Abilities::keys());
+
+    $this->actingAs(User::factory()->create())->get(route('api-keys.index', absolute: false))
+        ->assertInertia(fn ($page) => $page->where('presets.publish.label', 'Publicar')
+            ->where('presets.read.abilities', $presets['read']['abilities'])
+            ->where('endpoint', url('/mcp')));
 });
 
 test('McpAuth: crear y revocar keys requiere sesion y valida los permisos', function () {

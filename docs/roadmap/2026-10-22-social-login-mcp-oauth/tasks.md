@@ -332,11 +332,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-09 — Coexistencia con `msk_`: sustitución al reautorizar, origen del token y `McpGuard` intacto
 
 - **Descripción**: Al emitir, revoca en una transacción con bloqueo de filas los tokens vivos de ese (usuario, cliente) (CA-26). `ApiKeyController::index` añade el origen (manual u «OAuth · cliente») como dato; la columna visible llega en T-22. Un test fija que `McpGuard` sigue devolviendo 403 con un `Origin` no permitido en `/mcp` y que `/oauth/*` y `/.well-known/*` responden sin `Origin` (CA-28).
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.14h · real —
-- **Supervisión**: est. 0.03h (≈25 % IA) · real —
+- **Changelog**: Volver a autorizar un agente sustituye su token anterior (los demás clientes y tus API keys manuales no se tocan) y API keys distingue el origen de cada clave.
+- **Estado**: completado
+- **Tiempo humano**: est. 1,0h · real 0.3h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.14h · real 0.2h (estimado)
+- **Supervisión**: est. 0.03h (≈25 % IA) · real 0.05h (estimado)
 - **Previsión IA**: 37k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
@@ -347,15 +347,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `git diff --stat -- app/Http/Middleware/McpGuard.php app/Mcp/Tools/SchedulerTool.php app/Services/AuditLog.php` → vacío
 
 **Criterios de aceptación**
-- [ ] CA-26: tras reautorizar solo vive el token nuevo del par (usuario, cliente); los de otros clientes y las API keys manuales no se tocan
-- [ ] CA-23: un token OAuth `read` no puede `create_post`, igual que una API key sin `posts:write`
-- [ ] CA-24: `tests/Feature/Mcp` sin modificar y en verde
-- [ ] Ningún token manual existente cambia
+- [x] CA-26: tras reautorizar solo vive el token nuevo del par (usuario, cliente); los de otros clientes y las API keys manuales no se tocan
+- [x] CA-23: un token OAuth `read` no puede `create_post`, igual que una API key sin `posts:write`
+- [x] CA-24: `tests/Feature/Mcp` sin modificar y en verde
+- [x] Ningún token manual existente cambia
 
 **Subtareas**
-- [ ] Sustitución transaccional
-- [ ] Dato de origen en `index`
-- [ ] Tests de coexistencia y de CA-28
+- [x] Sustitución transaccional
+- [x] Dato de origen en `index`
+- [x] Tests de coexistencia y de CA-28
+
+**Evidencia de cierre**: --filter OAuthCoexistence 6 tests (CA-23, 24, 25, 26, 28); tests/Feature/Mcp + tests/Unit 236 en verde; git diff McpGuard/SchedulerTool/AuditLog vacío.
 
 ---
 

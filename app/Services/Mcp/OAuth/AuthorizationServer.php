@@ -183,6 +183,13 @@ class AuthorizationServer
 
             $days = max(1, (int) config('services.mcp.oauth.token_days', 30));
             $user = User::findOrFail($row->user_id);
+
+            // Reautorizar sustituye (CA-26): se bloquean y revocan los tokens de ESTE (usuario, cliente); los de otros
+            // clientes y las API keys manuales (oauth_client_id NULL) no se tocan. Dentro de la transaccion y con bloqueo
+            // de filas para que dos canjes concurrentes del mismo par no dejen dos tokens vivos.
+            $previous = PersonalAccessToken::where('tokenable_type', $user->getMorphClass())->where('tokenable_id', $user->id)
+                ->where('oauth_client_id', $client->id)->lockForUpdate()->pluck('id');
+            PersonalAccessToken::whereIn('id', $previous)->delete();
             $new = $user->createToken('OAuth · '.$client->name, $row->abilities, now()->addDays($days));
             PersonalAccessToken::whereKey($new->accessToken->id)->update(['oauth_client_id' => $client->id]);
             $row->forceFill(['token_id' => $new->accessToken->id])->save();

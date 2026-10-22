@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mcp\Abilities;
+use App\Models\PersonalAccessToken;
 use App\Services\AuditLog;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -10,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /** API keys personales (Sanctum) con las que un agente se conecta al MCP. El secreto se muestra UNA vez. */
 class ApiKeyController extends Controller
@@ -18,13 +18,16 @@ class ApiKeyController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('ApiKeys/Index', [
-            'keys' => $request->user()->tokens()->latest('id')->get()->map(fn (PersonalAccessToken $t) => [
+            'keys' => $request->user()->tokens()->with('oauthClient')->latest('id')->get()->map(fn (PersonalAccessToken $t) => [
                 'id' => $t->id,
                 'name' => $t->name,
                 'abilities' => $t->abilities,
                 'last_used_at' => $t->last_used_at?->toIso8601String(),
                 'expires_at' => $t->expires_at?->toIso8601String(),
                 'created_at' => $t->created_at?->toIso8601String(),
+                // Origen: manual (creada aqui) u OAuth (emitida por el servidor de autorizacion a un cliente MCP).
+                'origin' => $t->oauth_client_id !== null ? 'oauth' : 'manual',
+                'oauth_client' => $t->oauthClient?->name,
             ])->values(),
             'abilities' => Abilities::all(),
             'presets' => Abilities::presets(),

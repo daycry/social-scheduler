@@ -3,47 +3,13 @@
 use App\Mcp\Abilities;
 use App\Models\AuditLog;
 use App\Models\OAuthAuthCode;
-use App\Models\OAuthClient;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 
 require_once __DIR__.'/Helpers.php';
 
-const TOKEN_VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
-
 beforeEach(fn () => RateLimiter::clear('mcp-oauth-token:127.0.0.1'));
-
-/** Crea un codigo valido directamente en BD y devuelve [codigo en claro, fila, usuario, cliente]. */
-function mintCode(array $abilities = ['posts:read'], array $over = [], ?User $user = null, ?OAuthClient $client = null): array
-{
-    $user ??= User::factory()->create();
-    $client ??= oauthClient();
-    $code = 'codigo-'.bin2hex(random_bytes(8));
-    $row = OAuthAuthCode::create($over + [
-        'code_hash' => hash('sha256', $code),
-        'client_id' => $client->id,
-        'user_id' => $user->id,
-        'redirect_uri' => $client->redirect_uris[0],
-        'code_challenge' => pkceChallenge(TOKEN_VERIFIER),
-        'abilities' => $abilities,
-        'resource' => rtrim(config('app.url'), '/').'/mcp',
-        'expires_at' => now()->addMinutes(5),
-    ]);
-
-    return [$code, $row, $user, $client];
-}
-
-function redeem(string $code, OAuthClient $client, array $over = [])
-{
-    return test()->post('/oauth/token', array_filter($over + [
-        'grant_type' => 'authorization_code',
-        'code' => $code,
-        'redirect_uri' => $client->redirect_uris[0],
-        'client_id' => $client->id,
-        'code_verifier' => TOKEN_VERIFIER,
-    ], fn ($v) => $v !== null));
-}
 
 test('OAuthToken CA-20: un codigo valido da un token msk_ con las abilities exactas y oauth_client_id', function () {
     [$code, $row, $user, $client] = mintCode(['posts:read', 'brands:read']);

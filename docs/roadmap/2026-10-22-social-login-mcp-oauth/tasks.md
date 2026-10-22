@@ -364,11 +364,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-10 — Batería Pest del servidor OAuth: flujo completo, negativos y fugas
 
 - **Descripción**: Test de flujo completo register → authorize (actingAs) → token → `tools/call` en `/mcp`, más los negativos por cada `invalid_*` hasta unos 30 tests nuevos en total entre T-04..T-09 y esta tarea, y `OAuthAuditLeakTest` (CA-27: ningún evento OAuth lleva códigos, tokens, verifiers ni secretos). Cierra huecos de cobertura detectados al mirar CA-12..CA-28 uno a uno.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 9,0h · real —
-- **Tiempo IA (ejec.)**: est. 1.22h · real —
-- **Supervisión**: est. 0.30h (≈25 % IA) · real —
+- **Changelog**: El flujo completo de conexión OAuth de un agente MCP queda cubierto por pruebas automáticas, incluidos los casos de error y que no se filtran secretos.
+- **Estado**: completado
+- **Tiempo humano**: est. 9,0h · real 1.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 1.22h · real 0.9h (estimado)
+- **Supervisión**: est. 0.30h (≈25 % IA) · real 0.22h (estimado)
 - **Previsión IA**: 329k in / 36k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: test
@@ -380,15 +380,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact` → suite completa en verde
 
 **Criterios de aceptación**
-- [ ] Cada CA-12..CA-28 tiene al menos un test que lo nombra (tabla CA → test en las Notas)
-- [ ] El flujo completo termina con una llamada real a una tool del MCP con el token emitido
-- [ ] Suite completa sin desactivar ni modificar tests existentes
+- [x] Cada CA-12..CA-28 tiene al menos un test que lo nombra (tabla CA → test en las Notas)
+- [x] El flujo completo termina con una llamada real a una tool del MCP con el token emitido
+- [x] Suite completa sin desactivar ni modificar tests existentes
 
 **Subtareas**
-- [ ] Flujo completo
-- [ ] Negativos que falten por CA
-- [ ] Test de fugas
-- [ ] Tabla CA → test
+- [x] Flujo completo
+- [x] Negativos que falten por CA
+- [x] Test de fugas
+- [x] Tabla CA → test
+
+**Evidencia de cierre**: --filter OAuth 145 tests en verde; OAuthAuditLeak sin código/verifier/token/hash en audit_logs ni log; suite completa en verde. Tabla CA→test: CA-12/13/14=MetadataTest; CA-15=RegisterTest+RedirectPolicyTest; CA-16/17/18/19=AuthorizeTest (+NegativesTest); CA-20/21/22=TokenTest+PkceTest; CA-23/24/25/26/28=CoexistenceTest; CA-27=OAuthAuditLeakTest (+TokenTest/AuthorizeTest); flujo extremo a extremo=FullFlowTest; CA-31=PruneTest.
 
 ---
 

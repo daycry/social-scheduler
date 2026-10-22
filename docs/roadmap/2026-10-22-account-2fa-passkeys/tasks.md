@@ -32,9 +32,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
-| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 3 | 7 | 43% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 4 | 7 | 57% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
 | Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 0 | 6 | 0% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
-| **TOTAL** | **10** | **20** | **50%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+| **TOTAL** | **11** | **20** | **55%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -385,33 +385,34 @@ Checklist firmada (orquestador, 2026-10-22):
 ### T-11 — Login con passkey: opciones y verificación como `guest`
 
 - **Descripción**: `App\Http\Controllers\Auth\PasskeyLoginController` (`options`, `store`) con las URL del cliente (`/passkeys/login/options`, `/passkeys/login`), `throttle:10,1` por IP (decisión 4 de §4), `Auth::login` + regenerar sesión, `last_used_at`, respuesta JSON `{redirect}` hacia `intended`/`dashboard` y auditoría del fallo sin revelar si existe la cuenta. La passkey sustituye a contraseña + 2FA: no se pide reto.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Ya se puede entrar con una passkey desde el inicio de sesión, sin contraseña ni código de doble factor; los intentos están limitados a 10 por minuto.
+- **Estado**: completado
 - **Tiempo humano**: est. 6,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.90h · real —
 - **Supervisión**: est. 0.23h (≈25 % IA) · real —
 - **Previsión IA**: 246k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Auth/PasskeyLoginController.php`, `routes/auth.php`, `tests/Feature/Auth/PasskeyLoginTest.php`
+- **Archivos**: `app/Http/Controllers/Auth/PasskeyLoginController.php`, `routes/auth.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/PasskeyLoginTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=PasskeyLogin` → CA-17, CA-18 y CA-21 en verde
-  - `php artisan route:list --path=passkeys/login` → `guest` y `throttle:10,1`
+  - `php artisan route:list --path=passkeys/login` → `guest` y `throttle:passkey-login` (10/min por IP)
 
 **Criterios de aceptación**
-- [ ] CA-17: usuario sin sesión con passkey válida entra al `dashboard` sin contraseña ni reto 2FA (con y sin 2FA) y se audita `auth.passkey.login`
-- [ ] CA-18: passkey borrada o de otro RP ID → no entra, mensaje que no revela si la cuenta existe y `auth.passkey.login_failed`
-- [ ] CA-21: la petición 11 en un minuto desde la misma IP recibe 429
-- [ ] Un contador de firmas a 0 (passkey sincronizada) no bloquea el login; la regresión real se audita como `sign_count_regression`
-- [ ] La sesión se regenera y no hay doble redirección
+- [x] CA-17: usuario sin sesión con passkey válida entra al `dashboard` sin contraseña ni reto 2FA (con y sin 2FA) y se audita `auth.passkey.login`
+- [x] CA-18: passkey borrada o de otro RP ID → no entra, mensaje que no revela si la cuenta existe y `auth.passkey.login_failed`
+- [x] CA-21: la petición 11 en un minuto desde la misma IP recibe 429
+- [x] Un contador de firmas a 0 (passkey sincronizada) no bloquea el login; la regresión real se audita como `sign_count_regression`
+- [x] La sesión se regenera y no hay doble redirección
 
 **Subtareas**
-- [ ] Controlador con `{redirect}` para Inertia
-- [ ] Auditoría de éxito y fallo
-- [ ] Throttle propio en lugar del `6,1` del paquete
+- [x] Controlador con `{redirect}` para Inertia
+- [x] Auditoría de éxito y fallo
+- [x] Throttle propio en lugar del `6,1` del paquete
 
-**Notas**: El 429 de CA-21 se prueba con 11 llamadas en el test.
+**Notas**: El 429 de CA-21 se prueba con 11 llamadas en el test. Desviaciones: limitador con nombre propio `passkey-login` (10/min por IP, una sola clave compartida por /options y /login) en lugar de `throttle:10,1` anónimo (que comparte clave con otras rutas, tal como pidió el orquestador). Un 2FA a medias (`login.*` en sesión) se descarta al entrar con passkey. El contador a 0 (passkey sincronizada) lo tolera webauthn-lib; no es demostrable con la Action falsa: lo cubre T-12 con el vector real. Fallo = 422 JSON `{message}` igual para cualquier causa; el motivo (`unknown_credential`, `verification_failed`, `sign_count_regression`, `session_expired`, `invalid_format`) solo va a `auth.passkey.login_failed` (con user_id solo si la credencial existe).
+**Evidencia**: `php artisan test --compact --filter=PasskeyLogin` → 12 passed (93 assertions: CA-17 con y sin 2FA, CA-18, CA-21, regresión de contador, reto de un solo uso); `route:list --path=passkeys/login -v` → RedirectIfAuthenticated (guest) + ThrottleRequests:passkey-login en ambas rutas; pint OK.
 
 ### T-12 — Tests de la ceremonia WebAuthn con vector grabado
 

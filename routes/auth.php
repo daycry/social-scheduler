@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasskeyLoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -32,6 +33,12 @@ Route::middleware('guest')->group(function () {
 
     Route::post('two-factor-challenge', [TwoFactorChallengeController::class, 'store'])
         ->name('two-factor.challenge.store');
+
+    // Login con passkey: sustituye a contrasena + 2FA. Limitador propio (10/min por IP, compartido por las dos URL).
+    Route::middleware('throttle:passkey-login')->group(function () {
+        Route::get('passkeys/login/options', [PasskeyLoginController::class, 'options'])->name('passkeys.login.options');
+        Route::post('passkeys/login', [PasskeyLoginController::class, 'store'])->name('passkeys.login');
+    });
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

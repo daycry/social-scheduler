@@ -13,7 +13,7 @@ const editor = ref(null);
     <section class="card min-w-0 p-4">
         <InputLabel for="text" value="Texto" />
         <NetworkTabs ref="editor" />
-        <EditorToolbar @emoji="(c) => editor?.insertAtCursor(c)" />
+        <EditorToolbar @emoji="(c) => editor?.insertAtCursor(c)" @insert="(t) => editor?.insertAtCursor(t)" />
         <NetworkCounters />
     </section>
 </template>

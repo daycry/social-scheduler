@@ -8,7 +8,7 @@ const { form, editable, mediaById, move, removeMedia } = useComposerContext();
 <template>
     <!-- Media -->
     <section class="card p-4">
-        <h2 class="mb-2 font-medium text-slate-900">Imágenes y vídeos</h2>
+        <h2 id="media-title" tabindex="-1" class="mb-2 font-medium text-slate-900">Imágenes y vídeos</h2>
         <p v-if="!form.media.length" class="text-sm text-slate-600">Todavía no has añadido archivos. Usa «Añadir imagen o vídeo» en la barra del editor.</p>
         <ul v-if="form.media.length" class="mb-3 space-y-1">
             <li v-for="(id, i) in form.media" :key="id" class="flex items-center justify-between rounded border border-slate-200 px-2 py-1 text-sm">
@@ -22,6 +22,5 @@ const { form, editable, mediaById, move, removeMedia } = useComposerContext();
                 </span>
             </li>
         </ul>
-        <p v-if="form.errors.media" class="mt-1 text-sm text-red-600">{{ form.errors.media }}</p>
     </section>
 </template>

@@ -3,13 +3,13 @@ import NetworkIcon from '@/Components/NetworkIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import { useComposerContext } from '@/Composables/useComposer';
 
-const { accounts, editable, targetFor, errorsFor } = useComposerContext();
+const { accounts, editable, targetFor } = useComposerContext();
 
 const hasOptions = (account) => {
     const t = targetFor(account.id);
     if (!t) return false;
     return t.content_type === 'instagram_reel' || t.content_type === 'facebook_text'
-        || account.network === 'youtube' || account.network === 'tiktok' || errorsFor(account.id).length > 0;
+        || account.network === 'youtube' || account.network === 'tiktok';
 };
 </script>
 
@@ -53,11 +53,6 @@ const hasOptions = (account) => {
                         <option value="SELF_ONLY">Solo yo</option>
                     </select>
                 </div>
-            </div>
-            <div v-if="errorsFor(account.id).length" role="alert">
-                <ul class="space-y-0.5 text-sm text-red-600">
-                    <li v-for="e in errorsFor(account.id)" :key="e">{{ e }}</li>
-                </ul>
             </div>
         </section>
     </template>

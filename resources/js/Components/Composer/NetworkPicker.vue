@@ -4,12 +4,12 @@ import InputLabel from '@/Components/InputLabel.vue';
 import { Link } from '@inertiajs/vue3';
 import { useComposerContext } from '@/Composables/useComposer';
 
-const { brand, accounts, form, editable, targetFor, typesOf, typeInfo, toggleAccount } = useComposerContext();
+const { brand, accounts, editable, targetFor, typesOf, typeInfo, toggleAccount } = useComposerContext();
 </script>
 
 <template>
     <section class="card p-4" aria-labelledby="picker-title">
-        <h2 id="picker-title" class="mb-3 font-medium text-slate-900">Dónde publicar</h2>
+        <h2 id="picker-title" tabindex="-1" class="mb-3 font-medium text-slate-900">Dónde publicar</h2>
         <p v-if="accounts.length === 0" class="text-sm text-slate-600">
             Esta marca no tiene cuentas conectadas.
             <Link :href="route('brands.connections.index', brand.id)" class="link">Conectar redes</Link>
@@ -19,6 +19,7 @@ const { brand, accounts, form, editable, targetFor, typesOf, typeInfo, toggleAcc
         <ul class="flex flex-wrap gap-2" aria-label="Cuentas de la marca">
             <li v-for="account in accounts" :key="account.id" class="max-w-full">
                 <button
+                    :id="`account-pill-${account.id}`"
                     type="button"
                     :aria-pressed="!!targetFor(account.id)"
                     :aria-label="`${account.network_label}: ${account.name}${account.status !== 'activa' ? '. Requiere reconexión' : ''}`"
@@ -57,6 +58,5 @@ const { brand, accounts, form, editable, targetFor, typesOf, typeInfo, toggleAcc
                 </li>
             </template>
         </ul>
-        <p v-if="form.errors.targets" class="mt-2 text-sm text-red-600">{{ form.errors.targets }}</p>
     </section>
 </template>

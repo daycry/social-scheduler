@@ -1,6 +1,6 @@
-import { computed, inject, onBeforeUnmount, provide, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { useLiveValidation } from '@/Composables/useLiveValidation';
+import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
 
 const KEY = Symbol('composer');
@@ -66,11 +66,28 @@ export function useComposer(props) {
         }
     };
 
-    const { liveErrors } = useLiveValidation(form, {
+    // Cuenta de un destino por su posición en `form.targets` (para atribuir cada error a su red y cuenta).
+    const describeTarget = (i) => {
+        const t = form.targets[i];
+        const a = t ? props.accounts.find((x) => x.id === t.account_id) : null;
+        return a ? { accountId: a.id, network: a.network, networkLabel: a.network_label, accountName: a.name } : null;
+    };
+
+    const { liveErrors, errorList: liveErrorList } = useLiveValidation(form, {
         brandId: () => props.brand.id,
         enabled: () => editable.value,
         immediate: !!props.post,
+        describeTarget,
     });
+
+    // Una sola lista: errores en vivo (bloquean Programar y Publicar ahora) y los que devuelve el servidor al enviar.
+    // Los del servidor se descartan en cuanto el usuario cambia algo, para que el panel no muestre errores ya corregidos.
+    const errorList = computed(() => {
+        const seen = new Set();
+        return [...liveErrorList.value, ...normalizeErrors(form.errors, describeTarget)].filter((e) => !seen.has(e.id) && seen.add(e.id));
+    });
+    const hasBlockingErrors = computed(() => liveErrorList.value.length > 0);
+    watch(() => [form.text, form.media, form.targets, form.scheduled_at], () => form.clearErrors(), { deep: true });
 
     const errorsFor = (accountId) => {
         const i = targetIndex(accountId);
@@ -79,26 +96,57 @@ export function useComposer(props) {
         return [...(liveErrors.value[`targets.${i}`] ?? []), ...(server && !(liveErrors.value[`targets.${i}`] ?? []).includes(server) ? [server] : [])];
     };
 
+    const send = (options = {}) => {
+        if (props.post) form.put(route('posts.update', props.post.id), { preserveScroll: true, ...options });
+        else form.post(route('brands.posts.store', props.brand.id), { preserveScroll: true, ...options });
+    };
+
+    // Un envío ya en curso (clic doble, Enter repetido) no lanza otra petición.
+    const sendingNow = ref(false);
     const submit = (schedule) => {
+        if (sendingNow.value || form.processing) return;
         form.schedule = schedule;
-        if (props.post) form.put(route('posts.update', props.post.id), { preserveScroll: true });
-        else form.post(route('brands.posts.store', props.brand.id), { preserveScroll: true });
+        send();
+    };
+
+    // «Publicar ahora»: se programa con la fecha del servidor (sin `scheduled_at`) y se encola al instante. `sendingNow` se
+    // activa de forma síncrona, así un segundo clic o Enter antes de que Inertia marque `processing` no envía otra petición.
+    const publishNow = () => {
+        if (sendingNow.value || form.processing || hasBlockingErrors.value || form.targets.length === 0) return;
+        sendingNow.value = true;
+        form.schedule = true;
+        form.transform((data) => ({ ...data, schedule: true, publish_now: true, scheduled_at: null }));
+        send({
+            onFinish: () => {
+                sendingNow.value = false;
+                form.transform((data) => data);
+            },
+        });
     };
 
     const remove = () => {
         if (confirm('¿Eliminar esta publicación?')) router.delete(route('posts.destroy', props.post.id));
     };
 
+    // «Guardar en biblioteca» (CA-26): envía el contenido ACTUAL del compositor (texto, media y destinos), también sin
+    // post guardado y con cambios pendientes. No crea ninguna publicación y no saca al usuario del compositor.
     const libraryName = ref((props.post?.text ?? '').slice(0, 60) || 'Mi plantilla');
     const savingToLibrary = ref(false);
-    // La biblioteca copia el texto GUARDADO de la publicación: con cambios sin guardar se pide guardar primero (no se envía
-    // el borrador a medias ni se sale del compositor perdiéndolos).
-    const canSaveToLibrary = computed(() => !form.isDirty);
-    const saveToLibrary = () => {
-        if (!props.post || !libraryName.value.trim() || form.isDirty) return;
-        router.post(route('library.store'), { post_id: props.post.id, name: libraryName.value.trim() }, {
+    const libraryErrors = ref({});
+    const saveToLibrary = (name, { onSaved } = {}) => {
+        const clean = (name ?? '').trim();
+        if (!clean || savingToLibrary.value) return;
+        router.post(route('brands.library.store', props.brand.id), {
+            name: clean,
+            text: form.text,
+            media: form.media,
+            targets: form.targets.map((t) => ({ account_id: t.account_id, content_type: t.content_type })),
+        }, {
             preserveScroll: true,
-            onStart: () => (savingToLibrary.value = true),
+            preserveState: true,
+            onStart: () => { savingToLibrary.value = true; libraryErrors.value = {}; },
+            onSuccess: () => onSaved?.(),
+            onError: (errors) => (libraryErrors.value = errors),
             onFinish: () => (savingToLibrary.value = false),
         });
     };
@@ -122,8 +170,8 @@ export function useComposer(props) {
         post, brand, accounts, contentTypes, limits, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeInfo, toggleAccount,
-        liveErrors, errorsFor, submit, remove,
-        libraryName, savingToLibrary, saveToLibrary, canSaveToLibrary,
+        liveErrors, errorsFor, errorList, hasBlockingErrors, submit, publishNow, sendingNow, remove,
+        libraryName, savingToLibrary, libraryErrors, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,
     };

@@ -6,10 +6,10 @@ import TargetOptions from '@/Components/Composer/TargetOptions.vue';
 import TextSection from '@/Components/Composer/TextSection.vue';
 import MediaSection from '@/Components/Composer/MediaSection.vue';
 import ScheduleSection from '@/Components/Composer/ScheduleSection.vue';
+import ErrorsPanel from '@/Components/Composer/ErrorsPanel.vue';
 import ActionBar from '@/Components/Composer/ActionBar.vue';
 import PostStatusHeader from '@/Components/Composer/PostStatusHeader.vue';
 import PreviewPanel from '@/Components/Composer/PreviewPanel.vue';
-import LibraryPanel from '@/Components/Composer/LibraryPanel.vue';
 import TargetStatusPanel from '@/Components/Composer/TargetStatusPanel.vue';
 import UnsavedGuard from '@/Components/Composer/UnsavedGuard.vue';
 import { useComposer } from '@/Composables/useComposer';
@@ -46,13 +46,13 @@ const { submit } = useComposer(props);
                     <MediaSection />
                     <TargetOptions />
                     <ScheduleSection />
+                    <ErrorsPanel />
                     <ActionBar />
                 </form>
 
                 <!-- Previsualización y estado por red -->
                 <aside class="space-y-4">
                     <PreviewPanel />
-                    <LibraryPanel />
                     <TargetStatusPanel />
                 </aside>
             </div>

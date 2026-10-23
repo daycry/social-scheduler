@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 2 | 9 | 22% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **8** | **42** | **19%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **10** | **42** | **24%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -325,31 +325,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-09 — `ErrorsPanel`: una sola lista de errores con el icono de la red y la cuenta
 
 - **Descripción**: Agrega los errores en vivo (`targets.{i}`) y los del servidor en una lista con el icono de la red y la cuenta. Región con `aria-live` educado y enlace al control afectado. Deshabilita Programar y Publicar ahora mientras haya errores.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Changelog**: Los errores del formulario aparecen en una sola lista, con el icono de la red y la cuenta afectada, y un enlace que lleva al campo que hay que corregir.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real 3.5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.5h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0.13h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/ErrorsPanel.vue`, `resources/js/Composables/useLiveValidation.js`, `resources/js/Composables/useComposer.js`
+- **Archivos**: `resources/js/Components/Composer/ErrorsPanel.vue`, `resources/js/Composables/useLiveValidation.js`, `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Components/Composer/NetworkPicker.vue`, `resources/js/Components/Composer/MediaSection.vue`, `resources/js/Components/Composer/LibraryPanel.vue` (eliminado: nota en Notas)
 - **Cubre (tests)**: E2E-04
 - **Verificación**:
   - `npm run build` → sin errores
   - `npm run test:e2e -- --grep "E2E-04"` → pasa en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] CA-24: una sola lista con icono y cuenta por error; Programar y Publicar ahora deshabilitados; Guardar borrador habilitado
-- [ ] Aserción aplazada de E2E-02 (revisión Fase 1, A1): con 31 hashtags en Instagram, «Programar» queda deshabilitado y «Guardar borrador» habilitado (el E2E de T-09 la cubre)
-- [ ] El panel es legible por lector de pantalla y sin desbordamiento a 375/360 px
+- [x] CA-24: una sola lista con icono y cuenta por error; Programar y Publicar ahora deshabilitados; Guardar borrador habilitado
+- [x] Aserción aplazada de E2E-02 (revisión Fase 1, A1): con 31 hashtags en Instagram, «Programar» queda deshabilitado y «Guardar borrador» habilitado (el E2E de T-09 la cubre)
+- [x] El panel es legible por lector de pantalla y sin desbordamiento a 375/360 px
 
 **Subtareas**
-- [ ] Mapear claves de error a destino
-- [ ] `ErrorsPanel` accesible
-- [ ] Integrar con `ActionBar` (T-11)
+- [x] Mapear claves de error a destino
+- [x] `ErrorsPanel` accesible
+- [x] Integrar con `ActionBar` (T-11)
 
-**Notas**: —
+**Notas**: **Evidencia**: `npm run build` → OK; `npx tsc --noEmit -p .` → sin errores. Los E2E de esta tarea (E2E-04, y la aserción aplazada de E2E-02: con 31 hashtags Programar queda deshabilitado y Guardar borrador habilitado) se escriben y ejecutan en T-16, porque necesitan `ActionBar` (T-11) y `DateTimePicker` (T-10): `composer.spec.ts --project=desktop` → 13 passed. `useLiveValidation` exporta `normalizeErrors()` y devuelve `errorList` (`{id, scope, targetIndex, accountId, network, networkLabel, accountName, message, focusId}`); `useComposer` los une a los del servidor (`form.errors`), que se descartan al editar. Solo los errores EN VIVO bloquean Programar y Publicar ahora (`hasBlockingErrors`): así un error del servidor no deja el botón atascado. `ErrorsPanel` mantiene siempre montada la región `aria-live="polite"` y cada error trae un botón «Ir» que enfoca la pastilla de la cuenta (`account-pill-{id}`), el texto, los archivos o la fecha. Se retiran los bloques de error sueltos de `TargetOptions`, `NetworkPicker` y `MediaSection` (una sola lista). Desviación: `LibraryPanel.vue` se elimina aquí (su guardado pasa al menú de `ActionBar`, T-11/T-14); `Compose.vue` ya monta `ErrorsPanel`.
 
 ---
 

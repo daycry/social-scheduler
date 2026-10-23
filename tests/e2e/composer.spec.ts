@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedTiktokPhotoDraft, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -1128,9 +1128,41 @@ test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, t
     await page.locator('#text').fill('Texto de prueba E2E-13');
     const enlace = page.getByLabel('Enlace (opcional)');
     await enlace.fill('https://ejemplo.com');
+    // Sin fecha el cliente sí enviaría y el servidor volvería a la misma URL: la prueba es que no sale ninguna petición.
+    const envios: string[] = [];
+    // (la validación en vivo, `posts/validate`, no guarda nada y puede dispararse al escribir)
+    page.on('request', (r) => { if (r.method() !== 'GET' && !r.url().includes('/posts/validate')) envios.push(`${r.method()} ${r.url()}`); });
     await enlace.press('Enter');
     await page.waitForTimeout(800);
+    expect(envios).toEqual([]);
     expect(page.url()).toBe(url);
     await expect(enlace).toBeVisible();
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco', async ({ page }) => {
+    const w = watch(page);
+    seedExtraAccount(brand.id, 'tiktok', 'e2e TikTok');
+    const draft = seedTiktokPhotoDraft(brand.id, 'e2e TikTok');
+
+    await page.goto(`/posts/${draft}/edit`);
+    await settle(page);
+    // Sin dominio verificado TikTok solo ofrece Video: aun así no sale como etiqueta fija «Video», sino el tipo real.
+    const tipo = page.getByRole('button', { name: /Tipo de contenido en TikTok \(e2e TikTok\)/ });
+    await expect(tipo).toContainText('Fotos (carrusel) (no disponible)');
+    await expect(tipo).toHaveAccessibleName(/no disponible/);
+
+    // Se abre, se elige Video con el teclado y el foco vuelve al mismo botón (no se desmonta).
+    await tipo.focus();
+    await page.keyboard.press('Enter');
+    const lista = page.getByRole('listbox');
+    await expect(lista).toBeVisible();
+    await expect(lista.getByRole('option', { selected: true })).toHaveCount(0);
+    await page.keyboard.press('Enter');
+    await expect(lista).toBeHidden();
+    await expect(tipo).toBeFocused();
+    await expect(tipo).toHaveAccessibleName(/Video/);
+    await expect(tipo).not.toContainText('no disponible');
+    await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
 });

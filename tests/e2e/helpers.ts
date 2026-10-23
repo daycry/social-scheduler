@@ -473,6 +473,23 @@ export function seedYoutubeDraft(brandId: number, accountName: string): number {
     return Number(out.match(/POST:(\d+)/)![1]);
 }
 
+/**
+ * Borrador de TikTok cuyo tipo guardado ya no se ofrece: se crea como vídeo y se pasa a `tiktok_photo`, que sin
+ * `TIKTOK_VERIFIED_DOMAIN` no está entre los tipos ofrecidos (como un post guardado antes de vaciar el dominio).
+ */
+export function seedTiktokPhotoDraft(brandId: number, accountName: string): number {
+    const out = artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$u = App\Models\User::findOrFail($b->user_id); ` +
+            String.raw`$tt = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('name', ${q(accountName)})->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->video(duration: 30)->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e tiktok no disponible', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $tt->id, 'content_type' => 'tiktok_video']]]); ` +
+            String.raw`$p->targets()->update(['content_type' => 'tiktok_photo']); ` +
+            String.raw`echo 'POST:' . $p->id;`,
+    );
+    return Number(out.match(/POST:(\d+)/)![1]);
+}
+
 /** Cambia la zona horaria de la marca E2E (para comprobar que la UI usa la de la marca y no la del navegador). */
 export function setBrandTimezone(brandId: number, timezone: string) {
     artisan(String.raw`App\Models\Brand::withoutUserScope()->findOrFail(${brandId})->forceFill(['timezone' => ${q(timezone)}])->save();`);

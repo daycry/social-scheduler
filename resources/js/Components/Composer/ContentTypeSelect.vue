@@ -24,8 +24,10 @@ const listbox = ref(null);
 // Solo es «actual» el tipo realmente elegido: si el valor guardado ya no se ofrece no se muestra otro en su lugar.
 const current = computed(() => props.types.find((t) => t.value === props.modelValue) ?? null);
 const shownLabel = computed(() => current.value?.label ?? (props.savedLabel ? `${props.savedLabel} (no disponible)` : 'Elige un tipo'));
-// Etiqueta fija solo con un único tipo ya elegido, o sin posibilidad de cambiarlo (post no editable).
-const fixed = computed(() => props.types.length === 0 || (props.types.length <= 1 && current.value !== null) || (props.disabled && current.value === null));
+// Etiqueta fija solo con un único tipo ya elegido, o sin posibilidad de cambiarlo (post no editable). Si el usuario ya
+// abrió el desplegable (p. ej. para corregir un tipo no disponible), sigue siendo botón: desmontarlo perdería el foco.
+const interacted = ref(false);
+const fixed = computed(() => !interacted.value && (props.types.length === 0 || (props.types.length <= 1 && current.value !== null) || (props.disabled && current.value === null)));
 const labelId = `${uid}-label`;
 const btnId = computed(() => props.buttonId ?? `${uid}-btn`);
 const optionId = (i) => `${uid}-opt-${i}`;
@@ -57,6 +59,7 @@ function onOutside(e) {
 async function openList() {
     if (props.disabled || open.value) return;
     active.value = Math.max(0, props.types.findIndex((t) => t.value === props.modelValue));
+    interacted.value = true;
     open.value = true;
     document.addEventListener('mousedown', onOutside);
     await nextTick();

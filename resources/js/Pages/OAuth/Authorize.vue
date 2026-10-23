@@ -92,7 +92,7 @@ const submit = (decision) => {
                     <li v-for="(description, ability) in abilities" :key="ability">
                         <label class="flex items-start gap-2 text-sm text-slate-700">
                             <Checkbox v-model:checked="form.abilities" :value="ability" class="mt-0.5 shrink-0" />
-                            <span class="min-w-0 break-words">{{ description }} <code class="text-xs text-slate-400">{{ ability }}</code></span>
+                            <span class="min-w-0 break-words">{{ description }} <code class="text-xs text-slate-600">{{ ability }}</code></span>
                         </label>
                     </li>
                 </ul>

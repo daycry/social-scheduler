@@ -939,20 +939,22 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 - **Descripción**: Añade las tres pantallas nuevas a `tests/e2e/a11y.spec.ts` con el umbral de la iniciativa anterior (0 violaciones `serious`/`critical`) y mide el desbordamiento a 375 y 360 px.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 1,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.14h · real —
 - **Supervisión**: est. 0.03h (≈25 % IA) · real —
 - **Previsión IA**: 37k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-24, T-25
 - **Tipo**: test
-- **Archivos**: `tests/e2e/a11y.spec.ts`
+- **Archivos**: `tests/e2e/a11y.spec.ts`, `resources/js/Pages/OAuth/Authorize.vue`
 - **Cubre (tests)**: A11Y-01
 - **Verificación**: `npm run test:e2e -- a11y.spec.ts` → 0 violaciones `serious`/`critical` y 0 px de desbordamiento horizontal en las pantallas nuevas
 
 **Criterios de aceptación**
 - [ ] Login con botones, Cuentas vinculadas y Consentimiento sin violaciones `serious`/`critical`
 - [ ] 0 px de desbordamiento a 375 y 360 px
+
+**Notas**: axe encontró un fallo real `color-contrast` (serious) en el consentimiento: los códigos de permiso usaban `text-slate-400`; pasan a `text-slate-600` (por eso `Authorize.vue` entra en Archivos). Verificación en desktop durante el desarrollo; los tres proyectos (375 y 360 px) se ejecutan una sola vez al final.
 
 **Subtareas**
 - [ ] Casos nuevos en `a11y.spec.ts`

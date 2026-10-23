@@ -125,7 +125,7 @@ const cleanUserPhp = (email: string) =>
     `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
     `$u->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null, 'two_factor_last_used_at' => null])->save(); ` +
     `$u->passkeys()->delete(); Illuminate\\Support\\Facades\\RateLimiter::clear('2fa:' . $u->id); ` +
-    `$u->socialIdentities()->delete(); ` +
+    `$u->socialIdentities()->delete(); $u->tokens()->delete(); ` +
     `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(Illuminate\\Support\\Str::lower(${q(email)}) . '|' . $ip); }`;
 
 /** Crea (o deja limpios) los usuarios E2E y guarda sus credenciales en `.auth` (ignorado por git). */
@@ -153,12 +153,15 @@ export function deleteE2eUsers() {
     artisan(
         `$ids = App\\Models\\User::where('email', 'like', 'e2e-sec-%@example.test')->pluck('id'); ` +
             `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereIn('user_id', $ids)->delete(); ` +
+            // Los tokens de Sanctum no tienen FK al usuario: se borran a mano (keys manuales y tokens OAuth de los tests).
+            `Illuminate\\Support\\Facades\\DB::table('personal_access_tokens')->where('tokenable_type', App\\Models\\User::class)->whereIn('tokenable_id', $ids)->delete(); ` +
             `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
     );
-    // Rechazos del login social sin usuario (user_id NULL) generados desde que arrancó la batería.
+    deleteE2eOAuthClients();
+    // Filas de auditoría sin usuario (user_id NULL) generadas desde que arrancó la batería: rechazos del login social y registros DCR.
     if (fs.existsSync(E2E_START_FILE)) {
         artisan(
-            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where('action', 'auth.social.login')->where('created_at', '>=', ${q(fs.readFileSync(E2E_START_FILE, 'utf8').trim())})->delete();`,
+            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where(fn ($w) => $w->where('action', 'auth.social.login')->orWhere('action', 'like', 'oauth.%'))->where('created_at', '>=', ${q(fs.readFileSync(E2E_START_FILE, 'utf8').trim())})->delete();`,
         );
         fs.rmSync(E2E_START_FILE, { force: true });
     }
@@ -369,4 +372,46 @@ export function createExtraE2eUser(label: string): string {
             `$u->forceFill(['name' => 'e2e extra ${label}', 'password' => Illuminate\\Support\\Facades\\Hash::make(${q(crypto.randomBytes(12).toString('hex') + '-Aa1!')}), 'email_verified_at' => now()])->save();`,
     );
     return email;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// OAuth del MCP (T-25): clientes DCR `e2e-*`, PKCE y llamadas a /mcp.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const OAUTH_REDIRECT = 'http://127.0.0.1:53111/callback';
+
+/** Borra los clientes OAuth `e2e-*` (con ellos se van sus códigos; los tokens quedan sin cliente y se borran con el usuario). */
+export function deleteE2eOAuthClients() {
+    artisan(`App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->get()->each->delete();`);
+}
+
+/** DCR (10/h por IP) y los límites de /oauth/*: se liberan para que la batería no dependa del ritmo (claves hash de los limitadores). */
+export function clearOAuthThrottle() {
+    artisan(
+        `foreach (['127.0.0.1', '::1'] as $ip) { foreach (['mcp-oauth-register', 'mcp-oauth-token'] as $name) { Illuminate\\Support\\Facades\\RateLimiter::clear(md5($name . $name . ':' . $ip)); } } ` +
+            `Illuminate\\Support\\Facades\\RateLimiter::clear('mcp-oauth-register:global');`,
+    );
+}
+
+/** PKCE S256: verifier aleatorio y su challenge. */
+export function pkce(): { verifier: string; challenge: string } {
+    const verifier = crypto.randomBytes(48).toString('base64url');
+    return { verifier, challenge: crypto.createHash('sha256').update(verifier).digest('base64url') };
+}
+
+/** Crea una API key MANUAL (origen `manual`) del usuario y devuelve el texto plano. */
+export function createManualKey(email: string, name = 'e2e key manual'): string {
+    const out = artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `echo 'KEY:' . $u->createToken(${q(name)}, ['brands:read'], now()->addDays(30))->plainTextToken;`,
+    );
+    return out.slice(out.indexOf('KEY:') + 4).trim();
+}
+
+/** Llama a `tools/list` del MCP con un Bearer (y, opcionalmente, un Origin). */
+export async function mcpToolsList(request: import('@playwright/test').APIRequestContext, token: string, origin?: string) {
+    return request.post('/mcp', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json, text/event-stream', ...(origin ? { Origin: origin } : {}) },
+        data: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
+    });
 }

@@ -910,7 +910,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 - **Descripción**: El test genera el verifier, registra un cliente, abre `/oauth/authorize`, inicia sesión (con y sin 2FA), consiente, captura el redirect a loopback, canjea con `request` y llama a `/mcp`. Cubre denegar, la revocación desde API keys (401 después) y que una API key manual sigue funcionando.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.34h · real —
 - **Supervisión**: est. 0.08h (≈25 % IA) · real —
@@ -925,6 +925,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] E2E-05..E2E-07 pasan (CA-16, CA-18..CA-20, CA-24..CA-26)
 - [ ] El token canjeado funciona en `/mcp` y deja de hacerlo tras revocar
 - [ ] No queda ningún cliente ni token `e2e-` tras el teardown
+
+**Notas**: Los helpers de limpieza (`tests/e2e/helpers.ts`) borran también los clientes `e2e-*`, los tokens de los usuarios `e2e-sec-*` (Sanctum no tiene FK al usuario) y las filas de auditoría sin usuario de la batería. Reutilizar un código ya canjeado revoca su token (CA-21): el spec lo comprueba al final del flujo. Verificación en desktop durante el desarrollo; los tres proyectos se ejecutan una sola vez al final (límite de memoria).
 
 **Subtareas**
 - [ ] Flujo con PKCE

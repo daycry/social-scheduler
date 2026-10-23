@@ -187,6 +187,7 @@ class PostController extends Controller
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
+                'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
                 'options' => $t->options ?? new \stdClass,
                 'status' => $t->status->value,
                 'status_label' => $t->status->label(),

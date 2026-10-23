@@ -744,31 +744,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-22 — Biblioteca con el texto propio por destino y primer texto efectivo en el calendario y la lista
 
 - **Descripción**: `LibraryService::store()` y `use()` conservan `text` por destino (compatible con las plantillas ya guardadas, que no lo traen). `CalendarService` muestra el primer texto efectivo si la plantilla está vacía.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: La biblioteca guarda y reutiliza el texto propio de cada red, las plantillas antiguas siguen funcionando y el calendario muestra el primer texto si el texto común está vacío.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
 - **Tipo**: backend
-- **Archivos**: `app/Services/LibraryService.php`, `app/Http/Controllers/LibraryController.php`, `app/Services/CalendarService.php`, `resources/js/Pages/Calendar/Index.vue`, `tests/Feature/Library/LibraryTargetTextTest.php`, `tests/Feature/Calendar/CalendarEffectiveTextTest.php`
+- **Archivos**: `app/Services/LibraryService.php`, `app/Http/Controllers/LibraryController.php`, `app/Services/CalendarService.php`, `app/Http/Controllers/PostController.php`, `resources/js/Pages/Calendar/Index.vue`, `tests/Feature/Library/LibraryTargetTextTest.php`, `tests/Feature/Calendar/CalendarEffectiveTextTest.php`
 - **Cubre (tests)**: E2E-08
 - **Verificación**:
   - `php artisan test --compact --filter=LibraryTargetText` → en verde (incluye una plantilla antigua sin `text`)
   - `php artisan test --compact --filter=CalendarEffectiveText` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-12 (parte de biblioteca): guardar y usar una plantilla conserva los textos propios
-- [ ] Las plantillas guardadas antes siguen funcionando
-- [ ] Un post con todos los destinos desvinculados muestra el primer texto efectivo
+- [x] CA-12 (parte de biblioteca): guardar y usar una plantilla conserva los textos propios
+- [x] Las plantillas guardadas antes siguen funcionando
+- [x] Un post con todos los destinos desvinculados muestra el primer texto efectivo
 
 **Subtareas**
-- [ ] `targets` con `text` en `PostTemplate`
-- [ ] `use()` crea el borrador con los textos
-- [ ] `CalendarService` y la lista
+- [x] `targets` con `text` en `PostTemplate`
+- [x] `use()` crea el borrador con los textos
+- [x] `CalendarService` y la lista
 
-**Notas**: —
+**Notas**: **Evidencia**: `--filter=LibraryTargetText` → 4 passed (guardar desde el compositor y usar; guardar desde un post con cadena vacía propia; plantilla antigua sin `text`; texto propio sobre el máximo: plantilla conservada, borrador sin destinos); `--filter=CalendarEffectiveText` → 3 passed (semana, mes y lista; plantilla manda; salta texto propio vacío y recorta a 140). Desviaciones: (1) `Calendar/Index.vue` no cambia: ya pinta `item.text`, que ahora lleva el primer texto efectivo; (2) `PostController.php` se añade a `Archivos`: `postProps` devuelve `text` por destino para que el compositor (T-21) reabra el texto propio. TDD n/a.
 
 ---
 

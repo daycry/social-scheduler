@@ -30,7 +30,7 @@ class LibraryService
         }
 
         $targets = $post->targets()->whereNotNull('social_account_id')->get()
-            ->map(fn ($t) => ['account_id' => $t->social_account_id, 'content_type' => $t->content_type->value])->values()->all();
+            ->map(fn ($t) => ['account_id' => $t->social_account_id, 'content_type' => $t->content_type->value] + $this->ownText($t->text))->values()->all();
 
         return $this->store($user, Brand::withoutUserScope()->findOrFail($post->brand_id), $name, $post->text, $post->media()->pluck('media_assets.id')->all(), $targets);
     }
@@ -39,7 +39,7 @@ class LibraryService
      * Guarda el contenido ACTUAL del compositor (texto, media y destinos), sin que exista un post (CA-26). Solo se conservan los
      * destinos de cuentas de esta marca y usuario con un tipo valido para su red; la media ajena la descarta `store()`.
      *
-     * @param  array{text?: ?string, media?: list<int|string>, targets?: list<array{account_id?: mixed, content_type?: mixed}>}  $data
+     * @param  array{text?: ?string, media?: list<int|string>, targets?: list<array{account_id?: mixed, content_type?: mixed, text?: mixed}>}  $data
      */
     public function saveFromComposer(User $user, Brand $brand, string $name, array $data): PostTemplate
     {
@@ -54,7 +54,7 @@ class LibraryService
             $account = $accounts->get((int) ($t['account_id'] ?? 0));
             $type = ContentType::tryFrom((string) ($t['content_type'] ?? ''));
             if ($account && $type && $type->network() === $account->network) {
-                $targets[] = ['account_id' => $account->id, 'content_type' => $type->value];
+                $targets[] = ['account_id' => $account->id, 'content_type' => $type->value] + $this->ownText($t['text'] ?? null);
             }
         }
 
@@ -63,7 +63,7 @@ class LibraryService
 
     /**
      * @param  list<int>  $mediaIds
-     * @param  list<array{account_id: int, content_type: string}>  $targets
+     * @param  list<array{account_id: int, content_type: string, text?: string}>  $targets  `text` solo si el destino tiene texto propio
      */
     public function store(User $user, Brand $brand, string $name, ?string $text, array $mediaIds = [], array $targets = []): PostTemplate
     {
@@ -94,6 +94,17 @@ class LibraryService
         });
     }
 
+    /**
+     * El texto propio de un destino viaja en la plantilla solo si existe (`null` = vinculado a la plantilla, como las plantillas
+     * guardadas antes de C-03, que no traen la clave); la cadena vacia es un texto propio.
+     *
+     * @return array{text?: string}
+     */
+    private function ownText(mixed $text): array
+    {
+        return is_string($text) ? ['text' => $text] : [];
+    }
+
     /** Crea un borrador a partir de la plantilla; descarta los destinos/media que ya no son validos. */
     public function use(User $user, PostTemplate $template): Post
     {
@@ -111,7 +122,7 @@ class LibraryService
             $account = $accounts->get((int) ($t['account_id'] ?? 0));
             $type = ContentType::tryFrom((string) ($t['content_type'] ?? ''));
             if ($account && $type && $type->network() === $account->network && $type->isOffered()) {
-                $targets[] = ['account_id' => $account->id, 'content_type' => $type->value];
+                $targets[] = ['account_id' => $account->id, 'content_type' => $type->value] + $this->ownText($t['text'] ?? null);
             }
         }
 

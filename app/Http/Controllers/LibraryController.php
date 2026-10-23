@@ -88,6 +88,7 @@ class LibraryController extends Controller
             'targets' => ['nullable', 'array', 'max:40'],
             'targets.*.account_id' => ['required', 'integer'],
             'targets.*.content_type' => ['required', 'string', 'max:40'],
+            'targets.*.text' => ['nullable', 'string', 'max:70000'],
         ]);
 
         try {

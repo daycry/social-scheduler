@@ -421,3 +421,31 @@ export async function mcpToolsList(request: import('@playwright/test').APIReques
         data: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
     });
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Compositor de publicaciones: marca `e2e-composer-*` con cuentas de prueba de Instagram y Facebook (factorías) para un
+// usuario `e2e-sec-*`. Nunca se toca al usuario demo ni a datos reales; no se publica en ninguna red.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type ComposerBrand = { id: number; name: string };
+
+/** Crea la marca y sus dos cuentas activas (Instagram y Facebook) para el usuario E2E. */
+export function seedComposerBrand(email: string, label: string): ComposerBrand {
+    const name = `e2e-composer-${label}`;
+    const out = artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `$b = App\\Models\\Brand::factory()->for($u)->create(['name' => ${q(name)}, 'timezone' => 'Europe/Madrid']); ` +
+            `App\\Models\\SocialAccount::factory()->for($u)->create(['brand_id' => $b->id, 'network' => App\\Connectors\\Network::Instagram, 'name' => 'e2e Instagram']); ` +
+            `App\\Models\\SocialAccount::factory()->for($u)->create(['brand_id' => $b->id, 'network' => App\\Connectors\\Network::Facebook, 'name' => 'e2e Facebook']); ` +
+            `echo 'BRAND:' . $b->id;`,
+    );
+    return { id: Number(out.match(/BRAND:(\d+)/)![1]), name };
+}
+
+/** Borra las marcas `e2e-composer-*` del usuario E2E (con ellas se van sus cuentas y publicaciones). */
+export function cleanComposerBrands(email: string) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->first(); ` +
+            `if ($u) { App\\Models\\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get()->each->delete(); }`,
+    );
+}

@@ -1,6 +1,8 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import AccountsSection from '@/Components/Composer/AccountsSection.vue';
+import ComposerLayout from '@/Layouts/ComposerLayout.vue';
+import ComposerHeader from '@/Components/Composer/ComposerHeader.vue';
+import NetworkPicker from '@/Components/Composer/NetworkPicker.vue';
+import TargetOptions from '@/Components/Composer/TargetOptions.vue';
 import TextSection from '@/Components/Composer/TextSection.vue';
 import MediaSection from '@/Components/Composer/MediaSection.vue';
 import ScheduleSection from '@/Components/Composer/ScheduleSection.vue';
@@ -10,7 +12,7 @@ import PreviewPanel from '@/Components/Composer/PreviewPanel.vue';
 import LibraryPanel from '@/Components/Composer/LibraryPanel.vue';
 import TargetStatusPanel from '@/Components/Composer/TargetStatusPanel.vue';
 import { useComposer } from '@/Composables/useComposer';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 
 const props = defineProps({
     brand: Object,
@@ -27,14 +29,9 @@ const { submit } = useComposer(props);
 <template>
     <Head :title="post ? 'Editar publicación' : 'Nueva publicación'" />
 
-    <AuthenticatedLayout>
+    <ComposerLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h1 class="text-xl font-bold text-slate-900">
-                    {{ post ? 'Editar publicación' : 'Nueva publicación' }} · {{ brand.name }}
-                </h1>
-                <Link :href="route('brands.show', brand.id)" class="link text-sm">Volver a la marca</Link>
-            </div>
+            <ComposerHeader />
         </template>
 
         <div>
@@ -42,7 +39,8 @@ const { submit } = useComposer(props);
                 <form class="space-y-6 lg:col-span-2" @submit.prevent="submit(true)">
                     <p v-if="flash?.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
                     <PostStatusHeader />
-                    <AccountsSection />
+                    <NetworkPicker />
+                    <TargetOptions />
                     <TextSection />
                     <MediaSection />
                     <ScheduleSection />
@@ -57,5 +55,5 @@ const { submit } = useComposer(props);
                 </aside>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </ComposerLayout>
 </template>

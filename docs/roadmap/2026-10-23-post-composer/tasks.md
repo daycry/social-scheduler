@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 1 | 8 | 12% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 2 | 8 | 25% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **1** | **42** | **2%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **2** | **42** | **5%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -98,15 +98,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-02 — `ComposerLayout`, cabecera con la marca y selector de redes y tipo
 
 - **Descripción**: Layout mínimo a pantalla completa para `brands.posts.create` y `posts.edit` (sin navegación de la app; conserva Atrás, `afterSave` y las URL actuales), cabecera con la marca y una pastilla con `NetworkIcon` por cuenta con el tipo en un desplegable. Identidad propia: no se copian maquetación ni textos de Metricool (decisión de la spec).
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Changelog**: El compositor ocupa toda la pantalla, sin la navegación de la app: la marca va en la cabecera y cada cuenta es una pastilla que se activa con clic o teclado, con su tipo de contenido en un desplegable.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 5.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.7h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0.2h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-01
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Layouts/ComposerLayout.vue`, `resources/js/Components/Composer/ComposerHeader.vue`, `resources/js/Components/Composer/NetworkPicker.vue`, `resources/js/Pages/Posts/Compose.vue`, `app/Http/Controllers/PostController.php`
+- **Archivos**: `resources/js/Layouts/ComposerLayout.vue`, `resources/js/Components/Composer/ComposerHeader.vue`, `resources/js/Components/Composer/NetworkPicker.vue`, `resources/js/Pages/Posts/Compose.vue`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/TargetOptions.vue`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`
 - **Cubre (tests)**: E2E-01, E2E-12, M-02, M-03
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Posts/Compose` → en verde
@@ -114,17 +114,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `npm run test:e2e -- --grep "E2E-01"` → pasa en desktop, mobile y mobile-360
 
 **Criterios de aceptación**
-- [ ] CA-01: sin navegación de la app, marca en la cabecera, pastilla por cuenta operable con ratón y teclado (`aria-pressed`)
-- [ ] El tipo de contenido por cuenta se elige en un desplegable accesible
-- [ ] Sin desbordamiento horizontal a 375 y 360 px
+- [x] CA-01: sin navegación de la app, marca en la cabecera, pastilla por cuenta operable con ratón y teclado (`aria-pressed`)
+- [x] El tipo de contenido por cuenta se elige en un desplegable accesible
+- [x] Sin desbordamiento horizontal a 375 y 360 px
 
 **Subtareas**
-- [ ] `ComposerLayout` y su registro en `Compose.vue`
-- [ ] `ComposerHeader` con marca, Cerrar y espacio para Notas y acciones
-- [ ] `NetworkPicker` con pastillas y desplegable de tipo
-- [ ] Conservar `afterSave` y los enlaces directos
+- [x] `ComposerLayout` y su registro en `Compose.vue`
+- [x] `ComposerHeader` con marca, Cerrar y espacio para Notas y acciones
+- [x] `NetworkPicker` con pastillas y desplegable de tipo
+- [x] Conservar `afterSave` y los enlaces directos
 
-**Notas**: Un modal sobre el calendario queda descartado por el usuario (spec).
+**Notas**: Un modal sobre el calendario queda descartado por el usuario (spec). **Evidencia**: `tests/Feature/Posts` → 39 passed; `npm run build` OK; `playwright composer.spec.ts -g E2E-01` → pasa en desktop, mobile y mobile-360. `PostController` no se ha tocado (no hacía falta). Archivos extra declarados: `TargetOptions.vue` (opciones por cuenta que ya existían) y el arranque de `composer.spec.ts`/`helpers.ts` (siembra de marca `e2e-composer-*`).
 
 ---
 

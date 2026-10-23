@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraFacebook, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -30,7 +30,7 @@ async function axeNow(page: Page, label: string) {
     await page.waitForTimeout(400); // fin de las transiciones de color
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
-    const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n   ')}`).join('\n');
+    const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)} ${n.any.map((a) => a.message).join('; ')}`).join('\n   ')}`).join('\n');
     expect(bad, `violaciones de accesibilidad en ${label}:\n${detail}`).toEqual([]);
 }
 
@@ -842,6 +842,74 @@ test('E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (c
     await tabOf(page, /Facebook · e2e Pagina B/).click();
     await expect(page.getByTestId('linked-text')).toHaveText('e2e texto común');
     await axeNow(page, 'texto por red reabierto');
+    await expectNoOverflow(page);
+    expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
+});
+
+const seccion = (page: Page, red: string, cuenta: string) => page.getByRole('region', { name: `Opciones de ${red} (${cuenta})` });
+
+test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite', async ({ page }, info) => {
+    const w = watch(page);
+    const user = e2eUser(info.project.name);
+    const otra = seedComposerBrand(user.email, `${stamp()}-b-${info.project.name}`);
+    seedExtraAccount(brand.id, 'youtube', 'e2e YouTube');
+    seedExtraAccount(brand.id, 'tiktok', 'e2e TikTok borrador');
+    seedExtraAccount(brand.id, 'tiktok', 'e2e TikTok directo', true);
+    seedExtraAccount(otra.id, 'youtube', 'e2e YouTube B');
+    const draft = seedYoutubeDraft(brand.id, 'e2e YouTube');
+
+    // Edición de un borrador de YouTube en la marca A: interruptores con su valor por defecto y la etiqueta de IA de YouTube.
+    await page.goto(`/posts/${draft}/edit`);
+    await settle(page);
+    const yt = seccion(page, 'YouTube', 'e2e YouTube');
+    await expect(yt.getByRole('switch', { name: 'Notificar a los suscriptores' })).toBeChecked();
+    await expect(yt.getByRole('switch', { name: /Contenido alterado o generado con IA/ })).not.toBeChecked();
+    await expect(yt.getByLabel('Categoría')).toHaveValue('22');
+
+    // «Hecho para niños» avisa de que se desactivan los comentarios (se anuncia como estado).
+    await yt.getByRole('switch', { name: 'Contenido hecho para niños' }).check();
+    await expect(yt.getByText(/desactiva los comentarios/)).toBeVisible();
+    await yt.getByRole('switch', { name: 'Contenido hecho para niños' }).uncheck();
+    await expectNoOverflow(page);
+    await axeNow(page, 'opciones de YouTube con interruptores');
+
+    // CA-15: se apaga «Notificar», se escriben etiquetas y se guarda; el interruptor se recuerda en esta marca.
+    await yt.getByRole('switch', { name: 'Notificar a los suscriptores' }).uncheck();
+    await yt.getByLabel('Etiquetas (separadas por comas)').fill('e2e, prueba');
+    await guardarBorrador(page);
+    await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
+
+    // Un post nuevo de A: el interruptor aparece apagado y los textos (etiquetas) vacíos.
+    await open(page);
+    await page.getByRole('button', { name: /^YouTube: e2e YouTube/ }).click();
+    await expect(seccion(page, 'YouTube', 'e2e YouTube').getByRole('switch', { name: 'Notificar a los suscriptores' })).not.toBeChecked();
+    await expect(seccion(page, 'YouTube', 'e2e YouTube').getByLabel('Etiquetas (separadas por comas)')).toHaveValue('');
+
+    // CA-16 y CA-14: la etiqueta de IA no existe en Instagram ni Facebook; TikTok en modo borrador no ofrece nada; el directo sí.
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByRole('button', { name: /^TikTok: e2e TikTok borrador/ }).click();
+    await page.getByRole('button', { name: /^TikTok: e2e TikTok directo/ }).click();
+    await expect(page.getByRole('switch', { name: /IA/ })).toHaveCount(2); // YouTube y TikTok directo, ninguna más
+    await expect(page.getByRole('region', { name: /Opciones de Instagram/ }).getByRole('switch')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: /Opciones de Facebook/ }).getByRole('switch')).toHaveCount(0);
+    const borrador = seccion(page, 'TikTok', 'e2e TikTok borrador');
+    await expect(borrador.getByRole('switch')).toHaveCount(0);
+    await expect(borrador.getByText(/borrador a tu bandeja/)).toBeVisible();
+    const directo = seccion(page, 'TikTok', 'e2e TikTok directo');
+    await expect(directo.getByRole('switch', { name: 'Desactivar Duet' })).toBeVisible();
+    await expect(directo.getByRole('switch', { name: 'Desactivar Stitch' })).toBeVisible();
+    await directo.getByRole('switch', { name: /Colaboración de pago/ }).check();
+    await expect(directo.getByText(/No puede ser privado/)).toBeVisible();
+    await page.screenshot({ path: 'test-results/composer-interruptores-por-red.png' });
+    await expectNoOverflow(page);
+    await axeNow(page, 'interruptores de YouTube y TikTok');
+
+    // En la otra marca no cambia nada: «Notificar» sigue activado.
+    await page.goto(`/brands/${otra.id}/posts/create`);
+    await settle(page);
+    await page.getByRole('button', { name: /^YouTube: e2e YouTube B/ }).click();
+    await expect(seccion(page, 'YouTube', 'e2e YouTube B').getByRole('switch', { name: 'Notificar a los suscriptores' })).toBeChecked();
     await expectNoOverflow(page);
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });

@@ -450,6 +450,28 @@ export function seedExtraFacebook(brandId: number, name: string) {
     );
 }
 
+/** Cuenta extra en la marca E2E (YouTube o TikTok); `directPost` activa la publicación directa de TikTok. */
+export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok', name: string, directPost = false) {
+    const meta = directPost ? "['direct_post' => true]" : 'null';
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from(${q(network)}), 'name' => ${q(name)}, 'meta' => ${meta}]);`,
+    );
+}
+
+/** Borrador de YouTube con un vídeo de prueba (factoría) en la marca E2E: evita subir un vídeo real por la interfaz. */
+export function seedYoutubeDraft(brandId: number, accountName: string): number {
+    const out = artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$u = App\Models\User::findOrFail($b->user_id); ` +
+            String.raw`$yt = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('name', ${q(accountName)})->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->video(duration: 45)->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e video de youtube', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $yt->id, 'content_type' => 'youtube_video']]]); ` +
+            String.raw`echo 'POST:' . $p->id;`,
+    );
+    return Number(out.match(/POST:(\d+)/)![1]);
+}
+
 /** Cambia la zona horaria de la marca E2E (para comprobar que la UI usa la de la marca y no la del navegador). */
 export function setBrandTimezone(brandId: number, timezone: string) {
     artisan(String.raw`App\Models\Brand::withoutUserScope()->findOrFail(${brandId})->forceFill(['timezone' => ${q(timezone)}])->save();`);
@@ -467,7 +489,8 @@ export function cleanComposerBrands(email: string) {
             String.raw`$brands = App\Models\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get(); ` +
             String.raw`$ids = App\Models\PostTarget::withoutUserScope()->whereIn('post_id', App\Models\Post::withoutUserScope()->withTrashed()->whereIn('brand_id', $brands->pluck('id'))->select('id'))->pluck('id'); ` +
             String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PublishPostTarget%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
-            String.raw`$brands->each->delete(); }`,
+            String.raw`$brands->each->delete(); ` +
+            String.raw`App\Models\MediaAsset::withoutUserScope()->where('user_id', $u->id)->get()->each->delete(); }`,
     );
 }
 

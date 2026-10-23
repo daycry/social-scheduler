@@ -169,3 +169,29 @@ test('Compose: sin sesion se redirige al login', function () {
     $this->get(route('brands.posts.create', $this->brand))->assertRedirect(route('login'));
     $this->post(route('brands.posts.store', $this->brand), composeBody())->assertRedirect(route('login'));
 });
+
+test('Compose: 31 hashtags en Instagram se rechazan al programar y en la validacion en vivo, con el mismo mensaje', function () {
+    $text = 'Lanzamiento '.implode(' ', array_map(fn ($i) => "#t$i", range(1, 31)));
+    $body = composeBody(['text' => $text, 'media' => [$this->image->id], 'targets' => [['account_id' => $this->ig->id, 'content_type' => 'instagram_image']]]);
+    $mensaje = 'El texto tiene 31 hashtags y una publicacion de imagen de Instagram admite como maximo 30.';
+
+    $this->actingAs($this->user)->from(route('brands.posts.create', $this->brand))
+        ->post(route('brands.posts.store', $this->brand), $body)
+        ->assertSessionHasErrors(['targets.0' => $mensaje]);
+    expect(Post::withoutUserScope()->count())->toBe(0);
+
+    $this->actingAs($this->user)->postJson(route('brands.posts.validate', $this->brand), [...$body, 'schedule' => false])
+        ->assertOk()->assertExactJson(['errors' => ['targets.0' => [$mensaje]]]);
+});
+
+test('Compose: el compositor recibe los maximos de texto y hashtags por tipo', function () {
+    $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('limits.instagram_reel', ['max_chars' => 2200, 'max_hashtags' => 30])
+            ->where('limits.facebook_text', ['max_chars' => 63206, 'max_hashtags' => null])
+            ->where('limits.youtube_video.max_chars', 5000));
+
+    $post = app(PostService::class)->create($this->user, $this->brand, composeBody());
+    $this->actingAs($this->user)->get(route('posts.edit', $post))
+        ->assertInertia(fn (Assert $page) => $page->where('limits.instagram_image.max_hashtags', 30));
+});

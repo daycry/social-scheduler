@@ -14,7 +14,7 @@
 | Por tipo:
 |   label        nombre legible en los mensajes
 |   media        count (min/max de elementos) y kinds permitidos (image|video)
-|   text         max (caracteres) y required
+|   text         max (caracteres), required y max_hashtags (opcional; Instagram 30, el resto sin tope)
 |   recommended  recomendaciones por clase de media (mismas claves min/max_*): solo avisos, nunca bloquean
 |   image|video  reglas por clase de media: mimes, max_bytes, min/max_width, min/max_height,
 |                aspect (ancho/alto) min|max, min/max_duration (s), min/max_fps, codecs, audio_codecs
@@ -33,7 +33,7 @@ return [
         'instagram_image' => [
             'label' => 'una publicacion de imagen de Instagram',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
-            'text' => ['max' => 2200, 'required' => false],
+            'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
             // La API solo admite JPEG; relacion 4:5 a 1.91:1; ancho minimo 320 px; 8 MB. Sin ancho maximo: IG reescala a 1440 px
             // (una foto de movil de 4032x3024 es valida).
             'image' => ['mimes' => $jpeg, 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.8, 'max' => 1.91]],
@@ -41,14 +41,14 @@ return [
         'instagram_carousel' => [
             'label' => 'un carrusel de Instagram',
             'media' => ['min' => 2, 'max' => 10, 'kinds' => ['image', 'video']],
-            'text' => ['max' => 2200, 'required' => false],
+            'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
             'image' => ['mimes' => $jpeg, 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.8, 'max' => 1.91]],
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.8, 'max' => 1.91]],
         ],
         'instagram_reel' => [
             'label' => 'un reel de Instagram',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
-            'text' => ['max' => 2200, 'required' => false],
+            'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
             // 3 s a 15 min, hasta 300 MB, 9:16 recomendado (se admite 0.01:1 a 10:1), minimo 540x960 recomendado.
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 300 * $mb, 'min_duration' => 3, 'max_duration' => 900, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'], 'audio_codecs' => ['aac']],
             // Recomendaciones: avisan en la vista previa pero NO bloquean (la red las acepta aunque degrade la calidad).
@@ -57,14 +57,14 @@ return [
         'instagram_story_image' => [
             'label' => 'una historia de Instagram',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image', 'video']],
-            'text' => ['max' => 2200, 'required' => false],
+            'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
             'image' => ['mimes' => $jpeg, 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.1, 'max' => 10]],
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.1, 'max' => 10]],
         ],
         'instagram_story_video' => [
             'label' => 'una historia de Instagram',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image', 'video']],
-            'text' => ['max' => 2200, 'required' => false],
+            'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
             'image' => ['mimes' => $jpeg, 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.1, 'max' => 10]],
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.1, 'max' => 10]],
         ],

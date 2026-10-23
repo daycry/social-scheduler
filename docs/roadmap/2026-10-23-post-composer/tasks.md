@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 2 | 8 | 25% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 3 | 8 | 38% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **2** | **42** | **5%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **3** | **42** | **7%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -131,31 +131,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-03 — Máximo de hashtags en `media_specs` y `MediaValidator`, y límites expuestos a la vista
 
 - **Descripción**: Añade `text.max_hashtags` (Instagram 30; el resto sin tope) a `config/media_specs.php`, lo valida `MediaValidator` con puntos de código (`mb_*`) y `PostController::compose()` expone los máximos de cada tipo a la vista. Se valida igual en web y MCP porque ambos pasan por `PostService::plan()`.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: Instagram rechaza ahora los textos con más de 30 hashtags, con el mismo aviso desde la web y desde el MCP.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-01
 - **Tipo**: backend
-- **Archivos**: `config/media_specs.php`, `app/Services/MediaValidator.php`, `app/Http/Controllers/PostController.php`, `tests/Unit/MediaValidatorHashtagsTest.php`, `tests/Feature/Posts/Compose/ComposeTest.php`
+- **Archivos**: `config/media_specs.php`, `app/Services/MediaValidator.php`, `app/Http/Controllers/PostController.php`, `tests/Unit/MediaValidatorHashtagsTest.php`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=MediaValidatorHashtags` → 30 hashtags pasa, 31 falla con el mensaje esperado, hashtag con emoji contado por puntos de código
   - `php artisan test --compact tests/Feature/Posts tests/Feature/Mcp/Tools` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-03: 31 hashtags en Instagram dan error de validación con el mismo mensaje en web y MCP
-- [ ] Las props del compositor incluyen los máximos de texto y hashtags por tipo
-- [ ] Sin cambios para Facebook, YouTube ni TikTok
+- [x] CA-03: 31 hashtags en Instagram dan error de validación con el mismo mensaje en web y MCP
+- [x] Las props del compositor incluyen los máximos de texto y hashtags por tipo
+- [x] Sin cambios para Facebook, YouTube ni TikTok
 
 **Subtareas**
-- [ ] Definir la regla de hashtag en un solo sitio
-- [ ] Test unitario y de feature (web y MCP)
-- [ ] Exponer `limits` en `compose()` y `edit()`
+- [x] Definir la regla de hashtag en un solo sitio
+- [x] Test unitario y de feature (web y MCP)
+- [x] Exponer `limits` en `compose()` y `edit()`
 
-**Notas**: ⚠️ YouTube ignora los hashtags si hay más de 60 (spec): se anota en la documentación, sin validar.
+**Notas**: ⚠️ YouTube ignora los hashtags si hay más de 60 (spec): se anota en la documentación, sin validar. **Evidencia**: `--filter=MediaValidatorHashtags` → 4 passed (30 pasa, 31 falla, unicode por puntos de código, resto de redes sin tope); `tests/Feature/Posts tests/Feature/Mcp/Tools` → 60 passed; pint OK. Los límites se exponen como prop `limits` (por tipo: `max_chars`, `max_hashtags`); `MediaValidator::countHashtags()` define la regla y `textCount.js` (T-04) la replica. Hashtag = `#` + letras/números/guion bajo (Unicode).
 
 ---
 

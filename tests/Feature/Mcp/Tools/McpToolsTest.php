@@ -138,3 +138,13 @@ test('McpTools: las abilities limitan lo que puede hacer cada key', function () 
     [$err, $msg] = $this->callTool($reader, 'list_brands');
     expect($err)->toBeTrue()->and($msg)->toContain('brands:read');
 });
+
+test('McpTools: 31 hashtags en Instagram se rechazan con el mismo mensaje que en la web', function () {
+    $text = 'Hola '.implode(' ', array_map(fn ($i) => "#t$i", range(1, 31)));
+
+    [$err, $msg] = $this->callTool($this->key, 'create_post', mcpPostArgs(['text' => $text]));
+
+    expect($err)->toBeTrue()
+        ->and($msg)->toContain('El texto tiene 31 hashtags y una publicacion de imagen de Instagram admite como maximo 30.')
+        ->and(Post::withoutUserScope()->count())->toBe(0);
+});

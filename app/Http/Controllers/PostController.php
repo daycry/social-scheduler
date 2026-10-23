@@ -10,6 +10,7 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -27,6 +28,7 @@ class PostController extends Controller
     public function __construct(
         private readonly PostService $posts,
         private readonly SocialAccountService $accounts,
+        private readonly MediaValidator $validator,
     ) {}
 
     public function create(Request $request, Brand $brand): Response
@@ -129,6 +131,12 @@ class PostController extends Controller
                     'limitations' => $t->limitations(),
                 ], array_values(array_filter(ContentType::forNetwork($n), fn (ContentType $t) => $t->isOffered()))),
             ]),
+            // Maximos de texto y hashtags por tipo (de `media_specs`): los contadores del cliente usan los del servidor.
+            'limits' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(function (ContentType $t) {
+                $text = $this->validator->spec($t)['text'];
+
+                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
+            }),
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
         ]);

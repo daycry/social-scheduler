@@ -320,7 +320,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 2 — C-08 · Panel de errores, barra de acciones y «Publicar ahora»
 
-**Estado**: borrador · **Estimado**: 29,0h · **Real**: — · **Coste est.**: 1.450 € + tokens (⚠️ verificar) · **Tokens est.**: 1,17M
+**Estado**: en-progreso · **Estimado**: 29,0h · **Real**: — · **Coste est.**: 1.450 € + tokens (⚠️ verificar) · **Tokens est.**: 1,17M
 
 ### T-09 — `ErrorsPanel`: una sola lista de errores con el icono de la red y la cuenta
 
@@ -417,11 +417,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-12 — Publicar ahora en `PostService`: `publishNow()`, `publish_now` y despacho tras el commit
 
 - **Descripción**: Extrae `DispatchDuePosts::dueTargets(?Post)` y añade `PostService::publishNow()`: valida con `publish_now` (misma validación de contenido, sin exigir fecha futura), fija la fecha a ahora y despacha `PublishPostTarget` de cada destino con `DB::afterCommit` (la cola `database` tiene `after_commit=false`). `PublishPostTarget` **no se toca** (ADR-005, opción O1): conserva `ShouldBeUnique` y el `claim()` con `lockForUpdate`. `store` y `update` aceptan `publish_now`.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Changelog**: Se puede publicar una publicación al instante sin esperar a su hora, con las mismas comprobaciones que al programar y sin riesgo de publicarla dos veces.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 4.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.6h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0.15h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
@@ -433,17 +433,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Publishing` → en verde (las suites existentes sin modificar)
 
 **Criterios de aceptación**
-- [ ] CA-25: con `Queue::fake`, el job de cada destino se encola en la misma petición y el destino está `programada` y vencido al ejecutarse
-- [ ] Un post con errores de contenido se rechaza con los mismos mensajes que al programar
-- [ ] Una cuenta que requiere reconexión da el mismo error de validación que al programar
+- [x] CA-25: con `Queue::fake`, el job de cada destino se encola en la misma petición y el destino está `programada` y vencido al ejecutarse
+- [x] Un post con errores de contenido se rechaza con los mismos mensajes que al programar
+- [x] Una cuenta que requiere reconexión da el mismo error de validación que al programar
 
 **Subtareas**
-- [ ] Extraer `dueTargets(?Post)` sin cambiar el comportamiento del despachador
-- [ ] `publishNow()` y la acción `publish_now` en `plan()`
-- [ ] Despacho con `afterCommit`
-- [ ] Pest con `Queue::fake`
+- [x] Extraer `dueTargets(?Post)` sin cambiar el comportamiento del despachador
+- [x] `publishNow()` y la acción `publish_now` en `plan()`
+- [x] Despacho con `afterCommit`
+- [x] Pest con `Queue::fake`
 
-**Notas**: ADR-005 sigue `propuesta` hasta el visto bueno del usuario (T-42).
+**Notas**: **Evidencia**: `php artisan test --compact --filter=PublishNow` → 15 passed (44 assertions); `php artisan test --compact tests/Feature/Publishing` → 76 passed (las suites existentes sin modificar); `git diff --stat -- app/Jobs/PublishPostTarget.php` → vacío; `vendor/bin/pint --test` → passed. `DispatchDuePosts::dueTargets(?Post, ?int)` es estático y es la consulta del despachador del minuto y de Publicar ahora. `publish_now` va en `PostRequest` con `prohibited_if` sobre `scheduled_at`; `plan()` pone la fecha con `now()` (no se parsea de la entrada) y `create()`/`update()` encolan tras el commit con `DB::afterCommit` (test: dentro de una transacción no se encola; con rollback, nunca). Decisión local (no cruza el umbral de ADR): `publishNow()` pasa por `update()`, así un post en vuelo/publicado se rechaza con el mismo error y un fallido se reintenta como al programar. ADR-005 ya está `aceptada`.
 
 ---
 

@@ -16,6 +16,7 @@ trait PostPayload
             'text' => $schema->string()->description('Texto de la publicacion'),
             'scheduled_at' => $schema->string()->description('Fecha/hora YYYY-MM-DD HH:MM; sin zona = zona horaria de la marca. Debe ser futura si schedule=true'),
             'schedule' => $schema->boolean()->description('true = programar; false = guardar como borrador')->required(),
+            'publish_now' => $schema->boolean()->description('true = publicar ahora (sin fecha: la pone el servidor; no se puede combinar con scheduled_at). Equivale a programar y encolar de inmediato'),
             'media_ids' => $schema->array()->items($schema->integer())->description('IDs de media (list_media), en orden de publicacion'),
             'targets' => $schema->array()->items($schema->object([
                 'account_id' => $schema->integer()->description('ID de cuenta (list_accounts)')->required(),

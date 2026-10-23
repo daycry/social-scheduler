@@ -31,6 +31,14 @@ Clasificación de errores (`app/Connectors/Exceptions/`):
 
 Un fallo inesperado deja el destino `publicando`; `PublishRecovery` lo retoma tras `PUBLISH_STUCK_AFTER_MINUTES` (10).
 
+## Publicar ahora
+
+`PostService::publishNow()` (y `create`/`update` con `publish_now: true`) publica sin esperar a la hora programada, con la misma validación de contenido y cuentas que al programar pero sin exigir fecha futura: la fecha la pone el servidor (`now()`) y no se acepta junto con `scheduled_at`. Los destinos quedan `programada` y, **después del commit** (`DB::afterCommit`, porque la cola `database` tiene `after_commit=false`), se encolan los vencidos de ese post con `DispatchDuePosts::dueTargets($post)`, la misma consulta que usa el despachador del minuto.
+
+No hay defensa nueva ni cambios en `PublishPostTarget` (ADR-005, opción O1): un segundo despacho del mismo destino lo descarta `ShouldBeUnique` si el job sigue en cola, y el `claim()` con `lockForUpdate` sale sin publicar si el destino ya está `publicando` o en un estado final. Un post en vuelo o publicado se rechaza con el mismo error que `update`. Durante unos segundos el destino se ve `programada`, hasta que el worker lo reclama.
+
+Se usa desde el compositor (menú de la barra de acciones), desde el calendario y la lista (`POST posts/{post}/publish-now`, con confirmación) y desde el MCP (`publish_post_now`).
+
 ## Recuperación (`PublishRecovery::run()`)
 
 Se ejecuta al inicio de cada pasada del despachador:

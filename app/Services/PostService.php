@@ -8,6 +8,8 @@ use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
 use App\Exceptions\PostValidationException;
+use App\Jobs\DispatchDuePosts;
+use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Post;
@@ -28,6 +30,7 @@ use Throwable;
  *  - text: ?string
  *  - scheduled_at: string|CarbonInterface|null. Un string SIN zona se interpreta en la zona horaria de la marca.
  *  - schedule: bool (true = programada, exige fecha futura; false = borrador)
+ *  - publish_now: bool (true = programada AHORA y se encola tras el commit: no exige fecha futura, la fecha la pone el servidor)
  *  - media: list<int> ids de MediaAsset (en orden de publicacion)
  *  - targets: list<array{account_id: int, content_type: string, options?: array}>
  */
@@ -81,6 +84,7 @@ class PostService
             $post->save();
 
             $this->fill($post, $plan);
+            $this->dispatchAfterCommit($post, $plan);
 
             return $post->fresh(['targets', 'media']);
         });
@@ -111,6 +115,7 @@ class PostService
 
             $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']])->save();
             $this->fill($post, $plan, $existing, $before);
+            $this->dispatchAfterCommit($post, $plan);
 
             return $post->fresh(['targets', 'media']);
         });
@@ -121,18 +126,50 @@ class PostService
     {
         $this->assertOwns($user, $post);
 
-        $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
-        $data = [
+        return $this->update($user, $post, $this->dataFromPost($post, ['scheduled_at' => $when ?? $post->scheduled_at, 'schedule' => true]));
+    }
+
+    /**
+     * «Publicar ahora» (ADR-005, O1): como `schedule()` pero sin fecha futura. La fecha la pone el servidor (`now()`), los
+     * destinos quedan `programada` y, TRAS el commit (la cola `database` tiene `after_commit=false`), se encolan los vencidos de
+     * ESTE post con la misma `DispatchDuePosts::dueTargets()` que el despachador del minuto. No hay defensa nueva: un segundo
+     * dispatch lo frena `ShouldBeUnique` y, si el job ya corre o termino, el `claim()` de `PublishPostTarget` sale sin publicar.
+     * Un post en vuelo o publicado se rechaza con el mismo error que `update()`.
+     */
+    public function publishNow(User $user, Post $post): Post
+    {
+        $this->assertOwns($user, $post);
+
+        return $this->update($user, $post, $this->dataFromPost($post, ['publish_now' => true]));
+    }
+
+    /**
+     * Datos de `create/update` que reconstruyen lo que ya hay en el post (texto, media y destinos con sus opciones).
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function dataFromPost(Post $post, array $overrides): array
+    {
+        return $overrides + [
             'text' => $post->text,
-            'scheduled_at' => $when ?? $post->scheduled_at,
-            'schedule' => true,
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
                 'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [],
             ])->all(),
         ];
+    }
 
-        return $this->update($user, $post, $data);
+    /** Encola los destinos vencidos del post cuando la accion es «publicar ahora», pero solo si la transaccion llega a confirmarse. */
+    private function dispatchAfterCommit(Post $post, array $plan): void
+    {
+        if (! ($plan['publish_now'] ?? false)) {
+            return;
+        }
+
+        DB::afterCommit(function () use ($post) {
+            DispatchDuePosts::dueTargets($post)->each(fn (int $id) => PublishPostTarget::dispatch($id));
+        });
     }
 
     /** Vuelve a borrador (deja de publicarse) una publicacion pendiente. */
@@ -289,16 +326,20 @@ class PostService
      * Valida todo y devuelve el plan normalizado (sin tocar la BD).
      *
      * @param  array<string, mixed>  $data
-     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>}
+     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>}
      */
     private function plan(User $user, Brand $brand, array $data): array
     {
         $errors = [];
-        $schedule = (bool) ($data['schedule'] ?? false);
+        $publishNow = (bool) ($data['publish_now'] ?? false);
+        $schedule = (bool) ($data['schedule'] ?? false) || $publishNow;
         $text = isset($data['text']) ? (string) $data['text'] : null;
 
         $at = null;
-        if (($data['scheduled_at'] ?? null) !== null && $data['scheduled_at'] !== '') {
+        if ($publishNow) {
+            // La fecha de «publicar ahora» no sale de la entrada: la pone el servidor, y no se exige que sea futura.
+            $at = CarbonImmutable::instance(now())->utc();
+        } elseif (($data['scheduled_at'] ?? null) !== null && $data['scheduled_at'] !== '') {
             try {
                 $at = $this->parseWhen($data['scheduled_at'], $brand);
             } catch (Throwable) {
@@ -308,7 +349,7 @@ class PostService
 
         if ($schedule && $at === null && ! isset($errors['scheduled_at'])) {
             $errors['scheduled_at'][] = 'Indica la fecha y hora de publicacion.';
-        } elseif ($schedule && $at !== null && $at->lte(now())) {
+        } elseif ($schedule && ! $publishNow && $at !== null && $at->lte(now())) {
             $errors['scheduled_at'][] = 'La fecha de publicacion debe ser futura.';
         }
 
@@ -380,6 +421,7 @@ class PostService
             'text' => $text,
             'scheduled_at' => $at,
             'status' => $schedule ? PostStatus::Scheduled : PostStatus::Draft,
+            'publish_now' => $publishNow,
             'media' => $media,
             'targets' => $targets,
         ];

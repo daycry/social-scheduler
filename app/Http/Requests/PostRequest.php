@@ -16,8 +16,11 @@ class PostRequest extends FormRequest
         return [
             'text' => ['nullable', 'string', 'max:70000'],
             // Hora local de la marca ("2026-11-02T10:00"); la zona la aplica PostService.
-            'scheduled_at' => ['nullable', 'string', 'max:40'],
+            // Con `publish_now` la fecha no se envia: la pone el servidor (`now()`).
+            'scheduled_at' => ['nullable', 'string', 'max:40', 'prohibited_if:publish_now,true,1'],
             'schedule' => ['required', 'boolean'],
+            // «Publicar ahora»: programa con la fecha del servidor y encola tras el commit (PostService::publishNow, ADR-005).
+            'publish_now' => ['nullable', 'boolean'],
             'media' => ['nullable', 'array', 'max:35'],
             'media.*' => ['integer'],
             'targets' => ['nullable', 'array', 'max:40'],

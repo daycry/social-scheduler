@@ -25,6 +25,8 @@ class PostController extends Controller
 {
     use AuthorizesRequests;
 
+    private const PUBLISHING_MESSAGE = 'Publicando ahora: se enviara en unos segundos.';
+
     public function __construct(
         private readonly PostService $posts,
         private readonly SocialAccountService $accounts,
@@ -48,7 +50,7 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return $this->afterSave($post, 'Publicacion programada.');
+        return $this->afterSave($post, $request->boolean('publish_now') ? self::PUBLISHING_MESSAGE : 'Publicacion programada.');
     }
 
     public function edit(Request $request, Post $post): Response
@@ -68,7 +70,7 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return $this->afterSave($post, 'Publicacion actualizada.');
+        return $this->afterSave($post, $request->boolean('publish_now') ? self::PUBLISHING_MESSAGE : 'Publicacion actualizada.');
     }
 
     public function destroy(Request $request, Post $post): RedirectResponse

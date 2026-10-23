@@ -5,7 +5,7 @@ estado: aprobada          # borrador | aprobada | implementada | obsoleta
 creado: 2026-10-23
 actualizado: 2026-10-23
 evaluacion: evaluation.md
-design: n/a               # se decidirá tras elegir el alcance; C-03 y C-06 justifican pasar por architect
+design: design.md         # aprobado 2026-10-23, opción O1 (ADR-005)
 plan: pendiente
 generacion:
   inicio: 2026-10-23T10:43:57Z
@@ -21,6 +21,7 @@ generacion:
 # Nuevo compositor de publicaciones
 
 > **Evaluación:** [`evaluation.md`](evaluation.md)
+> **Diseño:** [`design.md`](design.md) (aprobado, O1; ver ADR-005)
 > **Plan de implementación:** pendiente (handoff a `planner` cuando el usuario elija el alcance)
 
 > **Terminología:**

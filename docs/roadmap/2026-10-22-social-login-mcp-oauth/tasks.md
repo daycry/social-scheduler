@@ -778,11 +778,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-21 — Parcial «Cuentas vinculadas» (`LinkedAccountsForm.vue`) en el perfil
 
 - **Descripción**: Lista las identidades (proveedor, fecha, estado), vincular Google/Facebook (con confirmación de contraseña previa, como en passkeys) y desvincular con confirmación. Muestra los errores del callback (identidad ajena). Montado en `Profile/Edit.vue`.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.54h · real —
-- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Changelog**: El perfil tiene un apartado «Cuentas vinculadas» para ver, vincular y desvincular Google y Facebook, pidiendo antes la contraseña.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real 4,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.54h · real 0.54h (estimado)
+- **Supervisión**: est. 0.14h (≈25 % IA) · real 0.14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-17, T-20
 - **Tipo**: frontend
@@ -794,14 +794,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `vendor/bin/pint --test` → passed
 
 **Criterios de aceptación**
-- [ ] CA-07/CA-08 visibles: vincular, ver, desvincular
-- [ ] La acción pide `password.confirm` antes de abrir el proveedor (un `fetch` no recibe 423)
-- [ ] Accesible por teclado y sin desbordamiento a 375/360 px
+- [x] CA-07/CA-08 visibles: vincular, ver, desvincular
+- [x] La acción pide `password.confirm` antes de abrir el proveedor (un `fetch` no recibe 423)
+- [x] Accesible por teclado y sin desbordamiento a 375/360 px
 
 **Subtareas**
-- [ ] Parcial y montaje
-- [ ] Confirmación de contraseña
-- [ ] Errores
+- [x] Parcial y montaje
+- [x] Confirmación de contraseña
+- [x] Errores
+
+**Evidencia (2026-10-23)**: npm run build → OK; --filter=ProfileLinkedAccounts → 2 passed (props sin secretos ni ids del proveedor; vincular/desvincular redirigen a confirmar contraseña); pint --test → passed. Flujo real y 375/360 px: T-24/T-26.
+
+---
 
 ---
 

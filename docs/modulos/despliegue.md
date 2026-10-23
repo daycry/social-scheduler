@@ -36,8 +36,8 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 1. Dominio, TLS y BD con los comandos `v-add-web-domain`, `v-add-letsencrypt-domain`, `v-add-database` (plantilla `laravel`, docroot `public/`).
 2. Ajustes de Nginx (`deploy/hestia/nginx-overrides.conf`) y PHP-FPM (`upload_max_filesize=512M`, `post_max_size=512M`, `memory_limit=256M`, `max_execution_time=300`; con media local las subidas pasan por PHP).
 3. Primera instalación: clonar, `cp .env.production.example .env`, `chmod 600 .env`, `composer install --no-dev`, `key:generate`, `migrate --force`.
-4. Cron de Hestia cada minuto: `cd .../app && php artisan schedule:run`.
-5. Workers systemd (abajo).
+4. Scheduler y workers: tres tareas en el cron de Hestia, o el scheduler en cron y los workers en systemd (ver [Cron y workers](#cron-y-workers)).
+5. Comprobar que procesan: `app:queue-probe` y `app:health`.
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
 7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
 
@@ -75,19 +75,99 @@ Después de entrar por primera vez:
 
 Para cambiar la contraseña más tarde, desde **Perfil**. Si se pierde, repite el bloque anterior con `$u = App\Models\User::where("email", "...")->firstOrFail();` en lugar de `new App\Models\User()` (y sin `name`/`email`). Para desactivar el doble factor de un usuario que perdió el móvil: `php8.4 artisan user:two-factor-reset <email>`.
 
-## Workers systemd
+## Cron y workers
 
-Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola.
+Hacen falta **dos cosas distintas**:
+
+- **Scheduler** (cron cada minuto, `schedule:run`): decide qué toca y lo **encola**: publicaciones vencidas, snapshot diario de métricas, métricas de publicaciones, comentarios, autolistas, limpiezas.
+- **Workers de cola** (`queue:work`): **ejecutan** lo encolado, incluido el histórico de métricas al conectar una cuenta. Sin ellos se encola todo y no se ejecuta nada: las publicaciones no salen y la analítica queda «no disponible».
+
+### Opción A: desde el panel de Hestia (cron), la de este despliegue
+
+En **Hestia → usuario → CRON → Añadir tarea**, tres tareas. `webmaster`/`social-scheduler.daycry.ovh` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP (`which php8.4`): el cron no carga el `PATH` de tu sesión.
+
+| # | Para qué | Minuto | Hora | Día | Mes | Día sem. |
+|---|---|---|---|---|---|---|
+| 1 | **Scheduler**: encola lo que toca (publicaciones vencidas, métricas, comentarios, autolistas, limpiezas) | `*` | `*` | `*` | `*` | `*` |
+| 2 | **Worker de publicación**: colas `publish` y `poll` | `*` | `*` | `*` | `*` | `*` |
+| 3 | **Worker de métricas e informes**: colas `metrics` y `reports` | `*/5` | `*` | `*` | `*` | `*` |
+
+Comandos (uno por tarea, en una sola línea):
+
+```text
+# 1. Scheduler
+cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && /usr/bin/php8.4 artisan schedule:run >> /dev/null 2>&1
+
+# 2. Worker de publicación
+cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-publish.lock /usr/bin/php8.4 artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
+
+# 3. Worker de métricas e informes
+cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-metrics.lock /usr/bin/php8.4 artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
+```
+
+Qué hace cada opción:
+
+| Opción | Por qué |
+|---|---|
+| `flock -n <lock>` | Si el worker anterior sigue trabajando, el nuevo no arranca: nunca hay dos a la vez sobre la misma cola. `~/tmp` existe en Hestia y es privado del usuario |
+| `--stop-when-empty` | El worker termina al vaciar la cola, en vez de quedarse vivo |
+| `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min) |
+| `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
+
+Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
+
+Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
+
+### Opción B: systemd (procesos siempre vivos)
+
+Requiere root. Sustituye a las tareas 2 y 3 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+
+Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola:
 
 ```bash
 sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports
 ```
 
-Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). `--timeout` (120 s) debe ser mayor que el job más largo y menor que `retry_after` (180 s).
+Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). `--timeout` (120 s) debe ser mayor que el job más largo y menor que `retry_after` (180 s). Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports" bash deploy/hestia/deploy.sh`.
 
-Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`, `php artisan queue:failed`, `php artisan app:queue-probe --wait=60`.
+### Comprobar que los workers procesan
 
-Plan B sin systemd: cron con `queue:work --stop-when-empty` y `flock` (latencia máxima 1 min). Ver `deploy/systemd/README.md`.
+Como el usuario del dominio, en la carpeta de la app, un par de minutos después de crear las tareas:
+
+```bash
+php8.4 artisan schedule:list               # tareas programadas y su próxima ejecución
+php8.4 artisan app:health                  # «scheduler» OK (el cron corre) y la cola sin atrasos
+php8.4 artisan app:queue-probe --wait=360  # encola un job en cada cola y espera a que se procese (metrics tarda hasta 5 min con cron)
+php8.4 artisan queue:failed | head         # sin fallos
+php8.4 artisan tinker --execute='echo DB::table("jobs")->selectRaw("queue, count(*) n")->groupBy("queue")->get();'   # pendientes por cola
+```
+
+Pendientes que no bajan en una cola = su worker no está corriendo (revisa la tarea de cron o la unidad systemd).
+
+## Analítica «no disponible» tras conectar una cuenta
+
+La app **nunca muestra 0 cuando no tiene el dato**: muestra «no disponible». Tras conectar Facebook, Instagram o YouTube es normal durante unos minutos, porque las métricas no se descargan al conectar:
+
+| Qué | Cuándo | Cola |
+|---|---|---|
+| Histórico inicial (`BackfillMetrics`): Instagram 30 días, Facebook 90, YouTube 365; TikTok no tiene | Se encola al conectar la cuenta | `metrics` |
+| Snapshot diario de cada cuenta (`CollectSnapshots`) | Cada día a las **12:00 UTC** (`SOCIAL_ANALYTICS_DAILY_AT`), cuando Meta y YouTube ya han cerrado el día anterior | `metrics` |
+| Métricas de cada publicación (`RefreshPostMetrics`) | Cada 6 h durante las primeras 72 h tras publicar | `metrics` |
+
+Si sigue en «no disponible», en este orden:
+
+1. **¿Corre el worker de `metrics`?** Es la causa más común: el cron del scheduler solo encola, quien ejecuta es el worker (tarea 3 de cron o `scheduler-worker@metrics`). Comprueba con [Comprobar que los workers procesan](#comprobar-que-los-workers-procesan).
+2. **Forzarlo a mano**, sin esperar al cron (procesa lo pendiente y termina):
+   ```bash
+   php8.4 artisan queue:work database --queue=metrics --stop-when-empty --tries=3 --timeout=120
+   ```
+   Si después aparecen los datos, el problema era el worker.
+3. **¿Ha fallado?** `php8.4 artisan queue:failed` muestra el error (reintentar con `queue:retry all`).
+4. **Log de la app**:
+   ```bash
+   grep -iE "analytics|backfill|metrics|graph" storage/logs/laravel-$(date +%F).log | tail -20
+   ```
+   Causas habituales: al reconectar desde el dominio nuevo no se aceptaron los permisos de métricas de Meta (`read_insights`, `instagram_manage_insights`): vuelve a conectar y acéptalos todos; o la cuenta de Instagram tiene menos de 100 seguidores y Meta no da algunas métricas (demografía).
 
 ## Healthcheck
 

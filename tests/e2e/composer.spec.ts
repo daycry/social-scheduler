@@ -163,6 +163,9 @@ test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', a
     const media = toolbar.getByLabel('Añadir imagen o vídeo');
     await media.focus();
     await expect(media).toBeFocused();
+    const chooser = page.waitForEvent('filechooser');
+    await page.keyboard.press('Space'); // el teclado activa el control: se abre el selector de archivos
+    expect(await chooser).toBeTruthy();
 
     await axeNow(page, 'compositor con barra del editor');
     await expectNoOverflow(page);
@@ -208,6 +211,108 @@ test('E2E-03 · confirmación al salir con cambios sin guardar', async ({ page }
     await page.getByRole('link', { name: 'Cerrar' }).click();
     await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
 
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    const ig = page.getByTestId('network-counters').getByRole('listitem').filter({ hasText: 'Instagram' });
+    const texto = page.getByLabel('Texto', { exact: true });
+
+    // El servidor recorta los espacios de los extremos: «  hola  » son 4 caracteres.
+    await texto.fill('   hola   ');
+    await expect(ig.getByTestId('counter-chars')).toHaveText('4 / 2.200');
+    // `a#b` y el # de una URL no son hashtags; los demás sí.
+    await texto.fill('a#b https://x.com/p#ancla #uno');
+    await expect(ig.getByTestId('counter-hashtags')).toHaveText('1 / 30 #');
+
+    // Superar el máximo de caracteres: el contador cambia con texto y la validación en vivo lo explica.
+    await texto.fill('a'.repeat(2201));
+    await expect(ig.getByTestId('counter-chars')).toHaveText('2.201 / 2.200 · supera el máximo');
+    await expect(page.getByRole('alert').filter({ hasText: /2201 caracteres.*admite como maximo 2200/ })).toBeVisible();
+    await expect(ig.getByTestId('counter-chars')).toHaveAttribute('aria-live', 'polite');
+    await expectNoOverflow(page);
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    const texto = page.getByLabel('Texto', { exact: true });
+    await texto.fill('l1\nl2\nl3');
+    await texto.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(5, 5)); // fin de «l2»
+    await page.getByRole('toolbar', { name: 'Herramientas del editor' }).getByRole('button', { name: /Insertar emoji/ }).click();
+    await page.getByLabel('Buscar emoji').fill('fuego');
+    await page.getByRole('dialog', { name: 'Selector de emoji' }).getByRole('button', { name: 'Fuego' }).click();
+    await expect(texto).toHaveValue('l1\nl2🔥\nl3');
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar', async ({ page }) => {
+    const w = watch(page);
+    // Navegación de Inertia (sin recarga) para que Atrás sea un `popstate`.
+    await page.goto(`/brands/${brand.id}`);
+    await settle(page);
+    await page.getByRole('link', { name: 'Nueva publicación' }).first().click();
+    await expect(page).toHaveURL(/posts\/create$/);
+    await settle(page);
+    const texto = page.getByLabel('Texto', { exact: true });
+    const dialogo = page.getByRole('alertdialog', { name: '¿Salir sin guardar?' });
+
+    // Sin cambios, Atrás sale sin preguntar.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
+    await settle(page);
+    await page.getByRole('link', { name: 'Nueva publicación' }).first().click();
+    await expect(page).toHaveURL(/posts\/create$/);
+    await settle(page);
+
+    // Con cambios: Atrás pregunta, cancelar conserva URL y texto.
+    await texto.fill('e2e texto que no debe perderse');
+    await page.goBack();
+    await expect(dialogo).toBeVisible();
+    await expect(page).toHaveURL(/posts\/create$/);
+    await page.getByRole('button', { name: 'Seguir editando' }).click();
+    await expect(dialogo).toHaveCount(0);
+    await expect(page).toHaveURL(/posts\/create$/);
+    await expect(texto).toHaveValue('e2e texto que no debe perderse');
+
+    // Un segundo Atrás vuelve a preguntar; confirmar sale.
+    await page.goBack();
+    await expect(dialogo).toBeVisible();
+    await page.getByRole('button', { name: 'Salir sin guardar' }).click();
+    await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-03 · «Guardar en biblioteca» exige guardar antes los cambios pendientes', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    const texto = page.getByLabel('Texto', { exact: true });
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await texto.fill('e2e texto guardado');
+    await page.getByRole('button', { name: 'Guardar borrador' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
+    await settle(page);
+
+    const biblioteca = page.getByRole('button', { name: 'Guardar en biblioteca' });
+    await expect(biblioteca).toBeEnabled();
+
+    // Con cambios pendientes no se guarda el texto antiguo: el botón se desactiva y se explica.
+    await texto.fill('e2e texto nuevo sin guardar');
+    await expect(biblioteca).toBeDisabled();
+    await expect(page.getByTestId('library-hint')).toBeVisible();
+    await expect(page).toHaveURL(/posts\/\d+\/edit$/);
+
+    // Tras guardar, la biblioteca recibe el texto actual.
+    await page.getByRole('button', { name: 'Guardar borrador' }).click();
+    await expect(page.getByTestId('library-hint')).toHaveCount(0);
+    await expect(biblioteca).toBeEnabled();
+    await biblioteca.click();
+    await expect(page).toHaveURL(/\/library/);
+    await expect(page.getByText('e2e texto nuevo sin guardar').first()).toBeVisible();
     expect(w.errors).toEqual([]);
 });
 

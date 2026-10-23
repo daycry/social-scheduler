@@ -16,9 +16,11 @@ const area = ref(null);
 const insertAtCursor = async (text) => {
     const el = area.value;
     if (!el) return;
-    const start = el.selectionStart ?? props.modelValue.length;
+    // Los offsets de la selección son sobre `el.value` (siempre LF), así que se calcula sobre ese mismo valor.
+    const value = el.value;
+    const start = el.selectionStart ?? value.length;
     const end = el.selectionEnd ?? start;
-    emit('update:modelValue', props.modelValue.slice(0, start) + text + props.modelValue.slice(end));
+    emit('update:modelValue', value.slice(0, start) + text + value.slice(end));
     await nextTick();
     // No se roba el foco: tras elegir un emoji el foco vuelve al botón de la barra; el cursor queda tras lo insertado.
     el.setSelectionRange(start + text.length, start + text.length);

@@ -21,7 +21,7 @@ const { brand, accounts, form, editable, targetFor, typesOf, typeInfo, toggleAcc
                 <button
                     type="button"
                     :aria-pressed="!!targetFor(account.id)"
-                    :aria-label="`${account.network_label}: ${account.name}`"
+                    :aria-label="`${account.network_label}: ${account.name}${account.status !== 'activa' ? '. Requiere reconexión' : ''}`"
                     :disabled="!editable"
                     class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
                     :class="targetFor(account.id) ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"

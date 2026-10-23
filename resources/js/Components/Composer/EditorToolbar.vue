@@ -36,6 +36,6 @@ const hashtags = computed(() => countHashtags(form.text));
 
         <AiSuggest :brand-id="brand.id" :network="selectedNetwork" @use="(t) => (form.text = t)" />
 
-        <p class="ms-auto self-center text-xs text-slate-600" data-testid="hashtag-count">{{ hashtags }} {{ hashtags === 1 ? 'hashtag' : 'hashtags' }}</p>
+        <p class="ms-auto self-center text-xs text-slate-600" data-testid="hashtag-count" aria-live="polite">{{ hashtags }} {{ hashtags === 1 ? 'hashtag' : 'hashtags' }}</p>
     </div>
 </template>

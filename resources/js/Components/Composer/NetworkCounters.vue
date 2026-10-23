@@ -32,13 +32,13 @@ const rows = computed(() => form.targets.map((t) => {
             <NetworkIcon v-if="r.network" :network="r.network" size="sm" />
             <span class="truncate text-slate-600">{{ r.name }}</span>
             <span
-                data-testid="counter-chars"
+                data-testid="counter-chars" aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"
                 :class="r.overChars ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
             >{{ formatThousands(r.chars) }}<template v-if="r.maxChars != null"> / {{ formatThousands(r.maxChars) }}</template><template v-if="r.overChars"> · supera el máximo</template></span>
             <span
                 v-if="r.maxHashtags != null"
-                data-testid="counter-hashtags"
+                data-testid="counter-hashtags" aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"
                 :class="r.overHashtags ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
             >{{ r.hashtags }} / {{ r.maxHashtags }} #<template v-if="r.overHashtags"> · supera el máximo</template></span>

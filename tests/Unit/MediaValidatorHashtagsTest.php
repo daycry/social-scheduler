@@ -37,7 +37,8 @@ test('MediaValidatorHashtags: el tope vale para todos los tipos de Instagram', f
 
 test('MediaValidatorHashtags: un hashtag con emoji o unicode se cuenta por puntos de codigo, no por bytes', function () {
     // «#café» y «#日本語» son un hashtag cada uno; el emoji corta el hashtag («#fiesta🎉» cuenta una vez).
-    expect(MediaValidator::countHashtags('#café #日本語 #fiesta🎉 sin hashtag, ni # solo ni a#b?'))->toBe(4)
+    // «# solo» y «a#b» no cuentan (un # precedido de letra no es hashtag); «#🎉» tampoco.
+    expect(MediaValidator::countHashtags('#café #日本語 #fiesta🎉 sin hashtag, ni # solo ni a#b?'))->toBe(3)
         ->and(MediaValidator::countHashtags('texto sin etiquetas'))->toBe(0);
 
     $texto = str_repeat('#a ', 30).'#🎉';
@@ -49,4 +50,15 @@ test('MediaValidatorHashtags: Facebook, YouTube y TikTok no tienen tope de hasht
     foreach ([ContentType::FacebookText, ContentType::YouTubeVideo, ContentType::TikTokVideo] as $type) {
         expect(hashtagErrors(checkText($type, textWithHashtags(80))))->toBe([], $type->value);
     }
+});
+
+test('MediaValidatorHashtags: un # precedido de letra, numero o / (URL) no es hashtag', function () {
+    expect(MediaValidator::countHashtags('a#b 1#2 https://x.com/p#ancla x/#y'))->toBe(0)
+        ->and(MediaValidator::countHashtags('(#uno) "#dos" ¡#tres!'))->toBe(3);
+});
+
+test('MediaValidatorHashtags: el limite de caracteres se mide sobre el texto recortado', function () {
+    $texto = '  '.str_repeat('a', 2200).'  ';
+    expect(checkText(ContentType::InstagramImage, $texto))->not->toContain('El texto tiene 2204 caracteres y una imagen de Instagram admite como maximo 2200.');
+    expect(array_filter(checkText(ContentType::InstagramImage, $texto), fn ($e) => str_contains($e, 'caracteres')))->toBe([]);
 });

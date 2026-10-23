@@ -1,22 +1,27 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { setBackHandler } from '@/Composables/backGuard';
 import { useComposerContext } from '@/Composables/useComposer';
 
 /**
  * Confirmación al salir con cambios sin guardar:
  *  - navegación de Inertia (Cerrar, enlaces): se intercepta con `router.on('before')` y se pregunta en un diálogo propio;
+ *  - botón Atrás / gesto de volver: Inertia gestiona `popstate` sin evento `before`, así que se escucha `popstate` con un listener
+ *    instalado antes que el de Inertia (`backGuard.js`), se detiene su propagación, se deshace el retroceso (`history.go(1)`) y se pregunta; confirmar repite `history.back()`;
  *  - cierre o recarga de la pestaña: `beforeunload`.
  * No pregunta sin cambios, ni al guardar o eliminar (visitas que no son GET: el guardado deja el formulario limpio).
  */
 const { form } = useComposerContext();
 
-const pending = ref(null); // URL a la que se quería ir
+const BACK = '__back__';
+const pending = ref(null); // URL a la que se quería ir (o BACK si fue el botón Atrás)
 const dialog = ref(null);
 const keepEditing = ref(null);
 let leaving = false;
 let opener = null;
 let removeBefore = null;
+let restoring = false; // el `popstate` provocado por `history.go(1)` no se trata como un Atrás del usuario
 
 const samePage = (url) => {
     try {
@@ -36,6 +41,21 @@ const onBefore = (event) => {
     return false; // cancela la visita
 };
 
+const onPopState = (event) => {
+    if (restoring) {
+        restoring = false;
+        event.stopImmediatePropagation();
+        return;
+    }
+    if (leaving || !form.isDirty) return;
+    event.stopImmediatePropagation(); // Inertia no llega a cambiar de página
+    restoring = true;
+    history.go(1); // deshace el retroceso: la URL y el formulario siguen como estaban
+    opener = document.activeElement;
+    pending.value = BACK;
+    nextTick(() => keepEditing.value?.focus());
+};
+
 const onBeforeUnload = (event) => {
     if (leaving || !form.isDirty) return;
     event.preventDefault();
@@ -50,7 +70,16 @@ const leave = () => {
     const url = pending.value;
     leaving = true;
     pending.value = null;
-    router.visit(url);
+    if (url === BACK) {
+        history.back();
+        return;
+    }
+    // Si la visita falla o se cancela, `leaving` vuelve a false para seguir protegiendo el formulario.
+    router.visit(url, {
+        onCancel: () => (leaving = false),
+        onError: () => (leaving = false),
+        onFinish: () => (leaving = false),
+    });
 };
 
 // Escape cancela y el Tab no sale del diálogo.
@@ -75,10 +104,12 @@ const onKeydown = (e) => {
 onMounted(() => {
     removeBefore = router.on('before', onBefore);
     window.addEventListener('beforeunload', onBeforeUnload);
+    setBackHandler(onPopState);
 });
 onBeforeUnmount(() => {
     removeBefore?.();
     window.removeEventListener('beforeunload', onBeforeUnload);
+    setBackHandler(null);
 });
 </script>
 

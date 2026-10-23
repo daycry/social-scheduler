@@ -15,7 +15,7 @@ export function useComposer(props) {
     const editable = computed(() => !props.post || props.post.editable);
 
     const form = useForm({
-        text: props.post?.text ?? '',
+        text: (props.post?.text ?? '').replace(/\r\n?/g, '\n'), // LF: el valor de un textarea siempre usa LF y los offsets del cursor deben coincidir
         scheduled_at: props.post?.scheduled_at ?? '',
         schedule: true,
         media: (props.post?.media ?? []).map((m) => m.id),
@@ -91,8 +91,11 @@ export function useComposer(props) {
 
     const libraryName = ref((props.post?.text ?? '').slice(0, 60) || 'Mi plantilla');
     const savingToLibrary = ref(false);
+    // La biblioteca copia el texto GUARDADO de la publicación: con cambios sin guardar se pide guardar primero (no se envía
+    // el borrador a medias ni se sale del compositor perdiéndolos).
+    const canSaveToLibrary = computed(() => !form.isDirty);
     const saveToLibrary = () => {
-        if (!props.post || !libraryName.value.trim()) return;
+        if (!props.post || !libraryName.value.trim() || form.isDirty) return;
         router.post(route('library.store'), { post_id: props.post.id, name: libraryName.value.trim() }, {
             preserveScroll: true,
             onStart: () => (savingToLibrary.value = true),
@@ -120,7 +123,7 @@ export function useComposer(props) {
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeInfo, toggleAccount,
         liveErrors, errorsFor, submit, remove,
-        libraryName, savingToLibrary, saveToLibrary,
+        libraryName, savingToLibrary, saveToLibrary, canSaveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,
     };

@@ -15,4 +15,6 @@ Reprogramar arrastrando solo se permite mientras el destino sea `borrador` o `pr
 
 **Publicar ahora.** Cada publicación con `can_publish_now` (borrador o programada, con destinos y sin nada en vuelo ni publicado) ofrece «Publicar ahora» en la semana, el mes y la lista. Pide confirmación en un diálogo accesible (foco en Cancelar, Escape cancela) y envía `POST posts/{post}/publish-now`, que usa `PostService::publishNow()` con las mismas defensas contra el doble despacho que el compositor (ver [publicación](publicacion.md)). La tarjeta muestra «Enviando…» y el calendario se refresca cada pocos segundos hasta que el destino deja de estar `programada`. La herramienta MCP equivalente es `publish_post_now`.
 
+**Indicador de nota (CA-28).** `CalendarService::item()` envía `has_notes` (verdadero si las notas internas del post no están vacías) y la semana, el mes y la lista muestran junto a la publicación una insignia con el texto accesible «Nota» (el icono es decorativo; el `title` dice «Esta publicación tiene notas internas»). El contenido de las notas no viaja al calendario, solo el indicador.
+
 Mejores horas, papelera y autolistas: ver [planificacion-avanzada.md](planificacion-avanzada.md).

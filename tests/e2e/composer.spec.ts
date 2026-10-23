@@ -747,6 +747,9 @@ test('E2E-08 · texto común por defecto y mezcla de redes: una personalizada y 
     await expect(page.getByTestId('own-indicator')).toBeVisible();
     const textoFb = 'Propio de Facebook con ✨ y #etiqueta';
     await propio.fill(textoFb);
+    // A1 (revisión de la fase 3): la previsualización muestra el texto efectivo de la pestaña activa, no siempre el común.
+    const previa = page.locator('div.card', { has: page.getByRole('heading', { name: 'Previsualización' }) });
+    await expect(previa).toContainText(textoFb);
     await expect(fb.getByTestId('counter-chars')).toHaveText(`${chars(textoFb)} / 63.206`);
     await expect(ig.getByTestId('counter-chars')).toHaveText(`${chars(comun)} / 2.200`);
     await expect(fb).toContainText('texto propio');
@@ -759,6 +762,8 @@ test('E2E-08 · texto común por defecto y mezcla de redes: una personalizada y 
     await tabOf(page, 'Texto común').click();
     const editado = 'Texto común EDITADO';
     await page.getByLabel('Texto', { exact: true }).fill(editado);
+    await expect(previa).toContainText(editado);
+    await expect(previa).not.toContainText(textoFb);
     await expect(ig.getByTestId('counter-chars')).toHaveText(`${chars(editado)} / 2.200`);
     await expect(fb.getByTestId('counter-chars')).toHaveText(`${chars(textoFb)} / 63.206`);
     await tabOf(page, /Instagram · e2e Instagram/).click();

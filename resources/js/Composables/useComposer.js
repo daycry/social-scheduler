@@ -205,7 +205,12 @@ export function useComposer(props) {
         return first ? (props.accounts.find((a) => a.id === first.account_id)?.network ?? null) : null;
     });
 
-    const previewText = computed(() => form.text || 'Aquí verás el texto de tu publicación.');
+    // La vista previa muestra el texto EFECTIVO de la red de la pestaña activa (el propio si lo tiene; si no, el común); con la pestaña
+    // «Texto común» (o sin pestañas) muestra el común. Las funciones de abajo se resuelven al evaluarse, ya declaradas.
+    const previewText = computed(() => {
+        const tab = form.targets.find((t) => t.account_id === currentTab.value);
+        return textOf(tab) || 'Aquí verás el texto de tu publicación.';
+    });
     const firstPreview = computed(() => form.media.map((id) => previews.value[id]).find(Boolean));
     const charCount = computed(() => countChars(form.text));
 

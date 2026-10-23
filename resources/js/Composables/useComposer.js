@@ -1,6 +1,7 @@
 import { computed, inject, onBeforeUnmount, provide, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { useLiveValidation } from '@/Composables/useLiveValidation';
+import { countChars, countHashtags } from '@/Composables/textCount';
 
 const KEY = Symbol('composer');
 
@@ -10,6 +11,7 @@ export function useComposer(props) {
     const brand = computed(() => props.brand);
     const accounts = computed(() => props.accounts);
     const contentTypes = computed(() => props.contentTypes);
+    const limits = computed(() => props.limits ?? {});
     const editable = computed(() => !props.post || props.post.editable);
 
     const form = useForm({
@@ -105,16 +107,22 @@ export function useComposer(props) {
 
     const previewText = computed(() => form.text || 'Aquí verás el texto de tu publicación.');
     const firstPreview = computed(() => form.media.map((id) => previews.value[id]).find(Boolean));
-    const charCount = computed(() => form.text.length);
+    const charCount = computed(() => countChars(form.text));
+
+    // Texto efectivo de un destino (hoy, el de la plantilla); lo reemplazará el texto por red (C-03).
+    const textOf = () => form.text;
+    const charsOf = (target) => countChars(textOf(target));
+    const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 
     const api = {
-        post, brand, accounts, contentTypes, editable, form,
+        post, brand, accounts, contentTypes, limits, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeInfo, toggleAccount,
         liveErrors, errorsFor, submit, remove,
         libraryName, savingToLibrary, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
+        textOf, charsOf, hashtagsOf,
     };
     provide(KEY, api);
 

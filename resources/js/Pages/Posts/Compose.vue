@@ -18,6 +18,7 @@ const props = defineProps({
     brand: Object,
     accounts: Array,
     contentTypes: Object,
+    limits: Object,
     post: Object,
     flash: Object,
 });

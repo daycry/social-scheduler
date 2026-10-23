@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 3 | 8 | 38% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 4 | 8 | 50% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **3** | **42** | **7%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **4** | **42** | **10%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -162,15 +162,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-04 — Contadores por red y por tipo con puntos de código (`NetworkCounters`)
 
 - **Descripción**: Un contador por destino (`n / máximo` y `h / 30 #` en Instagram) con los límites de las props, contados como el servidor (`[...text].length`). Aviso visual al superar el máximo.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: Al escribir ves un contador por red («n / 2.200» y «3 / 30 #» en Instagram, «n / 63.206» en Facebook), contado como el servidor, que avisa con texto cuando te pasas.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-02, T-03
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/NetworkCounters.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Composables/textCount.js`, `tests/e2e/composer.spec.ts`
+- **Archivos**: `resources/js/Components/Composer/NetworkCounters.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Composables/textCount.js`, `tests/e2e/composer.spec.ts`, `resources/js/Components/Composer/TextSection.vue`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Components/Composer/TargetOptions.vue`
 - **Cubre (tests)**: E2E-02
 - **Verificación**:
   - `npm run build` → sin errores
@@ -178,15 +178,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Posts/Compose` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-02: «n / 2.200» y «3 / 30 #» en Instagram, «n / 63.206» en Facebook, y el recuento coincide con el del servidor con emojis (ZWJ incluidos)
-- [ ] El contador cambia de estado (color y texto, no solo color) al superar el máximo
+- [x] CA-02: «n / 2.200» y «3 / 30 #» en Instagram, «n / 63.206» en Facebook, y el recuento coincide con el del servidor con emojis (ZWJ incluidos)
+- [x] El contador cambia de estado (color y texto, no solo color) al superar el máximo
 
 **Subtareas**
-- [ ] Funciones `countChars` y `countHashtags` en un módulo compartido
-- [ ] `NetworkCounters` por destino activo
-- [ ] Test E2E con un emoji compuesto y 3 hashtags
+- [x] Funciones `countChars` y `countHashtags` en un módulo compartido
+- [x] `NetworkCounters` por destino activo
+- [x] Test E2E con un emoji compuesto y 3 hashtags
 
-**Notas**: —
+**Notas**: — **Evidencia**: `playwright composer.spec.ts -g E2E-02` → pasa en desktop, mobile y mobile-360 (texto con familia ZWJ = 26 puntos de código, igual que `mb_strlen` en PHP, comprobado con php -r; 3 hashtags; 31 hashtags → «31 / 30 # · supera el máximo» y error en vivo); `tests/Feature/Posts` → 41 passed; build OK. El «Programar deshabilitado» de E2E-02 es del panel de errores (T-09, CA-24) y no se aserta aquí. El recuento «n caracteres» de la plantilla pasa también a puntos de código.
 
 ---
 

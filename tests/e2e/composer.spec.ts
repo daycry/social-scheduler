@@ -76,3 +76,36 @@ test('E2E-01 · compositor a pantalla completa con pastillas de red', async ({ p
     await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
 });
+
+// Familia con ZWJ: 3 emojis + 2 uniones = 5 puntos de código (PHP `mb_strlen` cuenta 5; `.length` de JS contaría 8).
+const FAMILIA = '\u{1F468}‍\u{1F469}‍\u{1F467}';
+
+test('E2E-02 · contadores por red y tope de hashtags', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+
+    const contadores = page.getByTestId('network-counters');
+    const ig = contadores.getByRole('listitem').filter({ hasText: 'Instagram' });
+    const fb = contadores.getByRole('listitem').filter({ hasText: 'Facebook' });
+
+    // «Hola » (5) + familia (5) + « #uno #dos #tres» (16) = 26 puntos de código, 3 hashtags.
+    await page.getByLabel('Texto', { exact: true }).fill(`Hola ${FAMILIA} #uno #dos #tres`);
+    await expect(ig.getByTestId('counter-chars')).toHaveText('26 / 2.200');
+    await expect(ig.getByTestId('counter-hashtags')).toHaveText('3 / 30 #');
+    await expect(fb.getByTestId('counter-chars')).toHaveText('26 / 63.206');
+    await expect(fb.getByTestId('counter-hashtags')).toHaveCount(0);
+    await page.screenshot({ path: 'test-results/composer-contadores-emoji.png' });
+    await expectNoOverflow(page);
+
+    // 31 hashtags: el contador cambia de estado con texto y la validación en vivo lo explica.
+    await page.getByLabel('Texto', { exact: true }).fill(Array.from({ length: 31 }, (_, i) => `#t${i + 1}`).join(' '));
+    await expect(ig.getByTestId('counter-hashtags')).toHaveText('31 / 30 # · supera el máximo');
+    await expect(page.getByRole('alert').filter({ hasText: /31 hashtags.*admite como maximo 30/ })).toBeVisible();
+    await page.screenshot({ path: 'test-results/composer-error-hashtags.png' });
+    await expectNoOverflow(page);
+
+    await axeNow(page, 'compositor con contadores');
+    expect(w.errors).toEqual([]);
+});

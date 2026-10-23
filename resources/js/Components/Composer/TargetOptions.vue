@@ -54,9 +54,11 @@ const hasOptions = (account) => {
                     </select>
                 </div>
             </div>
-            <ul v-if="errorsFor(account.id).length" class="space-y-0.5 text-sm text-red-600" role="alert">
-                <li v-for="e in errorsFor(account.id)" :key="e">{{ e }}</li>
-            </ul>
+            <div v-if="errorsFor(account.id).length" role="alert">
+                <ul class="space-y-0.5 text-sm text-red-600">
+                    <li v-for="e in errorsFor(account.id)" :key="e">{{ e }}</li>
+                </ul>
+            </div>
         </section>
     </template>
 </template>

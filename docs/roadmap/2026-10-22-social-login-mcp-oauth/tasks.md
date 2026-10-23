@@ -1055,7 +1055,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 **Checklist para el usuario (M-xx, detalle en `test-plan.md`)**:
 - ✅ M-01 · Login real con Google por ngrok — verificado por el usuario el 2026-10-23: entrada OK y vinculación automática (`social.linked`, `modo=auto`) en la auditoría. Se reutilizó el cliente OAuth de Google de los conectores (`GOOGLE_LOGIN_*` = `GOOGLE_CLIENT_*`) con la redirect `<APP_URL>/auth/google/callback` añadida.
-- ⏳ M-02 · Login y vinculación real con Facebook por ngrok (app de Meta propia del login, modo Desarrollo con roles).
+- ⏳ M-02 · Login y vinculación real con Facebook por ngrok — aplazado por el usuario (2026-10-23): la app de Meta de los conectores es de tipo Empresa y no ofrece el caso de uso de login (Meta respondió «URL bloqueada»). Pendiente: crear una app de tipo Consumidor solo para el login (pasos en `docs/guias/login-social-google-meta.md`) y rellenar `META_LOGIN_*`.
 - ⏳ M-03 · Claude Code CLI sin API key (T-11, CA-29).
 - ⏳ M-04 · Claude Desktop, conector personalizado (T-11).
 - ⏳ M-05 · Codex (T-11).

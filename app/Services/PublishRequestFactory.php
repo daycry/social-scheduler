@@ -59,13 +59,19 @@ class PublishRequestFactory
         );
     }
 
-    private function searchWindowStart(PostTarget $target, ?CarbonInterface $scheduledAt): ?CarbonInterface
+    /** Inicio de la ventana donde se busca lo ya publicado: 5 min antes de la hora programada o del primer intento, el que sea anterior. */
+    public function searchWindowStart(PostTarget $target, ?CarbonInterface $scheduledAt): ?CarbonInterface
     {
         $first = PublishAttempt::withoutUserScope()->where('post_target_id', $target->id)->where('attempt_no', 1)->latest('id')->value('started_at');
         $first = $first !== null ? CarbonImmutable::parse($first) : null;
         $start = $scheduledAt !== null && $first !== null ? ($first->lt($scheduledAt) ? $first : $scheduledAt) : ($scheduledAt ?? $first);
 
         return $start?->copy()->subMinutes(5);
+    }
+
+    private function earliest(?CarbonInterface $a, ?CarbonInterface $b): ?CarbonInterface
+    {
+        return $a !== null && $b !== null ? ($a->lt($b) ? $a : $b) : ($a ?? $b);
     }
 
     /**
@@ -83,7 +89,9 @@ class PublishRequestFactory
             media: $base->media,
             options: $base->options,
             reference: $reconcile['reference'] ?? null,
-            since: isset($reconcile['since']) ? CarbonImmutable::parse($reconcile['since']) : $base->since,
+            // La ventana del contenido viejo nunca empieza DESPUES del primer intento del destino (`$base->since` ya lo incluye): un `since`
+            // guardado con una fecha reprogramada despues de un intento ambiguo perderia lo publicado entonces (revision F2 i2, N1).
+            since: $this->earliest(isset($reconcile['since']) ? CarbonImmutable::parse($reconcile['since']) : null, $base->since),
             progress: (array) ($reconcile['progress'] ?? []),
             budget: $base->budget(),
         );

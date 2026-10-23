@@ -27,7 +27,7 @@ class PostController extends Controller
 
     private const PUBLISHING_MESSAGE = 'Publicando ahora: se enviara en unos segundos.';
 
-    private const PAUSED_MESSAGE = 'Hay destinos en pausa por la cuota de la red: se enviaran cuando se libere, no ahora.';
+    private const PAUSED_MESSAGE = 'Hay destinos en pausa por la cuota o el limite de ritmo de la red: se enviaran cuando se libere, no ahora.';
 
     public function __construct(
         private readonly PostService $posts,

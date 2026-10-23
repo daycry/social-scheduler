@@ -18,12 +18,12 @@ const menu = ref(null);
 
 const busy = computed(() => form.processing || sendingNow.value);
 // Programar también se bloquea con la fecha pasada; Publicar ahora y Guardar borrador no dependen de la fecha. Con una subida de
-// media en curso se bloquean Programar, Publicar ahora y Guardar en biblioteca (el borrador sí se puede guardar).
+// media en curso se bloquean TODAS las acciones (también Guardar borrador, que no guardaría nada) y se avisa.
 const blocked = computed(() => busy.value || scheduleBlocked.value);
 const canPublishNow = computed(() => !busy.value && !hasBlockingErrors.value && form.targets.length > 0);
 
 const items = computed(() => [
-    { key: 'draft', label: 'Guardar borrador', disabled: busy.value, run: () => submit(false) },
+    { key: 'draft', label: 'Guardar borrador', disabled: busy.value || uploadingMedia.value, run: () => submit(false) },
     { key: 'library', label: 'Guardar en biblioteca', disabled: savingToLibrary.value || uploadingMedia.value, run: () => openLibrary() },
     { key: 'now', label: 'Publicar ahora', disabled: !canPublishNow.value, run: () => publishNow() },
 ]);
@@ -114,6 +114,7 @@ const onLibraryKey = (e) => {
             </ul>
         </div>
 
+        <p v-if="uploadingMedia" role="status" class="text-sm text-slate-700" data-testid="uploading-note">Espera a que termine la subida.</p>
         <p v-if="sendingNow" role="status" class="text-sm text-slate-700" data-testid="sending-now">Enviando… no cierres esta página.</p>
         <DangerButton v-if="post" type="button" class="ml-auto" @click="remove">Eliminar</DangerButton>
     </div>

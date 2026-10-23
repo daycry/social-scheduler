@@ -49,6 +49,12 @@ class PostService
      */
     private const AMBIGUOUS_ERRORS = [null, 'transitorio', 'reintentos_agotados', 'red', 'meta_no_disponible'];
 
+    /**
+     * Pausas impuestas por la RED (cuota diaria y limites de ritmo transitorios de Meta, YouTube y TikTok): ni «Publicar ahora» ni
+     * una edicion las saltan, o cada clic gastaria un intento contra un limite que sigue activo.
+     */
+    private const RATE_PAUSES = ['cuota', 'rate_limit', 'youtube_limite_ritmo', 'rate_limit_exceeded'];
+
     public function __construct(private readonly MediaValidator $validator) {}
 
     /**
@@ -485,6 +491,7 @@ class PostService
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
             }
             if ($fresh) {
+                $attributes = $this->keepRatePause($current, $attributes);
                 YouTubePublisher::forgetUploadSession($current->id);
             }
 
@@ -527,7 +534,9 @@ class PostService
                 'reference' => $uploading ? null : $reference,
                 'progress' => $uploading || $progress === [] ? null : $progress,
                 'text' => $oldText,
-                'since' => $oldScheduledAt?->copy()->subMinutes(5)->toIso8601String(),
+                // Ventana desde la hora programada Y el primer intento del destino (la fecha pudo moverse despues de un intento ambiguo):
+                // la misma que usa `PublishRequestFactory::make()`, no solo la fecha vieja (revision F2 i2, N1).
+                'since' => app(PublishRequestFactory::class)->searchWindowStart($target, $oldScheduledAt)?->toIso8601String(),
             ], fn ($v) => $v !== null) + ['pending' => true];
         }
 
@@ -545,11 +554,27 @@ class PostService
     /** «Publicar ahora» salta la espera de un reintento transitorio, pero NO la pausa por cuota de la red. */
     private function releaseBackoff(PostTarget $target, bool $publishNow): array
     {
-        if (! $publishNow || $target->status !== PostStatus::Scheduled || $target->next_attempt_at === null || $target->error_code === 'cuota') {
+        if (! $publishNow || $target->status !== PostStatus::Scheduled || $target->next_attempt_at === null || in_array($target->error_code, self::RATE_PAUSES, true)) {
             return [];
         }
 
         return ['next_attempt_at' => null];
+    }
+
+    /**
+     * Un destino en pausa por la red (cuota o limite de ritmo, aun vigente) que empieza un intento NUEVO por una edicion conserva
+     * la pausa: `FRESH_ATTEMPT` la borraria y «Publicar ahora» (o el despachador) volveria a tocar la red antes de tiempo.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function keepRatePause(PostTarget $current, array $attributes): array
+    {
+        if ($current->status === PostStatus::Scheduled && $current->next_attempt_at?->isFuture() && in_array($current->error_code, self::RATE_PAUSES, true)) {
+            return array_merge($attributes, ['next_attempt_at' => $current->next_attempt_at, 'error_code' => $current->error_code, 'error_message' => $current->error_message]);
+        }
+
+        return $attributes;
     }
 
     /** Destinos `programada` que «Publicar ahora» no ha podido encolar porque la red los tiene en pausa (cuota). */

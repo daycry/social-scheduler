@@ -622,7 +622,7 @@ test('E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día d
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Publicar ahora y Guardar en biblioteca', async ({ page }) => {
+test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca', async ({ page }) => {
     const w = watch(page);
     await open(page);
     await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
@@ -639,7 +639,9 @@ test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Publ
     await abrirMenu(page);
     await expect(menuItem(page, 'Publicar ahora')).toBeDisabled();
     await expect(menuItem(page, 'Guardar en biblioteca')).toBeDisabled();
-    await expect(menuItem(page, 'Guardar borrador')).toBeEnabled();
+    // Guardar borrador tampoco guardaria nada con la subida a medias (revision F2 i2, N3): se deshabilita y se avisa.
+    await expect(menuItem(page, 'Guardar borrador')).toBeDisabled();
+    await expect(page.getByTestId('uploading-note')).toHaveText('Espera a que termine la subida.');
     await page.keyboard.press('Escape');
     // Al terminar (aquí con error) todo vuelve a estar disponible.
     await expect(page.getByText('e2e: subida simulada')).toBeVisible();

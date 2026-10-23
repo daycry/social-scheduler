@@ -37,7 +37,7 @@ const setCategory = (value) => {
             </div>
             <div>
                 <InputLabel :for="`yt-tags-${account.id}`" value="Etiquetas (separadas por comas)" />
-                <input :id="`yt-tags-${account.id}`" :value="tagText[account.id]" :disabled="!editable" type="text" class="field mt-1 w-full" autocomplete="off" @input="setTags($event.target.value)" />
+                <input :id="`yt-tags-${account.id}`" :value="tagText[account.id]" :disabled="!editable" type="text" class="field mt-1 w-full" autocomplete="off" @keydown.enter.prevent @input="setTags($event.target.value)" />
             </div>
         </div>
 

@@ -100,3 +100,11 @@ test('PostNotes: el calendario marca el post con nota', function () {
     $this->actingAs($this->user)->get(route('calendar.index', ['brand_id' => $this->brand->id, 'view' => 'week', 'date' => '2026-11-03']))
         ->assertInertia(fn ($page) => $page->where('items.0.has_notes', true));
 });
+
+test('McpNotes: CRLF y CR suelto se guardan como LF y la linea en blanco se conserva', function () {
+    $post = mcpNotesPost();
+
+    [$err, $res] = $this->callTool($this->key, 'update_post_notes', ['post_id' => $post->id, 'notes' => "a\r\n\r\nb\rc"]);
+
+    expect($err)->toBeFalse()->and($res['notes'])->toBe("a\n\nb\nc")->and($post->fresh()->notes)->toBe("a\n\nb\nc");
+});

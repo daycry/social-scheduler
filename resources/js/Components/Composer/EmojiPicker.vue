@@ -73,7 +73,7 @@ const onTab = (e) => {
         @keydown.tab="onTab"
     >
         <label class="block text-xs font-medium text-slate-600" for="emoji-search">Buscar emoji</label>
-        <input id="emoji-search" ref="searchInput" v-model="query" type="search" autocomplete="off" class="field mt-1" placeholder="Por ejemplo: fuego, tarta, gracias" />
+        <input id="emoji-search" ref="searchInput" v-model="query" type="search" autocomplete="off" @keydown.enter.prevent class="field mt-1" placeholder="Por ejemplo: fuego, tarta, gracias" />
 
         <div v-if="!results" class="mt-2 flex flex-wrap gap-1" role="group" aria-label="Categorías de emoji">
             <button

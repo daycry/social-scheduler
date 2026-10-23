@@ -999,7 +999,7 @@ test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs p
     await modal.getByLabel(/\(utm_medium\)/).fill('social&paid');
     await modal.getByLabel(/\(utm_campaign\)/).fill('rebajas otoño');
     await expect(anadir).toBeEnabled();
-    const esperada = 'https://ejemplo.com/oferta?ref=7&utm_source=insta+gram&utm_medium=social%26paid&utm_campaign=rebajas+oto%C3%B1o#precio';
+    const esperada = 'https://ejemplo.com/oferta?ref=7&utm_source=insta%20gram&utm_medium=social%26paid&utm_campaign=rebajas%20oto%C3%B1o#precio';
     await expect(modal.getByTestId('utm-result')).toHaveText(esperada);
 
     await anadir.click();
@@ -1007,12 +1007,31 @@ test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs p
     await expect(abrir).toBeFocused();
     await expect(texto).toHaveValue(`Mira ${esperada} ahora`);
 
+    // Enter en un campo del modal nunca envía el formulario del compositor: sin los obligatorios no hace nada; con ellos, añade.
+    await abrir.click();
+    await expect(modal).toBeVisible();
+    const urlAntes = page.url();
+    await modal.getByLabel(/Dirección \(URL\)/).fill('https://ejemplo.com/a?flag&a=1;b=2&q=a%20b&utm_medium=viejo#frag');
+    await modal.getByLabel(/\(utm_source\)/).fill('x');
+    await modal.getByLabel(/\(utm_source\)/).press('Enter');
+    await expect(modal).toBeVisible();
+    expect(page.url()).toBe(urlAntes);
+    await modal.getByLabel(/\(utm_medium\)/).fill('m');
+    await modal.getByLabel(/\(utm_campaign\)/).fill('c');
+    // La query original se conserva tal cual (sin re-serializar); solo se sustituyen los utm_*.
+    await expect(modal.getByTestId('utm-result')).toHaveText('https://ejemplo.com/a?flag&a=1;b=2&q=a%20b&utm_source=x&utm_medium=m&utm_campaign=c#frag');
+    await modal.getByLabel(/\(utm_campaign\)/).press('Enter');
+    await expect(modal).toHaveCount(0);
+    expect(page.url()).toBe(urlAntes);
+
     // Escape cierra sin insertar nada.
     await abrir.click();
     await expect(modal).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(modal).toHaveCount(0);
-    await expect(texto).toHaveValue(`Mira ${esperada} ahora`);
+    // Tras el Enter que añadió el segundo enlace, el primero sigue en el texto (Escape no insertó nada más).
+    expect(await texto.inputValue()).toContain(esperada);
+    expect(await texto.inputValue()).toContain('utm_campaign=c#frag');
     expect(w.errors).toEqual([]);
 });
 

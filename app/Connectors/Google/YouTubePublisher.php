@@ -613,7 +613,7 @@ class YouTubePublisher implements Publisher, StatusPoller
         $text = str_replace(['<', '>'], '', (string) $request->text);
 
         if ($request->type === ContentType::YouTubeShort
-            && ($request->options['shorts_hashtag'] ?? true) !== false
+            && self::flag($request->options['shorts_hashtag'] ?? null, true)
             && ! str_contains(mb_strtolower($text), '#shorts')) {
             $text = rtrim(mb_strcut($text, 0, 5000 - 9, 'UTF-8'))."\n\n#Shorts"; // deja sitio al hashtag
         }

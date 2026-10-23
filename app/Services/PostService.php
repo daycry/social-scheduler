@@ -161,10 +161,7 @@ class PostService
 
     private static function normalizeNotes(mixed $notes): ?string
     {
-        $notes = is_string($notes) ? str_replace('
-
-', '
-', $notes) : null;
+        $notes = is_string($notes) ? str_replace(["\r\n", "\r"], "\n", $notes) : null;
 
         return $notes === null || trim($notes) === '' ? null : $notes;
     }

@@ -33,6 +33,10 @@ test.describe('páginas autenticadas', () => {
         await check(page, `/brands/${brandId}/connections`);
         await check(page, `/brands/${brandId}/posts/create`);
         await axeSeriousCritical(page, 'compositor');
+        // E2E-12: el panel de notas es parte de la página (siempre visible); se rellena en el cliente sin guardar nada y se vuelve a barrer.
+        await page.getByTestId('notes-input').fill('Nota interna con salto de línea');
+        await expect(page.getByTestId('notes-count')).toContainText('/ 5000');
+        await axeSeriousCritical(page, 'compositor con notas');
         await check(page, `/brands/${brandId}/edit`);
     });
 

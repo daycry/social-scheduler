@@ -89,8 +89,8 @@ export function useComposer(props) {
     // Al cambiar de tipo también se aplican los interruptores recordados que ese tipo ofrece (`share_to_feed` en un reel de Instagram,
     // `shorts_hashtag` en un Short, Duet y Stitch al volver a vídeo), pero solo los que el post aún no tiene: lo que el usuario ya
     // tocó en este post (activado o desactivado, la clave existe) no se pisa.
-    const applyPresets = () => {
-        for (const t of form.targets) {
+    const applyPresets = (only = null) => {
+        for (const t of only ?? form.targets) {
             const account = props.accounts.find((a) => a.id === t.account_id);
             if (!account) continue;
             for (const [key, value] of Object.entries(presetOptions(account, t.content_type))) {
@@ -99,9 +99,13 @@ export function useComposer(props) {
         }
     };
     pruneOptions();
+    // Los presets solo se aplican al destino que se activa o cuyo tipo cambia: los demás no se tocan.
+    let seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
     watch(() => form.targets.map((t) => `${t.account_id}:${t.content_type}`).join('|'), () => {
+        const changed = form.targets.filter((t) => seen.get(t.account_id) !== t.content_type);
+        seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
         pruneOptions();
-        applyPresets();
+        applyPresets(changed);
     });
 
     const toggleAccount = (account, on) => {
@@ -224,7 +228,7 @@ export function useComposer(props) {
     const notesError = ref('');
     const notesSaved = ref(false);
     const saveNotes = () => {
-        if (!props.post || savingNotes.value || form.notes.length > NOTES_MAX) return;
+        if (!props.post || savingNotes.value || [...(form.notes ?? '')].length > NOTES_MAX) return;
         const value = form.notes;
         router.patch(route('posts.notes', props.post.id), { notes: value }, {
             preserveScroll: true,

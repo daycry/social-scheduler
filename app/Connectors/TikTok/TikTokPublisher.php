@@ -473,15 +473,34 @@ class TikTokPublisher implements Publisher, StatusPoller
         $asked = (string) ($request->options['privacy_level'] ?? '');
 
         // La visibilidad pedida si la cuenta la permite; si no, la mas restrictiva (nunca se abre mas de lo pedido).
+        $requested = $asked;
         if ($asked === '' || ! in_array($asked, $options, true)) {
             $asked = in_array('SELF_ONLY', $options, true) ? 'SELF_ONLY' : (string) ($options[0] ?? 'SELF_ONLY');
         }
 
         // El contenido de marca (colaboracion de pago) no puede ser privado (directrices de TikTok, ver `testing/verificacion-campos-c04.md`):
-        // si la visibilidad resuelta es `SELF_ONLY` (pedida, o el respaldo porque la cuenta no ofrece la pedida) no se envia la combinacion
-        // prohibida: se falla con un mensaje claro y la opcion de marca se conserva para que el usuario elija otra visibilidad.
+        // con la marca activa y `SELF_ONLY` resuelto no se envia la combinacion prohibida. Si la visibilidad pedida era mas abierta y la
+        // cuenta ofrece otra no privada igual o mas restrictiva, se usa esa (la mas abierta que no supere lo pedido); si solo queda
+        // `SELF_ONLY` (o se pidio privada) se falla con un mensaje claro y la opcion de marca se conserva para que el usuario elija otra.
         if (filter_var($request->options['brand_content_toggle'] ?? false, FILTER_VALIDATE_BOOLEAN) && $asked === 'SELF_ONLY') {
-            throw new PermanentPublishException('El contenido de marca (colaboracion de pago) no puede ser privado y esta cuenta de TikTok no ofrece otra visibilidad: elige otra visibilidad que la cuenta admita o desmarca la colaboracion de pago.', 'marca_privada');
+            $open = ['MUTUAL_FOLLOW_FRIENDS' => 1, 'FOLLOWER_OF_CREATOR' => 2, 'PUBLIC_TO_EVERYONE' => 3]; // de mas a menos restrictiva
+            $limit = $open[$requested] ?? 0;
+            $best = null;
+            foreach ($options as $option) {
+                if (isset($open[$option]) && $open[$option] <= $limit && ($best === null || $open[$option] > $open[$best])) {
+                    $best = $option;
+                }
+            }
+
+            if ($best === null) {
+                throw new PermanentPublishException(
+                    $limit === 0
+                        ? 'El contenido de marca (colaboracion de pago) no puede ser privado: elige otra visibilidad que la cuenta admita o desmarca la colaboracion de pago.'
+                        : 'El contenido de marca (colaboracion de pago) no puede ser privado y esta cuenta de TikTok solo ofrece la visibilidad privada, o una mas abierta que la pedida: elige otra visibilidad que la cuenta admita o desmarca la colaboracion de pago.',
+                    'marca_privada',
+                );
+            }
+            $asked = $best;
         }
 
         $info = [

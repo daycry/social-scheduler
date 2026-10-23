@@ -150,6 +150,32 @@ test('PresetsReview: contenido de marca con una visibilidad que la cuenta no ofr
     expect($http->callsTo('POST', '#/publish/video/init/#'))->toBe([]);
 });
 
+test('PresetsReview: con marca y sin la visibilidad pedida usa la opcion no privada mas abierta que no supere lo pedido', function () {
+    $http = new FakeHttp;
+    $http->on('POST', '#creator_info/query/$#', ['json' => ['data' => ['privacy_level_options' => ['FOLLOWER_OF_CREATOR', 'SELF_ONLY']], 'error' => ['code' => 'ok']]])
+        ->on('POST', '#/publish/video/init/$#', ['json' => ['data' => ['publish_id' => 'v1', 'upload_url' => 'https://open-upload.tiktokapis.com/video/?upload_id=U1&upload_token=T'], 'error' => ['code' => 'ok']]])
+        ->on('PUT', '#upload_id=U1#', ['status' => 201]);
+    $a = $this->video;
+    $media = new PublishMedia($a->id, 'video', 'video/mp4', 'https://cdn.test/v.mp4', 1080, 1920, 20.0, 30.0, 1024, $a->disk, $a->path);
+    $request = new PublishRequest(55, ContentType::TikTokVideo, 'Video', [$media], ['privacy_level' => 'PUBLIC_TO_EVERYONE', 'brand_content_toggle' => true], null, now()->subMinutes(5));
+
+    (new TikTokPublisher)->publish($this->tt->fresh(), $request);
+
+    $info = $http->callsTo('POST', '#/publish/video/init/#')[0]['json']['post_info'];
+    expect($info['privacy_level'])->toBe('FOLLOWER_OF_CREATOR')->and($info['brand_content_toggle'])->toBeTrue();
+});
+
+test('PresetsReview: con marca y solo SELF_ONLY disponible el mensaje dice que la cuenta solo ofrece la visibilidad privada', function () {
+    $http = new FakeHttp;
+    $http->on('POST', '#creator_info/query/$#', ['json' => ['data' => ['privacy_level_options' => ['SELF_ONLY']], 'error' => ['code' => 'ok']]]);
+    $a = $this->video;
+    $media = new PublishMedia($a->id, 'video', 'video/mp4', 'https://cdn.test/v.mp4', 1080, 1920, 20.0, 30.0, 1024, $a->disk, $a->path);
+    $request = new PublishRequest(55, ContentType::TikTokVideo, 'Video', [$media], ['privacy_level' => 'PUBLIC_TO_EVERYONE', 'brand_content_toggle' => true], null, now()->subMinutes(5));
+
+    expect(fn () => (new TikTokPublisher)->publish($this->tt->fresh(), $request))->toThrow(PermanentPublishException::class, 'solo ofrece la visibilidad privada');
+    expect($http->callsTo('POST', '#/publish/video/init/#'))->toBe([]);
+});
+
 // --- Extra: tags de YouTube sin saltos de linea ni caracteres de control ---
 
 test('PresetsReview: los tags de YouTube no llevan saltos de linea ni caracteres de control y el marcador sigue primero', function () {

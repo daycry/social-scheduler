@@ -131,3 +131,17 @@ test('PostNotes: el endpoint web no deja el contenido de las notas en la auditor
 
     expect(json_encode(AuditLog::all()->toArray()))->not->toContain('CONTENIDO-PRIVADO');
 });
+
+test('PostNotes: CRLF y CR suelto pasan a LF y las lineas en blanco se conservan', function () {
+    $post = notesPost();
+
+    $this->actingAs($this->user)->patch(route('posts.notes', $post), ['notes' => "Parrafo 1\r\n\r\nParrafo 2\rTres\n\nCuatro"])->assertSessionDoesntHaveErrors();
+
+    expect($post->fresh()->notes)->toBe("Parrafo 1\n\nParrafo 2\nTres\n\nCuatro");
+});
+
+test('PostNotes: al crear el post por servicio tambien se normalizan las notas', function () {
+    $post = notesPost(['notes' => "a\r\n\r\nb"]);
+
+    expect($post->notes)->toBe("a\n\nb");
+});

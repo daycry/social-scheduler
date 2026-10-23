@@ -47,9 +47,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 8 | 8 | 100% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 8 | 8 | 100% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
-| Fase 5 — C-09 notas y C-05a generador UTM | 4 | 5 | 80% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
+| Fase 5 — C-09 notas y C-05a generador UTM | 5 | 5 | 100% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 2 | 4 | 50% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **39** | **42** | **93%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **40** | **42** | **95%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -1103,12 +1103,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
   - `php artisan test --compact --filter=PresetsReview` → casos adversariales fijados
-  - `npm run test:e2e` → batería completa en verde
+  - `composer.spec.ts` en desktop, mobile y mobile-360 → en verde (la batería e2e completa se ejecuta en T-42, no aquí)
   - `vendor/bin/pint --test` → passed
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] La suite completa pasa sin desactivar tests existentes; se modificó uno, `TikTokOptionsTest` «en fotos…», por un cambio de comportamiento declarado (ahora pide `PUBLIC_TO_EVERYONE`, porque la combinación marca + privado pasó a ser un error)
 - [x] Cada hallazgo Important o Critical tiene test y corrección
 
 **Subtareas**
@@ -1123,7 +1123,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 5 — C-09 notas y C-05a generador UTM
 
-**Estado**: borrador · **Estimado**: 14,0h · **Real**: — · **Coste est.**: 700 € + tokens (⚠️ verificar) · **Tokens est.**: 0,57M
+**Estado**: completado · **Estimado**: 14,0h · **Real**: — · **Coste est.**: 700 € + tokens (⚠️ verificar) · **Tokens est.**: 0,57M
 
 ### T-34 — Notas internas: migración `posts.notes`, `PostService::updateNotes` y `PATCH posts/{post}/notes`
 
@@ -1230,7 +1230,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-35, T-36
 - **Tipo**: test
-- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/Feature/Posts/PostNotesTest.php`
+- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/pages.spec.ts`, `tests/Feature/Posts/PostNotesTest.php`
 - **Cubre (tests)**: E2E-10, E2E-11, E2E-12, API-02
 - **Verificación**:
   - `npm run test:e2e -- --grep "E2E-10|E2E-11"` → verde en los tres proyectos
@@ -1251,15 +1251,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-38 — Revisión de robustez de la Fase 5 (notas fuera de `fill()`, XSS y permisos)
 
 - **Descripción**: Revisión de: notas que reinician intentos por colarse en `fill()`, notas con HTML o scripts mostradas en calendario y compositor, edición de notas de posts ajenos por web y MCP, y un UTM que inserte una URL peligrosa (`javascript:`). Checklist firmada; cada hallazgo lleva su test.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,03h (≈25 % IA) · real —
+- **Changelog**: Las notas conservan sus líneas en blanco y normalizan los saltos de línea, Enter en el generador de UTM ya no programa el post, los UTM respetan la query original y los presets de TikTok o YouTube no tocan otras redes.
+- **Estado**: completado
+- **Tiempo humano**: est. 1,0h · real 1.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0.14h (estimado)
+- **Supervisión**: est. 0,03h (≈25 % IA) · real 0.03h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-37
 - **Tipo**: docs
-- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Posts/NotesUtmReviewTest.php`, `app/Services/PostService.php`
+- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Posts/NotesUtmReviewTest.php`, `app/Services/PostService.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/Google/YouTubePublisher.php`, `resources/js/Components/Composer/UtmModal.vue`, `resources/js/Components/Composer/NotesPanel.vue`, `resources/js/Components/Composer/EmojiPicker.vue`, `resources/js/Components/Composer/PresetsPanel.vue`, `resources/js/Composables/utm.js`, `resources/js/Composables/useComposer.js`, `tests/Feature/Posts/PostNotesTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/pages.spec.ts`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
@@ -1268,15 +1268,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
-- [ ] Cada hallazgo Important o Critical tiene test y corrección
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] Cada hallazgo Important o Critical tiene test y corrección
 
 **Subtareas**
-- [ ] Auditar `fill()` y XSS
-- [ ] Auditar permisos web y MCP
-- [ ] Suite completa, Pint y E2E
+- [x] Auditar `fill()` y XSS
+- [x] Auditar permisos web y MCP
+- [x] Suite completa, Pint y E2E
 
-**Notas**: Puerta de salida de la fase 5.
+**Notas**: Puerta de salida de la fase 5. Gaps de la revisión de dos lentes (intento 1) corregidos: ver la tabla al final del ledger. `public/build` se regeneró con `npm run build` (no se versiona).
 
 ---
 
@@ -1508,3 +1508,19 @@ Corregidos los Minor en los commits `T-25: …`. Las dos lentes no encontraron C
 `, NUL y BEL) |
 
 Nota: el único test existente modificado fue `TikTokOptionsTest` «en fotos…» (enviaba contenido de marca sin visibilidad, ahora un error): pide `PUBLIC_TO_EVERYONE`.
+
+## Revisión de dos lentes — intento 1: Fase 5 (T-34..T-37) + T-33 — 2 Important, 7 Minor
+
+Lentes A+B+C. Todos los gaps se verificaron contra el código antes de corregir; ninguno era incorrecto.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|-------|-----|-------|------------|-----------|
+| 1 | Important | `normalizeNotes` reemplazaba `"\n\n"` por `"\n"` (un `"\r\n"` literal convertido por `eol=lf`): se perdían las líneas en blanco y el CRLF no se normalizaba | T-34 | `PostService::normalizeNotes` usa `str_replace(["\r\n", "\r"], "\n", ...)` con escapes de PHP; no hay otro literal de salto de línea del mismo patrón en el diff de la rama (barrido de `app/` y `resources/js`) | `PostNotesTest` (CRLF, CR suelto, línea en blanco; web y creación por servicio) y `McpNotesTest` (`update_post_notes`): verdes, fallaban antes. corregido |
+| 2 | Important | Enter en un input del modal UTM (dentro del `<form>` del compositor) hacía el envío implícito | T-36 | `@keydown.enter.prevent` en los campos del modal (`UtmModal.vue`, Enter añade si hay resultado) y en la búsqueda del selector de emojis y las etiquetas de YouTube (`PresetsPanel.vue`); el textarea de notas no cambia (Enter = salto de línea) | E2E-11 ampliado: Enter sin obligatorios no cierra ni navega; con ellos añade el enlace y la URL no cambia. corregido |
+| 3 | Minor | `searchParams.delete()` re-serializaba la query original | T-36 | `buildUtmUrl` quita solo los pares `utm_*` del string crudo y añade los nuevos con `encodeURIComponent`; conserva fragmento y validación http(s) | E2E-11: `?flag&a=1;b=2&q=a%20b&utm_medium=viejo#frag` → `?flag&a=1;b=2&q=a%20b&utm_source=x&utm_medium=m&utm_campaign=c#frag` (no hay test unitario de JS en el proyecto). corregido |
+| 4 | Minor | `applyPresets` corría sobre todos los destinos al cambiar cuenta o tipo | T-29 | El observador compara con el estado anterior y aplica los presets solo al destino que se activa o cambia de tipo | E2E-09 y la batería de composer en verde (desktop, mobile, mobile-360). corregido |
+| 5 | Minor | `marca_privada` fallaba aunque la cuenta ofreciera una visibilidad no privada más restrictiva que la pedida | T-28 | `TikTokPublisher::postInfo` elige la opción no privada más abierta que no supere lo pedido; solo `SELF_ONLY` (o se pidió privada) → error con mensaje exacto «solo ofrece la visibilidad privada» | `PresetsReviewTest` (2 casos nuevos: `[FOLLOWER_OF_CREATOR, SELF_ONLY]` con PUBLIC → `FOLLOWER_OF_CREATOR`; solo `SELF_ONLY` → error y sin envío) y el existente. corregido |
+| 6 | Minor | `shorts_hashtag` se comparaba con `!== false`: `0` o `"0"` publicaba `#Shorts` | T-27 | `YouTubePublisher` usa `self::flag(...)`, la misma tolerancia que el resto | `YouTubePublishTest` (0, "0", false sin hashtag; 1, "1" con él). corregido |
+| 7 | Minor | El cliente contaba UTF-16 y el servidor puntos de código | T-35 | `NotesPanel.vue` y `useComposer.js::saveNotes` cuentan `[...texto].length` | `npm run build` y E2E-10 en verde. corregido |
+| 8 | Minor | El ledger de T-33 marcaba «sin modificar tests existentes» con un test modificado y respaldaba la «batería e2e completa» solo con `composer.spec.ts` | T-33 | Criterio y verificación reescritos: el test modificado y su motivo; la batería completa se ejecuta en T-42 | T-33 de este ledger. corregido |
+| 9 | Minor | T-37 declaraba cubrir E2E-12 (axe con el panel de notas abierto) sin que `pages.spec.ts` lo hiciera | T-37 | `pages.spec.ts` rellena el panel de notas (siempre visible, sin guardar nada) en el compositor con la sesión demo y repite axe; se añade el fichero al `Archivos` de T-37 | `pages.spec.ts` en desktop verde. corregido |

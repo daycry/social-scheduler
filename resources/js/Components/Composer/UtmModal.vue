@@ -40,6 +40,11 @@ const add = () => {
     close();
 };
 
+// Enter en un campo del modal nunca envía el formulario del compositor (el modal vive dentro): añade el enlace si está listo.
+const addOnEnter = () => {
+    if (result.value) add();
+};
+
 watch(() => props.open, async (isOpen) => {
     if (isOpen) {
         await nextTick();
@@ -87,13 +92,13 @@ const onTab = (e) => {
 
             <div class="mt-3">
                 <label for="utm-url" class="block text-sm font-medium text-slate-800">Dirección (URL) <span class="text-red-700" aria-hidden="true">*</span></label>
-                <input id="utm-url" ref="urlInput" v-model="fields.url" type="url" inputmode="url" autocomplete="off" required class="field mt-1" placeholder="https://ejemplo.com/oferta" :aria-invalid="!!urlError" aria-describedby="utm-url-error" @blur="touchedUrl = true" />
+                <input id="utm-url" ref="urlInput" v-model="fields.url" type="url" inputmode="url" autocomplete="off" required class="field mt-1" placeholder="https://ejemplo.com/oferta" :aria-invalid="!!urlError" aria-describedby="utm-url-error" @blur="touchedUrl = true" @keydown.enter.prevent="addOnEnter" />
                 <p id="utm-url-error" class="mt-1 text-xs text-red-700" role="alert" data-testid="utm-url-error">{{ urlError }}</p>
             </div>
 
             <div v-for="f in UTM_FIELDS" :key="f.key" class="mt-3">
                 <label :for="`utm-${f.key}`" class="block text-sm font-medium text-slate-800">{{ f.label }} <span class="font-normal text-slate-600">({{ f.key }})</span><span v-if="f.required" class="text-red-700" aria-hidden="true"> *</span></label>
-                <input :id="`utm-${f.key}`" v-model="fields[f.key]" type="text" autocomplete="off" :required="f.required" class="field mt-1" :aria-describedby="`utm-${f.key}-hint`" />
+                <input :id="`utm-${f.key}`" v-model="fields[f.key]" type="text" autocomplete="off" :required="f.required" class="field mt-1" @keydown.enter.prevent="addOnEnter" :aria-describedby="`utm-${f.key}-hint`" />
                 <p :id="`utm-${f.key}-hint`" class="mt-0.5 text-xs text-slate-600">{{ f.hint }}</p>
             </div>
 

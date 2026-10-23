@@ -31,9 +31,18 @@ export function buildUtmUrl(rawUrl, params) {
     if (!url) return null;
     const values = Object.fromEntries(UTM_FIELDS.map((f) => [f.key, String(params?.[f.key] ?? '').trim()]));
     if (UTM_FIELDS.some((f) => f.required && values[f.key] === '')) return null;
-    for (const f of UTM_FIELDS) {
-        url.searchParams.delete(f.key);
-        if (values[f.key] !== '') url.searchParams.append(f.key, values[f.key]);
-    }
-    return url.toString();
+    // La query original se conserva tal cual (sin re-serializar): solo se quitan los pares `utm_*` de este generador del texto crudo.
+    const owned = new Set(UTM_FIELDS.map((f) => f.key));
+    const kept = url.search.replace(/^\?/, '').split('&').filter((pair) => {
+        if (pair === '') return false;
+        let name = pair.split('=')[0];
+        try { name = decodeURIComponent(name.replace(/\+/g, ' ')); } catch { /* nombre mal codificado: se conserva */ }
+        return !owned.has(name);
+    });
+    const added = UTM_FIELDS.filter((f) => values[f.key] !== '').map((f) => `${f.key}=${encodeURIComponent(values[f.key])}`);
+    const query = [...kept, ...added].join('&');
+    const hash = url.hash;
+    url.hash = '';
+    url.search = '';
+    return `${url.toString()}?${query}${hash}`;
 }

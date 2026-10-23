@@ -9,7 +9,7 @@ import { useComposerContext } from '@/Composables/useComposer';
  */
 const { post, form, NOTES_MAX, savingNotes, notesError, notesSaved, saveNotes } = useComposerContext();
 
-const length = computed(() => form.notes.length);
+const length = computed(() => [...(form.notes ?? '')].length);
 const over = computed(() => length.value > NOTES_MAX);
 </script>
 

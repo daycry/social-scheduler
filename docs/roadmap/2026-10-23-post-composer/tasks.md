@@ -1434,7 +1434,7 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 
 - **Descripción**: Suite Pest, Pint, build y Playwright completos; comprueba que lo declarado «sin cambios» sigue intacto (`PublishPostTarget`, publicadores de Meta) y que no se ha tocado ningún dato del usuario id 28. Entrega los M-xx como checklist, actualiza la spec, el índice del roadmap y el estado de ADR-005 (solo con el visto bueno del usuario). Puerta de salida de la fase 6.
 - **Changelog**: 
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,27h · real —
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
@@ -1453,15 +1453,15 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 
 **Criterios de aceptación**
 - [ ] Todos los criterios globales del plan cumplidos, salvo los M-xx pendientes del usuario
-- [ ] Las migraciones del plan solo añaden
+- [x] Las migraciones del plan solo añaden
 - [ ] Spec en `implementada` solo si el smoke está verificado por el usuario
 
 **Subtareas**
-- [ ] Regresión completa
-- [ ] Comprobaciones de «sin cambios» y del usuario id 28
+- [x] Regresión completa
+- [x] Comprobaciones de «sin cambios» y del usuario id 28
 - [ ] Cierre de ledger, spec y roadmap
 
-**Notas**: Puerta de salida de la fase 6.
+**Notas**: Puerta de salida de la fase 6. Queda `en-progreso` solo por T-41 (smoke real, manual del usuario): el cierre del ledger (`estado: completado`), la spec en `implementada`, ADR-005 y el CHANGELOG (`changelog-sync`) se hacen cuando el usuario verifique el smoke. **Evidencia (2026-10-23, rama con `origin/main` fusionado en `177b45e`)**: `php artisan test --compact` → 1423 passed; `vendor/bin/pint --test` → passed; `npm run build` y `npx tsc --noEmit -p .` → sin errores; `npx playwright test` batería completa (7 specs) → desktop 114 passed, mobile 114 passed + 1 skipped, mobile-360 114 passed + 1 skipped (el skip es el test del shell de escritorio); tras el merge, `composer.spec.ts` desktop 24 passed. `git diff --stat origin/main...HEAD -- app/Jobs/PublishPostTarget.php app/Connectors/Meta app/Http/Middleware/McpGuard.php` → vacío. `grep` del usuario id 28 en `app`, `database` y `tests/e2e` → vacío. Las tres migraciones del plan (`2026_11_09_090000`, `2026_11_10_090000`, `2026_11_11_090000`) solo usan `dropColumn`/`dropIfExists` dentro de `down()`. Revisiones de dos lentes cerradas sin gaps pendientes en las seis fases (Fase 6: intentos 1 y 2). M-xx: checklist del usuario en `testing/smoke-real.md` (T-41).
 
 ---
 

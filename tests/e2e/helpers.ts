@@ -442,6 +442,14 @@ export function seedComposerBrand(email: string, label: string, timezone = 'Euro
     return { id: Number(out.match(/BRAND:(\d+)/)![1]), name };
 }
 
+/** Segunda cuenta de Facebook en la marca E2E (para mezclar una red vinculada y otra con texto propio y poder guardar el borrador). */
+export function seedExtraFacebook(brandId: number, name: string) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::Facebook, 'name' => ${q(name)}]);`,
+    );
+}
+
 /** Cambia la zona horaria de la marca E2E (para comprobar que la UI usa la de la marca y no la del navegador). */
 export function setBrandTimezone(brandId: number, timezone: string) {
     artisan(String.raw`App\Models\Brand::withoutUserScope()->findOrFail(${brandId})->forceFill(['timezone' => ${q(timezone)}])->save();`);

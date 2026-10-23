@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraFacebook, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -701,4 +701,147 @@ test('A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de sal
     await axeNow(page, 'diálogo de salida abierto');
     await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
+});
+
+// ------------------------------------------------------------------------------------------------------------------
+// C-03 · Texto por red («Editar por red»)
+// ------------------------------------------------------------------------------------------------------------------
+
+const tabOf = (page: Page, name: string | RegExp) => page.getByRole('tab', { name });
+const chars = (s: string) => [...s].length;
+const miles = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+test('E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    const comun = 'Texto común e2e';
+    await page.getByLabel('Texto', { exact: true }).fill(comun);
+
+    // Por defecto no se toca nada: sin pestañas y todas las redes publican el texto común.
+    await expect(page.getByRole('tablist')).toHaveCount(0);
+    await expect(page.getByText('Todas las redes publican el mismo texto.')).toBeVisible();
+    const lista = page.getByTestId('network-counters');
+    const ig = lista.getByRole('listitem').filter({ hasText: 'Instagram' });
+    const fb = lista.getByRole('listitem').filter({ hasText: 'Facebook' });
+    await expect(ig.getByTestId('counter-chars')).toHaveText(`${chars(comun)} / 2.200`);
+    await expect(fb.getByTestId('counter-chars')).toHaveText(`${chars(comun)} / 63.206`);
+
+    // «Editar por red»: una pestaña para el texto común y una por red.
+    const editar = page.getByRole('button', { name: 'Editar por red' });
+    await editar.click();
+    await expect(editar).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('tab')).toHaveCount(3);
+    await expect(tabOf(page, 'Texto común')).toHaveAttribute('aria-selected', 'true');
+
+    // Facebook empieza vinculada y muestra el texto común.
+    await tabOf(page, /Facebook · e2e Facebook/).click();
+    await expect(page.getByTestId('linked-badge')).toHaveText('Vinculada al texto común');
+    await expect(page.getByTestId('linked-text')).toHaveText(comun);
+
+    // CA-08: se personaliza Facebook y su contador usa su texto; el de Instagram sigue con el común.
+    await page.getByRole('button', { name: 'Personalizar el texto de esta red' }).click();
+    const propio = page.getByLabel('Texto de Facebook · e2e Facebook');
+    await expect(propio).toHaveValue(comun); // el texto común es el punto de partida
+    await expect(page.getByTestId('own-indicator')).toBeVisible();
+    const textoFb = 'Propio de Facebook con ✨ y #etiqueta';
+    await propio.fill(textoFb);
+    await expect(fb.getByTestId('counter-chars')).toHaveText(`${chars(textoFb)} / 63.206`);
+    await expect(ig.getByTestId('counter-chars')).toHaveText(`${chars(comun)} / 2.200`);
+    await expect(fb).toContainText('texto propio');
+    await expect(ig).not.toContainText('texto propio');
+    await expect(tabOf(page, /Facebook · e2e Facebook/)).toContainText('propio');
+    await page.screenshot({ path: 'test-results/composer-texto-por-red.png' });
+    await expectNoOverflow(page);
+
+    // Si se edita el texto común, solo cambia el de las redes vinculadas.
+    await tabOf(page, 'Texto común').click();
+    const editado = 'Texto común EDITADO';
+    await page.getByLabel('Texto', { exact: true }).fill(editado);
+    await expect(ig.getByTestId('counter-chars')).toHaveText(`${chars(editado)} / 2.200`);
+    await expect(fb.getByTestId('counter-chars')).toHaveText(`${chars(textoFb)} / 63.206`);
+    await tabOf(page, /Instagram · e2e Instagram/).click();
+    await expect(page.getByTestId('linked-text')).toHaveText(editado);
+
+    // Teclado: flechas, Inicio y Fin mueven la selección entre pestañas (roving tabindex).
+    await tabOf(page, 'Texto común').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(tabOf(page, /Instagram · e2e Instagram/)).toHaveAttribute('aria-selected', 'true');
+    await expect(tabOf(page, /Instagram · e2e Instagram/)).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(tabOf(page, /Facebook · e2e Facebook/)).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowRight'); // da la vuelta
+    await expect(tabOf(page, 'Texto común')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowLeft');
+    await expect(tabOf(page, /Facebook · e2e Facebook/)).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(tabOf(page, 'Texto común')).toBeFocused();
+
+    // Un texto propio que supera el máximo de su red lo cuenta esa red y su error lleva a su pestaña.
+    await tabOf(page, /Instagram · e2e Instagram/).click();
+    await page.getByRole('button', { name: 'Personalizar el texto de esta red' }).click();
+    await page.getByLabel('Texto de Instagram · e2e Instagram').fill('x'.repeat(2201));
+    await expect(ig.getByTestId('counter-chars')).toHaveText(`${miles(2201)} / 2.200 · supera el máximo`);
+    await expect(fb.getByTestId('counter-chars')).toHaveText(`${chars(textoFb)} / 63.206`);
+    await tabOf(page, 'Texto común').click();
+    await page.getByTestId('errors-panel').getByRole('button', { name: /Ir al control con el error de e2e Instagram/ }).first().click();
+    await expect(page.getByLabel('Texto de Instagram · e2e Instagram')).toBeFocused();
+
+    await axeNow(page, 'texto por red con pestañas');
+    await expectNoOverflow(page);
+    expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
+});
+
+test('E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra', async ({ page }) => {
+    const w = watch(page);
+    seedExtraFacebook(brand.id, 'e2e Pagina B');
+    await open(page);
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByRole('button', { name: /^Facebook: e2e Pagina B/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e texto común');
+    await page.getByRole('button', { name: 'Editar por red' }).click();
+    await tabOf(page, /Facebook · e2e Pagina B/).click();
+    await page.getByRole('button', { name: 'Personalizar el texto de esta red' }).click();
+    await page.getByLabel('Texto de Facebook · e2e Pagina B').fill('e2e texto propio de B');
+    await guardarBorrador(page);
+
+    // Reabierto: las pestañas se abren solas (hay texto propio) y cada red conserva lo suyo: A vinculada y B personalizada.
+    await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
+    await settle(page);
+    await expect(page.getByRole('tablist')).toBeVisible();
+    await expect(tabOf(page, /Facebook · e2e Pagina B/)).toContainText('propio');
+    await expect(tabOf(page, /Facebook · e2e Facebook/)).not.toContainText('propio');
+    await tabOf(page, /Facebook · e2e Pagina B/).click();
+    await expect(page.getByLabel('Texto de Facebook · e2e Pagina B')).toHaveValue('e2e texto propio de B');
+    await tabOf(page, /Facebook · e2e Facebook/).click();
+    await expect(page.getByTestId('linked-text')).toHaveText('e2e texto común');
+    await expectNoOverflow(page);
+
+    // CA-09: volver a vincular pide confirmación («Se perderá el texto propio de esta red»); Cancelar lo conserva.
+    await tabOf(page, /Facebook · e2e Pagina B/).click();
+    await page.getByRole('button', { name: 'Volver al texto común' }).click();
+    await expect(page.getByTestId('relink-confirm')).toContainText('Se perderá el texto propio de esta red');
+    await axeNow(page, 'confirmación de volver al texto común');
+    await expectNoOverflow(page);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(page.getByLabel('Texto de Facebook · e2e Pagina B')).toHaveValue('e2e texto propio de B');
+    await page.getByRole('button', { name: 'Volver al texto común' }).click();
+    await page.getByRole('button', { name: 'Sí, volver al texto común' }).click();
+    await expect(page.getByTestId('linked-badge')).toBeVisible();
+    await expect(page.getByTestId('linked-text')).toHaveText('e2e texto común');
+    await expect(tabOf(page, /Facebook · e2e Pagina B/)).not.toContainText('propio');
+
+    // Guardado y recargado: el texto propio ya no existe (sin pestañas abiertas, todas con el texto común).
+    await guardarBorrador(page);
+    await page.reload();
+    await settle(page);
+    await expect(page.getByRole('tablist')).toHaveCount(0);
+    await expect(page.getByText('Todas las redes publican el mismo texto.')).toBeVisible();
+    await page.getByRole('button', { name: 'Editar por red' }).click();
+    await tabOf(page, /Facebook · e2e Pagina B/).click();
+    await expect(page.getByTestId('linked-text')).toHaveText('e2e texto común');
+    await axeNow(page, 'texto por red reabierto');
+    await expectNoOverflow(page);
+    expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });

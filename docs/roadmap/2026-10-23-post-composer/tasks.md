@@ -45,11 +45,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
-| Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
+| Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **17** | **42** | **40%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **24** | **42** | **57%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -609,7 +609,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 3 — C-03 · Texto por red
 
-**Estado**: borrador · **Estimado**: 32,0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1,29M
+**Estado**: en-progreso · **Estimado**: 32,0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1,29M
 
 ### T-18 — Migración `post_targets.text`, modelo y reglas de `PostRequest`
 
@@ -805,30 +805,30 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-24 — E2E y Pest de C-03 (CA-08..CA-12)
 
 - **Descripción**: E2E del flujo desvincular, escribir, guardar, reabrir y volver a vincular, con axe y sin desbordamiento. Pest del guardado y la lectura de `targets.*.text`.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: El texto por red queda cubierto de punta a punta: se personaliza una red, se guarda, se reabre con su texto y se puede volver al texto común.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-21, T-22, T-23
 - **Tipo**: test
-- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/Feature/Posts/Compose/TargetTextTest.php`
+- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/Feature/Posts/Compose/TargetTextTest.php`
 - **Cubre (tests)**: E2E-08, E2E-12
 - **Verificación**:
   - `npm run test:e2e -- --grep "E2E-08"` → verde en los tres proyectos
   - `php artisan test --compact tests/Feature/Posts/Compose` → en verde
 
 **Criterios de aceptación**
-- [ ] Un test por CA-08, CA-09 y CA-12
-- [ ] Reabrir el post conserva el texto propio
-- [ ] Sin desbordamiento a 375 y 360 px
+- [x] Un test por CA-08, CA-09 y CA-12
+- [x] Reabrir el post conserva el texto propio
+- [x] Sin desbordamiento a 375 y 360 px
 
 **Subtareas**
-- [ ] E2E
-- [ ] Pest de guardado y lectura
+- [x] E2E
+- [x] Pest de guardado y lectura
 
-**Notas**: —
+**Notas**: **Evidencia**: `composer.spec.ts` → 18 passed en desktop, mobile y mobile-360 (2 nuevos E2E-08: mezcla de redes vinculada y propia con contadores, teclado y error de máximo; guardar, reabrir, confirmación y volver a vincular; axe y sin desbordamiento a 375 y 360 px). `php artisan test --compact tests/Feature/Posts/Compose` → 19 passed (6 nuevos de `TargetTextTest`: CA-08 guardado, reabrir con `post.targets.*.text`, CA-09 volver a vincular y plantilla editada, texto propio vacío o con espacios llega como `null`, validación en vivo y guardado por red, CA-12 lectura por MCP del texto guardado por la web). Un test por CA-08, CA-09 y CA-12. Desviación: `tests/e2e/helpers.ts` se añade a `Archivos` (`seedExtraFacebook`: segunda página de Facebook para mezclar una vinculada y otra propia y poder guardar el borrador, ya que Instagram exige media). E2E-12: el barrido axe y el desbordamiento cubren el estado con pestañas y la confirmación.
 
 ---
 
@@ -862,7 +862,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] Casos de borde de `trim()` y unicode
 - [ ] Suite completa, Pint y E2E
 
-**Notas**: Puerta de salida de la fase 3.
+**Notas**: **Para el revisor (anotado por el implementador de T-18..T-24, sin tocar T-25)**: (1) riesgo previo valorado: `PostService::AMBIGUOUS_ERRORS` no incluía `red` (timeout/corte) ni `meta_no_disponible`, así que tras un fallo de red y una edición no se guardaba `reconcile`; está en `PostService` (no en `PublishPostTarget`) y se corrigió en el commit de T-20 porque los escenarios b y c de CA-11 lo exigen; el usuario puede valorar si quiere conservar el cambio; (2) la web no puede guardar un texto propio vacío ni solo con espacios (`ConvertEmptyStringsToNull`/`TrimStrings` lo convierten en `null` = vinculado; el cliente lo trata igual y avisa); el MCP sí conserva `''` como texto propio: revisar el comportamiento de `''` frente al `trim()` de `findPublished` de Instagram y Facebook (sin texto no hay forma de reconocer la publicación); (3) `TrashController`, `InboxController`, `AnalyticsService`, `ReportService` y `PublishFailed` siguen mostrando `posts.text` (la plantilla) y no el texto efectivo del destino: solo informativo, no afecta a lo publicado.
 
 ---
 

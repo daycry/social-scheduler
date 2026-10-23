@@ -28,6 +28,9 @@ const create = () => form.post(route('api-keys.store'), {
     onSuccess: () => form.reset('name', 'expires_at'),
 });
 
+/** «Manual» (creada aquí) u «OAuth · <cliente>» (emitida al autorizar un cliente MCP). */
+const originLabel = (key) => (key.origin === 'oauth' ? `OAuth · ${key.oauth_client ?? 'cliente'}` : 'Manual');
+
 const revoke = (key) => {
     if (confirm(`Revocar la API key "${key.name}"? El agente que la use dejara de funcionar.`)) {
         router.delete(route('api-keys.destroy', key.id), {
@@ -203,14 +206,21 @@ const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : 'nunca');
                     <h2 class="text-lg font-medium text-slate-900">Tus API keys</h2>
                     <p v-if="keys.length === 0" class="mt-2 text-sm text-slate-600">Aún no tienes ninguna.</p>
                     <ul v-else class="mt-2 divide-y divide-slate-200">
-                        <li v-for="key in keys" :key="key.id" class="flex items-center justify-between py-3">
-                            <div>
-                                <p class="font-medium text-slate-900">{{ key.name }}</p>
-                                <p class="text-xs text-slate-500">
+                        <li v-for="key in keys" :key="key.id" class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between" :data-testid="`key-${key.id}`">
+                            <div class="min-w-0">
+                                <p class="break-words font-medium text-slate-900">{{ key.name }}</p>
+                                <p class="mt-1">
+                                    <span
+                                        class="inline-block max-w-full break-words rounded-full px-2 py-0.5 text-xs font-medium"
+                                        :class="key.origin === 'oauth' ? 'bg-indigo-50 text-indigo-800' : 'bg-slate-100 text-slate-700'"
+                                        data-testid="key-origin"
+                                    >Origen: {{ originLabel(key) }}</span>
+                                </p>
+                                <p class="mt-1 break-words text-xs text-slate-500">
                                     {{ (key.abilities || []).join(', ') }} · último uso: {{ fmt(key.last_used_at) }} · caduca: {{ fmt(key.expires_at) }}
                                 </p>
                             </div>
-                            <button type="button" class="text-sm font-medium text-red-600 hover:underline" @click="revoke(key)">Revocar</button>
+                            <button type="button" class="self-start text-sm font-medium text-red-600 hover:underline sm:self-center" :aria-label="`Revocar ${key.name}`" @click="revoke(key)">Revocar</button>
                         </li>
                     </ul>
                 </section>

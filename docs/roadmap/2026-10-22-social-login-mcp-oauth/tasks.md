@@ -812,11 +812,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-22 — Columna «Origen» en `ApiKeys/Index`
 
 - **Descripción**: Muestra «Manual» u «OAuth · <cliente>» con el dato que añadió T-09, y mantiene la revocación. Las API keys existentes se ven como «Manual», sin cambios.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.27h · real —
-- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Changelog**: En «API keys» cada clave muestra su origen («Manual» u «OAuth · cliente») y las emitidas por OAuth se pueden revocar igual que las demás.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.27h · real 0.27h (estimado)
+- **Supervisión**: est. 0.07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: frontend
@@ -828,13 +828,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Mcp` → en verde (CA-24)
 
 **Criterios de aceptación**
-- [ ] CA-25: un token OAuth aparece como «OAuth · cliente» y se revoca
-- [ ] Las keys manuales siguen como «Manual»
-- [ ] Legible a 375 y 360 px
+- [x] CA-25: un token OAuth aparece como «OAuth · cliente» y se revoca
+- [x] Las keys manuales siguen como «Manual»
+- [x] Legible a 375 y 360 px
 
 **Subtareas**
-- [ ] Columna
-- [ ] Test de listado
+- [x] Columna
+- [x] Test de listado
+
+**Evidencia (2026-10-23)**: npm run build → exit 0; --filter=ApiKeyOrigin → 2 passed (CA-25: origen manual/oauth con nombre de cliente, revocación, key antigua = manual); tests/Feature/Mcp → 175 passed (CA-24); pint --test → passed. Medición 375/360 px: T-26.
+
+---
 
 ---
 

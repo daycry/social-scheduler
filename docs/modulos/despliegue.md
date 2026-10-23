@@ -68,7 +68,42 @@ Las fotos usan `PULL_FROM_URL`: TikTok descarga la URL sin firma desde `TIKTOK_V
 
 ## Proxies de confianza
 
-En Hestia (Nginx + PHP-FPM sin proxy delante) deja `TRUSTED_PROXIES` vacío. Detrás de ngrok en desarrollo usa `TRUSTED_PROXIES=*` y `APP_URL=https://<dominio-ngrok>`; si no, `route()` genera `http://` y el redirect OAuth no coincide.
+| Escenario | `TRUSTED_PROXIES` |
+|---|---|
+| Hestia sin nada delante (Nginx + PHP-FPM directo) | vacío |
+| **Cloudflare delante (este despliegue)** | los rangos de Cloudflare separados por comas ([ips-v4](https://www.cloudflare.com/ips-v4) e [ips-v6](https://www.cloudflare.com/ips-v6)); nunca `*` |
+| ngrok en desarrollo | `*`, con `APP_URL=https://<dominio-ngrok>` (si no, `route()` genera `http://` y el redirect OAuth no coincide) |
+
+Con Cloudflare y sin sus rangos, `request()->ip()` sería la IP de Cloudflare: todos los clientes compartirían los límites por IP (login, 2FA, registro de clientes OAuth, `/oauth/token`) y la auditoría guardaría IPs de Cloudflare. Con `*` cualquiera podría falsear su IP con `X-Forwarded-For` si alcanza el servidor sin pasar por Cloudflare. Cloudflare publica cambios en sus rangos muy de vez en cuando: revísalos al renovar el servidor.
+
+## Cloudflare delante
+
+`social-scheduler.daycry.ovh` va con el proxy de Cloudflare activado (nube naranja). Ajustes de la zona `daycry.ovh`:
+
+| Ajuste | Valor | Por qué |
+|---|---|---|
+| SSL/TLS → modo | **Full (strict)** | Cloudflare habla HTTPS con el servidor y valida su certificado (Let's Encrypt de Hestia). Con «Flexible» la app recibiría HTTP y entraría en bucle de redirecciones |
+| Always Use HTTPS | activado | |
+| Rocket Loader | **desactivado** | Reescribe los `<script type="module">` de Vite e Inertia y rompe la app |
+| Email Address Obfuscation | desactivado | Altera el HTML de las páginas de Inertia |
+| Auto Minify / caché de HTML | desactivados | La app sirve HTML dinámico con CSRF y sesión |
+| Bot Fight Mode / Super Bot Fight Mode | **desactivado**, o con regla de omisión | Bloquea a los clientes MCP (Claude, Codex, OpenCode) y a los servidores de Anthropic, Meta, Google y TikTok, que no son navegadores |
+| Reglas de caché | *Bypass* para `/mcp*`, `/oauth/*`, `/.well-known/oauth-*`, `/auth/*`, `/connections/*`, `/up`, `/health` | Respuestas por usuario o con tokens: nunca deben cachearse |
+| WAF | regla de omisión (*Skip*) de los retos gestionados para las mismas rutas | Un reto JavaScript rompe el flujo OAuth y las llamadas máquina a máquina |
+
+Comprobaciones tras activar el proxy (deben dar lo mismo que sin Cloudflare):
+
+```bash
+curl -sI https://social-scheduler.daycry.ovh/up | head -1                     # 200
+curl -si -X POST https://social-scheduler.daycry.ovh/mcp -H 'Accept: application/json, text/event-stream'   -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"initialize"}' | grep -i 'www-authenticate'
+curl -s https://social-scheduler.daycry.ovh/.well-known/oauth-authorization-server | head -c 120
+```
+
+Y en la app, **Perfil → Seguridad** o la auditoría deben mostrar tu IP real, no una de Cloudflare.
+
+Let's Encrypt de Hestia sigue funcionando con el proxy activo (Cloudflare deja pasar `/.well-known/acme-challenge/` por HTTP). Si la emisión falla, desactiva el proxy un momento, emite el certificado y vuelve a activarlo.
+
+La media de R2 va por su propio dominio (`R2_URL`); si también pasa por Cloudflare, debe ser accesible sin retos para que TikTok la descargue (`PULL_FROM_URL`).
 
 ## OAuth del MCP, Nginx/Hestia y redirect URIs
 

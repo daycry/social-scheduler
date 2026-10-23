@@ -4,7 +4,7 @@ import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { formatThousands } from '@/Composables/textCount';
 
-const { form, accounts, limits, charsOf, hashtagsOf } = useComposerContext();
+const { form, accounts, limits, charsOf, hashtagsOf, isUnlinked } = useComposerContext();
 
 /** Un contador por destino activo, con los máximos del servidor para su tipo de contenido. */
 const rows = computed(() => form.targets.map((t) => {
@@ -16,6 +16,7 @@ const rows = computed(() => form.targets.map((t) => {
         key: `${t.account_id}-${t.content_type}`,
         network: account?.network,
         name: account ? `${account.network_label} · ${account.name}` : 'Cuenta eliminada',
+        own: isUnlinked(t),
         chars,
         maxChars: limit.max_chars ?? null,
         overChars: limit.max_chars != null && chars > limit.max_chars,
@@ -31,6 +32,7 @@ const rows = computed(() => form.targets.map((t) => {
         <li v-for="r in rows" :key="r.key" class="flex min-w-0 items-center gap-1.5">
             <NetworkIcon v-if="r.network" :network="r.network" size="sm" />
             <span class="truncate text-slate-600">{{ r.name }}</span>
+            <span v-if="r.own" class="shrink-0 rounded bg-indigo-100 px-1.5 text-indigo-800">texto propio</span>
             <span
                 data-testid="counter-chars" aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"

@@ -8,6 +8,9 @@ import { nextTick, ref } from 'vue';
 const props = defineProps({
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
+    // `id` del textarea (el texto común es `text`; el de una red, `text-target-<cuenta>`) y etiqueta accesible cuando no hay un <label>.
+    id: { type: String, default: 'text' },
+    label: { type: String, default: null },
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -31,7 +34,8 @@ defineExpose({ insertAtCursor, focus: () => area.value?.focus() });
 
 <template>
     <textarea
-        id="text"
+        :id="id"
+        :aria-label="label"
         ref="area"
         :value="modelValue"
         :disabled="disabled"

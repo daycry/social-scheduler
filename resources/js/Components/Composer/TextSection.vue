@@ -1,21 +1,18 @@
 <script setup>
 import { ref } from 'vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import TextEditor from '@/Components/Composer/TextEditor.vue';
+import NetworkTabs from '@/Components/Composer/NetworkTabs.vue';
 import EditorToolbar from '@/Components/Composer/EditorToolbar.vue';
 import NetworkCounters from '@/Components/Composer/NetworkCounters.vue';
-import { useComposerContext } from '@/Composables/useComposer';
 
-const { form, editable, charCount } = useComposerContext();
 const editor = ref(null);
 </script>
 
 <template>
-    <!-- Texto -->
-    <section class="card p-4">
+    <!-- Texto: el texto común y, con «Editar por red», una pestaña por red (NetworkTabs) -->
+    <section class="card min-w-0 p-4">
         <InputLabel for="text" value="Texto" />
-        <TextEditor ref="editor" v-model="form.text" :disabled="!editable" />
-        <p class="text-right text-xs text-slate-500">{{ charCount }} caracteres</p>
+        <NetworkTabs ref="editor" />
         <EditorToolbar @emoji="(c) => editor?.insertAtCursor(c)" />
         <NetworkCounters />
     </section>

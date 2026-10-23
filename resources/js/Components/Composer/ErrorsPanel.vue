@@ -1,4 +1,5 @@
 <script setup>
+import { nextTick } from 'vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { useComposerContext } from '@/Composables/useComposer';
 
@@ -8,7 +9,18 @@ import { useComposerContext } from '@/Composables/useComposer';
  * anuncian los errores cuando aparecen. Mientras haya errores en vivo, Programar y Publicar ahora se deshabilitan
  * (`ActionBar`); Guardar borrador y Guardar en biblioteca siguen disponibles.
  */
-const { errorList } = useComposerContext();
+const { errorList, openTargetText, hasOwnText, form } = useComposerContext();
+
+// El error de un texto propio (máximo de caracteres o de hashtags) lleva a la pestaña de esa red; el resto, al control de siempre.
+const focusError = (e) => {
+    const target = e.scope === 'target' ? form.targets[e.targetIndex] : null;
+    if (target && e.accountId != null && hasOwnText(target)) {
+        openTargetText(e.accountId);
+        nextTick(() => focusControl(`text-target-${e.accountId}`));
+        return;
+    }
+    focusControl(e.focusId);
+};
 
 const focusControl = (id) => {
     const el = id ? document.getElementById(id) : null;
@@ -29,7 +41,7 @@ const focusControl = (id) => {
                     <span class="min-w-0 flex-1 break-words">
                         <strong v-if="e.accountName" class="font-semibold">{{ e.networkLabel }} · {{ e.accountName }}: </strong>{{ e.message }}
                     </span>
-                    <button v-if="e.focusId" type="button" class="link shrink-0 text-xs" :aria-label="`Ir al control con el error${e.accountName ? ' de ' + e.accountName : ''}: ${e.message}`" @click="focusControl(e.focusId)">Ir</button>
+                    <button v-if="e.focusId" type="button" class="link shrink-0 text-xs" :aria-label="`Ir al control con el error${e.accountName ? ' de ' + e.accountName : ''}: ${e.message}`" @click="focusError(e)">Ir</button>
                 </li>
             </ul>
         </section>

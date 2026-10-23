@@ -22,6 +22,8 @@ export function useComposer(props) {
         targets: (props.post?.targets ?? []).map((t) => ({
             account_id: t.account_id,
             content_type: t.content_type,
+            // `null` = vinculado al texto común (plantilla); una cadena = texto propio de esta red (C-03).
+            text: t.text ?? null,
             options: { ...(t.options ?? {}) },
         })),
     });
@@ -60,7 +62,7 @@ export function useComposer(props) {
 
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
-            form.targets.push({ account_id: account.id, content_type: typesOf(account.network)[0]?.value, options: {} });
+            form.targets.push({ account_id: account.id, content_type: typesOf(account.network)[0]?.value, text: null, options: {} });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }
@@ -121,6 +123,7 @@ export function useComposer(props) {
     // Un envío ya en curso (clic doble, Enter repetido) no lanza otra petición.
     const sendingNow = ref(false);
     const submit = (schedule) => {
+        // Con una subida en curso no se guarda nada (ni el borrador): `ActionBar` deshabilita las acciones y avisa.
         if (sendingNow.value || form.processing || uploadingMedia.value) return;
         if (schedule && dateErrorList.value.length > 0) return;
         form.schedule = schedule;
@@ -158,7 +161,7 @@ export function useComposer(props) {
             name: clean,
             text: form.text,
             media: form.media,
-            targets: form.targets.map((t) => ({ account_id: t.account_id, content_type: t.content_type })),
+            targets: form.targets.map((t) => ({ account_id: t.account_id, content_type: t.content_type, text: t.text })),
         }, {
             preserveScroll: true,
             preserveState: true,
@@ -178,8 +181,21 @@ export function useComposer(props) {
     const firstPreview = computed(() => form.media.map((id) => previews.value[id]).find(Boolean));
     const charCount = computed(() => countChars(form.text));
 
-    // Texto efectivo de un destino (hoy, el de la plantilla); lo reemplazará el texto por red (C-03).
-    const textOf = () => form.text;
+    // Texto por red (C-03). Un destino está VINCULADO si su `text` es `null` y se publica el texto común (la plantilla); si no, tiene
+    // texto propio. Texto efectivo = el propio si no está vacío y, si no, el común: es lo que calcula `PostTarget::effectiveText()` en
+    // el servidor, que además recorta los espacios y convierte una cadena vacía en `null` (la web no puede guardar un texto propio
+    // vacío; el MCP sí). Los contadores y la validación en vivo cuentan SIEMPRE sobre este texto.
+    const isUnlinked = (target) => target.text !== null && target.text !== undefined;
+    const hasOwnText = (target) => isUnlinked(target) && target.text.trim() !== '';
+    const textOf = (target) => (target && hasOwnText(target) ? target.text : form.text);
+    const unlinkedCount = computed(() => form.targets.filter(isUnlinked).length);
+    // «Editar por red»: abre las pestañas (Texto común y una por red). Se abre sola si algún destino ya tiene texto propio.
+    const byNetwork = ref(form.targets.some(isUnlinked));
+    const activeTab = ref('template'); // 'template' o el id de la cuenta de la pestaña activa
+    const currentTab = computed(() => (byNetwork.value && form.targets.some((t) => t.account_id === activeTab.value) ? activeTab.value : 'template'));
+    const unlink = (target) => { target.text = form.text; }; // el texto común sirve de punto de partida
+    const relink = (target) => { target.text = null; };
+    const openTargetText = (accountId) => { byNetwork.value = true; activeTab.value = accountId; };
     const charsOf = (target) => countChars(textOf(target));
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
@@ -192,6 +208,7 @@ export function useComposer(props) {
         libraryName, savingToLibrary, libraryErrors, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,
+        isUnlinked, hasOwnText, unlinkedCount, byNetwork, activeTab, currentTab, unlink, relink, openTargetText,
     };
     provide(KEY, api);
 

@@ -713,31 +713,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-21 — `NetworkTabs`: pestañas Plantilla y por destino, desvincular y volver a vincular
 
 - **Descripción**: Pestañas ARIA (Plantilla y una por destino), desvincular y vincular, confirmación «Se perderá el texto propio de esta red» al volver a vincular, y contadores y errores calculados con el texto efectivo.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 7,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,94h · real —
-- **Supervisión**: est. 0,24h (≈25 % IA) · real —
+- **Changelog**: Con «Editar por red» cada red tiene su pestaña: sigue el texto común o tiene el suyo propio, se puede volver al texto común y los contadores cuentan lo que de verdad se publica en cada red.
+- **Estado**: completado
+- **Tiempo humano**: est. 7,0h · real 7.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,94h · real 0.9h (estimado)
+- **Supervisión**: est. 0,24h (≈25 % IA) · real 0.25h (estimado)
 - **Previsión IA**: 255k in / 28k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/NetworkCounters.vue`, `resources/js/Components/Composer/ErrorsPanel.vue`
+- **Archivos**: `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/NetworkCounters.vue`, `resources/js/Components/Composer/ErrorsPanel.vue`, `resources/js/Components/Composer/TextSection.vue`, `resources/js/Components/Composer/TextEditor.vue`
 - **Cubre (tests)**: E2E-08, M-02, M-03
 - **Verificación**:
   - `npm run build` → sin errores
   - `npm run test:e2e -- --grep "E2E-08"` → pasa en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] CA-08: al desvincular Facebook y escribir su texto, su contador usa ese texto y el de Instagram, la plantilla
-- [ ] CA-09: al volver a vincular y confirmar, el texto propio se borra
-- [ ] Operable con teclado (flechas entre pestañas)
+- [x] CA-08: al desvincular Facebook y escribir su texto, su contador usa ese texto y el de Instagram, la plantilla
+- [x] CA-09: al volver a vincular y confirmar, el texto propio se borra
+- [x] Operable con teclado (flechas entre pestañas)
 
 **Subtareas**
-- [ ] Patrón de pestañas accesible
-- [ ] Desvincular y vincular con confirmación
-- [ ] Texto efectivo en contadores y errores
+- [x] Patrón de pestañas accesible
+- [x] Desvincular y vincular con confirmación
+- [x] Texto efectivo en contadores y errores
 
-**Notas**: La previsualización por red (C-02) queda fuera de alcance.
+**Notas**: **Evidencia**: `npm run build` OK; `npx tsc --noEmit -p .` sin errores; `composer.spec.ts --grep E2E-08` → 2 passed en desktop, mobile y mobile-360 (mezcla de redes vinculada y propia; contadores por texto efectivo; edición del texto común solo afecta a las vinculadas; flechas, Inicio y Fin; error de máximo lleva a la pestaña de la red; guardar, reabrir, confirmación y volver a vincular borra el texto; axe y sin desbordamiento a 375 y 360 px). **Diseño de UI** (encargo del usuario: conviven el texto común y el propio): por defecto un único texto común y sin pestañas; «Editar por red» abre pestañas ARIA (Texto común + una por red, con teclado); cada red está *Vinculada al texto común* (muestra ese texto, botón «Personalizar el texto de esta red», que copia el común como punto de partida) o con *Texto propio* (indicador y «Volver al texto común» con confirmación «Se perderá el texto propio de esta red»); las pestañas se abren solas al reabrir un post con texto propio. **Desviaciones**: (1) `TextSection.vue` y `TextEditor.vue` se añaden a `Archivos`; (2) la web no puede guardar un texto propio vacío (`ConvertEmptyStringsToNull`/`TrimStrings` lo convierten en `null`): el cliente lo trata igual (efectivo = común) y avisa «Está vacío: al guardar se publicará el texto común»; el MCP sí conserva la cadena vacía; (3) con el ancho de la lista de pestañas hubo desbordamiento en 375 px (el formulario crecía): `w-0 min-w-full` en el tablist. M-02 y M-03 (móvil) cubiertos por los proyectos mobile y mobile-360.
 
 ---
 

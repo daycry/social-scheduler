@@ -147,6 +147,7 @@ class CalendarService
             'brand_id' => $post->brand_id,
             'brand_name' => $post->brand?->name,
             'text' => mb_substr($this->displayText($post), 0, 140),
+            'has_notes' => trim((string) $post->notes) !== '',
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             'scheduled_at' => $post->scheduled_at?->toIso8601String(),

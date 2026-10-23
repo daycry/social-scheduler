@@ -8,6 +8,7 @@ import MediaSection from '@/Components/Composer/MediaSection.vue';
 import ScheduleSection from '@/Components/Composer/ScheduleSection.vue';
 import ErrorsPanel from '@/Components/Composer/ErrorsPanel.vue';
 import ActionBar from '@/Components/Composer/ActionBar.vue';
+import NotesPanel from '@/Components/Composer/NotesPanel.vue';
 import PostStatusHeader from '@/Components/Composer/PostStatusHeader.vue';
 import PreviewPanel from '@/Components/Composer/PreviewPanel.vue';
 import TargetStatusPanel from '@/Components/Composer/TargetStatusPanel.vue';
@@ -47,6 +48,7 @@ const { submit } = useComposer(props);
                     <MediaSection />
                     <TargetOptions />
                     <ScheduleSection />
+                    <NotesPanel />
                     <ErrorsPanel />
                     <ActionBar />
                 </form>

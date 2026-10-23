@@ -228,6 +228,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                             <span class="text-slate-600">{{ item.local_time }}</span>
                                             <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge :status="item.status" :label="item.status_label" />
+                                            <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                         </span>
                                         <span class="line-clamp-2 text-slate-800">{{ item.text || 'Sin texto' }}</span>
                                     </Link>
@@ -252,6 +253,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="text-slate-500">{{ item.local_time }}</span>
                                         <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
+                                        <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                     </span>
                                     <span class="line-clamp-1 text-slate-800">{{ item.text || 'Sin texto' }}</span>
                                 </Link>
@@ -286,7 +288,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     <template v-else>{{ dateLabel(item) }}</template>
                                     <div class="text-xs text-slate-500">{{ item.brand_name }}</div>
                                 </td>
-                                <td class="max-w-xs px-3 py-2"><Link :href="route('posts.edit', item.id)" class="text-slate-900 hover:underline">{{ item.text || 'Sin texto' }}</Link></td>
+                                <td class="max-w-xs px-3 py-2"><Link :href="route('posts.edit', item.id)" class="text-slate-900 hover:underline">{{ item.text || 'Sin texto' }}</Link> <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span></td>
                                 <td class="px-3 py-2">
                                     <div class="flex flex-wrap gap-1">
                                         <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1 text-xs" :class="networkOf(t.network).classes">{{ t.network_label }}</span>

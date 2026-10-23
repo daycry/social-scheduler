@@ -17,6 +17,8 @@ export function useComposer(props) {
 
     const form = useForm({
         text: (props.post?.text ?? '').replace(/\r\n?/g, '\n'), // LF: el valor de un textarea siempre usa LF y los offsets del cursor deben coincidir
+        // Notas internas (C-09): texto plano que nunca se publica. En un post no editable se guardan con su propio endpoint.
+        notes: (props.post?.notes ?? '').replace(/\r\n?/g, '\n'),
         scheduled_at: props.post?.scheduled_at ?? '',
         schedule: true,
         media: (props.post?.media ?? []).map((m) => m.id),
@@ -200,6 +202,26 @@ export function useComposer(props) {
         });
     };
 
+    // Notas (C-09): `PATCH posts/{post}/notes` funciona aunque el post ya no sea editable y no toca los destinos. Sin post guardado
+    // las notas viajan con el formulario al crearlo. `defaults` deja las notas guardadas como valor limpio (no cuenta como cambio sin guardar).
+    const NOTES_MAX = 5000;
+    const savingNotes = ref(false);
+    const notesError = ref('');
+    const notesSaved = ref(false);
+    const saveNotes = () => {
+        if (!props.post || savingNotes.value || form.notes.length > NOTES_MAX) return;
+        const value = form.notes;
+        router.patch(route('posts.notes', props.post.id), { notes: value }, {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => { savingNotes.value = true; notesError.value = ''; notesSaved.value = false; },
+            onSuccess: () => { form.defaults('notes', value); notesSaved.value = true; },
+            onError: (errors) => (notesError.value = errors.notes ?? 'No se pudieron guardar las notas.'),
+            onFinish: () => (savingNotes.value = false),
+        });
+    };
+    watch(() => form.notes, () => { notesSaved.value = false; });
+
     const selectedNetwork = computed(() => {
         const first = form.targets[0];
         return first ? (props.accounts.find((a) => a.id === first.account_id)?.network ?? null) : null;
@@ -238,6 +260,7 @@ export function useComposer(props) {
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
+        NOTES_MAX, savingNotes, notesError, notesSaved, saveNotes,
         libraryName, savingToLibrary, libraryErrors, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,

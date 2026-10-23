@@ -115,6 +115,7 @@ abstract class SchedulerTool extends Tool
             'id' => $post->id,
             'brand_id' => $post->brand_id,
             'text' => $post->text,
+            'notes' => $post->notes, // internas: nunca se publican
             'status' => $post->status->value,
             'scheduled_at_utc' => $post->scheduled_at?->copy()->utc()->toIso8601String(),
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),

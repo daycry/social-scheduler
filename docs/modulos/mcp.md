@@ -103,11 +103,13 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 `*` también vale. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
 
-## Herramientas (18)
+## Herramientas (19)
 
-`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
+`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `update_post_notes`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
 
 `publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
+
+Notas internas: `get_post`, `create_post` y `update_post` devuelven `notes` (texto plano, o `null`). `create_post` y `update_post` aceptan `notes` (hasta 5.000 caracteres; omitido = no se toca, vacío = se borra). `update_post_notes` (`post_id`, `notes`, ability `posts:write`) edita solo las notas y funciona aunque la publicación ya esté publicada o en vuelo, porque las notas nunca se publican: no toca los destinos ni reinicia ningún intento. Una publicación de otro usuario responde como inexistente y la auditoría registra la herramienta y la publicación, nunca el contenido de las notas. Con 19 herramientas se mantiene el límite de 25 por página de `tools/list`.
 
 Texto por destino: cada elemento de `targets` de `create_post` y `update_post` acepta `text`. Omitido o `null` = el destino está vinculado a la plantilla (el `text` de la publicación); una cadena con contenido es su texto propio, que solo se publica en esa red. Un texto vacío o solo con espacios cuenta como omitido (vinculado), igual que en la web. `get_post`, `create_post` y `update_post` devuelven, por destino, `text` (`null` = vinculado) y `effective_text` (lo que se publica). Se validan con las mismas reglas que la web (`PostRequest` y los límites de caracteres y hashtags de cada red sobre el texto efectivo). `update_post` sustituye los destinos: un destino sin `text` vuelve a estar vinculado.
 

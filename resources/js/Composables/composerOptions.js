@@ -14,10 +14,13 @@ const TIKTOK_DIRECT = [
     { key: 'disable_duet', label: 'Desactivar Duet', default: false, remember: true, only: ['tiktok_video'] },
     { key: 'disable_stitch', label: 'Desactivar Stitch', default: false, remember: true, only: ['tiktok_video'] },
     { key: 'is_aigc', label: 'Contenido generado con IA (etiqueta de TikTok)', default: false, remember: true },
-    { key: 'brand_organic_toggle', label: 'Contenido de marca propia (promocionas tu negocio)', default: false, remember: true, hint: 'TikTok lo etiquetará como «Tu marca».' },
     {
-        key: 'brand_content_toggle', label: 'Colaboración de pago (promocionas un tercero)', default: false, remember: false,
-        hint: 'TikTok lo etiquetará como «Contenido de marca». No puede ser privado y, al publicar, aceptas la Política de contenido de marca de TikTok. No se recuerda: hay que decidirlo en cada publicación.',
+        key: 'brand_organic_toggle', label: 'Tu marca (Your brand): promocionas tu propio negocio', default: false, remember: true,
+        hint: 'TikTok etiquetará la publicación como «Promotional content» (contenido promocional). Al publicar aceptas la Confirmación de uso de música de TikTok (Music Usage Confirmation).',
+    },
+    {
+        key: 'brand_content_toggle', label: 'Contenido de marca (Branded content): promocionas a un tercero', default: false, remember: false,
+        hint: 'TikTok etiquetará la publicación como «Paid partnership» (colaboración de pago). No puede ser privado (Branded content visibility cannot be set to private) y, al publicar, aceptas la Política de contenido de marca y la Confirmación de uso de música de TikTok (Branded Content Policy y Music Usage Confirmation). No se recuerda: hay que decidirlo en cada publicación.',
     },
 ];
 

@@ -86,8 +86,23 @@ export function useComposer(props) {
             }
         }
     };
+    // Al cambiar de tipo también se aplican los interruptores recordados que ese tipo ofrece (`share_to_feed` en un reel de Instagram,
+    // `shorts_hashtag` en un Short, Duet y Stitch al volver a vídeo), pero solo los que el post aún no tiene: lo que el usuario ya
+    // tocó en este post (activado o desactivado, la clave existe) no se pisa.
+    const applyPresets = () => {
+        for (const t of form.targets) {
+            const account = props.accounts.find((a) => a.id === t.account_id);
+            if (!account) continue;
+            for (const [key, value] of Object.entries(presetOptions(account, t.content_type))) {
+                if (!(key in t.options)) t.options[key] = value;
+            }
+        }
+    };
     pruneOptions();
-    watch(() => form.targets.map((t) => `${t.account_id}:${t.content_type}`).join('|'), pruneOptions);
+    watch(() => form.targets.map((t) => `${t.account_id}:${t.content_type}`).join('|'), () => {
+        pruneOptions();
+        applyPresets();
+    });
 
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {

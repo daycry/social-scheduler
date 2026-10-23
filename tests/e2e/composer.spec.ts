@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -904,7 +904,7 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     const directo = seccion(page, 'TikTok', 'e2e TikTok directo');
     await expect(directo.getByRole('switch', { name: 'Desactivar Duet' })).toBeVisible();
     await expect(directo.getByRole('switch', { name: 'Desactivar Stitch' })).toBeVisible();
-    await directo.getByRole('switch', { name: /Colaboración de pago/ }).check();
+    await directo.getByRole('switch', { name: /Contenido de marca \(Branded content\)/ }).check();
     await expect(directo.getByText(/No puede ser privado/)).toBeVisible();
     await page.screenshot({ path: 'test-results/composer-interruptores-por-red.png' });
     await expectNoOverflow(page);
@@ -1013,5 +1013,31 @@ test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs p
     await page.keyboard.press('Escape');
     await expect(modal).toHaveCount(0);
     await expect(texto).toHaveValue(`Mira ${esperada} ahora`);
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post', async ({ page }) => {
+    const w = watch(page);
+    seedExtraAccount(brand.id, 'youtube', 'e2e YouTube');
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brand.id}); ` +
+            String.raw`$p = new App\Models\ComposerPreset(['network' => 'youtube', 'options' => ['notify_subscribers' => true, 'shorts_hashtag' => false]]); ` +
+            String.raw`$p->user_id = $b->user_id; $p->brand_id = $b->id; $p->save();`,
+    );
+
+    await open(page);
+    await page.getByRole('button', { name: /^YouTube: e2e YouTube/ }).click();
+    const yt = seccion(page, 'YouTube', 'e2e YouTube');
+    const notificar = yt.getByRole('switch', { name: 'Notificar a los suscriptores' });
+    await expect(notificar).toBeChecked();
+    await expect(yt.getByRole('switch', { name: /#Shorts/ })).toHaveCount(0); // solo en Shorts
+
+    // El usuario apaga «Notificar» en este post; luego cambia a Short: el preset de #Shorts (apagado, el defecto es encendido) se aplica
+    // y lo ya tocado no se pisa.
+    await notificar.uncheck();
+    await page.getByLabel(/Tipo de contenido en YouTube/).selectOption('youtube_short');
+    await expect(yt.getByRole('switch', { name: /#Shorts/ })).not.toBeChecked();
+    await expect(notificar).not.toBeChecked();
+    await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
 });

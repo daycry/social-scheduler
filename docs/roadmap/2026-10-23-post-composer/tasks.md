@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 3 | 9 | 33% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 4 | 9 | 44% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **11** | **42** | **26%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **12** | **42** | **29%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -386,31 +386,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-11 — `ActionBar`: botón dividido (Programar, Guardar borrador, Guardar en biblioteca y Publicar ahora)
 
 - **Descripción**: Botón dividido con menú accesible (flechas, Escape, `aria-haspopup`). Programar y Publicar ahora se deshabilitan con errores. «Publicar ahora» muestra «Enviando…» hasta que cambia el estado. Enviar a revisión y recurrente quedan fuera.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: La barra de acciones pasa a un botón dividido: Programar, y en su menú Guardar borrador, Guardar en biblioteca y Publicar ahora, con Enviando… y sin posibilidad de enviar dos veces.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-09, T-10
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/ActionBar.vue`, `resources/js/Pages/Posts/Compose.vue`
+- **Archivos**: `resources/js/Components/Composer/ActionBar.vue`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Composables/useComposer.js`
 - **Cubre (tests)**: E2E-04, E2E-05, M-03
 - **Verificación**:
   - `npm run build` → sin errores
   - `npm run test:e2e -- --grep "E2E-04|E2E-05"` → pasan en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] Menú operable con teclado y con nombre accesible
-- [ ] Con errores: Programar y Publicar ahora deshabilitados, Guardar borrador y biblioteca habilitados
-- [ ] Doble clic en Publicar ahora no envía dos peticiones (botón bloqueado mientras `form.processing`)
+- [x] Menú operable con teclado y con nombre accesible
+- [x] Con errores: Programar y Publicar ahora deshabilitados, Guardar borrador y biblioteca habilitados
+- [x] Doble clic en Publicar ahora no envía dos peticiones (botón bloqueado mientras `form.processing`)
 
 **Subtareas**
-- [ ] Componente del menú
-- [ ] Estados `Enviando…` y errores
-- [ ] Conectar con las acciones de T-12 y T-14
+- [x] Componente del menú
+- [x] Estados `Enviando…` y errores
+- [x] Conectar con las acciones de T-12 y T-14
 
-**Notas**: —
+**Notas**: **Evidencia**: `npm run build` → OK. `composer.spec.ts --project=desktop` → 13 passed (E2E-04 y E2E-05 se escriben en T-16): menú con ArrowDown/ArrowUp (saltan los elementos deshabilitados), Escape cierra y devuelve el foco, `aria-haspopup="menu"`; con errores Programar y Publicar ahora deshabilitados y Guardar borrador/Guardar en biblioteca habilitados; Publicar ahora muestra «Enviando…», bloquea el botón y el menú y una segunda petición (`requestSubmit()`) NO llega a enviarse (`guardados === 1`). `useComposer` activa `sendingNow` de forma síncrona y `submit()` también lo respeta, así un Enter o doble clic antes de que Inertia marque `processing` no duplica la petición. «Guardar borrador» pasa de botón suelto al menú (los E2E existentes usan el nuevo helper `guardarBorrador`). Las acciones de T-12 (`publishNow`) y T-14 (`saveToLibrary`, diálogo de nombre) ya están conectadas aquí; el endpoint de la biblioteca llega en T-14. Pendiente M-03.
 
 ---
 

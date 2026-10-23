@@ -60,6 +60,18 @@ En **Informes** elige marca, rango y formato (PDF, CSV o ambos) y, si quieres, u
 
 En **API keys** crea una clave para que un asistente (como Claude) programe y consulte por ti. La clave empieza por `msk_` y se muestra **una sola vez**: cópiala. Elige qué puede hacer (leer marcas, leer o escribir publicaciones, estadísticas, informes) y cuándo caduca. Puedes revocarla en cualquier momento. Detalles técnicos: [servidor MCP](../modulos/mcp.md).
 
+**Sin clave, con el navegador.** Algunos asistentes (Claude Code, Claude Desktop, Codex, OpenCode) pueden conectarse sin que copies ninguna clave: al conectar, se abre una pantalla de esta app donde inicias sesión, ves qué permisos pide el asistente (por defecto solo lectura) y pulsas **Autorizar**. El acceso dura 30 días y aparece en **API keys** con el origen «OAuth · nombre del asistente»: desde ahí lo puedes revocar igual que una clave. Las claves manuales siguen apareciendo como «Manual» y funcionando como siempre. Pasos por asistente en [servidor MCP](../modulos/mcp.md#conectar-un-cliente).
+
+## Entrar con Google o Facebook
+
+Si el administrador ha activado el acceso con Google o Facebook, la pantalla de entrada muestra los botones **Continuar con Google** y **Continuar con Facebook**. Solo funcionan para cuentas que ya existen: no se crean cuentas nuevas.
+
+- **Google:** la primera vez se vincula solo si el correo de tu cuenta de Google coincide con el de tu cuenta aquí y ambos están verificados.
+- **Facebook:** vincúlalo antes en **Perfil → Cuentas vinculadas** (te pedirá la contraseña) y después ya puedes entrar con el botón.
+- Si tienes el doble factor activado, después del proveedor se te pide el código como siempre.
+- En **Perfil → Cuentas vinculadas** ves las cuentas vinculadas y puedes **desvincularlas**. Una cuenta desvinculada no vuelve a vincularse sola: si quieres volver a usarla, vincúlala tú desde ahí.
+- Si ves «No hay ninguna cuenta vinculada a esta identidad», esa cuenta de Google o Facebook no está vinculada a ningún usuario de aquí: entra con tu contraseña y vincúlala desde el perfil.
+
 ## Seguridad de la cuenta: doble factor y passkeys
 
 En **Perfil → Seguridad** puedes proteger tu cuenta con dos extras opcionales. Sigues pudiendo entrar con tu correo y contraseña.

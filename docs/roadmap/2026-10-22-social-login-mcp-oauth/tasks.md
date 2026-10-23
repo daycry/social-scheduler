@@ -964,15 +964,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-27 — Documentación: instalación sin API key, despliegue, `.env.example` y guía de Google y Meta
 
 - **Descripción**: `docs/modulos/mcp.md` con la instalación OAuth de los cuatro clientes (comandos verificados en T-11), la API key como alternativa y el aviso del 401 con `resource_metadata` para keys caducadas. `docs/modulos/despliegue.md` con redirect URIs, `/.well-known`, `Authorization` y el `curl` de verificación (cierra la parte de M-F6-2). Guía de pasos manuales de Google y Meta, guía de usuario y `.env.example` completo (CA-30).
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.41h · real —
-- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Changelog**: Hay instrucciones para conectar Claude Code, Claude Desktop, Codex y OpenCode sin API key, para desplegar el OAuth del MCP y para activar el login con Google y Facebook.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.41h · real 0.41h (estimado)
+- **Supervisión**: est. 0.10h (≈25 % IA) · real 0.10h (estimado)
 - **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-21
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/mcp.md`, `docs/modulos/despliegue.md`, `docs/usuario/guia-de-usuario.md`, `docs/guias/login-social-google-meta.md`, `.env.example`
+- **Archivos**: `docs/modulos/mcp.md`, `docs/modulos/despliegue.md`, `docs/usuario/guia-de-usuario.md`, `docs/guias/login-social-google-meta.md`, `.env.example`, `docs/README.md`, `docs/RAG-INDEX.md`, `docs/guias/desarrollo-local.md`
 - **Cubre (tests)**: M-07
 - **Verificación**:
   - `grep -n "oauth-protected-resource" docs/modulos/despliegue.md docs/modulos/mcp.md` → el `curl` de verificación y la explicación del 401
@@ -980,14 +980,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: `mcp.md` tiene un apartado por cliente (Claude Code, Claude Desktop, Codex, OpenCode) con el comando probado en T-11
 
 **Criterios de aceptación**
-- [ ] CA-30 completo
-- [ ] La guía de Google y Meta recoge los pasos manuales de la spec (proyecto dedicado, caso de uso, redirect URIs, modo desarrollo)
-- [ ] No quedan comandos de clientes sin verificar presentados como definitivos
+- [x] CA-30 completo
+- [x] La guía de Google y Meta recoge los pasos manuales de la spec (proyecto dedicado, caso de uso, redirect URIs, modo desarrollo)
+- [x] No quedan comandos de clientes sin verificar presentados como definitivos
 
 **Subtareas**
-- [ ] `mcp.md`
-- [ ] `despliegue.md` y `curl`
-- [ ] Guía de Google y Meta y guía de usuario
+- [x] `mcp.md`
+- [x] `despliegue.md` y `curl`
+- [x] Guía de Google y Meta y guía de usuario
+
+**Evidencia (2026-10-23)**: grep oauth-protected-resource en despliegue.md y mcp.md → 5 coincidencias (curl de verificación y explicación del 401); grep en .env.example → las tres claves (MCP_OAUTH_TOKEN_DAYS, GOOGLE_LOGIN_CLIENT_ID, META_LOGIN_APP_ID); mcp.md con un apartado por cliente. Los comandos de los cuatro clientes se presentan como PENDIENTES de verificar (T-11 / M-03..M-06 son manuales del usuario) y no como definitivos. Desviación: se tocaron también docs/README.md, docs/RAG-INDEX.md y docs/guias/desarrollo-local.md (índices y variables del servidor E2E), no listados en Archivos.
+
+---
 
 ---
 

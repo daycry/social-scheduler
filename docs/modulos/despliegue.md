@@ -48,6 +48,48 @@ Las fotos usan `PULL_FROM_URL`: TikTok descarga la URL sin firma desde `TIKTOK_V
 
 En Hestia (Nginx + PHP-FPM sin proxy delante) deja `TRUSTED_PROXIES` vacío. Detrás de ngrok en desarrollo usa `TRUSTED_PROXIES=*` y `APP_URL=https://<dominio-ngrok>`; si no, `route()` genera `http://` y el redirect OAuth no coincide.
 
+## OAuth del MCP, Nginx/Hestia y redirect URIs
+
+Resumen operativo del servidor OAuth del MCP y del login social ([ADR-004](../knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md)). Instalación por cliente: [servidor MCP](mcp.md). Pasos manuales de Google y Meta: [guía de login social](../guias/login-social-google-meta.md).
+
+### Nginx/Hestia
+
+- **`Authorization` hasta PHP-FPM.** Sin la cabecera, `/mcp` no ve ningún Bearer (API key ni OAuth) y responde siempre 401. Comprueba que la plantilla de Hestia pasa `HTTP_AUTHORIZATION` a PHP-FPM y que `deploy/hestia/nginx-overrides.conf` no la pisa. Cierra la parte pendiente de M-F6-2.
+- **`/.well-known/oauth-*` hasta PHP.** Las plantillas de Hestia sirven `/.well-known/acme-challenge` desde disco; ese `location` no debe tragarse el resto de `/.well-known/`. Compruébalo tras desplegar con el `curl` de abajo.
+- **HTTPS.** `APP_URL` en HTTPS: los metadatos, `resource` y `WWW-Authenticate` se generan con ella. En Hestia sin proxy delante, `TRUSTED_PROXIES` vacío.
+
+### Verificación con `curl`
+
+```bash
+# 1) Sin Bearer: 401 con WWW-Authenticate y resource_metadata (si falta, no llega la cabecera o el .well-known)
+curl -si -X POST https://<APP_URL>/mcp -H 'Accept: application/json, text/event-stream' \
+  -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"initialize"}' | head -n 12
+# esperado: HTTP/2 401  y  www-authenticate: Bearer realm="mcp", resource_metadata="https://<APP_URL>/.well-known/oauth-protected-resource/mcp"
+
+# 2) Metadatos: 200 y JSON (scopes_supported ["mcp:use"], code_challenge_methods_supported ["S256"])
+curl -s https://<APP_URL>/.well-known/oauth-protected-resource/mcp
+curl -s https://<APP_URL>/.well-known/oauth-authorization-server
+
+# 3) Registro de clientes: 201 con loopback (400 invalid_redirect_uri con una URL pública)
+curl -si -X POST https://<APP_URL>/oauth/register -H 'Content-Type: application/json' \
+  -d '{"client_name":"prueba","redirect_uris":["http://127.0.0.1:53111/callback"]}' | head -n 1
+```
+
+Cada registro de prueba deja un cliente en `oauth_clients`; `php artisan mcp:oauth-prune` (programado a diario) limpia los antiguos sin uso.
+
+### Redirect URIs de los proveedores de login
+
+Se registran en cada app con credenciales **propias del login** (distintas de las de los conectores de redes):
+
+| Proveedor | Redirect URI | Variables |
+|---|---|---|
+| Google | `https://<APP_URL>/auth/google/callback` | `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET` |
+| Facebook | `https://<APP_URL>/auth/facebook/callback` | `META_LOGIN_APP_ID`, `META_LOGIN_APP_SECRET` |
+
+Con las variables vacías el proveedor queda desactivado: no hay botón en el login y `/auth/{proveedor}/redirect` da 404. Las variables del OAuth del MCP (`MCP_OAUTH_TOKEN_DAYS`, `MCP_OAUTH_CODE_TTL`, `MCP_OAUTH_REDIRECT_ALLOWED`) están en `.env.example`.
+
+La batería E2E arranca su servidor con `APP_ENV=e2e` y un proveedor social **falso**. Nunca pongas `APP_ENV=e2e` en un servidor real: el proveedor falso solo se registra con ese entorno **y** un `APP_URL` local (`localhost`, `127.0.0.1`), pero no hay motivo para dejarlo a mano.
+
 ## Seguridad de cuenta: 2FA y passkeys
 
 Resumen de operación del doble factor (TOTP) y las passkeys ([ADR-003](../knowledge/adr/ADR-003-2fa-totp-propio-y-laravel-passkeys.md)). Lo que ve el usuario está en la [guía de usuario](../usuario/guia-de-usuario.md#seguridad-de-la-cuenta-doble-factor-y-passkeys).
@@ -106,5 +148,7 @@ El comando solo desactiva el 2FA (no cambia la contraseña ni las API keys del M
 | Dominio/TLS/BD/cron/Nginx en Hestia | pendiente (M-04) |
 | `sodium` en el PHP de Hestia, RP ID/orígenes y passkey real en producción | pendiente (M-04 de seguridad de cuenta) |
 | `sodium` en el PHP local | verificado (`php -m`) |
+| `Authorization` y `/.well-known/oauth-*` en Nginx/Hestia (el `curl` de arriba) | pendiente (M-07 del plan de pruebas de login social y OAuth) |
+| Redirect URIs y login real con Google y Facebook | pendiente (M-01 y M-02 del mismo plan) |
 | `systemd-analyze verify` y reinicio del worker | pendiente (VPS) |
 | Disco `r2` contra Cloudflare R2 real | pendiente (credenciales) |

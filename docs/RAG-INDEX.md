@@ -25,5 +25,6 @@
 | [referencia/configuracion.md](referencia/configuracion.md) | Todas las variables del `.env.example` | `PUBLISH_QUOTA_POLICY`, `META_OAUTH_METHOD` |
 | [referencia/pendientes-manuales.md](referencia/pendientes-manuales.md) | Qué debe hacer una persona | M-01..M-05, M-F6, `/privacy`, `/terms` |
 | [guias/desarrollo-local.md](guias/desarrollo-local.md) | Puesta en marcha con Laragon | `composer`, `npm`, ngrok, tests |
+| [guias/login-social-google-meta.md](guias/login-social-google-meta.md) | Activar el login con Google y Facebook | `GOOGLE_LOGIN_*`, `META_LOGIN_*`, redirect URIs |
 | [usuario/guia-de-usuario.md](usuario/guia-de-usuario.md) | Uso de la app | marcas, conectar, programar, informes |
 | [knowledge/README.md](knowledge/README.md) | ADR del proyecto | ADR-001, ADR-002 |

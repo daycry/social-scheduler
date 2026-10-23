@@ -14,6 +14,8 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Levantar el proyecto en tu máquina | [Desarrollo local con Laragon](guias/desarrollo-local.md) |
 | Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
 | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
+| Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
+| Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)

@@ -650,6 +650,26 @@ test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guar
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
 
+test('E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    // Subida simulada en modo local: el registro y el PUT responden sin tocar el almacenamiento.
+    const asset = { id: 990001, name: 'e2e.mp4', kind: 'video', mime: 'video/mp4', size: 16, width: 1080, height: 1920, duration: 5, fps: 30, status: 'listo', error: null };
+    await page.route('**/media', (route) => route.request().method() === 'POST'
+        ? route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ asset: { ...asset, status: 'pendiente' }, upload: { mode: 'local', url: '/media/990001/upload' } }) })
+        : route.continue());
+    await page.route('**/media/990001/upload', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ asset }) }));
+    await page.locator('input[type="file"]').setInputFiles({ name: 'e2e.mp4', mimeType: 'video/mp4', buffer: Buffer.from('00000018667479706d703432', 'hex') });
+    const previa = page.locator('div.card', { has: page.getByRole('heading', { name: 'Previsualización' }) });
+    const video = previa.locator('video');
+    await expect(video).toBeVisible();
+    await expect(video).toHaveAttribute('controls', '');
+    await expect(video).toHaveAttribute('src', /^blob:/);
+    await expect(previa).not.toContainText(/^Vídeo$/);
+    await expectNoOverflow(page);
+    expect(w.errors).toEqual([]);
+});
+
 test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)', async ({ page }) => {
     const w = watch(page);
     await open(page);

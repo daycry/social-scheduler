@@ -40,7 +40,7 @@ export function useComposer(props) {
     const onUploaded = (asset, file) => {
         mediaItems.value.push(asset);
         form.media.push(asset.id);
-        if (file && asset.kind === 'image') {
+        if (file && (asset.kind === 'image' || asset.kind === 'video')) {
             const url = URL.createObjectURL(file);
             objectUrls.push(url);
             previews.value[asset.id] = url;
@@ -253,7 +253,11 @@ export function useComposer(props) {
         const tab = form.targets.find((t) => t.account_id === currentTab.value);
         return textOf(tab) || 'Aquí verás el texto de tu publicación.';
     });
-    const firstPreview = computed(() => form.media.map((id) => previews.value[id]).find(Boolean));
+    // Primera media con vista previa local (imagen o vídeo recién subidos): { url, kind }.
+    const firstPreview = computed(() => {
+        const id = form.media.find((m) => previews.value[m]);
+        return id === undefined ? null : { url: previews.value[id], kind: mediaById(id)?.kind ?? 'image' };
+    });
     const charCount = computed(() => countChars(form.text));
 
     // Texto por red (C-03). Un destino está VINCULADO si su `text` es `null` y se publica el texto común (la plantilla); si no, tiene

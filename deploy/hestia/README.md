@@ -60,6 +60,38 @@ v-add-cron-job <USUARIO> '*' '*' '*' '*' '*' 'cd /home/<USUARIO>/web/<DOMINIO>/a
 
 Verificar con `v-list-cron-jobs <USUARIO>` y, pasado un minuto, `php artisan schedule:list`.
 
+## 5 bis. Primer usuario [VPS]
+
+El registro público está cerrado (`REGISTRATION_ENABLED=false`): las cuentas se crean por consola, una vez desplegada la app y aplicadas las migraciones.
+
+```bash
+# Como el usuario de Hestia, en la carpeta de la app. La contraseña se pide por teclado:
+# no se ve ni queda en el historial de la shell.
+php8.4 artisan migrate:status | tail -3        # todas en «Ran»
+read -s -p 'Contraseña: ' SS_PASS; echo
+SS_PASS="$SS_PASS" php8.4 artisan tinker --execute='
+$u = new App\Models\User();
+$u->name = "daycry";
+$u->email = "daycry9@gmail.com";
+$u->password = getenv("SS_PASS");        // el modelo la guarda con hash (cast `hashed`)
+$u->email_verified_at = now();           // sin esto la app pide verificar el email antes de entrar
+$u->save();
+echo "Usuario creado con id {$u->id}\n";'
+unset SS_PASS
+
+# Comprobación
+php8.4 artisan tinker --execute='echo App\Models\User::where("email","daycry9@gmail.com")->value("id");'
+```
+
+Después de entrar por primera vez:
+
+- Crea la marca y vuelve a conectar Facebook, Instagram, YouTube y TikTok desde el dominio de producción: las conexiones de otro entorno (local, ngrok) no sirven.
+- Si quieres, activa el doble factor y crea las passkeys en **Perfil → Seguridad** (las passkeys van atadas al dominio).
+- «Continuar con Google» entra en esta cuenta si el email de Google coincide y está verificado (se vincula solo la primera vez).
+- Las API keys del MCP de otro entorno no valen: conecta los clientes por OAuth contra `https://<DOMINIO>/mcp` o crea una key nueva en **API keys**.
+
+Para cambiar la contraseña más tarde, desde **Perfil**. Si se pierde, repite el bloque anterior con `$u = App\Models\User::where("email", "...")->firstOrFail();` en lugar de `new App\Models\User()` (y sin `name`/`email`). Para desactivar el doble factor de un usuario que perdió el móvil: `php8.4 artisan user:two-factor-reset <email>`.
+
 ## 6. Despliegue repetible (un comando)
 
 ```bash

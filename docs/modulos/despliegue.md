@@ -39,8 +39,41 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 4. Cron de Hestia cada minuto: `cd .../app && php artisan schedule:run`.
 5. Workers systemd (abajo).
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
+7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
 
 `deploy.sh` ejecuta: `artisan down` → pull → composer → `npm ci && npm run build` (exige `public/build/manifest.json`) → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
+
+## Primer usuario
+
+Con `REGISTRATION_ENABLED=false` no hay registro público: el primer usuario (y cualquier otro) se crea por consola tras el primer `deploy.sh`.
+
+```bash
+# Como el usuario de Hestia, en la carpeta de la app. La contraseña se pide por teclado:
+# no se ve ni queda en el historial de la shell.
+php8.4 artisan migrate:status | tail -3        # todas en «Ran»
+read -s -p 'Contraseña: ' SS_PASS; echo
+SS_PASS="$SS_PASS" php8.4 artisan tinker --execute='
+$u = new App\Models\User();
+$u->name = "daycry";
+$u->email = "daycry9@gmail.com";
+$u->password = getenv("SS_PASS");        // el modelo la guarda con hash (cast `hashed`)
+$u->email_verified_at = now();           // sin esto la app pide verificar el email antes de entrar
+$u->save();
+echo "Usuario creado con id {$u->id}\n";'
+unset SS_PASS
+
+# Comprobación
+php8.4 artisan tinker --execute='echo App\Models\User::where("email","daycry9@gmail.com")->value("id");'
+```
+
+Después de entrar por primera vez:
+
+- Crea la marca y vuelve a conectar Facebook, Instagram, YouTube y TikTok desde el dominio de producción: las conexiones de otro entorno (local, ngrok) no sirven.
+- Si quieres, activa el doble factor y crea las passkeys en **Perfil → Seguridad** (las passkeys van atadas al dominio).
+- «Continuar con Google» entra en esta cuenta si el email de Google coincide y está verificado (se vincula solo la primera vez).
+- Las API keys del MCP de otro entorno no valen: conecta los clientes por OAuth contra `https://social-scheduler.daycry.ovh/mcp` o crea una key nueva en **API keys**.
+
+Para cambiar la contraseña más tarde, desde **Perfil**. Si se pierde, repite el bloque anterior con `$u = App\Models\User::where("email", "...")->firstOrFail();` en lugar de `new App\Models\User()` (y sin `name`/`email`). Para desactivar el doble factor de un usuario que perdió el móvil: `php8.4 artisan user:two-factor-reset <email>`.
 
 ## Workers systemd
 

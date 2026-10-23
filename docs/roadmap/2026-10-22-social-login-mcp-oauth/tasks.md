@@ -1054,7 +1054,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 **Evidencia (2026-10-23)**: `php artisan test --compact` → 1223 passed; `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx tsc --noEmit -p .` → 0 errores; `npx playwright test` (3 proyectos) → 268 passed · 0 failed · 0 flaky · 2 skipped (16,4 min) y `qa-gate` sobre `testing/results.json` → VERDE; `git diff --stat feature/social-scheduler..HEAD -- app/Http/Middleware/McpGuard.php app/Mcp/Tools/SchedulerTool.php app/Services/AuditLog.php vendor` → vacío; grep del usuario id 28 en `app database tests/e2e` → vacío. Revisión de la fase 3 (intento 1): sin Critical ni Important; los Minor corregidos en 7986b1f (tabla al final del ledger).
 
 **Checklist para el usuario (M-xx, detalle en `test-plan.md`)**:
-- ⏳ M-01 · Login real con Google por ngrok (app de Google Cloud propia del login, redirect `<APP_URL>/auth/google/callback`).
+- ✅ M-01 · Login real con Google por ngrok — verificado por el usuario el 2026-10-23: entrada OK y vinculación automática (`social.linked`, `modo=auto`) en la auditoría. Se reutilizó el cliente OAuth de Google de los conectores (`GOOGLE_LOGIN_*` = `GOOGLE_CLIENT_*`) con la redirect `<APP_URL>/auth/google/callback` añadida.
 - ⏳ M-02 · Login y vinculación real con Facebook por ngrok (app de Meta propia del login, modo Desarrollo con roles).
 - ⏳ M-03 · Claude Code CLI sin API key (T-11, CA-29).
 - ⏳ M-04 · Claude Desktop, conector personalizado (T-11).

@@ -42,8 +42,12 @@ class PostService
         'progress' => null, 'error_code' => null, 'error_message' => null, 'status_note' => null, 'started_at' => null, 'next_attempt_at' => null,
     ];
 
-    /** Errores que NO dejan duda de que la red no recibio nada (rechazo, medio invalido...): el resto puede haber salido. */
-    private const AMBIGUOUS_ERRORS = [null, 'transitorio', 'reintentos_agotados'];
+    /**
+     * Errores que NO dejan duda de que la red no recibio nada (rechazo, medio invalido...): el resto puede haber salido.
+     * `red` (timeout o corte de conexion) y `meta_no_disponible` (5xx) son los MAS ambiguos: la red pudo crear la publicacion y
+     * perderse la respuesta, asi que tras editar el texto hay que reconciliar lo viejo (T-20, CA-11).
+     */
+    private const AMBIGUOUS_ERRORS = [null, 'transitorio', 'reintentos_agotados', 'red', 'meta_no_disponible'];
 
     public function __construct(private readonly MediaValidator $validator) {}
 

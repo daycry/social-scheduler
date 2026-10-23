@@ -680,11 +680,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-20 — `PublishRequestFactory` con el texto efectivo y tests anti-duplicado en Instagram y Facebook
 
 - **Descripción**: `make()` usa `$target->effectiveText()` y `makeReconcile()` el texto efectivo viejo. Los publicadores no cambian. Tests con `Http::fake` de **reintento tras un timeout** en Instagram (`InstagramPublisher::findPublished` compara la descripción) y Facebook (`FacebookPublisher::findPublished`): (a) destino desvinculado, (b) plantilla editada entre intentos, (c) texto propio editado entre intentos, (d) destino vinculado. En todos, el reintento reconoce lo ya publicado y hace una sola publicación.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Changelog**: Reintentar una publicación tras un fallo de red con un texto propio por red ya no la duplica en Instagram ni en Facebook, incluso si el texto se edita entre intentos.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real 4.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.6h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0.15h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
 - **Tipo**: backend
@@ -697,16 +697,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Publishing` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-11: un reintento tras un timeout con texto propio no duplica en Instagram ni en Facebook
-- [ ] Los cuatro escenarios (a-d) están cubiertos en cada red
-- [ ] Los tests fallan si `make()` vuelve a usar `$post->text` (comprobado una vez a mano y anotado)
+- [x] CA-11: un reintento tras un timeout con texto propio no duplica en Instagram ni en Facebook
+- [x] Los cuatro escenarios (a-d) están cubiertos en cada red
+- [x] Los tests fallan si `make()` vuelve a usar `$post->text` (comprobado una vez a mano y anotado)
 
 **Subtareas**
-- [ ] `make()` y `makeReconcile()`
-- [ ] `Http::fake` con timeout en la creación y el medio ya publicado en el listado
-- [ ] Los cuatro escenarios por red
+- [x] `make()` y `makeReconcile()`
+- [x] `Http::fake` con timeout en la creación y el medio ya publicado en el listado
+- [x] Los cuatro escenarios por red
 
-**Notas**: Aviso del diseño: dos destinos de la misma cuenta con el mismo texto efectivo ya podían confundirse; se documenta, no se arregla aquí.
+**Notas**: **Evidencia**: `--filter=TargetTextIdempotencyInstagram` y `--filter=TargetTextIdempotencyFacebook` → 8 passed (4 escenarios por red: a desvinculado, b plantilla editada, c texto propio editado, d vinculado; `Http::fake` con timeout en la creación y lo ya publicado en el listado con texto fijo; una sola llamada de publicación). `git diff --stat -- app/Connectors/Meta` → vacío. `tests/Feature/Publishing tests/Feature/Posts tests/Feature/Connectors` → en verde. **Mutación manual**: con `make()` usando `$post->text` fallan 4 de 8 (a y c en ambas redes); con `freshAttempt` recibiendo el texto nuevo fallan 8 de 13 (también b). **Hallazgo y corrección**: el timeout de Meta lleva el código `red` y `PostService::AMBIGUOUS_ERRORS` no lo incluía, así que tras un timeout y una edición no se guardaba `reconcile` (un fallo previo a esta fase que afectaba también a la edición del texto de plantilla); se añaden `red` y `meta_no_disponible`. Aviso del diseño: dos destinos de la misma cuenta con el mismo texto efectivo ya podían confundirse; no se arregla aquí. `RevisionFase3Intento3Test.php` no se modifica.
 
 ---
 

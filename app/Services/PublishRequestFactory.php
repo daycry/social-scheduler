@@ -18,6 +18,7 @@ class PublishRequestFactory
     {
         $post = Post::withoutUserScope()->withTrashed()->findOrFail($target->post_id);
         $ttl = (int) config('publishing.media_url_ttl_minutes', 720);
+        $target->setRelation('post', $post); // el texto efectivo usa este post (tambien si esta en la papelera)
 
         $media = $post->media()->get()->map(fn (MediaAsset $m) => new PublishMedia(
             id: $m->id,
@@ -36,7 +37,9 @@ class PublishRequestFactory
         return new PublishRequest(
             targetId: $target->id,
             type: $target->content_type,
-            text: $post->text,
+            // Texto EFECTIVO del destino (ADR-005): el propio si lo tiene y, si no, el de la plantilla. Es lo que se publica Y lo que
+            // `findPublished` compara al reintentar.
+            text: $target->effectiveText(),
             media: $media,
             options: $target->options ?? [],
             reference: $target->external_reference,

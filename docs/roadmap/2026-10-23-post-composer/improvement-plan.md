@@ -19,7 +19,7 @@ generacion:
 | | |
 |---|---|
 | **Fecha** | 2026-10-23 |
-| **Estado** | borrador |
+| **Estado** | en-progreso |
 | **Tipo** | Nueva Funcionalidad |
 | **Prioridad** | Media |
 | **Solicitante** | daycr (usuario del proyecto) |

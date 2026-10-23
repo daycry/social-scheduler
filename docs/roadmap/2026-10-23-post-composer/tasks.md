@@ -8,7 +8,7 @@ generacion:
   horas_ia: 0.55
   duracion: 33m
   ratio_usado: 300000   # ventana compartida con improvement-plan.md
-estado: borrador
+estado: en-progreso
 changelog: Added
 verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige ledger-lint (exit 1 si falta)
 ---
@@ -17,7 +17,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | | |
 |---|---|
-| **Estado** | borrador |
+| **Estado** | en-progreso |
 | **Fecha** | 2026-10-23 |
 | **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
 | **Diseño** | [`design.md`](./design.md) — opción O1 (texto efectivo resuelto al leer y despacho inmediato tras el commit, [ADR-005](../../knowledge/adr/ADR-005-texto-efectivo-y-publicar-ahora-sobre-el-nucleo-de-publicacion.md)) |
@@ -35,7 +35,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 > - **No tocar los datos del usuario id 28:** los E2E usan solo `e2e-sec-*` y marcas `e2e-`; los Pest, la factoría y bases de prueba.
 > - **Alcance cerrado:** C-01, C-08 (con Publicar ahora fuera del compositor), C-03, C-04, C-09 (con `update_post_notes`), C-05a y C-11. Fuera: C-02, C-05b, C-06, C-07 y C-10.
 > - **E2E:** `npm run test:e2e` en `http://localhost:8080`, con axe y sin desbordamiento a 375 y 360 px; sin publicar nunca en redes reales (eso es el smoke T-41).
-> - ADR-005 pasa a `aceptada` solo con el visto bueno del usuario (T-42).
+> - ADR-005 ya está `aceptada`: el usuario dio el visto bueno el 2026-10-23 al aprobar el plan (T-42 solo lo comprueba).
 
 ---
 

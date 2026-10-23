@@ -1,7 +1,7 @@
 ---
 id: ADR-005
 titulo: Texto por destino resuelto al publicar y Publicar ahora sobre las defensas existentes del núcleo de publicación
-estado: propuesta
+estado: aceptada (visto bueno del usuario 2026-10-23 al aprobar el plan)
 fecha: 2026-10-23
 iniciativa: 2026-10-23-post-composer
 ---
@@ -44,4 +44,4 @@ El contrato `Publisher` y `PublishPostTarget` quedan intactos. La garantía de n
 
 ## Estado
 
-`propuesta` — a validar por la revisión de dos lentes o el usuario en la puerta. Pasa a `aceptada` cuando se valida; a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí a la que la sustituye, nunca se borra el rastro).
+`aceptada` — visto bueno explícito del usuario el 2026-10-23, al aprobar el plan. Pasa a `aceptada` cuando se valida; a `obsoleta` si una decisión posterior la reemplaza (enlaza aquí a la que la sustituye, nunca se borra el rastro).

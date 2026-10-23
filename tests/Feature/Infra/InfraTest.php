@@ -107,6 +107,7 @@ test('database queue persists a probe job per queue and a worker processes it', 
         'connection' => 'database',
         '--queue' => 'publish,poll,metrics,reports',
         '--stop-when-empty' => true,
+        '--memory' => 1024, // el worker de prueba corre dentro del proceso de Pest: con la suite grande superaba los 128 MB por defecto y paraba tras el primer job
     ]);
 
     expect(DB::table('jobs')->count())->toBe(0);

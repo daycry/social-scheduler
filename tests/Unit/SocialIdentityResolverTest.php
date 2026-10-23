@@ -98,3 +98,20 @@ test('Facebook sin identidad nunca vincula, ni con email coincidente y verificad
 test('un id vacio rechaza', function () {
     expect(resolveSocial('google', socialUser('', 'a@example.com', true))->reason)->toBe('no_id');
 });
+
+test('link: vincula, es idempotente, desbloquea la propia y rechaza la ajena o un segundo activo', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+    $resolver = app(SocialIdentityResolver::class);
+
+    expect($resolver->link($user, 'facebook', socialUser('fb1', 'a@example.com')))->toBe(SocialIdentityResolver::LINKED);
+    expect($resolver->link($user, 'facebook', socialUser('fb1', null)))->toBe(SocialIdentityResolver::ALREADY);
+    expect($resolver->link($other, 'facebook', socialUser('fb1', null)))->toBe(SocialIdentityResolver::TAKEN);
+    expect($resolver->link($user, 'facebook', socialUser('fb2', null)))->toBe(SocialIdentityResolver::OTHER_IDENTITY);
+    expect($resolver->link($user, 'facebook', socialUser('', null)))->toBe(SocialIdentityResolver::NO_ID);
+
+    expect($resolver->unlink($user, 'facebook'))->toBeTrue()->and($resolver->unlink($user, 'facebook'))->toBeFalse();
+    expect($resolver->link($other, 'facebook', socialUser('fb1', null)))->toBe(SocialIdentityResolver::TAKEN);
+    expect($resolver->link($user, 'facebook', socialUser('fb1', null)))->toBe(SocialIdentityResolver::RELINKED);
+    expect(SocialIdentity::where('provider_user_id', 'fb1')->sole()->isBlocked())->toBeFalse();
+});

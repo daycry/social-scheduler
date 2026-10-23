@@ -56,7 +56,7 @@ class PublishFailed extends Notification implements ShouldQueue
         $this->networkValue = $target->network->value;
         $this->networkLabel = $target->network->label();
         $this->accountName = $target->account?->name ?? 'cuenta eliminada';
-        $this->excerpt = mb_substr((string) $post->text, 0, 80);
+        $this->excerpt = mb_substr((string) ($target->text ?? $post->text), 0, 80); // texto efectivo del destino
         $this->scheduledLocal = $post->scheduled_at?->copy()->setTimezone($brand?->timezone ?: 'UTC')->format('d/m/Y H:i');
         $this->errorCode = $target->error_code;
         $this->onQueue((string) config('publishing.poll_queue', 'poll'));

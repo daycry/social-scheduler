@@ -234,7 +234,7 @@ class ReportService
 
             return [
                 'id' => $t->id,
-                'text' => $t->post?->text ? mb_strimwidth($t->post->text, 0, 140, '...') : null,
+                'text' => $t->effectiveText() ? mb_strimwidth((string) $t->effectiveText(), 0, 140, '...') : null, // texto efectivo del destino
                 'content_type' => $t->content_type->value,
                 'published_at' => $t->published_at?->toIso8601String(),
                 'url' => $t->external_url,

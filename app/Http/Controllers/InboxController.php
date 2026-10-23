@@ -34,7 +34,7 @@ class InboxController extends Controller
         $query = $this->inbox->query($user, ['network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'brand_id' => $brand?->id]
             + (isset($filters['hidden']) ? ['hidden' => (bool) $filters['hidden']] : []));
 
-        $page = $query->with(['target' => fn ($q) => $q->select('id', 'post_id', 'external_url')->with(['post' => fn ($p) => $p->withTrashed()->select('id', 'text')]), 'account:id,name,username,network'])
+        $page = $query->with(['target' => fn ($q) => $q->select('id', 'post_id', 'external_url', 'text')->with(['post' => fn ($p) => $p->withTrashed()->select('id', 'text')]), 'account:id,name,username,network'])
             ->simplePaginate(30)->withQueryString();
 
         $own = InboxComment::withoutUserScope()->where('user_id', $user->id)->where('is_own', true)
@@ -56,7 +56,7 @@ class InboxController extends Controller
                 'hidden' => $c->hidden,
                 'is_reply' => $c->parent_external_id !== null,
                 'account' => $c->account?->name,
-                'post_text' => $c->target?->post ? mb_substr((string) $c->target->post->text, 0, 120) : null,
+                'post_text' => $c->target?->post ? mb_substr((string) ($c->target->text ?? $c->target->post->text), 0, 120) : null, // texto efectivo del destino
                 'post_url' => $c->target?->external_url,
                 'my_replies' => ($own[$c->external_id] ?? collect())->map(fn (InboxComment $r) => ['id' => $r->id, 'text' => $r->text, 'at' => $r->commented_at?->toIso8601String()])->values(),
             ]),

@@ -37,6 +37,13 @@ class PostRequest extends FormRequest
             'targets.*.options.shorts_hashtag' => ['nullable', 'boolean'],
             'targets.*.options.privacy_level' => ['nullable', 'in:PUBLIC_TO_EVERYONE,MUTUAL_FOLLOW_FRIENDS,FOLLOWER_OF_CREATOR,SELF_ONLY'],
             'targets.*.options.disable_comment' => ['nullable', 'boolean'],
+            // YouTube (C-04, T-26): solo los campos confirmados en la documentacion de la Data API v3.
+            'targets.*.options.category_id' => ['nullable', 'regex:/^\d{1,3}$/'],
+            'targets.*.options.tags' => ['nullable', 'array', 'max:30'],
+            'targets.*.options.tags.*' => ['nullable', 'string', 'max:100'],
+            'targets.*.options.made_for_kids' => ['nullable', 'boolean'],
+            'targets.*.options.notify_subscribers' => ['nullable', 'boolean'],
+            'targets.*.options.contains_synthetic_media' => ['nullable', 'boolean'],
         ];
     }
 }

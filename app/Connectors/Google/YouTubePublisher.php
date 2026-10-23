@@ -263,22 +263,33 @@ class YouTubePublisher implements Publisher, StatusPoller
     private function openSession(SocialAccount $account, PublishRequest $request, PublishMedia $media, int $size): string
     {
         $privacy = (string) ($request->options['privacy'] ?? 'public');
+        $options = $request->options;
+        $category = is_scalar($options['category_id'] ?? null) ? (string) $options['category_id'] : '';
         $meta = [
             'snippet' => [
                 'title' => $this->title($request),
                 'description' => $this->description($request),
-                'categoryId' => self::CATEGORY_PEOPLE_BLOGS,
-                'tags' => [self::targetTag($request->targetId)], // marcador propio del destino: base de la idempotencia
+                'categoryId' => preg_match('/^\d{1,3}$/', $category) === 1 ? $category : self::CATEGORY_PEOPLE_BLOGS,
+                // El marcador propio del destino va SIEMPRE primero (base de la idempotencia): los tags del usuario se recortan para no expulsarlo.
+                'tags' => self::tagsFor($request->targetId, (array) ($options['tags'] ?? [])),
             ],
             'status' => [
                 'privacyStatus' => in_array($privacy, self::PRIVACY, true) ? $privacy : 'private',
-                'selfDeclaredMadeForKids' => false,
+                'selfDeclaredMadeForKids' => ($options['made_for_kids'] ?? false) === true,
             ],
         ];
 
+        // Etiqueta de contenido sintetico (`status.containsSyntheticMedia`): solo si se declara; sin ella no se envia el campo.
+        if (($options['contains_synthetic_media'] ?? false) === true) {
+            $meta['status']['containsSyntheticMedia'] = true;
+        }
+
+        // `notifySubscribers` es un parametro de la consulta (defecto `true` en la API): solo se envia para desactivarlo.
+        $query = 'uploadType=resumable&part=snippet,status'.(($options['notify_subscribers'] ?? true) === false ? '&notifySubscribers=false' : '');
+
         $response = $this->send($account, fn (PendingRequest $http) => $http
             ->withHeaders(['X-Upload-Content-Length' => (string) $size, 'X-Upload-Content-Type' => $media->mime])
-            ->post(self::UPLOAD.'?uploadType=resumable&part=snippet,status', $meta));
+            ->post(self::UPLOAD.'?'.$query, $meta));
 
         if (! $response->successful()) {
             throw $this->exceptionFor($response);
@@ -619,6 +630,56 @@ class YouTubePublisher implements Publisher, StatusPoller
     public static function targetTag(int $targetId): string
     {
         return 'ss-'.substr(hash_hmac('sha256', 'youtube-target:'.$targetId, (string) config('app.key')), 0, 16);
+    }
+
+    /** Limite de `snippet.tags` de YouTube: 500 caracteres en total (las comas cuentan; un tag con espacio suma 2 por las comillas). */
+    private const TAGS_LIMIT = 500;
+
+    /**
+     * Tags de la subida: el marcador del destino SIEMPRE el primero y los del usuario recortados al hueco que queda, de modo
+     * que ni muchos tags ni tags largos o con unicode lo expulsen (`findPublished` reconoce el video por el). Limpia `<` `>` y
+     * comas, descarta vacios, duplicados y el propio marcador.
+     *
+     * @param  list<mixed>  $userTags
+     * @return list<string>
+     */
+    public static function tagsFor(int $targetId, array $userTags): array
+    {
+        $marker = self::targetTag($targetId);
+        $tags = [$marker];
+        $used = self::tagCost($marker);
+        $seen = [mb_strtolower($marker) => true];
+
+        foreach ($userTags as $raw) {
+            if (! is_string($raw)) {
+                continue;
+            }
+
+            $tag = trim(str_replace(['<', '>', ','], '', $raw));
+            $key = mb_strtolower($tag);
+
+            if ($tag === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $cost = self::tagCost($tag);
+
+            if ($used + $cost > self::TAGS_LIMIT) {
+                continue; // no cabe: se omite (un tag mas corto posterior si puede entrar)
+            }
+
+            $seen[$key] = true;
+            $tags[] = $tag;
+            $used += $cost;
+        }
+
+        return $tags;
+    }
+
+    /** Coste de un tag en el limite: sus caracteres, 2 mas si lleva espacio (comillas) y 1 de la coma que lo separa. */
+    private static function tagCost(string $tag): int
+    {
+        return mb_strlen($tag) + (str_contains($tag, ' ') ? 2 : 0) + 1;
     }
 
     private function watchUrl(string $id, ContentType $type): string

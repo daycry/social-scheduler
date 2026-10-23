@@ -46,10 +46,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
-| Fase 4 — C-04 | 1 | 8 | 12% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
+| Fase 4 — C-04 | 2 | 8 | 25% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **25** | **42** | **60%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **26** | **42** | **62%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -901,11 +901,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-27 — Opciones de YouTube en `openSession` conservando el marcador de idempotencia
 
 - **Descripción**: Categoría, tags del usuario, `selfDeclaredMadeForKids` y las opciones confirmadas en T-26 (`notifySubscribers`, etiqueta IA). El marcador `targetTag` va **siempre primero** y se reserva su hueco: los tags del usuario se recortan para no pasar de ≈ 500 caracteres. Las reglas entran en `PostRequest`.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Changelog**: YouTube admite categoría, etiquetas, hecho para niños, no notificar a suscriptores y etiqueta de contenido IA, sin perder el reconocimiento del vídeo si hay que reintentar.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real 4.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.54h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0.14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-26
 - **Tipo**: backend
@@ -916,19 +916,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Publishing` → en verde (`findPublished` sigue encontrando el vídeo por el marcador)
 
 **Criterios de aceptación**
-- [ ] CA-13: la petición de subida lleva categoría, hecho para niños, tags y las opciones confirmadas
-- [ ] El marcador `targetTag` es el primer tag aunque el usuario ponga muchos
-- [ ] `findPublished` reconoce un vídeo con tags del usuario
+- [x] CA-13: la petición de subida lleva categoría, hecho para niños, tags y las opciones confirmadas
+- [x] El marcador `targetTag` es el primer tag aunque el usuario ponga muchos
+- [x] `findPublished` reconoce un vídeo con tags del usuario
 
 **Subtareas**
-- [ ] Mapear las opciones en `openSession`
-- [ ] Recorte de tags con el hueco del marcador
-- [ ] Test con tags largos
+- [x] Mapear las opciones en `openSession`
+- [x] Recorte de tags con el hueco del marcador
+- [x] Test con tags largos
 
-**Notas**: Marcar «hecho para niños» desactiva los comentarios en YouTube: aviso en la UI (T-30).
-
----
-
+**Notas**: **Evidencia**: `--filter=YouTubeOptions` → 7 passed (CA-13 con Http::fake: categoría, tags, hecho para niños, `notifySubscribers=false` en la consulta y `containsSyntheticMedia`; marcador primero con 30 tags largos y con unicode, vacíos, duplicados y comas; `findPublished` encuentra el vídeo con tags del usuario; reglas de PostRequest). `tests/Feature/Publishing tests/Feature/Connectors/Google` → 180 passed. Opciones: `category_id`, `tags`, `made_for_kids`, `notify_subscribers`, `contains_synthetic_media`. Los tags del usuario se recortan al límite de 500 caracteres (comas y comillas incluidas) reservando el hueco de `targetTag`. Cambio mínimo en el publicador: `openSession` y dos helpers estáticos.
 ### T-28 — Opciones de TikTok en `postInfo` (solo publicación directa)
 
 - **Descripción**: `disable_duet`, `disable_stitch`, `brand_organic_toggle`, `brand_content_toggle` y `is_aigc` (según T-26) solo cuando la cuenta publica en directo. En modo borrador no se envían. El publicador mantiene su regla de no abrir más de lo pedido.

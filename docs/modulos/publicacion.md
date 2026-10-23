@@ -39,6 +39,14 @@ No hay defensa nueva ni cambios en `PublishPostTarget` (ADR-005, opción O1): un
 
 Se usa desde el compositor (menú de la barra de acciones), desde el calendario y la lista (`POST posts/{post}/publish-now`, con confirmación) y desde el MCP (`publish_post_now`).
 
+## Compositor y texto por red
+
+El compositor (`resources/js/Pages/Posts/Compose.vue`, pantalla completa) escribe un **texto común** y permite «Editar por red»: cada destino puede tener un texto propio (`post_targets.text`; `null` = vinculado al común). Lo que se publica es el **texto efectivo** (`PostTarget::effectiveText()`), resuelto al leer, de modo que cambiar el texto común actualiza todos los destinos vinculados y deja intactos los propios. Los límites de caracteres y hashtags de cada red se validan sobre el texto efectivo.
+
+Las **opciones por red** (YouTube y TikTok) viajan en `options` de cada destino y las normaliza `PostService::plan`. Los interruptores se recuerdan por marca y red en `composer_presets` (`ComposerPresetService`) y se usan como valores iniciales al activar la red: solo los escribe el compositor web, nunca el MCP. Las **notas internas** (`posts.notes`) nunca se publican. El generador de enlaces con UTM es un diálogo del cliente sin modelo ni endpoint.
+
+Limitación conocida (anterior a esta iniciativa, fuera de alcance): dos destinos de la **misma cuenta** con el **mismo texto efectivo** pueden confundirse en `Publisher::findPublished()`, que identifica lo ya publicado por el contenido. Si hace falta publicar dos veces en una cuenta, usa textos distintos.
+
 ## Recuperación (`PublishRecovery::run()`)
 
 Se ejecuta al inicio de cada pasada del despachador:

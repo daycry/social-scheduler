@@ -28,6 +28,20 @@ En la biblioteca de **Media** sube imágenes y vídeos. El archivo va directo al
 
 Estados que verás: Borrador, Programada, Publicando, Procesando, Publicada y Con error. Mientras sea Borrador o Programada puedes editar, reprogramar o borrar. Una vez en curso o publicada, ya no.
 
+### El compositor
+
+El compositor ocupa toda la pantalla. Arriba eliges las redes con pastillas; cada una muestra su contador de caracteres y avisa de sus límites.
+
+- **Texto común y «Editar por red».** Escribe un texto que vale para todas las redes. Con **Editar por red** puedes darle a una red un texto propio (pestañas por red); las demás siguen el texto común. **Volver al texto común** descarta el propio de esa red (pide confirmación).
+- **Opciones por red.** YouTube (categoría, etiquetas, público infantil, avisos a suscriptores, contenido sintético…) y TikTok (visibilidad, comentarios, contenido de marca…) tienen su panel. La app **recuerda por marca** los interruptores de cada red y los pone como valores iniciales la próxima vez; si la cuenta o el tipo de contenido no admite una opción, no se ofrece.
+- **Notas.** Un campo de notas internas para tu equipo o para ti. Nunca se publican.
+- **UTM.** El botón de enlaces abre un generador: escribes la dirección y los parámetros `utm_` (origen, medio y campaña son obligatorios) y **Añadir** inserta el enlace ya montado en el texto.
+- **Emojis y asistente de texto** desde la barra del editor.
+- **Programar, borrador y Publicar ahora.** El botón principal programa; el menú que lo acompaña (**Más acciones de publicación**) guarda como borrador, guarda en la biblioteca o **publica ahora**. Publicar ahora no espera a la fecha: pide confirmación y envía la publicación enseguida. Durante unos segundos el estado se ve «Programada» hasta que se empieza a publicar. También lo ofrecen el calendario y la lista. Si sales con cambios sin guardar, la app te avisa.
+- **Biblioteca.** Guarda una publicación como plantilla desde el menú del compositor o desde la lista del calendario; en **Biblioteca**, **Usar** crea un borrador a partir de ella.
+
+Aviso: si publicas en la misma cuenta dos destinos con exactamente el mismo texto, la app puede confundirlos al comprobar duplicados; usa textos distintos.
+
 ### Qué pasa si algo falla
 
 - Un error temporal se reintenta solo (hasta 4 intentos).

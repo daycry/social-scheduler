@@ -115,6 +115,20 @@ Texto por destino: cada elemento de `targets` de `create_post` y `update_post` a
 
 Opciones por destino: cada elemento de `targets` acepta `options` con las mismas reglas que la web. YouTube: `category_id`, `tags` (se recortan a 500 caracteres y el marcador de idempotencia siempre se conserva), `made_for_kids`, `notify_subscribers`, `contains_synthetic_media`, `title`, `privacy` y `shorts_hashtag`. TikTok: `privacy_level`, `disable_comment` y, solo si la cuenta publica en directo, `disable_duet` y `disable_stitch` (solo vídeo), `brand_organic_toggle`, `brand_content_toggle` (no admite visibilidad privada) e `is_aigc`. Una opción que la red o la cuenta no admite da un error de validación del destino, igual que en la web. `get_post`, `create_post` y `update_post` devuelven las `options` de cada destino. El MCP **no** escribe los interruptores recordados por marca y red (los presets): solo los guarda el compositor web.
 
+Paridad web y MCP (compositor nuevo):
+
+| Función | Web (compositor) | MCP |
+|---|---|---|
+| Texto común y texto propio por red («Editar por red») | `text` de la publicación y de cada destino | `text` en `create_post`/`update_post` y en cada elemento de `targets`; se leen `text` y `effective_text` |
+| Opciones por red (YouTube, TikTok) | panel de opciones de cada red | `options` por destino, con las mismas reglas |
+| Opciones recordadas por marca y red (presets) | se guardan al programar o guardar el borrador | no se escriben ni se leen: solo los guarda el compositor web |
+| Notas internas | campo de notas del compositor | `notes` en `create_post`/`update_post` y `update_post_notes` |
+| Publicar ahora | menú de la barra de acciones, calendario y lista | `publish_post_now` y `publish_now: true` |
+| Generador de enlaces con UTM | diálogo del compositor (solo en el navegador, no guarda nada en el servidor) | sin herramienta: el agente escribe la URL ya con sus parámetros en el texto |
+| Biblioteca (guardar como plantilla y «Usar») | calendario, lista y `/library` | sin herramienta |
+
+Regresión: `tests/Feature/Mcp/Tools/` cubre cada herramienta de posts frente a las fases 1-5 (`McpToolsTest`, `McpTargetTextTest`, `McpOptionsTest`, `McpNotesTest`, `PublishPostNowToolTest`), incluido un ciclo completo `create_post` → `update_post_notes` → `publish_post_now` → `get_post` y que `tools/list` sigue ofreciendo las 19 herramientas.
+
 Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `create_post`. `get_report` devuelve una URL firmada de 5 min.
 
 Aislamiento: cada herramienta ejecuta sobre los servicios con el usuario del token (key u OAuth); un recurso ajeno responde "no encontrado" (`NotOwned`). Pruebas en `tests/Feature/Mcp/` (incluido `tests/Feature/Mcp/OAuth/`), `tests/Feature/Isolation/` y la batería E2E `tests/e2e/oauth.spec.ts`.

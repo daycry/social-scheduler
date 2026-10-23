@@ -184,3 +184,16 @@ test('McpAuth: rate limit por key devuelve 429', function () {
     // Otra key no comparte el limite.
     $this->rpc($this->mcpKey(User::factory()->create()), 'tools/list')->assertOk();
 });
+
+test('McpAuth: serverInfo anuncia el icono de la app (los clientes no muestran el del dominio de ngrok)', function () {
+    $key = $this->mcpKey(User::factory()->create());
+
+    $icons = $this->rpc($key, 'initialize', ['protocolVersion' => '2025-11-25', 'capabilities' => (object) [], 'clientInfo' => ['name' => 't', 'version' => '1']])
+        ->assertOk()->json('result.serverInfo.icons');
+
+    expect(collect($icons)->pluck('src')->all())->toContain(url('/icon-512.png'), url('/favicon.svg'))
+        ->and(collect($icons)->firstWhere('src', url('/icon-512.png'))['sizes'] ?? null)->toBe(['512x512']);
+    foreach (['icon-512.png', 'icon-192.png', 'favicon.svg', 'favicon.ico'] as $file) {
+        expect(filesize(public_path($file)))->toBeGreaterThan(0);
+    }
+});

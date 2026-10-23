@@ -110,18 +110,22 @@ class CalendarService
     }
 
     /**
-     * Texto que se muestra del post: el de la plantilla y, si esta vacio (todos los destinos con texto propio), el primer texto
-     * efectivo no vacio de sus destinos.
+     * Texto que se muestra del post: el de la plantilla, salvo que no se publique en ningun destino (plantilla vacia o TODOS los
+     * destinos con texto propio), y entonces el primer texto efectivo no vacio de sus destinos. El efectivo se resuelve con la
+     * plantilla ya cargada (`text ?? plantilla`) y no con `effectiveText()`, que consultaria el post de cada destino (N+1).
      */
     private function displayText(Post $post): string
     {
         $template = (string) $post->text;
-        if (trim($template) !== '') {
+        $targets = $post->targets;
+        $allOwn = $targets->isNotEmpty() && $targets->every(fn ($t) => trim((string) $t->text) !== '');
+
+        if (trim($template) !== '' && ! $allOwn) {
             return $template;
         }
 
-        foreach ($post->targets as $target) {
-            $effective = (string) $target->effectiveText();
+        foreach ($targets as $target) {
+            $effective = (string) ($target->text ?? $template);
             if (trim($effective) !== '') {
                 return $effective;
             }

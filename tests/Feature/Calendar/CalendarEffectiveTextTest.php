@@ -7,6 +7,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 // C-03 (T-22): el calendario y la lista muestran el primer texto efectivo si la plantilla esta vacia.
@@ -49,10 +50,37 @@ test('CalendarEffectiveText: con la plantilla vacia y todos los destinos desvinc
     }
 });
 
-test('CalendarEffectiveText: una plantilla con texto manda sobre el texto propio de los destinos', function () {
-    ceCreate([['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => 'Propio']], 'Plantilla');
+test('CalendarEffectiveText: la plantilla con texto manda mientras algun destino la publique (vinculado)', function () {
+    ceCreate([
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => 'Propio'],
+        ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo'],
+    ], 'Plantilla');
 
     expect(ceItemText())->toBe('Plantilla');
+});
+
+test('CalendarEffectiveText: si todos los destinos tienen texto propio se muestra el primero aunque la plantilla tenga texto (A2)', function () {
+    ceCreate([
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => 'Propio IG'],
+        ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo', 'text' => 'Propio FB'],
+    ], 'Plantilla que no se publica');
+
+    foreach (['week', 'month', 'list'] as $view) {
+        expect(ceItemText($view))->toBe('Propio IG');
+    }
+});
+
+test('CalendarEffectiveText: mostrar el texto de la plantilla no consulta el post de cada destino (sin N+1)', function () {
+    ceCreate([
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image'],
+        ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo'],
+    ], null);
+
+    DB::enableQueryLog();
+    ceItemText();
+    $postQueries = collect(DB::getQueryLog())->filter(fn ($q) => str_contains($q['query'], 'from "posts" where "posts"."id" = ?'))->count();
+
+    expect($postQueries)->toBe(0);
 });
 
 test('CalendarEffectiveText: se salta los destinos con texto propio vacio y se recorta a 140', function () {

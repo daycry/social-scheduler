@@ -8,6 +8,7 @@ use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\SocialAccount;
+use Carbon\CarbonInterface;
 use Throwable;
 
 /**
@@ -26,7 +27,7 @@ class FakePublisher implements Publisher, StatusPoller
     /** @var array<int, string> targetId => id externo */
     public array $externals = [];
 
-    /** @var array<int, \Carbon\CarbonInterface> targetId => cuando la red lo publico (findPublished respeta `since`) */
+    /** @var array<int, CarbonInterface> targetId => cuando la red lo publico (findPublished respeta `since`) */
     public array $publishedAt = [];
 
     public int $publishCalls = 0;

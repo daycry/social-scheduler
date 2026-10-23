@@ -7,7 +7,9 @@ use App\Connectors\Data\PublishRequest;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
+use App\Models\PublishAttempt;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 
 /** Construye la peticion normalizada de un destino (texto, media con URL firmada, opciones). */
 class PublishRequestFactory
@@ -38,8 +40,10 @@ class PublishRequestFactory
             media: $media,
             options: $target->options ?? [],
             reference: $target->external_reference,
-            // Margen de 5 min antes de la hora programada: desde ahi se busca lo ya publicado al reintentar.
-            since: $post->scheduled_at?->copy()->subMinutes(5),
+            // Margen de 5 min antes de la hora programada Y del primer intento de este destino: desde ahi se busca lo ya publicado
+            // al reintentar. Si la fecha se movio despues (p. ej. «Publicar ahora»), lo publicado en un intento ambiguo anterior
+            // sigue dentro de la ventana y no se duplica.
+            since: $this->searchWindowStart($target, $post->scheduled_at),
             progress: array_diff_key((array) ($target->progress ?? []), ['reconcile' => 1]),
             checkpoint: function (?string $reference, ?array $progress) use ($target): void {
                 $changes = array_filter(['external_reference' => $reference, 'progress' => $progress], fn ($v) => $v !== null);
@@ -50,6 +54,15 @@ class PublishRequestFactory
                 }
             },
         );
+    }
+
+    private function searchWindowStart(PostTarget $target, ?CarbonInterface $scheduledAt): ?CarbonInterface
+    {
+        $first = PublishAttempt::withoutUserScope()->where('post_target_id', $target->id)->where('attempt_no', 1)->latest('id')->value('started_at');
+        $first = $first !== null ? CarbonImmutable::parse($first) : null;
+        $start = $scheduledAt !== null && $first !== null ? ($first->lt($scheduledAt) ? $first : $scheduledAt) : ($scheduledAt ?? $first);
+
+        return $start?->copy()->subMinutes(5);
     }
 
     /**

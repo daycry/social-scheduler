@@ -22,6 +22,8 @@ class AuthenticatedSessionController extends Controller
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            // Login social (ADR-004): solo los proveedores con credenciales; sin ellas no hay boton (CA-10).
+            'socialProviders' => array_values(array_filter(SocialLoginController::PROVIDERS, SocialLoginController::enabled(...))),
         ]);
     }
 

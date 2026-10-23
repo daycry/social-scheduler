@@ -19,7 +19,14 @@ defineProps({
     status: {
         type: String,
     },
+    // Proveedores de login social con credenciales (CA-10): sin ellos no se pinta ningún botón.
+    socialProviders: {
+        type: Array,
+        default: () => [],
+    },
 });
+
+const socialNames = { google: 'Google', facebook: 'Facebook' };
 
 const form = useForm({
     email: '',
@@ -153,6 +160,19 @@ const submit = () => {
                 </PrimaryButton>
             </div>
         </form>
+
+        <div v-if="socialProviders.length" class="mt-6 space-y-3 border-t border-slate-200 pt-6">
+            <!-- Navegación completa (no Inertia): la ruta redirige a otro origen. -->
+            <a
+                v-for="provider in socialProviders"
+                :key="provider"
+                :href="route('social.redirect', provider)"
+                class="btn-secondary w-full"
+                :data-testid="`social-${provider}`"
+            >
+                Continuar con {{ socialNames[provider] ?? provider }}
+            </a>
+        </div>
 
         <div class="mt-6 border-t border-slate-200 pt-6">
             <template v-if="canUsePasskeys">

@@ -739,16 +739,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 3 — C-03 · UI, E2E, accesibilidad, documentación y cierre
 
-**Estado**: borrador · **Estimado**: 21.0h · **Real**: — · **Coste est.**: 1.050 € + tokens (⚠️ verificar) · **Tokens est.**: 0.85M
+**Estado**: en-progreso · **Estimado**: 21.0h · **Real**: — · **Coste est.**: 1.050 € + tokens (⚠️ verificar) · **Tokens est.**: 0.85M
 
 ### T-20 — Botones «Continuar con Google» y «Continuar con Facebook» en `Login.vue`
 
 - **Descripción**: Los botones solo se muestran si el proveedor está configurado (prop compartida desde el controlador). Mismo estilo que el botón de passkey, accesibles y sin desbordamiento a 375 y 360 px.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.27h · real —
-- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Changelog**: La pantalla de entrada muestra «Continuar con Google» y «Continuar con Facebook» solo cuando ese acceso está configurado.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.27h · real 0.27h (estimado)
+- **Supervisión**: est. 0.07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
 - **Tipo**: frontend
@@ -760,14 +760,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `vendor/bin/pint --test` → passed
 
 **Criterios de aceptación**
-- [ ] CA-10 en la UI: el botón aparece solo con el proveedor configurado
-- [ ] Los botones tienen texto visible y nombre accesible
-- [ ] El orden de tabulación no rompe el formulario
+- [x] CA-10 en la UI: el botón aparece solo con el proveedor configurado
+- [x] Los botones tienen texto visible y nombre accesible
+- [x] El orden de tabulación no rompe el formulario
 
 **Subtareas**
-- [ ] Prop `socialProviders`
-- [ ] Botones
-- [ ] Test de props
+- [x] Prop `socialProviders`
+- [x] Botones
+- [x] Test de props
+
+**Evidencia (2026-10-23)**: npm run build → OK; --filter=LoginPageProviders → 3 passed (sin credenciales: sin botones y 404 en redirect; solo el configurado; sin secretos en la respuesta); pint --test → passed. Medición 375/360 px y axe: T-26.
+
+---
 
 ---
 

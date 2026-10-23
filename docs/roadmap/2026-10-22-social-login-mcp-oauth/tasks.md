@@ -37,8 +37,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
 | Fase 2 — C-01 · Login social | 7 | 7 | 100% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
-| Fase 3 — C-03 · UI, E2E, docs y cierre | 8 | 9 | 89% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
-| **TOTAL** | **18** | **28** | **64%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
+| Fase 3 — C-03 · UI, E2E, docs y cierre | 9 | 9 | 100% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
+| **TOTAL** | **27** | **28** | **96%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
 > **Horas reales (G7).** Las horas reales de la Fase 1 son una **estimación a juicio** (marcadas `(estimado)` en cada tarea): no se midieron con `usage-meter` (las tareas se cerraron sin marcadores de medición), así que no hay dato medido. Suma de las tareas cerradas T-01..T-10 ≈ 4,5h IA ejecución, ≈ 1,1h supervisión y ≈ 5,3h humanas (las tareas pesan muy por debajo de la estimación porque la IA ejecutó casi todo el trabajo); más ≈ 0,8h IA de la revisión F1 (intento 1). La tabla de arriba deja las columnas «real» a 0 hasta que existan datos medidos; estas cifras no se imputan a Jira.
 
@@ -497,7 +497,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 2 — C-01 · Login social con Google y Facebook (backend)
 
-**Estado**: en-progreso · **Estimado**: 26.0h · **Real**: — · **Coste est.**: 1.300 € + tokens (⚠️ verificar) · **Tokens est.**: 1.05M
+**Estado**: completado · **Estimado**: 26.0h · **Real**: — · **Coste est.**: 1.300 € + tokens (⚠️ verificar) · **Tokens est.**: 1.05M
 
 ### T-13 — Socialite, configuración de login y migración `social_identities`
 
@@ -740,7 +740,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 3 — C-03 · UI, E2E, accesibilidad, documentación y cierre
 
-**Estado**: en-progreso · **Estimado**: 21.0h · **Real**: — · **Coste est.**: 1.050 € + tokens (⚠️ verificar) · **Tokens est.**: 0.85M
+**Estado**: completado · **Estimado**: 21.0h · **Real**: — · **Coste est.**: 1.050 € + tokens (⚠️ verificar) · **Tokens est.**: 0.85M
 
 ### T-20 — Botones «Continuar con Google» y «Continuar con Facebook» en `Login.vue`
 
@@ -1023,8 +1023,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-28 — Revisión final, regresión completa y cierre del plan
 
 - **Descripción**: Suite Pest completa, Pint, build y Playwright completo; comprueba que lo declarado «sin cambios» sigue intacto y que no se ha tocado ningún dato del usuario id 28. Entrega los M-xx como checklist para el usuario, actualiza el estado de la spec y el índice del roadmap. Puerta de salida de la fase 3.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Puedes entrar con Google o Facebook y conectar Claude Code, Claude Desktop, Codex u OpenCode al MCP iniciando sesión en el navegador, sin copiar ninguna API key; todo cubierto por tests de extremo a extremo en escritorio y móvil.
+- **Estado**: completado
 - **Tiempo humano**: est. 2,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.27h · real —
 - **Supervisión**: est. 0.07h (≈25 % IA) · real —
@@ -1041,15 +1041,27 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `grep -rnE "find\(28\)|where\('id', *28\)|id *= *28" app database tests/e2e` → vacío (ningún código toca al usuario id 28)
 
 **Criterios de aceptación**
-- [ ] Todos los criterios globales del plan cumplidos
-- [ ] Los 8 M-xx entregados como checklist, con los de Google/Facebook reales y clientes MCP para el usuario
-- [ ] Spec en `implementada` solo si CA-29 está verificado por el usuario
+- [x] Todos los criterios globales del plan cumplidos, salvo CA-29 (smoke con los 4 clientes reales), que depende de T-11
+- [x] Los 8 M-xx entregados como checklist, con los de Google/Facebook reales y clientes MCP para el usuario
+- [x] Spec en `implementada` solo si CA-29 está verificado por el usuario: NO lo está todavía, así que la spec sigue `aprobada` y el plan `en-progreso` hasta cerrar T-11
 
 **Subtareas**
-- [ ] Regresión completa
-- [ ] Comprobaciones de «sin cambios»
-- [ ] Cierre de ledger y roadmap
+- [x] Regresión completa
+- [x] Comprobaciones de «sin cambios»
+- [x] Cierre de ledger y roadmap
 
+
+**Evidencia (2026-10-23)**: `php artisan test --compact` → 1223 passed; `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx tsc --noEmit -p .` → 0 errores; `npx playwright test` (3 proyectos) → 268 passed · 0 failed · 0 flaky · 2 skipped (16,4 min) y `qa-gate` sobre `testing/results.json` → VERDE; `git diff --stat feature/social-scheduler..HEAD -- app/Http/Middleware/McpGuard.php app/Mcp/Tools/SchedulerTool.php app/Services/AuditLog.php vendor` → vacío; grep del usuario id 28 en `app database tests/e2e` → vacío. Revisión de la fase 3 (intento 1): sin Critical ni Important; los Minor corregidos en 7986b1f (tabla al final del ledger).
+
+**Checklist para el usuario (M-xx, detalle en `test-plan.md`)**:
+- ⏳ M-01 · Login real con Google por ngrok (app de Google Cloud propia del login, redirect `<APP_URL>/auth/google/callback`).
+- ⏳ M-02 · Login y vinculación real con Facebook por ngrok (app de Meta propia del login, modo Desarrollo con roles).
+- ⏳ M-03 · Claude Code CLI sin API key (T-11, CA-29).
+- ⏳ M-04 · Claude Desktop, conector personalizado (T-11).
+- ⏳ M-05 · Codex (T-11).
+- ⏳ M-06 · OpenCode (T-11).
+- ⏳ M-07 · Nginx/Hestia real: `/.well-known/*` y cabecera `Authorization` con el `curl` de `docs/modulos/despliegue.md`.
+- ⏳ M-08 · Teclado y lector de pantalla en el login, Cuentas vinculadas y el consentimiento.
 ---
 
 
@@ -1122,3 +1134,22 @@ Lentes B+C sobre `693031d~1..HEAD`. C1 verificado contra el MySQL local con tran
 | N3 | Minor | `transfer` borra la fila bloqueada del dueño anterior y con ella su exclusión de la vinculación automática | T-17 | deuda aceptada (Minor): solo afecta si Google reasignara el email de A a otra cuenta Google | `SocialIdentityResolver.php:153` |
 
 Resultado: sin gaps Critical ni Important pendientes. Suite 1205 passed.
+
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-20..T-27) — sin gaps Critical ni Important
+
+Lentes A y B+C (C: proveedor falso de Socialite y rutas de auth). Diff `e606e1e..HEAD`. `scope-check --base e606e1e` → 0 fuera de alcance. `qa-gate` → VERDE (268 passed).
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| C1 | C | Minor | La barrera de APP_URL local del proveedor falso se cumplía por defecto si faltaba `APP_URL` (`http://localhost`), y no miraba el Host (CWE-1188/489) | T-23 | corregido (7986b1f): exige `APP_URL` explícita y Host local | `FakeSocialiteProvider::allowed`; `FakeSocialProviderEnvTest` |
+| B4 | B | Minor | El test «no se activa por query» corría en `testing` y no probaba nada | T-23 | corregido: corre con `APP_ENV=e2e` | `FakeSocialProviderEnvTest` |
+| B2 | B | Minor | La limpieza E2E borraba auditoría con `user_id` NULL que no era de la batería | T-24, T-25 | corregido: solo las filas de los clientes `e2e-%`; los rechazos sociales no atribuibles se dejan | `tests/e2e/helpers.ts` |
+| B3 | B/C | Minor | Se reiniciaba el tope GLOBAL de DCR (CWE-799) | T-25 | corregido: ya no se reinicia; el servidor E2E lo sube por variable de proceso. Aviso en la guía de no correr la batería con tráfico real por ngrok | `helpers.ts`; `playwright.config.ts`; `desarrollo-local.md` |
+| A1 | A | Minor | Aserciones del test-plan que no hace ningún E2E | T-24, T-25 | corregido en el ledger: cubiertas por Pest (`TwoFactorChallengeViaTest`, `LinkUnlinkTest`, `LoginPageProvidersTest`) | este ledger |
+| A2 | A | Minor | La evidencia de T-24 decía 5 specs (son 7 por proyecto) | T-24 | corregido | este ledger |
+| A3 | A | Minor | Faltaban `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR` en `.env.example` y las variables nuevas en la referencia de configuración | T-27 | corregido | `.env.example`; `docs/referencia/configuracion.md`; `docs/modulos/mcp.md` |
+| A4 | A | Minor | T-27 completada con la verificación «probado en T-11» pendiente | T-27, T-11 | corregido: `mcp.md` añadido a T-11 para quitar el «pendiente de verificar» al cerrar el smoke | este ledger |
+| A6 | A | Minor | Marcador `<APP_URL>` ambiguo en las redirect URIs (`https://https://…`) | T-27 | corregido: `<APP_URL>` siempre con esquema | `login-social-google-meta.md`; `mcp.md`; `despliegue.md` |
+
+Resultado: sin gaps Critical ni Important. Suite 1223 passed; E2E desktop de `oauth` y `social` 12 passed tras las correcciones; batería completa 268 passed.

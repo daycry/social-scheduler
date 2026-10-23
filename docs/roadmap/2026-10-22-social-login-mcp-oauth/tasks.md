@@ -36,7 +36,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
-| Fase 2 — C-01 · Login social | 4 | 7 | 57% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 2 — C-01 · Login social | 5 | 7 | 71% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **11** | **28** | **39%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
@@ -635,30 +635,32 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-17 — Vincular y desvincular desde el perfil (`password.confirm`) y bloqueo de la vinculación automática
 
 - **Descripción**: `SocialIdentityController` (`link` y `unlink`) con `password.confirm`. Vincular deja `social.intent=link` en sesión y el callback, con sesión iniciada, vincula o desbloquea; si la identidad pertenece a otro usuario, error en el perfil y ningún cambio (CA-07). Desvincular marca `blocked_at` y audita `social.unlinked`: la vinculación automática no la vuelve a enlazar (CA-08). `ProfileController` expone al Inertia las cuentas vinculadas.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.68h · real —
-- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Changelog**: Desde el perfil puedes vincular y desvincular Google y Facebook (pide confirmar la contraseña); una cuenta desvinculada no se vuelve a enlazar sola por correo.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.68h · real 0.68h (estimado)
+- **Supervisión**: est. 0.17h (≈25 % IA) · real 0.17h (estimado)
 - **Previsión IA**: 183k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-15
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Profile/SocialIdentityController.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Http/Controllers/ProfileController.php`, `routes/auth.php`, `tests/Feature/Auth/Social/LinkUnlinkTest.php`
+- **Archivos**: `app/Http/Controllers/Profile/SocialIdentityController.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Http/Controllers/ProfileController.php`, `app/Services/Auth/SocialIdentityResolver.php`, `routes/auth.php`, `tests/Feature/Auth/Social/LinkUnlinkTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=LinkUnlink` → CA-07 (incluida la identidad ya ajena) y CA-08 en verde
   - `php artisan test --compact tests/Feature/ProfileTest.php` → sigue en verde
 
 **Criterios de aceptación**
-- [ ] CA-07: vincular Facebook con `password.confirm` lo añade a la lista; identidad ajena → error y sin cambios
-- [ ] CA-08: tras desvincular, el login con esa identidad no entra y Google no la re-vincula por email hasta vincularla a mano
-- [ ] Vincular y desvincular exigen `password.confirm`
-- [ ] Auditoría `social.linked` / `social.unlinked` sin secretos
+- [x] CA-07: vincular Facebook con `password.confirm` lo añade a la lista; identidad ajena → error y sin cambios
+- [x] CA-08: tras desvincular, el login con esa identidad no entra y Google no la re-vincula por email hasta vincularla a mano
+- [x] Vincular y desvincular exigen `password.confirm`
+- [x] Auditoría `social.linked` / `social.unlinked` sin secretos
 
 **Subtareas**
-- [ ] Rama `intent=link` del callback
-- [ ] Controlador y rutas
-- [ ] Props del perfil
+- [x] Rama `intent=link` del callback
+- [x] Controlador y rutas
+- [x] Props del perfil
+
+**Evidencia (2026-10-23)**: `--filter=LinkUnlink` → 15 passed (CA-07 incluida la identidad ajena, CA-08); `ProfileTest.php` + `tests/Feature/Auth` → verde. Desviación: vincular es `POST user/social/{provider}/link` (con CSRF, y `Inertia::location` si la petición es Inertia) y desvincular `DELETE user/social/{provider}`; `ProfileController` expone `socialAccounts`; la lógica de vincular/desbloquear/desvincular vive en `SocialIdentityResolver` (`app/Services/Auth/SocialIdentityResolver.php`, añadido a Archivos).
 
 ---
 

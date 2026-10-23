@@ -57,7 +57,11 @@ class SocialLoginController extends Controller
     {
         abort_unless(self::enabled($provider), 404);
 
-        $response = $this->handleCallback($request, $provider);
+        $intent = (string) $request->session()->pull('social.intent', 'login');
+
+        $response = $intent === 'link'
+            ? $this->handleLink($request, $provider)
+            : $this->handleLogin($request, $provider);
 
         // Facebook anade el fragmento `#_=_` a la URL de retorno y el navegador lo hereda en las redirecciones sin
         // fragmento propio: un `#` vacio lo sustituye y la URL final queda limpia.
@@ -68,10 +72,31 @@ class SocialLoginController extends Controller
         return $response;
     }
 
-    private function handleCallback(Request $request, string $provider): RedirectResponse
+    /** Vincular desde el perfil: exige la sesion iniciada (la contrasena se confirmo al pedir el enlace). */
+    private function handleLink(Request $request, string $provider): RedirectResponse
     {
-        $request->session()->pull('social.intent', 'login');
+        $user = $request->user();
+        if ($user === null) {
+            return redirect()->route('login')->withErrors(['email' => 'Tu sesión caducó. Inicia sesión de nuevo.']);
+        }
 
+        $name = $this->name($provider);
+        $social = $this->fetchUser($request, $provider, 'profile.edit', 'social');
+        if ($social instanceof RedirectResponse) {
+            return $social;
+        }
+
+        $result = $this->resolver->link($user, $provider, $social);
+
+        return match ($result) {
+            SocialIdentityResolver::LINKED, SocialIdentityResolver::RELINKED, SocialIdentityResolver::ALREADY => redirect()->route('profile.edit')->with('status', "{$name} vinculado a tu cuenta."),
+            SocialIdentityResolver::OTHER_IDENTITY => redirect()->route('profile.edit')->withErrors(['social' => "Ya tienes otra cuenta de {$name} vinculada. Desvincúlala primero."]),
+            default => redirect()->route('profile.edit')->withErrors(['social' => "Esa cuenta de {$name} no se puede vincular: ya está en uso."]),
+        };
+    }
+
+    private function handleLogin(Request $request, string $provider): RedirectResponse
+    {
         // Ya con sesion (p. ej. una pestana vieja): no hay nada que iniciar.
         if (Auth::check()) {
             return redirect()->intended(route('dashboard', absolute: false));
@@ -101,30 +126,30 @@ class SocialLoginController extends Controller
      * invalido, proveedor caido) vuelve a /login con un mensaje legible y sin 500. Del error solo se registra la
      * clase: el mensaje de Guzzle incluye la URL con el code.
      */
-    private function fetchUser(Request $request, string $provider): SocialUser|RedirectResponse
+    private function fetchUser(Request $request, string $provider, string $back = 'login', string $errorKey = 'email'): SocialUser|RedirectResponse
     {
         $name = $this->name($provider);
 
         if ($request->query('error') !== null || $request->query('error_reason') !== null) {
-            return $this->failed($provider, 'cancelled', "Cancelaste el inicio de sesión con {$name}.");
+            return $this->failed($provider, 'cancelled', $back, $errorKey, "Cancelaste el inicio de sesión con {$name}.");
         }
 
         try {
             return $this->driver($provider)->user();
         } catch (InvalidStateException) {
-            return $this->failed($provider, 'invalid_state', "La sesión con {$name} caducó. Vuelve a intentarlo.");
+            return $this->failed($provider, 'invalid_state', $back, $errorKey, "La sesión con {$name} caducó. Vuelve a intentarlo.");
         } catch (Throwable $e) {
             Log::warning('social.login.provider_error', ['provider' => $provider, 'exception' => $e::class]);
 
-            return $this->failed($provider, 'provider_error', "No hemos podido hablar con {$name}. Inténtalo de nuevo en unos minutos.");
+            return $this->failed($provider, 'provider_error', $back, $errorKey, "No hemos podido hablar con {$name}. Inténtalo de nuevo en unos minutos.");
         }
     }
 
-    private function failed(string $provider, string $reason, string $message): RedirectResponse
+    private function failed(string $provider, string $reason, string $back, string $errorKey, string $message): RedirectResponse
     {
         $this->audit->record(null, 'auth.social.login', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo='.$reason, 'web');
 
-        return redirect()->route('login')->withErrors(['email' => $message]);
+        return redirect()->route($back)->withErrors([$errorKey => $message]);
     }
 
     private function name(string $provider): string

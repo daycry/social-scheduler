@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Profile\PasskeyController;
+use App\Http\Controllers\Profile\SocialIdentityController;
 use App\Http\Controllers\Profile\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
@@ -95,6 +96,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [PasskeyController::class, 'store'])->block(5, 5)->name('store');
         Route::patch('{id}', [PasskeyController::class, 'update'])->where('id', '[0-9]{1,18}')->name('update');
         Route::delete('{id}', [PasskeyController::class, 'destroy'])->where('id', '[0-9]{1,18}')->name('destroy');
+    });
+
+    // Cuentas vinculadas (perfil): vincular y desvincular exigen la contrasena confirmada recientemente.
+    Route::middleware('password.confirm')->prefix('user/social')->name('social.')->group(function () {
+        Route::post('{provider}/link', [SocialIdentityController::class, 'link'])->whereIn('provider', SocialLoginController::PROVIDERS)->name('link');
+        Route::delete('{provider}', [SocialIdentityController::class, 'unlink'])->whereIn('provider', SocialLoginController::PROVIDERS)->name('unlink');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

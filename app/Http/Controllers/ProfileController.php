@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\TwoFactor\TotpService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -53,6 +54,18 @@ class ProfileController extends Controller
             ] : null,
             // Los codigos en claro viajan una sola vez (flash).
             'recoveryCodes' => session('recoveryCodes'),
+            // Cuentas vinculadas (login social): solo lo que pinta la lista. `enabled` = proveedor con credenciales.
+            'socialAccounts' => collect(SocialLoginController::PROVIDERS)->map(function (string $provider) use ($user) {
+                $identity = $user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')->first();
+
+                return [
+                    'provider' => $provider,
+                    'enabled' => SocialLoginController::enabled($provider),
+                    'linked' => $identity !== null,
+                    'email' => $identity?->email,
+                    'linked_at' => $identity?->linked_at?->toIso8601String(),
+                ];
+            })->all(),
             // Passkeys: solo lo que pinta la lista (nada de credential_id, clave publica ni contador). `confirmed` dice si
             // el alta/renombrado/borrado pasan ya por `password.confirm` o hay que pedir la contrasena antes (sin 423 visible).
             'passkeys' => [

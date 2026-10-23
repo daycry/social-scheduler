@@ -53,6 +53,90 @@ class SocialIdentityResolver
         return $this->autoLinkGoogle($social, $providerId);
     }
 
+    public const LINKED = 'linked';
+
+    public const RELINKED = 'relinked';
+
+    public const ALREADY = 'already';
+
+    public const TAKEN = 'taken';
+
+    public const OTHER_IDENTITY = 'other_identity';
+
+    public const NO_ID = 'no_id';
+
+    /**
+     * Vinculacion manual desde el perfil (sesion iniciada y contrasena confirmada; lo comprueba el controlador).
+     * Si la identidad (proveedor, id) ya es de OTRO usuario no cambia nada. Si es de este usuario y estaba
+     * desvinculada, la desbloquea. Un usuario tiene como mucho una identidad activa por proveedor.
+     */
+    public function link(User $user, string $provider, SocialUser $social): string
+    {
+        $providerId = trim((string) $social->getId());
+        if ($providerId === '') {
+            return self::NO_ID;
+        }
+
+        $identity = SocialIdentity::where('provider', $provider)->where('provider_user_id', $providerId)->first();
+        if ($identity !== null) {
+            if ($identity->user_id !== $user->id) {
+                $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=taken', 'web');
+
+                return self::TAKEN;
+            }
+            if (! $identity->isBlocked()) {
+                return self::ALREADY;
+            }
+
+            $identity->forceFill(['blocked_at' => null, 'linked_at' => now(), 'email' => $this->emailOf($social)])->save();
+            $this->audit->record($user, 'social.linked', AuditLog::OK, 'social_identity', $identity->id, 'provider='.$provider.';modo=manual;desbloqueada', 'web');
+
+            return self::RELINKED;
+        }
+
+        if ($user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')->exists()) {
+            $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=other_identity', 'web');
+
+            return self::OTHER_IDENTITY;
+        }
+
+        try {
+            $identity = $user->socialIdentities()->create([
+                'provider' => $provider,
+                'provider_user_id' => $providerId,
+                'email' => $this->emailOf($social),
+                'linked_at' => now(),
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            return self::TAKEN;
+        }
+
+        $this->audit->record($user, 'social.linked', AuditLog::OK, 'social_identity', $identity->id, 'provider='.$provider.';modo=manual', 'web');
+
+        return self::LINKED;
+    }
+
+    /** Desvincula: la fila queda bloqueada para que la vinculacion automatica no la vuelva a enlazar. */
+    public function unlink(User $user, string $provider): bool
+    {
+        $identity = $user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')->first();
+        if ($identity === null) {
+            return false;
+        }
+
+        $identity->forceFill(['blocked_at' => now()])->save();
+        $this->audit->record($user, 'social.unlinked', AuditLog::OK, 'social_identity', $identity->id, 'provider='.$provider, 'web');
+
+        return true;
+    }
+
+    private function emailOf(SocialUser $social): ?string
+    {
+        $email = trim((string) $social->getEmail());
+
+        return $email === '' ? null : $email;
+    }
+
     private function autoLinkGoogle(SocialUser $social, string $providerId): SocialResolution
     {
         $email = trim((string) $social->getEmail());

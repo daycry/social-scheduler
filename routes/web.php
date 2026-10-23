@@ -67,6 +67,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('posts/{post}', [PostController::class, 'update'])->name('posts.update');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+    // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
+    Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:30,1')->name('posts.publish-now');
 
     // Informes PDF/CSV (T-40). `link` genera un enlace firmado nuevo al pulsar Descargar (no caduca en pantalla);
     // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.

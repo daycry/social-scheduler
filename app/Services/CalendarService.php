@@ -129,6 +129,8 @@ class CalendarService
             'local_time' => $local?->format('H:i'),
             'local_datetime' => $local?->format('Y-m-d\TH:i'),
             'editable' => $editable,
+            // «Publicar ahora» (borradores y programadas con destinos que aun se pueden editar); la accion la valida PostService.
+            'can_publish_now' => $editable && $post->targets->isNotEmpty() && in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled], true),
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'network' => $t->network->value,
                 'network_label' => $t->network->label(),

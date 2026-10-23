@@ -2,8 +2,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
  * Calendario inspirado en Planning de Metricool (ui-reference.md): semana por franjas horarias, mes y lista
@@ -90,6 +91,55 @@ const createHref = computed(() => (createBrand.value ? route('brands.posts.creat
 const networkOf = (n) => NETWORK_STYLE[n] ?? { short: n, classes: 'bg-slate-100 text-slate-700 border-slate-300' };
 const saveToLibrary = (item) =>
     router.post(route('library.store'), { post_id: item.id, name: (item.text || 'Mi plantilla').slice(0, 60) }, { preserveScroll: true });
+
+// ---------------------------------------------------------------- publicar ahora
+// Confirmación -> POST posts/{id}/publish-now. La tarjeta muestra «Enviando…» mientras la petición va y, después, hasta que el
+// worker reclama el destino (el estado deja de ser borrador/programada): entre tanto se refresca el calendario cada pocos segundos.
+const confirming = ref(null);
+const opener = ref(null);
+const sending = ref(new Set());
+const askPublishNow = (item, event) => {
+    opener.value = event?.currentTarget ?? null;
+    confirming.value = item;
+};
+const PENDING = ['borrador', 'programada'];
+let pollTimer = null;
+let polls = 0;
+const stopPolling = () => {
+    clearInterval(pollTimer);
+    pollTimer = null;
+};
+const startPolling = () => {
+    if (pollTimer) return;
+    polls = 0;
+    pollTimer = setInterval(() => {
+        if (sending.value.size === 0 || ++polls > 15) return stopPolling();
+        router.reload({ only: ['items', 'undated', 'flash'], preserveScroll: true });
+    }, 4000);
+};
+const publishNow = (item) => {
+    confirming.value = null;
+    sending.value = new Set(sending.value).add(item.id);
+    router.post(route('posts.publish-now', item.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => startPolling(),
+        onError: () => stopSending(item.id),
+    });
+};
+const stopSending = (id) => {
+    const next = new Set(sending.value);
+    next.delete(id);
+    sending.value = next;
+};
+// Un error del servidor (flash.error) o un estado distinto de pendiente liberan la tarjeta.
+watch(() => [props.items, props.undated, props.flash?.error], () => {
+    const all = [...props.items, ...props.undated];
+    for (const id of sending.value) {
+        const item = all.find((i) => i.id === id);
+        if (!item || !PENDING.includes(item.status) || props.flash?.error) stopSending(id);
+    }
+});
+onBeforeUnmount(stopPolling);
 const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_time}` : 'Sin fecha');
 </script>
 
@@ -168,6 +218,8 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                         </span>
                                         <span class="line-clamp-2 text-slate-800">{{ item.text || 'Sin texto' }}</span>
                                     </Link>
+                                    <span v-if="sending.has(item.id)" role="status" class="mt-0.5 block text-[11px] font-medium text-indigo-700">Enviando…</span>
+                                    <button v-else-if="item.can_publish_now" type="button" class="link mt-0.5 text-[11px]" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                                 </article>
                             </div>
                         </template>
@@ -190,6 +242,8 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     </span>
                                     <span class="line-clamp-1 text-slate-800">{{ item.text || 'Sin texto' }}</span>
                                 </Link>
+                                <span v-if="sending.has(item.id)" role="status" class="block text-[11px] font-medium text-indigo-700">Enviando…</span>
+                                <button v-else-if="item.can_publish_now" type="button" class="link text-[11px]" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                             </article>
                         </div>
                     </div>
@@ -239,6 +293,8 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-2 text-right">
                                     <Link :href="route('posts.edit', item.id)" class="link">{{ item.editable ? 'Editar' : 'Ver' }}</Link>
+                                    <span v-if="sending.has(item.id)" role="status" class="ms-3 text-xs font-medium text-indigo-700">Enviando…</span>
+                                    <button v-else-if="item.can_publish_now" type="button" class="link ms-3" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                                     <button type="button" class="link ms-3" :aria-label="`Guardar la publicación ${item.id} en la biblioteca`" @click="saveToLibrary(item)">Guardar en biblioteca</button>
                                 </td>
                             </tr>
@@ -247,5 +303,6 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                 </div>
             </div>
         </div>
+        <PublishNowConfirm v-if="confirming" :item="confirming" :opener="opener" @confirm="publishNow" @cancel="confirming = null" />
     </AuthenticatedLayout>
 </template>

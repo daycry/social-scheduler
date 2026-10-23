@@ -103,9 +103,11 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 `*` también vale. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
 
-## Herramientas (14)
+## Herramientas (18)
 
-`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `reschedule_post`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `generate_report`, `get_report`.
+`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
+
+`publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
 
 Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `create_post`. `get_report` devuelve una URL firmada de 5 min.
 

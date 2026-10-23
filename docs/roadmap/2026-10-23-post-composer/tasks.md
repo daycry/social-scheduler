@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 4 | 9 | 44% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 5 | 9 | 56% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **12** | **42** | **29%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **13** | **42** | **31%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -450,15 +450,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-13 — Publicar ahora fuera del compositor: ruta, calendario, lista y herramienta MCP `publish_post_now`
 
 - **Descripción**: `POST posts/{post}/publish-now` (reutiliza `publishNow()` y `dueTargets()`), acción «Publicar ahora» con confirmación en la tarjeta del calendario y en la lista, y la herramienta MCP `publish_post_now` (`post_id`), registrada en `SchedulerServer`. Un post no editable (en vuelo, publicado o con un destino final) rechaza la acción con el mismo error que `update`. Un post ajeno se trata como no encontrado (`NotOwned`).
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Se puede publicar ahora una publicación desde el calendario (semana, mes y lista) con confirmación, y desde un agente de IA con la nueva herramienta publish_post_now.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.3h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: backend
-- **Archivos**: `routes/web.php`, `app/Http/Controllers/PostController.php`, `app/Mcp/Tools/PublishPostNow.php`, `app/Mcp/Servers/SchedulerServer.php`, `resources/js/Pages/Calendar/Index.vue`, `tests/Feature/Posts/PublishNowEndpointTest.php`, `tests/Feature/Mcp/Tools/PublishPostNowToolTest.php`, `docs/modulos/calendario.md`, `docs/modulos/mcp.md`
+- **Archivos**: `routes/web.php`, `app/Http/Controllers/PostController.php`, `app/Mcp/Tools/PublishPostNow.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/PostPayload.php`, `app/Services/CalendarService.php`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Components/Calendar/PublishNowConfirm.vue`, `tests/Feature/Posts/PublishNowEndpointTest.php`, `tests/Feature/Mcp/Tools/PublishPostNowToolTest.php`, `docs/modulos/calendario.md`, `docs/modulos/mcp.md`
 - **Cubre (tests)**: E2E-06, API-01, M-05
 - **Verificación**:
   - `php artisan test --compact --filter=PublishNowEndpoint` → en verde (borrador, programada, no editable y post ajeno)
@@ -466,17 +466,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `npm run test:e2e -- --grep "E2E-06"` → pasa en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] Confirmación antes de enviar, accesible y cancelable
-- [ ] El MCP cumple las mismas reglas que la web y no permite publicar posts de otra marca o usuario
-- [ ] La tarjeta muestra «Enviando…» y el calendario se refresca
+- [x] Confirmación antes de enviar, accesible y cancelable
+- [x] El MCP cumple las mismas reglas que la web y no permite publicar posts de otra marca o usuario
+- [x] La tarjeta muestra «Enviando…» y el calendario se refresca
 
 **Subtareas**
-- [ ] Ruta y método del controlador
-- [ ] Acción en `Calendar/Index.vue` (semana, mes y lista)
-- [ ] `PublishPostNow` y registro
-- [ ] Tests de ruta y de herramienta
+- [x] Ruta y método del controlador
+- [x] Acción en `Calendar/Index.vue` (semana, mes y lista)
+- [x] `PublishPostNow` y registro
+- [x] Tests de ruta y de herramienta
 
-**Notas**: +2h sobre la evaluación (diseño §4); lo absorbe C-08.
+**Notas**: **Evidencia**: `php artisan test --compact --filter=PublishNowEndpoint` → 12 passed (borrador, programada, no editable ×3, errores de contenido, post ajeno 404, sin sesión, `publish_now` desde el compositor, `prohibited_if` con `scheduled_at`, `throttle:30,1`, `can_publish_now` del calendario); `php artisan test --compact --filter=PublishPostNowTool` → 7 passed (paridad con la web, `NotOwned` igual para ajeno e inexistente, no editable con el mismo mensaje que `update_post`, ability `posts:write`, `create_post` con `publish_now`); `php artisan test --compact tests/Feature/Mcp tests/Feature/Isolation` → 222 passed (antes de esta tarea). E2E-06 (calendario y lista; se escribe en T-16): `composer.spec.ts --project=desktop` → 13 passed. La tarjeta muestra «Enviando…» y el calendario hace `router.reload` cada 4 s (máximo 15) hasta que el estado deja de ser borrador/programada. Desviaciones: (1) `SchedulerServer::$defaultPaginationLength = 25`: con 18 herramientas, `tools/list` paginaba a 15 y dejaba fuera `get_report`/`reply_comment` (rompía `McpStatsTest`); (2) `publish_now` también se documenta en `PostPayload` (create_post/update_post, según el diseño §4); (3) la ruta lleva `throttle:30,1` (revisión T-17: límite de peticiones). Pendiente M-05 (prueba con un cliente MCP real).
 
 ---
 

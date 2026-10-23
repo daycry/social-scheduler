@@ -86,6 +86,23 @@ class PostController extends Controller
         return redirect()->route('brands.show', $post->brand_id)->with('success', 'Publicacion eliminada.');
     }
 
+    /**
+     * «Publicar ahora» desde fuera del compositor (calendario y lista): borradores y programadas, con la misma validacion y
+     * las mismas defensas contra el doble despacho que el compositor. Un post ajeno es un 404 (UserScope + Policy).
+     */
+    public function publishNow(Request $request, Post $post): RedirectResponse
+    {
+        $this->authorize('update', $post);
+
+        try {
+            $this->posts->publishNow($request->user(), $post);
+        } catch (PostValidationException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', self::PUBLISHING_MESSAGE);
+    }
+
     /** Validacion en vivo del formulario (sin guardar): errores de media y limites por red. */
     public function validatePost(PostRequest $request, Brand $brand): JsonResponse
     {

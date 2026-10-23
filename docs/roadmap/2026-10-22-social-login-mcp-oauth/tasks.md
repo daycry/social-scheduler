@@ -685,7 +685,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 **Criterios de aceptación**
 - [x] Cada CA-01..CA-11 tiene al menos un test que lo nombra
 - [x] `url.intended` sobrevive al viaje (a `/oauth/authorize` incluido)
-- [x] Suite completa sin modificar tests existentes
+- [x] Suite completa sin modificar tests existentes, salvo la excepción de infraestructura de test `InfraTest --memory=1024` (sin cambiar aserciones; ver Notas)
 
 **Subtareas**
 - [x] Huecos de la matriz
@@ -693,6 +693,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Fugas
 
 **Evidencia (2026-10-23)**: `--filter=Social` → 76 passed (CA-01..CA-11 nombrados en tests; `SocialIntendedTest` cubre `url.intended` hasta `/oauth/authorize` y tras el reto 2FA; `SocialAuditLeakTest` revisa `audit_logs` y el log sin code, state, token ni secreto). Suite completa: ver evidencia al cierre de fase.
+
+**Notas (revisión fase 2, intento 1)**: se corrigen C1 (comparación de email exacta y byte a byte en PHP con `hash_equals`; en SQLite los tests no distinguen la collation `_ci` de MySQL, por lo que la garantía real es el filtro en PHP), B1 (RELINKED comprueba otra identidad activa; `unlink` bloquea todas las activas), B2 (transferencia de identidad bloqueada ajena, auditada), B3 (`block(5,5)`), B4, B5, B6, A2, A3 y A4. Desviación A2: textos literales de la tabla «Manejo de errores» de la spec (cancelado, state caducado, rechazo genérico «No hay ninguna cuenta vinculada a esta identidad. Vincúlala desde tu perfil.», proveedor caído «No se ha podido contactar con {Proveedor}.»); se mantiene un único mensaje de rechazo para no enumerar cuentas y, en modo vincular, los mensajes propios del perfil (OTHER_IDENTITY/TAKEN), que no figuran en la tabla.
 
 **Notas**: Desviación: `tests/Feature/Infra/InfraTest.php` (test existente) recibe `--memory=1024` en su `queue:work`. Con la suite ya en 1186 tests el worker de prueba, que corre dentro del proceso de Pest, superaba los 128 MB por defecto y paraba con 3 jobs sin procesar (pasaba solo, fallaba en la suite completa). No cambia ninguna aserción.
 

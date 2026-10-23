@@ -475,7 +475,32 @@ class TikTokPublisher implements Publisher, StatusPoller
         // La visibilidad pedida si la cuenta la permite; si no, la mas restrictiva (nunca se abre mas de lo pedido).
         $requested = $asked;
         if ($asked === '' || ! in_array($asked, $options, true)) {
-            $asked = in_array('SELF_ONLY', $options, true) ? 'SELF_ONLY' : (string) ($options[0] ?? 'SELF_ONLY');
+            if (in_array('SELF_ONLY', $options, true)) {
+                $asked = 'SELF_ONLY';
+            } else {
+                // Sin `SELF_ONLY`: la opcion permitida mas abierta que no supere la pedida (mismo orden de apertura que abajo).
+                $rank = ['SELF_ONLY' => 0, 'MUTUAL_FOLLOW_FRIENDS' => 1, 'FOLLOWER_OF_CREATOR' => 2, 'PUBLIC_TO_EVERYONE' => 3];
+                $limit = $rank[$requested] ?? 0;
+                $pick = null;
+                foreach ($options as $option) {
+                    if (isset($rank[$option]) && $rank[$option] <= $limit && ($pick === null || $rank[$option] > $rank[$pick])) {
+                        $pick = $option;
+                    }
+                }
+                if ($pick === null && $requested === '') {
+                    // Sin visibilidad pedida: la mas restrictiva de las que la cuenta ofrece.
+                    foreach ($options as $option) {
+                        if (isset($rank[$option]) && ($pick === null || $rank[$option] < $rank[$pick])) {
+                            $pick = $option;
+                        }
+                    }
+                    $pick ??= (string) ($options[0] ?? 'SELF_ONLY');
+                }
+                if ($pick === null) {
+                    throw new PermanentPublishException('La visibilidad pedida no esta disponible en esta cuenta de TikTok y no hay otra igual o mas restrictiva: elige una visibilidad que la cuenta admita.', 'visibilidad_no_disponible');
+                }
+                $asked = $pick;
+            }
         }
 
         // El contenido de marca (colaboracion de pago) no puede ser privado (directrices de TikTok, ver `testing/verificacion-campos-c04.md`):

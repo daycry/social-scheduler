@@ -176,6 +176,36 @@ test('PresetsReview: con marca y solo SELF_ONLY disponible el mensaje dice que l
     expect($http->callsTo('POST', '#/publish/video/init/#'))->toBe([]);
 });
 
+// --- Revision Fase 6: sin SELF_ONLY, la visibilidad no pedida nunca es mas abierta que la pedida ---
+
+function prTikTokPublish(array $offered, array $options): array
+{
+    $http = new FakeHttp;
+    $http->on('POST', '#creator_info/query/$#', ['json' => ['data' => ['privacy_level_options' => $offered], 'error' => ['code' => 'ok']]])
+        ->on('POST', '#/publish/video/init/$#', ['json' => ['data' => ['publish_id' => 'v1', 'upload_url' => 'https://open-upload.tiktokapis.com/video/?upload_id=U1&upload_token=T'], 'error' => ['code' => 'ok']]])
+        ->on('PUT', '#upload_id=U1#', ['status' => 201]);
+    $a = test()->video;
+    $media = new PublishMedia($a->id, 'video', 'video/mp4', 'https://cdn.test/v.mp4', 1080, 1920, 20.0, 30.0, 1024, $a->disk, $a->path);
+
+    (new TikTokPublisher)->publish(test()->tt->fresh(), new PublishRequest(55, ContentType::TikTokVideo, 'Video', [$media], $options, null, now()->subMinutes(5)));
+
+    return $http->callsTo('POST', '#/publish/video/init/#')[0]['json']['post_info'];
+}
+
+test('PresetsReview: sin SELF_ONLY y sin la visibilidad pedida usa la mas abierta que no la supere, con o sin marca', function (array $extra) {
+    $info = prTikTokPublish(['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS'], ['privacy_level' => 'FOLLOWER_OF_CREATOR'] + $extra);
+    expect($info['privacy_level'])->toBe('MUTUAL_FOLLOW_FRIENDS');
+})->with([[[]], [['brand_content_toggle' => true]]]);
+
+test('PresetsReview: sin SELF_ONLY y sin ninguna opcion igual o mas restrictiva que la pedida falla con un mensaje claro', function () {
+    expect(fn () => prTikTokPublish(['PUBLIC_TO_EVERYONE'], ['privacy_level' => 'FOLLOWER_OF_CREATOR']))
+        ->toThrow(PermanentPublishException::class, 'no esta disponible en esta cuenta');
+});
+
+test('PresetsReview: sin visibilidad pedida y sin SELF_ONLY usa la mas restrictiva que la cuenta ofrece', function () {
+    expect(prTikTokPublish(['PUBLIC_TO_EVERYONE', 'FOLLOWER_OF_CREATOR'], [])['privacy_level'])->toBe('FOLLOWER_OF_CREATOR');
+});
+
 // --- Extra: tags de YouTube sin saltos de linea ni caracteres de control ---
 
 test('PresetsReview: los tags de YouTube no llevan saltos de linea ni caracteres de control y el marcador sigue primero', function () {

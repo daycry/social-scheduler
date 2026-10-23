@@ -48,8 +48,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-03 | 8 | 8 | 100% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 8 | 8 | 100% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 4 | 5 | 80% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
-| Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **37** | **42** | **88%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| Fase 6 — C-11 | 2 | 4 | 50% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
+| **TOTAL** | **39** | **42** | **93%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -1283,13 +1283,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 6 — C-11 · Cierre: E2E, axe, MCP, documentación y smoke
 
-**Estado**: borrador · **Estimado**: 12,0h · **Real**: — · **Coste est.**: 600 € + tokens (⚠️ verificar) · **Tokens est.**: 0,48M
+**Estado**: en-progreso · **Estimado**: 12,0h · **Real**: — · **Coste est.**: 600 € + tokens (⚠️ verificar) · **Tokens est.**: 0,48M
 
 ### T-39 — Adaptar `flows.spec.ts` y `pages.spec.ts` al nuevo compositor, con axe
 
 - **Descripción**: Actualiza los selectores de los flujos que usan el compositor, añade el compositor y el calendario al barrido de axe y comprueba que ninguna página nueva desborda a 375 y 360 px.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Los flujos de prueba usan usuarios de prueba dedicados y se comprueba la accesibilidad del compositor y del calendario.
+- **Estado**: completado
 - **Tiempo humano**: est. 3,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,41h · real —
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
@@ -1303,24 +1303,24 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `npx tsc --noEmit -p .` → 0 errores
 
 **Criterios de aceptación**
-- [ ] CA-32: axe sin violaciones serias ni críticas en compositor y calendario
-- [ ] Los E2E existentes siguen en verde
-- [ ] Solo usuarios `e2e-sec-*`; ninguna referencia al usuario id 28
+- [x] CA-32: axe sin violaciones serias ni críticas en compositor y calendario
+- [x] Los E2E existentes siguen en verde
+- [x] Solo usuarios `e2e-sec-*`; ninguna referencia al usuario id 28
 
 **Subtareas**
-- [ ] Adaptar `flows.spec.ts`
-- [ ] Añadir páginas al barrido de axe
-- [ ] Ejecutar la batería completa
+- [x] Adaptar `flows.spec.ts`
+- [x] Añadir páginas al barrido de axe
+- [x] Ejecutar la batería completa
 
-**Notas**: —
+**Notas**: Los flujos con sesión de `flows.spec.ts` (marca → borrador → calendario → papelera → biblioteca, SmartLink y API keys) dejan la sesión demo y usan el usuario `e2e-sec-*` del proyecto (`loginAs(e2eUser(...))`) con marcas `e2e-`: crean y borran datos, así que no podían seguir con el demo (posible id 28). `pages.spec.ts` sigue siendo de solo lectura (solo `page.goto`), con la sesión demo; no hay ninguna referencia al id 28 (`grep` vacío). Nuevo helper `axeSeriousCritical` en `helpers.ts` (WCAG 2.x A/AA; falla con serious o critical). axe añadido al compositor y al calendario (semana, mes y lista) en `pages.spec.ts` y al compositor y calendario-lista en `flows.spec.ts`; `composer.spec.ts` ya cubría compositor, calendario y diálogos. **Evidencia**: `playwright test composer pages flows` → desktop 58 passed; mobile 57 passed + 1 skipped (el skip es el del shell de escritorio); mobile-360 57 passed + 1 skipped. `npx tsc --noEmit -p .` → 0 errores. No se ejecutó la batería completa del repo por memoria (los otros specs no se tocaron; los corre T-42).
 
 ---
 
 ### T-40 — Regresión de las herramientas MCP de posts y documentación
 
 - **Descripción**: Documenta lo nuevo en la guía de usuario, `publicacion.md` (incluida la nota de dos destinos de una cuenta con el mismo texto), `mcp.md` (`publish_post_now`, `update_post_notes`, `text`, `options`, `notes`) y `calendario.md`. Regresión de las herramientas MCP de posts.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La guía de usuario, la documentación de publicación y la del MCP describen el compositor nuevo, Publicar ahora, notas, UTM, opciones por red y biblioteca.
+- **Estado**: completado
 - **Tiempo humano**: est. 3,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,41h · real —
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
@@ -1335,15 +1335,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: la guía describe el compositor, Publicar ahora, texto por red, presets, notas y UTM
 
 **Criterios de aceptación**
-- [ ] CA-33 (documentación): guía, `publicacion.md` y `mcp.md` describen lo nuevo
-- [ ] La paridad web y MCP queda tabulada en `mcp.md`
+- [x] CA-33 (documentación): guía, `publicacion.md` y `mcp.md` describen lo nuevo
+- [x] La paridad web y MCP queda tabulada en `mcp.md`
 
 **Subtareas**
-- [ ] Guía de usuario
-- [ ] Módulos
-- [ ] Tabla de paridad
+- [x] Guía de usuario
+- [x] Módulos
+- [x] Tabla de paridad
 
-**Notas**: —
+**Notas**: `mcp.md`: tabla de paridad web y MCP y nota de regresión. `publicacion.md`: sección «Compositor y texto por red» (texto efectivo, opciones, presets, notas, UTM) con la limitación de dos destinos de la misma cuenta con el mismo texto. `guia-de-usuario.md`: sección «El compositor». `calendario.md` ya describía Publicar ahora (sin cambios). `configuracion.md`: sin variables nuevas en esta iniciativa (`git log` de `config/` y `.env.example` sin cambios de las fases 1-5), no se toca. Regresión MCP: `McpToolsTest` gana un ciclo completo (`create_post` con texto propio y notas → `update_post_notes` → `publish_post_now` → `get_post`) y comprueba las 19 herramientas. **Evidencia**: `php artisan test --compact tests/Feature/Mcp` → 212 passed; `grep -c "publish_post_now\|update_post_notes" docs/modulos/mcp.md` ≥ 2. `scripts/export-interop` no aplica (no se tocó `commands/`, `agents/` ni `hooks/`).
 
 ---
 
@@ -1351,7 +1351,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 - **Descripción**: Con el usuario: una publicación por red real con las opciones aprobadas (YouTube, TikTok en borrador, Instagram y Facebook con texto propio) y un Publicar ahora, registrado en `testing/`. Depende de las cuentas reales, de la cuota de YouTube (≈ 6 subidas al día) y de que TikTok siga en modo borrador.
 - **Changelog**: 
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 4,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,54h · real —
 - **Supervisión**: est. 0,14h (≈25 % IA) · real —
@@ -1374,7 +1374,21 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] Ejecutar con el usuario
 - [ ] Registrar la evidencia
 
-**Notas**: Puede quedar pendiente del usuario, como M-02..M-08 de la iniciativa anterior; el plan se cierra con M-01 y M-04 marcados como pendientes si es así.
+**Notas**: Manual, a cargo del usuario; **la tarea sigue `en-progreso`** y no se ha publicado nada en redes reales. Puede quedar pendiente del usuario, como M-02..M-08 de la iniciativa anterior; el plan se cierra con M-01 y M-04 marcados como pendientes si es así.
+
+**Checklist para el usuario (smoke real).** Contra la app desplegada en `https://social-scheduler.daycry.ovh` o en local por ngrok (con el worker y `schedule:work` en marcha). Usa cuentas y una marca de pruebas; apunta en `testing/smoke-real.md` la URL o el ID de cada publicación.
+
+1. **Antes**: cuentas conectadas y sin errores de reconexión; cuota de YouTube disponible (≈ 6 subidas al día, 1.600 ud cada una); TikTok en modo borrador (`direct_post` desactivado); un vídeo corto y una imagen JPEG subidos a Media.
+2. **YouTube** (vídeo corto): categoría, etiquetas, «¿para niños?», avisar a suscriptores y contenido sintético elegidos en el panel. Comprobar en YouTube Studio: título, categoría, etiquetas, la marca de niños, la visibilidad pedida y que hay **una sola** subida. Opcional: Short con `#Shorts`.
+3. **TikTok** (en borrador): subir el vídeo con las opciones del panel; comprobar que llega a la bandeja de TikTok (notificación en la app), que no se publica solo y que el destino queda «Publicada» con la nota de la bandeja. No marcar contenido de marca con visibilidad privada (la app lo rechaza).
+4. **Instagram** (imagen) y **Facebook** (texto o imagen) con **texto propio** distinto del común mediante «Editar por red»: comprobar que cada red muestra su texto y no el común, que no hay publicaciones duplicadas (reintento, doble clic o Publicar ahora) y que los enlaces con UTM salen tal como se generaron.
+5. **Publicar ahora**: crear un borrador de Facebook y usar «Publicar ahora» desde el compositor (o el calendario); confirmar que se publica una sola vez en menos de un par de minutos, que el calendario pasa de «Programada» a «Publicada» y que el despachador del minuto no lo repite.
+6. **Notas**: añadir notas y comprobar que no aparecen en ninguna red.
+7. **Recuento**: el número de destinos publicados coincide con el listado de publicaciones de la app; no queda ningún destino `publicando` ni `fallida` sin explicar. Anotar las incidencias abiertas.
+8. **Pendiente de la auditoría de TikTok** (no es un gap de código): el compositor no muestra aún la declaración literal «By posting, you agree to TikTok's Music Usage Confirmation / Branded Content Policy» junto al botón de publicar (según el caso de uso de la auditoría) ni obliga a elegir una opción al activar la divulgación de contenido. Revisarlo en la pantalla y decidir si se añade antes de pedir la auditoría; ver `testing/verificacion-campos-c04.md`.
+9. **Limpieza**: borrar las publicaciones de prueba de cada red a mano.
+
+Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendientes, como M-02..M-08 de la iniciativa anterior).
 
 ---
 

@@ -6,6 +6,7 @@ use App\Models\SocialIdentity;
 use App\Models\User;
 use App\Services\AuditLog;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Laravel\Socialite\Contracts\User as SocialUser;
 
 /**
@@ -74,18 +75,29 @@ class SocialIdentityResolver
     {
         $providerId = trim((string) $social->getId());
         if ($providerId === '') {
+            $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=no_id', 'web');
+
             return self::NO_ID;
         }
 
         $identity = SocialIdentity::where('provider', $provider)->where('provider_user_id', $providerId)->first();
         if ($identity !== null) {
             if ($identity->user_id !== $user->id) {
-                $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=taken', 'web');
+                // Una identidad desvinculada (bloqueada) en otra cuenta se transfiere: quien la vincula ya confirmo
+                // la contrasena y la sesion del proveedor es suya. Una activa nunca se mueve.
+                if (! $identity->isBlocked()) {
+                    $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=taken', 'web');
 
-                return self::TAKEN;
+                    return self::TAKEN;
+                }
+
+                return $this->transfer($user, $provider, $providerId, $identity, $social);
             }
             if (! $identity->isBlocked()) {
                 return self::ALREADY;
+            }
+            if ($this->hasOtherActive($user, $provider, $identity->id)) {
+                return $this->otherIdentity($user, $provider);
             }
 
             $identity->forceFill(['blocked_at' => null, 'linked_at' => now(), 'email' => $this->emailOf($social)])->save();
@@ -94,10 +106,8 @@ class SocialIdentityResolver
             return self::RELINKED;
         }
 
-        if ($user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')->exists()) {
-            $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=other_identity', 'web');
-
-            return self::OTHER_IDENTITY;
+        if ($this->hasOtherActive($user, $provider)) {
+            return $this->otherIdentity($user, $provider);
         }
 
         try {
@@ -108,6 +118,8 @@ class SocialIdentityResolver
                 'linked_at' => now(),
             ]);
         } catch (UniqueConstraintViolationException) {
+            $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=taken', 'web');
+
             return self::TAKEN;
         }
 
@@ -116,16 +128,60 @@ class SocialIdentityResolver
         return self::LINKED;
     }
 
+    private function hasOtherActive(User $user, string $provider, ?int $exceptId = null): bool
+    {
+        return $user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')
+            ->when($exceptId !== null, fn ($q) => $q->where('id', '!=', $exceptId))->exists();
+    }
+
+    private function otherIdentity(User $user, string $provider): string
+    {
+        $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=other_identity', 'web');
+
+        return self::OTHER_IDENTITY;
+    }
+
+    /** Mueve una identidad bloqueada de otra cuenta a esta: se borra la fila vieja y se crea la nueva. */
+    private function transfer(User $user, string $provider, string $providerId, SocialIdentity $old, SocialUser $social): string
+    {
+        if ($this->hasOtherActive($user, $provider)) {
+            return $this->otherIdentity($user, $provider);
+        }
+
+        try {
+            $identity = DB::transaction(function () use ($user, $provider, $providerId, $old, $social) {
+                $old->delete();
+
+                return $user->socialIdentities()->create([
+                    'provider' => $provider,
+                    'provider_user_id' => $providerId,
+                    'email' => $this->emailOf($social),
+                    'linked_at' => now(),
+                ]);
+            });
+        } catch (UniqueConstraintViolationException) {
+            $this->audit->record($user, 'social.linked', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo=taken', 'web');
+
+            return self::TAKEN;
+        }
+
+        $this->audit->record($user, 'social.linked', AuditLog::OK, 'social_identity', $identity->id, 'provider='.$provider.';modo=manual;transferida_de='.$old->user_id, 'web');
+
+        return self::LINKED;
+    }
+
     /** Desvincula: la fila queda bloqueada para que la vinculacion automatica no la vuelva a enlazar. */
     public function unlink(User $user, string $provider): bool
     {
-        $identity = $user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')->first();
-        if ($identity === null) {
+        $identities = $user->socialIdentities()->where('provider', $provider)->whereNull('blocked_at')->get();
+        if ($identities->isEmpty()) {
             return false;
         }
 
-        $identity->forceFill(['blocked_at' => now()])->save();
-        $this->audit->record($user, 'social.unlinked', AuditLog::OK, 'social_identity', $identity->id, 'provider='.$provider, 'web');
+        foreach ($identities as $identity) {
+            $identity->forceFill(['blocked_at' => now()])->save();
+            $this->audit->record($user, 'social.unlinked', AuditLog::OK, 'social_identity', $identity->id, 'provider='.$provider, 'web');
+        }
 
         return true;
     }
@@ -147,7 +203,7 @@ class SocialIdentityResolver
             return SocialResolution::reject('provider_unverified');
         }
 
-        $user = User::whereRaw('lower(email) = ?', [mb_strtolower($email)])->first();
+        $user = $this->userByExactEmail($email);
         if ($user === null) {
             return SocialResolution::reject('no_account');
         }
@@ -176,6 +232,19 @@ class SocialIdentityResolver
         $this->audit->record($user, 'social.linked', AuditLog::OK, 'social_identity', $identity->id, 'provider=google;modo=auto', 'web');
 
         return SocialResolution::accept($user, $identity, 'linked_auto');
+    }
+
+    /**
+     * Comparacion exacta, sensible a bytes (CWE-176). La consulta usa el indice de `email` y, con una collation `_ci`
+     * de MySQL, puede devolver filas de mas (`ss`=`ß`, `a`=`ä`); el filtro definitivo es en PHP, con el email en
+     * minusculas identico byte a byte. Un email de Google no ASCII solo vincula con una cuenta igual de identica.
+     */
+    private function userByExactEmail(string $email): ?User
+    {
+        $wanted = mb_strtolower($email);
+
+        return User::where('email', $email)->orWhere('email', $wanted)->limit(20)->get()
+            ->first(fn (User $u) => hash_equals(mb_strtolower((string) $u->email), $wanted));
     }
 
     /** Falla cerrado: solo el booleano true (o la cadena "true") del userinfo de Google cuenta como verificado. */

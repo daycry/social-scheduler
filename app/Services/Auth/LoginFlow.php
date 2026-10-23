@@ -31,6 +31,9 @@ class LoginFlow
             return redirect()->route('two-factor.challenge');
         }
 
+        // Un reto 2FA abandonado antes de este login no debe sobrevivir: se olvida todo `login.*`.
+        $request->session()->forget(['login.id', 'login.remember', 'login.at', 'login.via']);
+
         Auth::login($user, $remember);
 
         $request->session()->regenerate();

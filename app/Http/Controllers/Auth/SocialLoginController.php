@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\SocialIdentity;
+use App\Models\User;
 use App\Services\AuditLog;
 use App\Services\Auth\LoginFlow;
 use App\Services\Auth\SocialIdentityResolver;
@@ -81,7 +82,7 @@ class SocialLoginController extends Controller
         }
 
         $name = $this->name($provider);
-        $social = $this->fetchUser($request, $provider, 'profile.edit', 'social');
+        $social = $this->fetchUser($request, $provider, 'profile.edit', 'social', $user);
         if ($social instanceof RedirectResponse) {
             return $social;
         }
@@ -112,7 +113,7 @@ class SocialLoginController extends Controller
         if (! $resolution->accepted()) {
             $this->audit->record(null, 'auth.social.login', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo='.$resolution->reason, 'web');
 
-            return $this->rejected($provider);
+            return $this->rejected();
         }
 
         $user = $resolution->user;
@@ -126,28 +127,28 @@ class SocialLoginController extends Controller
      * invalido, proveedor caido) vuelve a /login con un mensaje legible y sin 500. Del error solo se registra la
      * clase: el mensaje de Guzzle incluye la URL con el code.
      */
-    private function fetchUser(Request $request, string $provider, string $back = 'login', string $errorKey = 'email'): SocialUser|RedirectResponse
+    private function fetchUser(Request $request, string $provider, string $back = 'login', string $errorKey = 'email', ?User $linkUser = null): SocialUser|RedirectResponse
     {
         $name = $this->name($provider);
 
         if ($request->query('error') !== null || $request->query('error_reason') !== null) {
-            return $this->failed($provider, 'cancelled', $back, $errorKey, "Cancelaste el inicio de sesión con {$name}.");
+            return $this->failed($provider, 'cancelled', $back, $errorKey, $linkUser, "Has cancelado el inicio de sesión con {$name}.");
         }
 
         try {
             return $this->driver($provider)->user();
         } catch (InvalidStateException) {
-            return $this->failed($provider, 'invalid_state', $back, $errorKey, "La sesión con {$name} caducó. Vuelve a intentarlo.");
+            return $this->failed($provider, 'invalid_state', $back, $errorKey, $linkUser, 'La sesión de inicio ha caducado, inténtalo de nuevo.');
         } catch (Throwable $e) {
             Log::warning('social.login.provider_error', ['provider' => $provider, 'exception' => $e::class]);
 
-            return $this->failed($provider, 'provider_error', $back, $errorKey, "No hemos podido hablar con {$name}. Inténtalo de nuevo en unos minutos.");
+            return $this->failed($provider, 'provider_error', $back, $errorKey, $linkUser, "No se ha podido contactar con {$name}.");
         }
     }
 
-    private function failed(string $provider, string $reason, string $back, string $errorKey, string $message): RedirectResponse
+    private function failed(string $provider, string $reason, string $back, string $errorKey, ?User $linkUser, string $message): RedirectResponse
     {
-        $this->audit->record(null, 'auth.social.login', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo='.$reason, 'web');
+        $this->audit->record($linkUser, $linkUser !== null ? 'social.linked' : 'auth.social.login', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo='.$reason, 'web');
 
         return redirect()->route($back)->withErrors([$errorKey => $message]);
     }
@@ -158,12 +159,10 @@ class SocialLoginController extends Controller
     }
 
     /** Mismo mensaje para todo rechazo: no revela si el email existe ni por que se rechazo. */
-    private function rejected(string $provider): RedirectResponse
+    private function rejected(): RedirectResponse
     {
-        $name = $this->name($provider);
-
         return redirect()->route('login')->withErrors([
-            'email' => "No hemos podido iniciar sesión con {$name}. Entra con tu contraseña y vincula {$name} desde tu perfil.",
+            'email' => 'No hay ninguna cuenta vinculada a esta identidad. Vincúlala desde tu perfil.',
         ]);
     }
 

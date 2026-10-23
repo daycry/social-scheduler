@@ -34,10 +34,11 @@
   1. Escribir un texto con 3 hashtags y un emoji compuesto (por ejemplo, una familia con ZWJ).
   2. Comprobar los contadores.
   3. Escribir un texto con 31 hashtags.
+  4. Escribir un texto con más caracteres que el máximo de Instagram (aviso «supera el máximo»), con espacios sobrantes en los extremos y con `a#b` / `#` dentro de una URL (no cuentan como hashtag).
 - **Aserciones**:
   - [ ] Se ve «n / 2.200» y «3 / 30 #» en Instagram y «n / 63.206» en Facebook, con el recuento por puntos de código.
   - [ ] Con 31 hashtags aparece un error de Instagram en el panel, con texto (no solo color).
-  - [ ] Programar queda deshabilitado y Guardar borrador sigue habilitado.
+  - [ ] Programar queda deshabilitado y Guardar borrador sigue habilitado. *(Aplazada a T-09: el botón deshabilitado llega con `ErrorsPanel`; se asierta en E2E-04/T-09, no en la Fase 1.)*
 - **Capturas esperadas**: contadores con emoji, error de hashtags.
 - **Cubre tareas**: T-03, T-04, T-07
 

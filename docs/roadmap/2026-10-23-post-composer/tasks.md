@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 7 | 8 | 88% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **7** | **42** | **17%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **8** | **42** | **19%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -91,7 +91,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Extraer los componentes sin cambiar su marcado ni sus textos
 - [x] Repetir la suite y comparar con la línea base
 
-**Notas**: Si un test existente falla, se revierte la extracción: no se retoca el test. Los componentes finales se crean sin lógica nueva; cada tarea siguiente rellena el suyo. **Evidencia**: línea base y final iguales: `php artisan test --compact tests/Feature/Posts` → 39 passed (202 assertions), sin tocar tests; `npm run build` OK; `playwright flows.spec.ts --project=desktop` → 4 passed. `Compose.vue` queda en 66 líneas.
+**Notas**: Si un test existente falla, se revierte la extracción: no se retoca el test. Los componentes finales se crean sin lógica nueva; cada tarea siguiente rellena el suyo. **Evidencia**: línea base y final iguales: `php artisan test --compact tests/Feature/Posts` → 39 passed (202 assertions), sin tocar tests; `npm run build` OK; `playwright flows.spec.ts --project=desktop` → 4 passed. `Compose.vue` queda en 66 líneas. **Corrección de revisión (intento 1, A5):** la Verificación decía «ComposeTest.php (13 tests)» y la línea base real es `tests/Feature/Posts` → 39 passed (41 tras T-05); la verificación de `flows.spec.ts` se reejecutó con la Fase 1 completa (ver T-08).
 
 ---
 
@@ -218,7 +218,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Conectar `AiSuggest` y el selector de media
 - [x] Revisar el foco y los roles
 
-**Notas**: — **Evidencia**: `playwright composer.spec.ts -g E2E-03` → pasa en desktop, mobile y mobile-360 (emoji en el cursor, Escape devuelve el foco al botón, IA con Escape, subida de media enfocable con nombre accesible, axe sin violaciones graves); `tests/Feature/Posts` → 41 passed; build OK; sin dependencias nuevas (`package.json` sin cambios). La subida de media pasa de la sección «Imágenes y vídeos» a la barra del editor, y su control deja de ser `display:none` (ahora `sr-only`) para ser alcanzable con teclado. El diálogo de salir es T-06; E2E-03 se completa allí.
+**Notas**: — **Evidencia**: `playwright composer.spec.ts -g E2E-03` → pasa en desktop, mobile y mobile-360 (emoji en el cursor, Escape devuelve el foco al botón, IA con Escape, subida de media enfocable con nombre accesible, axe sin violaciones graves); `tests/Feature/Posts` → 41 passed; build OK; sin dependencias nuevas (`package.json` sin cambios). La subida de media pasa de la sección «Imágenes y vídeos» a la barra del editor, y su control deja de ser `display:none` (ahora `sr-only`) para ser alcanzable con teclado. El diálogo de salir es T-06; E2E-03 se completa allí. **Desviación declarada (revisión intento 1, A2):** la barra usa botones con texto («Insertar emoji», «Sugerir texto», «Añadir imagen o vídeo») con el icono como adorno `aria-hidden`, en lugar de «solo iconos», por accesibilidad (nombre visible y objetivo táctil); la barra «de iconos» del diseño queda así.
 
 ---
 
@@ -233,7 +233,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-01
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/UnsavedGuard.vue`, `resources/js/Pages/Posts/Compose.vue`
+- **Archivos**: `resources/js/Components/Composer/UnsavedGuard.vue`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Composables/backGuard.js`, `resources/js/app.js` (revisión intento 1, B1)
 - **Cubre (tests)**: E2E-03
 - **Verificación**:
   - `npm run test:e2e -- --grep "E2E-03"` → pasa (cancelar mantiene los cambios; confirmar sale)
@@ -267,7 +267,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-12, A11Y-01
 - **Verificación**:
   - `npm run test:e2e -- tests/e2e/composer.spec.ts` → verde en desktop, mobile (375) y mobile-360
-  - `npm run test:e2e -- tests/e2e/pages.spec.ts` → sin violaciones serias ni críticas de axe en el compositor
+  - `npm run test:e2e -- tests/e2e/composer.spec.ts` → el barrido de axe del compositor vive aquí (`pages.spec.ts` no se modifica; ver Notas)
 
 **Criterios de aceptación**
 - [x] Un test por CA-01..CA-05 con el título «E2E-xx» del `test-plan.md`
@@ -279,18 +279,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Añadir el compositor al barrido de axe de `helpers.ts`
 - [x] Limpiar marcas con `borrarMarcasE2e`
 
-**Notas**: — **Evidencia**: `playwright composer.spec.ts` → 18 passed (6 tests × desktop, mobile 375 y mobile-360: E2E-01, E2E-02, E2E-03 ×2, E2E-12, A11Y-01); `pages.spec.ts -g 'conexiones de la marca'` (compositor en el barrido) en los tres proyectos. axe 0 serias/críticas y 0 px de desbordamiento; solo usuarios `e2e-sec-*` y marcas `e2e-composer-*` (se borran en afterEach). `helpers.ts` gana `seedComposerBrand`/`cleanComposerBrands`; el barrido de axe del compositor vive en `composer.spec.ts` (necesita una marca con cuentas), no en `AUTH_PAGES`; `pages.spec.ts` no se ha modificado. Hallazgo del E2E: el mensaje de media de Instagram (opciones por cuenta) quedaba encima del editor; `TargetOptions` pasa debajo de la media en `Compose.vue`.
+**Notas**: — **Evidencia (revisión intento 1, A5/A6: cifras corregidas)**: tras las correcciones de la revisión, `playwright composer.spec.ts` → 10 passed en desktop y 10 passed en mobile-360 (10 tests: los 6 originales más contador recortado/máximo de caracteres, emoji con varias líneas, botón Atrás y biblioteca con cambios sin guardar). Evidencia original de T-07: `playwright composer.spec.ts` → 18 passed (6 tests × desktop, mobile 375 y mobile-360: E2E-01, E2E-02, E2E-03 ×2, E2E-12, A11Y-01); `pages.spec.ts -g 'conexiones de la marca'` (compositor en el barrido) en los tres proyectos. axe 0 serias/críticas y 0 px de desbordamiento; solo usuarios `e2e-sec-*` y marcas `e2e-composer-*` (se borran en afterEach). `helpers.ts` gana `seedComposerBrand`/`cleanComposerBrands`; el barrido de axe del compositor vive en `composer.spec.ts` (necesita una marca con cuentas), no en `AUTH_PAGES`; `pages.spec.ts` no se ha modificado. Hallazgo del E2E: el mensaje de media de Instagram (opciones por cuenta) quedaba encima del editor; `TargetOptions` pasa debajo de la media en `Compose.vue`.
 
 ---
 
 ### T-08 — Revisión de robustez de la Fase 1 (regresión del compositor, contadores y accesibilidad)
 
 - **Descripción**: Puerta de salida de la fase: revisión dirigida de lo que se pudo romper al dividir `Compose.vue` (estado por red, media, biblioteca, IA), de la divergencia entre el contador del cliente y el del servidor (emojis compuestos, hashtags con unicode), del XSS por texto del usuario en `v-html` o en el selector de emoji y de la accesibilidad por teclado. Checklist firmada en las Notas; cada hallazgo Important o Critical lleva un test.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Al volver atrás con el navegador con cambios sin guardar el editor pide confirmación, los contadores cuentan como el servidor y «Guardar en biblioteca» ya no guarda un texto antiguo.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.5h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-07
 - **Tipo**: docs
@@ -304,16 +304,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
-- [ ] Cada hallazgo Important o Critical tiene test y corrección
-- [ ] Ninguna fila de datos del usuario id 28 se toca
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] Cada hallazgo Important o Critical tiene test y corrección
+- [x] Ninguna fila de datos del usuario id 28 se toca
 
 **Subtareas**
-- [ ] Revisar la paridad de recuento entre `textCount.js` y `mb_strlen`
-- [ ] Revisar `v-html`, el selector de emoji y `AiSuggest`
-- [ ] Suite completa, Pint y E2E
+- [x] Revisar la paridad de recuento entre `textCount.js` y `mb_strlen`
+- [x] Revisar `v-html`, el selector de emoji y `AiSuggest`
+- [x] Suite completa, Pint y E2E
 
-**Notas**: Puerta de salida de la fase 1.
+**Notas**: Puerta de salida de la fase 1. **Evidencia**: la revisión de dos lentes (intento 1) devolvió 2 Important y 6 Minor/avisos; corregidos abajo (sección «Revisión de dos lentes — intento 1»), cada Important con test E2E. `php artisan test --compact` → 1244 passed; `vendor/bin/pint --test` → passed; `npm run build` OK; `npx tsc --noEmit -p .` sin errores; `composer.spec.ts` → 10 passed (desktop) y 10 passed (mobile-360). Ninguna fila del usuario id 28 tocada. El `grep v-html` sobre el compositor queda vacío.
 
 ---
 
@@ -341,6 +341,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 **Criterios de aceptación**
 - [ ] CA-24: una sola lista con icono y cuenta por error; Programar y Publicar ahora deshabilitados; Guardar borrador habilitado
+- [ ] Aserción aplazada de E2E-02 (revisión Fase 1, A1): con 31 hashtags en Instagram, «Programar» queda deshabilitado y «Guardar borrador» habilitado (el E2E de T-09 la cubre)
 - [ ] El panel es legible por lector de pantalla y sin desbordamiento a 375/360 px
 
 **Subtareas**
@@ -1408,3 +1409,26 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] Cierre de ledger, spec y roadmap
 
 **Notas**: Puerta de salida de la fase 6.
+
+---
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-01..T-07) — corregida
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|-------|-------|-----|-------|------------|-----------|
+| B1 | Funcional | Important | `UnsavedGuard` no cubre el botón Atrás: Inertia gestiona `popstate` sin evento `before` | T-06 | Listener de `popstate` instalado antes que el de Inertia (`composables/backGuard.js`, desde `app.js`) que detiene su propagación, deshace el retroceso con `history.go(1)` y abre el diálogo; confirmar hace `history.back()`. Se eligió esto frente a `useRemember` porque conserva URL, foco y formulario sin remontar la página | E2E «el botón Atrás del navegador pide confirmación…» (cancelar conserva URL y texto; segundo Atrás; confirmar sale) → verde desktop y mobile-360 |
+| B2 | Funcional | Important | «Guardar en biblioteca» con cambios sin guardar guardaba el texto anterior y salía | T-05 | El botón se desactiva con el formulario sucio y muestra «Guarda los cambios (borrador) antes…» (la biblioteca copia el texto guardado; coherente con no enviar borradores a medias) | E2E «Guardar en biblioteca exige guardar antes…» → verde |
+| B3 | Código | Minor | `insertAtCursor` mezclaba offsets LF con CRLF | T-05 | El modelo se normaliza `
+`→`
+` al cargar y el cursor se calcula sobre `el.value` | E2E «el emoji se inserta en el cursor de un texto con varias líneas» → verde |
+| B4 | Código | Minor | El contador contaba espacios de los extremos; el servidor recorta | T-04 | `countChars` cuenta el texto recortado; `MediaValidator` mide `$length` recortado también para el máximo | E2E contador recortado («   hola   » → 4 / 2.200) + Pest `MediaValidatorHashtags` (límite sobre texto recortado) → verde |
+| B5 | Código | Minor | `leaving` no volvía a `false` si `router.visit` fallaba | T-06 | `onCancel`/`onError`/`onFinish` restauran `leaving` | revisión de código; cubierto por el E2E de salir (T-06) sin regresión |
+| B6 | Tests | Minor | Título del test de hashtags contradecía lo que comprueba (`a#b`, `#` en URL) | T-03 | Regla: no cuenta un `#` precedido de letra, dígito, `_` o `/`, igual en PHP (`MediaValidator::countHashtags`) y JS (`textCount.js`); test corregido (3, no 4) y test nuevo de URL/`a#b` | `php artisan test --compact` → 1244 passed; E2E `a#b https://x.com/p#ancla #uno` → «1 / 30 #» |
+| A1 | Plan | Aviso | Aserción aplazada «Programar deshabilitado con 31 hashtags» sin recoger | T-07/T-09 | Anotada en `test-plan.md` (E2E-02) y como criterio de T-09 | `test-plan.md`, T-09 |
+| A2 | Plan | Aviso | Barra con botones con texto en lugar de solo iconos | T-05 | Desviación declarada en las Notas de T-05 | T-05 Notas |
+| A3 | Tests | Aviso | Sin test del aviso al superar el máximo de caracteres | T-07 | E2E «contador… avisa al superar el máximo de caracteres» (2.201 / 2.200 · supera el máximo + alerta en vivo) | verde desktop y mobile-360 |
+| A4 | Tests | Aviso | El test de media con teclado no activaba el control | T-05 | Se pulsa Espacio y se espera el evento `filechooser` | E2E-03 barra del editor → verde |
+| A5/A6 | Ledger | Aviso | Verificaciones y evidencias de T-01/T-07 inexactas; resumen de Fase 1 | T-01, T-07 | Notas y Verificación corregidas; Fase 1 = 8/8 (100%) | ledger-lint |
+| AX | A11y | Aviso | Sin `aria-live` en contadores; pastilla sin «Requiere reconexión» en su `aria-label` | T-04/T-02 | `aria-live="polite"` en contadores y recuento de hashtags; `aria-label` con «. Requiere reconexión» | axe verde en E2E-12 y A11Y-01 |
+
+Hallazgo extra al probar A3: el texto largo sin espacios desbordaba horizontalmente la vista previa (17 000 px); corregido con `overflow-wrap:anywhere` en `PreviewPanel.vue`.

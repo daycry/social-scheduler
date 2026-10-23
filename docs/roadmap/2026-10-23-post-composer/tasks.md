@@ -46,10 +46,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
-| Fase 4 — C-04 | 5 | 8 | 62% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
+| Fase 4 — C-04 | 7 | 8 | 88% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **29** | **42** | **69%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **31** | **42** | **74%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -987,34 +987,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-30 — `PresetsPanel`: opciones globales y por red, ocultando lo que no aplica
 
 - **Descripción**: Interruptores accesibles por red (YouTube, TikTok y lo ya existente de Instagram), con la regla de ocultar lo no admitido (modo borrador de TikTok, opciones no confirmadas en T-26) y el aviso de «hecho para niños».
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
-- **Supervisión**: est. 0,20h (≈25 % IA) · real —
+- **Changelog**: Cada red de YouTube y TikTok muestra sus interruptores accesibles (notificar, hecho para niños, etiqueta de IA, Duet, Stitch...) y oculta los que su API o la cuenta no admiten.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,0h · real 6.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0.81h (estimado)
+- **Supervisión**: est. 0,20h (≈25 % IA) · real 0.20h (estimado)
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-29
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/PresetsPanel.vue`, `resources/js/Composables/useComposer.js`
+- **Archivos**: `resources/js/Components/Composer/PresetsPanel.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Composables/composerOptions.js`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Components/Composer/PreviewPanel.vue`
 - **Cubre (tests)**: E2E-09, M-02, M-03
 - **Verificación**:
   - `npm run build` → sin errores
   - `npm run test:e2e -- --grep "E2E-09"` → pasa en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] CA-16: la etiqueta IA solo aparece en las redes cuya API la acepta
-- [ ] Interruptores con nombre accesible y estado anunciado
-- [ ] Sin desbordamiento a 375 y 360 px
+- [x] CA-16: la etiqueta IA solo aparece en las redes cuya API la acepta
+- [x] Interruptores con nombre accesible y estado anunciado
+- [x] Sin desbordamiento a 375 y 360 px
 
 **Subtareas**
-- [ ] Panel por red
-- [ ] Reglas de visibilidad
-- [ ] Aviso de comentarios desactivados
+- [x] Panel por red
+- [x] Reglas de visibilidad
+- [x] Aviso de comentarios desactivados
 
-**Notas**: —
-
----
-
+**Notas**: **Evidencia**: `npm run build` sin errores y `npx tsc --noEmit -p .` exit 0. `PresetsPanel.vue` (nuevo) dentro de las opciones de cada cuenta de YouTube y TikTok: interruptores `role=switch` con nombre y estado anunciados; YouTube con categoría, etiquetas, notificar, hecho para niños (aviso de comentarios desactivados), etiqueta de IA y #Shorts; TikTok solo con la cuenta en publicación directa (Duet y Stitch solo en vídeo; colaboración de pago con aviso de no privado y de la política de contenido de marca); Instagram y Facebook sin etiqueta de IA (CA-16). Las definiciones viven en `composerOptions.js`; `useComposer` aplica los presets al activar una red y poda las opciones que dejan de aplicar al cambiar de tipo. E2E-09 (T-32) cubre accesibilidad (axe) y 375/360 px. Se sube el contraste de un texto de la previsualización (text-slate-600) que axe marcó. `brand_content_toggle` nunca se precarga.
 ### T-31 — Paridad del MCP: `options` en `PostPayload` y `get_post`
 
 - **Descripción**: El esquema `options` entra en `PostPayload` y `presentPost()`, con las mismas reglas de `PostRequest`. Solo las opciones confirmadas en T-26.
@@ -1045,32 +1042,29 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-32 — Pest y E2E de C-04 (CA-13..CA-16)
 
 - **Descripción**: E2E con dos marcas `e2e-`: guardar una opción en A, abrir un post nuevo en A y B, y comprobar que la etiqueta IA no aparece donde no se admite. Con axe y sin desbordamiento.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: Los interruptores por red quedan cubiertos de punta a punta: se guarda uno en una marca, se ve en las publicaciones nuevas de esa marca y no en otra, y la etiqueta de IA solo aparece donde la red la admite.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-30, T-31
 - **Tipo**: test
-- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/Feature/Posts/Compose/PresetsTest.php`
+- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/Feature/Posts/Compose/PresetsTest.php`, `tests/e2e/helpers.ts`
 - **Cubre (tests)**: E2E-09, E2E-12
 - **Verificación**:
   - `npm run test:e2e -- --grep "E2E-09"` → verde en los tres proyectos
   - `php artisan test --compact tests/Feature/Posts/Compose` → en verde
 
 **Criterios de aceptación**
-- [ ] Un test por CA-14 (UI), CA-15 y CA-16
-- [ ] Las marcas de prueba se borran con `borrarMarcasE2e`
+- [x] Un test por CA-14 (UI), CA-15 y CA-16
+- [x] Las marcas de prueba se borran con `borrarMarcasE2e`
 
 **Subtareas**
-- [ ] E2E con dos marcas
-- [ ] Pest de presets
+- [x] E2E con dos marcas
+- [x] Pest de presets
 
-**Notas**: —
-
----
-
+**Notas**: **Evidencia**: `npx playwright test composer.spec.ts --project=desktop` → 19 passed (incluye el nuevo E2E-09: dos marcas `e2e-`, borrador de YouTube sembrado, apagar «Notificar», guardar, post nuevo en A con el interruptor apagado y etiquetas vacías, en B encendido; sin etiqueta de IA en Instagram ni Facebook, TikTok en modo borrador sin interruptores y el directo con Duet, Stitch y colaboración de pago; axe y sin desbordamiento). `php artisan test --compact tests/Feature/Posts/Compose` → 23 passed (4 nuevos de `PresetsTest`: CA-14 cuentas en directo y opciones rechazadas en borrador, CA-15 recordado y sin textos, CA-16 etiqueta de IA solo en YouTube y TikTok directo). Las marcas `e2e-` y sus vídeos de prueba se borran con `cleanComposerBrands` (ahora también borra la media del usuario E2E). La pasada en los tres proyectos va al final.
 ### T-33 — Revisión de robustez de la Fase 4 (marcador de YouTube, aislamiento de presets y divulgación de TikTok)
 
 - **Descripción**: Revisión de: expulsión del marcador `targetTag` con tags largos o unicode; opciones que llegan por MCP y no por la UI; aislamiento de `composer_presets` entre marcas y usuarios; TikTok nunca más abierto de lo pedido; mass-assignment de `options`. Checklist firmada; cada hallazgo lleva su test.

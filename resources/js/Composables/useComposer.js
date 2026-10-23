@@ -2,6 +2,7 @@ import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
+import { MANAGED_KEYS, switchesFor } from '@/Composables/composerOptions';
 
 const KEY = Symbol('composer');
 
@@ -60,9 +61,36 @@ export function useComposer(props) {
     const typesOf = (network) => props.contentTypes[network] ?? [];
     const typeInfo = (target, network) => typesOf(network).find((t) => t.value === target.content_type);
 
+    // Presets (C-04): los interruptores recordados de (marca, red) son el valor inicial al activar una red. Solo se aplican los
+    // que esa cuenta ofrece (en modo borrador de TikTok no hay ninguno), así nunca se envía una opción que la cuenta rechaza.
+    const presetOptions = (account, type) => {
+        const saved = props.presets?.[account.network] ?? {};
+        const out = {};
+        for (const s of switchesFor(account, { content_type: type })) {
+            if (s.remember && typeof saved[s.key] === 'boolean') out[s.key] = saved[s.key];
+        }
+        if (account.network === 'instagram' && type === 'instagram_reel' && typeof saved.share_to_feed === 'boolean') out.share_to_feed = saved.share_to_feed;
+        return out;
+    };
+
+    // Al cambiar el tipo o la cuenta, se podan las opciones de C-04 que ya no aplican (p. ej. Duet al pasar de vídeo a fotos).
+    const pruneOptions = () => {
+        for (const t of form.targets) {
+            const account = props.accounts.find((a) => a.id === t.account_id);
+            const keep = new Set(switchesFor(account, t).map((s) => s.key));
+            if (account?.network === 'youtube') ['category_id', 'tags'].forEach((k) => keep.add(k));
+            for (const key of MANAGED_KEYS) {
+                if (key in t.options && !keep.has(key)) delete t.options[key];
+            }
+        }
+    };
+    pruneOptions();
+    watch(() => form.targets.map((t) => `${t.account_id}:${t.content_type}`).join('|'), pruneOptions);
+
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
-            form.targets.push({ account_id: account.id, content_type: typesOf(account.network)[0]?.value, text: null, options: {} });
+            const type = typesOf(account.network)[0]?.value;
+            form.targets.push({ account_id: account.id, content_type: type, text: null, options: presetOptions(account, type) });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }

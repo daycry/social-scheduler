@@ -20,6 +20,7 @@ const props = defineProps({
     accounts: Array,
     contentTypes: Object,
     limits: Object,
+    presets: Object,
     post: Object,
     flash: Object,
 });

@@ -23,7 +23,11 @@ test.afterEach(async ({}, info) => {
 
 async function axeNow(page: Page, label: string) {
     await settle(page);
+    // La barra de progreso de Inertia (NProgress, `role="bar"`) es transitoria y no es de la app: se espera a que desaparezca.
+    await expect(page.locator('#nprogress')).toHaveCount(0);
+    // El ratón queda donde hizo el último clic y activa el :hover del botón bajo él; el contraste se mide en reposo.
     await page.mouse.move(0, 0);
+    await page.waitForTimeout(400); // fin de las transiciones de color
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n   ')}`).join('\n');
@@ -204,5 +208,56 @@ test('E2E-03 · confirmación al salir con cambios sin guardar', async ({ page }
     await page.getByRole('link', { name: 'Cerrar' }).click();
     await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
 
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expectNoOverflow(page);
+    await axeNow(page, 'compositor vacío');
+
+    // Con las dos redes activas y un texto largo (sin cuentas sin espacios que fuercen el ancho).
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill(`e2e ${'texto largo '.repeat(40)} #uno #dos`);
+    await expectNoOverflow(page);
+    await axeNow(page, 'compositor con redes y texto');
+
+    // Editar: se guarda un borrador (solo Facebook: Instagram exige media) y se revisa la página de edición.
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByRole('button', { name: 'Guardar borrador' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
+    await settle(page);
+    await expectNoOverflow(page);
+    await axeNow(page, 'editar publicación');
+    expect(w.errors).toEqual([]);
+});
+
+test('A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos', async ({ page }) => {
+    const w = watch(page);
+    await page.route('**/ai/status', (route) => route.fulfill({ json: { enabled: true, remaining: 5 } }));
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e a11y');
+    const toolbar = page.getByRole('toolbar', { name: 'Herramientas del editor' });
+
+    await toolbar.getByRole('button', { name: /Insertar emoji/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Selector de emoji' })).toBeVisible();
+    await axeNow(page, 'selector de emoji abierto');
+    await expectNoOverflow(page);
+    await page.keyboard.press('Escape');
+
+    await toolbar.getByRole('button', { name: 'Sugerir texto' }).click();
+    await expect(page.getByLabel(/¿De qué trata la publicación/)).toBeVisible();
+    await axeNow(page, 'asistente de texto abierto');
+    await expectNoOverflow(page);
+    await page.getByLabel(/¿De qué trata la publicación/).press('Escape');
+
+    await page.getByRole('link', { name: 'Cerrar' }).click();
+    await expect(page.getByRole('alertdialog', { name: '¿Salir sin guardar?' })).toBeVisible();
+    await axeNow(page, 'diálogo de salida abierto');
+    await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
 });

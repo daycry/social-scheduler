@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 6 | 8 | 75% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 7 | 8 | 88% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **6** | **42** | **14%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **7** | **42** | **17%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -255,31 +255,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-07 — E2E, axe y desbordamiento del compositor (CA-01..CA-05)
 
 - **Descripción**: Fichero `tests/e2e/composer.spec.ts` con un bloque por criterio, con los usuarios `e2e-sec-*` y los helpers existentes (`loginAs`, `e2eUser`, `expectNoOverflow`), y axe en el compositor.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: Hay pruebas automáticas del compositor nuevo (pantalla completa, contadores, barra del editor, salida con cambios y accesibilidad) en escritorio y móvil.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-02, T-04, T-05, T-06
 - **Tipo**: test
-- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/pages.spec.ts`
+- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/pages.spec.ts`, `resources/js/Pages/Posts/Compose.vue`
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-12, A11Y-01
 - **Verificación**:
   - `npm run test:e2e -- tests/e2e/composer.spec.ts` → verde en desktop, mobile (375) y mobile-360
   - `npm run test:e2e -- tests/e2e/pages.spec.ts` → sin violaciones serias ni críticas de axe en el compositor
 
 **Criterios de aceptación**
-- [ ] Un test por CA-01..CA-05 con el título «E2E-xx» del `test-plan.md`
-- [ ] `expectNoOverflow` pasa a 375 y 360 px
-- [ ] Ningún test usa al usuario id 28: solo `e2e-sec-*` y marcas `e2e-`
+- [x] Un test por CA-01..CA-05 con el título «E2E-xx» del `test-plan.md`
+- [x] `expectNoOverflow` pasa a 375 y 360 px
+- [x] Ningún test usa al usuario id 28: solo `e2e-sec-*` y marcas `e2e-`
 
 **Subtareas**
-- [ ] Crear `composer.spec.ts`
-- [ ] Añadir el compositor al barrido de axe de `helpers.ts`
-- [ ] Limpiar marcas con `borrarMarcasE2e`
+- [x] Crear `composer.spec.ts`
+- [x] Añadir el compositor al barrido de axe de `helpers.ts`
+- [x] Limpiar marcas con `borrarMarcasE2e`
 
-**Notas**: —
+**Notas**: — **Evidencia**: `playwright composer.spec.ts` → 18 passed (6 tests × desktop, mobile 375 y mobile-360: E2E-01, E2E-02, E2E-03 ×2, E2E-12, A11Y-01); `pages.spec.ts -g 'conexiones de la marca'` (compositor en el barrido) en los tres proyectos. axe 0 serias/críticas y 0 px de desbordamiento; solo usuarios `e2e-sec-*` y marcas `e2e-composer-*` (se borran en afterEach). `helpers.ts` gana `seedComposerBrand`/`cleanComposerBrands`; el barrido de axe del compositor vive en `composer.spec.ts` (necesita una marca con cuentas), no en `AUTH_PAGES`; `pages.spec.ts` no se ha modificado. Hallazgo del E2E: el mensaje de media de Instagram (opciones por cuenta) quedaba encima del editor; `TargetOptions` pasa debajo de la media en `Compose.vue`.
 
 ---
 

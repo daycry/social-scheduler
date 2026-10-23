@@ -42,9 +42,9 @@ const { submit } = useComposer(props);
                     <p v-if="flash?.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
                     <PostStatusHeader />
                     <NetworkPicker />
-                    <TargetOptions />
                     <TextSection />
                     <MediaSection />
+                    <TargetOptions />
                     <ScheduleSection />
                     <ActionBar />
                 </form>

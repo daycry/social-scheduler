@@ -44,6 +44,12 @@ class PostRequest extends FormRequest
             'targets.*.options.made_for_kids' => ['nullable', 'boolean'],
             'targets.*.options.notify_subscribers' => ['nullable', 'boolean'],
             'targets.*.options.contains_synthetic_media' => ['nullable', 'boolean'],
+            // TikTok (C-04): solo actuan en publicacion directa; la regla por cuenta la aplica PostService.
+            'targets.*.options.disable_duet' => ['nullable', 'boolean'],
+            'targets.*.options.disable_stitch' => ['nullable', 'boolean'],
+            'targets.*.options.brand_organic_toggle' => ['nullable', 'boolean'],
+            'targets.*.options.brand_content_toggle' => ['nullable', 'boolean'],
+            'targets.*.options.is_aigc' => ['nullable', 'boolean'],
         ];
     }
 }

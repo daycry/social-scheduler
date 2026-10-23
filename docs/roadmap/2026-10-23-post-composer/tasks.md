@@ -46,10 +46,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
-| Fase 4 — C-04 | 2 | 8 | 25% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
+| Fase 4 — C-04 | 3 | 8 | 38% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **26** | **42** | **62%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **27** | **42** | **64%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -929,34 +929,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-28 — Opciones de TikTok en `postInfo` (solo publicación directa)
 
 - **Descripción**: `disable_duet`, `disable_stitch`, `brand_organic_toggle`, `brand_content_toggle` y `is_aigc` (según T-26) solo cuando la cuenta publica en directo. En modo borrador no se envían. El publicador mantiene su regla de no abrir más de lo pedido.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Changelog**: TikTok admite Duet, Stitch, contenido de marca y etiqueta de IA en la publicación directa; con la cuenta en modo borrador no se ofrecen ni se envían.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real 4.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.54h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0.14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-26
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/TikTok/TikTokPublisher.php`, `app/Http/Requests/PostRequest.php`, `tests/Feature/Publishing/TikTokOptionsTest.php`
+- **Archivos**: `app/Connectors/TikTok/TikTokPublisher.php`, `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `tests/Feature/Publishing/TikTokOptionsTest.php`
 - **Cubre (tests)**: M-04
 - **Verificación**:
   - `php artisan test --compact --filter=TikTokOptions` → en verde con `Http::fake` (CA-14)
   - `php artisan test --compact tests/Feature/Publishing` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-14: `post_info` lleva `disable_duet`, `disable_stitch` y `brand_organic_toggle`
-- [ ] Con la cuenta en modo borrador esas opciones no se envían ni se ofrecen
-- [ ] La divulgación comercial respeta los avisos exigidos por la auditoría de TikTok
+- [x] CA-14: `post_info` lleva `disable_duet`, `disable_stitch` y `brand_organic_toggle`
+- [x] Con la cuenta en modo borrador esas opciones no se envían ni se ofrecen
+- [x] La divulgación comercial respeta los avisos exigidos por la auditoría de TikTok
 
 **Subtareas**
-- [ ] Mapear opciones en `postInfo`
-- [ ] Condicionarlo a `direct_post`
-- [ ] Test de modo borrador
+- [x] Mapear opciones en `postInfo`
+- [x] Condicionarlo a `direct_post`
+- [x] Test de modo borrador
 
-**Notas**: —
-
----
-
+**Notas**: **Evidencia**: `--filter=TikTokOptions` → 6 passed (CA-14: `post_info` lleva `disable_duet`, `disable_stitch`, `brand_organic_toggle` e `is_aigc`; sin opciones queda igual que antes; en modo borrador el cuerpo del `inbox/video/init` sigue siendo solo `source_info`; en fotos no hay Duet ni Stitch e `is_aigc` va en el nivel superior, según la referencia de TikTok; validación por cuenta). `tests/Feature/Publishing tests/Feature/Connectors tests/Feature/Posts tests/Feature/Mcp` → 599 passed. Decisiones: (1) la regla de qué admite cada cuenta vive en `PostService::optionErrors` (web y MCP la comparten): una opción pedida (valor no vacío) que la red o la cuenta no admite es un error del destino; (2) `brand_content_toggle` con visibilidad privada o sin elegir se rechaza, porque TikTok no permite contenido de marca privado; (3) `PostService` se añade a `Archivos` con esta nota. `postInfo` ya solo se llama en publicación directa.
 ### T-29 — Persistencia de presets: tabla `composer_presets`, `ComposerPresetService` y valores iniciales
 
 - **Descripción**: Migración **solo aditiva** (`composer_presets`, único `brand_id, network`) y `ComposerPresetService::forBrand()` / `remember()`, que `store` y `update` llaman al guardar. Solo interruptores: título, tags y enlace no persisten. El MCP **no** escribe presets (decisión del usuario). Una marca ajena no se lee ni se escribe.

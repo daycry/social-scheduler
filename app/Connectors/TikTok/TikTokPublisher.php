@@ -429,6 +429,11 @@ class TikTokPublisher implements Publisher, StatusPoller
                 : ['title' => mb_substr((string) strtok($text, "\r\n"), 0, 90), 'description' => mb_substr($text, 0, 4000)],
         ];
 
+        // Foto: `is_aigc` va en el nivel superior del cuerpo (no dentro de `post_info`) y solo con publicacion directa.
+        if ($direct && ($request->options['is_aigc'] ?? null) !== null) {
+            $body['is_aigc'] = filter_var($request->options['is_aigc'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         $init = $this->api($account, '/v2/post/publish/content/init/', $body);
 
         if (($init['publish_id'] ?? '') === '') {
@@ -472,11 +477,26 @@ class TikTokPublisher implements Publisher, StatusPoller
             $asked = in_array('SELF_ONLY', $options, true) ? 'SELF_ONLY' : (string) ($options[0] ?? 'SELF_ONLY');
         }
 
-        return [
+        $info = [
             'title' => mb_substr(trim((string) $request->text), 0, 2200), // video: 2.200; la foto lo recorta a 90
             'privacy_level' => $asked,
             'disable_comment' => (bool) ($request->options['disable_comment'] ?? false),
         ];
+
+        // Opciones de C-04 (solo publicacion directa: `postInfo` no se usa con la cuenta en modo borrador). Solo se envian las
+        // que el usuario fijo. Duet y Stitch existen solo para video (la referencia de fotos no las lista).
+        $flags = ['brand_organic_toggle', 'brand_content_toggle'];
+        if ($request->type === ContentType::TikTokVideo) {
+            array_push($flags, 'disable_duet', 'disable_stitch', 'is_aigc'); // `is_aigc` va dentro de `post_info` solo en video
+        }
+
+        foreach ($flags as $flag) {
+            if (array_key_exists($flag, $request->options) && $request->options[$flag] !== null) {
+                $info[$flag] = filter_var($request->options[$flag], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        return $info;
     }
 
     // ------------------------------------------------------------------ HTTP y errores

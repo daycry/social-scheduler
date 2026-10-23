@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Network;
+use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
@@ -332,6 +334,65 @@ class PostService
         return $account === null || ! $account->isActive();
     }
 
+    /** Opciones propias de YouTube (C-04): solo se aceptan en destinos de YouTube. */
+    private const YOUTUBE_OPTIONS = ['category_id', 'tags', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media'];
+
+    /** Opciones de TikTok (C-04) que actuan solo en publicacion directa (la cuenta con `meta.direct_post`). */
+    private const TIKTOK_DIRECT_OPTIONS = ['disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc'];
+
+    /**
+     * Reglas por cuenta de las opciones de C-04, las mismas para la web y el MCP: una opcion que la red o la cuenta no admite
+     * es un error del destino (no se descarta en silencio). Un valor «vacio» (null, false o lista vacia) no cuenta como pedido.
+     *
+     * @param  array<string, mixed>  $options
+     * @return list<string>
+     */
+    private function optionErrors(ContentType $type, SocialAccount $account, array $options): array
+    {
+        $asked = fn (string $k) => array_key_exists($k, $options) && ! in_array($options[$k], [null, false, [], ''], true);
+        $errors = [];
+
+        if ($type->network() !== Network::YouTube) {
+            foreach (self::YOUTUBE_OPTIONS as $k) {
+                if ($asked($k)) {
+                    $errors[] = "La opcion $k solo existe en YouTube.";
+                }
+            }
+        }
+
+        if ($type->network() !== Network::TikTok) {
+            foreach (self::TIKTOK_DIRECT_OPTIONS as $k) {
+                if ($asked($k)) {
+                    $errors[] = "La opcion $k solo existe en TikTok.";
+                }
+            }
+
+            return $errors;
+        }
+
+        $direct = TikTokPublisher::directPost($account);
+        foreach (self::TIKTOK_DIRECT_OPTIONS as $k) {
+            if ($asked($k) && ! $direct) {
+                $errors[] = "La opcion $k solo actua con la publicacion directa de TikTok: esta cuenta envia borradores a la bandeja.";
+            }
+        }
+
+        if ($type === ContentType::TikTokPhoto) {
+            foreach (['disable_duet', 'disable_stitch'] as $k) {
+                if ($asked($k)) {
+                    $errors[] = "La opcion $k solo existe en los videos de TikTok.";
+                }
+            }
+        }
+
+        // Exigencia de TikTok para el contenido de marca (colaboracion de pago): no puede ser privado.
+        if ($asked('brand_content_toggle') && $direct && in_array($options['privacy_level'] ?? 'SELF_ONLY', ['SELF_ONLY', null, ''], true)) {
+            $errors[] = 'El contenido de marca (colaboracion de pago) no puede ser privado: elige otra visibilidad en TikTok.';
+        }
+
+        return $errors;
+    }
+
     /**
      * Valida todo y devuelve el plan normalizado (sin tocar la BD).
      *
@@ -422,7 +483,12 @@ class PostService
                 $errors[$key][] = $message;
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => (array) ($raw['options'] ?? []), 'text' => $ownText];
+            $options = (array) ($raw['options'] ?? []);
+            foreach ($this->optionErrors($type, $account, $options) as $message) {
+                $errors[$key][] = $message;
+            }
+
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText];
         }
 
         if ($errors !== []) {

@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 8 | 9 | 89% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **16** | **42** | **38%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **17** | **42** | **40%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -337,7 +337,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Cubre (tests)**: E2E-04
 - **Verificación**:
   - `npm run build` → sin errores
-  - `npm run test:e2e -- --grep "E2E-04"` → pasa en los tres proyectos
+  - `npx playwright test tests/e2e/composer.spec.ts` → 16 passed en desktop, mobile y mobile-360 (incluye E2E-04)
 
 **Criterios de aceptación**
 - [x] CA-24: una sola lista con icono y cuenta por error; Programar y Publicar ahora deshabilitados; Guardar borrador habilitado
@@ -350,7 +350,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Integrar con `ActionBar` (T-11)
 
 **Notas**: **Evidencia**: `npm run build` → OK; `npx tsc --noEmit -p .` → sin errores. Los E2E de esta tarea (E2E-04, y la aserción aplazada de E2E-02: con 31 hashtags Programar queda deshabilitado y Guardar borrador habilitado) se escriben y ejecutan en T-16, porque necesitan `ActionBar` (T-11) y `DateTimePicker` (T-10): `composer.spec.ts --project=desktop` → 13 passed. `useLiveValidation` exporta `normalizeErrors()` y devuelve `errorList` (`{id, scope, targetIndex, accountId, network, networkLabel, accountName, message, focusId}`); `useComposer` los une a los del servidor (`form.errors`), que se descartan al editar. Solo los errores EN VIVO bloquean Programar y Publicar ahora (`hasBlockingErrors`): así un error del servidor no deja el botón atascado. `ErrorsPanel` mantiene siempre montada la región `aria-live="polite"` y cada error trae un botón «Ir» que enfoca la pastilla de la cuenta (`account-pill-{id}`), el texto, los archivos o la fecha. Se retiran los bloques de error sueltos de `TargetOptions`, `NetworkPicker` y `MediaSection` (una sola lista). Desviación: `LibraryPanel.vue` se elimina aquí (su guardado pasa al menú de `ActionBar`, T-11/T-14); `Compose.vue` ya monta `ErrorsPanel`.
-
+ **Corrección de revisión F2 intento 1 (A1, A3, B3)**: la fecha pasada entra en el panel y bloquea Programar EN VIVO (cliente, con la zona de la marca; el servidor revalida); Guardar borrador y Publicar ahora siguen habilitados. Una subida de media en curso (estado de `MediaUploader` → `useComposer.uploadingMedia`) bloquea Programar y Publicar ahora. **Evidencia real**: `npx playwright test tests/e2e/composer.spec.ts` → desktop 16 passed, mobile (375) 16 passed, mobile-360 16 passed (E2E-04 con el paso «fecha pasada»: reloj fijado, panel con «debe ser futura», Programar deshabilitado, Borrador y Publicar ahora habilitados, axe verde). El 375 que faltaba (`mobile`) se ha ejecutado ahora.
 ---
 
 ### T-10 — `DateTimePicker` propio con la zona de la marca y sin días pasados
@@ -380,7 +380,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Test del formato enviado
 
 **Notas**: **Evidencia**: `npm run build` → OK. `composer.spec.ts --project=desktop` → 13 passed, entre ellos E2E-04 (se ejecuta en T-16): zona `Europe/Madrid` visible, el día de ayer deshabilitado y ArrowLeft no sale de «hoy», día elegido → `data-value` = `Y-m-d\TH:i`, y la petición que envía Programar lleva `scheduled_at: "<día>T14:30"` (mismo formato que antes). axe sin violaciones serias o críticas con el selector abierto. El selector compara con «hoy» y la hora actual EN LA ZONA DE LA MARCA (`Intl.DateTimeFormat`, zona inválida → UTC); si la fecha es hoy, la hora mínima es la próxima franja de 5 minutos. Roles: `dialog` + `grid`/`gridcell`, tabulación circular y Escape devuelve el foco al botón. Respaldo nativo: el prop `native` pinta un `input datetime-local` con `min`; no se activa porque axe y el teclado pasan con el selector propio (decisión local, no cruza el umbral de ADR). `useComposer.js` no cambia en esta tarea (el `form.scheduled_at` ya existía). Pendiente M-03 (revisión manual del usuario en el navegador).
-
+ **Corrección de revisión F2 intento 1 (A2, A6, A9, B4)**: E2E-04 usa una marca en `Pacific/Auckland` con el navegador en `Europe/Madrid` y el reloj fijado a las 20:00 UTC (D en Madrid, D+1 en Auckland): falla si el selector usa la hora local. B4: si en la zona de la marca no queda ninguna franja hoy (≥ 23:56), el día de hoy se deshabilita y el foco inicial pasa a mañana (E2E «ninguna franja hoy»). Respaldo `native` testeado: `?selector=nativo` pinta el `datetime-local` con `min` en la zona de la marca (E2E «respaldo nativo»: fecha pasada → error y Programar deshabilitado; futura → se envía `Y-m-d\TH:i`). **Evidencia real**: `php artisan test --compact tests/Feature/Posts` → 55 passed; `composer.spec.ts` → 16 passed en desktop, mobile y mobile-360.
 ---
 
 ### T-11 — `ActionBar`: botón dividido (Programar, Guardar borrador, Guardar en biblioteca y Publicar ahora)
@@ -398,7 +398,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Cubre (tests)**: E2E-04, E2E-05, M-03
 - **Verificación**:
   - `npm run build` → sin errores
-  - `npm run test:e2e -- --grep "E2E-04|E2E-05"` → pasan en los tres proyectos
+  - `npx playwright test tests/e2e/composer.spec.ts` → 16 passed en desktop, mobile y mobile-360 (incluye E2E-04 y E2E-05)
 
 **Criterios de aceptación**
 - [x] Menú operable con teclado y con nombre accesible
@@ -411,7 +411,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Conectar con las acciones de T-12 y T-14
 
 **Notas**: **Evidencia**: `npm run build` → OK. `composer.spec.ts --project=desktop` → 13 passed (E2E-04 y E2E-05 se escriben en T-16): menú con ArrowDown/ArrowUp (saltan los elementos deshabilitados), Escape cierra y devuelve el foco, `aria-haspopup="menu"`; con errores Programar y Publicar ahora deshabilitados y Guardar borrador/Guardar en biblioteca habilitados; Publicar ahora muestra «Enviando…», bloquea el botón y el menú y una segunda petición (`requestSubmit()`) NO llega a enviarse (`guardados === 1`). `useComposer` activa `sendingNow` de forma síncrona y `submit()` también lo respeta, así un Enter o doble clic antes de que Inertia marque `processing` no duplica la petición. «Guardar borrador» pasa de botón suelto al menú (los E2E existentes usan el nuevo helper `guardarBorrador`). Las acciones de T-12 (`publishNow`) y T-14 (`saveToLibrary`, diálogo de nombre) ya están conectadas aquí; el endpoint de la biblioteca llega en T-14. Pendiente M-03.
-
+ **Corrección de revisión F2 intento 1 (A3, B3)**: «Programar», «Publicar ahora» y «Guardar en biblioteca» se deshabilitan mientras haya una subida de media en curso (E2E «con una subida de media en curso…»: botón con «Subiendo…», los tres deshabilitados y Guardar borrador habilitado; al terminar se habilitan). Programar se bloquea además con la fecha pasada (T-09). **Evidencia real**: `npx playwright test tests/e2e/composer.spec.ts` (E2E-04 y E2E-05) → desktop 16, mobile (375) 16 y mobile-360 16 passed; el proyecto `mobile` se ha ejecutado ahora (antes no).
 ---
 
 ### T-12 — Publicar ahora en `PostService`: `publishNow()`, `publish_now` y despacho tras el commit
@@ -463,7 +463,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Verificación**:
   - `php artisan test --compact --filter=PublishNowEndpoint` → en verde (borrador, programada, no editable y post ajeno)
   - `php artisan test --compact --filter=PublishPostNowTool` → en verde (paridad con la web, `NotOwned`, no editable)
-  - `npm run test:e2e -- --grep "E2E-06"` → pasa en los tres proyectos
+  - `npx playwright test tests/e2e/composer.spec.ts` → 16 passed en desktop, mobile y mobile-360 (incluye E2E-06)
 
 **Criterios de aceptación**
 - [x] Confirmación antes de enviar, accesible y cancelable
@@ -477,7 +477,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Tests de ruta y de herramienta
 
 **Notas**: **Evidencia**: `php artisan test --compact --filter=PublishNowEndpoint` → 12 passed (borrador, programada, no editable ×3, errores de contenido, post ajeno 404, sin sesión, `publish_now` desde el compositor, `prohibited_if` con `scheduled_at`, `throttle:30,1`, `can_publish_now` del calendario); `php artisan test --compact --filter=PublishPostNowTool` → 7 passed (paridad con la web, `NotOwned` igual para ajeno e inexistente, no editable con el mismo mensaje que `update_post`, ability `posts:write`, `create_post` con `publish_now`); `php artisan test --compact tests/Feature/Mcp tests/Feature/Isolation` → 222 passed (antes de esta tarea). E2E-06 (calendario y lista; se escribe en T-16): `composer.spec.ts --project=desktop` → 13 passed. La tarjeta muestra «Enviando…» y el calendario hace `router.reload` cada 4 s (máximo 15) hasta que el estado deja de ser borrador/programada. Desviaciones: (1) `SchedulerServer::$defaultPaginationLength = 25`: con 18 herramientas, `tools/list` paginaba a 15 y dejaba fuera `get_report`/`reply_comment` (rompía `McpStatsTest`); (2) `publish_now` también se documenta en `PostPayload` (create_post/update_post, según el diseño §4); (3) la ruta lleva `throttle:30,1` (revisión T-17: límite de peticiones). Pendiente M-05 (prueba con un cliente MCP real).
-
+ **Corrección de revisión F2 intento 1 (B1, B2, A4, A7, A3, Throttle)**: (B1) la ventana de `findPublished` parte ahora del primer intento del destino (`PublishRequestFactory::searchWindowStart`: mínimo entre `scheduled_at` y el primer `publish_attempts.started_at`, menos 5 min), así mover la fecha con «Publicar ahora», `reschedule()` o `update()` tras un intento ambiguo no deja fuera lo ya publicado (sin tocar `PublishPostTarget` ni `app/Connectors/Meta`); `FakePublisher` respeta `since` y dos tests Pest lo reproducen (publishNow y cambio solo de fecha: 1 publicación; sin el cambio fallan con 2). (B2) «Publicar ahora» pone `next_attempt_at = null` en los destinos `programada` con reintento transitorio; un destino en pausa por cuota no se fuerza y la respuesta dice «Hay destinos en pausa por la cuota de la red…»; el sondeo del calendario quita el id de `sending` al agotar las vueltas. (A7) el compositor pasa `publishing_post_id` por la sesión flash y el calendario sondea ese post como si se hubiera publicado desde él. (Throttle) limitador con nombre `publish-now` (30/min por usuario) compartido por `posts.publish-now` y por `brands.posts.store`/`posts.update` cuando llevan `publish_now`. (A4) E2E-06 cancela con botón y con Escape también en semana y mes, con axe en las tres vistas con la confirmación abierta (arreglado un contraste de las tarjetas no editables del mes). Sustituye a la nota anterior «`throttle:30,1`». **Evidencia real**: `php artisan test --compact` → 1295 passed; `PublishNowEndpoint` (incluye cuota y reintento transitorio y 429 compartido) y `PublishNowDoubleDispatch` (9) en verde; `composer.spec.ts` → desktop 16, mobile 16, mobile-360 16 passed.
 ---
 
 ### T-14 — Guardar en biblioteca también con el post sin guardar
@@ -555,8 +555,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/flows.spec.ts`
 - **Cubre (tests)**: E2E-04, E2E-05, E2E-06, E2E-07, E2E-12, A11Y-01, A11Y-02
 - **Verificación**:
-  - `npm run test:e2e -- tests/e2e/composer.spec.ts` → verde en desktop, mobile y mobile-360
-  - `npm run test:e2e -- tests/e2e/pages.spec.ts` → sin violaciones serias ni críticas en compositor y calendario
+  - `npx playwright test tests/e2e/composer.spec.ts` → 16 passed en desktop, mobile y mobile-360
+  - `npx playwright test tests/e2e/pages.spec.ts --project=desktop -g "calendario|conexiones de la marca"` → 4 passed (sustituye al barrido completo, que no incluye axe; la accesibilidad del compositor y del calendario con la confirmación abierta está en `composer.spec.ts`: E2E-04, E2E-06 en lista, semana y mes, A11Y-01)
 
 **Criterios de aceptación**
 - [x] Un test por CA-24..CA-27 y por la acción del calendario y la lista
@@ -569,21 +569,21 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] axe en calendario con la acción nueva
 
 **Notas**: **Evidencia** (por la restricción de memoria: solo `--project=desktop`, y el compositor una vez en `mobile-360`; el proyecto `mobile` 375 no se ha ejecutado en esta fase): `npx playwright test tests/e2e/composer.spec.ts --project=desktop` → 13 passed; `--project=mobile-360` → 13 passed (E2E-04, E2E-05, E2E-06, E2E-07, E2E-12 y A11Y-01/A11Y-02 con axe sin violaciones serias o críticas y `expectNoOverflow`); `npx playwright test tests/e2e/pages.spec.ts --project=desktop -g "calendario|conexiones de la marca"` → 4 passed (el barrido de `pages.spec.ts` no incluye axe: la accesibilidad del compositor y del calendario con la confirmación abierta vive en `composer.spec.ts`: E2E-04 con el menú y el selector abiertos, E2E-06 con la confirmación). Cada test usa solo usuarios `e2e-sec-*` y marcas `e2e-composer-*` (`cleanComposerBrands` las borra y retira de la cola `jobs` solo los `PublishPostTarget` de esos destinos, coincidencia exacta de `targetId`: Publicar ahora encola de verdad y nada E2E debe publicarse si hubiera un worker). Ningún dato del usuario id 28 tocado. Cubre también la aserción aplazada de E2E-02 (31 hashtags → Programar deshabilitado y Guardar borrador habilitado). Desviaciones: (1) los E2E de la Fase 1 afectados por esta fase se adaptan aquí: «Guardar borrador» pasa al menú (`guardarBorrador`), los `role=alert` de errores pasan al panel (`errors-panel`) y el test de B2 («biblioteca exige guardar antes») se sustituye por E2E-07; (2) `flows.spec.ts` (sesión demo) lleva el mismo ajuste del menú pero NO se ha ejecutado: crea y borra marcas del usuario demo y no se toca esa cuenta; (3) E2E-07 no sube media.
-
+ **Corrección de revisión F2 intento 1 (A2, A3, A4, A5, A8, A9, B3, B4)**: la nota de evidencia anterior queda sustituida por esta. Se ejecuta `npx playwright test tests/e2e/composer.spec.ts` una vez en cada proyecto: desktop 16 passed, mobile (375) 16 passed, mobile-360 16 passed (el proyecto `mobile`, que faltaba, ya está). Novedades: E2E-04 con marca en `Pacific/Auckland` y reloj fijado (A2) y paso de fecha pasada (A1); E2E-04 respaldo nativo (A9); E2E-04 sin franjas hoy (B4); E2E-05 subida en curso (B3); E2E-06 cancelar en semana y mes y axe con la confirmación abierta en lista, semana y mes (A4/A11Y-02); E2E-07 comprueba los destinos Instagram y Facebook de la plantilla (A8). `flows.spec.ts` (sesión demo) NO se ha ejecutado (A5): usa el usuario demo, que puede ser el id 28 cuyos datos no se tocan, y crea y borra marcas; el ajuste del menú de esa batería queda sin verificar. `pages.spec.ts`: la Verificación original (barrido con axe) no es posible porque ese barrido no incluye axe; se sustituye por `-g "calendario|conexiones de la marca"` (4 passed) y por los E2E con axe de `composer.spec.ts`; la Verificación de esta tarea ya lo dice así. Hallazgo aparte (no corregido, fuera de alcance): `posts.scheduled_at` es `timestamp` de MySQL y una fecha posterior a 2038 provoca un 500 en el servidor en lugar de un error de validación.
 ---
 
 ### T-17 — Revisión de robustez de la Fase 2 (doble publicación, permisos y estados)
 
 - **Descripción**: Revisión dirigida: doble despacho (web, calendario, MCP y despachador), post ajeno por IDOR en `publish-now` y `publish_post_now`, acción sobre un post no editable, carrera entre `publishNow()` y una edición, límite de peticiones de la acción y que el job no se encole antes del commit. Checklist firmada; cada hallazgo lleva su test.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Publicar ahora ya no puede duplicar una publicación tras un fallo ambiguo, funciona también con reintentos pendientes y respeta la pausa por cuota; el compositor avisa si la fecha es pasada.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.6h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.15h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-15, T-16
 - **Tipo**: docs
-- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Publishing/PublishNowReviewTest.php`, `app/Services/PostService.php`, `app/Http/Controllers/PostController.php`, `app/Mcp/Tools/PublishPostNow.php`
+- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Publishing/PublishNowReviewTest.php`, `app/Services/PostService.php`, `app/Http/Controllers/PostController.php`, `app/Mcp/Tools/PublishPostNow.php`, `app/Services/PublishRequestFactory.php`, `app/Providers/AppServiceProvider.php`, `app/Http/Controllers/CalendarController.php`, `routes/web.php`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/ActionBar.vue`, `resources/js/Components/Composer/DateTimePicker.vue`, `resources/js/Components/Composer/EditorToolbar.vue`, `resources/js/Components/Composer/ScheduleSection.vue`, `resources/js/Components/MediaUploader.vue`, `tests/Support/FakePublisher.php`, `tests/Feature/Posts/PublishNowEndpointTest.php`, `tests/Feature/Publishing/PublishNowDoubleDispatchTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
@@ -593,16 +593,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
-- [ ] Cada hallazgo Important o Critical tiene test y corrección
-- [ ] `PublishPostTarget` sigue sin cambios
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] Cada hallazgo Important o Critical tiene test y corrección
+- [x] `PublishPostTarget` sigue sin cambios
 
 **Subtareas**
-- [ ] Revisar IDOR y estados
-- [ ] Revisar carreras y `afterCommit`
-- [ ] Suite completa, Pint y E2E
+- [x] Revisar IDOR y estados
+- [x] Revisar carreras y `afterCommit`
+- [x] Suite completa, Pint y E2E
 
-**Notas**: Puerta de salida de la fase 2.
+**Notas**: Puerta de salida de la fase 2. Revisión de dos lentes, intento 1, corregida: ver la sección «Revisión de dos lentes — intento 1: Fase 2 (T-09..T-16)» al final. Nota sobre «`PublishPostTarget` sigue sin cambios»: cumplido (no se ha tocado, ni `app/Connectors/Meta`); la corrección de B1 vive en `PublishRequestFactory`. **Evidencia**: `php artisan test --compact` → 1295 passed; `php artisan test --compact --filter=PublishNow` → verde (PublishNowEndpoint, PublishNowDoubleDispatch, PublishPostNowTool); `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx tsc --noEmit -p .` → sin errores; `composer.spec.ts` → 16 passed en desktop, mobile y mobile-360 (la batería E2E completa no se ejecuta por la restricción de memoria: solo el compositor, en los tres proyectos).
 
 ---
 
@@ -1432,3 +1432,22 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | AX | A11y | Aviso | Sin `aria-live` en contadores; pastilla sin «Requiere reconexión» en su `aria-label` | T-04/T-02 | `aria-live="polite"` en contadores y recuento de hashtags; `aria-label` con «. Requiere reconexión» | axe verde en E2E-12 y A11Y-01 |
 
 Hallazgo extra al probar A3: el texto largo sin espacios desbordaba horizontalmente la vista previa (17 000 px); corregido con `overflow-wrap:anywhere` en `PreviewPanel.vue`.
+
+## Revisión de dos lentes — intento 1: Fase 2 (T-09..T-16) — corregida
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|-------|-------|-----|-------|------------|-----------|
+| B1 | Funcional | Important | Doble publicación: tras un intento ambiguo, «Publicar ahora» (o cambiar la fecha) movía `scheduled_at` y `findPublished` buscaba desde la fecha nueva | T-13 | `PublishRequestFactory::searchWindowStart`: la ventana parte del primer intento del destino (mínimo con `scheduled_at`, −5 min); sin tocar `PublishPostTarget` ni `app/Connectors/Meta` | `FakePublisher` respeta `since`; 2 tests en `PublishNowDoubleDispatchTest` (publishNow y cambio solo de fecha → 1 publicación; fallan con 2 sin la corrección) |
+| B2 | Funcional | Important | «Publicar ahora» con `next_attempt_at` futuro no encolaba nada pero decía «unos segundos»; el sondeo no quitaba el id de `sending` | T-13 | `releaseBackoff` pone `next_attempt_at = null` (no si `error_code = cuota`: mensaje «Hay destinos en pausa por la cuota…»); el sondeo vacía `sending` al agotar las vueltas | 2 tests en `PublishNowEndpointTest` (reintento transitorio se encola; cuota no se fuerza y el mensaje es honesto); suite 1295 passed |
+| A1 | Accesibilidad | Important | La fecha pasada no entraba en el panel ni bloqueaba Programar en vivo | T-09 | `dateErrorList` en `useComposer` con la zona de la marca; bloquea Programar, no Borrador ni Publicar ahora | E2E-04 (paso de fecha pasada, reloj fijado) verde en los tres proyectos |
+| A2 | Tests | Important | El test de zona horaria no distinguía la zona de la marca de la del navegador | T-10/T-16 | Marca `Pacific/Auckland`, navegador `Europe/Madrid`, reloj a las 20:00 UTC; el test exige que las dos fechas difieran | E2E-04 verde; el día «hoy» de Madrid sale deshabilitado |
+| A3 | Ledger | Important | Faltaba el proyecto `mobile` y las Verificaciones de T-09, T-11, T-13 y T-16 no eran exactas | T-09, T-11, T-13, T-16 | Se ejecuta `composer.spec.ts` en desktop, mobile y mobile-360 y se corrigen Verificaciones y notas | desktop 16, mobile 16, mobile-360 16 passed |
+| B3 | Funcional | Minor | Programar, Publicar ahora y Biblioteca seguían activos con una subida de media en curso | T-09/T-11 | `MediaUploader` emite `busy` → `useComposer.uploadingMedia` | E2E-05 «subida en curso» verde |
+| B4 | Funcional | Minor | Sin franjas válidas hoy en la zona de la marca, «hoy» seguía elegible | T-10 | `todayExhausted` deshabilita hoy y el foco pasa a mañana (también el `min` del nativo) | E2E «ninguna franja hoy» verde |
+| A4 | Tests | Minor | Cancelar la confirmación solo se probaba en lista y sin axe en semana y mes | T-16 | Cancelar con botón y Escape y axe con la confirmación abierta en lista, semana y mes; contraste de tarjetas no editables del mes corregido (`opacity-80` → fondo) | E2E-06 verde en los tres proyectos |
+| A5 | Ledger | Minor | `flows.spec.ts` sin ejecutar y la Verificación de `pages.spec.ts` sustituida sin anotar | T-16 | `flows.spec.ts` no se ejecuta (sesión demo, posible usuario 28; queda anotado); la sustitución de `pages.spec.ts` queda escrita en la Verificación y las Notas | T-16 Verificación y Notas |
+| A6 | Ledger | Minor | Sin evidencia de `tests/Feature/Posts` en T-10 | T-10 | Ejecutado y anotado | `php artisan test --compact tests/Feature/Posts` → 55 passed |
+| A7 | Funcional | Minor | Sin «Enviando…» al volver al calendario tras «Publicar ahora» desde el compositor | T-13 | `publishing_post_id` en la sesión flash → `Calendar/Index.vue` lo añade a `sending` y sondea | Prop `flash.publishing_post_id`; E2E-05 verde |
+| A8 | Tests | Minor | E2E-07 no comprobaba los destinos de la plantilla | T-16 | Comprueba Instagram y Facebook en la fila de la plantilla | E2E-07 verde |
+| A9 | Tests | Minor | El respaldo `native` de `DateTimePicker` no tenía test | T-10/T-16 | `?selector=nativo` activa el `datetime-local`; E2E con `min`, fecha pasada y envío | E2E «respaldo nativo» verde |
+| TH | Seguridad | Minor | `brands.posts.store` y `posts.update` con `publish_now` sin el mismo límite que `posts.publish-now` | T-13 | Limitador con nombre `publish-now` (30/min por usuario) en las tres rutas; solo cuenta `publish_now` en store/update | `PublishNowEndpointTest`: 30 peticiones pasan, la 31 da 429 y la ruta propia comparte el cupo |

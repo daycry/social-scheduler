@@ -1,6 +1,6 @@
 # Media y validación
 
-El navegador sube el binario directo a Cloudflare R2 con URLs prefirmadas. PHP-FPM nunca recibe el vídeo.
+Dos modos según `MEDIA_DISK`. Con **`local`** (producción actual) el navegador envía el fichero a la app (`PUT media/{asset}/upload`), se guarda en `storage/app/private` y las redes lo descargan por URL firmada y temporal de la app. Con **`r2`** el navegador sube el binario directo a Cloudflare R2 con URLs prefirmadas y PHP-FPM nunca recibe el vídeo. Detalle, límites y diferencias entre `local` y `public` en [Despliegue → Almacenamiento de media](despliegue.md#almacenamiento-de-media).
 
 ## Flujo de subida
 

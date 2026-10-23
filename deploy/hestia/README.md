@@ -11,7 +11,7 @@ Los pasos marcados **[VPS]** requieren acceso SSH/root y se ejecutan a mano una 
 - Composer 2 y Node 22: `deploy.sh` compila los assets (`npm ci && npm run build`) y no da el deploy por bueno sin `public/build/manifest.json` (sin el, todas las paginas Inertia darian 500). Con `SKIP_BUILD=1` se omite la compilacion si el build llega por otro medio, pero el manifest sigue siendo obligatorio.
 - Git y acceso de lectura al repositorio (deploy key).
 - `ffprobe` (paquete `ffmpeg`) en el PATH del usuario de PHP-FPM y de los workers: se usa para leer duracion, fps y codec de los videos subidos (`FFPROBE_BINARY` si esta en otra ruta). Sin el, los videos se rechazan al subirlos.
-- CORS del bucket R2 (subida directa del navegador, T-17): permitir `PUT` desde el dominio de la app, cabeceras `Content-Type` y exponer `ETag` (lo necesita el multipart). Sin esto la subida falla en el navegador aunque las URLs prefirmadas sean correctas.
+- Media: **disco local** (`MEDIA_DISK=local`, por defecto en `.env.production.example`; ver `docs/modulos/despliegue.md` → Almacenamiento de media) o R2. Solo con R2: CORS del bucket (subida directa del navegador, T-17): permitir `PUT` desde el dominio de la app, cabeceras `Content-Type` y exponer `ETag` (lo necesita el multipart). Sin esto la subida falla en el navegador aunque las URLs prefirmadas sean correctas.
 
 ## 2. Dominio, BD y TLS [VPS]
 
@@ -34,7 +34,7 @@ clonar la app en `/home/<USUARIO>/web/<DOMINIO>/app` y enlazar `public_html -> a
 ## 3. Ajustes de Nginx / PHP-FPM versionados [VPS]
 
 - `nginx-overrides.conf`: `client_max_body_size`, cabeceras de seguridad, bloqueo de ficheros ocultos y `/up` sin logs. Las instrucciones de copia estan en la cabecera del fichero. `nginx-http-map.conf` va aparte, a `/etc/nginx/conf.d/` (nivel http): evita que Nginx duplique la `Referrer-Policy` que ya envia PHP en `/oauth/authorize`.
-- PHP-FPM (pool del dominio, `/etc/php/8.4/fpm/pool.d/<DOMINIO>.conf`): `upload_max_filesize = 64M`, `post_max_size = 64M`, `memory_limit = 256M`, `max_execution_time = 120`. Hestia permite fijarlos desde el panel (Editar dominio -> PHP) o con `v-change-web-domain-backend-tpl`.
+- PHP-FPM (pool del dominio, `/etc/php/8.4/fpm/pool.d/<DOMINIO>.conf`): `upload_max_filesize = 512M`, `post_max_size = 512M`, `memory_limit = 256M`, `max_execution_time = 300` (con media local los vídeos pasan por PHP; con R2 bastan 64M y 120). Hestia permite fijarlos desde el panel (Editar dominio -> PHP) o con `v-change-web-domain-backend-tpl`.
 - Tras cambiar: `systemctl reload nginx php8.4-fpm`.
 
 ## 4. Primera instalacion [VPS]
@@ -43,7 +43,7 @@ clonar la app en `/home/<USUARIO>/web/<DOMINIO>/app` y enlazar `public_html -> a
 su - <USUARIO>
 cd ~/web/<DOMINIO>
 git clone <REPO> app && cd app
-cp .env.production.example .env        # rellenar APP_URL, DB_*, R2_*, HEALTHCHECK_TOKEN (openssl rand -hex 32), MAIL_*
+cp .env.production.example .env        # rellenar APP_URL, DB_*, HEALTHCHECK_TOKEN (openssl rand -hex 32), MAIL_*; R2_* solo si MEDIA_DISK=r2
 chmod 600 .env                          # contiene secretos: solo legible por el usuario del dominio
 composer install --no-dev --optimize-autoloader
 php artisan key:generate
@@ -85,7 +85,7 @@ php artisan app:health                         # BD, cola, disco
 
 ## 8. TikTok: media publica y subida [VPS]
 
-- **Fotos/carrusel (PULL_FROM_URL).** TikTok descarga las imagenes de una URL del dominio verificado (`TIKTOK_VERIFIED_DOMAIN`), sin firma: ese dominio tiene que ser el dominio publico del bucket R2 (`R2_URL`) y **toda la media del bucket queda accesible por URL** (claves ULID impredecibles y bucket sin listado, pero no privado; CWE-552). Mitigacion recomendada: crear un bucket publico aparte solo para TikTok (o una regla WAF/Transform de Cloudflare que limite el dominio publico a un prefijo), apuntar `TIKTOK_VERIFIED_DOMAIN` ahi y fijar una regla de ciclo de vida de R2 que borre ese prefijo a las 24 h. El codigo no copia ni borra ficheros: decision deliberada (sin esa restriccion en el dominio, un prefijo aparte no oculta nada).
+- **Fotos/carrusel (PULL_FROM_URL), solo con R2.** Con disco local no hay URL fija sin firma: deja `TIKTOK_VERIFIED_DOMAIN` vacío y la app no ofrece fotos de TikTok (los vídeos sí funcionan). TikTok descarga las imagenes de una URL del dominio verificado (`TIKTOK_VERIFIED_DOMAIN`), sin firma: ese dominio tiene que ser el dominio publico del bucket R2 (`R2_URL`) y **toda la media del bucket queda accesible por URL** (claves ULID impredecibles y bucket sin listado, pero no privado; CWE-552). Mitigacion recomendada: crear un bucket publico aparte solo para TikTok (o una regla WAF/Transform de Cloudflare que limite el dominio publico a un prefijo), apuntar `TIKTOK_VERIFIED_DOMAIN` ahi y fijar una regla de ciclo de vida de R2 que borre ese prefijo a las 24 h. El codigo no copia ni borra ficheros: decision deliberada (sin esa restriccion en el dominio, un prefijo aparte no oculta nada).
 - **Video (FILE_UPLOAD).** La `upload_url` de TikTok vale 1 hora. Si caduca a mitad, la subida se reinicia una vez con un `init` nuevo; si vuelve a caducar, el destino falla con «reprograma». Ajustes: `TIKTOK_UPLOAD_URL_TTL`, `TIKTOK_UPLOAD_RESTARTS`, `TIKTOK_UPLOAD_MAX_MINUTES`.
 - **Borrador sin confirmar.** Pasados `TIKTOK_INBOX_GRACE_MINUTES` desde la subida completa se da por enviado a la bandeja con la nota «revisa tus borradores»; no se sigue sondeando despues (si TikTok lo marcara `FAILED` mas tarde, el usuario lo ve en la app).
 

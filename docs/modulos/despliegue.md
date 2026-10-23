@@ -1,4 +1,4 @@
-# Despliegue: HestiaCP, systemd y R2
+# Despliegue: HestiaCP, systemd y almacenamiento de media
 
 Fuente de verdad operativa: `deploy/hestia/README.md` y `deploy/systemd/README.md`. Esta página resume y enlaza. Todo lo marcado **[VPS]** requiere acceso root y sigue pendiente (M-04).
 
@@ -29,12 +29,12 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 - HestiaCP con Nginx + PHP-FPM 8.4/8.5 y MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED` para varios workers).
 - Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip` y, para las passkeys, `openssl` y `sodium` (ver [Seguridad de cuenta](#seguridad-de-cuenta-2fa-y-passkeys)). Composer 2 y Node 22.
 - `ffprobe` en el PATH de PHP-FPM y de los workers.
-- Bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
+- Almacenamiento de media: **disco local del servidor** (este despliegue, ver [Almacenamiento de media](#almacenamiento-de-media)) o un bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
 
 ## Pasos
 
 1. Dominio, TLS y BD con los comandos `v-add-web-domain`, `v-add-letsencrypt-domain`, `v-add-database` (plantilla `laravel`, docroot `public/`).
-2. Ajustes de Nginx (`deploy/hestia/nginx-overrides.conf`) y PHP-FPM (`upload_max_filesize=64M`, `memory_limit=256M`, `max_execution_time=120`).
+2. Ajustes de Nginx (`deploy/hestia/nginx-overrides.conf`) y PHP-FPM (`upload_max_filesize=512M`, `post_max_size=512M`, `memory_limit=256M`, `max_execution_time=300`; con media local las subidas pasan por PHP).
 3. Primera instalación: clonar, `cp .env.production.example .env`, `chmod 600 .env`, `composer install --no-dev`, `key:generate`, `migrate --force`.
 4. Cron de Hestia cada minuto: `cd .../app && php artisan schedule:run`.
 5. Workers systemd (abajo).
@@ -62,9 +62,52 @@ Plan B sin systemd: cron con `queue:work --stop-when-empty` y `flock` (latencia 
 - `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min.
 - `/up`: solo prueba que PHP responde.
 
+## Almacenamiento de media
+
+**Este despliegue usa el disco local del servidor** (`MEDIA_DISK=local`, decisión del 2026-10-23). R2 sigue soportado: para usarlo, `MEDIA_DISK=r2` y las variables `R2_*`.
+
+### Qué disco hace qué
+
+Laravel tiene dos discos locales. La media de la app va **siempre** en `local`:
+
+| | `local` (media e informes) | `public` |
+|---|---|---|
+| Carpeta | `storage/app/private` | `storage/app/public` |
+| Acceso desde Internet | Solo con **URL firmada y temporal** por la ruta `/storage/...` de la app (12 h por defecto, `MEDIA_PUBLIC_URL_TTL`; la firma depende de `APP_KEY`) | Cualquiera, por URL, para siempre: `php artisan storage:link` (lo ejecuta `deploy.sh`) publica `public/storage` |
+| Uso | Fotos y vídeos de las publicaciones, borradores incluidos, e informes PDF | Nada sensible |
+
+Nunca pongas `MEDIA_DISK=public`: toda la media (también la no publicada y los informes con métricas) quedaría accesible sin caducidad. `storage:link` solo expone `storage/app/public`, no `private`.
+
+### Cómo funciona con disco local
+
+| Paso | Con `local` | Con `r2` |
+|---|---|---|
+| Subida | El navegador envía el fichero a la app (`PUT media/{asset}/upload`) y PHP lo escribe en `storage/app/private/media/...` | El navegador sube directo a R2 con URL prefirmada (multipart para ficheros grandes); PHP no recibe el binario |
+| Validación (`ffprobe`) | Lee el fichero del disco | Descarga solo los extremos del fichero |
+| Publicación en Instagram, Facebook, YouTube | La red descarga la media de la URL firmada de la app | La red descarga de la URL firmada de R2 |
+| Vídeo de TikTok | Lo sube la app (`FILE_UPLOAD`) | Igual |
+| **Fotos/carrusel de TikTok** | **No disponible**: TikTok exige una URL fija sin firma en un dominio verificado (`PULL_FROM_URL`). Deja `TIKTOK_VERIFIED_DOMAIN` vacío y la app no ofrece ese tipo | Disponible con `TIKTOK_VERIFIED_DOMAIN` = dominio público del bucket |
+
+### Requisitos con disco local
+
+- **Tamaño de subida.** El fichero pasa por Nginx y PHP-FPM: sube a la vez `client_max_body_size` (Nginx, `nginx-overrides.conf`, 512m) y `upload_max_filesize`/`post_max_size` (PHP del dominio en Hestia, 512M), y `max_execution_time=300` para vídeos grandes.
+- **Cloudflare (plan gratuito) corta las peticiones de más de 100 MB.** Con el proxy activo, un vídeo de más de 100 MB falla al subirlo. Para vídeos mayores: subir sin proxy (nube gris) o pasar a R2, que sube directo sin atravesar Cloudflare.
+- **Cloudflare no debe cachear ni retar `/storage/*`**: Meta y Google descargan la media de ahí. Va en la misma regla de *Bypass* y de omisión del WAF que `/mcp` y `/oauth/*` (ver [Cloudflare delante](#cloudflare-delante)).
+- **Espacio en disco y copias.** La media vive en el VPS: inclúyela en las copias de seguridad de Hestia (`storage/app/private`). `app:media-prune` (cada hora) borra las subidas abandonadas o inválidas.
+- **Despliegues.** `storage/` no está en git: `deploy.sh` (pull, composer, build, migrate, caches) no toca la media.
+
+### Comprobación
+
+```bash
+php artisan app:health      # «storage» debe salir OK
+php artisan tinker --execute='echo config("filesystems.media");'   # local
+```
+
+Sube una imagen desde el compositor y comprueba que aparece en `storage/app/private/media/<usuario>/`.
+
 ## TikTok: media pública
 
-Las fotos usan `PULL_FROM_URL`: TikTok descarga la URL sin firma desde `TIKTOK_VERIFIED_DOMAIN`, que debe ser el dominio público del bucket (`R2_URL`). Toda la media del bucket queda accesible por URL (claves ULID impredecibles, no listables). Mitigación recomendada: bucket o dominio separado solo para TikTok, o regla WAF que limite a un prefijo, más una regla de ciclo de vida que lo borre a las 24 h.
+Solo aplica con R2 (con disco local las fotos de TikTok no están disponibles, ver arriba). Las fotos usan `PULL_FROM_URL`: TikTok descarga la URL sin firma desde `TIKTOK_VERIFIED_DOMAIN`, que debe ser el dominio público del bucket (`R2_URL`). Toda la media del bucket queda accesible por URL (claves ULID impredecibles, no listables). Mitigación recomendada: bucket o dominio separado solo para TikTok, o regla WAF que limite a un prefijo, más una regla de ciclo de vida que lo borre a las 24 h.
 
 ## Proxies de confianza
 
@@ -88,7 +131,7 @@ Con Cloudflare y sin sus rangos, `request()->ip()` sería la IP de Cloudflare: t
 | Email Address Obfuscation | desactivado | Altera el HTML de las páginas de Inertia |
 | Auto Minify / caché de HTML | desactivados | La app sirve HTML dinámico con CSRF y sesión |
 | Bot Fight Mode / Super Bot Fight Mode | **desactivado**, o con regla de omisión | Bloquea a los clientes MCP (Claude, Codex, OpenCode) y a los servidores de Anthropic, Meta, Google y TikTok, que no son navegadores |
-| Reglas de caché | *Bypass* para `/mcp*`, `/oauth/*`, `/.well-known/oauth-*`, `/auth/*`, `/connections/*`, `/up`, `/health` | Respuestas por usuario o con tokens: nunca deben cachearse |
+| Reglas de caché | *Bypass* para `/mcp*`, `/oauth/*`, `/.well-known/oauth-*`, `/auth/*`, `/connections/*`, `/storage/*`, `/up`, `/health` | Respuestas por usuario o con tokens: nunca deben cachearse |
 | WAF | regla de omisión (*Skip*) de los retos gestionados para las mismas rutas | Un reto JavaScript rompe el flujo OAuth y las llamadas máquina a máquina |
 
 Comprobaciones tras activar el proxy (deben dar lo mismo que sin Cloudflare):
@@ -103,7 +146,7 @@ Y en la app, **Perfil → Seguridad** o la auditoría deben mostrar tu IP real, 
 
 Let's Encrypt de Hestia sigue funcionando con el proxy activo (Cloudflare deja pasar `/.well-known/acme-challenge/` por HTTP). Si la emisión falla, desactiva el proxy un momento, emite el certificado y vuelve a activarlo.
 
-La media de R2 va por su propio dominio (`R2_URL`); si también pasa por Cloudflare, debe ser accesible sin retos para que TikTok la descargue (`PULL_FROM_URL`).
+Con disco local la media se sirve por `/storage/*` del propio dominio (incluido en la regla de *Bypass* y en la omisión del WAF) y las subidas de más de 100 MB las corta Cloudflare (plan gratuito). Con R2, la media va por su propio dominio (`R2_URL`) y debe ser accesible sin retos para que TikTok la descargue (`PULL_FROM_URL`).
 
 ## OAuth del MCP, Nginx/Hestia y redirect URIs
 

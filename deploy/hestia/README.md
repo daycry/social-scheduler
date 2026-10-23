@@ -50,15 +50,65 @@ php artisan key:generate
 php artisan migrate --force
 ```
 
-## 5. Cron del scheduler [VPS]
+## 5. Cron del scheduler y workers de cola [VPS]
 
-Hestia -> Cron -> anadir (cada minuto) o por CLI:
+El scheduler (`schedule:run`, cada minuto) solo **encola** el trabajo; los **workers** (`queue:work`) lo ejecutan. Hacen falta los dos: sin workers no salen las publicaciones ni se cargan las métricas.
 
-```bash
-v-add-cron-job <USUARIO> '*' '*' '*' '*' '*' 'cd /home/<USUARIO>/web/<DOMINIO>/app && php artisan schedule:run >> /dev/null 2>&1'
+### 5.1 Opción A: desde el panel de Hestia (cron), la de este despliegue
+
+En **Hestia → usuario → CRON → Añadir tarea**, tres tareas. `<USUARIO>`/`<DOMINIO>` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP (`which php8.4`): el cron no carga el `PATH` de tu sesión.
+
+| # | Para qué | Minuto | Hora | Día | Mes | Día sem. |
+|---|---|---|---|---|---|---|
+| 1 | **Scheduler**: encola lo que toca (publicaciones vencidas, métricas, comentarios, autolistas, limpiezas) | `*` | `*` | `*` | `*` | `*` |
+| 2 | **Worker de publicación**: colas `publish` y `poll` | `*` | `*` | `*` | `*` | `*` |
+| 3 | **Worker de métricas e informes**: colas `metrics` y `reports` | `*/5` | `*` | `*` | `*` | `*` |
+
+Comandos (uno por tarea, en una sola línea):
+
+```text
+# 1. Scheduler
+cd /home/<USUARIO>/web/<DOMINIO>/public_html && /usr/bin/php8.4 artisan schedule:run >> /dev/null 2>&1
+
+# 2. Worker de publicación
+cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-publish.lock /usr/bin/php8.4 artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
+
+# 3. Worker de métricas e informes
+cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-metrics.lock /usr/bin/php8.4 artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
 ```
 
-Verificar con `v-list-cron-jobs <USUARIO>` y, pasado un minuto, `php artisan schedule:list`.
+Qué hace cada opción:
+
+| Opción | Por qué |
+|---|---|
+| `flock -n <lock>` | Si el worker anterior sigue trabajando, el nuevo no arranca: nunca hay dos a la vez sobre la misma cola. `~/tmp` existe en Hestia y es privado del usuario |
+| `--stop-when-empty` | El worker termina al vaciar la cola, en vez de quedarse vivo |
+| `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min) |
+| `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
+
+Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
+
+Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
+
+### 5.2 Opción B: systemd (procesos siempre vivos)
+
+Requiere root. Sustituye a las tareas 2 y 3 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+
+### 5.3 Comprobar que los workers procesan
+
+Como el usuario del dominio, en la carpeta de la app, un par de minutos después de crear las tareas:
+
+```bash
+php8.4 artisan schedule:list               # tareas programadas y su próxima ejecución
+php8.4 artisan app:health                  # «scheduler» OK (el cron corre) y la cola sin atrasos
+php8.4 artisan app:queue-probe --wait=360  # encola un job en cada cola y espera a que se procese (metrics tarda hasta 5 min con cron)
+php8.4 artisan queue:failed | head         # sin fallos
+php8.4 artisan tinker --execute='echo DB::table("jobs")->selectRaw("queue, count(*) n")->groupBy("queue")->get();'   # pendientes por cola
+```
+
+Pendientes que no bajan en una cola = su worker no está corriendo (revisa la tarea de cron o la unidad systemd).
+
+Si la analítica sale «no disponible» tras conectar una cuenta, ver `docs/modulos/despliegue.md` → «Analítica no disponible tras conectar una cuenta».
 
 ## 5 bis. Primer usuario [VPS]
 

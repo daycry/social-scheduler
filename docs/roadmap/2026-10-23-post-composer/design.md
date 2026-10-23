@@ -6,7 +6,7 @@ creado: "2026-10-23"
 actualizado: "2026-10-23"
 spec: spec.md                 # enlace hacia atrás (misma carpeta)
 evaluacion: "evaluation.md"    # evaluation.md | n/a
-plan: pendiente               # improvement-plan.md cuando el planner lo cree
+plan: improvement-plan.md
 adr: "docs/knowledge/adr/ADR-005-texto-efectivo-y-publicar-ahora-sobre-el-nucleo-de-publicacion.md"
 opcion_elegida: "O1"    # pendiente | O1 | O2 | O3 — se fija SOLO tras la validación del usuario (pasada 2 / diálogo manual)
 generacion:

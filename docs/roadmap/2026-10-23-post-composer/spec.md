@@ -6,7 +6,7 @@ creado: 2026-10-23
 actualizado: 2026-10-23
 evaluacion: evaluation.md
 design: design.md         # aprobado 2026-10-23, opción O1 (ADR-005)
-plan: pendiente
+plan: improvement-plan.md
 generacion:
   inicio: 2026-10-23T10:43:57Z
   fin: 2026-10-23T10:56:46Z
@@ -22,7 +22,7 @@ generacion:
 
 > **Evaluación:** [`evaluation.md`](evaluation.md)
 > **Diseño:** [`design.md`](design.md) (aprobado, O1; ver ADR-005)
-> **Plan de implementación:** pendiente (handoff a `planner` cuando el usuario elija el alcance)
+> **Plan de implementación:** [`improvement-plan.md`](improvement-plan.md) (42 tareas, 6 fases)
 
 > **Terminología:**
 >

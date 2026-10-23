@@ -37,7 +37,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
 | Fase 2 — C-01 · Login social | 7 | 7 | 100% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
-| Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
+| Fase 3 — C-03 · UI, E2E, docs y cierre | 8 | 9 | 89% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **18** | **28** | **64%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
 > **Horas reales (G7).** Las horas reales de la Fase 1 son una **estimación a juicio** (marcadas `(estimado)` en cada tarea): no se midieron con `usage-meter` (las tareas se cerraron sin marcadores de medición), así que no hay dato medido. Suma de las tareas cerradas T-01..T-10 ≈ 4,5h IA ejecución, ≈ 1,1h supervisión y ≈ 5,3h humanas (las tareas pesan muy por debajo de la estimación porque la IA ejecutó casi todo el trabajo); más ≈ 0,8h IA de la revisión F1 (intento 1). La tabla de arriba deja las columnas «real» a 0 hasta que existan datos medidos; estas cifras no se imputan a Jira.
@@ -869,6 +869,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Registro condicionado
 - [x] Config de Playwright y helpers
 
+**Notas**: `FakeSocialProviderEnvTest` limpia en `afterEach` los hosts de confianza estáticos de Symfony (`Request::setTrustedHosts`), que con `APP_ENV` distinto de `testing` contaminaban a `TrustedProxiesTest` y `ProfileTest` en la suite completa. Suite final: `php artisan test --compact` → 1221 passed.
+
 **Notas**: Google y Facebook reales no son automatizables: van a M-01 y M-02.
 
 **Evidencia (2026-10-23)**: --filter=FakeSocialProviderEnv → 9 passed (el driver falso no existe en production/local/testing/staging, solo con APP_ENV=e2e y APP_URL local; no se activa por query; el viaje conserva el state real); npx playwright test --list → 225 tests listados sin errores; npx playwright test --project=desktop security.spec.ts con APP_ENV=e2e → 8 passed (2FA y passkeys sin cambios); tsc --noEmit y pint --test → OK. Desviación: el fichero de identidades del proveedor falso es storage/framework/cache/e2e-social.json (ignorado por git), que no estaba en Archivos; los helpers añaden también limpieza de identidades en resetSecurity.
@@ -880,11 +882,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-24 — E2E del login social y de Cuentas vinculadas
 
 - **Descripción**: Specs de Playwright con el proveedor falso: login con Google sin 2FA y con 2FA, rechazos (email no verificado, sin cuenta, Facebook sin vincular, cancelar) y vincular/desvincular desde el perfil. Usa los usuarios `e2e-sec-*` y nunca el usuario id 28.
-- **Changelog**:
-- **Estado**: en-progreso
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0.34h · real —
-- **Supervisión**: est. 0.08h (≈25 % IA) · real —
+- **Changelog**: El inicio de sesión con Google y Facebook y la gestión de cuentas vinculadas quedan probados de punta a punta, y el login muestra ahora el motivo cuando el proveedor rechaza la entrada.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.34h · real 0.34h (estimado)
+- **Supervisión**: est. 0.08h (≈25 % IA) · real 0.08h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-21, T-23
 - **Tipo**: test
@@ -893,27 +895,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Verificación**: `npm run test:e2e -- social.spec.ts` → en verde en los tres proyectos (desktop, mobile, mobile-360)
 
 **Criterios de aceptación**
-- [ ] E2E-01..E2E-04 pasan con aserciones reales
-- [ ] Cada spec limpia lo que crea (usuarios e identidades `e2e-`)
-- [ ] Ningún spec lee ni escribe un usuario fuera de `e2e-sec-*`
+- [x] E2E-01..E2E-04 pasan con aserciones reales
+- [x] Cada spec limpia lo que crea (usuarios e identidades `e2e-`)
+- [x] Ningún spec lee ni escribe un usuario fuera de `e2e-sec-*`
 
 **Notas**: T-24 corrige `Login.vue` (T-20): los rechazos del login social llegaban por redirección con el error `email` en la sesión y la pantalla solo pintaba `form.errors`, así que el usuario no veía ningún mensaje; ahora se muestra en un aviso (`role=alert`). Verificación en desktop durante el desarrollo; la de los tres proyectos se hace una sola vez al final (límite de memoria).
 
 **Subtareas**
-- [ ] Login sin y con 2FA
-- [ ] Rechazos
-- [ ] Vincular y desvincular
+- [x] Login sin y con 2FA
+- [x] Rechazos
+- [x] Vincular y desvincular
+
+**Evidencia (2026-10-23)**: npm run test:e2e (batería completa, una sola ejecución, informe en testing/results.json) → 268 passed, 2 skipped (preexistentes, solo desktop), 0 failed, 0 flaky: desktop 90/90, mobile 89 + 1 skipped, mobile-360 89 + 1 skipped. social.spec.ts: 5 specs por proyecto (E2E-01..04) en verde en los tres; tsc --noEmit OK.
+
+---
 
 ---
 
 ### T-25 — E2E del flujo OAuth del MCP en el navegador
 
 - **Descripción**: El test genera el verifier, registra un cliente, abre `/oauth/authorize`, inicia sesión (con y sin 2FA), consiente, captura el redirect a loopback, canjea con `request` y llama a `/mcp`. Cubre denegar, la revocación desde API keys (401 después) y que una API key manual sigue funcionando.
-- **Changelog**:
-- **Estado**: en-progreso
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0.34h · real —
-- **Supervisión**: est. 0.08h (≈25 % IA) · real —
+- **Changelog**: El flujo de autorización OAuth del MCP (registro, consentimiento, token, revocación y convivencia con las API keys) queda probado en el navegador.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.34h · real 0.34h (estimado)
+- **Supervisión**: est. 0.08h (≈25 % IA) · real 0.08h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-22, T-23
 - **Tipo**: test
@@ -922,27 +928,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Verificación**: `npm run test:e2e -- oauth.spec.ts` → en verde en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] E2E-05..E2E-07 pasan (CA-16, CA-18..CA-20, CA-24..CA-26)
-- [ ] El token canjeado funciona en `/mcp` y deja de hacerlo tras revocar
-- [ ] No queda ningún cliente ni token `e2e-` tras el teardown
+- [x] E2E-05..E2E-07 pasan (CA-16, CA-18..CA-20, CA-24..CA-26)
+- [x] El token canjeado funciona en `/mcp` y deja de hacerlo tras revocar
+- [x] No queda ningún cliente ni token `e2e-` tras el teardown
 
 **Notas**: Los helpers de limpieza (`tests/e2e/helpers.ts`) borran también los clientes `e2e-*`, los tokens de los usuarios `e2e-sec-*` (Sanctum no tiene FK al usuario) y las filas de auditoría sin usuario de la batería. Reutilizar un código ya canjeado revoca su token (CA-21): el spec lo comprueba al final del flujo. Verificación en desktop durante el desarrollo; los tres proyectos se ejecutan una sola vez al final (límite de memoria).
 
 **Subtareas**
-- [ ] Flujo con PKCE
-- [ ] Denegar y 2FA en mitad
-- [ ] Revocación y API key manual
+- [x] Flujo con PKCE
+- [x] Denegar y 2FA en mitad
+- [x] Revocación y API key manual
+
+**Evidencia (2026-10-23)**: npm run test:e2e (batería completa, una sola ejecución, informe en testing/results.json) → 268 passed, 2 skipped (preexistentes, solo desktop), 0 failed, 0 flaky: desktop 90/90, mobile 89 + 1 skipped, mobile-360 89 + 1 skipped. oauth.spec.ts: 5 specs por proyecto (API-01, API-02, E2E-05..07) en verde en los tres; sin clientes ni usuarios e2e tras el teardown.
+
+---
 
 ---
 
 ### T-26 — axe y desbordamiento en Login, Cuentas vinculadas y Consentimiento
 
 - **Descripción**: Añade las tres pantallas nuevas a `tests/e2e/a11y.spec.ts` con el umbral de la iniciativa anterior (0 violaciones `serious`/`critical`) y mide el desbordamiento a 375 y 360 px.
-- **Changelog**:
-- **Estado**: en-progreso
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.14h · real —
-- **Supervisión**: est. 0.03h (≈25 % IA) · real —
+- **Changelog**: Las pantallas de acceso con botones sociales, Cuentas vinculadas y consentimiento del MCP cumplen accesibilidad (sin fallos graves) y no desbordan a 375 y 360 px.
+- **Estado**: completado
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.14h · real 0.14h (estimado)
+- **Supervisión**: est. 0.03h (≈25 % IA) · real 0.03h (estimado)
 - **Previsión IA**: 37k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-24, T-25
 - **Tipo**: test
@@ -951,13 +961,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Verificación**: `npm run test:e2e -- a11y.spec.ts` → 0 violaciones `serious`/`critical` y 0 px de desbordamiento horizontal en las pantallas nuevas
 
 **Criterios de aceptación**
-- [ ] Login con botones, Cuentas vinculadas y Consentimiento sin violaciones `serious`/`critical`
-- [ ] 0 px de desbordamiento a 375 y 360 px
+- [x] Login con botones, Cuentas vinculadas y Consentimiento sin violaciones `serious`/`critical`
+- [x] 0 px de desbordamiento a 375 y 360 px
 
 **Notas**: axe encontró un fallo real `color-contrast` (serious) en el consentimiento: los códigos de permiso usaban `text-slate-400`; pasan a `text-slate-600` (por eso `Authorize.vue` entra en Archivos). Verificación en desktop durante el desarrollo; los tres proyectos (375 y 360 px) se ejecutan una sola vez al final.
 
 **Subtareas**
-- [ ] Casos nuevos en `a11y.spec.ts`
+- [x] Casos nuevos en `a11y.spec.ts`
+
+**Evidencia (2026-10-23)**: npm run test:e2e (batería completa, una sola ejecución, informe en testing/results.json) → 268 passed, 2 skipped (preexistentes, solo desktop), 0 failed, 0 flaky: desktop 90/90, mobile 89 + 1 skipped, mobile-360 89 + 1 skipped. a11y.spec.ts: 3 casos nuevos por proyecto con 0 violaciones serious/critical y 0 px de desbordamiento a 375 y 360 px.
+
+---
 
 ---
 

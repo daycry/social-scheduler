@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Providers\AppServiceProvider;
 use App\Services\Auth\Social\FakeSocialiteProvider;
+use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\FacebookProvider;
 use Laravel\Socialite\Two\GoogleProvider;
@@ -23,6 +24,10 @@ function driverClasses(string $env, string $url): array
         get_class(Socialite::driver('facebook-login')),
     ];
 }
+
+// Con un entorno distinto de `testing`, TrustHosts fija los hosts de confianza en el estado ESTATICO de Symfony: se limpia para no
+// contaminar a los tests siguientes (p. ej. los de proxies de confianza, que usan otro host).
+afterEach(fn () => Request::setTrustedHosts([]));
 
 test('el driver falso NO existe en production, local ni testing', function (string $env) {
     [$google, $facebook] = driverClasses($env, 'http://localhost:8080');

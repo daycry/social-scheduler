@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTH_FILE, AUTH_PAGES, expectNoOverflow, PUBLIC_PAGES, settle, watch } from './helpers';
+import { AUTH_FILE, AUTH_PAGES, axeSeriousCritical, expectNoOverflow, PUBLIC_PAGES, settle, watch } from './helpers';
 
-/** (a) Recorrido de todas las páginas: status < 400, sin errores de consola, sin desbordamiento y con un h1. */
+/** (a) Recorrido (solo lectura: la sesión demo solo hace GET, nunca crea, edita ni borra datos) de todas las páginas: status < 400, sin errores de consola, sin desbordamiento y con un h1. */
 async function check(page: Page, path: string) {
     const w = watch(page);
     const res = await page.goto(path);
@@ -32,7 +32,15 @@ test.describe('páginas autenticadas', () => {
         const brandId = href!.match(/brands\/(\d+)\/connections/)![1];
         await check(page, `/brands/${brandId}/connections`);
         await check(page, `/brands/${brandId}/posts/create`);
+        await axeSeriousCritical(page, 'compositor');
         await check(page, `/brands/${brandId}/edit`);
+    });
+
+    test('axe en el calendario (solo lectura)', async ({ page }) => {
+        for (const vista of ['week', 'month', 'list']) {
+            await check(page, `/calendar?view=${vista}`);
+            await axeSeriousCritical(page, `calendario (${vista})`);
+        }
     });
 
     test('el shell enlaza los módulos nuevos', async ({ page }, info) => {

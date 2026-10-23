@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type BrowserContext, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -513,4 +514,16 @@ export function seedComposerPosts(email: string, brandId: number): ComposerPosts
     );
     const [draft, scheduled, published, scheduledDate] = out.match(/IDS:([\d,-]+)/)![1].split(',');
     return { draft: Number(draft), scheduled: Number(scheduled), published: Number(published), scheduledDate };
+}
+
+/** axe (WCAG 2.x A y AA): falla con cualquier violación `serious` o `critical` de la página actual. */
+export async function axeSeriousCritical(page: Page, label: string) {
+    await settle(page);
+    await expect(page.locator('#nprogress')).toHaveCount(0); // barra transitoria de Inertia
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(400); // fin de las transiciones de color
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+    const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join(' | ')}`).join(' // ');
+    expect(bad, `violaciones de accesibilidad en ${label}: ${detail}`).toEqual([]);
 }

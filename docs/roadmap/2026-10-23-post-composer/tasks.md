@@ -775,11 +775,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-23 — Paridad del MCP: texto por destino en `PostPayload`, `get_post`, `create_post` y `update_post`
 
 - **Descripción**: El esquema de `PostPayload` y la salida de `presentPost()` incluyen `text` y `effective_text` por destino. Las reglas siguen siendo `PostRequest::rules()`.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: El asistente por MCP puede crear, editar y leer el texto propio de cada red de una publicación, con los mismos límites que la web.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
 - **Tipo**: backend
@@ -790,15 +790,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Mcp` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-12: `create_post`, `update_post` y `get_post` aceptan y devuelven el texto por destino con las mismas reglas que la web
-- [ ] Un error de validación por destino sale igual que en la web
+- [x] CA-12: `create_post`, `update_post` y `get_post` aceptan y devuelven el texto por destino con las mismas reglas que la web
+- [x] Un error de validación por destino sale igual que en la web
 
 **Subtareas**
-- [ ] Esquema y presentación
-- [ ] Tests de las tres herramientas
-- [ ] Actualizar `docs/modulos/mcp.md`
+- [x] Esquema y presentación
+- [x] Tests de las tres herramientas
+- [x] Actualizar `docs/modulos/mcp.md`
 
-**Notas**: Regla de paridad: cada cambio de modelo del plan toca el MCP en su misma fase.
+**Notas**: **Evidencia**: `--filter=McpTargetText` → 5 passed (create_post, get_post, update_post incl. vincular de nuevo al omitir y cadena vacía propia, máximo y hashtags por red con el error por destino igual que la web, post ajeno sin filtrar el texto); `tests/Feature/Mcp` → en verde. Las reglas siguen siendo `PostRequest::rules()`. `docs/modulos/mcp.md` actualizado (`text`/`effective_text`, `null` = vinculado, update_post sustituye los destinos). TDD n/a: tests junto al código.
 
 ---
 

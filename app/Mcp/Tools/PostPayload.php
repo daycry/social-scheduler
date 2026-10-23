@@ -13,7 +13,7 @@ trait PostPayload
     protected function payloadSchema(JsonSchema $schema): array
     {
         return [
-            'text' => $schema->string()->description('Texto de la publicacion'),
+            'text' => $schema->string()->description('Texto de la publicacion (la plantilla: lo publican los destinos que no tienen texto propio)'),
             'scheduled_at' => $schema->string()->description('Fecha/hora YYYY-MM-DD HH:MM; sin zona = zona horaria de la marca. Debe ser futura si schedule=true'),
             'schedule' => $schema->boolean()->description('true = programar; false = guardar como borrador')->required(),
             'publish_now' => $schema->boolean()->description('true = publicar ahora (sin fecha: la pone el servidor; no se puede combinar con scheduled_at). Equivale a programar y encolar de inmediato'),
@@ -21,6 +21,7 @@ trait PostPayload
             'targets' => $schema->array()->items($schema->object([
                 'account_id' => $schema->integer()->description('ID de cuenta (list_accounts)')->required(),
                 'content_type' => $schema->string()->description('Uno de content_types de la cuenta')->required(),
+                'text' => $schema->string()->description('Texto PROPIO de este destino. Omitido o null = vinculado a la plantilla (text de la publicacion); una cadena (tambien vacia) = ese texto se publica solo en este destino. Se valida con los limites de su red'),
                 'options' => $schema->object()->description('Opciones por red: link, title, privacy, privacy_level, share_to_feed, disable_comment, shorts_hashtag'),
             ]))->description('Cuentas y tipo de contenido de destino'),
         ];

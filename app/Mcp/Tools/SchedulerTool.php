@@ -125,6 +125,9 @@ abstract class SchedulerTool extends Tool
                 'account_id' => $t->social_account_id,
                 'network' => $t->network->value,
                 'content_type' => $t->content_type->value,
+                // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
+                'text' => $t->text,
+                'effective_text' => $t->text ?? $post->text,
                 'status' => $t->status->value,
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,

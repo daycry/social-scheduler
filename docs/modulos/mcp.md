@@ -109,6 +109,8 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 `publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
 
+Texto por destino: cada elemento de `targets` de `create_post` y `update_post` acepta `text`. Omitido o `null` = el destino está vinculado a la plantilla (el `text` de la publicación); una cadena (también vacía) es su texto propio, que solo se publica en esa red. `get_post`, `create_post` y `update_post` devuelven, por destino, `text` (`null` = vinculado) y `effective_text` (lo que se publica). Se validan con las mismas reglas que la web (`PostRequest` y los límites de caracteres y hashtags de cada red sobre el texto efectivo). `update_post` sustituye los destinos: un destino sin `text` vuelve a estar vinculado.
+
 Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `create_post`. `get_report` devuelve una URL firmada de 5 min.
 
 Aislamiento: cada herramienta ejecuta sobre los servicios con el usuario del token (key u OAuth); un recurso ajeno responde "no encontrado" (`NotOwned`). Pruebas en `tests/Feature/Mcp/` (incluido `tests/Feature/Mcp/OAuth/`), `tests/Feature/Isolation/` y la batería E2E `tests/e2e/oauth.spec.ts`.

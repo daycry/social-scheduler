@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('update_post')]
-#[Description('Edita una publicacion que aun no se ha publicado ni esta publicandose: sustituye texto, fecha, media y destinos por los indicados.')]
+#[Description('Edita una publicacion que aun no se ha publicado ni esta publicandose: sustituye texto, fecha, media y destinos (con su texto propio, targets[].text; omitirlo vuelve el destino a la plantilla) por los indicados.')]
 class UpdatePost extends SchedulerTool
 {
     use PostPayload;

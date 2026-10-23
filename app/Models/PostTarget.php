@@ -22,7 +22,7 @@ class PostTarget extends Model
     use BelongsToUser, HasFactory;
 
     protected $fillable = [
-        'social_account_id', 'network', 'content_type', 'status', 'options', 'external_id', 'external_url',
+        'social_account_id', 'network', 'content_type', 'status', 'options', 'text', 'external_id', 'external_url',
         'external_reference', 'progress', 'status_note', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
     ];
 
@@ -39,6 +39,15 @@ class PostTarget extends Model
             'next_attempt_at' => 'datetime',
             'published_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Texto que se publica en este destino (ADR-005, O1): el propio si lo tiene (`text` no nulo, tambien la cadena vacia) y, si no,
+     * el de la plantilla del post (`null` = vinculado). Es la unica funcion que lo resuelve.
+     */
+    public function effectiveText(): ?string
+    {
+        return $this->text ?? $this->post?->text;
     }
 
     public function post(): BelongsTo

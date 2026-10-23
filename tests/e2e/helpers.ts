@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type BrowserContext, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -420,4 +421,135 @@ export async function mcpToolsList(request: import('@playwright/test').APIReques
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json, text/event-stream', ...(origin ? { Origin: origin } : {}) },
         data: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
     });
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Compositor de publicaciones: marca `e2e-composer-*` con cuentas de prueba de Instagram y Facebook (factorías) para un
+// usuario `e2e-sec-*`. Nunca se toca al usuario demo ni a datos reales; no se publica en ninguna red.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type ComposerBrand = { id: number; name: string };
+
+/** Crea la marca y sus dos cuentas activas (Instagram y Facebook) para el usuario E2E. */
+export function seedComposerBrand(email: string, label: string, timezone = 'Europe/Madrid'): ComposerBrand {
+    const name = `e2e-composer-${label}`;
+    const out = artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `$b = App\\Models\\Brand::factory()->for($u)->create(['name' => ${q(name)}, 'timezone' => ${q(timezone)}]); ` +
+            `App\\Models\\SocialAccount::factory()->for($u)->create(['brand_id' => $b->id, 'network' => App\\Connectors\\Network::Instagram, 'name' => 'e2e Instagram']); ` +
+            `App\\Models\\SocialAccount::factory()->for($u)->create(['brand_id' => $b->id, 'network' => App\\Connectors\\Network::Facebook, 'name' => 'e2e Facebook']); ` +
+            `echo 'BRAND:' . $b->id;`,
+    );
+    return { id: Number(out.match(/BRAND:(\d+)/)![1]), name };
+}
+
+/** Segunda cuenta de Facebook en la marca E2E (para mezclar una red vinculada y otra con texto propio y poder guardar el borrador). */
+export function seedExtraFacebook(brandId: number, name: string) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::Facebook, 'name' => ${q(name)}]);`,
+    );
+}
+
+/** Cuenta extra en la marca E2E (YouTube o TikTok); `directPost` activa la publicación directa de TikTok. */
+export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok', name: string, directPost = false) {
+    const meta = directPost ? "['direct_post' => true]" : 'null';
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from(${q(network)}), 'name' => ${q(name)}, 'meta' => ${meta}]);`,
+    );
+}
+
+/** Borrador de YouTube con un vídeo de prueba (factoría) en la marca E2E: evita subir un vídeo real por la interfaz. */
+export function seedYoutubeDraft(brandId: number, accountName: string): number {
+    const out = artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$u = App\Models\User::findOrFail($b->user_id); ` +
+            String.raw`$yt = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('name', ${q(accountName)})->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->video(duration: 45)->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e video de youtube', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $yt->id, 'content_type' => 'youtube_video']]]); ` +
+            String.raw`echo 'POST:' . $p->id;`,
+    );
+    return Number(out.match(/POST:(\d+)/)![1]);
+}
+
+/**
+ * Borrador de TikTok cuyo tipo guardado ya no se ofrece: se crea como vídeo y se pasa a `tiktok_photo`, que sin
+ * `TIKTOK_VERIFIED_DOMAIN` no está entre los tipos ofrecidos (como un post guardado antes de vaciar el dominio).
+ */
+export function seedTiktokPhotoDraft(brandId: number, accountName: string): number {
+    const out = artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$u = App\Models\User::findOrFail($b->user_id); ` +
+            String.raw`$tt = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('name', ${q(accountName)})->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->video(duration: 30)->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e tiktok no disponible', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $tt->id, 'content_type' => 'tiktok_video']]]); ` +
+            String.raw`$p->targets()->update(['content_type' => 'tiktok_photo']); ` +
+            String.raw`echo 'POST:' . $p->id;`,
+    );
+    return Number(out.match(/POST:(\d+)/)![1]);
+}
+
+/** Cambia la zona horaria de la marca E2E (para comprobar que la UI usa la de la marca y no la del navegador). */
+export function setBrandTimezone(brandId: number, timezone: string) {
+    artisan(String.raw`App\Models\Brand::withoutUserScope()->findOrFail(${brandId})->forceFill(['timezone' => ${q(timezone)}])->save();`);
+}
+
+/**
+ * Borra las marcas `e2e-composer-*` del usuario E2E (con ellas se van sus cuentas y publicaciones). Antes retira de la cola
+ * `jobs` los `PublishPostTarget` de ESOS destinos y solo esos (coincidencia exacta de `targetId`): «Publicar ahora» encola de
+ * verdad y nada de lo E2E debe llegar a publicarse si hubiera un worker en marcha.
+ */
+export function cleanComposerBrands(email: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); ` +
+            String.raw`if ($u) { ` +
+            String.raw`$brands = App\Models\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get(); ` +
+            String.raw`$ids = App\Models\PostTarget::withoutUserScope()->whereIn('post_id', App\Models\Post::withoutUserScope()->withTrashed()->whereIn('brand_id', $brands->pluck('id'))->select('id'))->pluck('id'); ` +
+            String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PublishPostTarget%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
+            String.raw`$brands->each->delete(); ` +
+            String.raw`App\Models\MediaAsset::withoutUserScope()->where('user_id', $u->id)->get()->each->delete(); }`,
+    );
+}
+
+export type ComposerPosts = { draft: number; scheduled: number; published: number; scheduledDate: string };
+
+/** Tres publicaciones de Facebook en la marca E2E: un borrador, una programada (a 2 dias) y una ya publicada. */
+export function seedComposerPosts(email: string, brandId: number): ComposerPosts {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$fb = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'facebook')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$mk = fn ($text, $schedule, $at) => $svc->create($u, $b, ['text' => $text, 'schedule' => $schedule, 'scheduled_at' => $at, 'media' => [], 'targets' => [['account_id' => $fb->id, 'content_type' => 'facebook_text']]]); ` +
+            String.raw`$draft = $mk('e2e borrador de calendario', false, null); ` +
+            String.raw`$when = now()->addDays(2)->setTimezone('Europe/Madrid'); ` +
+            String.raw`$sched = $mk('e2e programada de calendario', true, $when->copy()->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$pub = $mk('e2e publicada de calendario', true, $when->copy()->setTime(11, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$pub->targets->each(fn ($t) => $t->forceFill(['status' => 'publicada', 'published_at' => now()])->save()); $pub->syncStatus(); ` +
+            String.raw`echo 'IDS:' . $draft->id . ',' . $sched->id . ',' . $pub->id . ',' . $when->format('Y-m-d');`,
+    );
+    const [draft, scheduled, published, scheduledDate] = out.match(/IDS:([\d,-]+)/)![1].split(',');
+    return { draft: Number(draft), scheduled: Number(scheduled), published: Number(published), scheduledDate };
+}
+
+/** axe (WCAG 2.x A y AA): falla con cualquier violación `serious` o `critical` de la página actual. */
+export async function axeSeriousCritical(page: Page, label: string) {
+    await settle(page);
+    await expect(page.locator('#nprogress')).toHaveCount(0); // barra transitoria de Inertia
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(400); // fin de las transiciones de color
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+    const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join(' | ')}`).join(' // ');
+    expect(bad, `violaciones de accesibilidad en ${label}: ${detail}`).toEqual([]);
+}
+
+
+/** Elige el tipo de publicación de una cuenta con el desplegable junto a su pastilla (`account` = id de la cuenta o texto de la etiqueta). */
+export async function chooseContentType(page: Page, account: number | RegExp, label: string) {
+    const button = typeof account === 'number' ? page.locator(`#type-${account}`) : page.getByRole('button', { name: account });
+    await button.click();
+    await page.getByRole('option', { name: new RegExp(`^${label}`) }).click();
+    await expect(button).toContainText(label);
 }

@@ -109,6 +109,31 @@ class CalendarService
         };
     }
 
+    /**
+     * Texto que se muestra del post: el de la plantilla, salvo que no se publique en ningun destino (plantilla vacia o TODOS los
+     * destinos con texto propio), y entonces el primer texto efectivo no vacio de sus destinos. El efectivo se resuelve con la
+     * plantilla ya cargada (`text ?? plantilla`) y no con `effectiveText()`, que consultaria el post de cada destino (N+1).
+     */
+    private function displayText(Post $post): string
+    {
+        $template = (string) $post->text;
+        $targets = $post->targets;
+        $allOwn = $targets->isNotEmpty() && $targets->every(fn ($t) => trim((string) $t->text) !== '');
+
+        if (trim($template) !== '' && ! $allOwn) {
+            return $template;
+        }
+
+        foreach ($targets as $target) {
+            $effective = (string) ($target->text ?? $template);
+            if (trim($effective) !== '') {
+                return $effective;
+            }
+        }
+
+        return $template;
+    }
+
     /** @return array<string, mixed> */
     private function item(Post $post, string $tz, ?Network $networkFilter): array
     {
@@ -121,7 +146,8 @@ class CalendarService
             'id' => $post->id,
             'brand_id' => $post->brand_id,
             'brand_name' => $post->brand?->name,
-            'text' => mb_substr((string) $post->text, 0, 140),
+            'text' => mb_substr($this->displayText($post), 0, 140),
+            'has_notes' => trim((string) $post->notes) !== '',
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             'scheduled_at' => $post->scheduled_at?->toIso8601String(),
@@ -129,6 +155,8 @@ class CalendarService
             'local_time' => $local?->format('H:i'),
             'local_datetime' => $local?->format('Y-m-d\TH:i'),
             'editable' => $editable,
+            // «Publicar ahora» (borradores y programadas con destinos que aun se pueden editar); la accion la valida PostService.
+            'can_publish_now' => $editable && $post->targets->isNotEmpty() && in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled], true),
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'network' => $t->network->value,
                 'network_label' => $t->network->label(),

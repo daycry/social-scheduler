@@ -1,17 +1,19 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 /**
  * Sube un fichero de media. En produccion el navegador envia el binario directamente a R2 con URLs
  * prefirmadas (un PUT, o multipart por partes para videos grandes); la app solo prefirma y finaliza.
  * Emite `uploaded` con el asset listo (y el File original, para previsualizar) (metadatos extraidos) o `error` con el motivo.
  */
-const emit = defineEmits(['uploaded', 'error']);
+const emit = defineEmits(['uploaded', 'error', 'busy']);
 defineProps({ label: { type: String, default: 'Subir imagen o video' } });
 
 const busy = ref(false);
 const progress = ref(0);
 const message = ref('');
+// Quien lo usa (el compositor) se entera de que hay una subida en curso.
+watch(busy, (b) => emit('busy', b));
 
 const xsrf = () => decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) || [])[1] || '');
 
@@ -96,9 +98,9 @@ const onFile = async (event) => {
 
 <template>
     <div>
-        <label class="inline-flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+        <label class="inline-flex cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             <span>{{ busy ? `Subiendo… ${progress}%` : label }}</span>
-            <input type="file" class="hidden" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" :disabled="busy" @change="onFile" />
+            <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" :disabled="busy" @change="onFile" />
         </label>
         <p v-if="message" class="mt-1 text-sm text-red-600">{{ message }}</p>
     </div>

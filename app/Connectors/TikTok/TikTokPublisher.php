@@ -429,6 +429,11 @@ class TikTokPublisher implements Publisher, StatusPoller
                 : ['title' => mb_substr((string) strtok($text, "\r\n"), 0, 90), 'description' => mb_substr($text, 0, 4000)],
         ];
 
+        // Foto: `is_aigc` va en el nivel superior del cuerpo (no dentro de `post_info`) y solo con publicacion directa.
+        if ($direct && ($request->options['is_aigc'] ?? null) !== null) {
+            $body['is_aigc'] = filter_var($request->options['is_aigc'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         $init = $this->api($account, '/v2/post/publish/content/init/', $body);
 
         if (($init['publish_id'] ?? '') === '') {
@@ -468,15 +473,81 @@ class TikTokPublisher implements Publisher, StatusPoller
         $asked = (string) ($request->options['privacy_level'] ?? '');
 
         // La visibilidad pedida si la cuenta la permite; si no, la mas restrictiva (nunca se abre mas de lo pedido).
+        $requested = $asked;
         if ($asked === '' || ! in_array($asked, $options, true)) {
-            $asked = in_array('SELF_ONLY', $options, true) ? 'SELF_ONLY' : (string) ($options[0] ?? 'SELF_ONLY');
+            if (in_array('SELF_ONLY', $options, true)) {
+                $asked = 'SELF_ONLY';
+            } else {
+                // Sin `SELF_ONLY`: la opcion permitida mas abierta que no supere la pedida (mismo orden de apertura que abajo).
+                $rank = ['SELF_ONLY' => 0, 'MUTUAL_FOLLOW_FRIENDS' => 1, 'FOLLOWER_OF_CREATOR' => 2, 'PUBLIC_TO_EVERYONE' => 3];
+                $limit = $rank[$requested] ?? 0;
+                $pick = null;
+                foreach ($options as $option) {
+                    if (isset($rank[$option]) && $rank[$option] <= $limit && ($pick === null || $rank[$option] > $rank[$pick])) {
+                        $pick = $option;
+                    }
+                }
+                if ($pick === null && $requested === '') {
+                    // Sin visibilidad pedida: la mas restrictiva de las que la cuenta ofrece.
+                    foreach ($options as $option) {
+                        if (isset($rank[$option]) && ($pick === null || $rank[$option] < $rank[$pick])) {
+                            $pick = $option;
+                        }
+                    }
+                    $pick ??= (string) ($options[0] ?? 'SELF_ONLY');
+                }
+                if ($pick === null) {
+                    throw new PermanentPublishException('La visibilidad pedida no esta disponible en esta cuenta de TikTok y no hay otra igual o mas restrictiva: elige una visibilidad que la cuenta admita.', 'visibilidad_no_disponible');
+                }
+                $asked = $pick;
+            }
         }
 
-        return [
+        // El contenido de marca (colaboracion de pago) no puede ser privado (directrices de TikTok, ver `testing/verificacion-campos-c04.md`):
+        // con la marca activa y `SELF_ONLY` resuelto no se envia la combinacion prohibida. Si la visibilidad pedida era mas abierta y la
+        // cuenta ofrece otra no privada igual o mas restrictiva, se usa esa (la mas abierta que no supere lo pedido); si solo queda
+        // `SELF_ONLY` (o se pidio privada) se falla con un mensaje claro y la opcion de marca se conserva para que el usuario elija otra.
+        if (filter_var($request->options['brand_content_toggle'] ?? false, FILTER_VALIDATE_BOOLEAN) && $asked === 'SELF_ONLY') {
+            $open = ['MUTUAL_FOLLOW_FRIENDS' => 1, 'FOLLOWER_OF_CREATOR' => 2, 'PUBLIC_TO_EVERYONE' => 3]; // de mas a menos restrictiva
+            $limit = $open[$requested] ?? 0;
+            $best = null;
+            foreach ($options as $option) {
+                if (isset($open[$option]) && $open[$option] <= $limit && ($best === null || $open[$option] > $open[$best])) {
+                    $best = $option;
+                }
+            }
+
+            if ($best === null) {
+                throw new PermanentPublishException(
+                    $limit === 0
+                        ? 'El contenido de marca (colaboracion de pago) no puede ser privado: elige otra visibilidad que la cuenta admita o desmarca la colaboracion de pago.'
+                        : 'El contenido de marca (colaboracion de pago) no puede ser privado y esta cuenta de TikTok solo ofrece la visibilidad privada, o una mas abierta que la pedida: elige otra visibilidad que la cuenta admita o desmarca la colaboracion de pago.',
+                    'marca_privada',
+                );
+            }
+            $asked = $best;
+        }
+
+        $info = [
             'title' => mb_substr(trim((string) $request->text), 0, 2200), // video: 2.200; la foto lo recorta a 90
             'privacy_level' => $asked,
-            'disable_comment' => (bool) ($request->options['disable_comment'] ?? false),
+            'disable_comment' => filter_var($request->options['disable_comment'] ?? false, FILTER_VALIDATE_BOOLEAN),
         ];
+
+        // Opciones de C-04 (solo publicacion directa: `postInfo` no se usa con la cuenta en modo borrador). Solo se envian las
+        // que el usuario fijo. Duet y Stitch existen solo para video (la referencia de fotos no las lista).
+        $flags = ['brand_organic_toggle', 'brand_content_toggle'];
+        if ($request->type === ContentType::TikTokVideo) {
+            array_push($flags, 'disable_duet', 'disable_stitch', 'is_aigc'); // `is_aigc` va dentro de `post_info` solo en video
+        }
+
+        foreach ($flags as $flag) {
+            if (array_key_exists($flag, $request->options) && $request->options[$flag] !== null) {
+                $info[$flag] = filter_var($request->options[$flag], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        return $info;
     }
 
     // ------------------------------------------------------------------ HTTP y errores

@@ -1,9 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTH_FILE, borrarMarcasE2e, DEMO, expectNoOverflow, settle, stamp, watch } from './helpers';
+import { axeSeriousCritical, borrarMarcasE2e, e2eUser, expectNoOverflow, loginAs, settle, stamp, watch } from './helpers';
 
 /**
  * (b) Flujos de usuario de punta a punta. Todo lo que se crea lleva el prefijo `e2e-` y se limpia al terminar.
  * Corre secuencialmente (workers: 1): los flujos de un mismo proyecto comparten la marca `e2e-…`.
+ * Los flujos con sesión usan el usuario `e2e-sec-*` del proyecto (nunca el demo ni el id 28): crean y borran datos.
  */
 
 const aceptarDialogos = (page: Page) => page.on('dialog', (d) => d.accept());
@@ -38,9 +39,10 @@ test('registro: crea la cuenta y pide verificar el correo', async ({ page }, inf
     expect(w.errors).toEqual([]);
 });
 
-test.describe('con sesión demo', () => {
-    test.use({ storageState: AUTH_FILE });
-    test.skip(!DEMO.password, 'Falta DEMO_USER_PASSWORD en .env');
+test.describe('con sesión de un usuario e2e-sec-*', () => {
+    test.beforeEach(async ({ page }, info) => {
+        await loginAs(page, e2eUser(info.project.name));
+    });
 
     test('marca → borrador → calendario/lista → papelera → restaurar → biblioteca', async ({ page }, info) => {
         const w = watch(page);
@@ -62,13 +64,16 @@ test.describe('con sesión demo', () => {
             // Crear borrador (sin cuentas conectadas basta con texto)
             await page.goto(`/brands/${brandId}/posts/create`);
             await page.getByLabel('Texto').fill(text);
-            await page.getByRole('button', { name: 'Guardar borrador' }).click();
+            await axeSeriousCritical(page, 'compositor de un flujo');
+            await page.getByRole('button', { name: 'Más acciones de publicación' }).click();
+            await page.getByRole('menuitem', { name: 'Guardar borrador' }).click();
             await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
 
             // Verlo en el calendario (lista)
             await page.goto(`/calendar?view=list&brand_id=${brandId}`);
             await expect(page.getByRole('link', { name: text })).toBeVisible();
             await expectNoOverflow(page);
+            await axeSeriousCritical(page, 'calendario (lista) con una publicación');
 
             // Guardar en biblioteca desde la lista del calendario
             await page.getByRole('button', { name: /Guardar la publicación \d+ en la biblioteca/ }).click();

@@ -103,9 +103,31 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 `*` también vale. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
 
-## Herramientas (14)
+## Herramientas (19)
 
-`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `reschedule_post`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `generate_report`, `get_report`.
+`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `update_post_notes`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
+
+`publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
+
+Notas internas: `get_post`, `create_post` y `update_post` devuelven `notes` (texto plano, o `null`). `create_post` y `update_post` aceptan `notes` (hasta 5.000 caracteres; omitido = no se toca, vacío = se borra). `update_post_notes` (`post_id`, `notes`, ability `posts:write`) edita solo las notas y funciona aunque la publicación ya esté publicada o en vuelo, porque las notas nunca se publican: no toca los destinos ni reinicia ningún intento. Una publicación de otro usuario responde como inexistente y la auditoría registra la herramienta y la publicación, nunca el contenido de las notas. Con 19 herramientas se mantiene el límite de 25 por página de `tools/list`.
+
+Texto por destino: cada elemento de `targets` de `create_post` y `update_post` acepta `text`. Omitido o `null` = el destino está vinculado a la plantilla (el `text` de la publicación); una cadena con contenido es su texto propio, que solo se publica en esa red. Un texto vacío o solo con espacios cuenta como omitido (vinculado), igual que en la web. `get_post`, `create_post` y `update_post` devuelven, por destino, `text` (`null` = vinculado) y `effective_text` (lo que se publica). Se validan con las mismas reglas que la web (`PostRequest` y los límites de caracteres y hashtags de cada red sobre el texto efectivo). `update_post` sustituye los destinos: un destino sin `text` vuelve a estar vinculado.
+
+Opciones por destino: cada elemento de `targets` acepta `options` con las mismas reglas que la web. YouTube: `category_id`, `tags` (se recortan a 500 caracteres y el marcador de idempotencia siempre se conserva), `made_for_kids`, `notify_subscribers`, `contains_synthetic_media`, `title`, `privacy` y `shorts_hashtag`. TikTok: `privacy_level`, `disable_comment` y, solo si la cuenta publica en directo, `disable_duet` y `disable_stitch` (solo vídeo), `brand_organic_toggle`, `brand_content_toggle` (no admite visibilidad privada) e `is_aigc`. Una opción que la red o la cuenta no admite da un error de validación del destino, igual que en la web. `get_post`, `create_post` y `update_post` devuelven las `options` de cada destino. El MCP **no** escribe los interruptores recordados por marca y red (los presets): solo los guarda el compositor web.
+
+Paridad web y MCP (compositor nuevo):
+
+| Función | Web (compositor) | MCP |
+|---|---|---|
+| Texto común y texto propio por red («Editar por red») | `text` de la publicación y de cada destino | `text` en `create_post`/`update_post` y en cada elemento de `targets`; se leen `text` y `effective_text` |
+| Opciones por red (YouTube, TikTok) | panel de opciones de cada red | `options` por destino, con las mismas reglas |
+| Opciones recordadas por marca y red (presets) | se guardan al programar o guardar el borrador | no se escriben ni se leen: solo los guarda el compositor web |
+| Notas internas | campo de notas del compositor | `notes` en `create_post`/`update_post` y `update_post_notes` |
+| Publicar ahora | menú de la barra de acciones, calendario y lista | `publish_post_now` y `publish_now: true` |
+| Generador de enlaces con UTM | diálogo del compositor (solo en el navegador, no guarda nada en el servidor) | sin herramienta: el agente escribe la URL ya con sus parámetros en el texto |
+| Biblioteca (guardar como plantilla y «Usar») | calendario, lista y `/library` | sin herramienta |
+
+Regresión: `tests/Feature/Mcp/Tools/` cubre cada herramienta de posts frente a las fases 1-5 (`McpToolsTest`, `McpTargetTextTest`, `McpOptionsTest`, `McpNotesTest`, `PublishPostNowToolTest`), incluido un ciclo completo `create_post` → `update_post_notes` → `publish_post_now` → `get_post` y que `tools/list` sigue ofreciendo las 19 herramientas.
 
 Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `create_post`. `get_report` devuelve una URL firmada de 5 min.
 

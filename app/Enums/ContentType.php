@@ -51,6 +51,25 @@ enum ContentType: string
         };
     }
 
+    /** Subtitulo corto del tipo en el selector del compositor (T-43); no promete mas de lo que `config/media_specs.php` permite. */
+    public function description(): string
+    {
+        return match ($this) {
+            self::InstagramImage => 'Una sola foto',
+            self::InstagramCarousel => 'Varias fotos o vídeos',
+            self::InstagramReel => 'Un vídeo, ideal en vertical',
+            self::InstagramStory => 'Una foto o un vídeo, visible 24 horas',
+            self::FacebookText => 'Solo texto, con enlace opcional',
+            self::FacebookPhoto => 'Una sola foto',
+            self::FacebookVideo => 'Un vídeo en la página',
+            self::FacebookReel => 'Vídeo vertical de 3 a 90 segundos',
+            self::YouTubeVideo => 'Un vídeo en MP4 o MOV',
+            self::YouTubeShort => 'Vídeo vertical o cuadrado de hasta 3 minutos',
+            self::TikTokVideo => 'Un vídeo de hasta 10 minutos',
+            self::TikTokPhoto => 'Varias fotos en un carrusel',
+        };
+    }
+
     /**
      * Limitaciones de la API de la red que el compositor avisa al elegir el tipo (T-21).
      *

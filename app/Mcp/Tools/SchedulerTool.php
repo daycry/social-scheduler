@@ -115,6 +115,7 @@ abstract class SchedulerTool extends Tool
             'id' => $post->id,
             'brand_id' => $post->brand_id,
             'text' => $post->text,
+            'notes' => $post->notes, // internas: nunca se publican
             'status' => $post->status->value,
             'scheduled_at_utc' => $post->scheduled_at?->copy()->utc()->toIso8601String(),
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),
@@ -125,6 +126,10 @@ abstract class SchedulerTool extends Tool
                 'account_id' => $t->social_account_id,
                 'network' => $t->network->value,
                 'content_type' => $t->content_type->value,
+                // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
+                'text' => $t->text,
+                'effective_text' => $t->text ?? $post->text,
+                'options' => $t->options ?? [],
                 'status' => $t->status->value,
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,

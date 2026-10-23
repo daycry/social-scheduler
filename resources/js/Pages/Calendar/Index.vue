@@ -2,8 +2,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
  * Calendario inspirado en Planning de Metricool (ui-reference.md): semana por franjas horarias, mes y lista
@@ -90,6 +91,68 @@ const createHref = computed(() => (createBrand.value ? route('brands.posts.creat
 const networkOf = (n) => NETWORK_STYLE[n] ?? { short: n, classes: 'bg-slate-100 text-slate-700 border-slate-300' };
 const saveToLibrary = (item) =>
     router.post(route('library.store'), { post_id: item.id, name: (item.text || 'Mi plantilla').slice(0, 60) }, { preserveScroll: true });
+
+// ---------------------------------------------------------------- publicar ahora
+// Confirmación -> POST posts/{id}/publish-now. La tarjeta muestra «Enviando…» mientras la petición va y, después, hasta que el
+// worker reclama el destino (el estado deja de ser borrador/programada): entre tanto se refresca el calendario cada pocos segundos.
+const confirming = ref(null);
+const opener = ref(null);
+const sending = ref(new Set());
+const askPublishNow = (item, event) => {
+    opener.value = event?.currentTarget ?? null;
+    confirming.value = item;
+};
+const PENDING = ['borrador', 'programada'];
+let pollTimer = null;
+let polls = 0;
+const stopPolling = () => {
+    clearInterval(pollTimer);
+    pollTimer = null;
+};
+const startPolling = () => {
+    if (pollTimer) return;
+    polls = 0;
+    pollTimer = setInterval(() => {
+        if (sending.value.size === 0) return stopPolling();
+        if (++polls > 15) {
+            // Se agotaron las vueltas: la tarjeta deja de decir «Enviando…» aunque el estado no haya cambiado.
+            sending.value = new Set();
+            return stopPolling();
+        }
+        router.reload({ only: ['items', 'undated', 'flash'], preserveScroll: true });
+    }, 4000);
+};
+const publishNow = (item) => {
+    confirming.value = null;
+    sending.value = new Set(sending.value).add(item.id);
+    router.post(route('posts.publish-now', item.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => startPolling(),
+        onError: () => stopSending(item.id),
+    });
+};
+const stopSending = (id) => {
+    const next = new Set(sending.value);
+    next.delete(id);
+    sending.value = next;
+};
+// Un error del servidor (flash.error) o un estado distinto de pendiente liberan la tarjeta.
+watch(() => [props.items, props.undated, props.flash?.error], () => {
+    const all = [...props.items, ...props.undated];
+    for (const id of sending.value) {
+        const item = all.find((i) => i.id === id);
+        if (!item || !PENDING.includes(item.status) || props.flash?.error) stopSending(id);
+    }
+});
+// «Publicar ahora» desde el compositor redirige aquí con el id del post: se sondea igual que desde el calendario.
+onMounted(() => {
+    const id = props.flash?.publishing_post_id;
+    if (id) {
+        sending.value = new Set(sending.value).add(Number(id));
+        startPolling();
+    }
+});
+onBeforeUnmount(stopPolling);
 const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_time}` : 'Sin fecha');
 </script>
 
@@ -162,12 +225,15 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <article v-for="item in itemsAt(d, h)" :key="item.id" :draggable="item.editable" class="rounded border p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'" @dragstart="dragStart(item, $event)">
                                     <Link :href="route('posts.edit', item.id)" class="block">
                                         <span class="flex flex-wrap items-center gap-1">
-                                            <span class="text-slate-500">{{ item.local_time }}</span>
+                                            <span class="text-slate-600">{{ item.local_time }}</span>
                                             <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge :status="item.status" :label="item.status_label" />
+                                            <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                         </span>
                                         <span class="line-clamp-2 text-slate-800">{{ item.text || 'Sin texto' }}</span>
                                     </Link>
+                                    <span v-if="sending.has(item.id)" role="status" class="mt-0.5 block text-[11px] font-medium text-indigo-700">Enviando…</span>
+                                    <button v-else-if="item.can_publish_now" type="button" class="link mt-0.5 text-[11px]" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                                 </article>
                             </div>
                         </template>
@@ -182,14 +248,17 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <div class="grid grid-cols-7">
                         <div v-for="d in days" :key="d" class="min-h-[6.5rem] space-y-1 border-b border-l border-slate-100 p-1" :class="d.slice(0, 7) === monthOf ? '' : 'bg-slate-50 text-slate-500'" @dragover.prevent @drop.prevent="drop(d)">
                             <div class="text-xs" :class="d === today ? 'font-bold text-indigo-700' : ''">{{ Number(d.slice(8)) }}</div>
-                            <article v-for="item in itemsAt(d)" :key="item.id" :draggable="item.editable" class="rounded border bg-white p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move' : 'opacity-80'" @dragstart="dragStart(item, $event)">
+                            <article v-for="item in itemsAt(d)" :key="item.id" :draggable="item.editable" class="rounded border p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'" @dragstart="dragStart(item, $event)">
                                 <Link :href="route('posts.edit', item.id)" class="block">
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="text-slate-500">{{ item.local_time }}</span>
                                         <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
+                                        <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                     </span>
                                     <span class="line-clamp-1 text-slate-800">{{ item.text || 'Sin texto' }}</span>
                                 </Link>
+                                <span v-if="sending.has(item.id)" role="status" class="block text-[11px] font-medium text-indigo-700">Enviando…</span>
+                                <button v-else-if="item.can_publish_now" type="button" class="link text-[11px]" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                             </article>
                         </div>
                     </div>
@@ -219,7 +288,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     <template v-else>{{ dateLabel(item) }}</template>
                                     <div class="text-xs text-slate-500">{{ item.brand_name }}</div>
                                 </td>
-                                <td class="max-w-xs px-3 py-2"><Link :href="route('posts.edit', item.id)" class="text-slate-900 hover:underline">{{ item.text || 'Sin texto' }}</Link></td>
+                                <td class="max-w-xs px-3 py-2"><Link :href="route('posts.edit', item.id)" class="text-slate-900 hover:underline">{{ item.text || 'Sin texto' }}</Link> <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span></td>
                                 <td class="px-3 py-2">
                                     <div class="flex flex-wrap gap-1">
                                         <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1 text-xs" :class="networkOf(t.network).classes">{{ t.network_label }}</span>
@@ -239,6 +308,8 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-2 text-right">
                                     <Link :href="route('posts.edit', item.id)" class="link">{{ item.editable ? 'Editar' : 'Ver' }}</Link>
+                                    <span v-if="sending.has(item.id)" role="status" class="ms-3 text-xs font-medium text-indigo-700">Enviando…</span>
+                                    <button v-else-if="item.can_publish_now" type="button" class="link ms-3" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                                     <button type="button" class="link ms-3" :aria-label="`Guardar la publicación ${item.id} en la biblioteca`" @click="saveToLibrary(item)">Guardar en biblioteca</button>
                                 </td>
                             </tr>
@@ -247,5 +318,6 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                 </div>
             </div>
         </div>
+        <PublishNowConfirm v-if="confirming" :item="confirming" :opener="opener" @confirm="publishNow" @cancel="confirming = null" />
     </AuthenticatedLayout>
 </template>

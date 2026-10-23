@@ -263,22 +263,33 @@ class YouTubePublisher implements Publisher, StatusPoller
     private function openSession(SocialAccount $account, PublishRequest $request, PublishMedia $media, int $size): string
     {
         $privacy = (string) ($request->options['privacy'] ?? 'public');
+        $options = $request->options;
+        $category = is_scalar($options['category_id'] ?? null) ? (string) $options['category_id'] : '';
         $meta = [
             'snippet' => [
                 'title' => $this->title($request),
                 'description' => $this->description($request),
-                'categoryId' => self::CATEGORY_PEOPLE_BLOGS,
-                'tags' => [self::targetTag($request->targetId)], // marcador propio del destino: base de la idempotencia
+                'categoryId' => preg_match('/^\d{1,3}$/', $category) === 1 ? $category : self::CATEGORY_PEOPLE_BLOGS,
+                // El marcador propio del destino va SIEMPRE primero (base de la idempotencia): los tags del usuario se recortan para no expulsarlo.
+                'tags' => self::tagsFor($request->targetId, (array) ($options['tags'] ?? [])),
             ],
             'status' => [
                 'privacyStatus' => in_array($privacy, self::PRIVACY, true) ? $privacy : 'private',
-                'selfDeclaredMadeForKids' => false,
+                'selfDeclaredMadeForKids' => self::flag($options['made_for_kids'] ?? null, false),
             ],
         ];
 
+        // Etiqueta de contenido sintetico (`status.containsSyntheticMedia`): solo si se declara; sin ella no se envia el campo.
+        if (self::flag($options['contains_synthetic_media'] ?? null, false)) {
+            $meta['status']['containsSyntheticMedia'] = true;
+        }
+
+        // `notifySubscribers` es un parametro de la consulta (defecto `true` en la API): solo se envia para desactivarlo.
+        $query = 'uploadType=resumable&part=snippet,status'.(self::flag($options['notify_subscribers'] ?? null, true) === false ? '&notifySubscribers=false' : '');
+
         $response = $this->send($account, fn (PendingRequest $http) => $http
             ->withHeaders(['X-Upload-Content-Length' => (string) $size, 'X-Upload-Content-Type' => $media->mime])
-            ->post(self::UPLOAD.'?uploadType=resumable&part=snippet,status', $meta));
+            ->post(self::UPLOAD.'?'.$query, $meta));
 
         if (! $response->successful()) {
             throw $this->exceptionFor($response);
@@ -602,7 +613,7 @@ class YouTubePublisher implements Publisher, StatusPoller
         $text = str_replace(['<', '>'], '', (string) $request->text);
 
         if ($request->type === ContentType::YouTubeShort
-            && ($request->options['shorts_hashtag'] ?? true) !== false
+            && self::flag($request->options['shorts_hashtag'] ?? null, true)
             && ! str_contains(mb_strtolower($text), '#shorts')) {
             $text = rtrim(mb_strcut($text, 0, 5000 - 9, 'UTF-8'))."\n\n#Shorts"; // deja sitio al hashtag
         }
@@ -619,6 +630,63 @@ class YouTubePublisher implements Publisher, StatusPoller
     public static function targetTag(int $targetId): string
     {
         return 'ss-'.substr(hash_hmac('sha256', 'youtube-target:'.$targetId, (string) config('app.key')), 0, 16);
+    }
+
+    /** Limite de `snippet.tags` de YouTube: 500 caracteres en total (las comas cuentan; un tag con espacio suma 2 por las comillas). */
+    private const TAGS_LIMIT = 500;
+
+    /** Booleano tolerante (`1`, `"0"`, `true`...): la web y el MCP pueden guardar valores equivalentes sin convertir. Sin valor, el defecto. */
+    private static function flag(mixed $value, bool $default): bool
+    {
+        return $value === null ? $default : (filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default);
+    }
+
+    /**
+     * Tags de la subida: el marcador del destino SIEMPRE el primero y los del usuario recortados al hueco que queda, de modo
+     * que ni muchos tags ni tags largos o con unicode lo expulsen (`findPublished` reconoce el video por el). Limpia `<` `>` y
+     * comas y los caracteres de control (saltos de linea), descarta vacios, duplicados y el propio marcador.
+     *
+     * @param  list<mixed>  $userTags
+     * @return list<string>
+     */
+    public static function tagsFor(int $targetId, array $userTags): array
+    {
+        $marker = self::targetTag($targetId);
+        $tags = [$marker];
+        $used = self::tagCost($marker);
+        $seen = [mb_strtolower($marker) => true];
+
+        foreach ($userTags as $raw) {
+            if (! is_string($raw)) {
+                continue;
+            }
+
+            // Sin saltos de linea ni caracteres de control (la API los rechaza o los trunca): se descartan junto a `<`, `>` y la coma.
+            $tag = trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', str_replace(['<', '>', ','], '', $raw)));
+            $key = mb_strtolower($tag);
+
+            if ($tag === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $cost = self::tagCost($tag);
+
+            if ($used + $cost > self::TAGS_LIMIT) {
+                continue; // no cabe: se omite (un tag mas corto posterior si puede entrar)
+            }
+
+            $seen[$key] = true;
+            $tags[] = $tag;
+            $used += $cost;
+        }
+
+        return $tags;
+    }
+
+    /** Coste de un tag en el limite: sus caracteres, 2 mas si lleva espacio (comillas) y 1 de la coma que lo separa. */
+    private static function tagCost(string $tag): int
+    {
+        return mb_strlen($tag) + (str_contains($tag, ' ') ? 2 : 0) + 1;
     }
 
     private function watchUrl(string $id, ContentType $type): string

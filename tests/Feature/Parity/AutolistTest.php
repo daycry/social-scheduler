@@ -248,3 +248,32 @@ test('Autolistas: B12 el job programado reparte un job por lista', function () {
     Queue::assertPushed(GenerateAutolistPosts::class, fn ($j) => $j->autolistId === $one->id);
     Queue::assertPushed(GenerateAutolistPosts::class, fn ($j) => $j->autolistId === $two->id);
 });
+
+test('Autolistas: una plantilla con texto propio por destino lo conserva en los destinos de la lista (B2)', function () {
+    $template = app(LibraryService::class)->store($this->user, $this->brand, 'Con texto por red', 'Texto comun', [$this->image->id], [
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => 'Propio de Instagram'],
+        ['account_id' => $this->ig->id + 999, 'content_type' => 'facebook_text', 'text' => 'De una cuenta que la lista no usa'],
+    ]);
+    $list = autolistMake();
+    $this->svc->addItem($this->user, $list, $template->id, null);
+
+    $this->svc->generate($list->fresh(), 7);
+
+    $post = Post::withoutUserScope()->firstOrFail();
+    $target = $post->targets->sole();
+    expect($post->text)->toBe('Texto comun')
+        ->and($target->text)->toBe('Propio de Instagram')
+        ->and($target->effectiveText())->toBe('Propio de Instagram');
+});
+
+test('Autolistas: una plantilla sin texto propio (o con texto vacio) deja el destino vinculado al texto de la plantilla', function () {
+    $template = app(LibraryService::class)->store($this->user, $this->brand, 'Sin texto por red', 'Texto comun', [$this->image->id], [
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => '  '],
+    ]);
+    $list = autolistMake();
+    $this->svc->addItem($this->user, $list, $template->id, null);
+
+    $this->svc->generate($list->fresh(), 7);
+
+    expect(Post::withoutUserScope()->firstOrFail()->targets->sole()->text)->toBeNull();
+});

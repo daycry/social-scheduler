@@ -6,6 +6,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
@@ -62,11 +63,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Compositor de publicaciones (T-23).
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
-    Route::post('brands/{brand}/posts', [PostController::class, 'store'])->name('brands.posts.store');
+    Route::post('brands/{brand}/posts', [PostController::class, 'store'])->middleware('throttle:publish-now')->name('brands.posts.store');
     Route::post('brands/{brand}/posts/validate', [PostController::class, 'validatePost'])->name('brands.posts.validate');
+    // «Guardar en biblioteca» con el contenido actual del compositor (sin post guardado, CA-26).
+    Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
-    Route::put('posts/{post}', [PostController::class, 'update'])->name('posts.update');
+    Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
+    Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+    // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
+    Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:publish-now')->name('posts.publish-now');
 
     // Informes PDF/CSV (T-40). `link` genera un enlace firmado nuevo al pulsar Descargar (no caduca en pantalla);
     // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.

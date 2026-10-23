@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Post;
@@ -8,6 +9,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\Support\McpClient;
 
 uses(McpClient::class);
@@ -137,4 +139,46 @@ test('McpTools: las abilities limitan lo que puede hacer cada key', function () 
 
     [$err, $msg] = $this->callTool($reader, 'list_brands');
     expect($err)->toBeTrue()->and($msg)->toContain('brands:read');
+});
+
+test('McpTools: 31 hashtags en Instagram se rechazan con el mismo mensaje que en la web', function () {
+    $text = 'Hola '.implode(' ', array_map(fn ($i) => "#t$i", range(1, 31)));
+
+    [$err, $msg] = $this->callTool($this->key, 'create_post', mcpPostArgs(['text' => $text]));
+
+    expect($err)->toBeTrue()
+        ->and($msg)->toContain('El texto tiene 31 hashtags y una publicacion de imagen de Instagram admite como maximo 30.')
+        ->and(Post::withoutUserScope()->count())->toBe(0);
+});
+
+test('McpTools: regresion de las fases 1-5, un ciclo completo con texto por destino, notas y Publicar ahora', function () {
+    Queue::fake();
+    $fb = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook, 'name' => 'FB A']);
+
+    // La lista de herramientas sigue completa (19) y cabe en una pagina de tools/list.
+    $names = collect($this->rpc($this->key, 'tools/list')->assertOk()->json('result.tools'))->pluck('name');
+    expect($names)->toHaveCount(19)->and($names)->toContain('publish_post_now', 'update_post_notes', 'create_post', 'update_post', 'get_post');
+
+    // Alta con texto comun, texto propio en una red y notas internas.
+    [$err, $post] = $this->callTool($this->key, 'create_post', [
+        'brand_id' => $this->brand->id, 'text' => 'Texto comun', 'schedule' => false, 'notes' => 'nota interna',
+        'targets' => [
+            ['account_id' => $fb->id, 'content_type' => 'facebook_text', 'text' => 'Texto propio de Facebook'],
+        ],
+    ]);
+    expect($err)->toBeFalse()->and($post['notes'])->toBe('nota interna')->and($post['status'])->toBe('borrador')
+        ->and($post['targets'][0])->toMatchArray(['text' => 'Texto propio de Facebook', 'effective_text' => 'Texto propio de Facebook']);
+
+    // Las notas se editan solas y no tocan destinos ni texto.
+    [$err, $noted] = $this->callTool($this->key, 'update_post_notes', ['post_id' => $post['id'], 'notes' => 'nota nueva']);
+    expect($err)->toBeFalse()->and($noted['notes'])->toBe('nota nueva')->and($noted['text'])->toBe('Texto comun')
+        ->and($noted['targets'][0]['text'])->toBe('Texto propio de Facebook');
+
+    // Publicar ahora: encola una sola vez y lo que se lee despues mantiene texto y notas.
+    [$err, $now] = $this->callTool($this->key, 'publish_post_now', ['post_id' => $post['id']]);
+    expect($err)->toBeFalse()->and($now['status'])->toBe('programada');
+    Queue::assertPushed(PublishPostTarget::class, 1);
+
+    [, $read] = $this->callTool($this->key, 'get_post', ['post_id' => $post['id']]);
+    expect($read['notes'])->toBe('nota nueva')->and($read['targets'][0]['effective_text'])->toBe('Texto propio de Facebook');
 });

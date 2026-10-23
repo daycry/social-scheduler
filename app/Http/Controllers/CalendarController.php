@@ -47,7 +47,7 @@ class CalendarController extends Controller
                 'status' => $filters['status'] ?? null,
                 'q' => $filters['q'] ?? null,
             ],
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
+            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error'), 'publishing_post_id' => $request->session()->get('publishing_post_id')],
         ]);
     }
 

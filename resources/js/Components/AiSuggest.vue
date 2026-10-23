@@ -13,6 +13,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['use']);
 
+const trigger = ref(null);
 const enabled = ref(false);
 const remaining = ref(0);
 const open = ref(false);
@@ -59,6 +60,11 @@ const generate = async () => {
         loading.value = false;
     }
 };
+// Escape cierra el panel y devuelve el foco al botón que lo abrió.
+const closePanel = () => {
+    open.value = false;
+    trigger.value?.focus();
+};
 const use = () => {
     emit('use', suggestion.value);
     open.value = false;
@@ -69,8 +75,8 @@ const use = () => {
 
 <template>
     <div v-if="enabled" class="space-y-2" data-testid="ai-suggest">
-        <button type="button" class="btn btn-secondary" :aria-expanded="open" @click="open = !open">Sugerir texto</button>
-        <div v-if="open" class="card space-y-2 p-3 text-sm">
+        <button ref="trigger" type="button" class="btn btn-secondary" :aria-expanded="open" @click="open = !open">Sugerir texto</button>
+        <div v-if="open" class="card space-y-2 p-3 text-sm" @keydown.esc.stop="closePanel">
             <label class="block">
                 <span class="block text-xs font-medium text-slate-500">¿De qué trata la publicación? (no incluyas datos personales)</span>
                 <textarea v-model="brief" rows="2" maxlength="500" class="field"></textarea>

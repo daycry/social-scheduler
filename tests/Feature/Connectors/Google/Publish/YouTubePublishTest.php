@@ -121,6 +121,15 @@ test('YouTubePublish: el short anade #Shorts a la descripcion salvo que se desac
     expect($this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['description'])->toBe('Hola video');
 });
 
+test('YouTubePublish: shorts_hashtag 0, "0" o false (guardados antes de normalizar) no anaden #Shorts; 1 y "1" si', function () {
+    ytHappyUpload($this->http);
+    foreach ([[0, 'Hola'], ['0', 'Hola'], [false, 'Hola'], [1, "Hola\n\n#Shorts"], ['1', "Hola\n\n#Shorts"]] as [$value, $expected]) {
+        $this->http->calls = [];
+        $this->yt->publish($this->account, ytRequest(ContentType::YouTubeShort, 'Hola', ['shorts_hashtag' => $value]));
+        expect($this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['description'])->toBe($expected);
+    }
+});
+
 test('YouTubePublish: el titulo sale de options.title o de la primera linea y se recorta a 100 sin < >', function () {
     ytHappyUpload($this->http);
     $this->yt->publish($this->account, ytRequest(text: 'x', options: ['title' => '<b>'.str_repeat('a', 150).'</b>']));

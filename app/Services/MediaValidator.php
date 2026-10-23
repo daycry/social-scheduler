@@ -123,11 +123,26 @@ class MediaValidator
             return [ucfirst($label).' necesita texto.'];
         }
 
-        if (mb_strlen((string) $text) > $spec['text']['max']) {
-            return ['El texto tiene '.mb_strlen((string) $text)." caracteres y $label admite como maximo ".$spec['text']['max'].'.'];
+        if ($length > $spec['text']['max']) {
+            return ["El texto tiene $length caracteres y $label admite como maximo ".$spec['text']['max'].'.'];
+        }
+
+        $maxHashtags = $spec['text']['max_hashtags'] ?? null;
+        if ($maxHashtags !== null && ($hashtags = self::countHashtags((string) $text)) > $maxHashtags) {
+            return ["El texto tiene $hashtags hashtags y $label admite como maximo $maxHashtags."];
         }
 
         return [];
+    }
+
+    /**
+     * Hashtags del texto: un `#` seguido de letras, numeros o guion bajo (Unicode) y no precedido de letra, numero, guion bajo o `/`
+     * (como Instagram: `a#b` y los `#` de una URL no cuentan). Es la MISMA regla que `countHashtags`
+     * de `resources/js/Composables/textCount.js`: si cambia una, cambia la otra.
+     */
+    public static function countHashtags(string $text): int
+    {
+        return (int) preg_match_all('/(?<![\p{L}\p{N}_\/])#[\p{L}\p{N}_]+/u', $text);
     }
 
     /** @return list<string> */

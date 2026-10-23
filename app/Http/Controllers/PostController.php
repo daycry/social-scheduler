@@ -10,6 +10,8 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\ComposerPresetService;
+use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -24,9 +26,15 @@ class PostController extends Controller
 {
     use AuthorizesRequests;
 
+    private const PUBLISHING_MESSAGE = 'Publicando ahora: se enviara en unos segundos.';
+
+    private const PAUSED_MESSAGE = 'Hay destinos en pausa por la cuota o el limite de ritmo de la red: se enviaran cuando se libere, no ahora.';
+
     public function __construct(
         private readonly PostService $posts,
         private readonly SocialAccountService $accounts,
+        private readonly MediaValidator $validator,
+        private readonly ComposerPresetService $presets,
     ) {}
 
     public function create(Request $request, Brand $brand): Response
@@ -46,7 +54,10 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return $this->afterSave($post, 'Publicacion programada.');
+        // Interruptores recordados por (marca, red): solo desde el compositor web (el MCP no los escribe).
+        $this->presets->remember($request->user(), $brand, $post->targets);
+
+        return $this->afterSave($post, $request->boolean('publish_now') ? $this->publishingMessage($post) : 'Publicacion programada.', $request->boolean('publish_now'));
     }
 
     public function edit(Request $request, Post $post): Response
@@ -66,7 +77,9 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return $this->afterSave($post, 'Publicacion actualizada.');
+        $this->presets->remember($request->user(), Brand::withoutUserScope()->findOrFail($post->brand_id), $post->targets);
+
+        return $this->afterSave($post, $request->boolean('publish_now') ? $this->publishingMessage($post) : 'Publicacion actualizada.', $request->boolean('publish_now'));
     }
 
     public function destroy(Request $request, Post $post): RedirectResponse
@@ -82,6 +95,43 @@ class PostController extends Controller
         return redirect()->route('brands.show', $post->brand_id)->with('success', 'Publicacion eliminada.');
     }
 
+    /**
+     * «Publicar ahora» desde fuera del compositor (calendario y lista): borradores y programadas, con la misma validacion y
+     * las mismas defensas contra el doble despacho que el compositor. Un post ajeno es un 404 (UserScope + Policy).
+     */
+    public function publishNow(Request $request, Post $post): RedirectResponse
+    {
+        $this->authorize('update', $post);
+
+        try {
+            $post = $this->posts->publishNow($request->user(), $post);
+        } catch (PostValidationException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', $this->publishingMessage($post));
+    }
+
+    /**
+     * Notas internas (C-09): editables aunque el post ya no lo sea. Un post ajeno es un 404 (UserScope + Policy). No toca los destinos
+     * ni se audita su contenido.
+     */
+    public function updateNotes(Request $request, Post $post): RedirectResponse
+    {
+        $this->authorize('update', $post);
+
+        $data = $request->validate(['notes' => ['nullable', 'string', 'max:'.PostRequest::NOTES_MAX]]);
+        $this->posts->updateNotes($request->user(), $post, $data['notes'] ?? null);
+
+        return back()->with('success', 'Notas guardadas.');
+    }
+
+    /** Mensaje honesto: si algun destino sigue en pausa por cuota, no se promete «unos segundos». */
+    private function publishingMessage(Post $post): string
+    {
+        return PostService::pausedTargets($post) > 0 ? self::PAUSED_MESSAGE : self::PUBLISHING_MESSAGE;
+    }
+
     /** Validacion en vivo del formulario (sin guardar): errores de media y limites por red. */
     public function validatePost(PostRequest $request, Brand $brand): JsonResponse
     {
@@ -91,7 +141,7 @@ class PostController extends Controller
     }
 
     /** Programada -> al calendario, en la semana de la publicacion; borrador -> sigue en el compositor. */
-    private function afterSave(Post $post, string $scheduledMessage): RedirectResponse
+    private function afterSave(Post $post, string $scheduledMessage, bool $publishedNow = false): RedirectResponse
     {
         if ($post->status->value === 'borrador' || $post->scheduled_at === null) {
             return redirect()->route('posts.edit', $post)->with('success', 'Borrador guardado.');
@@ -103,7 +153,7 @@ class PostController extends Controller
             'brand_id' => $post->brand_id,
             'view' => 'week',
             'date' => $post->scheduled_at->copy()->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d'),
-        ])->with('success', $scheduledMessage);
+        ])->with('success', $scheduledMessage)->with('publishing_post_id', $publishedNow ? $post->id : null);
     }
 
     private function compose(Request $request, Brand $brand, ?Post $post): Response
@@ -126,9 +176,19 @@ class PostController extends Controller
                 $n->value => array_map(fn (ContentType $t) => [
                     'value' => $t->value,
                     'label' => $t->label(),
+                    'description' => $t->description(),
                     'limitations' => $t->limitations(),
                 ], array_values(array_filter(ContentType::forNetwork($n), fn (ContentType $t) => $t->isOffered()))),
             ]),
+            // Nombre de todos los tipos (incluidos los que ya no se ofrecen): un post guardado con uno de ellos lo muestra tal cual.
+            'typeLabels' => collect(ContentType::cases())->mapWithKeys(fn (ContentType $t) => [$t->value => $t->label()]),
+            // Maximos de texto y hashtags por tipo (de `media_specs`): los contadores del cliente usan los del servidor.
+            'limits' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(function (ContentType $t) {
+                $text = $this->validator->spec($t)['text'];
+
+                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
+            }),
+            'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
         ]);
@@ -143,6 +203,7 @@ class PostController extends Controller
         return [
             'id' => $post->id,
             'text' => $post->text,
+            'notes' => $post->notes,
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.
@@ -152,6 +213,7 @@ class PostController extends Controller
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
+                'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
                 'options' => $t->options ?? new \stdClass,
                 'status' => $t->status->value,
                 'status_label' => $t->status->label(),

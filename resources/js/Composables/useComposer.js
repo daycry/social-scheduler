@@ -60,6 +60,7 @@ export function useComposer(props) {
     // Cuentas -> destinos
     const targetFor = (accountId) => form.targets.find((t) => t.account_id === accountId);
     const targetIndex = (accountId) => form.targets.findIndex((t) => t.account_id === accountId);
+    const typeLabel = (value) => props.typeLabels?.[value] ?? '';
     const typesOf = (network) => props.contentTypes[network] ?? [];
     const typeInfo = (target, network) => typesOf(network).find((t) => t.value === target.content_type);
 
@@ -277,7 +278,7 @@ export function useComposer(props) {
     const api = {
         post, brand, accounts, contentTypes, limits, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
-        targetFor, targetIndex, typesOf, typeInfo, toggleAccount,
+        targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
         NOTES_MAX, savingNotes, notesError, notesSaved, saveNotes,
         libraryName, savingToLibrary, libraryErrors, saveToLibrary,

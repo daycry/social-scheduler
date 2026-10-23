@@ -4,7 +4,7 @@ import ContentTypeSelect from '@/Components/Composer/ContentTypeSelect.vue';
 import { Link } from '@inertiajs/vue3';
 import { useComposerContext } from '@/Composables/useComposer';
 
-const { brand, accounts, editable, targetFor, typesOf, typeInfo, toggleAccount } = useComposerContext();
+const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, toggleAccount } = useComposerContext();
 </script>
 
 <template>
@@ -38,6 +38,7 @@ const { brand, accounts, editable, targetFor, typesOf, typeInfo, toggleAccount }
                     v-model="targetFor(account.id).content_type"
                     :button-id="`type-${account.id}`"
                     :types="typesOf(account.network)"
+                    :saved-label="typeLabel(targetFor(account.id).content_type)"
                     :label="`Tipo de contenido en ${account.network_label} (${account.name})`"
                     :disabled="!editable"
                 />

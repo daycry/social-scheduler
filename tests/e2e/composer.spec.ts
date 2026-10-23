@@ -1090,7 +1090,7 @@ test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, t
         expect(((await o.locator('span.block').nth(0).textContent()) ?? '').trim()).not.toBe('');
         expect(((await o.locator('span.block').nth(1).textContent()) ?? '').trim()).not.toBe('');
     }
-    await expect(lista.getByRole('option', { name: /^Reel/ })).toContainText('Vídeo vertical a pantalla completa');
+    await expect(lista.getByRole('option', { name: /^Reel/ })).toContainText('Un vídeo, ideal en vertical');
     await expect(lista.getByRole('option', { selected: true })).toContainText('Publicacion de imagen');
     await expectNoOverflow(page);
     await axeNow(page, 'compositor con el listbox de tipo abierto');
@@ -1101,6 +1101,8 @@ test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, t
     await page.keyboard.press('Enter');
     await expect(lista).toBeHidden();
     await expect(tipo).toContainText('Reel');
+    // El nombre accesible incluye la etiqueta y el tipo elegido (WCAG 4.1.2 y 2.5.3).
+    await expect(tipo).toHaveAccessibleName(/Tipo de contenido en Instagram \(e2e Instagram.*Reel/);
     await expect(tipo).toBeFocused();
     await expect(page.getByText('Compartir también en el feed')).toBeVisible();
     expect(page.url()).toBe(url);
@@ -1121,5 +1123,14 @@ test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, t
     await page.getByRole('heading', { name: 'Dónde publicar' }).click();
     await expect(lista).toBeHidden();
     await expectNoOverflow(page);
+    // Enter en un campo de texto de las opciones (aquí, el enlace de Facebook) no envía el formulario ni programa el post.
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.locator('#text').fill('Texto de prueba E2E-13');
+    const enlace = page.getByLabel('Enlace (opcional)');
+    await enlace.fill('https://ejemplo.com');
+    await enlace.press('Enter');
+    await page.waitForTimeout(800);
+    expect(page.url()).toBe(url);
+    await expect(enlace).toBeVisible();
     expect(w.errors).toEqual([]);
 });

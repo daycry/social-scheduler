@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Enums\ContentType;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -36,4 +37,13 @@ test('YouTubePublish: el compositor ofrece video y short; TikTok solo video salv
 
     config(['social.tiktok.verified_domain' => 'https://media.midominio.test']);
     expect(collect($types()['tiktok'])->pluck('value')->all())->toBe(['tiktok_video', 'tiktok_photo']);
+});
+
+test('T-43: un tipo guardado que ya no se ofrece sigue teniendo su nombre real en typeLabels y no entra en contentTypes', function () {
+    config(['social.tiktok.verified_domain' => '']);
+    $props = $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand, false))->viewData('page')['props'];
+
+    expect(collect($props['contentTypes']['tiktok'])->pluck('value')->all())->toBe(['tiktok_video'])
+        ->and($props['typeLabels']['tiktok_photo'])->toBe('Fotos (carrusel)')
+        ->and($props['typeLabels'])->toHaveCount(count(ContentType::cases()));
 });

@@ -20,6 +20,7 @@ const props = defineProps({
     brand: Object,
     accounts: Array,
     contentTypes: Object,
+    typeLabels: { type: Object, default: () => ({}) },
     limits: Object,
     presets: Object,
     post: Object,

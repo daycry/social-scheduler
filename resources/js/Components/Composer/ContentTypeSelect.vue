@@ -10,6 +10,7 @@ const props = defineProps({
     label: { type: String, required: true }, // «Tipo de contenido en <red> (<cuenta>)»
     buttonId: { type: String, default: null },
     disabled: { type: Boolean, default: false },
+    savedLabel: { type: String, default: '' }, // nombre real del tipo guardado cuando ya no se ofrece
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -20,7 +21,13 @@ const root = ref(null);
 const button = ref(null);
 const listbox = ref(null);
 
-const current = computed(() => props.types.find((t) => t.value === props.modelValue) ?? props.types[0]);
+// Solo es «actual» el tipo realmente elegido: si el valor guardado ya no se ofrece no se muestra otro en su lugar.
+const current = computed(() => props.types.find((t) => t.value === props.modelValue) ?? null);
+const shownLabel = computed(() => current.value?.label ?? (props.savedLabel ? `${props.savedLabel} (no disponible)` : 'Elige un tipo'));
+// Etiqueta fija solo con un único tipo ya elegido, o sin posibilidad de cambiarlo (post no editable).
+const fixed = computed(() => props.types.length === 0 || (props.types.length <= 1 && current.value !== null) || (props.disabled && current.value === null));
+const labelId = `${uid}-label`;
+const btnId = computed(() => props.buttonId ?? `${uid}-btn`);
 const optionId = (i) => `${uid}-opt-${i}`;
 
 // Iconos simples de trazo (24x24), según la parte final del valor del tipo.
@@ -95,30 +102,31 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
 <template>
     <!-- Una sola opción: etiqueta fija, sin desplegable -->
     <span
-        v-if="types.length <= 1"
+        v-if="fixed"
         class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
         :title="current?.description"
     >
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="iconPath(current?.value)" /></svg>
-        <span class="sr-only">{{ label }}: </span>{{ current?.label }}
+        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="iconPath(current?.value ?? modelValue)" /></svg>
+        <span class="sr-only">{{ label }}: </span>{{ shownLabel }}
     </span>
 
     <div v-else ref="root" class="inline-block">
+        <span :id="labelId" class="sr-only">{{ label }}</span>
         <button
-            :id="buttonId"
+            :id="btnId"
             ref="button"
             type="button"
             aria-haspopup="listbox"
             :aria-expanded="open"
             :aria-controls="open ? `${uid}-list` : undefined"
-            :aria-label="label"
+            :aria-labelledby="`${labelId} ${btnId}`"
             :disabled="disabled"
             class="inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
             @click="toggle"
             @keydown="onButtonKey"
         >
             <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="iconPath(current?.value)" /></svg>
-            <span class="truncate">{{ current?.label }}</span>
+            <span class="truncate">{{ shownLabel }}</span>
             <svg class="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.5 7.5 10 12l4.5-4.5z" /></svg>
         </button>
 
@@ -128,7 +136,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
             ref="listbox"
             role="listbox"
             tabindex="-1"
-            :aria-label="label"
+            :aria-labelledby="labelId"
             :aria-activedescendant="open ? optionId(active) : undefined"
             class="absolute inset-x-0 z-30 mt-1 max-h-72 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg focus:outline-none sm:inset-x-auto sm:left-0 sm:w-72 sm:max-w-[calc(100vw-2rem)]"
             @keydown="onListKey"

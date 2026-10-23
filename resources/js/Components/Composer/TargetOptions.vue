@@ -27,12 +27,12 @@ const hasOptions = (account) => {
             </label>
             <div v-if="targetFor(account.id).content_type === 'facebook_text'">
                 <InputLabel :for="`link-${account.id}`" value="Enlace (opcional)" />
-                <input :id="`link-${account.id}`" v-model="targetFor(account.id).options.link" :disabled="!editable" type="url" class="field mt-1" placeholder="https://" />
+                <input :id="`link-${account.id}`" v-model="targetFor(account.id).options.link" :disabled="!editable" type="url" class="field mt-1" placeholder="https://" @keydown.enter.prevent />
             </div>
             <div v-if="account.network === 'youtube'" class="space-y-2">
                 <div>
                     <InputLabel :for="`yt-title-${account.id}`" value="Título (por defecto, la primera línea del texto)" />
-                    <input :id="`yt-title-${account.id}`" v-model="targetFor(account.id).options.title" :disabled="!editable" type="text" maxlength="100" class="field mt-1" />
+                    <input :id="`yt-title-${account.id}`" v-model="targetFor(account.id).options.title" :disabled="!editable" type="text" maxlength="100" class="field mt-1" @keydown.enter.prevent />
                 </div>
                 <div>
                     <InputLabel :for="`yt-privacy-${account.id}`" value="Visibilidad" />

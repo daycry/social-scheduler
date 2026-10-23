@@ -57,15 +57,15 @@ enum ContentType: string
         return match ($this) {
             self::InstagramImage => 'Una sola foto',
             self::InstagramCarousel => 'Varias fotos o vídeos',
-            self::InstagramReel => 'Vídeo vertical a pantalla completa',
-            self::InstagramStory => 'Visible 24 horas',
+            self::InstagramReel => 'Un vídeo, ideal en vertical',
+            self::InstagramStory => 'Una foto o un vídeo, visible 24 horas',
             self::FacebookText => 'Solo texto, con enlace opcional',
             self::FacebookPhoto => 'Una sola foto',
             self::FacebookVideo => 'Un vídeo en la página',
-            self::FacebookReel => 'Vídeo vertical corto',
-            self::YouTubeVideo => 'Vídeo en cualquier formato',
-            self::YouTubeShort => 'Vídeo vertical corto',
-            self::TikTokVideo => 'Un vídeo en tu perfil',
+            self::FacebookReel => 'Vídeo vertical de 3 a 90 segundos',
+            self::YouTubeVideo => 'Un vídeo en MP4 o MOV',
+            self::YouTubeShort => 'Vídeo vertical o cuadrado de hasta 3 minutos',
+            self::TikTokVideo => 'Un vídeo de hasta 10 minutos',
             self::TikTokPhoto => 'Varias fotos en un carrusel',
         };
     }

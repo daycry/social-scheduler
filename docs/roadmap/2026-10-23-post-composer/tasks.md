@@ -1259,16 +1259,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-37
 - **Tipo**: docs
-- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Posts/NotesUtmReviewTest.php`, `app/Services/PostService.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/Google/YouTubePublisher.php`, `resources/js/Components/Composer/UtmModal.vue`, `resources/js/Components/Composer/NotesPanel.vue`, `resources/js/Components/Composer/EmojiPicker.vue`, `resources/js/Components/Composer/PresetsPanel.vue`, `resources/js/Composables/utm.js`, `resources/js/Composables/useComposer.js`, `tests/Feature/Posts/PostNotesTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/pages.spec.ts`
+- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `app/Services/PostService.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/Google/YouTubePublisher.php`, `resources/js/Components/Composer/UtmModal.vue`, `resources/js/Components/Composer/NotesPanel.vue`, `resources/js/Components/Composer/EmojiPicker.vue`, `resources/js/Components/Composer/PresetsPanel.vue`, `resources/js/Composables/utm.js`, `resources/js/Composables/useComposer.js`, `tests/Feature/Posts/PostNotesTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/pages.spec.ts`, `resources/js/Components/Composer/TargetOptions.vue`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
-  - `npm run test:e2e` → batería completa en verde
+  - `npx playwright test composer.spec.ts pages.spec.ts` → en verde (solo esos dos specs; la batería e2e completa se ejecuta en T-42)
   - `vendor/bin/pint --test` → passed
-  - lectura: checklist de revisión en Notas con cada punto marcado
+  - lectura: checklist de revisión en Notas con cada punto marcado (ver Notas)
 
 **Criterios de aceptación**
-- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] La suite completa pasa sin desactivar ningún test; se modificaron aserciones de E2E-11 en `composer.spec.ts` por el cambio de comportamiento de la corrección: el enlace UTM ya no se re-serializa (`+` pasa a `%20` en los valores con espacios) y tras Escape el campo se comprueba con `toContain` en lugar de `toHaveValue` (el Enter añadido al modal inserta un segundo enlace)
 - [x] Cada hallazgo Important o Critical tiene test y corrección
 
 **Subtareas**
@@ -1276,7 +1276,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Auditar permisos web y MCP
 - [x] Suite completa, Pint y E2E
 
-**Notas**: Puerta de salida de la fase 5. Gaps de la revisión de dos lentes (intento 1) corregidos: ver la tabla al final del ledger. `public/build` se regeneró con `npm run build` (no se versiona).
+**Notas**: Puerta de salida de la fase 5. Gaps de la revisión de dos lentes (intento 1) corregidos: ver la tabla al final del ledger. **Checklist de revisión** (cada punto marcado; detalle en la sección «Revisión de dos lentes — intento 1: Fase 5 (T-34..T-37) + T-33 — 2 Important, 7 Minor»): [x] notas fuera de `fill()` (gap 1, `normalizeNotes`); [x] HTML y scripts en notas inertes (texto, no HTML; test de XSS en `PostNotesTest`); [x] permisos de edición de notas web y MCP (tests de posts ajenos); [x] URL peligrosa en UTM rechazada (`javascript:`); [x] Enter en el modal UTM (gap 2); [x] query UTM sin re-serializar (gap 3); [x] presets solo al destino que cambia (gap 4); [x] marca de TikTok (gap 5); [x] `shorts_hashtag` (gap 6); [x] conteo por puntos de código (gap 7); [x] ledger veraz (gaps 8 y 9). `public/build` se regeneró con `npm run build` (no se versiona).
 
 ---
 
@@ -1299,12 +1299,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Archivos**: `tests/e2e/flows.spec.ts`, `tests/e2e/pages.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/composer.spec.ts`
 - **Cubre (tests)**: E2E-12, A11Y-01, A11Y-02
 - **Verificación**:
-  - `npm run test:e2e` → batería completa en verde (desktop, mobile y mobile-360)
+  - `npx playwright test composer.spec.ts pages.spec.ts flows.spec.ts` → en verde en desktop, mobile y mobile-360 (la batería e2e completa del repo, con `a11y`, `oauth`, `security` y `social`, se ejecuta en T-42)
   - `npx tsc --noEmit -p .` → 0 errores
 
 **Criterios de aceptación**
 - [x] CA-32: axe sin violaciones serias ni críticas en compositor y calendario
-- [x] Los E2E existentes siguen en verde
+- [x] Los E2E existentes de `composer`, `pages` y `flows` siguen en verde (los demás specs no se tocaron; los corre T-42)
 - [x] Solo usuarios `e2e-sec-*`; ninguna referencia al usuario id 28
 
 **Subtareas**
@@ -1403,7 +1403,7 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-39
 - **Tipo**: feature
-- **Archivos**: `app/Enums/ContentType.php`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/ContentTypeSelect.vue`, `resources/js/Components/Composer/NetworkPicker.vue`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `docs/usuario/guia-de-usuario.md`, `docs/modulos/publicacion.md`, `docs/roadmap/2026-10-23-post-composer/test-plan.md`
+- **Archivos**: `app/Enums/ContentType.php`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/ContentTypeSelect.vue`, `resources/js/Components/Composer/NetworkPicker.vue`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `docs/usuario/guia-de-usuario.md`, `docs/modulos/publicacion.md`, `docs/roadmap/2026-10-23-post-composer/test-plan.md`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `tests/Feature/Connectors/TikTok/Publish/TikTokComposerTest.php`
 - **Cubre (tests)**: E2E-13
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Posts/Compose/ComposeTest.php` → en verde (incluye que todo tipo ofrecido tiene `description` no vacía)
@@ -1414,9 +1414,9 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 - [x] Al activar una red aparece junto a su pastilla un botón con el icono y el nombre del tipo (`aria-haspopup="listbox"`, `aria-expanded`); sin red activa no hay selector
 - [x] El listbox muestra por opción icono, nombre y subtítulo, marca la seleccionada (`aria-selected`) y usa `aria-activedescendant`
 - [x] Teclado: flechas, Inicio, Fin, Intro y Espacio eligen; Escape cierra y devuelve el foco al botón; Tab cierra; clic fuera cierra
-- [x] Intro nunca envía el formulario del compositor (botón `type="button"`)
+- [x] Intro nunca envía el formulario del compositor (botón `type="button"`); el nombre accesible del botón incluye la etiqueta y el tipo elegido (`aria-labelledby`)
 - [x] Cambiar el tipo sigue disparando presets, validación, contadores y opciones del destino (mismo `v-model` sobre `content_type`); Reel de Instagram muestra «Compartir también en el feed»
-- [x] Una red con un solo tipo lo muestra como etiqueta fija; deshabilitado si no es editable
+- [x] Una red con un solo tipo ya elegido lo muestra como etiqueta fija; si el tipo guardado ya no se ofrece, el botón muestra «<tipo real> (no disponible)» (o «Elige un tipo») y deja elegir uno válido; si el post no es editable, muestra el nombre real del tipo guardado (`typeLabels`)
 - [x] Las limitaciones del tipo elegido siguen visibles en ámbar; no hay desbordamiento a 375 y 360 px; axe sin serious/critical con el listbox abierto
 - [x] `description()` por tipo, fiel a `config/media_specs.php`, expuesta en `contentTypes`
 
@@ -1426,7 +1426,7 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 - [x] Helper `chooseContentType` y specs E2E actualizados; E2E-13
 - [x] Guía de usuario y `publicacion.md`
 
-**Notas**: El botón conserva el `id="type-<cuenta>"` y la etiqueta «Tipo de contenido en <red> (<cuenta>)». En móvil el listbox ocupa el ancho de la fila de la cuenta; desde `sm` mide 18 rem alineado a la izquierda de la pastilla. Subtítulos redactados contra `media_specs.php` (p. ej. «Una sola foto», «Varias fotos o vídeos»); no se promete nada que la app no haga. **Evidencia**: `php artisan test --compact` → 1418 passed; `pint --test` → passed; `npm run build` y `npx tsc --noEmit -p .` → sin errores; `playwright test composer pages flows` → desktop 59 passed; mobile 57 passed + 1 skipped; mobile-360 57 passed + 1 skipped (E2E-13 corregido en móvil: el selector puede pasar bajo la pastilla; repetido en los tres proyectos, passed).
+**Notas**: Revisión Fase 6: ver la sección «Revisión de dos lentes — intento 1: Fase 6 (T-39, T-40, T-43) + re-evaluación de T-38». El botón conserva el `id="type-<cuenta>"` y la etiqueta «Tipo de contenido en <red> (<cuenta>)». En móvil el listbox ocupa el ancho de la fila de la cuenta; desde `sm` mide 18 rem alineado a la izquierda de la pastilla. Subtítulos redactados contra `media_specs.php` (p. ej. «Una sola foto», «Varias fotos o vídeos»); no se promete nada que la app no haga. **Evidencia**: `php artisan test --compact` → 1418 passed; `pint --test` → passed; `npm run build` y `npx tsc --noEmit -p .` → sin errores; `playwright test composer pages flows` → desktop 59 passed; mobile 57 passed + 1 skipped; mobile-360 57 passed + 1 skipped (E2E-13 corregido en móvil: el selector puede pasar bajo la pastilla; repetido en los tres proyectos, passed).
 
 ---
 
@@ -1562,3 +1562,17 @@ Lentes A+B+C. Todos los gaps se verificaron contra el código antes de corregir;
 | 7 | Minor | El cliente contaba UTF-16 y el servidor puntos de código | T-35 | `NotesPanel.vue` y `useComposer.js::saveNotes` cuentan `[...texto].length` | `npm run build` y E2E-10 en verde. corregido |
 | 8 | Minor | El ledger de T-33 marcaba «sin modificar tests existentes» con un test modificado y respaldaba la «batería e2e completa» solo con `composer.spec.ts` | T-33 | Criterio y verificación reescritos: el test modificado y su motivo; la batería completa se ejecuta en T-42 | T-33 de este ledger. corregido |
 | 9 | Minor | T-37 declaraba cubrir E2E-12 (axe con el panel de notas abierto) sin que `pages.spec.ts` lo hiciera | T-37 | `pages.spec.ts` rellena el panel de notas (siempre visible, sin guardar nada) en el compositor con la sesión demo y repite axe; se añade el fichero al `Archivos` de T-37 | `pages.spec.ts` en desktop verde. corregido |
+
+## Revisión de dos lentes — intento 1: Fase 6 (T-39, T-40, T-43) + re-evaluación de T-38 — 1 Important, 4 Minor
+
+Lentes A+B+C. Todos los gaps se verificaron contra el código antes de corregir; ninguno era incorrecto.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|-------|-----|-------|------------|-----------|
+| 1 | Important | El `aria-label` fijo del botón del selector de tipo sustituía su contenido: el tipo elegido no entraba en el nombre accesible (WCAG 4.1.2 y 2.5.3) | T-43 | `ContentTypeSelect.vue`: etiqueta `sr-only` con id y `aria-labelledby="<etiqueta> <botón>"` en el botón (patrón APG); el listbox usa `aria-labelledby` de la etiqueta; el texto visible lleva el nombre del tipo | E2E-13 ampliado con `toHaveAccessibleName(/Tipo de contenido en Instagram \(e2e Instagram.*Reel/)`, verde en desktop. corregido |
+| 2 | Minor | Con un `content_type` no ofrecido (p. ej. `tiktok_photo` guardado y `verified_domain` vaciado) `current` caía a `types[0]`: botón con un tipo falso y etiqueta fija imposible de corregir | T-43 | `current` solo es el tipo realmente elegido; si no se ofrece, el botón dice «<tipo real> (no disponible)» (o «Elige un tipo») y deja abrir el desplegable; etiqueta fija solo con un único tipo ya elegido o post no editable (muestra el nombre real). Nueva prop `typeLabels` (todos los `ContentType::cases()`) desde `PostController` → `useComposer.typeLabel` → `NetworkPicker` | Pest `TikTokComposerTest` («T-43: un tipo guardado que ya no se ofrece…») y E2E-13 en verde. corregido |
+| 3 | Minor | Subtítulos falsos: TikTok vídeo «en tu perfil» (sin auditoría va a la bandeja como borrador) y YouTube vídeo «en cualquier formato» (solo mp4 y mov) | T-43 | Revisados los 12 contra `media_specs.php` y `limitations()`: TikTok vídeo «Un vídeo de hasta 10 minutos», YouTube vídeo «Un vídeo en MP4 o MOV», YouTube Short «Vídeo vertical o cuadrado de hasta 3 minutos», Facebook Reel «Vídeo vertical de 3 a 90 segundos», Reel de Instagram «Un vídeo, ideal en vertical» (el 9:16 solo es recomendado), historia «Una foto o un vídeo, visible 24 horas»; el resto era fiel | `ComposeTest` (todo tipo ofrecido tiene descripción) y E2E-13 actualizado. corregido |
+| 4 | Minor | T-38: `Archivos` con un fichero inexistente (`NotesUtmReviewTest.php`), verificación de «batería e2e completa» no ejecutada, falta la checklist en Notas y «sin modificar tests existentes» falso (E2E-11 cambió aserciones) | T-38 (y T-39) | `Archivos` con los ficheros reales de d43bdfa (+ `TargetOptions.vue` de esta revisión); verificación honesta (`composer.spec.ts` y `pages.spec.ts`; la batería completa es T-42); checklist en Notas apuntando a la revisión de la Fase 5; criterio que declara las aserciones de E2E-11 cambiadas y su motivo. Mismo patrón corregido en T-39 (verificación a los tres specs tocados, criterio «existentes siguen en verde» acotado) y T-43 (`Archivos` y criterios con lo añadido) | Todos los `Archivos` de T-38, T-39, T-40 y T-43 comprobados con `test -e`: ninguno falta. T-40: `grep -c` de `mcp.md` = 6. corregido |
+| 5 | Minor | T-40: `calendario.md` no documentaba el indicador de nota (CA-28) y la guía decía que en curso o publicada «ya no» se edita, sin aclarar las notas | T-40 | `calendario.md`: indicador, texto accesible «Nota» y `has_notes`; `guia-de-usuario.md`: las notas internas se editan también en posts en curso o publicados (no tocan lo publicado) y qué significa la insignia del calendario | Lectura de `NotesPanel.vue` (guardado propio con el post publicado) y `CalendarService.php:150`. corregido |
+| 6 | Minor (fuera del diff, corregido) | Enter en el enlace de Facebook o el título de YouTube hacía el envío implícito del `<form>` y programaba el post | T-43 | `@keydown.enter.prevent` en ambos inputs de `TargetOptions.vue`; revisados todos los `<input>` de texto del compositor: el resto (`ActionBar`, `EmojiPicker`, `PresetsPanel`, `UtmModal`) ya lo tenía; checkbox, `select` y `datetime-local` no | E2E-13: Enter en el enlace de Facebook con texto escrito no navega, verde en desktop. corregido |
+| 7 | Minor (fuera del diff, corregido) | `TikTokPublisher::postInfo`: sin `SELF_ONLY` y sin la visibilidad pedida usaba `$options[0]`, posiblemente más abierta que la pedida | T-38 | Se elige la opción permitida más abierta que no supere la pedida (mismo orden que la regla de marca); sin visibilidad pedida, la más restrictiva ofrecida; si ninguna cumple, `PermanentPublishException` («no esta disponible en esta cuenta…») | `PresetsReviewTest`: 3 tests nuevos (con y sin marca, sin opción válida, sin petición), 19 passed. corregido |

@@ -180,6 +180,8 @@ class PostController extends Controller
                     'limitations' => $t->limitations(),
                 ], array_values(array_filter(ContentType::forNetwork($n), fn (ContentType $t) => $t->isOffered()))),
             ]),
+            // Nombre de todos los tipos (incluidos los que ya no se ofrecen): un post guardado con uno de ellos lo muestra tal cual.
+            'typeLabels' => collect(ContentType::cases())->mapWithKeys(fn (ContentType $t) => [$t->value => $t->label()]),
             // Maximos de texto y hashtags por tipo (de `media_specs`): los contadores del cliente usan los del servidor.
             'limits' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(function (ContentType $t) {
                 $text = $this->validator->spec($t)['text'];

@@ -27,7 +27,7 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 ## Requisitos del servidor
 
 - HestiaCP con Nginx + PHP-FPM 8.4/8.5 y MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED` para varios workers).
-- Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip` y, para las passkeys, `openssl` y `sodium` (ver [Seguridad de cuenta](#seguridad-de-cuenta-2fa-y-passkeys)). Composer 2 y Node 22.
+- Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip` y, para las passkeys, `openssl` y `sodium` (ver [Seguridad de cuenta](#seguridad-de-cuenta-2fa-y-passkeys)). Composer 2 y Node 22. En el PHP de **consola**, `pcntl` sin desactivar (lo necesita `queue:work`; ver [Cron y workers](#cron-y-workers)).
 - `ffprobe` en el PATH de PHP-FPM y de los workers.
 - Almacenamiento de media: **disco local del servidor** (este despliegue, ver [Almacenamiento de media](#almacenamiento-de-media)) o un bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
 
@@ -84,7 +84,17 @@ Hacen falta **dos cosas distintas**:
 
 ### Opción A: desde el panel de Hestia (cron), la de este despliegue
 
-En **Hestia → usuario → CRON → Añadir tarea**, tres tareas. `webmaster`/`social-scheduler.daycry.ovh` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP (`which php8.4`): el cron no carga el `PATH` de tu sesión.
+En **Hestia → usuario → CRON → Añadir tarea**, tres tareas. `webmaster`/`social-scheduler.daycry.ovh` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
+
+**Antes de crear los workers: `pcntl` en el PHP de consola.** `queue:work` usa `pcntl_signal` para cortar un job colgado (`--timeout`) y pararse limpio. Hestia lo deja en `disable_functions`, y el worker falla con `Call to undefined function Illuminate\Queue\pcntl_signal()`. Se habilita **solo en el PHP de consola** (`cli`), no en el de la web (PHP-FPM), como root:
+
+```bash
+php --ini | grep "Loaded Configuration"                          # p. ej. /etc/php/8.4/cli/php.ini
+sed -i -E '/^disable_functions/ s/pcntl_[a-z_]+,?//g' /etc/php/8.4/cli/php.ini
+php -r 'var_dump(function_exists("pcntl_signal"));'              # bool(true)
+```
+
+Repite el `sed` si una actualización de PHP o de Hestia restaura el `php.ini`.
 
 | # | Para qué | Minuto | Hora | Día | Mes | Día sem. |
 |---|---|---|---|---|---|---|
@@ -96,13 +106,13 @@ Comandos (uno por tarea, en una sola línea):
 
 ```text
 # 1. Scheduler
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && /usr/bin/php8.4 artisan schedule:run >> /dev/null 2>&1
+cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && /usr/bin/php artisan schedule:run >> /home/webmaster/tmp/ss-schedule.log 2>&1
 
 # 2. Worker de publicación
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-publish.lock /usr/bin/php8.4 artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
+cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-publish.lock /usr/bin/php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-publish.log 2>&1
 
 # 3. Worker de métricas e informes
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-metrics.lock /usr/bin/php8.4 artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
+cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-metrics.lock /usr/bin/php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-metrics.log 2>&1
 ```
 
 Qué hace cada opción:
@@ -143,6 +153,20 @@ php8.4 artisan tinker --execute='echo DB::table("jobs")->selectRaw("queue, count
 ```
 
 Pendientes que no bajan en una cola = su worker no está corriendo (revisa la tarea de cron o la unidad systemd).
+
+
+### Si algo no se ejecuta
+
+Los comandos escriben su salida en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`): lo primero es mirarla.
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| `app:health`: `scheduler FAIL sin latido` | `schedule:run` no se ha ejecutado en los últimos 10 min (el latido caduca a los 600 s) | `tail ~/tmp/ss-schedule.log`: debe verse `Running [health-heartbeat] … DONE` cada minuto. Un `schedule:run` a mano solo lo arregla 10 minutos |
+| `~/tmp/ss-schedule.log` no existe | El cron no ejecuta la tarea | Como root: `systemctl status cron`, `crontab -u webmaster -l`, `journalctl -u cron --since "-10 min"`; si no aparece, `v-rebuild-cron-jobs webmaster` y `systemctl restart cron`. Comprueba que la tarea no está suspendida (`v-list-cron-jobs webmaster`) |
+| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las tres tareas |
+| `Call to undefined function … pcntl_signal()` | `pcntl` desactivado en el PHP de consola | Ver «Antes de crear los workers» arriba |
+| Publicaciones que salen con minutos de retraso y `dispatch-due-posts` no aparece cada minuto en el log | Bloqueo de solapamiento enganchado (p. ej. tras lanzar `schedule:run` a mano a la vez que el cron) | `php artisan schedule:clear-cache` y no lanzar `schedule:run` a mano con el cron activo |
+| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log` o `ss-metrics.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
 
 ## Analítica «no disponible» tras conectar una cuenta
 

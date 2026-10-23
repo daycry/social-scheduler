@@ -10,12 +10,12 @@ Reglas del producto que conviene tener presentes:
 - Credenciales **propias del login**, distintas de las de los conectores de redes (`GOOGLE_CLIENT_*`, `META_APP_*`).
 - Con las variables vacías el proveedor queda desactivado: no hay botón y `/auth/{proveedor}/redirect` da 404.
 
-Redirect URIs (sustituye `<APP_URL>` por la URL HTTPS de la app, sin barra final; una por entorno que uses, p. ej. el dominio ngrok de pruebas y el de producción):
+Redirect URIs (sustituye `<APP_URL>` por la URL de la app con esquema y sin barra final, p. ej. `https://midominio.com`, de modo que Google queda en `https://midominio.com/auth/google/callback`; una por entorno que uses, p. ej. el dominio ngrok de pruebas y el de producción):
 
 | Proveedor | Redirect URI |
 |---|---|
-| Google | `https://<APP_URL>/auth/google/callback` |
-| Facebook | `https://<APP_URL>/auth/facebook/callback` |
+| Google | `<APP_URL>/auth/google/callback` |
+| Facebook | `<APP_URL>/auth/facebook/callback` |
 
 ## Google
 

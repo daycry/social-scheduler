@@ -74,13 +74,16 @@ npx tsc --noEmit -p .                             # tipos de tests/e2e
 | `WEBAUTHN_ORIGINS` | `http://localhost:8080` | origen exacto que firma el autenticador |
 | `SESSION_SECURE_COOKIE` | `false` | la cookie de sesión viaja por http |
 | `TRUSTED_PROXIES` | vacío | sin proxies de confianza: anula el `*` que el `.env` pone para ngrok |
+| `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR` | `100000` | sube el tope GLOBAL de registros DCR del servidor E2E; la batería ya no lo reinicia |
 | `APP_ENV` | `e2e` | registra el proveedor social **falso** (`FakeSocialiteProvider`) para los E2E del login con Google y Facebook; solo con un `APP_URL` local |
 | `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET`, `META_LOGIN_APP_ID`, `META_LOGIN_APP_SECRET` | valores inventados (`e2e-…`) | activan los botones sociales sin tocar las credenciales reales del `.env` |
+
+**No corras la batería mientras pruebas con tráfico real por ngrok:** los tests reinician los contadores de DCR y `/oauth/token` de `127.0.0.1` y `::1` (el tráfico de ngrok puede llegar con esa IP), y borran solo la auditoría `oauth.*` sin usuario ligada a clientes `e2e-%`.
 
 `php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`, que es lo que usa el `webServer`. Para arrancarlo a mano (y usar `E2E_NO_SERVER=1`), con las mismas variables:
 
 ```bash
-APP_ENV=e2e GOOGLE_LOGIN_CLIENT_ID=e2e-google-id GOOGLE_LOGIN_CLIENT_SECRET=e2e-google-secret META_LOGIN_APP_ID=e2e-meta-id META_LOGIN_APP_SECRET=e2e-meta-secret APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false TRUSTED_PROXIES= php artisan serve --host=localhost --port=8080 --no-reload
+MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR=100000 APP_ENV=e2e GOOGLE_LOGIN_CLIENT_ID=e2e-google-id GOOGLE_LOGIN_CLIENT_SECRET=e2e-google-secret META_LOGIN_APP_ID=e2e-meta-id META_LOGIN_APP_SECRET=e2e-meta-secret APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false TRUSTED_PROXIES= php artisan serve --host=localhost --port=8080 --no-reload
 ```
 
 **Datos de prueba.** `global-setup.ts` crea un usuario `e2e-sec-<proyecto>@example.test` por proyecto (contraseña aleatoria en `tests/e2e/.auth/`, ignorado por git) para el 2FA y las passkeys; `global-teardown.ts` los borra con sus datos. El usuario demo solo se usa para el resto de la batería y nunca para 2FA/passkeys. Las marcas y demás datos creados llevan el prefijo `e2e-` y se limpian. El TOTP se calcula en Node (RFC 6238) a partir del secreto que muestra la pantalla; las passkeys usan el autenticador virtual de Chromium (CDP).

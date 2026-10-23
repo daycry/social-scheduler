@@ -32,7 +32,7 @@ Además de las API keys, la app es un servidor de autorización OAuth 2.1 propio
 |---|---|
 | Metadatos del recurso protegido (RFC 9728) | `GET /.well-known/oauth-protected-resource` y `/.well-known/oauth-protected-resource/mcp` |
 | Metadatos del servidor de autorización (RFC 8414) | `GET /.well-known/oauth-authorization-server` (y `/mcp`) |
-| Registro dinámico de clientes (RFC 7591) | `POST /oauth/register` (10/h por IP) |
+| Registro dinámico de clientes (RFC 7591) | `POST /oauth/register` (10/h por IP y tope global de 200/h, `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR`) |
 | Consentimiento | `GET/POST /oauth/authorize` (tras iniciar sesión, 2FA incluido) |
 | Canje del código | `POST /oauth/token` (30/min por IP) |
 
@@ -44,7 +44,7 @@ Además de las API keys, la app es un servidor de autorización OAuth 2.1 propio
 
 ## Conectar un cliente
 
-Sustituye `<APP_URL>` por la URL pública (HTTPS) de la app.
+Sustituye `<APP_URL>` por la URL pública de la app **con esquema**, p. ej. `https://midominio.com` (así, `<APP_URL>/mcp` es `https://midominio.com/mcp`).
 
 > **Estado de verificación:** los comandos de OAuth de los cuatro clientes están **pendientes del smoke manual con los clientes reales** (T-11; M-03 a M-06 del plan de pruebas). Se indican tal como se preparó esa prueba y hay que contrastarlos con la versión instalada de cada cliente antes de darlos por buenos. Lo que sí está probado de punta a punta (Pest y Playwright) es el flujo del servidor: registro, autorización con PKCE, token, uso en `/mcp`, revocación y coexistencia con las API keys.
 
@@ -55,16 +55,16 @@ El cliente se configura **sin** cabecera `Authorization`. La primera vez abre el
 **Claude Code** (CLI), pendiente de verificar (M-03):
 
 ```bash
-claude mcp add --transport http social-scheduler https://<APP_URL>/mcp
+claude mcp add --transport http social-scheduler <APP_URL>/mcp
 # dentro de `claude`: /mcp -> social-scheduler -> Authenticate
 ```
 
-**Claude Desktop**, pendiente de verificar (M-04): *Ajustes → Connectors → Add custom connector*, nombre `social-scheduler`, URL `https://<APP_URL>/mcp`, *Connect*. El callback es de Claude (`https://claude.ai/api/mcp/auth_callback`, o `claude.com`). El servidor debe ser accesible desde Internet y el plan de Claude debe admitir conectores remotos; `claude_desktop_config.json` solo sirve para servidores locales (stdio).
+**Claude Desktop**, pendiente de verificar (M-04): *Ajustes → Connectors → Add custom connector*, nombre `social-scheduler`, URL `<APP_URL>/mcp`, *Connect*. El callback es de Claude (`https://claude.ai/api/mcp/auth_callback`, o `claude.com`). El servidor debe ser accesible desde Internet y el plan de Claude debe admitir conectores remotos; `claude_desktop_config.json` solo sirve para servidores locales (stdio).
 
 **Codex**, pendiente de verificar (M-05):
 
 ```bash
-codex mcp add social-scheduler --url https://<APP_URL>/mcp
+codex mcp add social-scheduler --url <APP_URL>/mcp
 codex mcp login social-scheduler
 ```
 
@@ -73,7 +73,7 @@ Si la versión pide activar el cliente MCP remoto, habilítalo en su configuraci
 **OpenCode**, pendiente de verificar (M-06):
 
 ```bash
-opencode mcp add social-scheduler --url https://<APP_URL>/mcp --global
+opencode mcp add social-scheduler --url <APP_URL>/mcp --global
 opencode mcp auth social-scheduler
 ```
 
@@ -86,7 +86,7 @@ Si un cliente es rechazado en el registro (`invalid_redirect_uri`), añade el pr
 Las API keys `msk_` siguen funcionando igual (se crean en **API keys**):
 
 ```bash
-claude mcp add --transport http scheduler https://<APP_URL>/mcp --header "Authorization: Bearer msk_..."
+claude mcp add --transport http scheduler <APP_URL>/mcp --header "Authorization: Bearer msk_..."
 ```
 
 Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.well-known/oauth-*` a PHP: ver [despliegue](despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris). `MCP_ALLOWED_ORIGINS` añade orígenes de navegador permitidos; sin cabecera `Origin` siempre se permite.

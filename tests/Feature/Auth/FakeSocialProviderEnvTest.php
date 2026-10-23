@@ -10,8 +10,22 @@ use Laravel\Socialite\Two\GoogleProvider;
 
 require_once __DIR__.'/Social/SocialTestHelpers.php';
 
-function driverClasses(string $env, string $url): array
+/** Fija APP_URL en el entorno de proceso (lo que lee env()); `null` lo quita, como en un servidor donde nunca se definio. */
+function setEnvAppUrl(?string $url): void
 {
+    if ($url === null) {
+        putenv('APP_URL');
+        unset($_ENV['APP_URL'], $_SERVER['APP_URL']);
+
+        return;
+    }
+    putenv('APP_URL='.$url);
+    $_ENV['APP_URL'] = $_SERVER['APP_URL'] = $url;
+}
+
+function driverClasses(string $env, string $url, ?string $envAppUrl = 'explicit'): array
+{
+    setEnvAppUrl($envAppUrl === 'explicit' ? $url : $envAppUrl);
     app()->detectEnvironment(fn () => $env);
     config(['app.url' => $url]);
     enableSocialProviders();
@@ -27,7 +41,11 @@ function driverClasses(string $env, string $url): array
 
 // Con un entorno distinto de `testing`, TrustHosts fija los hosts de confianza en el estado ESTATICO de Symfony: se limpia para no
 // contaminar a los tests siguientes (p. ej. los de proxies de confianza, que usan otro host).
-afterEach(fn () => Request::setTrustedHosts([]));
+$originalAppUrl = $_ENV['APP_URL'] ?? $_SERVER['APP_URL'] ?? (getenv('APP_URL') ?: null);
+afterEach(function () use ($originalAppUrl) {
+    Request::setTrustedHosts([]);
+    setEnvAppUrl($originalAppUrl);
+});
 
 test('el driver falso NO existe en production, local ni testing', function (string $env) {
     [$google, $facebook] = driverClasses($env, 'http://localhost:8080');
@@ -47,24 +65,57 @@ test('con APP_ENV=e2e pero un APP_URL publico tampoco se registra (segunda barre
     expect($google)->toBe(GoogleProvider::class);
 });
 
-test('allowed() solo acepta e2e con host local', function () {
-    expect(FakeSocialiteProvider::allowed('e2e', 'http://localhost:8080'))->toBeTrue()
-        ->and(FakeSocialiteProvider::allowed('e2e', 'http://127.0.0.1:8080'))->toBeTrue()
-        ->and(FakeSocialiteProvider::allowed('production', 'http://localhost'))->toBeFalse()
-        ->and(FakeSocialiteProvider::allowed('e2e', 'https://localhost.evil.com'))->toBeFalse()
-        ->and(FakeSocialiteProvider::allowed('e2e', ''))->toBeFalse();
+test('con APP_ENV=e2e y SIN APP_URL explicita (config usa http://localhost) se usa el driver real', function () {
+    [$google, $facebook] = driverClasses('e2e', 'http://localhost', null);
+
+    expect($google)->toBe(GoogleProvider::class)->and($facebook)->toBe(FacebookProvider::class);
 });
 
-test('el driver falso no se activa por peticion ni por query', function () {
-    enableSocialProviders();
+test('allowed() exige tambien que el Host de la peticion sea local', function () {
+    expect(FakeSocialiteProvider::allowed('e2e', 'http://localhost:8080', 'localhost', true))->toBeTrue()
+        ->and(FakeSocialiteProvider::allowed('e2e', 'http://localhost:8080', 'app.example.com', true))->toBeFalse()
+        ->and(FakeSocialiteProvider::allowed('e2e', 'http://localhost:8080', null, false))->toBeFalse();
+});
 
-    foreach (['?driver=fake', '?APP_ENV=e2e', '?fake_email=a@b.test&fake_id=1'] as $query) {
-        $this->get('/auth/google/redirect'.$query)->assertRedirectContains('accounts.google.com');
+test('allowed() solo acepta e2e con host local', function () {
+    expect(FakeSocialiteProvider::allowed('e2e', 'http://localhost:8080', null, true))->toBeTrue()
+        ->and(FakeSocialiteProvider::allowed('e2e', 'http://127.0.0.1:8080', null, true))->toBeTrue()
+        ->and(FakeSocialiteProvider::allowed('production', 'http://localhost', null, true))->toBeFalse()
+        ->and(FakeSocialiteProvider::allowed('e2e', 'https://localhost.evil.com', null, true))->toBeFalse()
+        ->and(FakeSocialiteProvider::allowed('e2e', '', null, true))->toBeFalse();
+});
+
+test('con e2e activo y sin fichero de identidad, la query no inicia sesion ni se lee', function () {
+    [$google] = driverClasses('e2e', 'http://localhost:8080');
+    expect($google)->toBe(FakeSocialiteProvider::class);
+    Socialite::forgetDrivers(); // el driver de cada peticion se crea con SU request (con sesion)
+
+    $path = FakeSocialiteProvider::identityFile();
+    $backup = is_file($path) ? file_get_contents($path) : null;
+    @unlink($path);
+
+    try {
+        foreach (['?driver=fake', '?APP_ENV=e2e', '?fake_email=a@b.test&fake_id=1'] as $query) {
+            // El redirect falso vuelve al callback con un code; la query de la peticion no se refleja en el viaje.
+            $location = $this->get('/auth/google/redirect'.$query)->assertRedirect()->headers->get('Location');
+            expect($location)->not->toContain('fake_email')->not->toContain('a@b.test');
+            parse_str((string) parse_url($location, PHP_URL_QUERY), $q);
+
+            Socialite::forgetDrivers();
+            // Sin identidad preparada el callback no puede autenticar a nadie, ni aunque la query traiga fake_email.
+            $this->get('/auth/google/callback?code='.($q['code'] ?? 'x').'&state='.($q['state'] ?? 'x').'&fake_email=a@b.test&fake_id=1');
+            $this->assertGuest();
+            $this->assertDatabaseMissing('users', ['email' => 'a@b.test']);
+        }
+    } finally {
+        if ($backup !== null) {
+            file_put_contents($path, $backup);
+        }
     }
-    expect(get_class(Socialite::driver('google-login')))->toBe(GoogleProvider::class);
 });
 
 test('en e2e el viaje usa el state real y vuelve al callback con la identidad preparada', function () {
+    setEnvAppUrl('http://localhost:8080');
     app()->detectEnvironment(fn () => 'e2e');
     config(['app.url' => 'http://localhost:8080']);
     enableSocialProviders();

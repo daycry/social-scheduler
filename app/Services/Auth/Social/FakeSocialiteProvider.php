@@ -12,7 +12,7 @@ use RuntimeException;
 /**
  * Proveedor de Socialite FALSO para la bateria E2E (T-23). Google y Facebook reales no se pueden automatizar.
  *
- * Sustituye a los drivers `google-login` y `facebook-login` SOLO con `APP_ENV=e2e` y un APP_URL local
+ * Sustituye a los drivers `google-login` y `facebook-login` SOLO con `APP_ENV=e2e`, un APP_URL local explicito y un Host local
  * (`register()`); en cualquier otro entorno ni se instancia. Nunca se activa por peticion: la identidad que
  * "devuelve el proveedor" la deja la bateria en un fichero del servidor (`identityFile()`), no en la query.
  *
@@ -27,7 +27,9 @@ class FakeSocialiteProvider extends AbstractProvider implements ProviderInterfac
     /** Registra los drivers falsos si procede; devuelve si lo hizo. */
     public static function register(): bool
     {
-        if (! self::allowed((string) app()->environment(), (string) config('app.url'))) {
+        $host = app()->runningInConsole() ? null : request()->getHost();
+
+        if (! self::allowed((string) app()->environment(), (string) config('app.url'), $host)) {
             return false;
         }
 
@@ -38,10 +40,19 @@ class FakeSocialiteProvider extends AbstractProvider implements ProviderInterfac
         return true;
     }
 
-    /** Solo `e2e` y solo con un APP_URL local: un `APP_ENV=e2e` olvidado en un servidor publico no abre el login. */
-    public static function allowed(string $environment, string $appUrl): bool
+    /**
+     * Solo `e2e`, con un APP_URL local DEFINIDO de forma explicita (`config/app.php` usa `http://localhost` si falta, y eso
+     * no cuenta) y, si hay peticion, con un Host tambien local: un `APP_ENV=e2e` olvidado en un servidor publico no abre el login.
+     */
+    public static function allowed(string $environment, string $appUrl, ?string $requestHost = null, ?bool $explicitUrl = null): bool
     {
-        return $environment === 'e2e' && in_array(strtolower((string) parse_url($appUrl, PHP_URL_HOST)), self::LOCAL_HOSTS, true);
+        $explicitUrl ??= trim((string) env('APP_URL')) !== '';
+        $local = fn (string $host): bool => in_array(strtolower($host), self::LOCAL_HOSTS, true);
+
+        return $environment === 'e2e'
+            && $explicitUrl
+            && $local((string) parse_url($appUrl, PHP_URL_HOST))
+            && ($requestHost === null || $local($requestHost === '::1' ? '[::1]' : $requestHost));
     }
 
     public static function identityFile(): string

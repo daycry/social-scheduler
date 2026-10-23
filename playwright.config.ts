@@ -51,6 +51,8 @@ export default defineConfig({
                   // Proveedor social FALSO (T-23): solo se registra con APP_ENV=e2e y un APP_URL local (FakeSocialiteProvider).
                   // Las credenciales son inventadas: activan los botones sin tocar las reales del .env.
                   APP_ENV: 'e2e',
+                  // Tope GLOBAL de registros DCR/hora: la batería registra muchos clientes y no reinicia el contador (helpers.ts).
+                  MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR: '100000',
                   GOOGLE_LOGIN_CLIENT_ID: 'e2e-google-id',
                   GOOGLE_LOGIN_CLIENT_SECRET: 'e2e-google-secret',
                   META_LOGIN_APP_ID: 'e2e-meta-id',

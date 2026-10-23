@@ -62,16 +62,16 @@ Resumen operativo del servidor OAuth del MCP y del login social ([ADR-004](../kn
 
 ```bash
 # 1) Sin Bearer: 401 con WWW-Authenticate y resource_metadata (si falta, no llega la cabecera o el .well-known)
-curl -si -X POST https://<APP_URL>/mcp -H 'Accept: application/json, text/event-stream' \
+curl -si -X POST <APP_URL>/mcp -H 'Accept: application/json, text/event-stream' \
   -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"initialize"}' | head -n 12
-# esperado: HTTP/2 401  y  www-authenticate: Bearer realm="mcp", resource_metadata="https://<APP_URL>/.well-known/oauth-protected-resource/mcp"
+# esperado: HTTP/2 401  y  www-authenticate: Bearer realm="mcp", resource_metadata="<APP_URL>/.well-known/oauth-protected-resource/mcp"
 
 # 2) Metadatos: 200 y JSON (scopes_supported ["mcp:use"], code_challenge_methods_supported ["S256"])
-curl -s https://<APP_URL>/.well-known/oauth-protected-resource/mcp
-curl -s https://<APP_URL>/.well-known/oauth-authorization-server
+curl -s <APP_URL>/.well-known/oauth-protected-resource/mcp
+curl -s <APP_URL>/.well-known/oauth-authorization-server
 
 # 3) Registro de clientes: 201 con loopback (400 invalid_redirect_uri con una URL pública)
-curl -si -X POST https://<APP_URL>/oauth/register -H 'Content-Type: application/json' \
+curl -si -X POST <APP_URL>/oauth/register -H 'Content-Type: application/json' \
   -d '{"client_name":"prueba","redirect_uris":["http://127.0.0.1:53111/callback"]}' | head -n 1
 ```
 
@@ -81,14 +81,16 @@ Cada registro de prueba deja un cliente en `oauth_clients`; `php artisan mcp:oau
 
 Se registran en cada app con credenciales **propias del login** (distintas de las de los conectores de redes):
 
+`<APP_URL>` es la URL pública con esquema, p. ej. `https://midominio.com` (Google: `https://midominio.com/auth/google/callback`).
+
 | Proveedor | Redirect URI | Variables |
 |---|---|---|
-| Google | `https://<APP_URL>/auth/google/callback` | `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET` |
-| Facebook | `https://<APP_URL>/auth/facebook/callback` | `META_LOGIN_APP_ID`, `META_LOGIN_APP_SECRET` |
+| Google | `<APP_URL>/auth/google/callback` | `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET` |
+| Facebook | `<APP_URL>/auth/facebook/callback` | `META_LOGIN_APP_ID`, `META_LOGIN_APP_SECRET` |
 
 Con las variables vacías el proveedor queda desactivado: no hay botón en el login y `/auth/{proveedor}/redirect` da 404. Las variables del OAuth del MCP (`MCP_OAUTH_TOKEN_DAYS`, `MCP_OAUTH_CODE_TTL`, `MCP_OAUTH_REDIRECT_ALLOWED`) están en `.env.example`.
 
-La batería E2E arranca su servidor con `APP_ENV=e2e` y un proveedor social **falso**. Nunca pongas `APP_ENV=e2e` en un servidor real: el proveedor falso solo se registra con ese entorno **y** un `APP_URL` local (`localhost`, `127.0.0.1`), pero no hay motivo para dejarlo a mano.
+La batería E2E arranca su servidor con `APP_ENV=e2e` y un proveedor social **falso**. Nunca pongas `APP_ENV=e2e` en un servidor real: el proveedor falso solo se registra con ese entorno **y** un `APP_URL` local **definido de forma explícita** (`localhost`, `127.0.0.1`; si `APP_URL` falta, el valor por defecto `http://localhost` no cuenta) y, cuando hay petición, un Host también local, pero no hay motivo para dejarlo a mano.
 
 ## Seguridad de cuenta: 2FA y passkeys
 

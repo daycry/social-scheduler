@@ -157,14 +157,16 @@ export function deleteE2eUsers() {
             `Illuminate\\Support\\Facades\\DB::table('personal_access_tokens')->where('tokenable_type', App\\Models\\User::class)->whereIn('tokenable_id', $ids)->delete(); ` +
             `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
     );
+    // Auditoría sin usuario (user_id NULL): SOLO se borra la identificable como e2e, a partir de los ids de los clientes `e2e-%`
+    // (registros DCR: `detail` = `client_id=<id>`), y se hace ANTES de borrar los clientes. Los rechazos del login social
+    // (`auth.social.login` con user_id NULL) solo llevan proveedor y motivo: no hay forma fiable de atribuirlos a la batería y
+    // se dejan (filas de E2E sobrantes son aceptables; borrar auditoría real, no).
+    artisan(
+        `$cid = App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->pluck('id'); ` +
+            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where('action', 'like', 'oauth.%')->where(fn ($w) => $cid->each(fn ($id) => $w->orWhere('detail', 'like', 'client_id=' . $id . '%')))->whereIn('ip', ['127.0.0.1', '::1'])->when($cid->isEmpty(), fn ($q) => $q->whereRaw('1 = 0'))->delete();`,
+    );
     deleteE2eOAuthClients();
-    // Filas de auditoría sin usuario (user_id NULL) generadas desde que arrancó la batería: rechazos del login social y registros DCR.
-    if (fs.existsSync(E2E_START_FILE)) {
-        artisan(
-            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where(fn ($w) => $w->where('action', 'auth.social.login')->orWhere('action', 'like', 'oauth.%'))->where('created_at', '>=', ${q(fs.readFileSync(E2E_START_FILE, 'utf8').trim())})->delete();`,
-        );
-        fs.rmSync(E2E_START_FILE, { force: true });
-    }
+    fs.rmSync(E2E_START_FILE, { force: true });
     clearFakeSocial();
     fs.rmSync(E2E_USERS_FILE, { force: true });
 }
@@ -385,11 +387,15 @@ export function deleteE2eOAuthClients() {
     artisan(`App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->get()->each->delete();`);
 }
 
-/** DCR (10/h por IP) y los límites de /oauth/*: se liberan para que la batería no dependa del ritmo (claves hash de los limitadores). */
+/**
+ * DCR (10/h por IP) y los límites de /oauth/*: se liberan SOLO las claves de 127.0.0.1 y ::1 (claves hash de los limitadores).
+ * El tope GLOBAL de DCR no se reinicia: el servidor E2E lo sube con MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR (playwright.config.ts).
+ * Reiniciar las claves de loopback también afecta a tráfico real por ngrok que entre desde ahí: no corras la batería mientras
+ * pruebas a mano (docs/guias/desarrollo-local.md).
+ */
 export function clearOAuthThrottle() {
     artisan(
-        `foreach (['127.0.0.1', '::1'] as $ip) { foreach (['mcp-oauth-register', 'mcp-oauth-token'] as $name) { Illuminate\\Support\\Facades\\RateLimiter::clear(md5($name . $name . ':' . $ip)); } } ` +
-            `Illuminate\\Support\\Facades\\RateLimiter::clear('mcp-oauth-register:global');`,
+        `foreach (['127.0.0.1', '::1'] as $ip) { foreach (['mcp-oauth-register', 'mcp-oauth-token'] as $name) { Illuminate\\Support\\Facades\\RateLimiter::clear(md5($name . $name . ':' . $ip)); } }`,
     );
 }
 

@@ -424,7 +424,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Supervisión**: est. 0.14h (≈25 % IA) · real —
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-07, T-10
-- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md`, `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md`, `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `docs/modulos/mcp.md`
+- **Nota (revisión F3, A4)**: al cerrar el smoke se quita el «pendiente de verificar» de `docs/modulos/mcp.md` en los clientes que funcionen.
 - **Cubre (tests)**: M-03, M-04, M-05, M-06
 - **Verificación**:
   - `ls docs/roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md` → existe
@@ -871,6 +872,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 **Notas**: `FakeSocialProviderEnvTest` limpia en `afterEach` los hosts de confianza estáticos de Symfony (`Request::setTrustedHosts`), que con `APP_ENV` distinto de `testing` contaminaban a `TrustedProxiesTest` y `ProfileTest` en la suite completa. Suite final: `php artisan test --compact` → 1221 passed.
 
+**Revisión F3 (C1, B4)**: `FakeSocialiteProvider::allowed()` exige además `APP_URL` definida de forma explícita (`env('APP_URL')` no vacía) y, con petición, Host local; el test de «no se activa por query» corre ahora con `APP_ENV=e2e`, sin fichero de identidad y con `fake_email` en la query.
+
 **Notas**: Google y Facebook reales no son automatizables: van a M-01 y M-02.
 
 **Evidencia (2026-10-23)**: --filter=FakeSocialProviderEnv → 9 passed (el driver falso no existe en production/local/testing/staging, solo con APP_ENV=e2e y APP_URL local; no se activa por query; el viaje conserva el state real); npx playwright test --list → 225 tests listados sin errores; npx playwright test --project=desktop security.spec.ts con APP_ENV=e2e → 8 passed (2FA y passkeys sin cambios); tsc --noEmit y pint --test → OK. Desviación: el fichero de identidades del proveedor falso es storage/framework/cache/e2e-social.json (ignorado por git), que no estaba en Archivos; los helpers añaden también limpieza de identidades en resetSecurity.
@@ -901,12 +904,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 **Notas**: T-24 corrige `Login.vue` (T-20): los rechazos del login social llegaban por redirección con el error `email` en la sesión y la pantalla solo pintaba `form.errors`, así que el usuario no veía ningún mensaje; ahora se muestra en un aviso (`role=alert`). Verificación en desktop durante el desarrollo; la de los tres proyectos se hace una sola vez al final (límite de memoria).
 
+**Cobertura por Pest, no por E2E (revisión F3, A1/A2)**: el texto del reto 2FA caducado, Google con otro `sub`, el aviso de «nombre declarado» y CA-10 se cubren con Pest (`TwoFactorChallengeViaTest:67`, `LinkUnlinkTest:133`, `LoginPageProvidersTest`) y no por E2E.
+
 **Subtareas**
 - [x] Login sin y con 2FA
 - [x] Rechazos
 - [x] Vincular y desvincular
 
-**Evidencia (2026-10-23)**: npm run test:e2e (batería completa, una sola ejecución, informe en testing/results.json) → 268 passed, 2 skipped (preexistentes, solo desktop), 0 failed, 0 flaky: desktop 90/90, mobile 89 + 1 skipped, mobile-360 89 + 1 skipped. social.spec.ts: 5 specs por proyecto (E2E-01..04) en verde en los tres; tsc --noEmit OK.
+**Evidencia (2026-10-23)**: npm run test:e2e (batería completa, una sola ejecución, informe en testing/results.json) → 268 passed, 2 skipped (preexistentes, solo desktop), 0 failed, 0 flaky: desktop 90/90, mobile 89 + 1 skipped, mobile-360 89 + 1 skipped. social.spec.ts: 7 tests por proyecto (21 en total; E2E-01..04) en verde en los tres; tsc --noEmit OK.
 
 ---
 
@@ -933,6 +938,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] No queda ningún cliente ni token `e2e-` tras el teardown
 
 **Notas**: Los helpers de limpieza (`tests/e2e/helpers.ts`) borran también los clientes `e2e-*`, los tokens de los usuarios `e2e-sec-*` (Sanctum no tiene FK al usuario) y las filas de auditoría sin usuario de la batería. Reutilizar un código ya canjeado revoca su token (CA-21): el spec lo comprueba al final del flujo. Verificación en desktop durante el desarrollo; los tres proyectos se ejecutan una sola vez al final (límite de memoria).
+
+**Cobertura por Pest, no por E2E (revisión F3, A1/A2)**: el texto del reto 2FA caducado, Google con otro `sub`, el aviso de «nombre declarado» y CA-10 se cubren con Pest (`TwoFactorChallengeViaTest:67`, `LinkUnlinkTest:133`, `LoginPageProvidersTest`) y no por E2E.
+
+**Revisión F3 (B2, B3)**: la limpieza de auditoría sin usuario se acota a los registros `oauth.%` con IP loopback y `detail` con el id de un cliente `e2e-%` (los rechazos `auth.social.login` sin usuario no son atribuibles a la batería: se dejan, es aceptable); `clearOAuthThrottle` ya no reinicia `mcp-oauth-register:global` (el servidor E2E sube el tope con `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR`) y solo reinicia las claves de 127.0.0.1 y ::1 (anotado en la guía de desarrollo: no correr la batería mientras se prueba con tráfico real por ngrok).
 
 **Subtareas**
 - [x] Flujo con PKCE
@@ -1002,6 +1011,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] `mcp.md`
 - [x] `despliegue.md` y `curl`
 - [x] Guía de Google y Meta y guía de usuario
+
+**Notas (revisión F3, A4)**: la verificación «comando probado en T-11» queda diferida a T-11 (los comandos de los cuatro clientes siguen marcados «pendiente de verificar» en `mcp.md`). Se añadió `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR` a `.env.example` y `mcp.md`, `MCP_OAUTH_*`/`GOOGLE_LOGIN_*`/`META_LOGIN_*` a `docs/referencia/configuracion.md`, y las redirect URIs usan `<APP_URL>` con esquema en las tres guías.
 
 **Evidencia (2026-10-23)**: grep oauth-protected-resource en despliegue.md y mcp.md → 5 coincidencias (curl de verificación y explicación del 401); grep en .env.example → las tres claves (MCP_OAUTH_TOKEN_DAYS, GOOGLE_LOGIN_CLIENT_ID, META_LOGIN_APP_ID); mcp.md con un apartado por cliente. Los comandos de los cuatro clientes se presentan como PENDIENTES de verificar (T-11 / M-03..M-06 son manuales del usuario) y no como definitivos. Desviación: se tocaron también docs/README.md, docs/RAG-INDEX.md y docs/guias/desarrollo-local.md (índices y variables del servidor E2E), no listados en Archivos.
 

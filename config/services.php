@@ -54,6 +54,23 @@ return [
         'client_secret' => env('TIKTOK_CLIENT_SECRET'),
     ],
 
+    /*
+    | Login social (ADR-004): apps/clientes PROPIOS del login, separados de los de los conectores de redes (google/meta).
+    | Con client_id vacio el proveedor queda desactivado (boton oculto, ruta 404). Redirect URIs a registrar:
+    |   ${APP_URL}/auth/google/callback  y  ${APP_URL}/auth/facebook/callback
+    */
+    'google_login' => [
+        'client_id' => env('GOOGLE_LOGIN_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_LOGIN_CLIENT_SECRET'),
+        'redirect' => '/auth/google/callback',
+    ],
+
+    'facebook_login' => [
+        'client_id' => env('META_LOGIN_APP_ID'),
+        'client_secret' => env('META_LOGIN_APP_SECRET'),
+        'redirect' => '/auth/facebook/callback',
+    ],
+
     // Servidor MCP (T-28/T-30): peticiones por minuto por API key y por IP.
     'mcp' => [
         'per_minute' => env('MCP_RATE_PER_MINUTE', 60),

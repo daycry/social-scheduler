@@ -36,7 +36,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
-| Fase 2 — C-01 · Login social | 0 | 7 | 0% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 2 — C-01 · Login social | 1 | 7 | 14% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **11** | **28** | **39%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
@@ -496,16 +496,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 2 — C-01 · Login social con Google y Facebook (backend)
 
-**Estado**: borrador · **Estimado**: 26.0h · **Real**: — · **Coste est.**: 1.300 € + tokens (⚠️ verificar) · **Tokens est.**: 1.05M
+**Estado**: en-progreso · **Estimado**: 26.0h · **Real**: — · **Coste est.**: 1.300 € + tokens (⚠️ verificar) · **Tokens est.**: 1.05M
 
 ### T-13 — Socialite, configuración de login y migración `social_identities`
 
 - **Descripción**: Instala `laravel/socialite` ^5.31 y verifica en el vendor que el driver de Google expone `email_verified` (si no, el login con Google falla cerrado). Config `services.google_login` y `services.facebook_login` (`GOOGLE_LOGIN_*`, `META_LOGIN_*`) separada de la de conectores. Migración y modelo `SocialIdentity` (`user_id`, `provider`, `provider_user_id` único por proveedor, `email`, `linked_at`, `last_login_at`, `blocked_at`) y relación en `User` con borrado en cascada.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.41h · real —
-- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Changelog**: Se añade la base del login con Google y Facebook: dependencia Socialite, credenciales propias del login (vacías = desactivado) y tabla de cuentas vinculadas.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.41h · real 0.41h (estimado)
+- **Supervisión**: est. 0.10h (≈25 % IA) · real 0.10h (estimado)
 - **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: backend
@@ -518,16 +518,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Auth` → en verde
 
 **Criterios de aceptación**
-- [ ] `(provider, provider_user_id)` es único
-- [ ] Las claves `GOOGLE_LOGIN_*` y `META_LOGIN_*` vacías dejan el proveedor desactivado (CA-10, se prueba en T-14)
-- [ ] Los conectores de `app/Connectors` no se modifican (`git diff --stat -- app/Connectors` vacío)
+- [x] `(provider, provider_user_id)` es único
+- [x] Las claves `GOOGLE_LOGIN_*` y `META_LOGIN_*` vacías dejan el proveedor desactivado (CA-10, se prueba en T-14)
+- [x] Los conectores de `app/Connectors` no se modifican (`git diff --stat -- app/Connectors` vacío)
 
 **Subtareas**
-- [ ] `composer require laravel/socialite`
-- [ ] Comprobación de `email_verified` en el vendor
-- [ ] Migración, modelo y relación
+- [x] `composer require laravel/socialite`
+- [x] Comprobación de `email_verified` en el vendor
+- [x] Migración, modelo y relación
 
 **Notas**: Si Socialite no expone `email_verified`, se documenta y se obtiene del userinfo en el propio controlador, siempre fallando cerrado.
+
+**Evidencia (2026-10-23)**: `composer show laravel/socialite` → v5.31.0; el driver de Google deja `email_verified` en el usuario crudo (`GoogleProvider.php:91`, vía `setRaw`); `tests/Unit/SocialIdentityTest.php` + `tests/Feature/Auth` → 141 passed; `git diff --stat -- app/Connectors` vacío; migración aplicada con `php artisan migrate`.
 
 ---
 

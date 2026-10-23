@@ -36,7 +36,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
-| Fase 2 — C-01 · Login social | 1 | 7 | 14% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 2 — C-01 · Login social | 2 | 7 | 29% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **11** | **28** | **39%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
@@ -536,15 +536,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-14 — `SocialIdentityResolver` y `SocialLoginController` (redirect y callback de login)
 
 - **Descripción**: `SocialIdentityResolver` aplica P1 sobre `social_identities`: identidad existente no bloqueada → su usuario; Google con `email_verified=true` y cuenta local con `email_verified_at` → vincula y audita `social.linked` (auto); Facebook, sin email, sin verificar, bloqueada o sin cuenta → rechazo con mensaje genérico. `SocialLoginController` (`redirect` con `guest`, `callback` sin `guest` y bifurcado por `social.intent`) cierra el login con `LoginFlow::complete(…, remember: false)`. Nunca crea usuarios, ni con `REGISTRATION_ENABLED=true`. Proveedor sin configurar: 404.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.54h · real —
-- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Changelog**: Ya se puede entrar con Google, o con Facebook si está vinculado, a una cuenta existente; Google se vincula solo con correo verificado y nunca se crean cuentas nuevas.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real 0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.54h · real 0.54h (estimado)
+- **Supervisión**: est. 0.14h (≈25 % IA) · real 0.14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-13, T-01
 - **Tipo**: backend
-- **Archivos**: `app/Services/Auth/SocialIdentityResolver.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `routes/auth.php`, `tests/Feature/Auth/Social/SocialLoginTest.php`, `tests/Unit/SocialIdentityResolverTest.php`
+- **Archivos**: `app/Services/Auth/SocialIdentityResolver.php`, `app/Services/Auth/SocialResolution.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Providers/AppServiceProvider.php`, `routes/auth.php`, `tests/Feature/Auth/Social/SocialLoginTest.php`, `tests/Feature/Auth/Social/SocialTestHelpers.php`, `tests/Unit/SocialIdentityResolverTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=SocialLogin` → CA-01 a CA-06 y CA-10 en verde con el driver de Socialite simulado
@@ -552,16 +552,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Auth` → ADR-003 sigue en verde
 
 **Criterios de aceptación**
-- [ ] CA-01/CA-02: login directo y vinculación automática solo con Google verificado
-- [ ] CA-03/CA-05: email no verificado, ausente o Facebook sin vincular → rechazo genérico, sin sesión, sin identidad
-- [ ] CA-04: el número de `users` no cambia con `REGISTRATION_ENABLED` a true o false
-- [ ] CA-06: con 2FA, `assertGuest` y redirección a `two-factor.challenge`; tras el código llega a `intended`
-- [ ] El mensaje no revela si el email existe
+- [x] CA-01/CA-02: login directo y vinculación automática solo con Google verificado
+- [x] CA-03/CA-05: email no verificado, ausente o Facebook sin vincular → rechazo genérico, sin sesión, sin identidad
+- [x] CA-04: el número de `users` no cambia con `REGISTRATION_ENABLED` a true o false
+- [x] CA-06: con 2FA, `assertGuest` y redirección a `two-factor.challenge`; tras el código llega a `intended`
+- [x] El mensaje no revela si el email existe
 
 **Subtareas**
-- [ ] Resolver y su tabla de decisión
-- [ ] Controlador y rutas
-- [ ] Rama de login del callback (la de vincular llega en T-17)
+- [x] Resolver y su tabla de decisión
+- [x] Controlador y rutas
+- [x] Rama de login del callback (la de vincular llega en T-17)
+
+**Evidencia (2026-10-23)**: `--filter=Social` → 39 passed (CA-01..CA-06, CA-10, tabla de decisión de P1 en `SocialIdentityResolverTest`); `tests/Feature/Auth tests/Unit` → 282 passed (ADR-003 en verde). Desviación: el driver se registra como `google-login`/`facebook-login` (`Socialite::extend` en `AppServiceProvider`) para usar `services.*_login`; el rechazo usa la clave de error `email` de `/login` y la identidad Google ya vinculada o desvinculada de un usuario también bloquea la vinculación automática de otra cuenta Google. Se añade `app/Services/Auth/SocialResolution.php` y `app/Providers/AppServiceProvider.php` a Archivos.
 
 ---
 

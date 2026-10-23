@@ -32,6 +32,9 @@ use Laravel\Passkeys\Events\PasskeyRegistered;
 use Laravel\Passkeys\Events\PasskeyVerified;
 use Laravel\Passkeys\Passkeys;
 use Laravel\Sanctum\Sanctum;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\FacebookProvider;
+use Laravel\Socialite\Two\GoogleProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -69,6 +72,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // Login social (ADR-004): drivers con las credenciales PROPIAS del login (services.*_login), distintas de las de los conectores.
+        Socialite::extend('google-login', fn () => Socialite::buildProvider(GoogleProvider::class, (array) config('services.google_login')));
+        Socialite::extend('facebook-login', fn () => Socialite::buildProvider(FacebookProvider::class, (array) config('services.facebook_login')));
 
         // Tokens con origen OAuth opcional (oauth_client_id); las API keys msk_ existentes no cambian.
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);

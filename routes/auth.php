@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasskeyLoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Profile\PasskeyController;
@@ -41,6 +42,9 @@ Route::middleware('guest')->group(function () {
     Route::get('passkeys/login/options', [PasskeyLoginController::class, 'options'])->middleware('throttle:passkey-login-options')->block(5, 5)->name('passkeys.login.options');
     Route::post('passkeys/login', [PasskeyLoginController::class, 'store'])->middleware('throttle:passkey-login')->block(5, 5)->name('passkeys.login');
 
+    // Login social (ADR-004): solo cuentas existentes. El callback va fuera de `guest` (tambien lo usa la vinculacion).
+    Route::get('auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])->whereIn('provider', SocialLoginController::PROVIDERS)->name('social.redirect');
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
@@ -53,6 +57,8 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
+
+Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])->whereIn('provider', SocialLoginController::PROVIDERS)->name('social.callback');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)

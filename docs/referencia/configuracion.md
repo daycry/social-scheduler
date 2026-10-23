@@ -40,11 +40,11 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `DB_QUEUE_RETRY_AFTER` | `180` | Debe superar el `--timeout` del worker (120 s) |
 | `QUEUE_NAMES` | `publish,poll,metrics,reports` | Colas que atienden los workers |
 
-## Media (R2)
+## Media (disco local o R2)
 
 | Variable | Defecto | Explicación |
 |---|---|---|
-| `MEDIA_DISK` | `local` | `r2` en producción |
+| `MEDIA_DISK` | `local` | `local` (disco del servidor, `storage/app/private`, servido por URL firmada) o `r2`. Nunca `public` |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` | vacío | Credenciales S3 de Cloudflare |
 | `R2_URL` | vacío | Dominio público del bucket |
 | `R2_REGION` | `auto` | |

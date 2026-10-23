@@ -44,6 +44,8 @@ Con varios workers sobre la misma cola, exigir MariaDB >= 10.6 / MySQL >= 8.0 (`
 
 ## Plan B: sin systemd (cron con `--stop-when-empty`)
 
+Es la opción que usa el despliegue actual, configurada desde el panel de Hestia (CRON): comandos exactos y explicación en `deploy/hestia/README.md` → 5.1. Las rutas de abajo asumen la app en `app/`; si está en `public_html`, cámbialas.
+
 Si no se puede usar systemd, crear el directorio de locks del usuario (no usar `/tmp`: ruta predecible y compartida) y anadir al cron de Hestia con `flock` para evitar solapes:
 
 ```bash

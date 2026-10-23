@@ -845,31 +845,35 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-23 — Proveedor social falso solo en `APP_ENV=e2e` y servidor E2E
 
 - **Descripción**: Driver de Socialite `fake` registrado únicamente cuando `APP_ENV=e2e`, con identidades configurables por el test (email, `email_verified`, id). `playwright.config.ts` arranca el servidor con `APP_ENV: 'e2e'` y los helpers de `tests/e2e/helpers.ts` ganan utilidades de preparación para los usuarios `e2e-sec-*`. Un test Pest comprueba que en `production`, `local` y `testing` el driver no existe.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.27h · real —
-- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Changelog**: Las pruebas de extremo a extremo disponen de un proveedor de inicio de sesión falso que solo existe en el entorno de pruebas y nunca en producción.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.27h · real 0.27h (estimado)
+- **Supervisión**: est. 0.07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-14
 - **Tipo**: test
-- **Archivos**: `app/Providers/AppServiceProvider.php`, `app/Services/Auth/Social/FakeSocialiteProvider.php`, `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/Feature/Auth/FakeSocialProviderEnvTest.php`
+- **Archivos**: `app/Providers/AppServiceProvider.php`, `app/Services/Auth/Social/FakeSocialiteProvider.php`, `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/Feature/Auth/FakeSocialProviderEnvTest.php`, `storage/framework/cache/e2e-social.json` (generado, ignorado por git)
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03
 - **Verificación**:
   - `php artisan test --compact --filter=FakeSocialProviderEnv` → el driver `fake` solo se registra con `APP_ENV=e2e`
   - `npx playwright test --list` → la batería existente sigue listada sin errores de configuración
 
 **Criterios de aceptación**
-- [ ] El driver falso no se puede activar por petición ni por query
-- [ ] Producción nunca lo registra (test)
-- [ ] La batería E2E existente (2FA, passkeys) no cambia de comportamiento con `APP_ENV=e2e`
+- [x] El driver falso no se puede activar por petición ni por query
+- [x] Producción nunca lo registra (test)
+- [x] La batería E2E existente (2FA, passkeys) no cambia de comportamiento con `APP_ENV=e2e`
 
 **Subtareas**
-- [ ] Driver falso
-- [ ] Registro condicionado
-- [ ] Config de Playwright y helpers
+- [x] Driver falso
+- [x] Registro condicionado
+- [x] Config de Playwright y helpers
 
 **Notas**: Google y Facebook reales no son automatizables: van a M-01 y M-02.
+
+**Evidencia (2026-10-23)**: --filter=FakeSocialProviderEnv → 9 passed (el driver falso no existe en production/local/testing/staging, solo con APP_ENV=e2e y APP_URL local; no se activa por query; el viaje conserva el state real); npx playwright test --list → 225 tests listados sin errores; npx playwright test --project=desktop security.spec.ts con APP_ENV=e2e → 8 passed (2FA y passkeys sin cambios); tsc --noEmit y pint --test → OK. Desviación: el fichero de identidades del proveedor falso es storage/framework/cache/e2e-social.json (ignorado por git), que no estaba en Archivos; los helpers añaden también limpieza de identidades en resetSecurity.
+
+---
 
 ---
 

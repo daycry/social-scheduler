@@ -102,6 +102,7 @@ export async function borrarMarcasE2e(page: Page, prefix = 'e2e-') {
 // ---------------------------------------------------------------------------------------------------------------
 
 export const E2E_USERS_FILE = 'tests/e2e/.auth/e2e-users.json';
+export const E2E_START_FILE = 'tests/e2e/.auth/e2e-start.txt';
 export const E2E_PROJECTS = ['desktop', 'mobile', 'mobile-360'] as const;
 
 export type E2eUser = { email: string; password: string; name: string };
@@ -124,6 +125,7 @@ const cleanUserPhp = (email: string) =>
     `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
     `$u->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null, 'two_factor_last_used_at' => null])->save(); ` +
     `$u->passkeys()->delete(); Illuminate\\Support\\Facades\\RateLimiter::clear('2fa:' . $u->id); ` +
+    `$u->socialIdentities()->delete(); ` +
     `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(Illuminate\\Support\\Str::lower(${q(email)}) . '|' . $ip); }`;
 
 /** Crea (o deja limpios) los usuarios E2E y guarda sus credenciales en `.auth` (ignorado por git). */
@@ -140,6 +142,8 @@ export function createE2eUsers(): Record<string, E2eUser> {
     }
     fs.mkdirSync(path.dirname(E2E_USERS_FILE), { recursive: true });
     fs.writeFileSync(E2E_USERS_FILE, JSON.stringify(users));
+    fs.writeFileSync(E2E_START_FILE, new Date().toISOString().slice(0, 19).replace('T', ' '));
+    clearFakeSocial();
     return users;
 }
 
@@ -151,6 +155,14 @@ export function deleteE2eUsers() {
             `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereIn('user_id', $ids)->delete(); ` +
             `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
     );
+    // Rechazos del login social sin usuario (user_id NULL) generados desde que arrancó la batería.
+    if (fs.existsSync(E2E_START_FILE)) {
+        artisan(
+            `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where('action', 'auth.social.login')->where('created_at', '>=', ${q(fs.readFileSync(E2E_START_FILE, 'utf8').trim())})->delete();`,
+        );
+        fs.rmSync(E2E_START_FILE, { force: true });
+    }
+    clearFakeSocial();
     fs.rmSync(E2E_USERS_FILE, { force: true });
 }
 
@@ -292,4 +304,69 @@ export async function loginUntilChallenge(page: Page, user: E2eUser, remember = 
     if (remember) await page.getByLabel('Recordarme').check();
     await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await page.waitForURL(/two-factor-challenge/);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Proveedor social FALSO (T-23). El servidor E2E (APP_ENV=e2e) lee la identidad que "devuelve el proveedor" de este
+// fichero; el driver real de Google/Facebook nunca se invoca. Solo existe con APP_ENV=e2e (FakeSocialiteProvider).
+// ---------------------------------------------------------------------------------------------------------------
+
+export const FAKE_SOCIAL_FILE = 'storage/framework/cache/e2e-social.json';
+
+export type FakeIdentity = {
+    id: string;
+    email?: string | null;
+    /** Solo Google: `email_verified` del userinfo; omítelo en Facebook. */
+    email_verified?: boolean | string | null;
+    name?: string;
+    /** El proveedor devuelve `error=<valor>` (p. ej. `access_denied`: el usuario cancela). */
+    error?: string;
+};
+
+/** Deja la identidad que devolverá el proveedor falso (`null` la quita). */
+export function setFakeSocial(provider: 'google' | 'facebook', identity: FakeIdentity | null) {
+    const all: Record<string, FakeIdentity> = fs.existsSync(FAKE_SOCIAL_FILE) ? JSON.parse(fs.readFileSync(FAKE_SOCIAL_FILE, 'utf8') || '{}') : {};
+    if (identity === null) delete all[provider];
+    else all[provider] = identity;
+    fs.writeFileSync(FAKE_SOCIAL_FILE, JSON.stringify(all));
+}
+
+export function clearFakeSocial() {
+    fs.rmSync(FAKE_SOCIAL_FILE, { force: true });
+}
+
+/** El callback social va limitado a 20/min por IP: se libera para que la batería no dependa del ritmo (la clave es el md5 del limitador). */
+export function clearSocialThrottle() {
+    artisan(
+        `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(md5('social-login' . 'social-login:' . $ip)); }`,
+    );
+}
+
+/** Vincula una identidad al usuario E2E (sin pasar por el proveedor). */
+export function linkSocialDirect(email: string, provider: 'google' | 'facebook', providerUserId: string, linkedEmail: string | null = null) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `$u->socialIdentities()->create(['provider' => ${q(provider)}, 'provider_user_id' => ${q(providerUserId)}, 'email' => ${linkedEmail === null ? 'null' : q(linkedEmail)}, 'linked_at' => now()]);`,
+    );
+}
+
+export type SocialRow = { provider: string; provider_user_id: string; blocked: boolean };
+
+/** Identidades del usuario (activas y bloqueadas), para comprobar el efecto en la base de datos. */
+export function socialRows(email: string): SocialRow[] {
+    const out = artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `echo json_encode($u->socialIdentities()->orderBy('id')->get()->map(fn ($i) => ['provider' => $i->provider, 'provider_user_id' => $i->provider_user_id, 'blocked' => $i->blocked_at !== null])->all());`,
+    );
+    return JSON.parse(out.slice(out.indexOf('[')));
+}
+
+/** Crea un usuario E2E extra (para identidades "ajenas"); `deleteE2eUsers` lo borra por su patrón `e2e-sec-%@example.test`. */
+export function createExtraE2eUser(label: string): string {
+    const email = `e2e-sec-${label}@example.test`;
+    artisan(
+        `$u = App\\Models\\User::firstOrNew(['email' => ${q(email)}]); ` +
+            `$u->forceFill(['name' => 'e2e extra ${label}', 'password' => Illuminate\\Support\\Facades\\Hash::make(${q(crypto.randomBytes(12).toString('hex') + '-Aa1!')}), 'email_verified_at' => now()])->save();`,
+    );
+    return email;
 }

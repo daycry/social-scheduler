@@ -48,6 +48,13 @@ export default defineConfig({
               reuseExistingServer: false,
               timeout: 60_000,
               env: {
+                  // Proveedor social FALSO (T-23): solo se registra con APP_ENV=e2e y un APP_URL local (FakeSocialiteProvider).
+                  // Las credenciales son inventadas: activan los botones sin tocar las reales del .env.
+                  APP_ENV: 'e2e',
+                  GOOGLE_LOGIN_CLIENT_ID: 'e2e-google-id',
+                  GOOGLE_LOGIN_CLIENT_SECRET: 'e2e-google-secret',
+                  META_LOGIN_APP_ID: 'e2e-meta-id',
+                  META_LOGIN_APP_SECRET: 'e2e-meta-secret',
                   APP_URL: new URL(baseURL).origin,
                   WEBAUTHN_RP_ID: new URL(baseURL).hostname,
                   WEBAUTHN_ORIGINS: new URL(baseURL).origin,

@@ -20,6 +20,7 @@ use App\Models\Brand;
 use App\Models\PersonalAccessToken;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\Auth\Social\FakeSocialiteProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
@@ -80,6 +81,9 @@ class AppServiceProvider extends ServiceProvider
             ->usingGraphVersion((string) config('social.meta.graph_version', 'v23.0'))
             ->scopes(['email', 'public_profile'])
             ->fields(['id', 'name', 'email']));
+
+        // Bateria E2E (T-23): proveedor falso solo con APP_ENV=e2e y un APP_URL local; en el resto de entornos no hace nada.
+        FakeSocialiteProvider::register();
 
         // Tokens con origen OAuth opcional (oauth_client_id); las API keys msk_ existentes no cambian.
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);

@@ -430,16 +430,21 @@ export async function mcpToolsList(request: import('@playwright/test').APIReques
 export type ComposerBrand = { id: number; name: string };
 
 /** Crea la marca y sus dos cuentas activas (Instagram y Facebook) para el usuario E2E. */
-export function seedComposerBrand(email: string, label: string): ComposerBrand {
+export function seedComposerBrand(email: string, label: string, timezone = 'Europe/Madrid'): ComposerBrand {
     const name = `e2e-composer-${label}`;
     const out = artisan(
         `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
-            `$b = App\\Models\\Brand::factory()->for($u)->create(['name' => ${q(name)}, 'timezone' => 'Europe/Madrid']); ` +
+            `$b = App\\Models\\Brand::factory()->for($u)->create(['name' => ${q(name)}, 'timezone' => ${q(timezone)}]); ` +
             `App\\Models\\SocialAccount::factory()->for($u)->create(['brand_id' => $b->id, 'network' => App\\Connectors\\Network::Instagram, 'name' => 'e2e Instagram']); ` +
             `App\\Models\\SocialAccount::factory()->for($u)->create(['brand_id' => $b->id, 'network' => App\\Connectors\\Network::Facebook, 'name' => 'e2e Facebook']); ` +
             `echo 'BRAND:' . $b->id;`,
     );
     return { id: Number(out.match(/BRAND:(\d+)/)![1]), name };
+}
+
+/** Cambia la zona horaria de la marca E2E (para comprobar que la UI usa la de la marca y no la del navegador). */
+export function setBrandTimezone(brandId: number, timezone: string) {
+    artisan(String.raw`App\Models\Brand::withoutUserScope()->findOrFail(${brandId})->forceFill(['timezone' => ${q(timezone)}])->save();`);
 }
 
 /**

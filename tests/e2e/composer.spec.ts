@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -309,6 +309,13 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 test('E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca', async ({ page }) => {
     const w = watch(page);
+    // La marca está en Pacific/Auckland y el navegador en Europe/Madrid. Con el reloj fijado a las 20:00 UTC, en Madrid es el día D
+    // y en Auckland (UTC+12/13) ya es D+1: si el selector usara la hora local del navegador, «hoy» sería otro día y el test fallaría.
+    const ZONA = 'Pacific/Auckland';
+    setBrandTimezone(brand.id, ZONA);
+    const base = new Date();
+    base.setUTCHours(20, 0, 0, 0);
+    await page.clock.install({ time: base });
     await open(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
     await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
@@ -352,12 +359,15 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
 
     // Selector de fecha: zona de la marca, sin días pasados y valor `Y-m-d\TH:i`.
     const picker = page.locator('#scheduled_at');
-    await expect(page.getByTestId('datetime-zone')).toContainText('Europe/Madrid');
+    await expect(page.getByTestId('datetime-zone')).toContainText(ZONA);
     await picker.click();
     const dialogo = page.getByRole('dialog', { name: 'Elegir fecha y hora' });
     await expect(dialogo).toBeVisible();
-    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+    const hoy = base.toLocaleDateString('en-CA', { timeZone: ZONA });
+    const hoyLocal = base.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+    expect(hoy).not.toBe(hoyLocal); // la prueba solo vale si la zona de la marca y la del navegador caen en días distintos
     const [y, m, d] = hoy.split('-').map(Number);
+    await expect(dialogo.locator(`[data-date="${hoyLocal}"]`)).toBeDisabled(); // «hoy» de Madrid ya es pasado en Auckland
     await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeEnabled();
     await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeFocused();
     if (d > 1) await expect(dialogo.locator(`[data-date="${y}-${pad(m)}-${pad(d - 1)}"]`)).toBeDisabled();
@@ -367,11 +377,32 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
     await axeNow(page, 'selector de fecha abierto');
     await expectNoOverflow(page);
 
+    // Elegir una fecha pasada: se escoge la próxima franja de hoy y se deja pasar el tiempo (el reloj avanza 10 minutos). El panel
+    // muestra el error y Programar se deshabilita; Guardar borrador y Publicar ahora siguen disponibles (el servidor revalida).
+    await dialogo.locator(`[data-date="${hoy}"]`).click();
+    await expect(picker).toHaveAttribute('data-value', /T09:05$/);
+    await expect(items).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeEnabled();
+    await page.clock.fastForward('10:00');
+    await expect(items).toHaveCount(1);
+    await expect(panel.getByText(/debe ser futura/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
+    await page.keyboard.press('Escape'); // cierra el selector (tapa el botón dividido)
+    await expect(dialogo).toHaveCount(0);
+    await abrirMenu(page);
+    await expect(menuItem(page, 'Guardar borrador')).toBeEnabled();
+    await expect(menuItem(page, 'Publicar ahora')).toBeEnabled();
+    await page.keyboard.press('Escape');
+    await page.screenshot({ path: 'test-results/composer-fecha-pasada.png' });
+    await axeNow(page, 'compositor con el error de fecha pasada');
+    await picker.click();
+    await expect(dialogo).toBeVisible();
+
     const sigMes = m === 12 ? `${y + 1}-01` : `${y}-${pad(m + 1)}`;
     const dia = `${sigMes}-15`;
     await dialogo.getByRole('button', { name: 'Mes siguiente' }).click();
     await dialogo.locator(`[data-date="${dia}"]`).click();
-    await expect(picker).toHaveAttribute('data-value', `${dia}T09:00`);
+    await expect(picker).toHaveAttribute('data-value', `${dia}T09:05`); // conserva la hora ya elegida
     await dialogo.getByLabel('Hora').selectOption('14');
     await dialogo.getByLabel('Minutos').selectOption('30');
     await expect(picker).toHaveAttribute('data-value', `${dia}T14:30`);
@@ -380,6 +411,7 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
     await page.keyboard.press('Escape'); // Escape cierra y devuelve el foco al botón
     await expect(dialogo).toHaveCount(0);
     await expect(picker).toBeFocused();
+    await expect(items).toHaveCount(0); // con una fecha futura el error desaparece y Programar vuelve a estar habilitado
 
     // El formato que se envía no cambia: `Y-m-d\TH:i` en la hora de la marca.
     const peticion = page.waitForRequest((r) => r.method() === 'POST' && /\/brands\/\d+\/posts$/.test(new URL(r.url()).pathname));
@@ -433,6 +465,22 @@ test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación acc
     const boton = (id: number) => page.getByRole('button', { name: `Publicar ahora la publicación ${id}` });
     const dialogo = page.getByRole('alertdialog', { name: '¿Publicar ahora?' });
 
+    // Cancelar con el botón y con Escape (foco de vuelta al botón) y axe con la confirmación abierta, en la vista indicada.
+    const cancelarConfirmacion = async (vista: string) => {
+        await boton(posts.scheduled).click();
+        await expect(dialogo).toBeVisible();
+        await axeNow(page, `calendario (${vista}) con la confirmación de Publicar ahora abierta`);
+        await dialogo.getByRole('button', { name: 'Cancelar' }).click();
+        await expect(dialogo).toHaveCount(0);
+        await expect(boton(posts.scheduled)).toBeFocused();
+        await boton(posts.scheduled).click();
+        await expect(dialogo).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(dialogo).toHaveCount(0);
+        await expect(boton(posts.scheduled)).toBeFocused();
+        await expect(page.getByText('Enviando…')).toHaveCount(0);
+    };
+
     // LISTA: borrador y programada ofrecen la acción; la publicada no.
     await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
     await settle(page);
@@ -470,10 +518,12 @@ test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación acc
     await expect(boton(posts.scheduled)).toBeVisible();
     await expect(boton(posts.published)).toHaveCount(0);
     await expectNoOverflow(page);
+    await cancelarConfirmacion('mes');
 
     await page.goto(`/calendar?view=week&brand_id=${brand.id}&date=${posts.scheduledDate}`);
     await settle(page);
     await expect(boton(posts.published)).toHaveCount(0);
+    await cancelarConfirmacion('semana');
     await boton(posts.scheduled).click();
     await expect(dialogo).toBeVisible();
     await expectNoOverflow(page);
@@ -510,11 +560,94 @@ test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y n
     await settle(page);
     await expect(page.getByText('e2e texto de plantilla sin guardar').first()).toBeVisible();
     await expect(page.getByText('e2e plantilla del compositor').first()).toBeVisible();
+    // La plantilla conserva los destinos: las dos redes elegidas.
+    const plantilla = page.locator('li').filter({ hasText: 'e2e plantilla del compositor' });
+    await expect(plantilla.getByText('Instagram', { exact: true })).toBeVisible();
+    await expect(plantilla.getByText('Facebook', { exact: true })).toBeVisible();
     await page.screenshot({ path: 'test-results/biblioteca-plantilla.png' });
     await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
     await settle(page);
     await expect(page.getByText('No hay publicaciones en este periodo')).toBeVisible();
     expect(w.errors).toEqual([]);
+});
+
+test('E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada', async ({ page }) => {
+    const w = watch(page);
+    setBrandTimezone(brand.id, 'Pacific/Auckland');
+    const base = new Date();
+    base.setUTCHours(20, 0, 0, 0);
+    await page.clock.install({ time: base });
+    await page.goto(`/brands/${brand.id}/posts/create?selector=nativo`);
+    await settle(page);
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e selector nativo');
+
+    const campo = page.locator('input#scheduled_at[type="datetime-local"]');
+    await expect(campo).toBeVisible();
+    await expect(page.locator('[data-testid="datetime-picker"]')).toHaveCount(0);
+    // El mínimo es «hoy» en la zona de la marca, no el del navegador.
+    const hoy = base.toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' });
+    await expect(campo).toHaveAttribute('min', new RegExp(`^${hoy}T`));
+
+    await campo.fill(`${hoy}T00:00`); // ya pasado en Auckland (son las 09:00)
+    await expect(page.getByTestId('errors-panel').getByText(/debe ser futura/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
+
+    await campo.fill('2030-01-15T10:30');
+    await expect(page.getByTestId('error-item')).toHaveCount(0);
+    const peticion = page.waitForRequest((r) => r.method() === 'POST' && /\/brands\/\d+\/posts$/.test(new URL(r.url()).pathname));
+    await page.getByRole('button', { name: 'Programar' }).click();
+    expect((await peticion).postDataJSON().scheduled_at).toBe('2030-01-15T10:30');
+    await expect(page).toHaveURL(/\/calendar/);
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir', async ({ page }) => {
+    const w = watch(page);
+    setBrandTimezone(brand.id, 'Pacific/Auckland');
+    const base = new Date();
+    base.setUTCHours(10, 58, 0, 0); // 23:58 en Auckland (UTC+13 en octubre)
+    await page.clock.install({ time: base });
+    await open(page);
+    await page.locator('#scheduled_at').click();
+    const dialogo = page.getByRole('dialog', { name: 'Elegir fecha y hora' });
+    const hoy = base.toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' });
+    const manana = new Date(base.getTime() + 24 * 3600 * 1000).toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' });
+    await expect(page.getByTestId('datetime-zone')).toContainText('Pacific/Auckland');
+    if (hoy.slice(0, 7) === manana.slice(0, 7)) {
+        await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeDisabled();
+        await expect(dialogo.locator(`[data-date="${manana}"]`)).toBeEnabled();
+        await expect(dialogo.locator(`[data-date="${manana}"]`)).toBeFocused();
+    }
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Publicar ahora y Guardar en biblioteca', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e subida en curso');
+    // La subida tarda: el registro del asset responde con retraso y con un error (no hay almacenamiento en la prueba).
+    await page.route('**/media', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue();
+        await new Promise((r) => setTimeout(r, 2500));
+        await route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ message: 'e2e: subida simulada' }) });
+    });
+    await page.locator('input[type="file"]').setInputFiles({ name: 'e2e.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgo=', 'base64') });
+    await expect(page.getByText(/Subiendo…/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
+    await abrirMenu(page);
+    await expect(menuItem(page, 'Publicar ahora')).toBeDisabled();
+    await expect(menuItem(page, 'Guardar en biblioteca')).toBeDisabled();
+    await expect(menuItem(page, 'Guardar borrador')).toBeEnabled();
+    await page.keyboard.press('Escape');
+    // Al terminar (aquí con error) todo vuelve a estar disponible.
+    await expect(page.getByText('e2e: subida simulada')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeEnabled();
+    await abrirMenu(page);
+    await expect(menuItem(page, 'Publicar ahora')).toBeEnabled();
+    await expect(menuItem(page, 'Guardar en biblioteca')).toBeEnabled();
+    expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
 
 test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)', async ({ page }) => {

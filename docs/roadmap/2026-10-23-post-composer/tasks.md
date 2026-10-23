@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 0 | 8 | 0% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 1 | 8 | 12% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **0** | **42** | **0%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **1** | **42** | **2%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -59,16 +59,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 1 — C-01 · Editor a pantalla completa y contadores por red
 
-**Estado**: borrador · **Estimado**: 28,0h · **Real**: — · **Coste est.**: 1.400 € + tokens (⚠️ verificar) · **Tokens est.**: 1,13M
+**Estado**: en-progreso · **Estimado**: 28,0h · **Real**: — · **Coste est.**: 1.400 € + tokens (⚠️ verificar) · **Tokens est.**: 1,13M
 
 ### T-01 — Línea base y división de `Compose.vue` en composables y componentes sin cambiar el comportamiento
 
 - **Descripción**: Primera tarea y red de seguridad de todo el plan: `Compose.vue` (321 líneas) pasa a orquestador fino con `provide` de `useComposer` y la validación en vivo se traslada a `useLiveValidation` sin cambiar el endpoint `brands.posts.validate`. No se añade ninguna característica.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Changelog**: El editor de publicaciones se reorganiza por dentro en componentes más pequeños; se ve y funciona igual que antes.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 0.7h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.3h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: frontend
@@ -81,17 +81,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `npm run test:e2e -- tests/e2e/flows.spec.ts` → los flujos de publicación existentes siguen en verde
 
 **Criterios de aceptación**
-- [ ] La validación en vivo, la media, la biblioteca, la IA y el estado por red funcionan igual que antes
-- [ ] `ComposeTest.php` y los E2E existentes pasan sin tocar una línea
-- [ ] `Compose.vue` queda por debajo de 120 líneas y delega en composables
+- [x] La validación en vivo, la media, la biblioteca, la IA y el estado por red funcionan igual que antes
+- [x] `ComposeTest.php` y los E2E existentes pasan sin tocar una línea
+- [x] `Compose.vue` queda por debajo de 120 líneas y delega en composables
 
 **Subtareas**
-- [ ] Ejecutar `tests/Feature/Posts` y `flows.spec.ts` antes de tocar nada y anotar la línea base
-- [ ] Extraer `useLiveValidation` (debounce de 500 ms sobre `[text, media, targets]`) y `useComposer`
-- [ ] Extraer los componentes sin cambiar su marcado ni sus textos
-- [ ] Repetir la suite y comparar con la línea base
+- [x] Ejecutar `tests/Feature/Posts` y `flows.spec.ts` antes de tocar nada y anotar la línea base
+- [x] Extraer `useLiveValidation` (debounce de 500 ms sobre `[text, media, targets]`) y `useComposer`
+- [x] Extraer los componentes sin cambiar su marcado ni sus textos
+- [x] Repetir la suite y comparar con la línea base
 
-**Notas**: Si un test existente falla, se revierte la extracción: no se retoca el test. Los componentes finales se crean sin lógica nueva; cada tarea siguiente rellena el suyo.
+**Notas**: Si un test existente falla, se revierte la extracción: no se retoca el test. Los componentes finales se crean sin lógica nueva; cada tarea siguiente rellena el suyo. **Evidencia**: línea base y final iguales: `php artisan test --compact tests/Feature/Posts` → 39 passed (202 assertions), sin tocar tests; `npm run build` OK; `playwright flows.spec.ts --project=desktop` → 4 passed. `Compose.vue` queda en 66 líneas.
 
 ---
 

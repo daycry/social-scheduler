@@ -73,6 +73,32 @@ class LibraryController extends Controller
         return redirect()->route('library.index')->with('success', 'Guardado en la biblioteca.');
     }
 
+    /**
+     * «Guardar en biblioteca» desde el compositor (CA-26): copia el contenido actual (texto, media y destinos) aunque el post no
+     * este guardado o tenga cambios pendientes. No crea ningun post y deja al usuario en el compositor.
+     */
+    public function storeFromComposer(Request $request, Brand $brand): RedirectResponse
+    {
+        $this->authorize('update', $brand);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'text' => ['nullable', 'string', 'max:70000'],
+            'media' => ['nullable', 'array', 'max:35'],
+            'media.*' => ['integer'],
+            'targets' => ['nullable', 'array', 'max:40'],
+            'targets.*.account_id' => ['required', 'integer'],
+            'targets.*.content_type' => ['required', 'string', 'max:40'],
+        ]);
+
+        try {
+            $this->library->saveFromComposer($request->user(), $brand, $data['name'], $data);
+        } catch (PostValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('success', 'Guardado en la biblioteca.');
+    }
+
     /** Crea un borrador con el contenido de la plantilla y abre el editor. */
     public function use(Request $request, PostTemplate $template): RedirectResponse
     {

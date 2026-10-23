@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 5 | 9 | 56% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 6 | 9 | 67% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **13** | **42** | **31%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **14** | **42** | **33%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -483,30 +483,30 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-14 — Guardar en biblioteca también con el post sin guardar
 
 - **Descripción**: Un endpoint que llama a `LibraryService::store` con el payload completo del compositor (texto, media y destinos), pide un nombre y no crea ningún post.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: Guardar en biblioteca funciona también con la publicación sin guardar y con cambios pendientes: pide un nombre, guarda texto, archivos y redes, y no crea ninguna publicación.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 2.5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-11
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/LibraryController.php`, `app/Services/LibraryService.php`, `routes/web.php`, `resources/js/Components/Composer/ActionBar.vue`, `tests/Feature/Library/LibrarySaveFromComposerTest.php`
+- **Archivos**: `app/Http/Controllers/LibraryController.php`, `app/Services/LibraryService.php`, `routes/web.php`, `resources/js/Components/Composer/ActionBar.vue`, `resources/js/Composables/useComposer.js`, `tests/Feature/Library/LibrarySaveFromComposerTest.php`
 - **Cubre (tests)**: E2E-07
 - **Verificación**:
   - `php artisan test --compact --filter=LibrarySaveFromComposer` → en verde (no se crea ningún `posts`)
   - `npm run test:e2e -- --grep "E2E-07"` → pasa
 
 **Criterios de aceptación**
-- [ ] CA-26: se crea la plantilla con texto, media y destinos, sin crear un post
-- [ ] El nombre es obligatorio y la marca ajena se rechaza
+- [x] CA-26: se crea la plantilla con texto, media y destinos, sin crear un post
+- [x] El nombre es obligatorio y la marca ajena se rechaza
 
 **Subtareas**
-- [ ] Endpoint y validación
-- [ ] Diálogo de nombre en `ActionBar`
-- [ ] Test de no creación de post
+- [x] Endpoint y validación
+- [x] Diálogo de nombre en `ActionBar`
+- [x] Test de no creación de post
 
-**Notas**: El texto por destino entra en la biblioteca en T-22.
+**Notas**: **Evidencia**: `php artisan test --compact --filter=LibrarySaveFromComposer` → 6 passed (crea la plantilla con texto, media y destinos; `Post::count() === 0`; nombre obligatorio; marca ajena 404; descarta cuentas y media de otro usuario y tipos de otra red; solo texto; sin sesión). E2E-07 (`composer.spec.ts --project=desktop` → 13 passed): con texto, dos redes y SIN guardar el post, «Guardar en biblioteca» abre el diálogo de nombre, guarda, el usuario sigue en el compositor con el aviso, la plantilla aparece en la Biblioteca y el calendario no tiene publicaciones nuevas. Ruta nueva `POST brands/{brand}/library` (`brands.library.store`, `LibraryController::storeFromComposer` → `LibraryService::saveFromComposer`); la ruta `library.store` con `post_id` (calendario) no cambia. Desviaciones: (1) el diálogo de nombre y el botón viven en `ActionBar` (menú del botón dividido) y se elimina el aviso de B2 de la Fase 1 («guarda antes»), que ya no aplica porque se envía el contenido actual; el test E2E de B2 se sustituye por E2E-07; (2) el E2E de E2E-07 no sube media (la subida real escribe en el disco de datos; la media entra por Pest). El texto por destino entra en la biblioteca en T-22.
 
 ---
 

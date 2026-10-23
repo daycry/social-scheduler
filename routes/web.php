@@ -6,6 +6,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
@@ -64,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
     Route::post('brands/{brand}/posts', [PostController::class, 'store'])->name('brands.posts.store');
     Route::post('brands/{brand}/posts/validate', [PostController::class, 'validatePost'])->name('brands.posts.validate');
+    // «Guardar en biblioteca» con el contenido actual del compositor (sin post guardado, CA-26).
+    Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('posts/{post}', [PostController::class, 'update'])->name('posts.update');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');

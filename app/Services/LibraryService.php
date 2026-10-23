@@ -36,6 +36,32 @@ class LibraryService
     }
 
     /**
+     * Guarda el contenido ACTUAL del compositor (texto, media y destinos), sin que exista un post (CA-26). Solo se conservan los
+     * destinos de cuentas de esta marca y usuario con un tipo valido para su red; la media ajena la descarta `store()`.
+     *
+     * @param  array{text?: ?string, media?: list<int|string>, targets?: list<array{account_id?: mixed, content_type?: mixed}>}  $data
+     */
+    public function saveFromComposer(User $user, Brand $brand, string $name, array $data): PostTemplate
+    {
+        if ($brand->user_id !== $user->id) {
+            throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
+        }
+
+        $accounts = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->get()->keyBy('id');
+        $targets = [];
+        foreach ((array) ($data['targets'] ?? []) as $t) {
+            $account = $accounts->get((int) ($t['account_id'] ?? 0));
+            $type = ContentType::tryFrom((string) ($t['content_type'] ?? ''));
+            if ($account && $type && $type->network() === $account->network) {
+                $targets[] = ['account_id' => $account->id, 'content_type' => $type->value];
+            }
+        }
+
+        return $this->store($user, $brand, $name, isset($data['text']) ? (string) $data['text'] : null, array_map('intval', (array) ($data['media'] ?? [])), $targets);
+    }
+
+    /**
      * @param  list<int>  $mediaIds
      * @param  list<array{account_id: int, content_type: string}>  $targets
      */

@@ -275,17 +275,17 @@ class YouTubePublisher implements Publisher, StatusPoller
             ],
             'status' => [
                 'privacyStatus' => in_array($privacy, self::PRIVACY, true) ? $privacy : 'private',
-                'selfDeclaredMadeForKids' => ($options['made_for_kids'] ?? false) === true,
+                'selfDeclaredMadeForKids' => self::flag($options['made_for_kids'] ?? null, false),
             ],
         ];
 
         // Etiqueta de contenido sintetico (`status.containsSyntheticMedia`): solo si se declara; sin ella no se envia el campo.
-        if (($options['contains_synthetic_media'] ?? false) === true) {
+        if (self::flag($options['contains_synthetic_media'] ?? null, false)) {
             $meta['status']['containsSyntheticMedia'] = true;
         }
 
         // `notifySubscribers` es un parametro de la consulta (defecto `true` en la API): solo se envia para desactivarlo.
-        $query = 'uploadType=resumable&part=snippet,status'.(($options['notify_subscribers'] ?? true) === false ? '&notifySubscribers=false' : '');
+        $query = 'uploadType=resumable&part=snippet,status'.(self::flag($options['notify_subscribers'] ?? null, true) === false ? '&notifySubscribers=false' : '');
 
         $response = $this->send($account, fn (PendingRequest $http) => $http
             ->withHeaders(['X-Upload-Content-Length' => (string) $size, 'X-Upload-Content-Type' => $media->mime])
@@ -635,10 +635,16 @@ class YouTubePublisher implements Publisher, StatusPoller
     /** Limite de `snippet.tags` de YouTube: 500 caracteres en total (las comas cuentan; un tag con espacio suma 2 por las comillas). */
     private const TAGS_LIMIT = 500;
 
+    /** Booleano tolerante (`1`, `"0"`, `true`...): la web y el MCP pueden guardar valores equivalentes sin convertir. Sin valor, el defecto. */
+    private static function flag(mixed $value, bool $default): bool
+    {
+        return $value === null ? $default : (filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default);
+    }
+
     /**
      * Tags de la subida: el marcador del destino SIEMPRE el primero y los del usuario recortados al hueco que queda, de modo
      * que ni muchos tags ni tags largos o con unicode lo expulsen (`findPublished` reconoce el video por el). Limpia `<` `>` y
-     * comas, descarta vacios, duplicados y el propio marcador.
+     * comas y los caracteres de control (saltos de linea), descarta vacios, duplicados y el propio marcador.
      *
      * @param  list<mixed>  $userTags
      * @return list<string>
@@ -655,7 +661,8 @@ class YouTubePublisher implements Publisher, StatusPoller
                 continue;
             }
 
-            $tag = trim(str_replace(['<', '>', ','], '', $raw));
+            // Sin saltos de linea ni caracteres de control (la API los rechaza o los trunca): se descartan junto a `<`, `>` y la coma.
+            $tag = trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', str_replace(['<', '>', ','], '', $raw)));
             $key = mb_strtolower($tag);
 
             if ($tag === '' || isset($seen[$key])) {

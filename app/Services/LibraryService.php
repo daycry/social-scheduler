@@ -96,7 +96,8 @@ class LibraryService
 
     /**
      * El texto propio de un destino viaja en la plantilla solo si existe (`null` = vinculado a la plantilla, como las plantillas
-     * guardadas antes de C-03, que no traen la clave); la cadena vacia es un texto propio.
+     * guardadas antes de C-03, que no traen la clave). Una cadena es el texto propio tal cual se guardo, incluida la vacia: al crear
+     * el borrador, `PostService::plan` trata una cadena vacia o solo con espacios como `null` (vinculado), igual que la web.
      *
      * @return array{text?: string}
      */

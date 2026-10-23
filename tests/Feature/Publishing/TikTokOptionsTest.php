@@ -80,7 +80,7 @@ test('TikTokOptions: con la cuenta en modo borrador esas opciones no se envian a
 test('TikTokOptions: en fotos no hay Duet ni Stitch y is_aigc va en el nivel superior del cuerpo', function () {
     $this->account->forceFill(['meta' => ['direct_post' => true]])->save();
 
-    $this->tt->publish($this->account->fresh(), ttoPhotoRequest(['disable_duet' => true, 'disable_stitch' => true, 'brand_content_toggle' => true, 'is_aigc' => true]));
+    $this->tt->publish($this->account->fresh(), ttoPhotoRequest(['privacy_level' => 'PUBLIC_TO_EVERYONE', 'disable_duet' => true, 'disable_stitch' => true, 'brand_content_toggle' => true, 'is_aigc' => true]));
 
     $body = $this->http->callsTo('POST', '#/content/init/#')[0]['json'];
     expect($body['is_aigc'])->toBeTrue()

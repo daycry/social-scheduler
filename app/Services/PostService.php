@@ -376,6 +376,31 @@ class PostService
     /** Opciones de TikTok (C-04) que actuan solo en publicacion directa (la cuenta con `meta.direct_post`). */
     private const TIKTOK_DIRECT_OPTIONS = ['disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc'];
 
+    /** Opciones booleanas: la regla `boolean` de la web y el MCP admite `1`, `0`, `"1"` y `"0"` sin convertirlas. */
+    private const BOOLEAN_OPTIONS = [
+        'share_to_feed', 'shorts_hashtag', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media',
+        'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc',
+    ];
+
+    /**
+     * Convierte a `true`/`false` reales las opciones booleanas ANTES de validar y de guardar: asi `optionErrors` no confunde `0` o
+     * `"0"` con «pedido» y los publishers (que comparan con `===`) nunca ignoran un valor equivalente (`made_for_kids: 1` es true).
+     * Un valor que no es un booleano reconocible se deja tal cual (la validacion de forma ya lo rechaza antes).
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    public static function normalizeOptions(array $options): array
+    {
+        foreach (self::BOOLEAN_OPTIONS as $key) {
+            if (array_key_exists($key, $options) && $options[$key] !== null) {
+                $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];
+            }
+        }
+
+        return $options;
+    }
+
     /**
      * Reglas por cuenta de las opciones de C-04, las mismas para la web y el MCP: una opcion que la red o la cuenta no admite
      * es un error del destino (no se descarta en silencio). Un valor «vacio» (null, false o lista vacia) no cuenta como pedido.
@@ -521,7 +546,7 @@ class PostService
                 $errors[$key][] = $message;
             }
 
-            $options = (array) ($raw['options'] ?? []);
+            $options = self::normalizeOptions((array) ($raw['options'] ?? []));
             foreach ($this->optionErrors($type, $account, $options) as $message) {
                 $errors[$key][] = $message;
             }

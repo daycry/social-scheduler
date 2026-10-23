@@ -477,10 +477,17 @@ class TikTokPublisher implements Publisher, StatusPoller
             $asked = in_array('SELF_ONLY', $options, true) ? 'SELF_ONLY' : (string) ($options[0] ?? 'SELF_ONLY');
         }
 
+        // El contenido de marca (colaboracion de pago) no puede ser privado (directrices de TikTok, ver `testing/verificacion-campos-c04.md`):
+        // si la visibilidad resuelta es `SELF_ONLY` (pedida, o el respaldo porque la cuenta no ofrece la pedida) no se envia la combinacion
+        // prohibida: se falla con un mensaje claro y la opcion de marca se conserva para que el usuario elija otra visibilidad.
+        if (filter_var($request->options['brand_content_toggle'] ?? false, FILTER_VALIDATE_BOOLEAN) && $asked === 'SELF_ONLY') {
+            throw new PermanentPublishException('El contenido de marca (colaboracion de pago) no puede ser privado y esta cuenta de TikTok no ofrece otra visibilidad: elige otra visibilidad que la cuenta admita o desmarca la colaboracion de pago.', 'marca_privada');
+        }
+
         $info = [
             'title' => mb_substr(trim((string) $request->text), 0, 2200), // video: 2.200; la foto lo recorta a 90
             'privacy_level' => $asked,
-            'disable_comment' => (bool) ($request->options['disable_comment'] ?? false),
+            'disable_comment' => filter_var($request->options['disable_comment'] ?? false, FILTER_VALIDATE_BOOLEAN),
         ];
 
         // Opciones de C-04 (solo publicacion directa: `postInfo` no se usa con la cuenta en modo borrador). Solo se envian las

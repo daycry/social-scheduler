@@ -442,10 +442,39 @@ export function seedComposerBrand(email: string, label: string): ComposerBrand {
     return { id: Number(out.match(/BRAND:(\d+)/)![1]), name };
 }
 
-/** Borra las marcas `e2e-composer-*` del usuario E2E (con ellas se van sus cuentas y publicaciones). */
+/**
+ * Borra las marcas `e2e-composer-*` del usuario E2E (con ellas se van sus cuentas y publicaciones). Antes retira de la cola
+ * `jobs` los `PublishPostTarget` de ESOS destinos y solo esos (coincidencia exacta de `targetId`): «Publicar ahora» encola de
+ * verdad y nada de lo E2E debe llegar a publicarse si hubiera un worker en marcha.
+ */
 export function cleanComposerBrands(email: string) {
     artisan(
-        `$u = App\\Models\\User::where('email', ${q(email)})->first(); ` +
-            `if ($u) { App\\Models\\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get()->each->delete(); }`,
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); ` +
+            String.raw`if ($u) { ` +
+            String.raw`$brands = App\Models\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get(); ` +
+            String.raw`$ids = App\Models\PostTarget::withoutUserScope()->whereIn('post_id', App\Models\Post::withoutUserScope()->withTrashed()->whereIn('brand_id', $brands->pluck('id'))->select('id'))->pluck('id'); ` +
+            String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PublishPostTarget%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
+            String.raw`$brands->each->delete(); }`,
     );
+}
+
+export type ComposerPosts = { draft: number; scheduled: number; published: number; scheduledDate: string };
+
+/** Tres publicaciones de Facebook en la marca E2E: un borrador, una programada (a 2 dias) y una ya publicada. */
+export function seedComposerPosts(email: string, brandId: number): ComposerPosts {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$fb = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'facebook')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$mk = fn ($text, $schedule, $at) => $svc->create($u, $b, ['text' => $text, 'schedule' => $schedule, 'scheduled_at' => $at, 'media' => [], 'targets' => [['account_id' => $fb->id, 'content_type' => 'facebook_text']]]); ` +
+            String.raw`$draft = $mk('e2e borrador de calendario', false, null); ` +
+            String.raw`$when = now()->addDays(2)->setTimezone('Europe/Madrid'); ` +
+            String.raw`$sched = $mk('e2e programada de calendario', true, $when->copy()->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$pub = $mk('e2e publicada de calendario', true, $when->copy()->setTime(11, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$pub->targets->each(fn ($t) => $t->forceFill(['status' => 'publicada', 'published_at' => now()])->save()); $pub->syncStatus(); ` +
+            String.raw`echo 'IDS:' . $draft->id . ',' . $sched->id . ',' . $pub->id . ',' . $when->format('Y-m-d');`,
+    );
+    const [draft, scheduled, published, scheduledDate] = out.match(/IDS:([\d,-]+)/)![1].split(',');
+    return { draft: Number(draft), scheduled: Number(scheduled), published: Number(published), scheduledDate };
 }

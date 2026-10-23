@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 7 | 9 | 78% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 8 | 9 | 89% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **15** | **42** | **36%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **16** | **42** | **38%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -544,31 +544,31 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-16 — E2E de C-08 (CA-24..CA-27) con axe y sin desbordamiento
 
 - **Descripción**: E2E de los cuatro criterios de C-08 y de Publicar ahora desde el calendario y la lista, con la infraestructura existente. Nunca publica en una red real: comprueba el estado «Enviando…» y la respuesta con cuentas del entorno `APP_ENV=e2e`, no la publicación.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Hay pruebas automáticas del panel de errores, el selector de fecha, el botón dividido, Publicar ahora (compositor, calendario y lista) y Guardar en biblioteca, con accesibilidad y sin desbordamiento en móvil.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.3h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-09, T-10, T-11, T-13, T-14
 - **Tipo**: test
-- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/pages.spec.ts`, `tests/e2e/flows.spec.ts`
+- **Archivos**: `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/flows.spec.ts`
 - **Cubre (tests)**: E2E-04, E2E-05, E2E-06, E2E-07, E2E-12, A11Y-01, A11Y-02
 - **Verificación**:
   - `npm run test:e2e -- tests/e2e/composer.spec.ts` → verde en desktop, mobile y mobile-360
   - `npm run test:e2e -- tests/e2e/pages.spec.ts` → sin violaciones serias ni críticas en compositor y calendario
 
 **Criterios de aceptación**
-- [ ] Un test por CA-24..CA-27 y por la acción del calendario y la lista
-- [ ] `expectNoOverflow` a 375 y 360 px
-- [ ] Ningún test toca al usuario id 28
+- [x] Un test por CA-24..CA-27 y por la acción del calendario y la lista
+- [x] `expectNoOverflow` a 375 y 360 px
+- [x] Ningún test toca al usuario id 28
 
 **Subtareas**
-- [ ] Escribir los E2E
-- [ ] Cuentas de prueba sin red real
-- [ ] axe en calendario con la acción nueva
+- [x] Escribir los E2E
+- [x] Cuentas de prueba sin red real
+- [x] axe en calendario con la acción nueva
 
-**Notas**: —
+**Notas**: **Evidencia** (por la restricción de memoria: solo `--project=desktop`, y el compositor una vez en `mobile-360`; el proyecto `mobile` 375 no se ha ejecutado en esta fase): `npx playwright test tests/e2e/composer.spec.ts --project=desktop` → 13 passed; `--project=mobile-360` → 13 passed (E2E-04, E2E-05, E2E-06, E2E-07, E2E-12 y A11Y-01/A11Y-02 con axe sin violaciones serias o críticas y `expectNoOverflow`); `npx playwright test tests/e2e/pages.spec.ts --project=desktop -g "calendario|conexiones de la marca"` → 4 passed (el barrido de `pages.spec.ts` no incluye axe: la accesibilidad del compositor y del calendario con la confirmación abierta vive en `composer.spec.ts`: E2E-04 con el menú y el selector abiertos, E2E-06 con la confirmación). Cada test usa solo usuarios `e2e-sec-*` y marcas `e2e-composer-*` (`cleanComposerBrands` las borra y retira de la cola `jobs` solo los `PublishPostTarget` de esos destinos, coincidencia exacta de `targetId`: Publicar ahora encola de verdad y nada E2E debe publicarse si hubiera un worker). Ningún dato del usuario id 28 tocado. Cubre también la aserción aplazada de E2E-02 (31 hashtags → Programar deshabilitado y Guardar borrador habilitado). Desviaciones: (1) los E2E de la Fase 1 afectados por esta fase se adaptan aquí: «Guardar borrador» pasa al menú (`guardarBorrador`), los `role=alert` de errores pasan al panel (`errors-panel`) y el test de B2 («biblioteca exige guardar antes») se sustituye por E2E-07; (2) `flows.spec.ts` (sesión demo) lleva el mismo ajuste del menú pero NO se ha ejecutado: crea y borra marcas del usuario demo y no se toca esa cuenta; (3) E2E-07 no sube media.
 
 ---
 

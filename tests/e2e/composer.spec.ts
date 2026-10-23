@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -38,6 +38,18 @@ const open = async (page: Page) => {
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
 };
+
+/** Botón dividido de la barra de acciones: el principal programa; el menú trae borrador, biblioteca y Publicar ahora. */
+const menuToggle = (page: Page) => page.getByRole('button', { name: 'Más acciones de publicación' });
+const menuItem = (page: Page, name: string) => page.getByRole('menuitem', { name });
+async function abrirMenu(page: Page) {
+    if ((await menuToggle(page).getAttribute('aria-expanded')) !== 'true') await menuToggle(page).click();
+    await expect(page.getByRole('menu')).toBeVisible();
+}
+async function guardarBorrador(page: Page) {
+    await abrirMenu(page);
+    await menuItem(page, 'Guardar borrador').click();
+}
 
 test('E2E-01 · compositor a pantalla completa con pastillas de red', async ({ page }) => {
     const w = watch(page);
@@ -106,7 +118,13 @@ test('E2E-02 · contadores por red y tope de hashtags', async ({ page }) => {
     // 31 hashtags: el contador cambia de estado con texto y la validación en vivo lo explica.
     await page.getByLabel('Texto', { exact: true }).fill(Array.from({ length: 31 }, (_, i) => `#t${i + 1}`).join(' '));
     await expect(ig.getByTestId('counter-hashtags')).toHaveText('31 / 30 # · supera el máximo');
-    await expect(page.getByRole('alert').filter({ hasText: /31 hashtags.*admite como maximo 30/ })).toBeVisible();
+    await expect(page.getByTestId('errors-panel').getByText(/31 hashtags.*admite como maximo 30/)).toBeVisible();
+    // Aserción aplazada de la Fase 1: con 31 hashtags Programar queda deshabilitado y Guardar borrador sigue habilitado.
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
+    await abrirMenu(page);
+    await expect(menuItem(page, 'Guardar borrador')).toBeEnabled();
+    await expect(menuItem(page, 'Publicar ahora')).toBeDisabled();
+    await page.keyboard.press('Escape');
     await page.screenshot({ path: 'test-results/composer-error-hashtags.png' });
     await expectNoOverflow(page);
 
@@ -206,7 +224,7 @@ test('E2E-03 · confirmación al salir con cambios sin guardar', async ({ page }
     // Tras guardar el borrador ya no hay cambios pendientes: Cerrar sale sin preguntar.
     await open(page);
     await page.getByLabel('Texto', { exact: true }).fill('e2e borrador guardado');
-    await page.getByRole('button', { name: 'Guardar borrador' }).click();
+    await guardarBorrador(page);
     await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
     await page.getByRole('link', { name: 'Cerrar' }).click();
     await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
@@ -231,7 +249,7 @@ test('E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar e
     // Superar el máximo de caracteres: el contador cambia con texto y la validación en vivo lo explica.
     await texto.fill('a'.repeat(2201));
     await expect(ig.getByTestId('counter-chars')).toHaveText('2.201 / 2.200 · supera el máximo');
-    await expect(page.getByRole('alert').filter({ hasText: /2201 caracteres.*admite como maximo 2200/ })).toBeVisible();
+    await expect(page.getByTestId('errors-panel').getByText(/2201 caracteres.*admite como maximo 2200/)).toBeVisible();
     await expect(ig.getByTestId('counter-chars')).toHaveAttribute('aria-live', 'polite');
     await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
@@ -287,32 +305,215 @@ test('E2E-03 · el botón Atrás del navegador pide confirmación con cambios si
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-03 · «Guardar en biblioteca» exige guardar antes los cambios pendientes', async ({ page }) => {
+const pad = (n: number) => String(n).padStart(2, '0');
+
+test('E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca', async ({ page }) => {
     const w = watch(page);
     await open(page);
-    const texto = page.getByLabel('Texto', { exact: true });
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
     await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
-    await texto.fill('e2e texto guardado');
-    await page.getByRole('button', { name: 'Guardar borrador' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
+
+    // Texto por encima del máximo de Facebook (63.206): hay errores en los dos destinos (Instagram exige además media).
+    await page.getByLabel('Texto', { exact: true }).fill('x'.repeat(63207));
+    const panel = page.getByTestId('errors-panel');
+    const items = panel.getByTestId('error-item');
+    await expect(panel.getByText(/Facebook · e2e Facebook/).first()).toBeVisible();
+    await expect(panel.getByText(/Instagram · e2e Instagram/).first()).toBeVisible();
+    expect(await items.count()).toBeGreaterThanOrEqual(2);
+    await expect(panel).toHaveAttribute('aria-live', 'polite');
+    await page.screenshot({ path: 'test-results/composer-panel-errores.png' });
+    await expectNoOverflow(page);
+
+    // El enlace de cada error lleva al control afectado (la pastilla de la cuenta).
+    await items.filter({ hasText: 'Instagram' }).first().getByRole('button', { name: /Ir al control/ }).click();
+    await expect(page.getByRole('button', { name: /^Instagram: e2e Instagram/ })).toBeFocused();
+
+    // Con errores: Programar y Publicar ahora deshabilitados; Guardar borrador y Guardar en biblioteca, habilitados.
+    await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
+    await menuToggle(page).focus();
+    await expect(menuToggle(page)).toHaveAttribute('aria-haspopup', 'menu');
+    await page.keyboard.press('ArrowDown');
+    await expect(menuItem(page, 'Guardar borrador')).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(menuItem(page, 'Guardar en biblioteca')).toBeFocused();
+    await page.keyboard.press('ArrowDown'); // Publicar ahora está deshabilitado: las flechas dan la vuelta
+    await expect(menuItem(page, 'Guardar borrador')).toBeFocused();
+    await expect(menuItem(page, 'Publicar ahora')).toBeDisabled();
+    await expect(menuItem(page, 'Guardar en biblioteca')).toBeEnabled();
+    await axeNow(page, 'menú del botón dividido abierto');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toBeHidden();
+    await expect(menuToggle(page)).toBeFocused();
+
+    // Se corrige: solo Facebook y un texto válido. El panel desaparece y Programar se habilita.
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e selector de fecha');
+    await expect(items).toHaveCount(0);
+
+    // Selector de fecha: zona de la marca, sin días pasados y valor `Y-m-d\TH:i`.
+    const picker = page.locator('#scheduled_at');
+    await expect(page.getByTestId('datetime-zone')).toContainText('Europe/Madrid');
+    await picker.click();
+    const dialogo = page.getByRole('dialog', { name: 'Elegir fecha y hora' });
+    await expect(dialogo).toBeVisible();
+    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+    const [y, m, d] = hoy.split('-').map(Number);
+    await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeEnabled();
+    await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeFocused();
+    if (d > 1) await expect(dialogo.locator(`[data-date="${y}-${pad(m)}-${pad(d - 1)}"]`)).toBeDisabled();
+    await page.keyboard.press('ArrowLeft'); // con el teclado tampoco se llega a un día pasado
+    await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeFocused();
+    await page.screenshot({ path: 'test-results/composer-selector-fecha.png' });
+    await axeNow(page, 'selector de fecha abierto');
+    await expectNoOverflow(page);
+
+    const sigMes = m === 12 ? `${y + 1}-01` : `${y}-${pad(m + 1)}`;
+    const dia = `${sigMes}-15`;
+    await dialogo.getByRole('button', { name: 'Mes siguiente' }).click();
+    await dialogo.locator(`[data-date="${dia}"]`).click();
+    await expect(picker).toHaveAttribute('data-value', `${dia}T09:00`);
+    await dialogo.getByLabel('Hora').selectOption('14');
+    await dialogo.getByLabel('Minutos').selectOption('30');
+    await expect(picker).toHaveAttribute('data-value', `${dia}T14:30`);
+    await expect(picker).toContainText('14:30');
+    await dialogo.getByLabel('Minutos').focus();
+    await page.keyboard.press('Escape'); // Escape cierra y devuelve el foco al botón
+    await expect(dialogo).toHaveCount(0);
+    await expect(picker).toBeFocused();
+
+    // El formato que se envía no cambia: `Y-m-d\TH:i` en la hora de la marca.
+    const peticion = page.waitForRequest((r) => r.method() === 'POST' && /\/brands\/\d+\/posts$/.test(new URL(r.url()).pathname));
+    await page.getByRole('button', { name: 'Programar' }).click();
+    const body = (await peticion).postDataJSON();
+    expect(body.scheduled_at).toBe(`${dia}T14:30`);
+    expect(body.schedule).toBe(true);
+    await expect(page).toHaveURL(/\/calendar/);
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e publicar ahora');
+
+    // Se cuentan las peticiones de guardado (la validación en vivo es otra ruta) y se retrasa la respuesta para ver el estado.
+    let guardados = 0;
+    await page.route(/\/brands\/\d+\/posts$/, async (route) => {
+        if (route.request().method() === 'POST') {
+            guardados++;
+            await new Promise((r) => setTimeout(r, 1500));
+        }
+        await route.continue();
+    });
+    await abrirMenu(page);
+    await expect(menuItem(page, 'Publicar ahora')).toBeEnabled();
+    await menuItem(page, 'Publicar ahora').click();
+
+    await expect(page.getByTestId('sending-now')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Enviando…' })).toBeDisabled();
+    await expect(menuToggle(page)).toBeDisabled();
+    await page.screenshot({ path: 'test-results/composer-enviando.png' });
+    // Un segundo envío inmediato (Enter en el formulario, doble clic...) no genera otra petición.
+    await page.evaluate(() => document.querySelector('form')?.requestSubmit());
+    await expect(page).toHaveURL(/\/calendar/);
+    expect(guardados).toBe(1);
+
+    // En el calendario el destino queda programada o publicando, una sola vez (nunca duplicado).
+    await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
+    const filas = page.getByRole('row').filter({ hasText: 'e2e publicar ahora' });
+    await expect(filas).toHaveCount(1);
+    await expect(filas.first()).toContainText(/Programada|Publicando|Procesando|Publicada|Con error/);
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar', async ({ page }, info) => {
+    const w = watch(page);
+    const posts = seedComposerPosts(e2eUser(info.project.name).email, brand.id);
+    const boton = (id: number) => page.getByRole('button', { name: `Publicar ahora la publicación ${id}` });
+    const dialogo = page.getByRole('alertdialog', { name: '¿Publicar ahora?' });
+
+    // LISTA: borrador y programada ofrecen la acción; la publicada no.
+    await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
     await settle(page);
+    await expect(boton(posts.draft)).toBeVisible();
+    await expect(boton(posts.scheduled)).toBeVisible();
+    await expect(boton(posts.published)).toHaveCount(0);
+    const fila = page.getByRole('row').filter({ hasText: 'e2e borrador de calendario' });
 
-    const biblioteca = page.getByRole('button', { name: 'Guardar en biblioteca' });
-    await expect(biblioteca).toBeEnabled();
+    // Cancelar (botón y Escape) no cambia nada y devuelve el foco.
+    await boton(posts.draft).click();
+    await expect(dialogo).toBeVisible();
+    await expect(dialogo.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+    await page.screenshot({ path: 'test-results/calendario-confirmar-publicar-ahora.png' });
+    await expectNoOverflow(page);
+    await axeNow(page, 'calendario con la confirmación de Publicar ahora abierta');
+    await page.keyboard.press('Escape');
+    await expect(dialogo).toHaveCount(0);
+    await expect(boton(posts.draft)).toBeFocused();
+    await boton(posts.draft).click();
+    await dialogo.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(dialogo).toHaveCount(0);
+    await expect(fila).toContainText('Borrador');
+    await expect(fila.getByText('Enviando…')).toHaveCount(0);
 
-    // Con cambios pendientes no se guarda el texto antiguo: el botón se desactiva y se explica.
-    await texto.fill('e2e texto nuevo sin guardar');
-    await expect(biblioteca).toBeDisabled();
-    await expect(page.getByTestId('library-hint')).toBeVisible();
-    await expect(page).toHaveURL(/posts\/\d+\/edit$/);
+    // Confirmar envía la acción y la fila muestra «Enviando…».
+    await boton(posts.draft).click();
+    await dialogo.getByRole('button', { name: 'Publicar ahora' }).click();
+    await expect(fila.getByText('Enviando…')).toBeVisible();
+    await expect(boton(posts.draft)).toHaveCount(0);
+    await expectNoOverflow(page);
 
-    // Tras guardar, la biblioteca recibe el texto actual.
-    await page.getByRole('button', { name: 'Guardar borrador' }).click();
-    await expect(page.getByTestId('library-hint')).toHaveCount(0);
-    await expect(biblioteca).toBeEnabled();
-    await biblioteca.click();
-    await expect(page).toHaveURL(/\/library/);
-    await expect(page.getByText('e2e texto nuevo sin guardar').first()).toBeVisible();
+    // SEMANA y MES: la programada ofrece la acción, la publicada no; confirmar muestra «Enviando…» en la tarjeta.
+    await page.goto(`/calendar?view=month&brand_id=${brand.id}&date=${posts.scheduledDate}`);
+    await settle(page);
+    await expect(boton(posts.scheduled)).toBeVisible();
+    await expect(boton(posts.published)).toHaveCount(0);
+    await expectNoOverflow(page);
+
+    await page.goto(`/calendar?view=week&brand_id=${brand.id}&date=${posts.scheduledDate}`);
+    await settle(page);
+    await expect(boton(posts.published)).toHaveCount(0);
+    await boton(posts.scheduled).click();
+    await expect(dialogo).toBeVisible();
+    await expectNoOverflow(page);
+    await dialogo.getByRole('button', { name: 'Publicar ahora' }).click();
+    await expect(page.locator('article').filter({ hasText: 'e2e programada de calendario' }).getByText('Enviando…')).toBeVisible();
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación', async ({ page }) => {
+    const w = watch(page);
+    page.on('dialog', (d) => d.accept().catch(() => {})); // beforeunload al salir con el formulario sin guardar
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
+    await page.getByLabel('Texto', { exact: true }).fill('e2e texto de plantilla sin guardar');
+
+    await abrirMenu(page);
+    await menuItem(page, 'Guardar en biblioteca').click();
+    const dialogo = page.getByRole('dialog', { name: 'Guardar en la biblioteca' });
+    await expect(dialogo).toBeVisible();
+    await expect(dialogo.getByLabel('Nombre de la plantilla')).toBeFocused();
+    await page.screenshot({ path: 'test-results/composer-guardar-biblioteca.png' });
+    await expectNoOverflow(page);
+    await dialogo.getByLabel('Nombre de la plantilla').fill('e2e plantilla del compositor');
+    await dialogo.getByRole('button', { name: 'Guardar', exact: true }).click();
+
+    // Sigue en el compositor (sin guardar), con el aviso, y no hay ningún post.
+    await expect(dialogo).toHaveCount(0);
+    await expect(page.getByText('Guardado en la biblioteca.')).toBeVisible();
+    await expect(page).toHaveURL(/posts\/create$/);
+    await expect(page.getByLabel('Texto', { exact: true })).toHaveValue('e2e texto de plantilla sin guardar');
+
+    await page.goto(`/library?brand_id=${brand.id}`);
+    await settle(page);
+    await expect(page.getByText('e2e texto de plantilla sin guardar').first()).toBeVisible();
+    await expect(page.getByText('e2e plantilla del compositor').first()).toBeVisible();
+    await page.screenshot({ path: 'test-results/biblioteca-plantilla.png' });
+    await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
+    await settle(page);
+    await expect(page.getByText('No hay publicaciones en este periodo')).toBeVisible();
     expect(w.errors).toEqual([]);
 });
 
@@ -332,7 +533,7 @@ test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear 
 
     // Editar: se guarda un borrador (solo Facebook: Instagram exige media) y se revisa la página de edición.
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
-    await page.getByRole('button', { name: 'Guardar borrador' }).click();
+    await guardarBorrador(page);
     await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
     await settle(page);
     await expectNoOverflow(page);

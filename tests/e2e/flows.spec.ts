@@ -62,7 +62,8 @@ test.describe('con sesión demo', () => {
             // Crear borrador (sin cuentas conectadas basta con texto)
             await page.goto(`/brands/${brandId}/posts/create`);
             await page.getByLabel('Texto').fill(text);
-            await page.getByRole('button', { name: 'Guardar borrador' }).click();
+            await page.getByRole('button', { name: 'Más acciones de publicación' }).click();
+            await page.getByRole('menuitem', { name: 'Guardar borrador' }).click();
             await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
 
             // Verlo en el calendario (lista)

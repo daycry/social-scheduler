@@ -2,6 +2,28 @@
 
 Fuente de verdad operativa: `deploy/hestia/README.md` y `deploy/systemd/README.md`. Esta página resume y enlaza. Todo lo marcado **[VPS]** requiere acceso root y sigue pendiente (M-04).
 
+## Este despliegue
+
+| Dato | Valor |
+|---|---|
+| Dominio | `social-scheduler.daycry.ovh` |
+| `APP_URL` | `https://social-scheduler.daycry.ovh` |
+| `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGINS` | `social-scheduler.daycry.ovh` / `https://social-scheduler.daycry.ovh` (las passkeys quedan atadas a este dominio: cambiarlo las invalida) |
+| Servidor MCP (Claude, Codex, OpenCode) | `https://social-scheduler.daycry.ovh/mcp` |
+| Comandos de Hestia | `<DOMINIO>` = `social-scheduler.daycry.ovh` |
+
+URIs de redirección que hay que registrar en cada proveedor:
+
+| App | URI |
+|---|---|
+| Meta (conectores, Facebook Login for Business) | `https://social-scheduler.daycry.ovh/connections/meta/callback` |
+| Google (conectores, YouTube) | `https://social-scheduler.daycry.ovh/connections/google/callback` |
+| TikTok (Login Kit) | `https://social-scheduler.daycry.ovh/connections/tiktok/callback` |
+| Google (login) | `https://social-scheduler.daycry.ovh/auth/google/callback` |
+| Meta (login, app Consumidor) | `https://social-scheduler.daycry.ovh/auth/facebook/callback` |
+
+Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las de ngrok mientras sigas probando en local.
+
 ## Requisitos del servidor
 
 - HestiaCP con Nginx + PHP-FPM 8.4/8.5 y MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED` para varios workers).

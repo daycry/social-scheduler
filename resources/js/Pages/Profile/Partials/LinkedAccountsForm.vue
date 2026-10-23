@@ -2,6 +2,7 @@
 import DangerButton from '@/Components/DangerButton.vue';
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import SocialProviderIcon from '@/Components/SocialProviderIcon.vue';
 import InputError from '@/Components/InputError.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -56,14 +57,19 @@ const confirmUnlink = () => {
 
         <ul class="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200" aria-label="Tus cuentas vinculadas">
             <li v-for="account in accounts" :key="account.provider" class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between" :data-testid="`linked-${account.provider}`">
-                <div class="min-w-0">
-                    <p class="font-medium text-slate-900">{{ nameOf(account.provider) }}</p>
-                    <p v-if="account.linked" class="break-words text-sm text-slate-600">
-                        Vinculada<template v-if="account.linked_at"> el {{ formatDate(account.linked_at) }}</template>
-                        <template v-if="account.email"> · {{ account.email }}</template>
-                    </p>
-                    <p v-else-if="account.enabled" class="text-sm text-slate-600">Sin vincular</p>
-                    <p v-else class="text-sm text-slate-500">No disponible: este acceso no está configurado.</p>
+                <div class="flex min-w-0 items-start gap-3">
+                    <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white">
+                        <SocialProviderIcon :provider="account.provider" />
+                    </span>
+                    <div class="min-w-0">
+                        <p class="font-medium text-slate-900">{{ nameOf(account.provider) }}</p>
+                        <p v-if="account.linked" class="break-words text-sm text-slate-600">
+                            Vinculada<template v-if="account.linked_at"> el {{ formatDate(account.linked_at) }}</template>
+                            <template v-if="account.email"> · {{ account.email }}</template>
+                        </p>
+                        <p v-else-if="account.enabled" class="text-sm text-slate-600">Sin vincular</p>
+                        <p v-else class="text-sm text-slate-500">No disponible: este acceso no está configurado.</p>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <DangerButton v-if="account.linked" type="button" :aria-label="`Desvincular ${nameOf(account.provider)}`" @click="unlinking = account">Desvincular</DangerButton>

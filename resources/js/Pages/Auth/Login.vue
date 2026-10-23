@@ -5,6 +5,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import SocialProviderIcon from '@/Components/SocialProviderIcon.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { passkeyErrorMessage, useSecureContext } from '@/Composables/useSecureContext';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -27,6 +28,15 @@ defineProps({
 });
 
 const socialNames = { google: 'Google', facebook: 'Facebook' };
+
+// Estilos de marca: Google en blanco con borde gris (su guía de botones) y Facebook en el azul de Meta #0866FF, que con texto
+// blanco da 4,8:1 (el antiguo #1877F2 se queda en 4,2:1 y no llega a AA).
+const socialButtonBase =
+    'inline-flex w-full items-center justify-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+const socialButtonClass = {
+    google: `${socialButtonBase} border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-400`,
+    facebook: `${socialButtonBase} border border-transparent bg-[#0866FF] text-white shadow-sm hover:bg-[#0657DB] focus-visible:ring-[#0866FF]`,
+};
 
 // Los rechazos del login social (cancelar, identidad sin cuenta, sesión caducada) llegan por redirección con el error
 // `email` en la sesión, no por el formulario: `form.errors` solo recoge los de su propio envío.
@@ -176,10 +186,11 @@ const submit = () => {
                 v-for="provider in socialProviders"
                 :key="provider"
                 :href="route('social.redirect', provider)"
-                class="btn-secondary w-full"
+                :class="socialButtonClass[provider] ?? 'btn-secondary w-full'"
                 :data-testid="`social-${provider}`"
             >
-                Continuar con {{ socialNames[provider] ?? provider }}
+                <SocialProviderIcon :provider="provider" :variant="provider === 'facebook' ? 'light' : 'brand'" />
+                <span>Continuar con {{ socialNames[provider] ?? provider }}</span>
             </a>
         </div>
 

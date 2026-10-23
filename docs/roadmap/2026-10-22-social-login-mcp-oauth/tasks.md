@@ -753,7 +753,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Auth/Login.vue`, `app/Http/Controllers/Auth/AuthenticatedSessionController.php`, `tests/Feature/Auth/LoginPageProvidersTest.php`
+- **Archivos**: `resources/js/Pages/Auth/Login.vue`, `app/Http/Controllers/Auth/AuthenticatedSessionController.php`, `tests/Feature/Auth/LoginPageProvidersTest.php`, `resources/js/Components/SocialProviderIcon.vue` (2026-10-23: logotipos oficiales y estilos de marca de los botones, a petición del usuario)
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, A11Y-01, M-01, M-02
 - **Verificación**:
   - `npm run build` → build sin errores

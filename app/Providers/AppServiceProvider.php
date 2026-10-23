@@ -104,6 +104,11 @@ class AppServiceProvider extends ServiceProvider
         User::deleting(fn (User $u) => Report::purgeFor('user_id', $u->id));
 
         // MCP (T-28/T-30): limite por API key (tras autenticar) y por IP (antes, contra adivinacion de keys).
+        // «Publicar ahora»: 30/min por usuario compartido entre posts.publish-now y las rutas del compositor (store/update) cuando
+        // llevan `publish_now`; guardar un borrador o programar normal no gasta ese cupo.
+        RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
+            ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
+            : Limit::none());
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
         // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).

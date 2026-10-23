@@ -174,3 +174,49 @@ test('PublishNowDoubleDispatch: tras un timeout ambiguo, publicar ahora otra vez
         ->and(PostTarget::withoutUserScope()->find($id)->status)->toBe(PostStatus::Published);
     Notification::assertNotSentTo($this->user, PublishFailed::class);
 });
+
+test('PublishNowDoubleDispatch: tras un intento ambiguo, publishNow no duplica (conserva la ventana de busqueda anterior)', function () {
+    Queue::fake();
+    $post = ddDraft();
+    $this->service->schedule($this->user, $post, '2026-11-01T13:00:00Z');
+    $id = $post->targets->first()->id;
+
+    Carbon::setTestNow('2026-11-01 13:00:30');
+    $this->publisher->script = ['sent-then-fail']; // la red publica y la respuesta se pierde
+    runJob($id);
+    expect($this->publisher->publishCalls)->toBe(1)
+        ->and($post->targets->first()->fresh()->attempts)->toBe(1);
+
+    // Horas despues, el usuario pulsa «Publicar ahora»: scheduled_at pasa a now(), pero lo publicado a las 13:00 sigue a la vista.
+    Carbon::setTestNow('2026-11-01 15:00:00');
+    $this->service->publishNow($this->user, $post->fresh());
+    runJob($id);
+
+    expect($this->publisher->publishCalls)->toBe(1)
+        ->and(count($this->publisher->externals))->toBe(1)
+        ->and($post->targets->first()->fresh()->status)->toBe(PostStatus::Published);
+});
+
+test('PublishNowDoubleDispatch: cambiar solo la fecha de un post con intento ambiguo tampoco duplica', function () {
+    Queue::fake();
+    $post = ddDraft();
+    $this->service->schedule($this->user, $post, '2026-11-01T13:00:00Z');
+    $id = $post->targets->first()->id;
+
+    Carbon::setTestNow('2026-11-01 13:00:30');
+    $this->publisher->script = ['sent-then-fail'];
+    runJob($id);
+
+    Carbon::setTestNow('2026-11-01 15:00:00');
+    $this->service->reschedule($this->user, $post->fresh(), '2026-11-01T16:00:00Z');
+    $edited = $this->service->update($this->user, $post->fresh(), ['text' => 'Una sola vez', 'schedule' => true, 'scheduled_at' => '2026-11-01T17:00:00Z', 'media' => [],
+        'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']]]);
+    $target = $edited->targets->first()->fresh();
+    $target->forceFill(['next_attempt_at' => null])->save();
+
+    Carbon::setTestNow('2026-11-01 17:01:00');
+    runJob($id);
+
+    expect($this->publisher->publishCalls)->toBe(1)
+        ->and($target->fresh()->status)->toBe(PostStatus::Published);
+});

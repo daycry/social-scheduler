@@ -26,6 +26,9 @@ class FakePublisher implements Publisher, StatusPoller
     /** @var array<int, string> targetId => id externo */
     public array $externals = [];
 
+    /** @var array<int, \Carbon\CarbonInterface> targetId => cuando la red lo publico (findPublished respeta `since`) */
+    public array $publishedAt = [];
+
     public int $publishCalls = 0;
 
     public int $findCalls = 0;
@@ -43,7 +46,10 @@ class FakePublisher implements Publisher, StatusPoller
             throw $step;
         }
 
-        $this->externals[$request->targetId] ??= 'ext-'.$request->targetId.'-'.count($this->externals);
+        if (! isset($this->externals[$request->targetId])) {
+            $this->externals[$request->targetId] = 'ext-'.$request->targetId.'-'.count($this->externals);
+            $this->publishedAt[$request->targetId] = now();
+        }
 
         return match ($step) {
             'sent-then-fail' => throw new TransientPublishException('Timeout tras enviar la publicacion.', 'timeout'),
@@ -57,6 +63,11 @@ class FakePublisher implements Publisher, StatusPoller
         $this->findCalls++;
 
         if (! $this->canLookup || ! isset($this->externals[$request->targetId])) {
+            return null;
+        }
+
+        // Como la red real: solo ve lo publicado desde `since`.
+        if ($request->since !== null && isset($this->publishedAt[$request->targetId]) && $this->publishedAt[$request->targetId]->lt($request->since)) {
             return null;
         }
 

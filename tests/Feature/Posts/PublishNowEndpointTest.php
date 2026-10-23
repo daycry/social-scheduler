@@ -108,9 +108,20 @@ test('PublishNowEndpoint: publish_now no admite scheduled_at a la vez', function
 
 test('PublishNowEndpoint: la ruta tiene limite de peticiones', function () {
     $post = endpointPost();
-    $route = app('router')->getRoutes()->getByName('posts.publish-now');
+    // Mismo limitador con nombre en la ruta propia y en las del compositor (store/update con publish_now).
+    foreach (['posts.publish-now', 'brands.posts.store', 'posts.update'] as $name) {
+        expect(app('router')->getRoutes()->getByName($name)->gatherMiddleware())->toContain('throttle:publish-now');
+    }
 
-    expect($route->gatherMiddleware())->toContain('throttle:30,1')->and($post->id)->toBeGreaterThan(0);
+    $user = $this->user;
+    $body = ['publish_now' => true, 'text' => 'x', 'media' => [], 'targets' => []];
+    for ($i = 0; $i < 30; $i++) {
+        $this->actingAs($user)->put(route('posts.update', $post), $body)->assertStatus(302);
+    }
+    $this->actingAs($user)->put(route('posts.update', $post), $body)->assertStatus(429);
+    // Y la ruta propia comparte el cupo; guardar sin publish_now no lo gasta.
+    $this->actingAs($user)->post(route('posts.publish-now', $post))->assertStatus(429);
+    $this->actingAs($user)->put(route('posts.update', $post), ['text' => 'x', 'media' => [], 'targets' => []])->assertStatus(302);
 });
 
 test('PublishNowEndpoint: el calendario marca can_publish_now solo en borradores y programadas editables', function () {
@@ -125,4 +136,29 @@ test('PublishNowEndpoint: el calendario marca can_publish_now solo en borradores
             $flags = collect($page->toArray()['props']['items'])->merge($page->toArray()['props']['undated'])->mapWithKeys(fn ($i) => [$i['id'] => $i['can_publish_now']]);
             expect($flags[$draft->id])->toBeTrue()->and($flags[$scheduled->id])->toBeTrue()->and($flags[$published->id])->toBeFalse();
         });
+});
+
+test('PublishNowEndpoint: con next_attempt_at en el futuro (reintento transitorio) publica ahora de verdad', function () {
+    $post = endpointPost(['schedule' => true, 'scheduled_at' => '2026-11-03 10:00']);
+    $target = $post->targets->first();
+    $target->forceFill(['next_attempt_at' => now()->addMinutes(20), 'error_code' => 'transitorio'])->save();
+
+    $this->actingAs($this->user)->post(route('posts.publish-now', $post))
+        ->assertSessionHas('success', 'Publicando ahora: se enviara en unos segundos.');
+
+    expect($target->fresh()->next_attempt_at)->toBeNull();
+    Queue::assertPushed(PublishPostTarget::class, 1);
+});
+
+test('PublishNowEndpoint: un destino en pausa por cuota no se fuerza y el mensaje es honesto', function () {
+    $post = endpointPost(['schedule' => true, 'scheduled_at' => '2026-11-03 10:00']);
+    $target = $post->targets->first();
+    $retry = now()->addHour();
+    $target->forceFill(['next_attempt_at' => $retry, 'error_code' => 'cuota'])->save();
+
+    $this->actingAs($this->user)->post(route('posts.publish-now', $post))
+        ->assertSessionHas('success', fn ($m) => str_contains($m, 'pausa por la cuota'));
+
+    expect($target->fresh()->next_attempt_at->equalTo($retry))->toBeTrue();
+    Queue::assertNothingPushed();
 });

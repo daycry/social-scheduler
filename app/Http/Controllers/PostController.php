@@ -27,6 +27,8 @@ class PostController extends Controller
 
     private const PUBLISHING_MESSAGE = 'Publicando ahora: se enviara en unos segundos.';
 
+    private const PAUSED_MESSAGE = 'Hay destinos en pausa por la cuota de la red: se enviaran cuando se libere, no ahora.';
+
     public function __construct(
         private readonly PostService $posts,
         private readonly SocialAccountService $accounts,
@@ -50,7 +52,7 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return $this->afterSave($post, $request->boolean('publish_now') ? self::PUBLISHING_MESSAGE : 'Publicacion programada.');
+        return $this->afterSave($post, $request->boolean('publish_now') ? $this->publishingMessage($post) : 'Publicacion programada.', $request->boolean('publish_now'));
     }
 
     public function edit(Request $request, Post $post): Response
@@ -70,7 +72,7 @@ class PostController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return $this->afterSave($post, $request->boolean('publish_now') ? self::PUBLISHING_MESSAGE : 'Publicacion actualizada.');
+        return $this->afterSave($post, $request->boolean('publish_now') ? $this->publishingMessage($post) : 'Publicacion actualizada.', $request->boolean('publish_now'));
     }
 
     public function destroy(Request $request, Post $post): RedirectResponse
@@ -95,12 +97,18 @@ class PostController extends Controller
         $this->authorize('update', $post);
 
         try {
-            $this->posts->publishNow($request->user(), $post);
+            $post = $this->posts->publishNow($request->user(), $post);
         } catch (PostValidationException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', self::PUBLISHING_MESSAGE);
+        return back()->with('success', $this->publishingMessage($post));
+    }
+
+    /** Mensaje honesto: si algun destino sigue en pausa por cuota, no se promete «unos segundos». */
+    private function publishingMessage(Post $post): string
+    {
+        return PostService::pausedTargets($post) > 0 ? self::PAUSED_MESSAGE : self::PUBLISHING_MESSAGE;
     }
 
     /** Validacion en vivo del formulario (sin guardar): errores de media y limites por red. */
@@ -112,7 +120,7 @@ class PostController extends Controller
     }
 
     /** Programada -> al calendario, en la semana de la publicacion; borrador -> sigue en el compositor. */
-    private function afterSave(Post $post, string $scheduledMessage): RedirectResponse
+    private function afterSave(Post $post, string $scheduledMessage, bool $publishedNow = false): RedirectResponse
     {
         if ($post->status->value === 'borrador' || $post->scheduled_at === null) {
             return redirect()->route('posts.edit', $post)->with('success', 'Borrador guardado.');
@@ -124,7 +132,7 @@ class PostController extends Controller
             'brand_id' => $post->brand_id,
             'view' => 'week',
             'date' => $post->scheduled_at->copy()->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d'),
-        ])->with('success', $scheduledMessage);
+        ])->with('success', $scheduledMessage)->with('publishing_post_id', $publishedNow ? $post->id : null);
     }
 
     private function compose(Request $request, Brand $brand, ?Post $post): Response

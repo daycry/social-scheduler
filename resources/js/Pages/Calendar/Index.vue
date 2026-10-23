@@ -4,7 +4,7 @@ import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
  * Calendario inspirado en Planning de Metricool (ui-reference.md): semana por franjas horarias, mes y lista
@@ -113,7 +113,12 @@ const startPolling = () => {
     if (pollTimer) return;
     polls = 0;
     pollTimer = setInterval(() => {
-        if (sending.value.size === 0 || ++polls > 15) return stopPolling();
+        if (sending.value.size === 0) return stopPolling();
+        if (++polls > 15) {
+            // Se agotaron las vueltas: la tarjeta deja de decir «Enviando…» aunque el estado no haya cambiado.
+            sending.value = new Set();
+            return stopPolling();
+        }
         router.reload({ only: ['items', 'undated', 'flash'], preserveScroll: true });
     }, 4000);
 };
@@ -137,6 +142,14 @@ watch(() => [props.items, props.undated, props.flash?.error], () => {
     for (const id of sending.value) {
         const item = all.find((i) => i.id === id);
         if (!item || !PENDING.includes(item.status) || props.flash?.error) stopSending(id);
+    }
+});
+// «Publicar ahora» desde el compositor redirige aquí con el id del post: se sondea igual que desde el calendario.
+onMounted(() => {
+    const id = props.flash?.publishing_post_id;
+    if (id) {
+        sending.value = new Set(sending.value).add(Number(id));
+        startPolling();
     }
 });
 onBeforeUnmount(stopPolling);

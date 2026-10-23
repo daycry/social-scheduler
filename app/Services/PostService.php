@@ -221,6 +221,9 @@ class PostService
                     $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $post->text, $oldScheduledAt));
                     YouTubePublisher::forgetUploadSession($t->id); // la sesion de subida del intento anterior no se reutiliza
                 });
+            // Los `programada` con intentos previos conservan la ventana de busqueda anterior (no duplicar).
+            $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Scheduled)
+                ->each(fn (PostTarget $t) => ($w = $this->keepWindow($t, $oldScheduledAt, $at)) !== [] ? $t->forceFill($w)->save() : null);
             $post->syncStatus();
         });
 
@@ -471,6 +474,10 @@ class PostService
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
             $fresh = $current->status === PostStatus::Failed || $contentChanged || $optionsChanged;
             $attributes = ['options' => $t['options'] ?: null] + ($fresh ? $this->freshAttempt($current, $before['text'] ?? null, $before['scheduled_at'] ?? null) : []);
+            if (! $fresh) {
+                $attributes += $this->keepWindow($current, $before['scheduled_at'] ?? null, $plan['scheduled_at'] ?? null)
+                    + $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
+            }
             if ($fresh) {
                 YouTubePublisher::forgetUploadSession($current->id);
             }
@@ -521,6 +528,44 @@ class PostService
         $attributes['progress'] = $carried !== null ? ['reconcile' => $carried] : null;
 
         return $attributes;
+    }
+
+    /**
+     * Un destino con intentos previos (posiblemente ambiguos) conserva la ventana de busqueda de lo ya publicado cuando la fecha
+     * del post se mueve (p. ej. «Publicar ahora» o un cambio de fecha): sin esto `findPublished` buscaria desde la fecha NUEVA
+     * y dejaria fuera lo publicado antes, duplicando. Se guarda como `progress.reconcile.since` (el mismo mecanismo que `fallida`).
+     *
+     * @return array<string, mixed>
+     */
+    private function keepWindow(PostTarget $target, ?CarbonInterface $old, ?CarbonInterface $new): array
+    {
+        if ($old === null || $new === null || $old->equalTo($new) || $target->attempts <= 0 || isset($target->progress['reconcile'])) {
+            return [];
+        }
+
+        $progress = (array) ($target->progress ?? []);
+        $progress['reconcile'] = array_filter([
+            'reference' => $target->external_reference,
+            'since' => $old->copy()->subMinutes(5)->toIso8601String(),
+        ], fn ($v) => $v !== null) + ['pending' => true];
+
+        return ['progress' => $progress];
+    }
+
+    /** «Publicar ahora» salta la espera de un reintento transitorio, pero NO la pausa por cuota de la red. */
+    private function releaseBackoff(PostTarget $target, bool $publishNow): array
+    {
+        if (! $publishNow || $target->status !== PostStatus::Scheduled || $target->next_attempt_at === null || $target->error_code === 'cuota') {
+            return [];
+        }
+
+        return ['next_attempt_at' => null];
+    }
+
+    /** Destinos `programada` que «Publicar ahora» no ha podido encolar porque la red los tiene en pausa (cuota). */
+    public static function pausedTargets(Post $post): int
+    {
+        return $post->targets()->where('status', PostStatus::Scheduled->value)->where('next_attempt_at', '>', now())->count();
     }
 
     private function mayHaveBeenSent(PostTarget $target): bool

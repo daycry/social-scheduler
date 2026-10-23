@@ -329,9 +329,23 @@ class AutolistService
         $text = $template ? $template->text : $item->text;
         $media = $template ? $template->media->pluck('id')->map(fn ($id) => (int) $id)->all() : array_map('intval', (array) $item->media);
 
+        // Una plantilla de la biblioteca puede traer texto propio por destino (C-03): se conserva en los destinos de la autolista que
+        // coinciden (misma cuenta y tipo). Un texto vacio o ausente es vinculado: se publica el texto de la plantilla.
+        $own = [];
+        foreach ($template ? (array) $template->targets : [] as $tt) {
+            if (isset($tt['text']) && trim((string) $tt['text']) !== '') {
+                $own[(int) ($tt['account_id'] ?? 0).'|'.($tt['content_type'] ?? '')] = (string) $tt['text'];
+            }
+        }
+
         return [
             'text' => $text, 'media' => $media, 'schedule' => true, 'scheduled_at' => $at,
-            'targets' => array_map(fn ($t) => ['account_id' => $t['account_id'], 'content_type' => $t['content_type']], (array) $autolist->targets),
+            'targets' => array_map(function ($t) use ($own) {
+                $target = ['account_id' => $t['account_id'], 'content_type' => $t['content_type']];
+                $key = (int) $t['account_id'].'|'.$t['content_type'];
+
+                return isset($own[$key]) ? $target + ['text' => $own[$key]] : $target;
+            }, (array) $autolist->targets),
         ];
     }
 

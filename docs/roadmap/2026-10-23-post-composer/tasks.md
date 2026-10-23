@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 6 | 9 | 67% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 7 | 9 | 78% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **14** | **42** | **33%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **15** | **42** | **36%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -513,11 +513,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-15 — Tests que fijan que «Publicar ahora» no encola ni publica dos veces
 
 - **Descripción**: Riesgo principal del plan. Casos: (1) `publishNow()` y `DispatchDuePosts` en el mismo minuto y luego los dos jobs: el publicador se llama una vez; (2) doble petición `publish-now` seguida; (3) Publicar ahora sobre un destino `publicando`; (4) Publicar ahora desde el endpoint del post y el despacho del minuto a la vez; (5) el job corre antes del commit simulado y el destino queda `programada` y vencido.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Hay pruebas que garantizan que Publicar ahora, el despachador de cada minuto, una doble petición o un reintento nunca publican la misma publicación dos veces.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 1.8h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.3h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-12, T-13
 - **Tipo**: test
@@ -528,16 +528,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Publishing` → en verde
 
 **Criterios de aceptación**
-- [ ] Un destino con Publicar ahora y el despachador de ese minuto produce exactamente una llamada de publicación
-- [ ] Un segundo `publish-now` sobre un post en vuelo se rechaza sin encolar
-- [ ] Los tests fallan si se quita el `claim()` o `ShouldBeUnique` (comprobado una vez a mano y anotado)
+- [x] Un destino con Publicar ahora y el despachador de ese minuto produce exactamente una llamada de publicación
+- [x] Un segundo `publish-now` sobre un post en vuelo se rechaza sin encolar
+- [x] Los tests fallan si se quita el `claim()` o `ShouldBeUnique` (comprobado una vez a mano y anotado)
 
 **Subtareas**
-- [ ] Montar el escenario con `Queue::fake` y con la cola `sync` para ejecutar ambos jobs
-- [ ] Contar llamadas al `Publisher` falso
-- [ ] Comprobar la mutación quitando una defensa
+- [x] Montar el escenario con `Queue::fake` y con la cola `sync` para ejecutar ambos jobs
+- [x] Contar llamadas al `Publisher` falso
+- [x] Comprobar la mutación quitando una defensa
 
-**Notas**: Reutiliza los patrones de `RevisionFase3Intento3Test.php`.
+**Notas**: **Evidencia**: `php artisan test --compact --filter=PublishNowDoubleDispatch` → 7 passed (41 assertions); `php artisan test --compact tests/Feature/Publishing` → 83 passed (las suites existentes sin modificar; `PublishingTest.php` no se toca). Casos: (1) `publishNow()` + `DispatchDuePosts` del mismo minuto con `Queue::fake` → `assertPushed(PublishPostTarget, 1)` y, ejecutando el job dos veces, `FakePublisher::publishCalls === 1`; (2) cola sync real: publica una vez y el despachador ya no encuentra nada; (3) dos peticiones `publish-now` seguidas → un solo encolado y una sola publicación, y una tercera sobre el destino ya publicado se rechaza; (4) destino `publicando` → rechazado sin encolar y un job que llegue sale en el claim; (5) endpoint + despachador del minuto en cualquier orden (3 pasadas, 1 encolado); (6) job que corre antes del commit ve el borrador y no publica, y tras `publishNow()` el destino está `programada` y vencido (`dueTargets`); (7) tras un timeout ambiguo, el reintento consulta `findPublished` y no duplica. **Mutación comprobada a mano una vez** (ejecutada y revertida con `git`; `git diff --stat -- app/Jobs/PublishPostTarget.php` → vacío): (a) quitando `ShouldBeUnique` de `PublishPostTarget` fallan 3 de 7 (el job se encola 2 y 3 veces en lugar de 1); (b) quitando de `claim()` la guarda `else { return null; }` (un destino ya publicado o en vuelo se vuelve a reclamar) fallan 4 de 7 (`publishCalls` 2 o 3 en lugar de 1, y el job adelantado publica con el estado viejo). Con las dos defensas restauradas: 7 passed.
 
 ---
 

@@ -527,3 +527,12 @@ export async function axeSeriousCritical(page: Page, label: string) {
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join(' | ')}`).join(' // ');
     expect(bad, `violaciones de accesibilidad en ${label}: ${detail}`).toEqual([]);
 }
+
+
+/** Elige el tipo de publicación de una cuenta con el desplegable junto a su pastilla (`account` = id de la cuenta o texto de la etiqueta). */
+export async function chooseContentType(page: Page, account: number | RegExp, label: string) {
+    const button = typeof account === 'number' ? page.locator(`#type-${account}`) : page.getByRole('button', { name: account });
+    await button.click();
+    await page.getByRole('option', { name: new RegExp(`^${label}`) }).click();
+    await expect(button).toContainText(label);
+}

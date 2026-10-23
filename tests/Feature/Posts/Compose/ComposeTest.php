@@ -47,6 +47,17 @@ test('Compose: la pantalla ofrece cuentas, tipos por red y las limitaciones de l
             ->where('post', null));
 });
 
+test('Compose: todos los tipos ofrecidos llegan con una descripcion no vacia (T-43)', function () {
+    $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))
+        ->assertInertia(function (Assert $page) {
+            $tipos = collect($page->toArray()['props']['contentTypes'])->flatten(1);
+            expect($tipos)->not->toBeEmpty();
+            foreach ($tipos as $t) {
+                expect(trim($t['description'] ?? ''))->not->toBe('', $t['value']);
+            }
+        });
+});
+
 test('Compose: programar guarda la publicacion con la hora de la marca en UTC y es visible al editar', function () {
     $response = $this->actingAs($this->user)->post(route('brands.posts.store', $this->brand), composeBody());
 

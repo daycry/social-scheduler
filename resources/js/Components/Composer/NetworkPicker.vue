@@ -1,6 +1,6 @@
 <script setup>
 import NetworkIcon from '@/Components/NetworkIcon.vue';
-import InputLabel from '@/Components/InputLabel.vue';
+import ContentTypeSelect from '@/Components/Composer/ContentTypeSelect.vue';
 import { Link } from '@inertiajs/vue3';
 import { useComposerContext } from '@/Composables/useComposer';
 
@@ -15,9 +15,9 @@ const { brand, accounts, editable, targetFor, typesOf, typeInfo, toggleAccount }
             <Link :href="route('brands.connections.index', brand.id)" class="link">Conectar redes</Link>
         </p>
 
-        <!-- Una pastilla por cuenta: botón de alternancia con aria-pressed -->
+        <!-- Una pastilla por cuenta (botón de alternancia con aria-pressed) y, junto a cada cuenta activa, su tipo de publicación -->
         <ul class="flex flex-wrap gap-2" aria-label="Cuentas de la marca">
-            <li v-for="account in accounts" :key="account.id" class="max-w-full">
+            <li v-for="account in accounts" :key="account.id" class="relative flex max-w-full flex-wrap items-center gap-1.5">
                 <button
                     :id="`account-pill-${account.id}`"
                     type="button"
@@ -33,26 +33,23 @@ const { brand, accounts, editable, targetFor, typesOf, typeInfo, toggleAccount }
                     <span v-if="targetFor(account.id)" aria-hidden="true">✓</span>
                     <span v-if="account.status !== 'activa'" class="rounded bg-amber-100 px-1.5 text-xs text-amber-800">Requiere reconexión</span>
                 </button>
+                <ContentTypeSelect
+                    v-if="targetFor(account.id)"
+                    v-model="targetFor(account.id).content_type"
+                    :button-id="`type-${account.id}`"
+                    :types="typesOf(account.network)"
+                    :label="`Tipo de contenido en ${account.network_label} (${account.name})`"
+                    :disabled="!editable"
+                />
             </li>
         </ul>
 
-        <!-- Tipo de contenido de cada cuenta activa -->
-        <ul class="mt-3 space-y-2">
-            <template v-for="account in accounts" :key="`type-${account.id}`">
-                <li v-if="targetFor(account.id)" class="rounded border border-slate-200 p-3">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <NetworkIcon :network="account.network" size="sm" />
-                        <InputLabel :for="`type-${account.id}`" :value="`Tipo de contenido en ${account.network_label} (${account.name})`" />
-                        <select
-                            :id="`type-${account.id}`"
-                            v-model="targetFor(account.id).content_type"
-                            :disabled="!editable"
-                            class="field w-auto max-w-full"
-                        >
-                            <option v-for="t in typesOf(account.network)" :key="t.value" :value="t.value">{{ t.label }}</option>
-                        </select>
-                    </div>
-                    <ul v-if="typeInfo(targetFor(account.id), account.network)?.limitations.length" class="mt-2 list-disc space-y-0.5 pl-5 text-xs text-amber-700">
+        <!-- Limitaciones del tipo elegido en cada cuenta activa -->
+        <ul class="mt-3 space-y-1">
+            <template v-for="account in accounts" :key="`lim-${account.id}`">
+                <li v-if="targetFor(account.id) && typeInfo(targetFor(account.id), account.network)?.limitations.length" class="flex items-start gap-2 text-xs text-amber-700">
+                    <NetworkIcon :network="account.network" size="sm" />
+                    <ul class="list-disc space-y-0.5 pl-4">
                         <li v-for="l in typeInfo(targetFor(account.id), account.network).limitations" :key="l">{{ l }}</li>
                     </ul>
                 </li>

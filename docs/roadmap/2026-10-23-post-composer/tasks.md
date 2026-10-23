@@ -48,8 +48,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-03 | 8 | 8 | 100% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 8 | 8 | 100% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 5 | 5 | 100% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
-| Fase 6 — C-11 | 2 | 4 | 50% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **40** | **42** | **95%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| Fase 6 — C-11 | 3 | 5 | 60% | 0 / 15,0h | 0 / 2,0h | 0 / 0,5h | 0 / 0,59M |
+| **TOTAL** | **41** | **43** | **95%** | **0 / 145,0h** | **0 / 19,6h** | **0 / 4,9h** | **0 / 5,85M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -1283,7 +1283,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 6 — C-11 · Cierre: E2E, axe, MCP, documentación y smoke
 
-**Estado**: en-progreso · **Estimado**: 12,0h · **Real**: — · **Coste est.**: 600 € + tokens (⚠️ verificar) · **Tokens est.**: 0,48M
+**Estado**: en-progreso · **Estimado**: 15,0h · **Real**: — · **Coste est.**: 600 € + tokens (⚠️ verificar) · **Tokens est.**: 0,59M
 
 ### T-39 — Adaptar `flows.spec.ts` y `pages.spec.ts` al nuevo compositor, con axe
 
@@ -1392,6 +1392,44 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 
 ---
 
+### T-43 — Selector de tipo junto a cada red, con icono y subtítulo
+
+- **Descripción**: El tipo de publicación de cada red activa se elige en un desplegable junto a su pastilla (como en Metricool, `metricool-analisis-ui.md` fila «Tipo por red»), con icono, nombre y subtítulo por tipo. Sustituye a la lista con `<select>` de debajo; las limitaciones del tipo siguen visibles en ámbar. Petición explícita del usuario durante el plan.
+- **Changelog**: Junto a cada red activa aparece un desplegable para elegir el tipo de publicación, con icono y una breve descripción de cada tipo.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real — (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-39
+- **Tipo**: feature
+- **Archivos**: `app/Enums/ContentType.php`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/ContentTypeSelect.vue`, `resources/js/Components/Composer/NetworkPicker.vue`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `docs/usuario/guia-de-usuario.md`, `docs/modulos/publicacion.md`, `docs/roadmap/2026-10-23-post-composer/test-plan.md`
+- **Cubre (tests)**: E2E-13
+- **Verificación**:
+  - `php artisan test --compact tests/Feature/Posts/Compose/ComposeTest.php` → en verde (incluye que todo tipo ofrecido tiene `description` no vacía)
+  - `npx playwright test composer.spec.ts -g "E2E-13"` → en verde en desktop
+  - `npx playwright test composer.spec.ts pages.spec.ts flows.spec.ts` → en verde en desktop, mobile y mobile-360
+
+**Criterios de aceptación**
+- [x] Al activar una red aparece junto a su pastilla un botón con el icono y el nombre del tipo (`aria-haspopup="listbox"`, `aria-expanded`); sin red activa no hay selector
+- [x] El listbox muestra por opción icono, nombre y subtítulo, marca la seleccionada (`aria-selected`) y usa `aria-activedescendant`
+- [x] Teclado: flechas, Inicio, Fin, Intro y Espacio eligen; Escape cierra y devuelve el foco al botón; Tab cierra; clic fuera cierra
+- [x] Intro nunca envía el formulario del compositor (botón `type="button"`)
+- [x] Cambiar el tipo sigue disparando presets, validación, contadores y opciones del destino (mismo `v-model` sobre `content_type`); Reel de Instagram muestra «Compartir también en el feed»
+- [x] Una red con un solo tipo lo muestra como etiqueta fija; deshabilitado si no es editable
+- [x] Las limitaciones del tipo elegido siguen visibles en ámbar; no hay desbordamiento a 375 y 360 px; axe sin serious/critical con el listbox abierto
+- [x] `description()` por tipo, fiel a `config/media_specs.php`, expuesta en `contentTypes`
+
+**Subtareas**
+- [x] `ContentType::description()` y `contentTypes.description` + Pest
+- [x] `ContentTypeSelect.vue` y `NetworkPicker.vue`
+- [x] Helper `chooseContentType` y specs E2E actualizados; E2E-13
+- [x] Guía de usuario y `publicacion.md`
+
+**Notas**: El botón conserva el `id="type-<cuenta>"` y la etiqueta «Tipo de contenido en <red> (<cuenta>)». En móvil el listbox ocupa el ancho de la fila de la cuenta; desde `sm` mide 18 rem alineado a la izquierda de la pastilla. Subtítulos redactados contra `media_specs.php` (p. ej. «Una sola foto», «Varias fotos o vídeos»); no se promete nada que la app no haga. **Evidencia**: `php artisan test --compact` → 1418 passed; `pint --test` → passed; `npm run build` y `npx tsc --noEmit -p .` → sin errores; `playwright test composer pages flows` → desktop 59 passed; mobile 57 passed + 1 skipped; mobile-360 57 passed + 1 skipped (E2E-13 corregido en móvil: el selector puede pasar bajo la pastilla; repetido en los tres proyectos, passed).
+
+---
+
 ### T-42 — Revisión final, regresión completa y cierre del plan
 
 - **Descripción**: Suite Pest, Pint, build y Playwright completos; comprueba que lo declarado «sin cambios» sigue intacto (`PublishPostTarget`, publicadores de Meta) y que no se ha tocado ningún dato del usuario id 28. Entrega los M-xx como checklist, actualiza la spec, el índice del roadmap y el estado de ADR-005 (solo con el visto bueno del usuario). Puerta de salida de la fase 6.
@@ -1401,7 +1439,7 @@ Al terminar: marcar M-01 y M-04 en el plan y cerrar esta tarea (o dejarlos pendi
 - **Tiempo IA (ejec.)**: est. 0,27h · real —
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
-- **Dependencias**: T-41
+- **Dependencias**: T-41, T-43
 - **Tipo**: docs
 - **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `docs/roadmap/2026-10-23-post-composer/improvement-plan.md`, `docs/roadmap/2026-10-23-post-composer/spec.md`, `docs/roadmap/README.md`, `docs/knowledge/adr/ADR-005-texto-efectivo-y-publicar-ahora-sobre-el-nucleo-de-publicacion.md`
 - **Cubre (tests)**: M-01, M-02, M-03, M-04, M-05

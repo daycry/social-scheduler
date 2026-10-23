@@ -176,6 +176,7 @@ class PostController extends Controller
                 $n->value => array_map(fn (ContentType $t) => [
                     'value' => $t->value,
                     'label' => $t->label(),
+                    'description' => $t->description(),
                     'limitations' => $t->limitations(),
                 ], array_values(array_filter(ContentType::forNetwork($n), fn (ContentType $t) => $t->isOffered()))),
             ]),

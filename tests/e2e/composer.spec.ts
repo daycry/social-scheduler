@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -75,14 +75,12 @@ test('E2E-01 · compositor a pantalla completa con pastillas de red', async ({ p
     await expectNoOverflow(page);
 
     // El tipo elegido se conserva al activar y desactivar otras cuentas.
-    const tipo = page.getByLabel(/Tipo de contenido en Instagram/);
-    const valores = await tipo.locator('option').evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
-    expect(valores.length).toBeGreaterThan(1);
-    await tipo.selectOption(valores[1]);
+    const tipo = page.getByRole('button', { name: /Tipo de contenido en Instagram/ });
+    await chooseContentType(page, /Tipo de contenido en Instagram/, 'Carrusel');
     await fb.click();
     await expect(fb).toHaveAttribute('aria-pressed', 'false');
     await fb.click();
-    await expect(page.getByLabel(/Tipo de contenido en Instagram/)).toHaveValue(valores[1]);
+    await expect(tipo).toContainText('Carrusel');
 
     await ig.focus();
     await page.keyboard.press('Space');
@@ -1054,9 +1052,74 @@ test('E2E-09 · los interruptores recordados también se aplican al cambiar de t
     // El usuario apaga «Notificar» en este post; luego cambia a Short: el preset de #Shorts (apagado, el defecto es encendido) se aplica
     // y lo ya tocado no se pisa.
     await notificar.uncheck();
-    await page.getByLabel(/Tipo de contenido en YouTube/).selectOption('youtube_short');
+    await chooseContentType(page, /Tipo de contenido en YouTube/, 'Short');
     await expect(yt.getByRole('switch', { name: /#Shorts/ })).not.toBeChecked();
     await expect(notificar).not.toBeChecked();
+    await expectNoOverflow(page);
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    const url = page.url();
+    const ig = page.getByRole('button', { name: /^Instagram: e2e Instagram/ });
+    const tipo = page.getByRole('button', { name: /Tipo de contenido en Instagram \(e2e Instagram/ });
+
+    // Sin activar la red no hay selector; al activarla aparece junto a su pastilla, en la misma fila.
+    await expect(tipo).toHaveCount(0);
+    await ig.click();
+    await expect(tipo).toBeVisible();
+    await expect(tipo).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(tipo).toHaveAttribute('aria-expanded', 'false');
+    const [bp, bt] = [await ig.boundingBox(), await tipo.boundingBox()];
+    // En pantallas anchas cabe en la misma línea; en móvil puede pasar justo debajo de la pastilla (nunca lejos de ella).
+    if ((page.viewportSize()?.width ?? 0) >= 640) expect(Math.abs(bp!.y + bp!.height / 2 - (bt!.y + bt!.height / 2))).toBeLessThan(bp!.height);
+    else expect(bt!.y - (bp!.y + bp!.height)).toBeLessThan(24);
+
+    // Abierto: cada opción lleva icono, nombre y subtítulo, y marca la seleccionada.
+    await tipo.click();
+    const lista = page.getByRole('listbox', { name: /Tipo de contenido en Instagram/ });
+    await expect(lista).toBeVisible();
+    await expect(tipo).toHaveAttribute('aria-expanded', 'true');
+    const opciones = lista.getByRole('option');
+    expect(await opciones.count()).toBeGreaterThan(1);
+    for (let i = 0; i < (await opciones.count()); i++) {
+        const o = opciones.nth(i);
+        await expect(o.locator('svg').first()).toBeVisible();
+        expect(((await o.locator('span.block').nth(0).textContent()) ?? '').trim()).not.toBe('');
+        expect(((await o.locator('span.block').nth(1).textContent()) ?? '').trim()).not.toBe('');
+    }
+    await expect(lista.getByRole('option', { name: /^Reel/ })).toContainText('Vídeo vertical a pantalla completa');
+    await expect(lista.getByRole('option', { selected: true })).toContainText('Publicacion de imagen');
+    await expectNoOverflow(page);
+    await axeNow(page, 'compositor con el listbox de tipo abierto');
+
+    // Teclado: flechas y Enter eligen el Reel; Enter no envía el formulario; sus opciones aparecen.
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(lista).toBeHidden();
+    await expect(tipo).toContainText('Reel');
+    await expect(tipo).toBeFocused();
+    await expect(page.getByText('Compartir también en el feed')).toBeVisible();
+    expect(page.url()).toBe(url);
+
+    // Enter en el botón abre (no envía) y Escape cierra devolviendo el foco al botón sin cambiar el tipo.
+    await page.keyboard.press('Enter');
+    await expect(lista).toBeVisible();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Escape');
+    await expect(lista).toBeHidden();
+    await expect(tipo).toBeFocused();
+    await expect(tipo).toContainText('Reel');
+    expect(page.url()).toBe(url);
+
+    // Clic fuera cierra.
+    await tipo.click();
+    await expect(lista).toBeVisible();
+    await page.getByRole('heading', { name: 'Dónde publicar' }).click();
+    await expect(lista).toBeHidden();
     await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
 });

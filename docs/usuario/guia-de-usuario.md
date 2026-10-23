@@ -22,7 +22,7 @@ En la biblioteca de **Media** sube imágenes y vídeos. El archivo va directo al
 ## Crear y programar una publicación
 
 1. Pulsa **Crear publicación** y elige marca y cuentas de destino.
-2. Elige el tipo por red (imagen, carrusel, reel, historia, vídeo, short…). El compositor te avisa de las limitaciones de cada tipo.
+2. Elige el tipo por red (imagen, carrusel, reel, historia, vídeo, short…) en el desplegable que aparece junto a cada red activa: cada opción muestra su icono, su nombre y un subtítulo. Se maneja también con el teclado (flechas, Inicio, Fin, Intro o Espacio para elegir, Escape para cerrar). Debajo de las pastillas, el compositor te avisa de las limitaciones del tipo elegido.
 3. Escribe el texto, adjunta la media y elige fecha y hora (zona horaria de la marca).
 4. Guarda como **borrador** o **programa**.
 

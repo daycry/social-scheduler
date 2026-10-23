@@ -181,6 +181,23 @@
 - **Capturas esperadas**: —
 - **Cubre tareas**: T-01, T-02, T-07, T-16, T-24, T-32, T-37, T-39
 
+### E2E-13 — Selector de tipo junto a cada red (T-43)
+- **Objetivo**: cada red activa tiene junto a su pastilla un desplegable accesible con el tipo de publicación.
+- **Precondiciones**: usuario `e2e-sec-*`, marca `e2e-composer-*` con cuentas de Instagram y Facebook, compositor abierto.
+- **Pasos**:
+  1. Activar Instagram: aparece junto a su pastilla el botón «Tipo de contenido en Instagram (…)».
+  2. Abrirlo: cada opción muestra icono, nombre y subtítulo; la seleccionada está marcada. Pasar axe.
+  3. Con flechas e Intro elegir Reel; pulsar Intro en el botón, End y Escape; abrir y hacer clic fuera.
+- **Aserciones**:
+  - [ ] El selector aparece junto a la pastilla solo con la red activa.
+  - [ ] Hay icono, nombre y subtítulo por opción («Reel»: «Vídeo vertical a pantalla completa»).
+  - [ ] El Reel elegido por teclado muestra «Compartir también en el feed».
+  - [ ] Escape cierra y devuelve el foco al botón sin cambiar el tipo; clic fuera cierra.
+  - [ ] Intro no envía el formulario (la URL no cambia).
+  - [ ] axe: 0 `serious`/`critical` con el listbox abierto; `expectNoOverflow` en 375 y 360 px.
+- **Capturas esperadas**: —
+- **Cubre tareas**: T-43
+
 ## API (opcional, opt-in — smoke de endpoints, los ejecuta `qa` con curl)
 
 ### API-01 — `POST /posts/{post}/publish-now`
@@ -295,4 +312,5 @@
 | T-39 | E2E-12, A11Y-01, A11Y-02 |
 | T-40 | M-05 |
 | T-41 | M-01, M-04 |
+| T-43 | E2E-13 |
 | T-42 | M-01, M-02, M-03, M-04, M-05 |

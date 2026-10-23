@@ -117,7 +117,7 @@ test('CA-05: Facebook sin identidad vinculada se rechaza aunque el email coincid
     User::factory()->create(['email' => 'ana@example.com']);
     socialProviderReturns('facebook', fakeSocialUser('fb-1', 'ana@example.com'));
 
-    $this->get('/auth/facebook/callback')->assertRedirect('/login')->assertSessionHasErrors(['email' => 'No hemos podido iniciar sesión con Facebook. Entra con tu contraseña y vincula Facebook desde tu perfil.']);
+    $this->get('/auth/facebook/callback')->assertRedirect('/login#')->assertSessionHasErrors(['email' => 'No hemos podido iniciar sesión con Facebook. Entra con tu contraseña y vincula Facebook desde tu perfil.']);
 
     $this->assertGuest();
     expect(SocialIdentity::count())->toBe(0);
@@ -128,7 +128,7 @@ test('Facebook con identidad vinculada entra', function () {
     $user->socialIdentities()->create(['provider' => 'facebook', 'provider_user_id' => 'fb-2', 'linked_at' => now()]);
     socialProviderReturns('facebook', fakeSocialUser('fb-2', null));
 
-    $this->get('/auth/facebook/callback')->assertRedirect(route('dashboard', absolute: false));
+    $this->get('/auth/facebook/callback')->assertRedirect(route('dashboard', absolute: false).'#');
 
     $this->assertAuthenticatedAs($user);
 });

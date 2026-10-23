@@ -23,7 +23,7 @@ test('CA-09: el usuario cancela en el proveedor y vuelve a /login con mensaje le
         ->assertSessionHasErrors(['email' => 'Cancelaste el inicio de sesión con Google.']);
 
     $this->get('/auth/facebook/callback?error=access_denied&error_reason=user_denied')
-        ->assertRedirect('/login')
+        ->assertRedirect('/login#')
         ->assertSessionHasErrors(['email' => 'Cancelaste el inicio de sesión con Facebook.']);
 
     $this->assertGuest();
@@ -46,7 +46,7 @@ test('CA-09: proveedor caido vuelve a /login y no registra el mensaje de la exce
     socialDriverThrows('facebook', new RuntimeException('Client error: GET https://graph.facebook.com/?code=SECRETCODE'));
 
     $this->get('/auth/facebook/callback?code=SECRETCODE&state=x')
-        ->assertRedirect('/login')
+        ->assertRedirect('/login#')
         ->assertSessionHasErrors('email');
 
     $this->assertGuest();

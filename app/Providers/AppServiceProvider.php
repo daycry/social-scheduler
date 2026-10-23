@@ -75,7 +75,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Login social (ADR-004): drivers con las credenciales PROPIAS del login (services.*_login), distintas de las de los conectores.
         Socialite::extend('google-login', fn () => Socialite::buildProvider(GoogleProvider::class, (array) config('services.google_login')));
-        Socialite::extend('facebook-login', fn () => Socialite::buildProvider(FacebookProvider::class, (array) config('services.facebook_login')));
+        // Facebook: la version de Graph sale de la config (la del driver puede ser antigua) y solo se piden email y public_profile.
+        Socialite::extend('facebook-login', fn () => Socialite::buildProvider(FacebookProvider::class, (array) config('services.facebook_login'))
+            ->usingGraphVersion((string) config('social.meta.graph_version', 'v23.0'))
+            ->scopes(['email', 'public_profile'])
+            ->fields(['id', 'name', 'email']));
 
         // Tokens con origen OAuth opcional (oauth_client_id); las API keys msk_ existentes no cambian.
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);

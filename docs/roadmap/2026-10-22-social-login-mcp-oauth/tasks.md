@@ -36,7 +36,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
-| Fase 2 — C-01 · Login social | 3 | 7 | 43% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 2 — C-01 · Login social | 4 | 7 | 57% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **11** | **28** | **39%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
@@ -606,27 +606,29 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-16 — Particularidades de Facebook: versión de Graph, email ausente y `#_=_`
 
 - **Descripción**: Fija `usingGraphVersion(config('social.meta.graph_version'))` (la versión por defecto del driver puede ser antigua), pide `email` y `public_profile`, trata el email ausente (rechazo genérico) y el fragmento `#_=_` de la redirección. Test sobre el payload crudo.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.27h · real —
-- **Supervisión**: est. 0.07h (≈25 % IA) · real —
+- **Changelog**: Facebook usa la versión de Graph configurada, pide solo email y perfil público, y su redirección de vuelta ya no deja el `#_=_` en la barra de direcciones.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.27h · real 0.27h (estimado)
+- **Supervisión**: est. 0.07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-14
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Auth/SocialLoginController.php`, `config/services.php`, `tests/Feature/Auth/Social/FacebookLoginTest.php`
+- **Archivos**: `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/Social/FacebookLoginTest.php`, `tests/Feature/Auth/Social/SocialLoginTest.php`, `tests/Feature/Auth/Social/SocialErrorsTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=FacebookLogin` → versión de Graph aplicada, email ausente rechazado, Facebook sin vincular rechazado (CA-05)
 
 **Criterios de aceptación**
-- [ ] La versión de Graph sale de la config y no del driver
-- [ ] Sin email: rechazo genérico, sin identidad creada
-- [ ] Facebook nunca vincula solo (P1)
+- [x] La versión de Graph sale de la config y no del driver
+- [x] Sin email: rechazo genérico, sin identidad creada
+- [x] Facebook nunca vincula solo (P1)
 
 **Subtareas**
-- [ ] Versión de Graph
-- [ ] Email ausente
-- [ ] Fragmento `#_=_`
+- [x] Versión de Graph
+- [x] Email ausente
+- [x] Fragmento `#_=_`
+
+**Evidencia (2026-10-23)**: `--filter=FacebookLogin` → 6 passed (versión de Graph y campos en el payload crudo, appsecret_proof, email ausente rechazado, Facebook sin vincular rechazado); `--filter=Social` → 50 passed. Desviación: la versión y los scopes se fijan en el driver `facebook-login` (`AppServiceProvider`), no en el controlador; `config/services.php` no cambia (la versión ya vive en `social.meta.graph_version`); el `#_=_` se resuelve con un `#` vacío en el Location (los tests de Facebook de T-14/T-15 esperan `…#`).
 
 ---
 

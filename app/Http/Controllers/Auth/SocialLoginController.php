@@ -57,6 +57,19 @@ class SocialLoginController extends Controller
     {
         abort_unless(self::enabled($provider), 404);
 
+        $response = $this->handleCallback($request, $provider);
+
+        // Facebook anade el fragmento `#_=_` a la URL de retorno y el navegador lo hereda en las redirecciones sin
+        // fragmento propio: un `#` vacio lo sustituye y la URL final queda limpia.
+        if ($provider === SocialIdentity::FACEBOOK && ! str_contains($response->getTargetUrl(), '#')) {
+            $response->setTargetUrl($response->getTargetUrl().'#');
+        }
+
+        return $response;
+    }
+
+    private function handleCallback(Request $request, string $provider): RedirectResponse
+    {
         $request->session()->pull('social.intent', 'login');
 
         // Ya con sesion (p. ej. una pestana vieja): no hay nada que iniciar.

@@ -7,7 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { passkeyErrorMessage, useSecureContext } from '@/Composables/useSecureContext';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Passkeys } from '@laravel/passkeys';
 import { usePasskeyVerify } from '@laravel/passkeys/vue';
 import { computed, onMounted, ref } from 'vue';
@@ -27,6 +27,11 @@ defineProps({
 });
 
 const socialNames = { google: 'Google', facebook: 'Facebook' };
+
+// Los rechazos del login social (cancelar, identidad sin cuenta, sesión caducada) llegan por redirección con el error
+// `email` en la sesión, no por el formulario: `form.errors` solo recoge los de su propio envío.
+const page = usePage();
+const socialError = computed(() => (form.errors.email ? '' : (page.props.errors?.email ?? '')));
 
 const form = useForm({
     email: '',
@@ -99,6 +104,10 @@ const submit = () => {
 
         <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700" role="status">
             {{ status }}
+        </div>
+
+        <div v-if="socialError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert" data-testid="login-error">
+            {{ socialError }}
         </div>
 
         <form @submit.prevent="submit">

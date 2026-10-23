@@ -881,14 +881,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 - **Descripción**: Specs de Playwright con el proveedor falso: login con Google sin 2FA y con 2FA, rechazos (email no verificado, sin cuenta, Facebook sin vincular, cancelar) y vincular/desvincular desde el perfil. Usa los usuarios `e2e-sec-*` y nunca el usuario id 28.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Tiempo humano**: est. 2,5h · real —
 - **Tiempo IA (ejec.)**: est. 0.34h · real —
 - **Supervisión**: est. 0.08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-21, T-23
 - **Tipo**: test
-- **Archivos**: `tests/e2e/social.spec.ts`, `tests/e2e/helpers.ts`
+- **Archivos**: `tests/e2e/social.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Pages/Auth/Login.vue`
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04
 - **Verificación**: `npm run test:e2e -- social.spec.ts` → en verde en los tres proyectos (desktop, mobile, mobile-360)
 
@@ -896,6 +896,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [ ] E2E-01..E2E-04 pasan con aserciones reales
 - [ ] Cada spec limpia lo que crea (usuarios e identidades `e2e-`)
 - [ ] Ningún spec lee ni escribe un usuario fuera de `e2e-sec-*`
+
+**Notas**: T-24 corrige `Login.vue` (T-20): los rechazos del login social llegaban por redirección con el error `email` en la sesión y la pantalla solo pintaba `form.errors`, así que el usuario no veía ningún mensaje; ahora se muestra en un aviso (`role=alert`). Verificación en desktop durante el desarrollo; la de los tres proyectos se hace una sola vez al final (límite de memoria).
 
 **Subtareas**
 - [ ] Login sin y con 2FA

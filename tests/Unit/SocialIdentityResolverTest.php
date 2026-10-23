@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\SocialIdentity;
 use App\Models\User;
 use App\Services\Auth\SocialIdentityResolver;
@@ -111,7 +112,72 @@ test('link: vincula, es idempotente, desbloquea la propia y rechaza la ajena o u
     expect($resolver->link($user, 'facebook', socialUser('', null)))->toBe(SocialIdentityResolver::NO_ID);
 
     expect($resolver->unlink($user, 'facebook'))->toBeTrue()->and($resolver->unlink($user, 'facebook'))->toBeFalse();
-    expect($resolver->link($other, 'facebook', socialUser('fb1', null)))->toBe(SocialIdentityResolver::TAKEN);
     expect($resolver->link($user, 'facebook', socialUser('fb1', null)))->toBe(SocialIdentityResolver::RELINKED);
     expect(SocialIdentity::where('provider_user_id', 'fb1')->sole()->isBlocked())->toBeFalse();
+});
+
+test('C1: el email se compara byte a byte; ß/ss y ä/a no vinculan la cuenta equivocada', function (string $local, string $google) {
+    $user = User::factory()->create(['email' => $local]);
+
+    $r = resolveSocial('google', socialUser('gc1', $google, true));
+
+    expect($r->accepted())->toBeFalse()->and($r->reason)->toBe('no_account');
+    expect($user->socialIdentities()->count())->toBe(0);
+})->with([
+    'ss frente a ß' => ['alice@strasse.de', 'alice@straße.de'],
+    'ß frente a ss' => ['alice@straße.de', 'alice@strasse.de'],
+    'a frente a ä' => ['alice@example.com', 'alice@exämple.com'],
+    'ä frente a a' => ['alice@exämple.com', 'alice@example.com'],
+]);
+
+test('C1: un email no ASCII vincula solo con la cuenta identica (sin mayusculas)', function () {
+    $user = User::factory()->create(['email' => 'alice@exämple.com']);
+
+    $r = resolveSocial('google', socialUser('gc2', 'ALICE@exämple.com', true));
+
+    expect($r->accepted())->toBeTrue()->and($r->user->is($user))->toBeTrue();
+});
+
+test('B1: G1, desvincular, G2 y revincular G1 no deja dos activas', function () {
+    $user = User::factory()->create();
+    $resolver = app(SocialIdentityResolver::class);
+
+    expect($resolver->link($user, 'facebook', socialUser('G1', null)))->toBe(SocialIdentityResolver::LINKED);
+    $resolver->unlink($user, 'facebook');
+    expect($resolver->link($user, 'facebook', socialUser('G2', null)))->toBe(SocialIdentityResolver::LINKED);
+    expect($resolver->link($user, 'facebook', socialUser('G1', null)))->toBe(SocialIdentityResolver::OTHER_IDENTITY);
+
+    expect($user->socialIdentities()->where('provider', 'facebook')->whereNull('blocked_at')->count())->toBe(1);
+});
+
+test('B1: unlink bloquea todas las identidades activas del proveedor', function () {
+    $user = User::factory()->create();
+    $user->socialIdentities()->create(['provider' => 'facebook', 'provider_user_id' => 'a']);
+    $user->socialIdentities()->create(['provider' => 'facebook', 'provider_user_id' => 'b']);
+
+    expect(app(SocialIdentityResolver::class)->unlink($user, 'facebook'))->toBeTrue();
+    expect($user->socialIdentities()->whereNull('blocked_at')->count())->toBe(0);
+});
+
+test('B2: una identidad desvinculada en otra cuenta se transfiere al vincularla a mano y se audita', function () {
+    $old = User::factory()->create();
+    $new = User::factory()->create();
+    $resolver = app(SocialIdentityResolver::class);
+    $resolver->link($old, 'facebook', socialUser('fbx', null));
+    $resolver->unlink($old, 'facebook');
+
+    expect($resolver->link($new, 'facebook', socialUser('fbx', null)))->toBe(SocialIdentityResolver::LINKED);
+
+    $row = SocialIdentity::where('provider_user_id', 'fbx')->sole();
+    expect($row->user_id)->toBe($new->id)->and($row->isBlocked())->toBeFalse();
+    expect($old->socialIdentities()->count())->toBe(0);
+    expect(AuditLog::where('action', 'social.linked')->where('user_id', $new->id)->where('detail', 'like', '%transferida_de%')->count())->toBe(1);
+});
+
+test('B6: el fallo por id vacio al vincular se audita como DENIED del usuario autenticado', function () {
+    $user = User::factory()->create();
+
+    app(SocialIdentityResolver::class)->link($user, 'facebook', socialUser('', null));
+
+    expect(AuditLog::where('action', 'social.linked')->where('user_id', $user->id)->where('outcome', 'denied')->count())->toBe(1);
 });

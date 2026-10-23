@@ -8,7 +8,7 @@ use PragmaRX\Google2FA\Google2FA;
 
 require_once __DIR__.'/SocialTestHelpers.php';
 
-const SOCIAL_REJECT_GOOGLE = 'No hemos podido iniciar sesión con Google. Entra con tu contraseña y vincula Google desde tu perfil.';
+const SOCIAL_REJECT_GOOGLE = 'No hay ninguna cuenta vinculada a esta identidad. Vincúlala desde tu perfil.';
 
 beforeEach(fn () => enableSocialProviders());
 
@@ -76,6 +76,7 @@ test('CA-03: Google sin email se rechaza', function () {
 
     $this->assertGuest();
     expect(SocialIdentity::count())->toBe(0);
+    expect(AuditLog::where('action', 'auth.social.login')->where('outcome', 'denied')->where('detail', 'like', '%no_email%')->count())->toBe(1);
 });
 
 test('Google verificado pero con la cuenta local sin verificar no vincula', function () {
@@ -117,7 +118,7 @@ test('CA-05: Facebook sin identidad vinculada se rechaza aunque el email coincid
     User::factory()->create(['email' => 'ana@example.com']);
     socialProviderReturns('facebook', fakeSocialUser('fb-1', 'ana@example.com'));
 
-    $this->get('/auth/facebook/callback')->assertRedirect('/login#')->assertSessionHasErrors(['email' => 'No hemos podido iniciar sesión con Facebook. Entra con tu contraseña y vincula Facebook desde tu perfil.']);
+    $this->get('/auth/facebook/callback')->assertRedirect('/login#')->assertSessionHasErrors(['email' => SOCIAL_REJECT_GOOGLE]);
 
     $this->assertGuest();
     expect(SocialIdentity::count())->toBe(0);

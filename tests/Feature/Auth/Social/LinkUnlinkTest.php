@@ -110,7 +110,7 @@ test('cancelar o state invalido al vincular vuelve al perfil, sin 500', function
 
     $this->withSession(['social.intent' => 'link'])->get('/auth/google/callback?error=access_denied')
         ->assertRedirect(route('profile.edit', absolute: false))
-        ->assertSessionHasErrors(['social' => 'Cancelaste el inicio de sesión con Google.']);
+        ->assertSessionHasErrors(['social' => 'Has cancelado el inicio de sesión con Google.']);
 });
 
 test('CA-08: desvincular bloquea la identidad, audita social.unlinked y el login con ella no entra', function () {

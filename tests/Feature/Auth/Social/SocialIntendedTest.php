@@ -106,3 +106,32 @@ test('la passkey sigue entrando sin reto aunque haya un login social a medias', 
     $this->assertAuthenticatedAs($user);
     expect(session()->has('login.via'))->toBeFalse();
 });
+
+test('CA-06: Facebook vinculado con 2FA va al reto (con #), sin sesion, y despues a intended', function () {
+    $user = socialUserWith2fa();
+    $user->socialIdentities()->create(['provider' => 'facebook', 'provider_user_id' => 'fb-9', 'linked_at' => now()]);
+    socialProviderReturns('facebook', fakeSocialUser('fb-9', null));
+    $dest = url('/oauth/authorize?client_id=abc');
+
+    $this->withSession(['url.intended' => $dest])->get('/auth/facebook/callback')->assertRedirect(route('two-factor.challenge').'#');
+    $this->assertGuest();
+    expect(session('login.id'))->toBe($user->id)->and(session('login.via'))->toBe('facebook');
+
+    $g = new Google2FA;
+    $this->post('/two-factor-challenge', ['code' => $g->oathTotp($user->two_factor_secret, $g->getTimestamp())])->assertRedirect($dest);
+    $this->assertAuthenticatedAs($user);
+});
+
+test('B5: el login sin 2FA olvida los login.* de un reto abandonado', function () {
+    $user = linkedGoogleUser('g-8');
+    socialProviderReturns('google', fakeSocialUser('g-8', $user->email, true));
+
+    $this->withSession(['login.id' => 999, 'login.remember' => true, 'login.at' => time(), 'login.via' => 'password'])
+        ->get('/auth/google/callback');
+
+    $this->assertAuthenticatedAs($user);
+    expect(session()->has('login.id'))->toBeFalse()
+        ->and(session()->has('login.remember'))->toBeFalse()
+        ->and(session()->has('login.at'))->toBeFalse()
+        ->and(session()->has('login.via'))->toBeFalse();
+});

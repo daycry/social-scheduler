@@ -32,7 +32,7 @@ use Throwable;
  *  - schedule: bool (true = programada, exige fecha futura; false = borrador)
  *  - publish_now: bool (true = programada AHORA y se encola tras el commit: no exige fecha futura, la fecha la pone el servidor)
  *  - media: list<int> ids de MediaAsset (en orden de publicacion)
- *  - targets: list<array{account_id: int, content_type: string, options?: array}>
+ *  - targets: list<array{account_id: int, content_type: string, options?: array, text?: ?string}> (`text` null/ausente = vinculado a la plantilla; texto propio = se publica ese)
  */
 class PostService
 {
@@ -155,7 +155,7 @@ class PostService
             'text' => $post->text,
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
-                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [],
+                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text,
             ])->all(),
         ];
     }
@@ -185,7 +185,7 @@ class PostService
                 }
                 if ($target->status !== PostStatus::Draft) {
                     // Al volver a borrador el estado residual del intento anterior se descarta (el contenido puede cambiar).
-                    $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $post->text, $post->scheduled_at));
+                    $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $this->effectiveTextOf($target, $post->text), $post->scheduled_at));
                     YouTubePublisher::forgetUploadSession($target->id);
                 }
             }
@@ -218,7 +218,7 @@ class PostService
             $post->forceFill(['scheduled_at' => $at])->save();
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
-                    $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $post->text, $oldScheduledAt));
+                    $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $this->effectiveTextOf($t, $post->text), $oldScheduledAt));
                     YouTubePublisher::forgetUploadSession($t->id); // la sesion de subida del intento anterior no se reutiliza
                 });
             $post->syncStatus();
@@ -241,7 +241,7 @@ class PostService
                 if ($this->isOrphanedProcessing($target)) {
                     $this->applyTransition($target, PostStatus::Failed, ['error_code' => 'cuenta_no_disponible', 'error_message' => 'Enviada a la papelera: la cuenta ya no estaba disponible.']);
                 } elseif ($target->status === PostStatus::Scheduled) {
-                    $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $post->text, $post->scheduled_at));
+                    $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $this->effectiveTextOf($target, $post->text), $post->scheduled_at));
                     YouTubePublisher::forgetUploadSession($target->id);
                 }
             }
@@ -326,7 +326,7 @@ class PostService
      * Valida todo y devuelve el plan normalizado (sin tocar la BD).
      *
      * @param  array<string, mixed>  $data
-     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>}
+     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string}>}
      */
     private function plan(User $user, Brand $brand, array $data): array
     {
@@ -406,11 +406,13 @@ class PostService
             }
             $seen[$account->id.'|'.$type->value] = true;
 
-            foreach ($this->validator->validate($type, $media, $text) as $message) {
+            // Texto propio del destino (null = vinculado a la plantilla): se valida el EFECTIVO, que es el que se publica.
+            $ownText = isset($raw['text']) ? (string) $raw['text'] : null;
+            foreach ($this->validator->validate($type, $media, $ownText ?? $text) as $message) {
                 $errors[$key][] = $message;
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => (array) ($raw['options'] ?? [])];
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => (array) ($raw['options'] ?? []), 'text' => $ownText];
         }
 
         if ($errors !== []) {
@@ -431,17 +433,15 @@ class PostService
      * Sincroniza media y destinos con el plan. Los destinos existentes (ya bloqueados y editables) se actualizan;
      * los que sobran se borran; los nuevos se crean.
      *
-     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array}>}  $plan
+     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string}>}  $plan
      * @param  Collection<string, PostTarget>|null  $existing
      * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
     private function fill(Post $post, array $plan, ?Collection $existing = null, ?array $before = null): void
     {
         $existing ??= new Collection;
-        $contentChanged = $before !== null && (
-            ($before['text'] ?? null) !== ($plan['text'] ?? null)
-            || $before['media'] !== array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media'])
-        );
+        // La media es comun a todos los destinos; el TEXTO se compara por destino (texto efectivo viejo frente al nuevo, ADR-005).
+        $mediaChanged = $before !== null && $before['media'] !== array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']);
         $post->media()->sync(collect($plan['media'])->mapWithKeys(fn (MediaAsset $m, int $i) => [$m->id => ['position' => $i]])->all());
 
         $kept = [];
@@ -456,6 +456,7 @@ class PostService
                     'content_type' => $t['type'],
                     'status' => $plan['status'],
                     'options' => $t['options'] ?: null,
+                    'text' => $t['text'],
                 ]);
                 $target->user_id = $post->user_id;
                 $target->post_id = $post->id;
@@ -468,9 +469,14 @@ class PostService
             // Un destino con error vuelve a empezar de cero; uno pendiente conserva sus intentos (idempotencia) mientras
             // el contenido sea el mismo: si cambia el texto, la media o las opciones del destino, el estado residual
             // (referencia externa, progreso, intentos) pertenece al contenido viejo y se descarta. Solo la fecha: se conserva.
+            // El texto efectivo VIEJO se calcula aqui, antes de escribir `text` en el destino: es el que `freshAttempt` guarda en
+            // `reconcile.text` para que el reintento reconozca lo ya publicado con el texto anterior.
+            $oldText = $this->effectiveTextOf($current, $before['text'] ?? null);
+            $newText = $t['text'] ?? ($plan['text'] ?? null);
+            $textChanged = $before !== null && $oldText !== $newText;
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
-            $fresh = $current->status === PostStatus::Failed || $contentChanged || $optionsChanged;
-            $attributes = ['options' => $t['options'] ?: null] + ($fresh ? $this->freshAttempt($current, $before['text'] ?? null, $before['scheduled_at'] ?? null) : []);
+            $fresh = $current->status === PostStatus::Failed || $mediaChanged || $textChanged || $optionsChanged;
+            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text']] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
             }
@@ -524,6 +530,12 @@ class PostService
         $attributes['progress'] = $carried !== null ? ['reconcile' => $carried] : null;
 
         return $attributes;
+    }
+
+    /** Texto efectivo de un destino con el texto de plantilla indicado (el propio si lo tiene; `null` = vinculado). */
+    private function effectiveTextOf(PostTarget $target, ?string $templateText): ?string
+    {
+        return $target->text ?? $templateText;
     }
 
     /** «Publicar ahora» salta la espera de un reintento transitorio, pero NO la pausa por cuota de la red. */

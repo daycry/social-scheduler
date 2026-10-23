@@ -646,11 +646,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-19 — `plan()` y `fill()` por texto efectivo: reinicio por destino, texto viejo para la reconciliación y `schedule()`
 
 - **Descripción**: En `plan()` se valida el texto efectivo de cada destino (máximos y hashtags). En `fill()` el «contenido cambiado» se decide por destino y el texto efectivo **viejo** se calcula antes de cualquier escritura para guardarlo en `progress.reconcile.text` vía `freshAttempt()`. `schedule()` y `publishNow()` reconstruyen los destinos desde la BD y **copian `text`**, o al programar un borrador se perdería el texto propio.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 7,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,94h · real —
-- **Supervisión**: est. 0,24h (≈25 % IA) · real —
+- **Changelog**: Editar el texto de una red solo reinicia el intento de esa red, y programar un borrador conserva el texto propio de cada una; los límites y hashtags se validan por red.
+- **Estado**: completado
+- **Tiempo humano**: est. 7,0h · real 7.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,94h · real 0.9h (estimado)
+- **Supervisión**: est. 0,24h (≈25 % IA) · real 0.25h (estimado)
 - **Previsión IA**: 255k in / 28k out tok · ⚠️ verificar €
 - **Dependencias**: T-18
 - **Tipo**: backend
@@ -662,18 +662,18 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Posts tests/Feature/Publishing` → en verde
 
 **Criterios de aceptación**
-- [ ] Plantilla editada: solo se reinician los destinos vinculados; texto propio editado: solo ese destino
-- [ ] `reconcile.text` contiene el texto efectivo viejo, nunca el nuevo
-- [ ] Programar un borrador conserva el texto propio de cada destino
-- [ ] Editar un destino sin cambios no reinicia ningún intento
+- [x] Plantilla editada: solo se reinician los destinos vinculados; texto propio editado: solo ese destino
+- [x] `reconcile.text` contiene el texto efectivo viejo, nunca el nuevo
+- [x] Programar un borrador conserva el texto propio de cada destino
+- [x] Editar un destino sin cambios no reinicia ningún intento
 
 **Subtareas**
-- [ ] Calcular el texto efectivo viejo por destino antes de `fill()`
-- [ ] Cambio por destino en `fill()`
-- [ ] Copiar `text` en `schedule()` y `publishNow()`
-- [ ] Pest de los tres casos
+- [x] Calcular el texto efectivo viejo por destino antes de `fill()`
+- [x] Cambio por destino en `fill()`
+- [x] Copiar `text` en `schedule()` y `publishNow()`
+- [x] Pest de los tres casos
 
-**Notas**: Es el cálculo de mayor riesgo del plan: un texto viejo mal guardado hace que un reintento no reconozca lo ya publicado.
+**Notas**: **Evidencia**: `--filter=TargetTextPlanFill` → 7 passed (CA-10, plantilla editada, vincular/desvincular, schedule y publishNow conservan `text`, texto propio vacío, máximos y hashtags por texto efectivo); `--filter=TargetTextFreshAttempt` → 5 passed (`reconcile.text` = texto efectivo viejo: vinculado, propio, vincular/desvincular, dos ediciones); `tests/Feature/Posts tests/Feature/Publishing` → 152 passed. `MediaValidator` no necesitó cambios (ya validaba texto y hashtags: se le pasa el texto efectivo). TDD n/a: los tests se escribieron junto al código, sin evidencia RED separada.
 
 ---
 

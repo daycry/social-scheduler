@@ -97,13 +97,13 @@ test('con e2e activo y sin fichero de identidad, la query no inicia sesion ni se
     try {
         foreach (['?driver=fake', '?APP_ENV=e2e', '?fake_email=a@b.test&fake_id=1'] as $query) {
             // El redirect falso vuelve al callback con un code; la query de la peticion no se refleja en el viaje.
-            $location = $this->get('/auth/google/redirect'.$query)->assertRedirect()->headers->get('Location');
+            $location = $this->get('http://localhost:8080/auth/google/redirect'.$query)->assertRedirect()->headers->get('Location');
             expect($location)->not->toContain('fake_email')->not->toContain('a@b.test');
             parse_str((string) parse_url($location, PHP_URL_QUERY), $q);
 
             Socialite::forgetDrivers();
             // Sin identidad preparada el callback no puede autenticar a nadie, ni aunque la query traiga fake_email.
-            $this->get('/auth/google/callback?code='.($q['code'] ?? 'x').'&state='.($q['state'] ?? 'x').'&fake_email=a@b.test&fake_id=1');
+            $this->get('http://localhost:8080/auth/google/callback?code='.($q['code'] ?? 'x').'&state='.($q['state'] ?? 'x').'&fake_email=a@b.test&fake_id=1');
             $this->assertGuest();
             $this->assertDatabaseMissing('users', ['email' => 'a@b.test']);
         }
@@ -127,21 +127,21 @@ test('en e2e el viaje usa el state real y vuelve al callback con la identidad pr
     file_put_contents($path, json_encode(['google' => ['id' => 'g-e2e', 'email' => 'x@example.test', 'email_verified' => true]]));
 
     try {
-        $location = $this->get('/auth/google/redirect')->assertRedirect()->headers->get('Location');
+        $location = $this->get('http://localhost:8080/auth/google/redirect')->assertRedirect()->headers->get('Location');
         expect($location)->toContain('/auth/google/callback?')->toContain('state=');
         parse_str((string) parse_url($location, PHP_URL_QUERY), $q);
 
         // El state de la sesion se valida: uno inventado cae en "sesion caducada", sin sesion iniciada.
-        $this->get('/auth/google/callback?code=x&state=inventado')->assertRedirect('/login')->assertSessionHasErrors('email');
+        $this->get('http://localhost:8080/auth/google/callback?code=x&state=inventado')->assertRedirect('/login')->assertSessionHasErrors('email');
         $this->assertGuest();
 
         // Con el state de la sesion, la identidad preparada entra por la vinculacion existente.
         $user = User::factory()->create();
         $user->socialIdentities()->create(['provider' => 'google', 'provider_user_id' => 'g-e2e', 'linked_at' => now()]);
-        $location = $this->get('/auth/google/redirect')->headers->get('Location');
+        $location = $this->get('http://localhost:8080/auth/google/redirect')->headers->get('Location');
         parse_str((string) parse_url($location, PHP_URL_QUERY), $q);
         Socialite::forgetDrivers(); // en un servidor real cada peticion crea su driver
-        $r = $this->get('/auth/google/callback?code='.$q['code'].'&state='.$q['state']);
+        $r = $this->get('http://localhost:8080/auth/google/callback?code='.$q['code'].'&state='.$q['state']);
         $r->assertRedirect();
         $this->assertAuthenticatedAs($user);
     } finally {

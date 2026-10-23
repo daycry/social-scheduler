@@ -46,10 +46,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
-| Fase 4 — C-04 | 3 | 8 | 38% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
+| Fase 4 — C-04 | 4 | 8 | 50% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **27** | **42** | **64%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **28** | **42** | **67%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -957,15 +957,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-29 — Persistencia de presets: tabla `composer_presets`, `ComposerPresetService` y valores iniciales
 
 - **Descripción**: Migración **solo aditiva** (`composer_presets`, único `brand_id, network`) y `ComposerPresetService::forBrand()` / `remember()`, que `store` y `update` llaman al guardar. Solo interruptores: título, tags y enlace no persisten. El MCP **no** escribe presets (decisión del usuario). Una marca ajena no se lee ni se escribe.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Changelog**: Los interruptores de cada red (por ejemplo no notificar a suscriptores en YouTube) se recuerdan por marca y se aplican como valor inicial en las publicaciones nuevas de esa marca.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 5.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0.17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-28
 - **Tipo**: db
-- **Archivos**: `database/migrations/2026_11_10_090000_create_composer_presets_table.php`, `app/Models/ComposerPreset.php`, `app/Services/ComposerPresetService.php`, `app/Http/Controllers/PostController.php`, `tests/Feature/Posts/ComposerPresetsTest.php`
+- **Archivos**: `database/migrations/2026_11_10_090000_create_composer_presets_table.php`, `app/Models/ComposerPreset.php`, `app/Services/ComposerPresetService.php`, `app/Http/Controllers/PostController.php`, `tests/Feature/Posts/ComposerPresetsTest.php`, `docs/roadmap/2026-10-23-post-composer/testing/verificacion-campos-c04.md`
 - **Cubre (tests)**: E2E-09
 - **Verificación**:
   - `php artisan migrate:fresh --env=testing --no-interaction` → migra sin error
@@ -973,20 +973,17 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Posts tests/Feature/Mcp` → en verde
 
 **Criterios de aceptación**
-- [ ] CA-15: el interruptor guardado en la marca A aparece en un post nuevo de A y no en B
-- [ ] Los campos de texto no persisten
-- [ ] Un usuario no puede leer ni escribir presets de una marca ajena
+- [x] CA-15: el interruptor guardado en la marca A aparece en un post nuevo de A y no en B
+- [x] Los campos de texto no persisten
+- [x] Un usuario no puede leer ni escribir presets de una marca ajena
 
 **Subtareas**
-- [ ] Migración aditiva
-- [ ] Modelo con ámbito de usuario
-- [ ] `remember()` en `store` y `update`
-- [ ] Props con los presets
+- [x] Migración aditiva
+- [x] Modelo con ámbito de usuario
+- [x] `remember()` en `store` y `update`
+- [x] Props con los presets
 
-**Notas**: —
-
----
-
+**Notas**: **Evidencia**: `migrate:fresh --env=testing` migra `2026_11_10_090000_create_composer_presets_table` (aditiva, único `brand_id, network`). `--filter=ComposerPresets` → 7 passed (CA-15: la marca A recuerda y la B no; los textos, tags, categoría y enlace no persisten; guardar de nuevo actualiza la fila y mezcla; editar también recuerda; marca ajena rechazada en lectura y escritura, por servicio y por web, con la fila ajena intacta; el MCP no escribe presets; una validación fallida no guarda). `tests/Feature/Posts tests/Feature/Mcp tests/Feature/Publishing` → 395 passed. Decisiones: `brand_content_toggle` NO se recuerda (la divulgación comercial debe ser explícita en cada publicación; el informe de T-26 se ajusta); `remember()` se llama desde `store` y `update` con los destinos ya guardados y filtra a booleanos de la lista blanca `ComposerPresetService::REMEMBERED`. Los presets llegan como prop `presets` (`{red: {interruptor: bool}}`). Cada fila lleva `user_id` y el modelo usa el ámbito de usuario.
 ### T-30 — `PresetsPanel`: opciones globales y por red, ocultando lo que no aplica
 
 - **Descripción**: Interruptores accesibles por red (YouTube, TikTok y lo ya existente de Instagram), con la regla de ocultar lo no admitido (modo borrador de TikTok, opciones no confirmadas en T-26) y el aviso de «hecho para niños».

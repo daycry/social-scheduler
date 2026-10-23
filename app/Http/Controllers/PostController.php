@@ -10,6 +10,7 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\ComposerPresetService;
 use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SocialAccountService;
@@ -33,6 +34,7 @@ class PostController extends Controller
         private readonly PostService $posts,
         private readonly SocialAccountService $accounts,
         private readonly MediaValidator $validator,
+        private readonly ComposerPresetService $presets,
     ) {}
 
     public function create(Request $request, Brand $brand): Response
@@ -51,6 +53,9 @@ class PostController extends Controller
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }
+
+        // Interruptores recordados por (marca, red): solo desde el compositor web (el MCP no los escribe).
+        $this->presets->remember($request->user(), $brand, $post->targets);
 
         return $this->afterSave($post, $request->boolean('publish_now') ? $this->publishingMessage($post) : 'Publicacion programada.', $request->boolean('publish_now'));
     }
@@ -71,6 +76,8 @@ class PostController extends Controller
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }
+
+        $this->presets->remember($request->user(), Brand::withoutUserScope()->findOrFail($post->brand_id), $post->targets);
 
         return $this->afterSave($post, $request->boolean('publish_now') ? $this->publishingMessage($post) : 'Publicacion actualizada.', $request->boolean('publish_now'));
     }
@@ -164,6 +171,7 @@ class PostController extends Controller
 
                 return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
             }),
+            'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
         ]);

@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class PostRequest extends FormRequest
 {
+    public const NOTES_MAX = 5000;
+
     public function authorize(): bool
     {
         return true; // la propiedad de la marca/publicacion se comprueba en el controlador (Policies)
@@ -15,6 +17,8 @@ class PostRequest extends FormRequest
     {
         return [
             'text' => ['nullable', 'string', 'max:70000'],
+            // Notas internas (C-09): texto plano, nunca se publican. Omitidas = no se tocan.
+            'notes' => ['nullable', 'string', 'max:'.self::NOTES_MAX],
             // Hora local de la marca ("2026-11-02T10:00"); la zona la aplica PostService.
             // Con `publish_now` la fecha no se envia: la pone el servidor (`now()`).
             'scheduled_at' => ['nullable', 'string', 'max:40', 'prohibited_if:publish_now,true,1'],

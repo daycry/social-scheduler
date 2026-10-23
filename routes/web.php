@@ -69,6 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
+    Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
     // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
     Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:publish-now')->name('posts.publish-now');

@@ -28,7 +28,7 @@ class Post extends Model
 {
     use BelongsToUser, HasFactory, SoftDeletes;
 
-    protected $fillable = ['text', 'scheduled_at', 'status'];
+    protected $fillable = ['text', 'notes', 'scheduled_at', 'status'];
 
     protected function casts(): array
     {

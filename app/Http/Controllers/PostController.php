@@ -112,6 +112,20 @@ class PostController extends Controller
         return back()->with('success', $this->publishingMessage($post));
     }
 
+    /**
+     * Notas internas (C-09): editables aunque el post ya no lo sea. Un post ajeno es un 404 (UserScope + Policy). No toca los destinos
+     * ni se audita su contenido.
+     */
+    public function updateNotes(Request $request, Post $post): RedirectResponse
+    {
+        $this->authorize('update', $post);
+
+        $data = $request->validate(['notes' => ['nullable', 'string', 'max:'.PostRequest::NOTES_MAX]]);
+        $this->posts->updateNotes($request->user(), $post, $data['notes'] ?? null);
+
+        return back()->with('success', 'Notas guardadas.');
+    }
+
     /** Mensaje honesto: si algun destino sigue en pausa por cuota, no se promete «unos segundos». */
     private function publishingMessage(Post $post): string
     {
@@ -186,6 +200,7 @@ class PostController extends Controller
         return [
             'id' => $post->id,
             'text' => $post->text,
+            'notes' => $post->notes,
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.

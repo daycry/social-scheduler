@@ -10,6 +10,7 @@ use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
 use App\Exceptions\PostValidationException;
+use App\Http\Requests\PostRequest;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
@@ -91,6 +92,9 @@ class PostService
 
         return DB::transaction(function () use ($user, $brand, $plan) {
             $post = new Post(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']]);
+            if ($plan['notes'] !== false) {
+                $post->notes = $plan['notes'];
+            }
             $post->user_id = $user->id;
             $post->brand_id = $brand->id;
             $post->save();
@@ -125,12 +129,44 @@ class PostService
             // (contenedor de Instagram, hijos de un carrusel, sesion de subida...) ya no corresponde a lo que se va a publicar.
             $before = ['text' => $post->text, 'scheduled_at' => $post->scheduled_at, 'media' => $post->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all()];
 
-            $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']])->save();
+            $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']]);
+            if ($plan['notes'] !== false) {
+                $post->notes = $plan['notes']; // fuera de `$before`/`fill()`: una nota nunca cuenta como «contenido cambiado»
+            }
+            $post->save();
             $this->fill($post, $plan, $existing, $before);
             $this->dispatchAfterCommit($post, $plan);
 
             return $post->fresh(['targets', 'media']);
         });
+    }
+
+    /**
+     * Notas internas (C-09): se editan en cualquier estado del post (publicado o en vuelo incluidos) porque no se publican.
+     * No toca los destinos ni `fill()`, asi que no reinicia ningun intento. No se audita su contenido.
+     */
+    public function updateNotes(User $user, Post $post, ?string $notes): Post
+    {
+        $this->assertOwns($user, $post);
+
+        $notes = self::normalizeNotes($notes);
+        if (mb_strlen((string) $notes) > PostRequest::NOTES_MAX) {
+            throw new PostValidationException(['notes' => ['Las notas admiten como maximo '.PostRequest::NOTES_MAX.' caracteres.']]);
+        }
+
+        $post->forceFill(['notes' => $notes])->save();
+
+        return $post->fresh(['targets', 'media']);
+    }
+
+    private static function normalizeNotes(mixed $notes): ?string
+    {
+        $notes = is_string($notes) ? str_replace('
+
+', '
+', $notes) : null;
+
+        return $notes === null || trim($notes) === '' ? null : $notes;
     }
 
     /** Programa un borrador (o una publicacion con error): exige fecha futura y contenido valido. */
@@ -499,6 +535,8 @@ class PostService
 
         return [
             'text' => $text,
+            // Notas internas: null = la entrada no las trae (no se tocan); '' o solo espacios = borrarlas. Nunca viajan a los publishers.
+            'notes' => array_key_exists('notes', $data) ? self::normalizeNotes($data['notes']) : false,
             'scheduled_at' => $at,
             'status' => $schedule ? PostStatus::Scheduled : PostStatus::Draft,
             'publish_now' => $publishNow,

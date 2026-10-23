@@ -11,6 +11,7 @@ import PostStatusHeader from '@/Components/Composer/PostStatusHeader.vue';
 import PreviewPanel from '@/Components/Composer/PreviewPanel.vue';
 import LibraryPanel from '@/Components/Composer/LibraryPanel.vue';
 import TargetStatusPanel from '@/Components/Composer/TargetStatusPanel.vue';
+import UnsavedGuard from '@/Components/Composer/UnsavedGuard.vue';
 import { useComposer } from '@/Composables/useComposer';
 import { Head } from '@inertiajs/vue3';
 
@@ -56,5 +57,6 @@ const { submit } = useComposer(props);
                 </aside>
             </div>
         </div>
+        <UnsavedGuard />
     </ComposerLayout>
 </template>

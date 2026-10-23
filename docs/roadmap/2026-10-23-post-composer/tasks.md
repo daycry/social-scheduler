@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 5 | 8 | 62% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 6 | 8 | 75% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **5** | **42** | **12%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **6** | **42** | **14%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -225,11 +225,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-06 — `UnsavedGuard`: confirmar al salir con cambios sin guardar
 
 - **Descripción**: Confirmación propia (diálogo accesible) al pulsar Cerrar o navegar con Inertia, más `beforeunload` para cerrar la pestaña. No aparece si no hay cambios ni tras guardar.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Si cierras el compositor con cambios sin guardar, te pide confirmación (y avisa también al cerrar la pestaña); si cancelas, sigues con tu texto.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.3h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-01
 - **Tipo**: frontend
@@ -240,15 +240,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `npm run build` → sin errores
 
 **Criterios de aceptación**
-- [ ] CA-04: con cambios se pide confirmación; si cancelo sigo con los cambios
-- [ ] Sin cambios o tras guardar no se pide nada
+- [x] CA-04: con cambios se pide confirmación; si cancelo sigo con los cambios
+- [x] Sin cambios o tras guardar no se pide nada
 
 **Subtareas**
-- [ ] Detectar «sucio» con `form.isDirty`
-- [ ] Diálogo propio con foco atrapado y Escape
-- [ ] Hook `router.on('before')` y `beforeunload`
+- [x] Detectar «sucio» con `form.isDirty`
+- [x] Diálogo propio con foco atrapado y Escape
+- [x] Hook `router.on('before')` y `beforeunload`
 
-**Notas**: —
+**Notas**: — **Evidencia**: `playwright composer.spec.ts -g E2E-03` → pasa en desktop (cancelar con Escape mantiene el texto y devuelve el foco a Cerrar; confirmar sale; sin cambios y tras guardar no pregunta); `flows.spec.ts` (borrador → calendario) y `pages.spec.ts` (compositor) siguen en verde; build OK. Detecta lo «sucio» con `form.isDirty`; diálogo propio con foco atrapado.
 
 ---
 

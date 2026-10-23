@@ -164,3 +164,45 @@ test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', a
     await expectNoOverflow(page);
     expect(w.errors).toEqual([]);
 });
+
+test('E2E-03 · confirmación al salir con cambios sin guardar', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    const cerrar = page.getByRole('link', { name: 'Cerrar' });
+    const dialogo = page.getByRole('alertdialog', { name: '¿Salir sin guardar?' });
+
+    // Sin cambios no se pide nada.
+    await cerrar.click();
+    await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
+
+    // Con cambios: cancelar mantiene el texto y el foco vuelve a Cerrar.
+    await open(page);
+    await page.getByLabel('Texto', { exact: true }).fill('e2e borrador sin guardar');
+    await cerrar.click();
+    await expect(dialogo).toBeVisible();
+    await page.screenshot({ path: 'test-results/composer-salir-sin-guardar.png' });
+    await expect(page.getByRole('button', { name: 'Seguir editando' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialogo).toHaveCount(0);
+    await expect(page).toHaveURL(/posts\/create$/);
+    await expect(page.getByLabel('Texto', { exact: true })).toHaveValue('e2e borrador sin guardar');
+    await expect(cerrar).toBeFocused();
+
+    // Volver a Cerrar y confirmar sale.
+    await cerrar.click();
+    await page.getByRole('button', { name: 'Seguir editando' }).click();
+    await expect(dialogo).toHaveCount(0);
+    await cerrar.click();
+    await page.getByRole('button', { name: 'Salir sin guardar' }).click();
+    await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
+
+    // Tras guardar el borrador ya no hay cambios pendientes: Cerrar sale sin preguntar.
+    await open(page);
+    await page.getByLabel('Texto', { exact: true }).fill('e2e borrador guardado');
+    await page.getByRole('button', { name: 'Guardar borrador' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: /Editar publicación/ })).toBeVisible();
+    await page.getByRole('link', { name: 'Cerrar' }).click();
+    await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
+
+    expect(w.errors).toEqual([]);
+});

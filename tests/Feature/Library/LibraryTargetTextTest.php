@@ -51,7 +51,7 @@ test('LibraryTargetText: guardar desde el compositor y usar la plantilla conserv
         ->and($byAccount[$this->fb->id]->effectiveText())->toBe('Plantilla comun');
 });
 
-test('LibraryTargetText: guardar un post existente desde el calendario conserva el texto propio, incluida la cadena vacia', function () {
+test('LibraryTargetText: guardar un post existente desde el calendario conserva el texto propio (un texto vacio es vinculado)', function () {
     $post = app(PostService::class)->create($this->user, $this->brand, [
         'text' => 'Comun', 'schedule' => false, 'media' => [$this->image->id],
         'targets' => [
@@ -63,7 +63,7 @@ test('LibraryTargetText: guardar un post existente desde el calendario conserva 
     $this->actingAs($this->user)->post(route('library.store'), ['post_id' => $post->id, 'name' => 'Desde post'])->assertSessionHasNoErrors();
 
     expect(PostTemplate::query()->firstOrFail()->targets)->toBe([
-        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => ''],
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image'],
         ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo', 'text' => 'Propio FB'],
     ]);
 });

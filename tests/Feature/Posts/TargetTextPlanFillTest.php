@@ -130,18 +130,18 @@ test('TargetTextPlanFill: programar un borrador y publicar ahora conservan el te
     expect($now->targets->pluck('text', 'social_account_id')->all())->toBe([$this->fbA->id => 'Propio A', $this->fbB->id => null]);
 });
 
-test('TargetTextPlanFill: un texto propio vacio se conserva como propio (no vuelve a vincularse)', function () {
+test('TargetTextPlanFill: un texto propio vacio o solo con espacios es vinculado (publica la plantilla)', function () {
     $asset = MediaAsset::factory()->for($this->user)->create();
     Storage::disk('local')->put($asset->path, 'x');
     $post = $this->service->create($this->user, $this->brand, ttData('Plantilla', [
         ['account_id' => $this->fbA->id, 'content_type' => 'facebook_photo', 'text' => ''],
     ], ['media' => [$asset->id]]));
 
-    expect($post->targets->first()->text)->toBe('')->and($post->targets->first()->effectiveText())->toBe('');
+    expect($post->targets->first()->text)->toBeNull()->and($post->targets->first()->effectiveText())->toBe('Plantilla');
 });
 
-test('TargetTextPlanFill: un texto propio vacio incumple el requisito de texto de una red que lo exige', function () {
-    expect(fn () => $this->service->create($this->user, $this->brand, ttData('Plantilla', [
+test('TargetTextPlanFill: un texto propio vacio con la plantilla vacia incumple el requisito de texto de una red que lo exige', function () {
+    expect(fn () => $this->service->create($this->user, $this->brand, ttData('', [
         ['account_id' => $this->fbA->id, 'content_type' => 'facebook_text', 'text' => ''],
     ])))->toThrow(PostValidationException::class);
 });

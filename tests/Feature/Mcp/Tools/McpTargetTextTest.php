@@ -61,7 +61,7 @@ test('McpTargetText: get_post devuelve el texto por destino y la plantilla vincu
         ->and($byAccount[$this->fb->id]['text'])->toBe('Propio FB');
 });
 
-test('McpTargetText: update_post cambia el texto propio, lo vincula de nuevo al omitirlo y respeta la cadena vacia', function () {
+test('McpTargetText: update_post cambia el texto propio, lo vincula de nuevo al omitirlo y un texto vacio o solo con espacios es vinculado', function () {
     [, $created] = $this->callTool($this->key, 'create_post', mtArgs(mtTargets(null, 'Propio FB')));
 
     [$err, $post] = $this->callTool($this->key, 'update_post', ['post_id' => $created['id']] + mtArgs(mtTargets('Propio IG', null), ['text' => 'Plantilla 2']));
@@ -70,9 +70,15 @@ test('McpTargetText: update_post cambia el texto propio, lo vincula de nuevo al 
         ->and($byAccount[$this->ig->id])->toMatchArray(['text' => 'Propio IG', 'effective_text' => 'Propio IG'])
         ->and($byAccount[$this->fb->id])->toMatchArray(['text' => null, 'effective_text' => 'Plantilla 2']);
 
-    [, $post] = $this->callTool($this->key, 'update_post', ['post_id' => $created['id']] + mtArgs(mtTargets('', null)));
-    $byAccount = collect($post['targets'])->keyBy('account_id');
-    expect($byAccount[$this->ig->id])->toMatchArray(['text' => '', 'effective_text' => '']);
+    // A3/B1 (revision de la Fase 3): un texto propio vacio o solo con espacios es `null` (vinculado), como en la web; si no, se
+    // publicaria vacio y `findPublished` de Instagram y Facebook no podria reconocer la publicacion.
+    foreach (['', '   ', "\n\t "] as $vacio) {
+        [$err, $post] = $this->callTool($this->key, 'update_post', ['post_id' => $created['id']] + mtArgs(mtTargets($vacio, $vacio)));
+        $byAccount = collect($post['targets'])->keyBy('account_id');
+        expect($err)->toBeFalse()
+            ->and($byAccount[$this->ig->id])->toMatchArray(['text' => null, 'effective_text' => 'Plantilla'])
+            ->and($byAccount[$this->fb->id])->toMatchArray(['text' => null, 'effective_text' => 'Plantilla']);
+    }
 });
 
 test('McpTargetText: el maximo y los hashtags se validan por red con el texto efectivo y el error sale como en la web', function () {

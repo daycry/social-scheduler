@@ -478,7 +478,9 @@ class PostService
             $seen[$account->id.'|'.$type->value] = true;
 
             // Texto propio del destino (null = vinculado a la plantilla): se valida el EFECTIVO, que es el que se publica.
-            $ownText = isset($raw['text']) ? (string) $raw['text'] : null;
+            // Un texto propio vacio o solo con espacios es `null` (vinculado): publicaria vacio y `findPublished` no podria reconocerlo.
+            // Igual que la web (`TrimStrings` + `ConvertEmptyStringsToNull`), y vale tambien para el MCP.
+            $ownText = isset($raw['text']) && trim((string) $raw['text']) !== '' ? (string) $raw['text'] : null;
             foreach ($this->validator->validate($type, $media, $ownText ?? $text) as $message) {
                 $errors[$key][] = $message;
             }

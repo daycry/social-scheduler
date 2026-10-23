@@ -225,7 +225,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <article v-for="item in itemsAt(d, h)" :key="item.id" :draggable="item.editable" class="rounded border p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'" @dragstart="dragStart(item, $event)">
                                     <Link :href="route('posts.edit', item.id)" class="block">
                                         <span class="flex flex-wrap items-center gap-1">
-                                            <span class="text-slate-500">{{ item.local_time }}</span>
+                                            <span class="text-slate-600">{{ item.local_time }}</span>
                                             <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge :status="item.status" :label="item.status_label" />
                                         </span>
@@ -247,7 +247,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <div class="grid grid-cols-7">
                         <div v-for="d in days" :key="d" class="min-h-[6.5rem] space-y-1 border-b border-l border-slate-100 p-1" :class="d.slice(0, 7) === monthOf ? '' : 'bg-slate-50 text-slate-500'" @dragover.prevent @drop.prevent="drop(d)">
                             <div class="text-xs" :class="d === today ? 'font-bold text-indigo-700' : ''">{{ Number(d.slice(8)) }}</div>
-                            <article v-for="item in itemsAt(d)" :key="item.id" :draggable="item.editable" class="rounded border bg-white p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move' : 'opacity-80'" @dragstart="dragStart(item, $event)">
+                            <article v-for="item in itemsAt(d)" :key="item.id" :draggable="item.editable" class="rounded border p-1 text-xs shadow-sm" :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'" @dragstart="dragStart(item, $event)">
                                 <Link :href="route('posts.edit', item.id)" class="block">
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="text-slate-500">{{ item.local_time }}</span>

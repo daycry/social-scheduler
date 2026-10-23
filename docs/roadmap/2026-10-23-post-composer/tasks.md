@@ -44,12 +44,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
-| Fase 2 — C-08 | 2 | 9 | 22% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
+| Fase 2 — C-08 | 3 | 9 | 33% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **10** | **42** | **24%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **11** | **42** | **26%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -356,30 +356,30 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-10 — `DateTimePicker` propio con la zona de la marca y sin días pasados
 
 - **Descripción**: Selector accesible por teclado que muestra la zona de la marca, bloquea los días pasados y guarda `Y-m-d\TH:i` como hoy. Con un `input datetime-local` nativo de respaldo si el selector propio falla en accesibilidad (mitigación de la evaluación).
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
-- **Supervisión**: est. 0,20h (≈25 % IA) · real —
+- **Changelog**: La fecha de publicación se elige en un calendario propio que muestra la zona horaria de la marca, no deja elegir días pasados y se maneja con el teclado.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,0h · real 5.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0.7h (estimado)
+- **Supervisión**: est. 0,20h (≈25 % IA) · real 0.18h (estimado)
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/DateTimePicker.vue`, `resources/js/Composables/useComposer.js`
+- **Archivos**: `resources/js/Components/Composer/DateTimePicker.vue`, `resources/js/Components/Composer/ScheduleSection.vue`, `resources/js/Composables/useComposer.js`
 - **Cubre (tests)**: E2E-04, M-03
 - **Verificación**:
   - `npm run test:e2e -- --grep "E2E-04"` → pasa (zona visible, día pasado bloqueado, valor guardado `Y-m-d\TH:i`)
   - `php artisan test --compact tests/Feature/Posts` → en verde (el formato guardado no cambia)
 
 **Criterios de aceptación**
-- [ ] CA-27: muestra la zona de la marca, no deja días pasados y guarda el mismo formato que hoy
-- [ ] Operable con teclado y sin violaciones de axe
+- [x] CA-27: muestra la zona de la marca, no deja días pasados y guarda el mismo formato que hoy
+- [x] Operable con teclado y sin violaciones de axe
 
 **Subtareas**
-- [ ] Calendario y hora con rol `dialog`/`grid`
-- [ ] Respaldo nativo
-- [ ] Test del formato enviado
+- [x] Calendario y hora con rol `dialog`/`grid`
+- [x] Respaldo nativo
+- [x] Test del formato enviado
 
-**Notas**: Es la pieza de UI con más riesgo de accesibilidad (evaluación).
+**Notas**: **Evidencia**: `npm run build` → OK. `composer.spec.ts --project=desktop` → 13 passed, entre ellos E2E-04 (se ejecuta en T-16): zona `Europe/Madrid` visible, el día de ayer deshabilitado y ArrowLeft no sale de «hoy», día elegido → `data-value` = `Y-m-d\TH:i`, y la petición que envía Programar lleva `scheduled_at: "<día>T14:30"` (mismo formato que antes). axe sin violaciones serias o críticas con el selector abierto. El selector compara con «hoy» y la hora actual EN LA ZONA DE LA MARCA (`Intl.DateTimeFormat`, zona inválida → UTC); si la fecha es hoy, la hora mínima es la próxima franja de 5 minutos. Roles: `dialog` + `grid`/`gridcell`, tabulación circular y Escape devuelve el foco al botón. Respaldo nativo: el prop `native` pinta un `input datetime-local` con `min`; no se activa porque axe y el teclado pasan con el selector propio (decisión local, no cruza el umbral de ADR). `useComposer.js` no cambia en esta tarea (el `form.scheduled_at` ya existía). Pendiente M-03 (revisión manual del usuario en el navegador).
 
 ---
 

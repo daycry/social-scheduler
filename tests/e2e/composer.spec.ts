@@ -109,3 +109,58 @@ test('E2E-02 · contadores por red y tope de hashtags', async ({ page }) => {
     await axeNow(page, 'compositor con contadores');
     expect(w.errors).toEqual([]);
 });
+
+test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', async ({ page }) => {
+    const w = watch(page);
+    // El asistente IA es opcional en el servidor: se simula su estado para poder probar el botón (sin llamar a ningún proveedor).
+    await page.route('**/ai/status', (route) => route.fulfill({ json: { enabled: true, remaining: 5 } }));
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+
+    const texto = page.getByLabel('Texto', { exact: true });
+    const toolbar = page.getByRole('toolbar', { name: 'Herramientas del editor' });
+    const botonEmoji = toolbar.getByRole('button', { name: /Insertar emoji/ });
+
+    // Emoji en la posición del cursor (entre «Hola» y «Mundo»), con buscador y teclado.
+    await texto.fill('HolaMundo');
+    await texto.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(4, 4));
+    await botonEmoji.focus();
+    await page.keyboard.press('Enter');
+    const selector = page.getByRole('dialog', { name: 'Selector de emoji' });
+    await expect(selector).toBeVisible();
+    await expect(page.getByLabel('Buscar emoji')).toBeFocused();
+    await page.screenshot({ path: 'test-results/composer-emoji-picker.png' });
+    await page.getByLabel('Buscar emoji').fill('fuego');
+    await selector.getByRole('button', { name: 'Fuego' }).click();
+    await expect(texto).toHaveValue('Hola🔥Mundo');
+    await expect(selector).toHaveCount(0);
+    await expect(botonEmoji).toBeFocused();
+
+    // Escape cierra el selector y devuelve el foco al botón.
+    await page.keyboard.press('Enter');
+    await expect(selector).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(selector).toHaveCount(0);
+    await expect(botonEmoji).toBeFocused();
+    await expect(texto).toHaveValue('Hola🔥Mundo');
+
+    // IA: se abre con el teclado y Escape la cierra devolviendo el foco.
+    const ia = toolbar.getByRole('button', { name: 'Sugerir texto' });
+    await ia.focus();
+    await page.keyboard.press('Enter');
+    await expect(ia).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByLabel(/¿De qué trata la publicación/)).toBeVisible();
+    await page.getByLabel(/¿De qué trata la publicación/).focus();
+    await page.keyboard.press('Escape');
+    await expect(ia).toHaveAttribute('aria-expanded', 'false');
+    await expect(ia).toBeFocused();
+
+    // Media: el control de subida es alcanzable con el teclado y tiene nombre accesible.
+    const media = toolbar.getByLabel('Añadir imagen o vídeo');
+    await media.focus();
+    await expect(media).toBeFocused();
+
+    await axeNow(page, 'compositor con barra del editor');
+    await expectNoOverflow(page);
+    expect(w.errors).toEqual([]);
+});

@@ -1,0 +1,40 @@
+<script setup>
+import { nextTick, ref } from 'vue';
+
+/**
+ * Área de texto grande del compositor. Expone `insertAtCursor(texto)`: sustituye la selección actual (o inserta en el
+ * cursor, que el navegador conserva aunque el foco esté en otro control) y deja el cursor tras lo insertado.
+ */
+const props = defineProps({
+    modelValue: { type: String, default: '' },
+    disabled: { type: Boolean, default: false },
+});
+const emit = defineEmits(['update:modelValue']);
+
+const area = ref(null);
+
+const insertAtCursor = async (text) => {
+    const el = area.value;
+    if (!el) return;
+    const start = el.selectionStart ?? props.modelValue.length;
+    const end = el.selectionEnd ?? start;
+    emit('update:modelValue', props.modelValue.slice(0, start) + text + props.modelValue.slice(end));
+    await nextTick();
+    // No se roba el foco: tras elegir un emoji el foco vuelve al botón de la barra; el cursor queda tras lo insertado.
+    el.setSelectionRange(start + text.length, start + text.length);
+};
+
+defineExpose({ insertAtCursor, focus: () => area.value?.focus() });
+</script>
+
+<template>
+    <textarea
+        id="text"
+        ref="area"
+        :value="modelValue"
+        :disabled="disabled"
+        rows="9"
+        class="field mt-1 min-h-[12rem] resize-y text-base"
+        @input="emit('update:modelValue', $event.target.value)"
+    ></textarea>
+</template>

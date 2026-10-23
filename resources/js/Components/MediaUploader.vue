@@ -96,9 +96,9 @@ const onFile = async (event) => {
 
 <template>
     <div>
-        <label class="inline-flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+        <label class="inline-flex cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             <span>{{ busy ? `Subiendo… ${progress}%` : label }}</span>
-            <input type="file" class="hidden" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" :disabled="busy" @change="onFile" />
+            <input type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" :disabled="busy" @change="onFile" />
         </label>
         <p v-if="message" class="mt-1 text-sm text-red-600">{{ message }}</p>
     </div>

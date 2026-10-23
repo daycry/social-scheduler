@@ -43,13 +43,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01 | 4 | 8 | 50% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
+| Fase 1 — C-01 | 5 | 8 | 62% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 0 | 9 | 0% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 0 | 8 | 0% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **4** | **42** | **10%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **5** | **42** | **12%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -193,32 +193,32 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-05 — `EditorToolbar`, `EmojiPicker` propio y `AiSuggest` integrado
 
 - **Descripción**: Editor grande con barra de iconos: media, emoji (lista curada por categorías con buscador, sin dependencia, más aviso de Win + .), IA (`AiSuggest`) y contador de hashtags. El emoji se inserta en la posición del cursor.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Changelog**: El editor es más grande y trae una barra con subir imagen o vídeo, un selector de emoji (con buscador, se inserta donde está el cursor) y el asistente de texto, todo usable con teclado.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real 5.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.7h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0.2h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/EditorToolbar.vue`, `resources/js/Components/Composer/EmojiPicker.vue`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/emojiData.js`
+- **Archivos**: `resources/js/Components/Composer/EditorToolbar.vue`, `resources/js/Components/Composer/EmojiPicker.vue`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/emojiData.js`, `resources/js/Components/MediaUploader.vue`, `resources/js/Components/AiSuggest.vue`, `resources/js/Components/Composer/TextSection.vue`, `resources/js/Components/Composer/MediaSection.vue`, `tests/e2e/composer.spec.ts`
 - **Cubre (tests)**: E2E-03, M-03
 - **Verificación**:
   - `npm run build` → sin errores
   - `npm run test:e2e -- --grep "E2E-03"` → pasa en los tres proyectos
 
 **Criterios de aceptación**
-- [ ] CA-05: emoji en la posición del cursor, IA y media operables con teclado y con nombre accesible
-- [ ] El selector se cierra con Escape y devuelve el foco al botón
-- [ ] Sin dependencias nuevas en `package.json`
+- [x] CA-05: emoji en la posición del cursor, IA y media operables con teclado y con nombre accesible
+- [x] El selector se cierra con Escape y devuelve el foco al botón
+- [x] Sin dependencias nuevas en `package.json`
 
 **Subtareas**
-- [ ] `TextEditor` con selección y cursor expuestos
-- [ ] `EmojiPicker` con categorías y buscador
-- [ ] Conectar `AiSuggest` y el selector de media
-- [ ] Revisar el foco y los roles
+- [x] `TextEditor` con selección y cursor expuestos
+- [x] `EmojiPicker` con categorías y buscador
+- [x] Conectar `AiSuggest` y el selector de media
+- [x] Revisar el foco y los roles
 
-**Notas**: —
+**Notas**: — **Evidencia**: `playwright composer.spec.ts -g E2E-03` → pasa en desktop, mobile y mobile-360 (emoji en el cursor, Escape devuelve el foco al botón, IA con Escape, subida de media enfocable con nombre accesible, axe sin violaciones graves); `tests/Feature/Posts` → 41 passed; build OK; sin dependencias nuevas (`package.json` sin cambios). La subida de media pasa de la sección «Imágenes y vídeos» a la barra del editor, y su control deja de ser `display:none` (ahora `sr-only`) para ser alcanzable con teclado. El diálogo de salir es T-06; E2E-03 se completa allí.
 
 ---
 

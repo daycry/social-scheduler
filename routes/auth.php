@@ -58,7 +58,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
-Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])->whereIn('provider', SocialLoginController::PROVIDERS)->name('social.callback');
+Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])->whereIn('provider', SocialLoginController::PROVIDERS)->middleware('throttle:social-login')->name('social.callback');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)

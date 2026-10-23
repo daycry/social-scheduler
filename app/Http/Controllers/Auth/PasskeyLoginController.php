@@ -50,7 +50,7 @@ class PasskeyLoginController extends Controller
         }
 
         // Un reto 2FA pendiente de un login con contrasena a medias no sobrevive a un login ya completo.
-        $request->session()->forget(['login.id', 'login.remember', 'login.at']);
+        $request->session()->forget(['login.id', 'login.remember', 'login.at', 'login.via']);
 
         Auth::login($passkey->user, (bool) ($data['remember'] ?? false));
         $request->session()->regenerate();

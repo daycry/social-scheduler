@@ -10,9 +10,13 @@ use App\Services\Auth\SocialIdentityResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Contracts\Provider;
+use Laravel\Socialite\Contracts\User as SocialUser;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirect;
+use Throwable;
 
 /**
  * Login social (Google y Facebook) solo para cuentas existentes (ADR-004). Sustituye a la contrasena, no al 2FA:
@@ -60,7 +64,10 @@ class SocialLoginController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
-        $social = $this->driver($provider)->user();
+        $social = $this->fetchUser($request, $provider);
+        if ($social instanceof RedirectResponse) {
+            return $social;
+        }
 
         $resolution = $this->resolver->resolve($provider, $social);
 
@@ -73,13 +80,49 @@ class SocialLoginController extends Controller
         $user = $resolution->user;
         $this->audit->record($user, 'auth.social.login', AuditLog::OK, 'social_identity', $resolution->identity?->id, 'provider='.$provider.($user->hasTwoFactorEnabled() ? ';2fa=pendiente' : ''), 'web');
 
-        return $this->loginFlow->complete($request, $user, false);
+        return $this->loginFlow->complete($request, $user, false, $provider);
+    }
+
+    /**
+     * Canjea el code por el usuario del proveedor. Cada fallo conocido (el usuario cancela, `state` caducado o
+     * invalido, proveedor caido) vuelve a /login con un mensaje legible y sin 500. Del error solo se registra la
+     * clase: el mensaje de Guzzle incluye la URL con el code.
+     */
+    private function fetchUser(Request $request, string $provider): SocialUser|RedirectResponse
+    {
+        $name = $this->name($provider);
+
+        if ($request->query('error') !== null || $request->query('error_reason') !== null) {
+            return $this->failed($provider, 'cancelled', "Cancelaste el inicio de sesión con {$name}.");
+        }
+
+        try {
+            return $this->driver($provider)->user();
+        } catch (InvalidStateException) {
+            return $this->failed($provider, 'invalid_state', "La sesión con {$name} caducó. Vuelve a intentarlo.");
+        } catch (Throwable $e) {
+            Log::warning('social.login.provider_error', ['provider' => $provider, 'exception' => $e::class]);
+
+            return $this->failed($provider, 'provider_error', "No hemos podido hablar con {$name}. Inténtalo de nuevo en unos minutos.");
+        }
+    }
+
+    private function failed(string $provider, string $reason, string $message): RedirectResponse
+    {
+        $this->audit->record(null, 'auth.social.login', AuditLog::DENIED, 'social_identity', null, 'provider='.$provider.';motivo='.$reason, 'web');
+
+        return redirect()->route('login')->withErrors(['email' => $message]);
+    }
+
+    private function name(string $provider): string
+    {
+        return $provider === SocialIdentity::GOOGLE ? 'Google' : 'Facebook';
     }
 
     /** Mismo mensaje para todo rechazo: no revela si el email existe ni por que se rechazo. */
     private function rejected(string $provider): RedirectResponse
     {
-        $name = $provider === SocialIdentity::GOOGLE ? 'Google' : 'Facebook';
+        $name = $this->name($provider);
 
         return redirect()->route('login')->withErrors([
             'email' => "No hemos podido iniciar sesión con {$name}. Entra con tu contraseña y vincula {$name} desde tu perfil.",

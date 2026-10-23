@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLog;
+use App\Services\Auth\LoginFlow;
 use App\Services\TwoFactor\TotpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,8 +81,10 @@ class TwoFactorChallengeController extends Controller
             $valid = $this->totp->verify($user, $input);
         }
 
+        $via = $this->via($request);
+
         if (! $valid) {
-            $this->audit->record($user, 'auth.2fa.challenge_failed', AuditLog::DENIED, 'user', $user->id, $usingRecovery ? 'recovery' : 'totp', 'web');
+            $this->audit->record($user, 'auth.2fa.challenge_failed', AuditLog::DENIED, 'user', $user->id, ($usingRecovery ? 'recovery' : 'totp').';via='.$via, 'web');
 
             throw ValidationException::withMessages([
                 $field => $usingRecovery ? 'El código de recuperación no es válido.' : 'El código no es válido o ya se ha usado.',
@@ -90,7 +93,7 @@ class TwoFactorChallengeController extends Controller
 
         RateLimiter::clear($key);
         $remember = (bool) $request->session()->get('login.remember', false);
-        $request->session()->forget(['login.id', 'login.remember', 'login.at']);
+        $request->session()->forget(['login.id', 'login.remember', 'login.at', 'login.via']);
 
         Auth::login($user, $remember);
         $request->session()->regenerate();
@@ -98,7 +101,7 @@ class TwoFactorChallengeController extends Controller
         if ($usingRecovery) {
             $this->audit->record($user, 'auth.2fa.recovery_used', AuditLog::OK, 'user', $user->id, 'restantes: '.$remaining, 'web');
         }
-        $this->audit->record($user, 'auth.2fa.challenge_passed', AuditLog::OK, 'user', $user->id, $usingRecovery ? 'recovery' : 'totp', 'web');
+        $this->audit->record($user, 'auth.2fa.challenge_passed', AuditLog::OK, 'user', $user->id, ($usingRecovery ? 'recovery' : 'totp').';via='.$via, 'web');
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
@@ -120,9 +123,18 @@ class TwoFactorChallengeController extends Controller
 
     private function expired(Request $request): RedirectResponse
     {
-        $request->session()->forget(['login.id', 'login.remember', 'login.at']);
+        $request->session()->forget(['login.id', 'login.remember', 'login.at', 'login.via']);
 
-        return redirect()->route('login')->with('status', 'La verificación caducó. Vuelve a escribir tu correo y contraseña.');
+        // Texto neutro: el primer factor pudo ser la contraseña o un proveedor social.
+        return redirect()->route('login')->with('status', 'La verificación caducó. Vuelve a iniciar sesión.');
+    }
+
+    /** Primer factor del login pendiente (password, google, facebook); cualquier otro valor cuenta como password. */
+    private function via(Request $request): string
+    {
+        $via = (string) $request->session()->get('login.via', LoginFlow::VIA_PASSWORD);
+
+        return in_array($via, [LoginFlow::VIA_PASSWORD, ...SocialLoginController::PROVIDERS], true) ? $via : LoginFlow::VIA_PASSWORD;
     }
 
     private function throttleKey(User $user): string

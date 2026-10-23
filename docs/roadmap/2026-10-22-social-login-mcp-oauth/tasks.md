@@ -36,7 +36,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
-| Fase 2 — C-01 · Login social | 2 | 7 | 29% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 2 — C-01 · Login social | 3 | 7 | 43% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
 | **TOTAL** | **11** | **28** | **39%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
@@ -570,15 +570,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-15 — Errores, auditoría, limitador, `login.via` en el 2FA y texto neutro de `expired`
 
 - **Descripción**: Mapa de errores del callback (cancelar, `state` caducado, proveedor caído; CA-09), limitador `social-login` de 20/min (CA-11) y eventos `auth.social.login`, `social.linked`, `social.unlinked` sin secretos (CA-27). Resuelve las dos preguntas abiertas del diseño, ambas con «sí»: `LoginFlow` guarda `login.via` (contraseña, google, facebook) junto a `login.*`, `TwoFactorChallengeController` lo añade al `detail` de `auth.2fa.challenge_passed` y `auth.2fa.challenge_failed` y lo olvida en `expired`; `PasskeyLoginController` lo limpia junto a `login.*`; y `expired` pasa a un texto neutro («La verificación caducó. Vuelve a iniciar sesión.») con un test del mensaje.
-- **Changelog**:
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0.41h · real —
-- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Changelog**: Si cancelas o falla el inicio de sesión con Google o Facebook vuelves al login con un mensaje claro; el aviso de verificación caducada ya no habla solo de contraseña y el reto 2FA registra con qué método entraste.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0.41h · real 0.41h (estimado)
+- **Supervisión**: est. 0.10h (≈25 % IA) · real 0.10h (estimado)
 - **Previsión IA**: 110k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-14
 - **Tipo**: backend
-- **Archivos**: `app/Services/Auth/LoginFlow.php`, `app/Http/Controllers/Auth/TwoFactorChallengeController.php`, `app/Http/Controllers/Auth/PasskeyLoginController.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/TwoFactorChallengeViaTest.php`, `tests/Feature/Auth/Social/SocialErrorsTest.php`
+- **Archivos**: `app/Services/Auth/LoginFlow.php`, `app/Http/Controllers/Auth/TwoFactorChallengeController.php`, `app/Http/Controllers/Auth/PasskeyLoginController.php`, `app/Http/Controllers/Auth/SocialLoginController.php`, `app/Providers/AppServiceProvider.php`, `routes/auth.php`, `tests/Feature/Auth/TwoFactorChallengeViaTest.php`, `tests/Feature/Auth/Social/SocialErrorsTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact --filter=TwoFactorChallengeVia` → el `detail` de la auditoría lleva `via` y el reto caducado muestra el texto neutro
@@ -586,18 +586,20 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Auth` → ADR-003 sigue en verde (los tests existentes no se modifican)
 
 **Criterios de aceptación**
-- [ ] `auth.2fa.challenge_passed` / `challenge_failed` registran `via` = password, google, facebook; la passkey no pasa por el 2FA y deja `login.via` limpio (`PasskeyLoginController`)
-- [ ] `expired` ya no dice «correo y contraseña» y un test fija el texto nuevo; ningún test previo lo asertaba
-- [ ] CA-09: cancelar o `state` inválido vuelve a `/login` con mensaje legible, sin 500
-- [ ] CA-11: la petición 21 en un minuto responde 429
+- [x] `auth.2fa.challenge_passed` / `challenge_failed` registran `via` = password, google, facebook; la passkey no pasa por el 2FA y deja `login.via` limpio (`PasskeyLoginController`)
+- [x] `expired` ya no dice «correo y contraseña» y un test fija el texto nuevo; ningún test previo lo asertaba
+- [x] CA-09: cancelar o `state` inválido vuelve a `/login` con mensaje legible, sin 500
+- [x] CA-11: la petición 21 en un minuto responde 429
 
 **Subtareas**
-- [ ] `login.via` en `LoginFlow` y auditoría
-- [ ] Limpieza en `PasskeyLoginController` y en `expired`
-- [ ] Texto neutro con test
-- [ ] Errores del callback y limitador
+- [x] `login.via` en `LoginFlow` y auditoría
+- [x] Limpieza en `PasskeyLoginController` y en `expired`
+- [x] Texto neutro con test
+- [x] Errores del callback y limitador
 
 **Notas**: Cambia `TwoFactorChallengeController` y `PasskeyLoginController`, que el diseño daba por «sin cambios»: lo aprueban las preguntas abiertas del diseño (ambas «sí»).
+
+**Evidencia (2026-10-23)**: `--filter=TwoFactorChallengeVia` → 8 passed, `--filter=SocialErrors` → 5 passed (CA-09, CA-11); `tests/Feature/Auth tests/Unit` → verde sin modificar tests previos. El `detail` de la auditoría pasa a `totp;via=<método>`/`recovery;via=<método>`. Se añade `routes/auth.php` (throttle `social-login`) a Archivos.
 
 ---
 

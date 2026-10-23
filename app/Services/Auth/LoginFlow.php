@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Auth;
  */
 class LoginFlow
 {
-    public function complete(Request $request, User $user, bool $remember): RedirectResponse
+    public const VIA_PASSWORD = 'password';
+
+    /** Primer factor con el que se entro (solo para la auditoria del reto 2FA): password, google, facebook. */
+    public function complete(Request $request, User $user, bool $remember, string $via = self::VIA_PASSWORD): RedirectResponse
     {
         if ($user->hasTwoFactorEnabled()) {
             // Credenciales correctas pero sin sesion: queda un reto 2FA pendiente (TTL en config/auth.php).
@@ -22,6 +25,7 @@ class LoginFlow
                 'login.id' => $user->getKey(),
                 'login.remember' => $remember,
                 'login.at' => now()->timestamp,
+                'login.via' => $via,
             ]);
 
             return redirect()->route('two-factor.challenge');

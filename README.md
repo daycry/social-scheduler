@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-Laravel%20Pint-f05340.svg)](https://laravel.com/docs/pint)
-[![Tests](https://img.shields.io/badge/tests-Pest%201223-22c55e.svg)](tests)
+[![Tests](https://img.shields.io/badge/tests-Pest%201423-22c55e.svg)](tests)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20·%203%20viewports-2ead33.svg)](tests/e2e)
 [![Accesibilidad](https://img.shields.io/badge/a11y-axe%20WCAG%202.1%20AA-7c3aed.svg)](tests/e2e/a11y.spec.ts)
 
@@ -33,17 +33,18 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 
 | | |
 |---|---|
-| Código de aplicación | 225 ficheros PHP · ~20.700 líneas en `app/` |
-| Interfaz | 64 componentes Vue (Inertia) |
-| Base de datos | 33 migraciones |
-| Tests unitarios y de integración | **1.223 tests Pest** en 114 ficheros (SQLite en memoria) |
-| Tests E2E | **270 tests Playwright** en 6 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
-| Servidor MCP | 17 herramientas (marcas, cuentas, calendario, publicaciones, estadísticas, informes, comentarios) |
-| Documentación | 60 documentos en `docs/` · 4 ADR · 5 iniciativas en el roadmap |
+| Código de aplicación | 229 ficheros PHP · ~21.600 líneas en `app/` |
+| Interfaz | 89 componentes Vue (Inertia) |
+| Base de datos | 37 migraciones |
+| Tests unitarios y de integración | **1.423 tests Pest** en 140 ficheros (SQLite en memoria) |
+| Tests E2E | **345 tests Playwright** en 7 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
+| Servidor MCP | 19 herramientas (marcas, cuentas, calendario, publicaciones —con «publicar ahora» y notas—, estadísticas, informes, comentarios) |
+| Documentación | 68 documentos en `docs/` · 5 ADR · 6 iniciativas en el roadmap |
 
 ## Funcionalidades
 
-- **Publicación** en Instagram (post, carrusel, reel, story), páginas de Facebook, YouTube (vídeo y short) y TikTok, con compositor por red, cola con reintentos y calendario.
+- **Publicación** en Instagram (post, carrusel, reel, story), páginas de Facebook, YouTube (vídeo y short) y TikTok, con cola con reintentos y calendario.
+- **Compositor a pantalla completa**: texto común o propio por red, tipo de publicación junto a cada red, contadores y errores en vivo, opciones por red recordadas por marca, notas internas, generador de enlaces con UTM, «Publicar ahora» y guardado en biblioteca.
 - **Analítica e informes**: dashboards por marca, mejores horas para publicar, informes PDF y comparativa con competidores.
 - **Bandeja de comentarios**, biblioteca de media, enlaces inteligentes y asistente de IA.
 - **Seguridad de cuenta**:

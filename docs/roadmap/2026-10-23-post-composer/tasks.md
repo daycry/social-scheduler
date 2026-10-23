@@ -46,10 +46,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
-| Fase 4 — C-04 | 0 | 8 | 0% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
+| Fase 4 — C-04 | 1 | 8 | 12% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **24** | **42** | **57%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **25** | **42** | **60%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -869,16 +869,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 4 — C-04 · Opciones por red persistentes (presets)
 
-**Estado**: borrador · **Estimado**: 27,0h · **Real**: — · **Coste est.**: 1.350 € + tokens (⚠️ verificar) · **Tokens est.**: 1,09M
+**Estado**: en-progreso · **Estimado**: 27,0h · **Real**: — · **Coste est.**: 1.350 € + tokens (⚠️ verificar) · **Tokens est.**: 1,09M
 
 ### T-26 — Verificar en la documentación vigente los campos ⚠️ de YouTube, TikTok e Instagram
 
 - **Descripción**: Consulta la documentación oficial vigente de `notifySubscribers`, `status.containsSyntheticMedia`, `selfDeclaredMadeForKids`, los límites de tags de `videos.insert`, los campos de TikTok (`disable_duet`, `disable_stitch`, `brand_organic_toggle`, `brand_content_toggle`, `is_aigc`) y si la Graph API de Instagram tiene un campo de etiqueta IA. Registra versión, fecha y URL. Lo no confirmado queda oculto (CA-16), no fingido.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Se documenta qué opciones de YouTube, TikTok e Instagram admite de verdad cada API, y solo se ofrecen las confirmadas.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-25
 - **Tipo**: docs
@@ -889,18 +889,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `grep -c "Confirmado\|No confirmado\|No existe" docs/roadmap/2026-10-23-post-composer/testing/verificacion-campos-c04.md` → al menos 9
 
 **Criterios de aceptación**
-- [ ] Cada campo ⚠️ tiene veredicto y fuente
-- [ ] Se fija qué opciones entran en T-27 y T-28 y cuáles se ocultan
+- [x] Cada campo ⚠️ tiene veredicto y fuente
+- [x] Se fija qué opciones entran en T-27 y T-28 y cuáles se ocultan
 
 **Subtareas**
-- [ ] Consultar la documentación de Google, TikTok y Meta
-- [ ] Escribir el informe
-- [ ] Fijar la lista de opciones aprobadas
+- [x] Consultar la documentación de Google, TikTok y Meta
+- [x] Escribir el informe
+- [x] Fijar la lista de opciones aprobadas
 
-**Notas**: —
-
----
-
+**Notas**: **Evidencia**: informe `testing/verificacion-campos-c04.md` con 11 campos, fuente, versión y fecha (consulta 2026-10-23 a la documentación vigente de Google, TikTok y Meta); `grep -c` → 12. Confirmados: YouTube `notifySubscribers`, `containsSyntheticMedia`, `selfDeclaredMadeForKids`, tags (500 caracteres con comas), TikTok `disable_duet/stitch` (solo vídeo), `brand_*_toggle`, `is_aigc` (en vídeo dentro de `post_info`; en foto en el nivel superior). Instagram `is_ai_generated` existe pero exige tocar `app/Connectors/Meta` (fuera de alcance): oculto (CA-16). `config/media_specs.php` no hizo falta tocarlo.
 ### T-27 — Opciones de YouTube en `openSession` conservando el marcador de idempotencia
 
 - **Descripción**: Categoría, tags del usuario, `selfDeclaredMadeForKids` y las opciones confirmadas en T-26 (`notifySubscribers`, etiqueta IA). El marcador `targetTag` va **siempre primero** y se reserva su hueco: los tags del usuario se recortan para no pasar de ≈ 500 caracteres. Las reglas entran en `PostRequest`.

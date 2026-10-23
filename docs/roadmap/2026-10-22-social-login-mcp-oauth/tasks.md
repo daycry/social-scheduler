@@ -1057,8 +1057,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - ✅ M-01 · Login real con Google por ngrok — verificado por el usuario el 2026-10-23: entrada OK y vinculación automática (`social.linked`, `modo=auto`) en la auditoría. Se reutilizó el cliente OAuth de Google de los conectores (`GOOGLE_LOGIN_*` = `GOOGLE_CLIENT_*`) con la redirect `<APP_URL>/auth/google/callback` añadida.
 - ⏳ M-02 · Login y vinculación real con Facebook por ngrok — aplazado por el usuario (2026-10-23): la app de Meta de los conectores es de tipo Empresa y no ofrece el caso de uso de login (Meta respondió «URL bloqueada»). Pendiente: crear una app de tipo Consumidor solo para el login (pasos en `docs/guias/login-social-google-meta.md`) y rellenar `META_LOGIN_*`.
 - ⏳ M-03 · Claude Code CLI sin API key (T-11, CA-29).
-- ⏳ M-04 · Claude Desktop, conector personalizado (T-11).
-- ⏳ M-05 · Codex (T-11).
+- ✅ M-04 · Claude Desktop, conector personalizado (T-11) — verificado 2026-10-23: DCR con `https://claude.ai/api/mcp/auth_callback` aceptado, consentimiento y token «OAuth · Claude» (30 días) usado contra `/mcp`. Un segundo cliente «Claude» registrado y sin usar (reintento del DCR) lo purga `mcp:oauth-prune`.
+- ✅ M-05 · Codex (T-11) — verificado 2026-10-23: `codex mcp add --url` + `codex mcp login`, DCR con callback loopback `http://127.0.0.1:<puerto>/callback/…` (RFC 8252) aceptado, token «OAuth · Codex» usado por las herramientas. Sin refresh token ni CIMD.
 - ⏳ M-06 · OpenCode (T-11).
 - ⏳ M-07 · Nginx/Hestia real: `/.well-known/*` y cabecera `Authorization` con el `curl` de `docs/modulos/despliegue.md`.
 - ⏳ M-08 · Teclado y lector de pantalla en el login, Cuentas vinculadas y el consentimiento.

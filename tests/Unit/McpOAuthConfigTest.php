@@ -34,16 +34,16 @@ function servicesConfig(array $env): array
     }
 }
 
-test('los defaults son 30 dias, 300 s y sin redirects extra', function () {
+test('los defaults son 90 dias, 300 s y sin redirects extra', function () {
     $c = servicesConfig([]);
 
-    expect($c['token_days'])->toBe(30)->and($c['code_ttl'])->toBe(300)->and($c['redirect_allowed'])->toBe([]);
+    expect($c['token_days'])->toBe(90)->and($c['code_ttl'])->toBe(300)->and($c['redirect_allowed'])->toBe([]);
 });
 
-test('token_days nunca supera key_max_days', function () {
+test('token_days nunca supera key_max_days (900 con tope 60 baja a 30, la opcion ofrecida mas cercana)', function () {
     $c = servicesConfig(['MCP_OAUTH_TOKEN_DAYS' => '900', 'MCP_KEY_MAX_DAYS' => '60']);
 
-    expect($c['token_days'])->toBe(60);
+    expect($c['token_days'])->toBe(30);
 });
 
 test('redirect_allowed se parsea como CSV sin vacios', function () {

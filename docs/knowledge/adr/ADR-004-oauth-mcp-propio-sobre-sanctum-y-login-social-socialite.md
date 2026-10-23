@@ -22,7 +22,7 @@ El `Mcp::oauthRoutes()` de `laravel/mcp` 1.0.2 depende de Passport, que no está
 **Servidor de autorización propio sobre Sanctum, sin Passport:**
 
 - Es un cliente público, con `authorization_code` + PKCE S256 y sin refresh tokens.
-- El token es un token Sanctum `msk_` con las abilities elegidas en el consentimiento (presets read/publish/all, con read por defecto) y 30 días de vida (`MCP_OAUTH_TOKEN_DAYS`).
+- El token es un token Sanctum `msk_` con las abilities elegidas en el consentimiento (presets read/publish/all, con read por defecto) y una vida que elige el usuario en el consentimiento (30, 90 por defecto, 180 o 365 días; `MCP_OAUTH_TOKEN_DAYS` marca el default).
 - El estado vive en tablas: `oauth_clients` (DCR) y `oauth_auth_codes` (hash del código, `used_at` y `token_id`).
   - El código es de un solo uso con un `UPDATE … WHERE used_at IS NULL` atómico.
   - Un replay revoca el token que se emitió con ese código.

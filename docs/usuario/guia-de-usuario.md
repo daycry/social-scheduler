@@ -60,7 +60,7 @@ En **Informes** elige marca, rango y formato (PDF, CSV o ambos) y, si quieres, u
 
 En **API keys** crea una clave para que un asistente (como Claude) programe y consulte por ti. La clave empieza por `msk_` y se muestra **una sola vez**: cópiala. Elige qué puede hacer (leer marcas, leer o escribir publicaciones, estadísticas, informes) y cuándo caduca. Puedes revocarla en cualquier momento. Detalles técnicos: [servidor MCP](../modulos/mcp.md).
 
-**Sin clave, con el navegador.** Algunos asistentes (Claude Code, Claude Desktop, Codex, OpenCode) pueden conectarse sin que copies ninguna clave: al conectar, se abre una pantalla de esta app donde inicias sesión, ves qué permisos pide el asistente (por defecto solo lectura) y pulsas **Autorizar**. El acceso dura 30 días y aparece en **API keys** con el origen «OAuth · nombre del asistente»: desde ahí lo puedes revocar igual que una clave. Las claves manuales siguen apareciendo como «Manual» y funcionando como siempre. Pasos por asistente en [servidor MCP](../modulos/mcp.md#conectar-un-cliente).
+**Sin clave, con el navegador.** Algunos asistentes (Claude Code, Claude Desktop, Codex, OpenCode) pueden conectarse sin que copies ninguna clave: al conectar, se abre una pantalla de esta app donde inicias sesión, ves qué permisos pide el asistente (por defecto solo lectura) y pulsas **Autorizar**. Tú eliges cuánto dura el acceso en la propia pantalla (30 días, 90 por defecto, 6 meses o 1 año) y aparece en **API keys** con el origen «OAuth · nombre del asistente»: desde ahí lo puedes revocar igual que una clave. Las claves manuales siguen apareciendo como «Manual» y funcionando como siempre. Pasos por asistente en [servidor MCP](../modulos/mcp.md#conectar-un-cliente).
 
 ## Entrar con Google o Facebook
 

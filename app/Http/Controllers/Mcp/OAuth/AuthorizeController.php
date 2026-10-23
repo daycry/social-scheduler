@@ -36,6 +36,8 @@ class AuthorizeController extends Controller
             'abilities' => Abilities::all(),
             'presets' => Abilities::presets(),
             'defaultPreset' => 'read',
+            'tokenDayOptions' => self::dayOptions(),
+            'defaultTokenDays' => (int) config('services.mcp.oauth.token_days'),
             'error' => null,
         ]);
     }
@@ -59,13 +61,21 @@ class AuthorizeController extends Controller
         $data = $request->validate([
             'abilities' => ['required', 'array', 'min:1'],
             'abilities.*' => ['string', Rule::in(Abilities::keys())],
+            // Solo cuenta la duracion elegida aqui (nunca la query); fuera de la lista es un error, no se recorta.
+            'token_days' => ['nullable', 'integer', Rule::in(self::dayOptions())],
         ]);
         $abilities = array_values(array_unique($data['abilities']));
 
-        $code = $server->issueCode($user, $req, $abilities);
+        $code = $server->issueCode($user, $req, $abilities, isset($data['token_days']) ? (int) $data['token_days'] : null);
         $audit->record($user, 'oauth.authorized', AuditLog::OK, 'oauth_client', null, 'client_id='.$req->client->id.';abilities='.implode(',', $abilities), 'oauth');
 
         return $this->away($this->redirectWith($req->redirectUri, ['code' => $code, 'state' => $req->state]));
+    }
+
+    /** @return list<int> */
+    private static function dayOptions(): array
+    {
+        return array_values(array_map('intval', (array) config('services.mcp.oauth.token_day_options', [30])));
     }
 
     /** @param  array<string, string|null>  $params */

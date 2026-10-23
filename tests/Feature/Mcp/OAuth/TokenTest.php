@@ -18,14 +18,14 @@ test('OAuthToken CA-20: un codigo valido da un token msk_ con las abilities exac
     $r = redeem($code, $client)->assertOk();
 
     $r->assertHeader('Cache-Control', 'no-store, private')->assertJsonPath('token_type', 'Bearer')
-        ->assertJsonPath('expires_in', 30 * 86400)->assertJsonPath('scope', 'mcp:use');
+        ->assertJsonPath('expires_in', 90 * 86400)->assertJsonPath('scope', 'mcp:use');
     expect($r->json('access_token'))->toContain('|msk_');
 
     $token = PersonalAccessToken::findOrFail((int) explode('|', $r->json('access_token'))[0]);
     expect($token->abilities)->toBe(['posts:read', 'brands:read'])
         ->and($token->oauth_client_id)->toBe($client->id)
         ->and($token->tokenable_id)->toBe($user->id)
-        ->and($token->expires_at->between(now()->addDays(30)->subMinute(), now()->addDays(30)->addMinute()))->toBeTrue()
+        ->and($token->expires_at->between(now()->addDays(90)->subMinute(), now()->addDays(90)->addMinute()))->toBeTrue()
         ->and($row->fresh()->token_id)->toBe($token->id)
         ->and($row->fresh()->used_at)->not->toBeNull();
 });

@@ -90,7 +90,7 @@ class AuthorizationServer
      *
      * @param  list<string>  $abilities  ya validadas contra Abilities::keys()
      */
-    public function issueCode(User $user, AuthorizeRequest $req, array $abilities): string
+    public function issueCode(User $user, AuthorizeRequest $req, array $abilities, ?int $tokenDays = null): string
     {
         $abilities = array_values(array_intersect(Abilities::keys(), $abilities));
         $code = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
@@ -103,6 +103,7 @@ class AuthorizationServer
             'redirect_uri_sent' => $req->redirectUriSent,
             'code_challenge' => $req->codeChallenge,
             'abilities' => $abilities,
+            'token_days' => $tokenDays,
             'resource' => $req->resource,
             'expires_at' => now()->addSeconds(max(30, (int) config('services.mcp.oauth.code_ttl', 300))),
         ]);
@@ -186,7 +187,9 @@ class AuthorizationServer
                 return null;
             }
 
-            $days = max(1, (int) config('services.mcp.oauth.token_days', 30));
+            // Duracion elegida en el consentimiento (guardada en el codigo), acotada al tope; sin valor, la por defecto.
+            $max = max(1, (int) config('services.mcp.key_max_days', 730));
+            $days = min($max, max(1, (int) ($row->token_days ?? config('services.mcp.oauth.token_days', 90))));
             $user = User::findOrFail($row->user_id);
 
             // Reautorizar sustituye (CA-26): se bloquean y revocan los tokens de ESTE (usuario, cliente); los de otros

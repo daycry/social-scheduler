@@ -118,7 +118,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `MCP_ALLOWED_ORIGINS` | vacío | Orígenes de navegador extra |
 | `MCP_KEY_DEFAULT_DAYS`, `MCP_KEY_MAX_DAYS` | `365`, `730` | Vida de las API keys |
 | `SANCTUM_TOKEN_PREFIX` | `msk_` | Prefijo de las keys |
-| `MCP_OAUTH_TOKEN_DAYS` | `30` | Vida del token emitido por OAuth (con tope en `MCP_KEY_MAX_DAYS`) |
+| `MCP_OAUTH_TOKEN_DAYS` | `90` | Duración preseleccionada del acceso OAuth. El usuario elige 30, 90, 180 o 365 días en el consentimiento; la lista y la vida real se topan en `MCP_KEY_MAX_DAYS` |
 | `MCP_OAUTH_CODE_TTL` | `300` | Vida del código de autorización, en segundos |
 | `MCP_OAUTH_REDIRECT_ALLOWED` | vacío | Prefijos `https://` extra permitidos como `redirect_uri` al registrar clientes (CSV) |
 | `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR` | `200` | Tope GLOBAL de registros dinámicos de clientes por hora (además de 10/h por IP) |

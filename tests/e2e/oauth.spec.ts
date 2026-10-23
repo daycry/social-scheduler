@@ -162,6 +162,10 @@ test.describe('MCP OAuth · navegador', () => {
         for (const label of ['Solo lectura', 'Publicar', 'Todo']) await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Solo lectura', exact: true })).toHaveAttribute('aria-pressed', 'true');
         await expect(page.getByRole('button', { name: 'Publicar', exact: true })).toHaveAttribute('aria-pressed', 'false');
+        // Duración del acceso: selector con label asociado, 90 días por defecto y las cuatro opciones.
+        const duration = page.getByLabel('Duración del acceso');
+        await expect(duration).toHaveValue('90');
+        await expect(duration.locator('option')).toHaveText(['30 días', '90 días', '6 meses', '1 año']);
         await expectNoOverflow(page);
         await shot(page, info, 'consentimiento');
 
@@ -175,13 +179,13 @@ test.describe('MCP OAuth · navegador', () => {
         expect(params.get('code')).toBeTruthy();
         expect(params.get('error')).toBeNull();
 
-        // CA-20: el token es msk_ y dura 30 días.
+        // CA-20: el token es msk_ y dura 90 días (default del selector «Duración del acceso»).
         const response = await exchange(request, baseURL!, client, params.get('code')!, verifier);
         expect(response.status()).toBe(200);
         const token = await response.json();
         expect(token.access_token).toContain('|msk_');
         expect(token.token_type).toBe('Bearer');
-        expect(token.expires_in).toBe(30 * 86400);
+        expect(token.expires_in).toBe(90 * 86400);
         // El token funciona en /mcp; un Origin ajeno sigue dando 403 (CA-28).
         expect((await mcpToolsList(request, token.access_token)).status()).toBe(200);
         expect((await mcpToolsList(request, token.access_token, 'https://evil.example')).status()).toBe(403);

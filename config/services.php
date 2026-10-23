@@ -1,5 +1,12 @@
 <?php
 
+// Duraciones del acceso OAuth del MCP: la lista ofrecida respeta el tope de MCP_KEY_MAX_DAYS y el default es la opcion
+// mas cercana que no supera MCP_OAUTH_TOKEN_DAYS (si todas lo superan, la menor ofrecida).
+$oauthMaxDays = max(1, (int) env('MCP_KEY_MAX_DAYS', 730));
+$oauthDayOptions = array_values(array_filter([30, 90, 180, 365], fn (int $d) => $d <= $oauthMaxDays)) ?: [$oauthMaxDays];
+$oauthWantedDays = max(1, (int) env('MCP_OAUTH_TOKEN_DAYS', 90));
+$oauthDefaultDays = max(array_filter($oauthDayOptions, fn (int $d) => $d <= $oauthWantedDays) ?: [min($oauthDayOptions)]);
+
 return [
 
     /*
@@ -82,8 +89,10 @@ return [
         'key_default_days' => (int) env('MCP_KEY_DEFAULT_DAYS', 365),
         // Servidor de autorizacion OAuth 2.1 del MCP (ADR-004): clientes publicos, code + PKCE S256, sin refresh.
         'oauth' => [
-            // Vida del token emitido por OAuth, en dias; nunca por encima de key_max_days.
-            'token_days' => min(max(1, (int) env('MCP_KEY_MAX_DAYS', 730)), max(1, (int) env('MCP_OAUTH_TOKEN_DAYS', 30))),
+            // Duraciones que el usuario puede elegir en el consentimiento (dias), siempre <= key_max_days.
+            'token_day_options' => $oauthDayOptions,
+            // Vida por defecto del token OAuth (dias): la opcion mas cercana por debajo de MCP_OAUTH_TOKEN_DAYS (90) que ofrece la lista.
+            'token_days' => $oauthDefaultDays,
             // Vida del codigo de autorizacion, en segundos.
             'code_ttl' => (int) env('MCP_OAUTH_CODE_TTL', 300),
             // Tope global de registros DCR por hora (ademas de 10/h por IP, o por /64 en IPv6).

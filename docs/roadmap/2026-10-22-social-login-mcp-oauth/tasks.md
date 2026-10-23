@@ -37,8 +37,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
 | Fase 2 — C-01 · Login social | 7 | 7 | 100% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
-| Fase 3 — C-03 · UI, E2E, docs y cierre | 9 | 9 | 100% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
-| **TOTAL** | **27** | **28** | **96%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
+| Fase 3 — C-03 · UI, E2E, docs y cierre | 10 | 10 | 100% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
+| **TOTAL** | **28** | **29** | **97%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
 > **Horas reales (G7).** Las horas reales de la Fase 1 son una **estimación a juicio** (marcadas `(estimado)` en cada tarea): no se midieron con `usage-meter` (las tareas se cerraron sin marcadores de medición), así que no hay dato medido. Suma de las tareas cerradas T-01..T-10 ≈ 4,5h IA ejecución, ≈ 1,1h supervisión y ≈ 5,3h humanas (las tareas pesan muy por debajo de la estimación porque la IA ejecutó casi todo el trabajo); más ≈ 0,8h IA de la revisión F1 (intento 1). La tabla de arriba deja las columnas «real» a 0 hasta que existan datos medidos; estas cifras no se imputan a Jira.
 
@@ -1064,6 +1064,32 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - ⏳ M-08 · Teclado y lector de pantalla en el login, Cuentas vinculadas y el consentimiento.
 ---
 
+### T-29 — Duración del acceso elegible en el consentimiento (decisión del usuario 2026-10-23)
+
+- **Descripción**: En la pantalla de consentimiento OAuth del MCP el usuario elige la duración del acceso: 30 días, 90 (por defecto), 6 meses (180) o 1 año (365). `MCP_OAUTH_TOKEN_DAYS` pasa a 90 y `services.mcp.oauth.token_day_options` ofrece [30, 90, 180, 365] filtrados a `<= key_max_days`; si el default no está en la lista se usa la opción más cercana que no lo supere. `AuthorizeController` valida con `Rule::in(options)` (un valor fuera es error de validación, no se recorta). Migración aditiva `token_days` nullable en `oauth_auth_codes`; el canje usa el valor del código acotado por `key_max_days` (sin valor, el default) y `expires_in` es coherente. Un `token_days` en la query de `/oauth/authorize` se ignora.
+- **Changelog**: Al conectar un asistente por el navegador eliges cuánto dura el acceso (30 días, 90 por defecto, 6 meses o 1 año) y puedes revocarlo antes desde API keys.
+- **Estado**: completado
+- **Tiempo humano**: est. 1,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.2h · real 0.3h (estimado)
+- **Supervisión**: est. 0.05h · real —
+- **Dependencias**: T-28
+- **Tipo**: feature
+- **Archivos**: `.env.example`, `config/services.php`, `app/Http/Controllers/Mcp/OAuth/AuthorizeController.php`, `app/Services/Mcp/OAuth/AuthorizationServer.php`, `database/migrations/2026_11_08_090000_add_token_days_to_oauth_auth_codes_table.php`, `resources/js/Pages/OAuth/Authorize.vue`, `tests/Feature/Mcp/OAuth/TokenDaysTest.php`, `tests/Feature/Mcp/OAuth/TokenTest.php`, `tests/Unit/McpOAuthConfigTest.php`, `tests/e2e/oauth.spec.ts`, `docs/modulos/mcp.md`, `docs/referencia/configuracion.md`, `docs/usuario/guia-de-usuario.md`, `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`
+- **Verificación**:
+  - `php artisan migrate` (aditiva) y `php artisan test --compact`
+  - `vendor/bin/pint --test` y `npm run build`
+  - `npx playwright test tests/e2e/oauth.spec.ts --project=desktop`
+
+**Criterios de aceptación**
+- [x] Default 90 y opciones [30, 90, 180, 365]; con `MCP_KEY_MAX_DAYS=60` no se ofrece 90 y el default baja a 30
+- [x] Selector «Duración del acceso» con label, sin desbordamiento (`expectNoOverflow` en el E2E)
+- [x] Valor fuera de la lista = error de validación; elegir 365 da `expires_at` y `expires_in` coherentes; la query `token_days=9999` se ignora
+- [x] Migración aditiva (`token_days` nullable); códigos sin valor usan el default
+- [x] Docs actualizadas (mcp.md, configuracion.md, guía de usuario)
+
+**Evidencia (2026-10-23)**: `php artisan migrate` → Nothing to migrate (la columna ya estaba aplicada); `php artisan test --compact` → 1235 passed (8300 assertions); `vendor/bin/pint --test` → passed; `npm run build` → built; `npx playwright test tests/e2e/oauth.spec.ts --project=desktop` → 5 passed. TokenTest ajustado a 90 días.
+
+---
 
 ## Revisión de dos lentes — intento 1: Fase 1 (T-01..T-10) — 1 Important y 20 Minor
 

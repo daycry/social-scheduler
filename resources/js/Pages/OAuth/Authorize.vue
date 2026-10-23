@@ -15,12 +15,15 @@ const props = defineProps({
     abilities: { type: Object, default: () => ({}) },
     presets: { type: Object, default: () => ({}) },
     defaultPreset: { type: String, default: 'read' },
+    tokenDayOptions: { type: Array, default: () => [30] },
+    defaultTokenDays: { type: Number, default: 30 },
     error: { type: Object, default: null },
 });
 
 const form = useForm({
     ...props.params,
     decision: 'approve',
+    token_days: props.defaultTokenDays,
     abilities: [...(props.presets[props.defaultPreset]?.abilities ?? [])],
 });
 
@@ -32,6 +35,8 @@ const presetActive = (preset) =>
 
 const heading = ref(null);
 onMounted(() => nextTick(() => heading.value?.focus()));
+
+const durationLabel = (days) => (days === 365 ? '1 año' : days === 180 ? '6 meses' : `${days} días`);
 
 const noneSelected = computed(() => form.abilities.length === 0);
 
@@ -72,7 +77,7 @@ const submit = (decision) => {
 
             <fieldset>
                 <legend class="text-sm font-semibold text-slate-900">Permisos</legend>
-                <p class="mt-1 text-xs text-slate-500">Empieza solo con lectura. Puedes cambiar las casillas; el acceso caduca a los 30 días y lo puedes revocar en «API keys».</p>
+                <p class="mt-1 text-xs text-slate-500">Empieza solo con lectura. Puedes cambiar las casillas; lo puedes revocar en «API keys».</p>
 
                 <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Conjuntos de permisos">
                     <button
@@ -98,6 +103,20 @@ const submit = (decision) => {
                 </ul>
                 <InputError class="mt-2" :message="form.errors.abilities || form.errors['abilities.0']" />
             </fieldset>
+
+            <div>
+                <label for="token-days" class="block text-sm font-semibold text-slate-900">Duración del acceso</label>
+                <select
+                    id="token-days"
+                    v-model.number="form.token_days"
+                    class="mt-2 block w-full max-w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    aria-describedby="token-days-help"
+                >
+                    <option v-for="days in tokenDayOptions" :key="days" :value="days">{{ durationLabel(days) }}</option>
+                </select>
+                <p id="token-days-help" class="mt-1 text-xs text-slate-500">Pasado ese tiempo el acceso caduca y la aplicación tendrá que pedirlo de nuevo. Puedes revocarlo antes en «API keys».</p>
+                <InputError class="mt-2" :message="form.errors.token_days" />
+            </div>
 
             <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <SecondaryButton type="button" :disabled="form.processing" @click="submit('deny')">Denegar</SecondaryButton>

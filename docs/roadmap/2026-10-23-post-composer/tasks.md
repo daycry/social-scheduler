@@ -45,11 +45,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
-| Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
+| Fase 3 — C-03 | 8 | 8 | 100% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
 | Fase 4 — C-04 | 7 | 8 | 88% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **31** | **42** | **74%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **32** | **42** | **76%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -609,7 +609,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 ## Fase 3 — C-03 · Texto por red
 
-**Estado**: en-progreso · **Estimado**: 32,0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1,29M
+**Estado**: completado · **Estimado**: 32,0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1,29M
 
 ### T-18 — Migración `post_targets.text`, modelo y reglas de `PostRequest`
 
@@ -835,15 +835,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-25 — Revisión de robustez de la Fase 3 (doble publicación por texto propio e idempotencia)
 
 - **Descripción**: Puerta de salida de la fase y del riesgo principal: recorre cada camino que escribe `text` (web, MCP, biblioteca, `schedule`, `publishNow`, `update`) buscando uno que no pase por `fill()`; texto propio vacío, solo espacios o con emojis compuestos frente al `trim()` de la idempotencia de Instagram y Facebook; YouTube y TikTok (su idempotencia no usa el texto); cambio de vinculado a desvinculado entre intentos. Checklist firmada; cada hallazgo lleva su test.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Changelog**: Un texto propio vacío ya no publica en blanco: vale como texto común, también desde el MCP; además la previsualización, el calendario, las autolistas y los avisos usan el texto de cada red.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,0h · real 2.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0.07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-24
 - **Tipo**: docs
-- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Publishing/TargetTextReviewTest.php`, `app/Services/PostService.php`, `app/Services/PublishRequestFactory.php`
+- **Archivos**: `docs/roadmap/2026-10-23-post-composer/tasks.md`, `tests/Feature/Publishing/TargetTextReviewTest.php`, `app/Services/PostService.php`, `app/Services/PublishRequestFactory.php`, `app/Services/CalendarService.php`, `app/Services/AutolistService.php`, `app/Services/AnalyticsService.php`, `app/Services/ReportService.php`, `app/Notifications/PublishFailed.php`, `app/Http/Controllers/InboxController.php`, `app/Mcp/Tools/PostPayload.php`, `docs/modulos/mcp.md`, `resources/js/Composables/useComposer.js`, `tests/e2e/composer.spec.ts`, `tests/Feature/Calendar/CalendarEffectiveTextTest.php`, `tests/Feature/Library/LibraryTargetTextTest.php`, `tests/Feature/Mcp/Tools/McpTargetTextTest.php`, `tests/Feature/Posts/TargetTextPlanFillTest.php`, `tests/Feature/Parity/AutolistTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
@@ -853,19 +853,20 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
-- [ ] Cada hallazgo Important o Critical tiene test y corrección
-- [ ] Los publicadores de Meta, YouTube y TikTok siguen sin cambios
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes
+- [x] Cada hallazgo Important o Critical tiene test y corrección
+- [x] Los publicadores de Meta, YouTube y TikTok siguen sin cambios
 
 **Subtareas**
-- [ ] Auditar los caminos de escritura de `text`
-- [ ] Casos de borde de `trim()` y unicode
-- [ ] Suite completa, Pint y E2E
+- [x] Auditar los caminos de escritura de `text`
+- [x] Casos de borde de `trim()` y unicode
+- [x] Suite completa, Pint y E2E
 
 **Notas**: **Para el revisor (anotado por el implementador de T-18..T-24, sin tocar T-25)**: (1) riesgo previo valorado: `PostService::AMBIGUOUS_ERRORS` no incluía `red` (timeout/corte) ni `meta_no_disponible`, así que tras un fallo de red y una edición no se guardaba `reconcile`; está en `PostService` (no en `PublishPostTarget`) y se corrigió en el commit de T-20 porque los escenarios b y c de CA-11 lo exigen; el usuario puede valorar si quiere conservar el cambio; (2) la web no puede guardar un texto propio vacío ni solo con espacios (`ConvertEmptyStringsToNull`/`TrimStrings` lo convierten en `null` = vinculado; el cliente lo trata igual y avisa); el MCP sí conserva `''` como texto propio: revisar el comportamiento de `''` frente al `trim()` de `findPublished` de Instagram y Facebook (sin texto no hay forma de reconocer la publicación); (3) `TrashController`, `InboxController`, `AnalyticsService`, `ReportService` y `PublishFailed` siguen mostrando `posts.text` (la plantilla) y no el texto efectivo del destino: solo informativo, no afecta a lo publicado.
 
 ---
 
+**Cierre de la revisión (dos lentes, intento 1: sin Critical ni Important)** — tabla de gaps en «Revisión de dos lentes — intento 1: Fase 3». Checklist: [x] caminos de escritura de `text` auditados (web, MCP, biblioteca, `schedule`, `publishNow`, `update`: todos pasan por `PostService::plan()`, que ahora normaliza el texto propio vacío); [x] vacío, solo espacios y emojis compuestos frente al `trim()` de la idempotencia (el vacío ya no llega a `findPublished`); [x] YouTube y TikTok (su idempotencia no usa el texto); [x] cambio de vinculado a desvinculado entre intentos (`TargetTextFreshAttempt*`); [x] Minor corregidos con test. **Evidencia**: `php artisan test --compact` → 1380 passed; `--filter=TargetText` en verde (incluye `TargetTextReviewTest`, `McpTargetText`, `TargetTextPlanFill`); `vendor/bin/pint --test` → passed; `npm run build` y `npx tsc --noEmit -p .` sin errores; `composer.spec.ts` → 19 passed en desktop, mobile y mobile-360. Los publicadores de Meta no cambian; YouTube y TikTok cambian después, por T-27 y T-28 (Fase 4). **Cambio de comportamiento declarado**: el MCP ya no conserva `''` como texto propio (es vinculado), igual que la web; `docs/modulos/mcp.md` y el esquema de `PostPayload` lo dicen. **Riesgo preexistente, solo anotado**: `FacebookPublisher.php:117-121` silencia los errores de lectura de `findPublished` (`lookup_failed` → `null`), de modo que un fallo de la consulta de idempotencia equivale a «no publicado» y permitiría reintentar; no se corrige aquí. **Deuda**: `TrashController` sigue mostrando `posts.text` (superficie por publicación, no por destino).
 
 ## Fase 4 — C-04 · Opciones por red persistentes (presets)
 
@@ -898,6 +899,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Fijar la lista de opciones aprobadas
 
 **Notas**: **Evidencia**: informe `testing/verificacion-campos-c04.md` con 11 campos, fuente, versión y fecha (consulta 2026-10-23 a la documentación vigente de Google, TikTok y Meta); `grep -c` → 12. Confirmados: YouTube `notifySubscribers`, `containsSyntheticMedia`, `selfDeclaredMadeForKids`, tags (500 caracteres con comas), TikTok `disable_duet/stitch` (solo vídeo), `brand_*_toggle`, `is_aigc` (en vídeo dentro de `post_info`; en foto en el nivel superior). Instagram `is_ai_generated` existe pero exige tocar `app/Connectors/Meta` (fuera de alcance): oculto (CA-16). `config/media_specs.php` no hizo falta tocarlo.
+
+---
+
 ### T-27 — Opciones de YouTube en `openSession` conservando el marcador de idempotencia
 
 - **Descripción**: Categoría, tags del usuario, `selfDeclaredMadeForKids` y las opciones confirmadas en T-26 (`notifySubscribers`, etiqueta IA). El marcador `targetTag` va **siempre primero** y se reserva su hueco: los tags del usuario se recortan para no pasar de ≈ 500 caracteres. Las reglas entran en `PostRequest`.
@@ -926,6 +930,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Test con tags largos
 
 **Notas**: **Evidencia**: `--filter=YouTubeOptions` → 7 passed (CA-13 con Http::fake: categoría, tags, hecho para niños, `notifySubscribers=false` en la consulta y `containsSyntheticMedia`; marcador primero con 30 tags largos y con unicode, vacíos, duplicados y comas; `findPublished` encuentra el vídeo con tags del usuario; reglas de PostRequest). `tests/Feature/Publishing tests/Feature/Connectors/Google` → 180 passed. Opciones: `category_id`, `tags`, `made_for_kids`, `notify_subscribers`, `contains_synthetic_media`. Los tags del usuario se recortan al límite de 500 caracteres (comas y comillas incluidas) reservando el hueco de `targetTag`. Cambio mínimo en el publicador: `openSession` y dos helpers estáticos.
+
+---
+
 ### T-28 — Opciones de TikTok en `postInfo` (solo publicación directa)
 
 - **Descripción**: `disable_duet`, `disable_stitch`, `brand_organic_toggle`, `brand_content_toggle` y `is_aigc` (según T-26) solo cuando la cuenta publica en directo. En modo borrador no se envían. El publicador mantiene su regla de no abrir más de lo pedido.
@@ -954,6 +961,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Test de modo borrador
 
 **Notas**: **Evidencia**: `--filter=TikTokOptions` → 6 passed (CA-14: `post_info` lleva `disable_duet`, `disable_stitch`, `brand_organic_toggle` e `is_aigc`; sin opciones queda igual que antes; en modo borrador el cuerpo del `inbox/video/init` sigue siendo solo `source_info`; en fotos no hay Duet ni Stitch e `is_aigc` va en el nivel superior, según la referencia de TikTok; validación por cuenta). `tests/Feature/Publishing tests/Feature/Connectors tests/Feature/Posts tests/Feature/Mcp` → 599 passed. Decisiones: (1) la regla de qué admite cada cuenta vive en `PostService::optionErrors` (web y MCP la comparten): una opción pedida (valor no vacío) que la red o la cuenta no admite es un error del destino; (2) `brand_content_toggle` con visibilidad privada o sin elegir se rechaza, porque TikTok no permite contenido de marca privado; (3) `PostService` se añade a `Archivos` con esta nota. `postInfo` ya solo se llama en publicación directa.
+
+---
+
 ### T-29 — Persistencia de presets: tabla `composer_presets`, `ComposerPresetService` y valores iniciales
 
 - **Descripción**: Migración **solo aditiva** (`composer_presets`, único `brand_id, network`) y `ComposerPresetService::forBrand()` / `remember()`, que `store` y `update` llaman al guardar. Solo interruptores: título, tags y enlace no persisten. El MCP **no** escribe presets (decisión del usuario). Una marca ajena no se lee ni se escribe.
@@ -984,6 +994,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Props con los presets
 
 **Notas**: **Evidencia**: `migrate:fresh --env=testing` migra `2026_11_10_090000_create_composer_presets_table` (aditiva, único `brand_id, network`). `--filter=ComposerPresets` → 7 passed (CA-15: la marca A recuerda y la B no; los textos, tags, categoría y enlace no persisten; guardar de nuevo actualiza la fila y mezcla; editar también recuerda; marca ajena rechazada en lectura y escritura, por servicio y por web, con la fila ajena intacta; el MCP no escribe presets; una validación fallida no guarda). `tests/Feature/Posts tests/Feature/Mcp tests/Feature/Publishing` → 395 passed. Decisiones: `brand_content_toggle` NO se recuerda (la divulgación comercial debe ser explícita en cada publicación; el informe de T-26 se ajusta); `remember()` se llama desde `store` y `update` con los destinos ya guardados y filtra a booleanos de la lista blanca `ComposerPresetService::REMEMBERED`. Los presets llegan como prop `presets` (`{red: {interruptor: bool}}`). Cada fila lleva `user_id` y el modelo usa el ámbito de usuario.
+
+---
+
 ### T-30 — `PresetsPanel`: opciones globales y por red, ocultando lo que no aplica
 
 - **Descripción**: Interruptores accesibles por red (YouTube, TikTok y lo ya existente de Instagram), con la regla de ocultar lo no admitido (modo borrador de TikTok, opciones no confirmadas en T-26) y el aviso de «hecho para niños».
@@ -1012,6 +1025,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Aviso de comentarios desactivados
 
 **Notas**: **Evidencia**: `npm run build` sin errores y `npx tsc --noEmit -p .` exit 0. `PresetsPanel.vue` (nuevo) dentro de las opciones de cada cuenta de YouTube y TikTok: interruptores `role=switch` con nombre y estado anunciados; YouTube con categoría, etiquetas, notificar, hecho para niños (aviso de comentarios desactivados), etiqueta de IA y #Shorts; TikTok solo con la cuenta en publicación directa (Duet y Stitch solo en vídeo; colaboración de pago con aviso de no privado y de la política de contenido de marca); Instagram y Facebook sin etiqueta de IA (CA-16). Las definiciones viven en `composerOptions.js`; `useComposer` aplica los presets al activar una red y poda las opciones que dejan de aplicar al cambiar de tipo. E2E-09 (T-32) cubre accesibilidad (axe) y 375/360 px. Se sube el contraste de un texto de la previsualización (text-slate-600) que axe marcó. `brand_content_toggle` nunca se precarga.
+
+---
+
 ### T-31 — Paridad del MCP: `options` en `PostPayload` y `get_post`
 
 - **Descripción**: El esquema `options` entra en `PostPayload` y `presentPost()`, con las mismas reglas de `PostRequest`. Solo las opciones confirmadas en T-26.
@@ -1039,6 +1055,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Documentar
 
 **Notas**: **Evidencia**: `--filter=McpOptions` → 5 passed (create_post con opciones de YouTube y get_post las devuelve; forma inválida rechazada con el campo; TikTok en modo borrador, y opciones de YouTube en TikTok, rechazadas como error del destino; con TikTok directo se aceptan y el contenido de marca privado se rechaza; update_post sustituye las opciones y no se escribe ningún preset). `tests/Feature/Mcp` en verde. Las reglas son las de `PostRequest` (forma) y `PostService::optionErrors` (cuenta), compartidas con la web por `validatedPayload()` y `plan()`; el esquema `options` de `PostPayload` documenta solo las opciones confirmadas en T-26. `docs/modulos/mcp.md` actualizado.
+
+---
+
 ### T-32 — Pest y E2E de C-04 (CA-13..CA-16)
 
 - **Descripción**: E2E con dos marcas `e2e-`: guardar una opción en A, abrir un post nuevo en A y B, y comprobar que la etiqueta IA no aparece donde no se admite. Con axe y sin desbordamiento.
@@ -1065,6 +1084,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 - [x] Pest de presets
 
 **Notas**: **Evidencia**: `npx playwright test composer.spec.ts --project=desktop` → 19 passed (incluye el nuevo E2E-09: dos marcas `e2e-`, borrador de YouTube sembrado, apagar «Notificar», guardar, post nuevo en A con el interruptor apagado y etiquetas vacías, en B encendido; sin etiqueta de IA en Instagram ni Facebook, TikTok en modo borrador sin interruptores y el directo con Duet, Stitch y colaboración de pago; axe y sin desbordamiento). `php artisan test --compact tests/Feature/Posts/Compose` → 23 passed (4 nuevos de `PresetsTest`: CA-14 cuentas en directo y opciones rechazadas en borrador, CA-15 recordado y sin textos, CA-16 etiqueta de IA solo en YouTube y TikTok directo). Las marcas `e2e-` y sus vídeos de prueba se borran con `cleanComposerBrands` (ahora también borra la media del usuario E2E). La pasada en los tres proyectos va al final.
+
+---
+
 ### T-33 — Revisión de robustez de la Fase 4 (marcador de YouTube, aislamiento de presets y divulgación de TikTok)
 
 - **Descripción**: Revisión de: expulsión del marcador `targetTag` con tags largos o unicode; opciones que llegan por MCP y no por la UI; aislamiento de `composer_presets` entre marcas y usuarios; TikTok nunca más abierto de lo pedido; mass-assignment de `options`. Checklist firmada; cada hallazgo lleva su test.
@@ -1440,3 +1462,18 @@ Hallazgo extra al probar A3: el texto largo sin espacios desbordaba horizontalme
 | N3 | UX | Minor | Con una subida de media en curso «Guardar borrador» aparecía habilitado pero `submit(false)` no hacía nada | T-09 | Se deshabilita con una nota «Espera a que termine la subida.» (`data-testid="uploading-note"`); es lo más coherente: un borrador sin la media pendiente sería un guardado engañoso | E2E-05 «subida en curso» actualizado (Guardar borrador deshabilitado + nota) |
 | R | Funcional | Important | Relacionado: `FRESH_ATTEMPT` ponía `next_attempt_at` y `error_code` a `null`, así que editar el texto de un destino en pausa por la red y usar «Publicar ahora» se saltaba la pausa | T-13 | `PostService::keepRatePause`: un destino `programada` con pausa vigente (`RATE_PAUSES` y `next_attempt_at` futuro) que empieza un intento nuevo por una edición la conserva; una pausa caducada o un error normal no. Sin tocar `PublishPostTarget` | `RevisionFase2Intento2Test` «Pausa por la red» (cuota y `rate_limit`: editar y publicar ahora no encola) y «una pausa caducada…» |
 | S | Funcional | Aviso | `AMBIGUOUS_ERRORS` no incluía los timeouts reales (`red`) ni `meta_no_disponible`, así que `mayHaveBeenSent` no guardaba `reconcile` tras un timeout y una edición | T-20 | **Está en `PostService`, no en `PublishPostTarget`**: se corrige junto con T-20 (los escenarios b y c de CA-11 lo necesitan) en el commit de T-20; ver las notas de T-20 y T-25 |  `TargetTextIdempotency{Instagram,Facebook}` (8 casos) |
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-18..T-24) — sin Critical ni Important
+
+Corregidos los Minor en los commits `T-25: …`. Las dos lentes no encontraron Critical ni Important.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|-------|-------|-----|-------|------------|-----------|
+| A1 | Funcional | Minor | La previsualización mostraba siempre el texto común, no el de la red de la pestaña activa | T-21 | `previewText` usa el texto efectivo de la pestaña activa (`useComposer.js`) | E2E-08 amplía: la previsualización sigue a la pestaña y al texto común; 19 passed en los tres proyectos |
+| A2 | Funcional | Minor | Con todos los destinos con texto propio, el calendario y la lista mostraban la plantilla aunque no se publicara | T-22 | `CalendarService::displayText` muestra el primer texto efectivo si no hay ningún destino vinculado | `CalendarEffectiveTextTest`: test de todos con texto propio en semana, mes y lista; el test que fijaba lo contrario se ajusta |
+| A3/B1 | Funcional | Minor | Un texto propio `''` o solo con espacios por el MCP publicaba vacío y `findPublished` de Instagram y Facebook no podía reconocerlo | T-23 | `PostService::plan` convierte vacío o solo espacios en `null` (vinculado) para web y MCP; docs y esquema de `PostPayload` actualizados | `McpTargetTextTest` (`''`, espacios, salto y tabulación), `TargetTextPlanFillTest`, `LibraryTargetTextTest` |
+| A4 | Funcional | Minor | Analytics, informes, buzón y aviso de fallo mostraban `posts.text` en superficies por destino | T-22 | `effectiveText()` del destino en `AnalyticsService`, `ReportService`, `InboxController` y `PublishFailed` (barato: una línea cada uno) | `TargetTextReviewTest` (3 casos) |
+| B2 | Funcional | Minor | Las autolistas con una plantilla de la biblioteca perdían los textos propios por destino | T-22 | `AutolistService::postData` los conserva en los destinos que coinciden (cuenta y tipo) | `AutolistTest` (2 casos; falla sin la corrección) |
+| N+1 | Rendimiento | Minor | `CalendarService::displayText` consultaba el post de cada destino | T-22 | Resuelve el efectivo con la plantilla ya cargada (sin `effectiveText()`) | `CalendarEffectiveTextTest`: 0 consultas de `posts` por destino |
+| F | Funcional | Aviso | `FacebookPublisher.php:117-121` silencia los errores de lectura (`lookup_failed` → `null`) | T-20 | **Solo anotado, no corregido**: riesgo preexistente fuera del alcance (Meta no se toca) | Nota de T-25 |
+| TR | Funcional | Aviso | `TrashController` muestra `posts.text` | T-22 | Deuda anotada: es una superficie por publicación, no por destino | Nota de T-25 |

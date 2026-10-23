@@ -918,3 +918,100 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     await expectNoOverflow(page);
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
+
+test('E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML', async ({ page }, info) => {
+    const w = watch(page);
+    const posts = seedComposerPosts(e2eUser(info.project.name).email, brand.id);
+    const nota = 'Revisar con el cliente <b>negrita</b> <img src=x onerror=alert(1)>\nSegunda línea';
+
+    await page.goto(`/posts/${posts.published}/edit`);
+    await settle(page);
+    await expect(page.getByText('Esta publicación ya no se puede editar.')).toBeVisible();
+
+    const campo = page.getByLabel('Notas internas');
+    await expect(campo).toBeEditable();
+    await campo.fill(nota);
+    await expect(page.getByTestId('notes-count')).toContainText(`${nota.length} / 5000`);
+    await page.getByRole('button', { name: 'Guardar notas' }).click();
+    await expect(page.getByTestId('notes-saved')).toBeVisible();
+    await page.screenshot({ path: 'test-results/composer-notas.png' });
+    await axeNow(page, 'compositor con notas internas');
+    await expectNoOverflow(page);
+
+    // Recargar conserva la nota tal cual (texto plano, con el salto de línea).
+    await page.reload();
+    await settle(page);
+    await expect(page.getByLabel('Notas internas')).toHaveValue(nota);
+    await expect(page.locator('main b, form b')).toHaveCount(0);
+
+    // Calendario: indicador con texto accesible solo en la tarjeta con nota, en las tres vistas.
+    for (const vista of ['week', 'month', 'list']) {
+        await page.goto(`/calendar?brand_id=${brand.id}&view=${vista}&date=${posts.scheduledDate}`);
+        await settle(page);
+        await expect(page.getByTestId('notes-indicator')).toHaveCount(1);
+        await expect(page.getByTestId('notes-indicator')).toContainText('Nota');
+        await expect(page.locator('b', { hasText: 'negrita' })).toHaveCount(0);
+        await expectNoOverflow(page);
+    }
+    await axeNow(page, 'calendario con indicador de nota');
+    expect(w.errors).toEqual([]);
+});
+
+test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía', async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+
+    const texto = page.getByLabel('Texto', { exact: true });
+    await texto.fill('Mira  ahora');
+    await texto.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(5, 5));
+
+    const abrir = page.getByRole('button', { name: /Enlace con UTM/ });
+    await abrir.click();
+    const modal = page.getByRole('dialog', { name: 'Generar enlace con UTM' });
+    await expect(modal).toBeVisible();
+    await expect(modal.getByLabel(/Dirección \(URL\)/)).toBeFocused();
+    await axeNow(page, 'generador de UTM abierto');
+    await expectNoOverflow(page);
+
+    const anadir = modal.getByRole('button', { name: 'Añadir' });
+    await expect(anadir).toBeDisabled();
+
+    // URL peligrosa: se rechaza y no se puede añadir aunque los obligatorios estén completos.
+    await modal.getByLabel(/Dirección \(URL\)/).fill('javascript:alert(1)');
+    await modal.getByLabel(/\(utm_source\)/).fill('instagram');
+    await modal.getByLabel(/\(utm_medium\)/).fill('social');
+    await modal.getByLabel(/\(utm_campaign\)/).fill('rebajas');
+    await modal.getByLabel(/Dirección \(URL\)/).blur();
+    await expect(modal.getByTestId('utm-url-error')).toContainText('http');
+    await expect(anadir).toBeDisabled();
+
+    // Limpiar vacía todos los campos.
+    await modal.getByRole('button', { name: 'Limpiar' }).click();
+    await expect(modal.getByLabel(/Dirección \(URL\)/)).toHaveValue('');
+    await expect(modal.getByLabel(/\(utm_source\)/)).toHaveValue('');
+    await expect(modal.getByLabel(/\(utm_campaign\)/)).toHaveValue('');
+    await expect(anadir).toBeDisabled();
+
+    // URL con parámetros propios y un utm_source previo: se conservan los suyos y no se duplica utm_*.
+    await modal.getByLabel(/Dirección \(URL\)/).fill('https://ejemplo.com/oferta?ref=7&utm_source=viejo#precio');
+    await modal.getByLabel(/\(utm_source\)/).fill('insta gram');
+    await modal.getByLabel(/\(utm_medium\)/).fill('social&paid');
+    await modal.getByLabel(/\(utm_campaign\)/).fill('rebajas otoño');
+    await expect(anadir).toBeEnabled();
+    const esperada = 'https://ejemplo.com/oferta?ref=7&utm_source=insta+gram&utm_medium=social%26paid&utm_campaign=rebajas+oto%C3%B1o#precio';
+    await expect(modal.getByTestId('utm-result')).toHaveText(esperada);
+
+    await anadir.click();
+    await expect(modal).toHaveCount(0);
+    await expect(abrir).toBeFocused();
+    await expect(texto).toHaveValue(`Mira ${esperada} ahora`);
+
+    // Escape cierra sin insertar nada.
+    await abrir.click();
+    await expect(modal).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+    await expect(texto).toHaveValue(`Mira ${esperada} ahora`);
+    expect(w.errors).toEqual([]);
+});

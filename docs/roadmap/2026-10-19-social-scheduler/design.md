@@ -65,11 +65,11 @@ Una sola app Laravel 13 (`laravel/framework` v13.37, 2026-10-16) servida por el 
 | Cola | Driver `database` sobre MariaDB ≥ 10.6 / MySQL ≥ 8.0 (`SKIP LOCKED`; versiones anteriores pueden bloquear o duplicar con varios workers); `tries`, `backoff`, `ShouldBeUnique`, middleware `WithoutOverlapping` | incluido; Horizon v5.50.1 queda como ampliación si se instala Redis |
 | Workers | `php artisan queue:work --queue=publish,poll,metrics,reports --max-time=3600` como unidades systemd | root confirmado |
 | Scheduler | Cron de Hestia: `* * * * * php artisan schedule:run` (no requiere root) | nativo Hestia |
-| OAuth redes | Conectores propios por red; `laravel/socialite` v5.31 para Facebook/Google; TikTok con cliente HTTP propio | `socialiteproviders/tiktok` 5.2.0 sin releases desde 2024-04 ⚠️ no usar sin probar |
-| YouTube | `google/apiclient` v2.20.1 (subida reanudable por chunks) | 2026-09-25 |
+| OAuth redes | Conectores propios por red, TODOS con el cliente `Http` de Laravel (Meta, Google y TikTok): se descartó `laravel/socialite` (solo cubre el canje básico; los hallazgos del spike —portfolios `owned_pages`, `debug_token`, `fb_exchange_token`, `invalid_grant`— exigen control fino de cada llamada) y evita una dependencia más; implementado en T-12/T-13/T-14 | `socialiteproviders/tiktok` 5.2.0 sin releases desde 2024-04 ⚠️ no usar sin probar |
+| YouTube | OAuth/refresh con `Http` propio (T-13, sin `google/apiclient`); la subida reanudable por chunks se decide en la fase de publicación (`google/apiclient` v2.20.1 u `Http` propio) | 2026-09-25 |
 | Media | Flysystem S3 (`league/flysystem-aws-s3-v3` 3.35) contra R2; subida multipart directa navegador→R2 con URLs prefirmadas | 2026-08-08 |
 | MCP | `laravel/mcp` v1.0.2 (2026-10-11): `Mcp::web('/mcp', ...)` + `auth:sanctum` (Bearer = API key personal); OAuth 2.1 vía Passport (`Mcp::oauthRoutes`) como ampliación | verificado en la doc oficial 13.x |
-| PDF/CSV | `spatie/laravel-pdf` 2.14 (Browsershot → Chromium headless) o DomPDF v3.1.2 con gráficos como imagen | ⚠️ elegir driver en el plan |
+| PDF/CSV | **DomPDF** (`barryvdh/laravel-dompdf` ^3.1, PHP puro, driver configurable `REPORTS_PDF_DRIVER`; gráficos como barras HTML/CSS) — decidido en T-39, ver [ADR-002](../../knowledge/adr/ADR-002-pdf-dompdf.md); `spatie/laravel-pdf` (Chromium) descartado para el VPS HestiaCP | decidido 2026-10-20 (ADR-002, propuesta) |
 
 | Criterio | Valoración |
 |---|---|
@@ -173,7 +173,7 @@ El repo no tiene código: todas las rutas de código son **nuevas** y siguen la 
 
 **Pendientes para el planner / implementer:**
 
-- **PDF:** ¿Chromium headless (`spatie/laravel-pdf` + Browsershot) o DomPDF con gráficos rasterizados? Se decide en C-05.
+- ~~**PDF:** ¿Chromium headless o DomPDF?~~ **Resuelto en T-39: DomPDF** (ver [ADR-002](../../knowledge/adr/ADR-002-pdf-dompdf.md)).
 - **Frontend:** Inertia + Vue (por defecto) o React; se fija al crear el esqueleto en C-01.
 - **Conector TikTok:** cliente HTTP propio (por defecto) frente a `socialiteproviders/tiktok` (sin releases desde 2024-04 ⚠️).
 

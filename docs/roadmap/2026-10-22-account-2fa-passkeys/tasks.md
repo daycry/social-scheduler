@@ -1,0 +1,803 @@
+---
+generacion:
+  inicio: 2026-10-22T09:22:14Z
+  fin: 2026-10-22T09:27:59Z
+  fuente: medido          # ventana compartida con improvement-plan.md
+  tokens_reales: { entrada: 14, salida: 57065, cache_creacion: 57151, cache_lectura: 725911 }
+  eur: null               # precioTokens no fiable: ejecuta rates-verify
+  horas_ia: 0.38
+  duracion: 23m
+  ratio_usado: 300000
+estado: completado
+changelog: Added
+verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige ledger-lint (exit 1 si falta)
+---
+
+# Checklist de Tareas — Seguridad de cuenta: doble factor (TOTP) y passkeys
+
+| | |
+|---|---|
+| **Estado** | completado |
+| **Fecha** | 2026-10-22 |
+| **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
+| **Diseño** | [`design.md`](./design.md) — opción O1 (Breeze + google2fa propio + `laravel/passkeys`) |
+| **Plan de pruebas** | [`test-plan.md`](./test-plan.md) |
+
+> **⚠️ Ledger canónico de progreso.** Este fichero es la **fuente única de verdad** del avance del plan. **Cualquier** implementador —el agente `implementer`, el chat principal, o un orquestador SDD externo— **debe** marcar aquí cada tarea (checkbox + estado) al completarla y actualizar el resumen. Los ledgers propios de otras herramientas son **espejo**, no fuente.
+
+> Las horas de este fichero son **base** (sin el +20 % de contingencia); el plan muestra las cifras con margen. Tokens de ejecución repartidos según la evaluación (C-01 1,43M · C-02 1,87M · C-03 1,32M).
+
+---
+
+## Resumen de progreso
+
+| Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
+|------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
+| Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI) | 7 | 7 | 100% | 0 / 37,0h | 0 / 4,8h | 0 / 1,2h | 0 / 1,43M |
+| Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI) | 7 | 7 | 100% | 0 / 45,0h | 0 / 6,2h | 0 / 1,6h | 0 / 1,87M |
+| Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre | 6 | 6 | 100% | 0 / 32,0h | 0 / 4,4h | 0 / 1,1h | 0 / 1,32M |
+| **TOTAL** | **20** | **20** | **100%** | **0 / 114,0h** | **0 / 15,4h** | **0 / 3,8h** | **0 / 4,62M** |
+
+> **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
+
+---
+
+## Fase 1 — C-01 · TOTP + códigos de recuperación (backend y UI)
+
+**Estado**: completado · **Estimado**: 37.0h · **Real**: — · **Coste est.**: 1.850 € + tokens (⚠️ verificar) · **Tokens est.**: 1.43M
+
+### T-01 — Dependencias, migración de 2FA y modelo User
+
+- **Descripción**: Instala `pragmarx/google2fa ^9.1` y `bacon/bacon-qr-code ^3.1`, añade la migración de las columnas de 2FA en `users` (con la siguiente fecha libre tras `2026_11_03_*`) y prepara el modelo `User` (cast `encrypted`, `#[Hidden]`, borrado en cascada). El login clásico queda intacto: es la red de seguridad de todo C-01.
+- **Changelog**: Preparada la base de datos y el modelo de usuario para el doble factor; el login actual no cambia.
+- **Estado**: completado
+- **Tiempo humano**: est. 2,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.32h · real —
+- **Supervisión**: est. 0.08h (≈25 % IA) · real —
+- **Previsión IA**: 88k in / 9k out tok · ⚠️ verificar €
+- **Dependencias**: ninguna
+- **Tipo**: backend
+- **Archivos**: `composer.json`, `composer.lock`, `database/migrations/2026_11_04_090000_add_two_factor_columns_to_users_table.php`, `app/Models/User.php`, `database/factories/UserFactory.php`, `tests/Unit/UserTwoFactorColumnsTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact tests/Unit/UserTwoFactorColumnsTest.php tests/Feature/Auth` → todo en verde (los 8 ficheros de Auth sin tocar)
+  - `php artisan migrate:fresh --env=testing --no-interaction` → migra sin error y existen `two_factor_secret`, `two_factor_recovery_codes`, `two_factor_confirmed_at` y `two_factor_last_used_at`
+
+- **Evidencia**: tests Unit+Feature/Auth: 30 passed (77 assertions); migrate:fresh --env=testing OK y migrate local OK, 4 columnas two_factor_* presentes. Nota: two_factor_last_used_at es unsignedBigInteger (paso TOTP), no timestamp; casts extra recovery_codes=array y confirmed_at=datetime; helper hasTwoFactorEnabled().
+
+**Criterios de aceptación**
+- [x] Las 4 columnas existen y la migración es posterior a `2026_11_03_*` (`ls database/migrations | tail -3`)
+- [x] `$user->toArray()` no contiene `two_factor_secret` ni `two_factor_recovery_codes` (criterio de proceso, `#[Hidden]`)
+- [x] Un `SELECT two_factor_secret FROM users` tras guardar un secreto no devuelve el texto en claro (cast `encrypted`)
+- [x] `tests/Feature/Auth/*` pasa sin modificar
+
+**Subtareas**
+- [x] `composer require pragmarx/google2fa:^9.1 bacon/bacon-qr-code:^3.1`
+- [x] Migración nullable con los nombres de columna de Fortify (reversibilidad del diseño)
+- [x] Cast `encrypted`, `#[Hidden]` y tests de ocultación y cifrado
+
+**Notas**: Si `2026_11_04_*` ya existe al implementar, usar la siguiente fecha libre (§7 del diseño).
+
+### T-02 — TotpService: secreto, QR SVG, verificación ±1 con antirreplay y códigos con hash
+
+- **Descripción**: Crea `App\Services\TwoFactor\TotpService` sobre `google2fa`: genera el secreto y el QR SVG (bacon), verifica con ventana ±1 con `verifyKeyNewer` y persiste el último paso en `two_factor_last_used_at`, y genera y consume los 8 códigos de recuperación guardados con hash, uno por código (decisión 2 de §4 del diseño).
+- **Changelog**: Ya se pueden generar secretos y códigos QR de doble factor, validar los códigos de la app y usar códigos de recuperación de un solo uso.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.64h · real —
+- **Supervisión**: est. 0.16h (≈25 % IA) · real —
+- **Previsión IA**: 176k in / 17k out tok · ⚠️ verificar €
+- **Dependencias**: T-01
+- **Tipo**: backend
+- **Archivos**: `app/Services/TwoFactor/TotpService.php`, `tests/Unit/TotpServiceTest.php`, `app/Models/User.php`
+- **Cubre (tests)**: —
+- **Verificación**: `php artisan test --compact tests/Unit/TotpServiceTest.php` → todos en verde (ventana ±1, rechazo de reutilización, 8 códigos, consumo único)
+
+- **Evidencia**: tests/Unit/TotpServiceTest.php: 7 passed (38 assertions): ventana ±1, antirreplay, 8 códigos con hash, consumo único, sin logs. Nota: verifyKeyNewer devuelve true (no el paso) con oldTimestamp null, se pasa 0; reclamo del paso con UPDATE condicional atómico; two_factor_recovery_codes = array JSON de hashes bcrypt.
+
+**Criterios de aceptación**
+- [x] Un código válido de la ventana actual y de ±1 paso se acepta; fuera de la ventana se rechaza (CA-05)
+- [x] El mismo código aceptado una vez se rechaza la segunda vez dentro de su ventana (CA-07; antirreplay en columna, no en cache)
+- [x] Se generan 8 códigos; en BD solo hay hashes y el texto en claro se devuelve una única vez (CA-01, CA-10)
+- [x] Consumir un código de recuperación lo invalida y devuelve cuántos quedan (CA-09)
+- [x] Ninguna cadena de secreto, TOTP o código se escribe en el log
+
+**Subtareas**
+- [x] `generateSecret()`, `qrSvg()`, `verify()`, `generateRecoveryCodes()`, `consumeRecoveryCode()`
+- [x] Test que calcula el TOTP con el propio `Google2FA` y el secreto conocido
+- [x] Test de log con `Log::spy()` sin secretos
+
+**Notas**: Código de seguridad propio: pasa por la revisión de T-07.
+
+### T-03 — Login partido y reto 2FA (`/two-factor-challenge`)
+
+- **Descripción**: Parte `LoginRequest::authenticate()` en `ensureIsNotRateLimited()` + `validateCredentials(): User` (sin `Auth::attempt`, mismo `throttleKey` y mismos mensajes). `AuthenticatedSessionController::store` abre la sesión como hoy si no hay 2FA, o guarda `login.id`, `login.remember` y `login.at` y redirige al reto. Nuevo `TwoFactorChallengeController` (`create`/`store`) con TOTP o recuperación, rate limit `2fa:{login_id}|{ip}` de 5/min, TTL de 5 min (`auth.two_factor.challenge_ttl`), `Auth::login($user, $remember)` + `regenerate` y auditoría.
+- **Changelog**: Si tienes el doble factor activado, tras escribir tu contraseña se te pide el código de la app (o uno de recuperación) antes de entrar; 5 fallos bloquean un minuto.
+- **Estado**: completado
+- **Tiempo humano**: est. 7,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.90h · real —
+- **Supervisión**: est. 0.23h (≈25 % IA) · real —
+- **Previsión IA**: 246k in / 24k out tok · ⚠️ verificar €
+- **Dependencias**: T-02
+- **Tipo**: backend
+- **Archivos**: `app/Http/Requests/Auth/LoginRequest.php`, `app/Http/Controllers/Auth/AuthenticatedSessionController.php`, `app/Http/Controllers/Auth/TwoFactorChallengeController.php`, `routes/auth.php`, `config/auth.php`, `tests/Feature/Auth/TwoFactorChallengeTest.php`, `tests/Feature/Auth/AuthenticationTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact tests/Feature/Auth` → todo en verde, incluido el caso «usuario sin 2FA entra igual»
+  - `php artisan test --compact --filter=TwoFactorChallenge` → CA-04..CA-09 en verde
+
+- **Evidencia**: tests/Feature/Auth: 39 passed (145 assertions) incl. caso sin 2FA y throttle clásico; --filter=TwoFactorChallenge: 12 passed (CA-04..CA-09). Desviaciones: authenticate() sustituido por validateCredentials() (no se conserva el wrapper); ruta names two-factor.challenge[.store]; sesión regenerada también al abrir el reto; Auth::login directo omite eventos Attempting/Failed de Auth::attempt.
+
+**Criterios de aceptación**
+- [x] CA-04: con 2FA, email y contraseña correctos NO autentican (`assertGuest`) y redirigen a `two-factor-challenge`
+- [x] CA-05: TOTP válido → `dashboard`/`intended`, sesión regenerada, `remember` respetado y `auth.2fa.challenge_passed`
+- [x] CA-06: 5 fallos → el 6.º se bloquea con segundos de espera aunque el código sea correcto; `auth.2fa.challenge_failed` ×5 y `auth.2fa.lockout`
+- [x] CA-07: un TOTP reutilizado se rechaza
+- [x] CA-08: reto con más de 5 min o sin `login.id` → `/login` con aviso, sin sesión
+- [x] CA-09: un código de recuperación válido entra, no sirve dos veces y `auth.2fa.recovery_used` lleva el número restante y nunca el código
+- [x] Usuario sin 2FA: login idéntico a hoy (mismo throttle y mismo mensaje)
+
+**Subtareas**
+- [x] TDD: primero el test de no-regresión de `AuthenticationTest` y el caso sin 2FA
+- [x] Partir `authenticate()` conservando `Lockout` y `auth.throttle`
+- [x] Reto: TTL, rate limiter, alternar TOTP/recuperación y auditoría sin secretos
+
+**Notas**: Es el punto de mayor riesgo de regresión (riesgo Alto del diseño). `AuthenticationTest` se adapta solo en lo que documenta el nuevo flujo.
+
+### T-04 — Gestión del 2FA desde el perfil: activar, confirmar, desactivar y regenerar códigos
+
+- **Descripción**: `App\Http\Controllers\Profile\TwoFactorController` con activar (secreto pendiente + QR), confirmar (valida el primer TOTP, guarda `two_factor_confirmed_at`, genera los 8 códigos y **rota `remember_token`**, decisión 3 de §4), desactivar (contraseña + TOTP o recuperación) y regenerar códigos. Rutas bajo `auth` + `password.confirm`.
+- **Changelog**: Desde tu perfil puedes activar el doble factor con tu app de autenticación, desactivarlo y generar códigos de recuperación nuevos.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.77h · real —
+- **Supervisión**: est. 0.19h (≈25 % IA) · real —
+- **Previsión IA**: 211k in / 21k out tok · ⚠️ verificar €
+- **Dependencias**: T-02
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Profile/TwoFactorController.php`, `app/Http/Requests/Profile/TwoFactorConfirmRequest.php`, `routes/auth.php`, `tests/Feature/Auth/TwoFactorSettingsTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=TwoFactorSettings` → CA-01, CA-02, CA-03 y CA-10 en verde
+  - `php artisan route:list --path=two-factor --json` → todas las rutas de gestión llevan `auth` y `password.confirm`
+
+- **Evidencia**: --filter=TwoFactorSettings: 11 passed (46 assertions) CA-01/02/03/10 + rotación remember_token; route:list --path=two-factor: las 4 rutas de gestión (user/two-factor, /confirm, DELETE, /recovery-codes) llevan Authenticate + RequirePassword. Desviaciones: rutas bajo prefijo user/two-factor con nombres two-factor.enable|confirm|disable|recovery-codes; secreto pendiente y códigos viajan como flash de sesión (twoFactorSetup / recoveryCodes) que T-06 expondrá por Inertia; throttle 10/min extra en confirm y disable.
+
+**Criterios de aceptación**
+- [x] CA-01: con TOTP válido se confirma, se devuelven 8 códigos una sola vez y se audita `auth.2fa.enabled`
+- [x] CA-02: TOTP incorrecto → error en el campo, el 2FA no se activa y el secreto pendiente se conserva
+- [x] CA-03: desactivar sin contraseña o sin código válido se rechaza; con ambos se borran secreto y códigos y se audita `auth.2fa.disabled`
+- [x] CA-10: regenerar da 8 códigos nuevos, los anteriores dejan de valer y se audita `auth.2fa.recovery_regenerated`
+- [x] Al confirmar, `remember_token` cambia (test que compara antes y después)
+- [x] Los códigos no se pueden volver a mostrar tras la respuesta de generación
+
+**Subtareas**
+- [x] Rutas y Form Requests
+- [x] Rotación de `remember_token` al confirmar
+- [x] Auditoría `auth.2fa.*` con `channel: 'web'`
+
+**Notas**: Respeta las decisiones 2 y 3 de §4 del diseño.
+
+### T-05 — Comando `user:two-factor-reset`, reset de contraseña con 2FA y MCP intacto
+
+- **Descripción**: Comando de operador que desactiva el 2FA de un usuario por email y lo audita (`auth.2fa.reset_by_operator`). Tests de regresión transversales: el reset de contraseña no abre sesión ni desactiva el 2FA (CA-11) y un usuario con 2FA sigue usando el MCP por API key sin reto (CA-22). No se tocan `routes/ai.php`, `McpGuard`, `config/sanctum.php` ni `ApiKeyController`.
+- **Changelog**: Soporte puede desactivar el doble factor de un usuario que perdió el móvil con un comando; el reset de contraseña y las claves del MCP no se ven afectados.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.45h · real —
+- **Supervisión**: est. 0.11h (≈25 % IA) · real —
+- **Previsión IA**: 123k in / 12k out tok · ⚠️ verificar €
+- **Dependencias**: T-03, T-04
+- **Tipo**: backend
+- **Archivos**: `app/Console/Commands/UserTwoFactorReset.php`, `tests/Feature/Auth/TwoFactorResetCommandTest.php`, `tests/Feature/Auth/PasswordResetTest.php`, `tests/Feature/Auth/McpWithTwoFactorTest.php`
+- **Cubre (tests)**: API-01, M-06
+- **Verificación**:
+  - `php artisan test --compact --filter='TwoFactorResetCommand|McpWithTwoFactor|PasswordReset'` → en verde
+  - `git diff --stat -- routes/ai.php app/Http/Middleware/McpGuard.php config/sanctum.php app/Http/Controllers/ApiKeyController.php` → sin salida (no cambian)
+  - `php artisan test --compact tests/Feature/Mcp` → en verde sin tocar esos tests
+
+- **Evidencia**: --filter='TwoFactorResetCommand|McpWithTwoFactor|PasswordReset': 11 passed (42 assertions); tests/Feature/Mcp: 43 passed sin tocar; git diff 7b44972 --stat de routes/ai.php, McpGuard, sanctum.php, ApiKeyController: sin salida.
+
+**Criterios de aceptación**
+- [x] CA-11: tras el reset de contraseña con 2FA activo no hay sesión, el 2FA sigue activo y el siguiente login pasa por el reto
+- [x] CA-12: `php artisan user:two-factor-reset {email}` deja el 2FA desactivado y audita `auth.2fa.reset_by_operator`; el usuario entra solo con contraseña
+- [x] CA-22: `POST /mcp` con `Bearer` de un usuario con 2FA responde igual que sin 2FA, y una sesión a medio reto no autentica `/mcp`
+- [x] El comando falla con mensaje claro si el email no existe
+
+**Subtareas**
+- [x] Comando con confirmación y `--force`
+- [x] Tests CA-11, CA-12 y CA-22
+- [x] Comprobar que los ficheros del MCP no aparecen en el diff
+
+**Notas**: —
+
+### T-06 — UI del 2FA: reto, Login y tarjeta «Seguridad» con TwoFactorForm
+
+- **Descripción**: `Auth/TwoFactorChallenge.vue` (campo `one-time-code`, `inputmode=numeric`, alternar a código de recuperación, `aria-live`), ajuste mínimo de `Auth/Login.vue`, y `Profile/Partials/TwoFactorForm.vue` (activar con QR con texto alternativo y secreto copiable, confirmar, mostrar los 8 códigos una vez con copiar y descargar, desactivar, regenerar) montado en una tarjeta «Seguridad» de `Profile/Edit.vue`. La UI de C-01 va en la fase 1 (no se aplaza a C-03) para poder verificar el 2FA de extremo a extremo antes de abrir passkeys.
+- **Changelog**: Nueva pantalla de verificación en dos pasos al entrar, y en tu perfil una sección de doble factor con QR, clave copiable y códigos de recuperación que puedes copiar o descargar.
+- **Estado**: completado
+- **Tiempo humano**: est. 9,0h · real —
+- **Tiempo IA (ejec.)**: est. 1.16h · real —
+- **Supervisión**: est. 0.29h (≈25 % IA) · real —
+- **Previsión IA**: 317k in / 31k out tok · ⚠️ verificar €
+- **Dependencias**: T-03, T-04
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Pages/Auth/TwoFactorChallenge.vue`, `resources/js/Pages/Auth/Login.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Profile/Partials/TwoFactorForm.vue`, `app/Http/Controllers/ProfileController.php`, `app/Http/Controllers/Profile/PasskeyController.php`, `routes/auth.php`, `tests/Feature/ProfileTest.php`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, A11Y-01, M-03, M-05
+- **Verificación**:
+  - `npm run build` → build sin errores
+  - `php artisan test --compact tests/Feature/ProfileTest.php --filter=Security` → la página `Profile/Edit` expone `twoFactor` (estado, sin secretos) por Inertia
+  - `vendor/bin/pint --test` → sin cambios pendientes
+
+- **Evidencia**: npm run build OK (built in 807ms); ProfileTest --filter=Security: 3 passed (twoFactor sin secretos, códigos una sola vez); vendor/bin/pint --test: passed; php artisan test completo: 841 passed (796 + 45 nuevos). Desviaciones: Login.vue solo recibe role=status en el aviso (el reto no necesita más cambios); props twoFactorSetup/recoveryCodes llegan por flash de sesión en Inertia; QR como data-URI en <img alt>. A11y/375px se valida en T-18.
+
+**Criterios de aceptación**
+- [x] CA-23: el campo de código tiene etiqueta visible, `autocomplete="one-time-code"` e `inputmode="numeric"`; los errores se anuncian con `aria-live`; el enlace a «código de recuperación» es accesible por teclado
+- [x] CA-24: el QR tiene `alt`, el secreto aparece como texto copiable y los códigos se pueden copiar o descargar sin ratón
+- [x] Las props de Inertia no incluyen `two_factor_secret` ni códigos, salvo la respuesta única de generación
+- Nota: «Sin desbordamiento horizontal a 375 y 360 px» se traslada a T-18 (su criterio «0 px de desbordamiento horizontal a 375 y 360 px»), donde se verifica con Playwright.
+
+**Subtareas**
+- [x] Página del reto con alternancia TOTP/recuperación
+- [x] TwoFactorForm: estados desactivado, pendiente de confirmar y activo
+- [x] Props de `ProfileController::edit` (solo estado y nº de códigos restantes)
+
+**Notas**: Reutiliza `TextInput`, `InputLabel`, `InputError`, `PrimaryButton` y `Modal`.
+
+### T-07 — Revisión de seguridad de C-01
+
+- **Descripción**: Revisión dirigida del código de seguridad propio: reto 2FA, partición del login, hashes de recuperación, antirreplay, rate limit y ausencia de secretos en log y auditoría. Resultado: checklist firmada en las notas y huecos corregidos antes de abrir C-02.
+- **Changelog**: El doble factor pasó una revisión de seguridad independiente; se reforzó el límite de intentos del código y la protección del secreto durante la activación.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.52h · real —
+- **Supervisión**: est. 0.13h (≈25 % IA) · real —
+- **Previsión IA**: 141k in / 14k out tok · ⚠️ verificar €
+- **Dependencias**: T-05, T-06
+- **Tipo**: docs
+- **Archivos**: `docs/roadmap/2026-10-22-account-2fa-passkeys/tasks.md`, `tests/Feature/Auth/TwoFactorAuditLeakTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact` → suite completa en verde (796 + los nuevos de C-01)
+  - `php artisan test --compact --filter=TwoFactorAuditLeak` → ninguna fila de `audit_logs` ni línea de log contiene secreto, TOTP ni código de recuperación
+  - lectura: checklist de revisión en Notas con cada punto marcado
+
+**Criterios de aceptación**
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes salvo el flujo de login documentado
+- [x] Ninguna fila de `audit_logs` ni línea de log contiene secreto, TOTP ni código de recuperación
+- [x] `vendor/bin/pint --test` sin cambios pendientes
+
+**Subtareas**
+- [x] Revisar reto, rate limit y TTL
+- [x] Test de fugas en log y auditoría
+- [x] Ejecutar suite completa y Pint
+
+**Notas**: Puerta de salida de la fase 1. Revisión adversarial de dos intentos (lentes A+B+C+D; tablas al final del ledger): intento 1 → 2 Important + 9 Minor corregidos; intento 2 → 1 Important (N1) + 2 Minor corregidos, sin gaps abiertos.
+Checklist firmada (orquestador, 2026-10-22):
+- [x] Reto: sin bypass (recordarme solo tras el reto, reset de contraseña no inicia sesión, sesión pendiente con TTL y re-chequeo de 2FA, `regenerate` en cada paso).
+- [x] Rate limit: por cuenta (`2fa:{id}`), incremento atómico antes de verificar (MySQL `lockForUpdate`), lockout auditado una vez.
+- [x] TTL del reto 5 min (`auth.two_factor.challenge_ttl`).
+- [x] Antirreplay por paso TOTP en columna con UPDATE condicional; códigos de recuperación con hash bcrypt y uso único.
+- [x] Login: `Timebox` y rehash como `SessionGuard::attempt`.
+- [x] Secreto pendiente solo con contraseña confirmada reciente; historial cifrado en contexto seguro y borrado al salir.
+- [x] Sin secretos en log ni auditoría: `TwoFactorAuditLeakTest`.
+**Evidencia**: `php artisan test --compact --filter=TwoFactorAuditLeak` → 1 passed (35 assertions: secreto, 3 TOTP, 7 códigos erróneos y 16 de recuperación ausentes de `audit_logs` y del log en todos los niveles); `php artisan test` → 856 passed (6394 assertions); `vendor/bin/pint --test` → passed.
+
+---
+
+## Fase 2 — C-02 · Passkeys (gestión y login sin contraseña, backend y UI)
+
+**Estado**: completado · **Estimado**: 45.0h · **Real**: — · **Coste est.**: 2.250 € + tokens (⚠️ verificar) · **Tokens est.**: 1.87M
+
+### T-08 — Dependencias de passkeys, esquema y configuración WebAuthn
+
+- **Descripción**: Instala `laravel/passkeys ~0.2.1` y `@laravel/passkeys ~0.4.0`, publica `config/passkeys.php` con `relying_party_id` ← `WEBAUTHN_RP_ID`, `allowed_origins` ← `WEBAUTHN_ORIGINS` (CSV) y `user_handle_secret` ← `PASSKEYS_USER_HANDLE_SECRET`, crea la migración de `passkeys` con `name` de 100 caracteres (siguiente fecha libre), añade `PasskeyUser`/`PasskeyAuthenticatable` a `User` y `Passkeys::ignoreRoutes()`. **Sin `WEBAUTHN_RP_NAME`** (decisión 1 de §4).
+- **Changelog**: Preparada la base técnica de las passkeys: dependencias, tabla en la base de datos y configuración del dominio por entorno; el login actual no cambia.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.41h · real —
+- **Supervisión**: est. 0.10h (≈25 % IA) · real —
+- **Previsión IA**: 113k in / 11k out tok · ⚠️ verificar €
+- **Dependencias**: T-07
+- **Tipo**: backend
+- **Archivos**: `composer.json`, `composer.lock`, `package.json`, `package-lock.json`, `config/passkeys.php`, `database/migrations/2026_11_04_090100_create_passkeys_table.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `.env.production.example`, `tests/Unit/PasskeyConfigTest.php`, `database/migrations/2026_11_05_090000_widen_passkeys_credential_id.php` (añadido en la corrección P12)
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact tests/Unit/PasskeyConfigTest.php` → RP ID y orígenes se derivan de la config (por defecto, de `APP_URL`)
+  - `grep -rn WEBAUTHN_RP_NAME .env.example .env.production.example config` → sin coincidencias
+  - `php artisan route:list --name=passkeys` → sin rutas del paquete (están ignoradas)
+
+**Criterios de aceptación**
+- [x] `laravel/passkeys` queda fijado en `~0.2.1` en `composer.json`
+- [x] `.env.example` y `.env.production.example` documentan `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGINS` y `PASSKEYS_USER_HANDLE_SECRET`, y no `WEBAUTHN_RP_NAME`
+- [x] El RP ID por defecto sale del host de `APP_URL` y los orígenes son una lista CSV
+- [x] La migración queda posterior a la de 2FA y a `2026_11_03_*`
+- [x] `tests/Feature/Auth/*` y la suite de C-01 siguen en verde
+
+**Subtareas**
+- [x] `composer require laravel/passkeys:~0.2.1` y `npm i @laravel/passkeys@~0.4.0`
+- [x] Publicar config y migración; añadir `name`
+- [x] `Passkeys::ignoreRoutes()` y traits del modelo
+
+**Notas**: Antes del `composer require`, repetir el `--dry-run` del diseño sobre el lock vigente. Desviaciones: composer fijó `laravel/passkeys ~0.2.1`; npm escribió `^0.4.0` y se corrigió a `~0.4.0`. La config no usa `env()` fuera de config (lee `WEBAUTHN_*` con fallback a APP_URL; vacío = por defecto). `PASSKEYS_USER_HANDLE_SECRET` generado en el `.env` local (solo variable añadida; APP_URL intacto). El paquete trae `Passkeys::ignoreRoutes()` que debe llamarse en `register()` (antes del boot del provider del paquete).
+**Evidencia**: `php artisan test --compact tests/Unit/PasskeyConfigTest.php` → 5 passed (RP ID y orígenes desde APP_URL, CSV, override y secreto); `grep -rn WEBAUTHN_RP_NAME .env.example .env.production.example config` → sin coincidencias de variable (solo un comentario en config que aclara que no existe); `route:list --name=passkey` → «no routes» (ignoradas); `php artisan migrate` OK; `php artisan test` → 861 passed; pint OK.
+
+### T-09 — PasskeyGateway y auditoría por eventos
+
+- **Descripción**: `App\Services\Passkeys\PasskeyGateway` como único punto de contacto con `Laravel\Passkeys\*` (aísla el riesgo 0.x): opciones de registro y de login, alta, verificación y borrado, delegando en las Actions del paquete. Listeners de `PasskeyRegistered`, `PasskeyVerified` y `PasskeyDeleted` hacia `AuditLog`.
+- **Changelog**: Las altas, entradas y bajas de passkeys quedan en el registro de auditoría de la cuenta, sin guardar nada de la credencial.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.55h · real —
+- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Previsión IA**: 151k in / 15k out tok · ⚠️ verificar €
+- **Dependencias**: T-08
+- **Tipo**: backend
+- **Archivos**: `app/Services/Passkeys/PasskeyGateway.php`, `app/Providers/AppServiceProvider.php`, `app/Listeners/AuditPasskeyEvents.php`, `app/Services/Passkeys/PasskeyFailure.php`, `tests/Support/FakePasskeys.php`, `tests/Feature/Auth/PasskeyGatewayTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=PasskeyGateway` → en verde
+  - `grep -rln "Laravel.Passkeys" app` → solo `PasskeyGateway.php`, el listener, `AppServiceProvider.php` y `User.php`
+
+**Criterios de aceptación**
+- [x] Fuera del gateway, del modelo, del provider y de los listeners no hay `use Laravel\Passkeys` en `app/`
+- [x] Los eventos del paquete generan filas `auth.passkey.registered`, `auth.passkey.login` y `auth.passkey.deleted` con `channel: 'web'`
+- [x] La auditoría no contiene `credential_id`, clave pública ni datos de la credencial
+
+**Subtareas**
+- [x] Gateway con métodos finos y tipados
+- [x] Listeners y registro en el provider
+- [x] Test con `bind` de una `VerifyPasskey` falsa
+
+**Notas**: Documentar en el docblock la versión del paquete y la regla del ADR-003: revisar al subir de versión. Añadidos a Archivos `PasskeyFailure.php` (excepción con motivo estable para la auditoría) y `tests/Support/FakePasskeys.php` (Actions falsas reutilizables en T-10/T-11; el listener de PasskeyVerified audita `auth.passkey.login`; renombrado y `login_failed` los audita el controlador). El gateway resuelve las Actions con `app()` en cada llamada para poder hacer `bind`. Contador que retrocede = `CounterException` de webauthn-lib → motivo `sign_count_regression`.
+**Evidencia**: `php artisan test --compact --filter=PasskeyGateway` → 9 passed (47 assertions); `grep -rln "Laravel.Passkeys" app` → PasskeyGateway.php, AuditPasskeyEvents.php, AppServiceProvider.php, User.php; `php artisan test` → 870 passed; pint OK.
+
+### T-10 — Gestión de passkeys del perfil: opciones, alta, renombrado y borrado
+
+- **Descripción**: `App\Http\Controllers\Profile\PasskeyController` con las URL que espera el cliente (`/user/passkeys/options`, `/user/passkeys`), `update` (renombrar, ≤100) y `destroy`. Las búsquedas van con `$request->user()->passkeys()->findOrFail()` (404 ante una ajena, CA-19). `excludeCredentials` y la unicidad en BD evitan duplicar el mismo autenticador.
+- **Changelog**: Ya se pueden añadir, renombrar y borrar passkeys desde el perfil (con la contraseña confirmada); no se pueden tocar las de otra cuenta.
+- **Estado**: completado
+- **Tiempo humano**: est. 7,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.97h · real —
+- **Supervisión**: est. 0.24h (≈25 % IA) · real —
+- **Previsión IA**: 265k in / 26k out tok · ⚠️ verificar €
+- **Dependencias**: T-09
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Profile/PasskeyController.php`, `app/Http/Requests/Profile/PasskeyNameRequest.php`, `routes/auth.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/PasskeyManagementTest.php`, `app/Notifications/PasskeyAdded.php` (añadido en la corrección P7)
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=PasskeyManagement` → CA-13..CA-16 y CA-19 en verde
+  - `php artisan route:list --path=user/passkeys` → rutas con `auth` y `password.confirm`
+
+**Criterios de aceptación**
+- [x] CA-13: el alta con nombre aparece en la lista y audita `auth.passkey.registered`
+- [x] CA-14: dos passkeys conviven; registrar de nuevo el mismo autenticador se rechaza
+- [x] CA-15: renombrar actualiza el nombre y audita `auth.passkey.renamed`; nombre vacío o de más de 100 caracteres se rechaza
+- [x] CA-16: borrar tras confirmar quita la passkey, deja de servir para entrar y audita `auth.passkey.deleted`
+- [x] CA-19: renombrar o borrar una passkey de otro usuario devuelve 404 y no la altera
+
+**Subtareas**
+- [x] Rutas y Form Request del nombre
+- [x] Aislamiento por usuario con `findOrFail` sobre la relación
+- [x] Tests con la Action falsa vía gateway
+
+**Notas**: `password.confirm` responde 423 JSON a un `fetch`: la UI confirma antes de abrir el alta (riesgo del diseño, se resuelve en T-13). Desviaciones: el parámetro de ruta se llama `{id}` (no `{passkey}`) porque el paquete registra un `Route::bind('passkey')` global sin filtrar por usuario; la búsqueda es `user->passkeys()->findOrFail($id)`. Limitador con nombre propio `passkey-manage` (20/min por usuario, en AppServiceProvider) en lugar de `throttle:10,1` anónimo. Renombrado vía PATCH `/user/passkeys/{id}`. Fallo de alta se audita como `auth.passkey.register_failed` (extra). El nombre no se guarda en la auditoría. Alta duplicada = 422 con mensaje genérico.
+**Evidencia**: `php artisan test --compact --filter=PasskeyManagement` → 9 passed (100 assertions: CA-13..16, CA-19, 423 sin confirmar, limitador); `route:list --path=user/passkeys` → 4 rutas con Authenticate, RequirePassword y throttle:passkey-manage; pint OK.
+
+### T-11 — Login con passkey: opciones y verificación como `guest`
+
+- **Descripción**: `App\Http\Controllers\Auth\PasskeyLoginController` (`options`, `store`) con las URL del cliente (`/passkeys/login/options`, `/passkeys/login`), `throttle:10,1` por IP (decisión 4 de §4), `Auth::login` + regenerar sesión, `last_used_at`, respuesta JSON `{redirect}` hacia `intended`/`dashboard` y auditoría del fallo sin revelar si existe la cuenta. La passkey sustituye a contraseña + 2FA: no se pide reto.
+- **Changelog**: Ya se puede entrar con una passkey desde el inicio de sesión, sin contraseña ni código de doble factor; los intentos están limitados a 10 por minuto.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.90h · real —
+- **Supervisión**: est. 0.23h (≈25 % IA) · real —
+- **Previsión IA**: 246k in / 24k out tok · ⚠️ verificar €
+- **Dependencias**: T-09
+- **Tipo**: backend
+- **Archivos**: `app/Http/Controllers/Auth/PasskeyLoginController.php`, `routes/auth.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Auth/PasskeyLoginTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=PasskeyLogin` → CA-17, CA-18 y CA-21 en verde
+  - `php artisan route:list --path=passkeys/login` → `guest` y `throttle:passkey-login` (10/min por IP)
+
+**Criterios de aceptación**
+- [x] CA-17: usuario sin sesión con passkey válida entra al `dashboard` sin contraseña ni reto 2FA (con y sin 2FA) y se audita `auth.passkey.login`
+- [x] CA-18: passkey borrada o de otro RP ID → no entra, mensaje que no revela si la cuenta existe y `auth.passkey.login_failed`
+- [x] CA-21: la petición 11 en un minuto desde la misma IP recibe 429
+- [x] Un contador de firmas a 0 (passkey sincronizada) no bloquea el login; la regresión real se audita como `sign_count_regression`
+- [x] La sesión se regenera y no hay doble redirección
+
+**Subtareas**
+- [x] Controlador con `{redirect}` para Inertia
+- [x] Auditoría de éxito y fallo
+- [x] Throttle propio en lugar del `6,1` del paquete
+
+**Notas**: El 429 de CA-21 se prueba con 11 llamadas en el test. Desviaciones: limitador con nombre propio `passkey-login` (10/min por IP, una sola clave compartida por /options y /login) en lugar de `throttle:10,1` anónimo (que comparte clave con otras rutas, tal como pidió el orquestador). Un 2FA a medias (`login.*` en sesión) se descarta al entrar con passkey. El contador a 0 (passkey sincronizada) lo tolera webauthn-lib; no es demostrable con la Action falsa: lo cubre T-12 con el vector real. Fallo = 422 JSON `{message}` igual para cualquier causa; el motivo (`unknown_credential`, `verification_failed`, `sign_count_regression`, `session_expired`, `invalid_format`) solo va a `auth.passkey.login_failed` (con user_id solo si la credencial existe).
+**Evidencia**: `php artisan test --compact --filter=PasskeyLogin` → 12 passed (93 assertions: CA-17 con y sin 2FA, CA-18, CA-21, regresión de contador, reto de un solo uso); `route:list --path=passkeys/login -v` → RedirectIfAuthenticated (guest) + ThrottleRequests:passkey-login en ambas rutas; pint OK.
+
+### T-12 — Tests de la ceremonia WebAuthn con vector grabado
+
+- **Descripción**: Graba una vez con el autenticador virtual de Chromium un vector real de *attestation* y *assertion* contra `localhost` y lo usa en Pest inyectando en sesión `passkey.verification_options` con su reto, para probar la verificación criptográfica real a través del gateway. Cubre contador 0 y contador que retrocede.
+- **Changelog**: Las passkeys se prueban de extremo a extremo con una grabación real de un autenticador, no solo con simulaciones.
+- **Estado**: completado
+- **Tiempo humano**: est. 8,0h · real —
+- **Tiempo IA (ejec.)**: est. 1.11h · real —
+- **Supervisión**: est. 0.28h (≈25 % IA) · real —
+- **Previsión IA**: 303k in / 30k out tok · ⚠️ verificar €
+- **Dependencias**: T-10, T-11
+- **Tipo**: test
+- **Archivos**: `tests/Feature/Auth/PasskeyCeremonyTest.php`, `tests/Fixtures/passkeys/`, `tests/e2e/record-passkey-vector.ts`, `tests/Fixtures/passkeys/README.md`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact --filter=PasskeyCeremony` → en verde con el vector real (origen `http://localhost:8080`, RP ID `localhost`)
+  - `php artisan test --compact tests/Feature/Auth` → sin regresiones
+
+**Criterios de aceptación**
+- [x] Una assertion válida del vector autentica al usuario de la fixture
+- [x] Un reto distinto, un origen distinto o un RP ID distinto se rechazan
+- [x] Contador 0 → 0 se tolera; un contador que retrocede con valores distintos de 0 se rechaza y se audita `sign_count_regression`
+- [x] El vector solo contiene una credencial de prueba, sin material reutilizable fuera del test
+
+**Subtareas**
+- [x] Script de grabación con CDP `WebAuthn.addVirtualAuthenticator`
+- [x] Fixtures versionadas con un README del vector
+- [x] Tests de contador y de origen
+
+**Notas**: Incógnita del diseño: si el vector resulta inestable, plan B = `bind` de la Action y cubrir la ceremonia real solo en E2E (+3-4 h). Desviaciones: (1) el script de grabación intercepta http://localhost:8080 con `page.route` (el puerto 8080 estaba ocupado por otro servidor local; no abre puertos) y se ejecuta con `node tests/e2e/record-passkey-vector.ts`. (2) El autenticador virtual de Chromium (131) no emite contador 0 (alta=1, assertions=2,3,4): el 0→0 se prueba ejecutando el paso `CheckCounter` de webauthn-lib sobre una assertion real con el contador forzado (0→0 pasa; igual/menor/0 tras >0 lanzan `CounterException`); la regresión real 4→3 y la repetición de una assertion sí se prueban con login completo y auditan `sign_count_regression`. (3) `login_failed` + detalle `sign_count_regression` (no una acción aparte), como pide la spec.
+**Evidencia**: `php artisan test --compact --filter=PasskeyCeremony` → 13 passed (77 assertions, vector real origen http://localhost:8080 / RP ID localhost); `php artisan test --compact tests/Feature/Auth` → verde; suite completa verde; vector estable (no se necesitó plan B).
+
+### T-13 — UI de passkeys: PasskeysForm, botón en Login y avisos de contexto
+
+- **Descripción**: `Profile/Partials/PasskeysForm.vue` (lista con nombre, alta y último uso; añadir con confirmación de contraseña previa; renombrar y borrar con confirmación) dentro de la tarjeta «Seguridad». `Auth/Login.vue` gana «Entrar con passkey» con `usePasskeyVerify` de `@laravel/passkeys/vue`, `autocomplete="username webauthn"` y el aviso «Las passkeys requieren HTTPS» si `!isSecureContext` o no hay WebAuthn (CA-20). Trata `NotAllowedError` con mensaje neutro y el 423.
+- **Changelog**: Desde el perfil se gestionan las passkeys (añadir, renombrar, eliminar) y en la pantalla de acceso aparece «Entrar con passkey»; si el navegador o la conexión no son seguros se avisa y la contraseña sigue funcionando.
+- **Estado**: completado
+- **Tiempo humano**: est. 11,0h · real —
+- **Tiempo IA (ejec.)**: est. 1.52h · real —
+- **Supervisión**: est. 0.38h (≈25 % IA) · real —
+- **Previsión IA**: 416k in / 41k out tok · ⚠️ verificar €
+- **Dependencias**: T-10, T-11
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Pages/Profile/Partials/PasskeysForm.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Auth/Login.vue`, `resources/js/Composables/useSecureContext.js`, `app/Http/Controllers/ProfileController.php`, `app/Http/Controllers/Profile/PasskeyController.php`, `routes/auth.php`, `tests/Feature/ProfileTest.php`
+- **Cubre (tests)**: E2E-05, E2E-06, E2E-07, A11Y-01, M-01, M-02, M-05
+- **Verificación**:
+  - `npm run build` → build sin errores
+  - `php artisan test --compact tests/Feature/ProfileTest.php` → expone `passkeys` (id, nombre, fechas) sin material de la credencial
+  - `vendor/bin/pint --test` → sin cambios pendientes
+
+**Criterios de aceptación**
+- [x] CA-20: sin WebAuthn o en `http://` que no sea `localhost` no aparecen botón ni tarjeta, sale «Las passkeys requieren HTTPS» y el login con contraseña funciona igual
+- [x] CA-13/14/15/16: alta, segunda passkey, renombrado y borrado con confirmación desde la UI
+- [x] Cancelar la biometría muestra «No se completó la passkey» sin auditar como ataque
+- [x] El alta pide `password.confirm` ANTES de abrir el diálogo (no hay 423 visible)
+- [x] Sin desbordamiento horizontal a 375 y 360 px (se valida en T-18)
+
+**Subtareas**
+- [x] Composable de contexto seguro
+- [x] PasskeysForm con estados vacío, lista y error
+- [x] Botón en Login y autofill condicional
+
+**Notas**: Reutiliza `Modal`, `DangerButton` y `EmptyState`. Desviaciones: (1) nueva ruta `GET /user/passkeys/confirm[?then=add]` (tras `password.confirm`) que redirige al perfil: así la UI pide la contraseña ANTES de abrir el diálogo y retoma el alta al volver; renombrar/eliminar sin confirmación reciente también pasan por ahí (props `passkeys.confirmed`). (2) `passkeyErrorMessage` vive en `useSecureContext.js` junto al composable. (3) El estado ocupado del botón de Login es propio (`isLoading` del cliente también vale true durante el autocompletado). (4) Hallazgo para E2E (T-16): el autenticador virtual contesta solo al autocompletado condicional, así que con una passkey registrada `/login` entra sola sin pulsar el botón; los E2E deben admitir ambos caminos. Con el autocompletado pendiente y un clic manual, el cliente cancela el autocompletado; si ambos llegan a enviarse, el reto de un solo uso hace que falle uno (mensaje genérico) y se reintenta con el botón. (5) El cliente del paquete usa `/user/passkeys/options` por GET: cada carga de /login hace 1 petición de opciones (cuenta para el límite de 10/min por IP).
+**Evidencia**: `npm run build` → built sin errores; `php artisan test --compact tests/Feature/ProfileTest.php` → 13 passed (passkeys con id, nombre y fechas; sin credential_id, clave ni passkeys ajenas); `vendor/bin/pint --test` → passed; `php artisan test` → 907 passed. Humo con Chromium + autenticador virtual contra un servidor temporal en http://localhost:8123 (ya parado, usuario de prueba borrado) a 1280, 375 y 360 px: alta tras confirmar contraseña (sin 423 visible), lista, renombrar, login con passkey, eliminar, 0 px de desbordamiento horizontal y 0 errores de consola; contexto no seguro → aviso «Las passkeys requieren HTTPS» sin botones en Login ni Perfil; cancelar la biometría → «No se completó la passkey.» sin tocar el servidor.
+
+### T-14 — Revisión de seguridad de C-02
+
+- **Descripción**: Revisión dirigida de passkeys: aislamiento por usuario, throttle, RP ID y orígenes, `user_handle_secret`, mensajes que no revelan cuentas, auditoría sin material de credencial, y comprobación de que Breeze y el MCP no se han tocado.
+- **Changelog**: Las passkeys pasaron una revisión de seguridad independiente: avisos por correo de passkeys nuevas, errores honestos y sin delatar qué cuentas existen.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.76h · real —
+- **Supervisión**: est. 0.19h (≈25 % IA) · real —
+- **Previsión IA**: 208k in / 21k out tok · ⚠️ verificar €
+- **Dependencias**: T-12, T-13
+- **Tipo**: docs
+- **Archivos**: `docs/roadmap/2026-10-22-account-2fa-passkeys/tasks.md`, `tests/Feature/Auth/PasskeyAuditLeakTest.php`
+- **Cubre (tests)**: —
+- **Verificación**:
+  - `php artisan test --compact` → suite completa en verde
+  - `git diff --stat -- routes/ai.php app/Http/Middleware/McpGuard.php config/sanctum.php app/Http/Controllers/ApiKeyController.php` → sin salida
+  - lectura: checklist de revisión en Notas con cada punto marcado
+
+**Criterios de aceptación**
+- [x] La suite completa pasa (796 + los de C-01 y C-02)
+- [x] Ninguna fila de `audit_logs` ni línea de log contiene material de credencial WebAuthn (`PasskeyAuditLeakTest`)
+- [x] `PASSKEYS_USER_HANDLE_SECRET` es explícito en `.env.example` (no depende de `APP_KEY`)
+
+**Subtareas**
+- [x] Revisar controladores y rutas
+- [x] Test de fugas en auditoría y log
+- [x] Suite completa y Pint
+
+**Notas**: Puerta de salida de la fase 2. Revisión adversarial en dos intentos (lentes A+B+C+D; tablas al final del ledger): intento 1 → 1 Important + 13 Minor corregidos; intento 2 → 3 Minor nuevos + 2 a medias, corregidos. Sin gaps abiertos.
+Checklist firmada (orquestador, 2026-10-22):
+- [x] Aislamiento: `{id}` de 1–18 dígitos, `$user->passkeys()->findOrFail()` → 404 ajena o desbordada; el `Route::bind('passkey')` global del paquete no lo usa ninguna ruta.
+- [x] Throttle: `passkey-login-options` 30/min y `passkey-login` 10/min por IP; `passkey-manage` 20/min por usuario; rutas de retos serializadas por sesión (`block`).
+- [x] RP ID y orígenes: lista fija desde env o APP_URL, nunca de la petición; origen y hash del RP ID comprobados antes de buscar la credencial; vacíos → fallo cerrado.
+- [x] `PASSKEYS_USER_HANDLE_SECRET` explícito en `.env.example`/`.env.production.example`, aviso en log y `about` si falta en producción.
+- [x] Mensajes: el mismo 422 exista o no la cuenta; rechazos del cliente 422 y fallos del servidor 500 con log.
+- [x] Auditoría sin material de credencial: `PasskeyAuditLeakTest`.
+- [x] Breeze y MCP: `git diff feature/social-scheduler -- routes/ai.php app/Http/Middleware/McpGuard.php config/sanctum.php app/Http/Controllers/ApiKeyController.php` → sin salida.
+**Evidencia**: `php artisan test --compact --filter=PasskeyAuditLeak` → 1 passed (31 assertions: id, rawId, attestationObject, clientDataJSON, authenticatorData, firma, userHandle y los dos nombres ausentes de `audit_logs` y del log); `php artisan test` → 928 passed; `vendor/bin/pint --test` → passed.
+
+---
+
+## Fase 3 — C-03 · E2E, accesibilidad, documentación y cierre
+
+**Estado**: completado · **Estimado**: 32.0h · **Real**: — · **Coste est.**: 1.600 € + tokens (⚠️ verificar) · **Tokens est.**: 1.32M
+
+### T-15 — Infraestructura E2E sobre localhost:8080
+
+- **Descripción**: Mueve la batería a `http://localhost:8080` (WebAuthn no admite una IP como RP ID): arranque con `APP_URL=http://localhost:8080`, `WEBAUTHN_RP_ID=localhost`, `WEBAUTHN_ORIGINS=http://localhost:8080`. Helpers `totp()` (RFC 6238 con `crypto`) y `virtualAuthenticator()` (CDP), y un usuario E2E dedicado creado en `global-setup.ts` y borrado en `global-teardown.ts`, para no tocar al usuario demo.
+- **Changelog**: Las pruebas automáticas de extremo a extremo corren ahora sobre localhost con usuarios de prueba propios, listas para comprobar el doble factor y las passkeys.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.82h · real —
+- **Supervisión**: est. 0.20h (≈25 % IA) · real —
+- **Previsión IA**: 225k in / 22k out tok · ⚠️ verificar €
+- **Dependencias**: T-14
+- **Tipo**: test
+- **Archivos**: `playwright.config.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `package.json`, `package-lock.json`, `tsconfig.json`, `tests/e2e/record-passkey-vector.ts`, `docs/guias/desarrollo-local.md`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-05, E2E-06
+- **Verificación**:
+  - `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/pages.spec.ts tests/e2e/flows.spec.ts` → la batería existente pasa en los tres proyectos sobre `localhost`
+  - `npx tsc --noEmit -p .` → sin errores de tipos en `tests/e2e`
+
+**Criterios de aceptación**
+- [x] Toda la batería existente (`pages`, `flows`, `a11y`) pasa sobre `http://localhost:8080` en desktop, mobile y mobile-360
+- [x] El usuario E2E dedicado se crea y se elimina; el usuario demo no se modifica
+- [x] `totp()` genera un código que `TotpService` acepta (se comprueba en E2E-01)
+
+**Subtareas**
+- [x] Variables de arranque del servidor documentadas
+- [x] Helpers `totp` y CDP
+- [x] Setup y teardown del usuario E2E
+
+**Notas**: Riesgo del diseño: cookies o URLs del resto de la batería sobre `localhost`; se confirma aquí antes de escribir los specs. Desviaciones: (1) el servidor de pruebas lo lanza el `webServer` de Playwright con variables del proceso (APP_URL, WEBAUTHN_RP_ID, WEBAUTHN_ORIGINS, SESSION_SECURE_COOKIE) y `artisan serve --no-reload` (sin ese flag `serve` descarta las variables si existe .env); `E2E_NO_SERVER=1` permite usar uno arrancado a mano; `E2E_JSON_REPORT` activa el reporter json. (2) Un usuario `e2e-sec-<proyecto>` por proyecto (no uno solo) para que los tres proyectos no compartan estado; se crean/borran por tinker (`artisan()` en helpers) y la contraseña aleatoria va a `tests/e2e/.auth/` (ignorado). (3) Hallazgo: el helper `login()` del demo falló al aparecer el botón «Entrar con passkey» (strict mode): ahora `exact: true`. (4) Se añade `tsconfig.json` y las dependencias de desarrollo `typescript` y `@types/node` (no había forma de ejecutar `tsc`), y tres anotaciones `as const` en `record-passkey-vector.ts` para que compile. (5) Helpers extra: `enableTwoFactorDirect`, `clearTotpReplay`, `resetSecurity`, `confirmPassword`, `loginAs`, `wrongTotp`. Documentado en `docs/guias/desarrollo-local.md`.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/pages.spec.ts tests/e2e/flows.spec.ts` → 100 passed (3 proyectos, 3.0 min); batería previa completa (pages+flows+a11y) sobre localhost → 184 passed en desktop/mobile/mobile-360; `npx tsc --noEmit -p .` → 0 errores; `totp()` validado contra `Google2FA::getCurrentOtp` y aceptado por TotpService en E2E-01 (activación real con el código calculado en Node).
+
+
+### T-16 — E2E del 2FA: activar, reto, recuperación, bloqueo y desactivar
+
+- **Descripción**: Bloque 2FA de `tests/e2e/security.spec.ts` con el TOTP calculado en Node: activación completa, login con reto, código de recuperación de un solo uso, bloqueo tras 5 fallos y desactivar y regenerar.
+- **Changelog**: Las pruebas automáticas recorren ya activar el doble factor, entrar con el reto, usar un código de recuperación, el bloqueo tras cinco fallos y desactivarlo.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.75h · real —
+- **Supervisión**: est. 0.19h (≈25 % IA) · real —
+- **Previsión IA**: 206k in / 20k out tok · ⚠️ verificar €
+- **Dependencias**: T-15
+- **Tipo**: test
+- **Archivos**: `tests/e2e/security.spec.ts`, `tests/e2e/helpers.ts`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04
+- **Verificación**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "2FA"` → verde en desktop, mobile y mobile-360
+
+**Criterios de aceptación**
+- [x] CA-01, CA-03, CA-05, CA-06, CA-09 y CA-10 se recorren de extremo a extremo en la UI real
+- [x] El spec deja al usuario E2E en «sin 2FA» al terminar (idempotente)
+- [x] Capturas en los momentos clave (QR, códigos, reto, bloqueo)
+
+**Subtareas**
+- [x] Flujo de activación y descarga o copia de códigos
+- [x] Login con reto y con recuperación
+- [x] Bloqueo del sexto intento
+
+**Notas**: — Desviaciones: (1) E2E-04 no espera el minuto real del bloqueo: tras comprobar el mensaje de espera libera el limitador de la cuenta por tinker (`clearTotpReplay`) y prueba el desbloqueo; el limitador en sí lo cubre Pest (T-03). (2) Los flujos que no prueban la activación (E2E-02..04) dejan el 2FA activo por tinker (`enableTwoFactorDirect`) para no repetir el alta en cada test. (3) La app vacía el campo del reto tras cada envío (`form.reset`): `submitChallenge` espera ese vaciado antes de escribir el siguiente código.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "2FA"` → 12 passed (4 escenarios E2E-01..04 × desktop, mobile y mobile-360, 2.6 min); capturas adjuntas (QR con secreto, error de código, 8 códigos, reto, código reutilizado, bloqueo, tarjeta desactivada); `beforeEach/afterEach` dejan al usuario en «sin 2FA»; `npx tsc --noEmit -p .` → 0 errores.
+
+
+### T-17 — E2E de passkeys con el autenticador virtual de Chromium
+
+- **Descripción**: Bloque de passkeys de `security.spec.ts` con CDP `WebAuthn.addVirtualAuthenticator` (`hasResidentKey`, `hasUserVerification`, `isUserVerified`): alta, segunda passkey, renombrado, borrado, login sin contraseña ni reto, passkey borrada y aviso de contexto no seguro.
+- **Changelog**: Las pruebas automáticas comprueban ya el alta, el renombrado y el borrado de passkeys, la entrada sin contraseña ni código y el aviso cuando el navegador no admite passkeys.
+- **Estado**: completado
+- **Tiempo humano**: est. 6,5h · real —
+- **Tiempo IA (ejec.)**: est. 0.89h · real —
+- **Supervisión**: est. 0.22h (≈25 % IA) · real —
+- **Previsión IA**: 244k in / 24k out tok · ⚠️ verificar €
+- **Dependencias**: T-15
+- **Tipo**: test
+- **Archivos**: `tests/e2e/security.spec.ts`, `tests/e2e/helpers.ts`
+- **Cubre (tests)**: E2E-05, E2E-06, E2E-07
+- **Verificación**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "passkey"` → verde en los tres proyectos
+
+**Criterios de aceptación**
+- [x] CA-13..CA-17 recorridos en la UI real con autenticador virtual
+- [x] CA-18: tras borrar la passkey, el login con ella falla con el mensaje neutro
+- [x] CA-20: con WebAuthn deshabilitado en el contexto no hay controles y sale el aviso
+- [x] El usuario con 2FA entra con passkey sin ver el reto
+
+**Subtareas**
+- [x] Alta, renombrado y borrado
+- [x] Login con passkey (con y sin 2FA)
+- [x] Escenario sin WebAuthn
+
+**Notas**: CA-19 (passkey ajena → 404) queda cubierto por Pest en T-10; no se duplica en E2E. Desviaciones: (1) la segunda passkey usa un segundo autenticador virtual y el primero deja de contestar (`respond(false)`) mientras se registra; el duplicado reactiva solo el primero. (2) Los tests de botón desactivan el autocompletado condicional (`isConditionalMediationAvailable = false`) para ser deterministas; un test aparte admite ambos caminos (entra sola por autofill o con el botón). (3) CA-20 se simula con un script de inicio que deja `PublicKeyCredential` indefinido (127.0.0.1 también es contexto seguro, así que no sirve para ese caso). (4) El nombre de >100 caracteres se prueba quitando el `maxlength` del campo para llegar al servidor. (5) El borrado desde una sesión iniciada con passkey pasa por la confirmación de contraseña previa, como en el diseño.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/security.spec.ts -g "passkey"` → 12 passed (4 escenarios × desktop, mobile y mobile-360; repetido 2 veces, estable); el usuario con 2FA entra con passkey sin visitar `/two-factor-challenge`; passkey borrada → «No se pudo completar…» sin revelar la cuenta; `npx tsc --noEmit -p .` → 0 errores.
+
+
+### T-18 — axe y desbordamiento en Login, reto y Perfil → Seguridad
+
+- **Descripción**: Añade a `a11y.spec.ts` las páginas nuevas (reto 2FA, Login con passkey, Perfil con la tarjeta Seguridad en sus estados de activación) con axe en desktop, 375 y 360 px, y la comprobación de 0 px de desbordamiento horizontal. Actualiza `AUTH_PAGES` y `PUBLIC_PAGES` en `helpers.ts` si procede.
+- **Changelog**: Las pruebas de accesibilidad cubren ahora el acceso con passkey, el reto del doble factor y todos los estados de Perfil → Seguridad, también en móvil de 375 y 360 px.
+- **Estado**: completado
+- **Tiempo humano**: est. 4,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.55h · real —
+- **Supervisión**: est. 0.14h (≈25 % IA) · real —
+- **Previsión IA**: 150k in / 15k out tok · ⚠️ verificar €
+- **Dependencias**: T-16, T-17
+- **Tipo**: test
+- **Archivos**: `tests/e2e/a11y.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/pages.spec.ts`, `tests/e2e/security.spec.ts`
+- **Cubre (tests)**: A11Y-01
+- **Verificación**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/a11y.spec.ts` → 0 violaciones `serious`/`critical` y sin desbordamiento horizontal en los tres proyectos
+
+**Criterios de aceptación**
+- [x] Login, reto 2FA y Perfil → Seguridad pasan axe sin violaciones `serious` ni `critical`
+- [x] 0 px de desbordamiento horizontal a 375 y 360 px en esas páginas
+- [x] CA-23 y CA-24 cubiertos en lo automatizable; el resto va a M-05
+
+**Subtareas**
+- [x] Rutas nuevas en `helpers.ts`
+- [x] Estados del perfil (QR visible, códigos visibles)
+- [x] Aserción de desbordamiento
+
+**Notas**: — Desviaciones: (1) `/confirm-password` se añade a `AUTH_PAGES` (lo recorren `pages.spec` y `a11y.spec`); no hizo falta tocar `pages.spec.ts`. (2) `a11y.spec.ts` espera a que desaparezca la barra de progreso de Inertia (`#nprogress`, `role="bar"`, ARIA inválido de la librería) y aparta el ratón antes de medir. Hallazgo menor (no corregido, fuera de alcance): el botón primario con `:hover` (`bg-indigo-500`, blanco sobre #6366f1) mide 4,46:1, un pelo por debajo de 4,5:1; en reposo (indigo-600) pasa. CA-23/CA-24 automatizables: etiqueta, `autocomplete=one-time-code`, `inputmode`, `alt` del QR y secreto copiable se aseveran en T-16; el orden de lectura y los anuncios van a M-05.
+**Evidencia**: `E2E_BASE_URL=http://localhost:8080 npx playwright test tests/e2e/a11y.spec.ts tests/e2e/pages.spec.ts` → 187 passed (3 proyectos): 0 violaciones serious/critical y 0 px de desbordamiento horizontal en login con passkey, reto 2FA (código, recuperación y con error) y Perfil → Seguridad (sin 2FA, QR, 8 códigos, activo, diálogo de desactivar, alta de passkey, lista y diálogo de eliminar); `npx tsc --noEmit -p .` → 0 errores.
+
+
+### T-19 — Documentación de usuario y operación, comprobación de sodium y cierre del ADR
+
+- **Descripción**: Sección de seguridad de cuenta en la guía de usuario (activar 2FA, guardar códigos, passkeys, qué pasa si se pierde el móvil), guía de operación (RP ID por entorno, rotar ngrok, `APP_PREVIOUS_KEYS`, `PASSKEYS_USER_HANDLE_SECRET`, `user:two-factor-reset`) y comprobación de `sodium` en el PHP de Hestia con `php -m` (con `paragonie/sodium_compat` si falta). ADR-003 pasa de `propuesta` a `aceptada` con el usuario.
+- **Changelog**: Nueva guía para activar el doble factor, guardar los códigos de recuperación y usar passkeys, con qué hacer si pierdes el móvil, y guía de operación para el servidor.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.69h · real —
+- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Previsión IA**: 188k in / 19k out tok · ⚠️ verificar €
+- **Dependencias**: T-14
+- **Tipo**: docs
+- **Archivos**: `docs/usuario/guia-de-usuario.md`, `docs/modulos/despliegue.md`, `docs/guias/desarrollo-local.md`, `docs/README.md`, `.env.production.example`, `docs/knowledge/adr/ADR-003-2fa-totp-propio-y-laravel-passkeys.md`, `docs/knowledge/README.md`
+- **Cubre (tests)**: M-04
+- **Verificación**:
+  - `grep -n "WEBAUTHN_RP_ID\|PASSKEYS_USER_HANDLE_SECRET\|user:two-factor-reset\|APP_PREVIOUS_KEYS" docs/modulos/despliegue.md docs/guias/desarrollo-local.md` → las cuatro aparecen documentadas
+  - `php -m | grep -i sodium` → `sodium` en el PHP local (la comprobación en Hestia es M-04)
+  - lectura: la guía de usuario explica activar 2FA, códigos de recuperación y passkeys con lenguaje no técnico
+
+**Criterios de aceptación**
+- [x] La guía de operación explica el RP ID en Hestia y el efecto de rotar ngrok (criterio de proceso)
+- [x] La guía de operación incluye `php -m | grep sodium` previo al despliegue y la alternativa `paragonie/sodium_compat`
+- [x] La guía de usuario cubre la pérdida del móvil: passkey, códigos de recuperación o contacto con el operador
+- [x] ADR-003 actualizado y el índice `docs/knowledge/README.md` coherente
+
+**Subtareas**
+- [x] Guía de usuario
+- [x] Guía de operación y despliegue
+- [x] ADR-003 e índice
+
+**Notas**: La verificación real de `sodium` en el servidor es una acción manual del usuario (M-04). Desviaciones: (1) **ADR-003 se queda en `propuesta`**: el plan exige que pase a `aceptada` «con el usuario» (visto bueno explícito) y no lo hay; se actualizó su texto (limitadores reales, `sodium`, enlace a la guía de operación y a los E2E) y el índice `docs/knowledge/README.md` sigue coherente (propuesta). Pendiente del orquestador/usuario. (2) `sodium` comprobado solo en local (`php -m` → `sodium`); en Hestia queda como M-04 manual (se llama «M-04 de seguridad de cuenta» en `despliegue.md` para no confundirlo con el M-04 de despliegue). (3) Se añadió además `APP_PREVIOUS_KEYS` (vacía, comentada) a `.env.production.example` y una sección «Passkeys y doble factor en local» en `desarrollo-local.md`.
+**Evidencia**: grep de WEBAUTHN_RP_ID, PASSKEYS_USER_HANDLE_SECRET, user:two-factor-reset y APP_PREVIOUS_KEYS sobre despliegue.md y desarrollo-local.md → las cuatro documentadas (despliegue.md: tabla de variables, rotación de APP_KEY, comando de reset; desarrollo-local.md: RP ID local y E2E); `php -m | grep -i sodium` → `sodium`; guía de usuario: sección «Seguridad de la cuenta» (activar 2FA, 8 códigos de recuperación, passkeys, «¿Y si pierdo el móvil?»: passkey, códigos u operador) en lenguaje no técnico; despliegue.md incluye `php -m | grep -i sodium` previo y `paragonie/sodium_compat`.
+
+
+**Verificación de fase 3 (2026-10-22)**: batería E2E COMPLETA (`npx playwright test`, servidor `webServer` en http://localhost:8080) → 223 passed · 0 failed · 0 flaky · 2 skipped (el test «el shell enlaza los módulos nuevos» se salta a propósito en mobile y mobile-360, ya era así) en 10,4 min. Por proyecto: desktop 75 passed; mobile 74 passed + 1 skipped; mobile-360 74 passed + 1 skipped. Informe json del reporter: `docs/roadmap/2026-10-22-account-2fa-passkeys/testing/results.json` (sin versionar). `php artisan test` → 928 passed (6933 assertions); `vendor/bin/pint --test` → passed; `npm run build` → built sin errores; `npx tsc --noEmit -p .` → 0 errores; `ledger-lint` → 0 incoherencias (solo avisa del Changelog vacío de T-20, que cierra el orquestador); `scope-check` sin ficheros de código fuera de alcance en esta fase.
+
+### T-20 — Revisión final, regresión completa y cierre del plan
+
+- **Descripción**: Pasada final: suite Pest completa, Pint, build, batería E2E completa en los tres proyectos, comprobación de que no cambian los ficheros del MCP, `ledger-lint` y actualización de estados, índice del roadmap y spec y diseño a `implementada`.
+- **Changelog**: Las cuentas pueden activar el doble factor con app de autenticación (y códigos de recuperación) y entrar sin contraseña con passkeys; todo cubierto por la batería E2E en escritorio y móvil.
+- **Estado**: completado
+- **Tiempo humano**: est. 5,0h · real —
+- **Tiempo IA (ejec.)**: est. 0.69h · real —
+- **Supervisión**: est. 0.17h (≈25 % IA) · real —
+- **Previsión IA**: 188k in / 19k out tok · ⚠️ verificar €
+- **Dependencias**: T-16, T-17, T-18, T-19
+- **Tipo**: test
+- **Archivos**: `docs/roadmap/2026-10-22-account-2fa-passkeys/tasks.md`, `docs/roadmap/2026-10-22-account-2fa-passkeys/improvement-plan.md`, `docs/roadmap/README.md`
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06, E2E-07, API-01, A11Y-01, M-01, M-02, M-03, M-04, M-05, M-06
+- **Verificación**:
+  - `php artisan test --compact` → suite completa en verde (796 + nuevos)
+  - `vendor/bin/pint --test` → sin cambios pendientes
+  - `npm run build` → sin errores
+  - `E2E_BASE_URL=http://localhost:8080 npx playwright test` → batería completa en verde en desktop, mobile y mobile-360
+
+**Criterios de aceptación**
+- [x] Todos los CA-01..CA-24 de la spec tienen test automático o ítem M-xx marcado
+- [x] Los ficheros del MCP no cambian (`git diff --stat` vacío)
+- [x] Los M-xx quedan listados como pendientes de la persona en el resumen de cierre
+- [x] ADR-003 pasa a `aceptada` solo con el visto bueno explícito del usuario; si no lo hay, queda en `propuesta` y figura como pendiente en el resumen de cierre
+
+**Subtareas**
+- [x] Suite, Pint, build y E2E
+- [x] Actualizar estados y el índice
+- [x] Resumen de cierre con los M-xx pendientes
+
+**Notas**: Los M-xx no bloquean el cierre técnico; se entregan como checklist al usuario.
+
+
+**Evidencia (2026-10-22)**: `php artisan test --compact` → 928 passed (6933 assertions); `vendor/bin/pint --test` → passed; `npm run build` → ok; `npx playwright test` → 223 passed · 0 failed · 0 flaky · 2 skipped (10,0 min) y `qa-gate` → VERDE; `git diff --stat feature/social-scheduler..HEAD -- app/Mcp routes/ai.php app/Http/Middleware/McpGuard.php config/mcp.php` → vacío; CA-01..CA-24: los 24 tienen al menos un test automático (`grep -rl CA-NN tests`). ADR-003 aceptada con el visto bueno del usuario.
+
+**Resumen de cierre — pendientes de la persona (M-xx, ver `test-plan.md`)**: M-01 (passkey con Windows Hello por ngrok), M-02 (passkey en el móvil por ngrok), M-03 (TOTP con una app de autenticación real), M-04 (`sodium` y RP ID en el PHP de Hestia), M-05 (teclado y lector de pantalla), M-06 (reset del doble factor por operador en el entorno real).
+---
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-01..T-06) — 2 Important y 9 Minor
+
+Lentes A+B+C+D (C: rutas de auth/sesión/secretos; D: hashing en bucle). Diff `7b44972..HEAD`. `scope-check`: fuera de alcance solo ficheros sin seguimiento de herramientas y los artefactos PM de la propia iniciativa (commit 7b44972), sin código. Suite 841 passed.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| I1 | C (+D) | Important | Límite del reto 2FA esquivable: clave `usuario+IP` (rotar IP/IPv6 da 5 intentos nuevos por IP) y `tooManyAttempts`/`hit` no atómicos (ráfaga concurrente pasa N intentos) — CWE-307/367 | T-03 | corregido (bf54aed): limitador por cuenta `2fa:{id}` con `RateLimiter::increment` antes de verificar (TOTP y recuperación); `clear` al acertar. Tests: rotación de IP (6.º bloqueado), recuperación, clear | `TwoFactorChallengeController.php:59,78,123-125` |
+| I2 | A+B+C | Important | `validateCredentials()` perdió el `Timebox` de `SessionGuard::attempt` (enumeración de usuarios por tiempo, CWE-208) y el rehash de contraseña al entrar (`hashing.rehash_on_login`) | T-03 | corregido (bf54aed): `Timebox` (`auth.timebox_duration`) + `rehashPasswordIfRequired` si `hashing.rehash_on_login`. Tests de rehash con y sin 2FA (fallaban antes) | `LoginRequest.php:47-51`; `SessionGuard.php:444,539-543` |
+| M1 | C | Minor | Secreto TOTP y códigos en `history.state` de Inertia (sin `encryptHistory`/`clearHistory` al salir) — CWE-525 | T-04/T-06 | corregido (T-04 fix): `Inertia::encryptHistory()` en el perfil + `Inertia::clearHistory()` en logout. Test M1 | `ProfileController.php:31-32`; `AuthenticatedSessionController.php:59` |
+| M2 | C | Minor | Secreto pendiente en claro en `sessions.payload` (flash con `SESSION_ENCRYPT=false`) — CWE-312 | T-04 | corregido (T-04 fix): el secreto ya no va por flash; test M2 sobre la sesión | `Profile/TwoFactorController.php:40,56,67,123` |
+| M3 | B | Minor | Un fallo de validación del FormRequest de confirmación pierde el QR pendiente | T-04/T-06 | corregido (T-04 fix): el perfil sirve QR/secreto mientras la activación esté a medias (estado del usuario). Test M3 | `TwoFactorConfirmRequest.php:19`; `Profile/TwoFactorController.php:45-57` |
+| M4 | D | Minor | Código de recuperación inválido: 8 `Hash::check` (~1,2 s) dentro de `lockForUpdate`; con ráfaga, workers PHP-FPM ocupados | T-02/T-03 | corregido por I1 (bf54aed); los `Hash::check` siguen dentro de `lockForUpdate` (uso único) | `TotpService.php:116-121` |
+| M5 | D | Minor | `regenerate` sin throttle: 8 `Hash::make` por petición | T-04 | corregido (T-04 fix): `throttle:10,1` en recovery-codes. Test M5 | `routes/auth.php:72` |
+| M6 | D | Minor | Bloqueado, cada POST escribe auditoría y log | T-03 | corregido (bf54aed): lockout auditado solo al cruzar el umbral. Test M6 (1 lockout en 9 POST) | `TwoFactorChallengeController.php:59-60` |
+| M7 | B | Minor | `URL.revokeObjectURL` justo tras `click()` puede abortar la descarga de los códigos | T-06 | corregido (T-06 fix): `revokeObjectURL` en `setTimeout` 1 s | `TwoFactorForm.vue` `downloadCodes` |
+| M8 | A | Minor | «Sin desbordamiento a 375/360» marcado `[x]` sin evidencia (se valida en T-18) | T-06 | corregido: criterio trasladado a T-18 (ya lo cubre su criterio de 0 px) | `tasks.md:236` |
+| M9 | B | Minor | No hay forma de cancelar una activación a medias | T-04 | corregido (T-04 fix): `DELETE /user/two-factor/pending` (auth+password.confirm, auditado `auth.2fa.setup_cancelled`) + botón «Cancelar activación». Tests M9 | — |
+
+## Revisión de dos lentes — intento 2: Fase 1 (T-01..T-06) — gaps del intento 1 cerrados, 1 Important y 2 Minor nuevos corregidos
+
+Lentes A+B+C+D re-evalúan solo lo corregido (`git diff 5cd81a3..HEAD`): I1, I2, M1–M9 → ✓ cerrados (I1 contrastado con `DatabaseStore::incrementOrDecrement` + `lockForUpdate` en MySQL; I2 con `SessionGuard::attempt`).
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| N1 | A (+C) | Important | El arreglo de M3 servía el secreto TOTP pendiente en cada `GET /profile` (solo `auth`), sin `password.confirm`: una sesión robada leía la semilla — CWE-200/522 | T-04/T-06 | corregido: `ProfileController::edit` solo revela `twoFactorSetup` con `auth.password_confirmed_at` dentro de `auth.password_timeout`; si no, `twoFactor.setupLocked` y la UI pide «Generar otro QR» (que pasa por `password.confirm`) | `ProfileTest`: «una sesion sin confirmacion reciente… no puede leer el secreto pendiente (N1)» (sin confirmar y caducada) |
+| N2 | C | Minor | `encryptHistory` en http (no localhost) cuelga la navegación: sin `crypto.subtle` Inertia no escribe el historial | T-04/T-06 | corregido: `encryptHistory` solo con `$request->secure()` o host localhost/127.0.0.1/[::1] | `ProfileTest`: «el historial cifrado solo se activa en contexto seguro (N2)» |
+| N3 | B | Minor | `throttle:10,1` anónimo comparte contador por usuario con `reports.store` y `ai.suggest` | T-04 | corregido: limitador con nombre `two-factor-manage` (`2fa-manage:{id}`, 10/min) | `RateLimiter::limiter('two-factor-manage')` → `2fa-manage:999999 10`; test M5 actualizado |
+
+**Evidencia (intento 2)**: `php artisan test` → 855 passed (6359 assertions); `vendor/bin/pint --dirty` ok; `npm run build` ok. Sin gaps Critical/Important abiertos: el bucle de la Fase 1 cierra en el intento 2.
+
+## Revisión de dos lentes — intento 1: Fase 2 (T-08..T-13) — 1 Important y 13 Minor
+
+Lentes A+B+C+D (C: auth/sesión/secretos; D: consultas y bundle). Diff `3a981b2..HEAD`. Sin Critical. Origen/RP ID contra lista fija, reto de un solo uso, UV y residentKey required, IDOR → 404, sin open redirect, MCP intacto: ✓.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| P1 | B | Important | `catch (Throwable)` del gateway sin `report()`: con `WEBAUTHN_ORIGINS`/`RP_ID` mal configurados (o un error de BD) toda alta dice «puede que ya esté registrado» y todo login da 422, sin rastro en `laravel.log` | T-09 | Corregido: el gateway separa rechazos esperados de WebAuthn (`WebauthnException`/`InvalidPasskeyException`, 422) de errores inesperados (config de origenes/RP ID, BD): estos van a `Log::error` con clase y mensaje (QueryException solo con SQLSTATE, sin bindings ni credencial) y salen como 500 `code: server_error` con «No se pudo completar la passkey por un problema del servidor; inténtalo más tarde.». Tests `PasskeyLogin P1` y `PasskeyManagement P1` (RED: 422 «ya registrado» sin log; GREEN: 500 + log sin `SECRETO-DE-LA-CREDENCIAL`). | `PasskeyGateway.php:63-69,97-108` |
+| P2 | B+D | Minor | El autofill pide opciones en cada montaje de Login y comparte el único hueco de sesión y el limitador `passkey-login` (10/min por IP) con el botón: dos pestañas o un clic rápido pisan el reto; con IP compartida (NAT) sale un 429 rojo sin usar passkeys | T-11/T-13 | Corregido: limitadores separados por IP: `passkey-login-options` 30/min para el GET y `passkey-login` 10/min para el POST (routes/auth.php, AppServiceProvider). Test `PasskeyLogin P2` (30 GET + 429 en el 31 y el POST sigue disponible; RED: 429 a los 10) y CA-21 ajustado al 429 del POST. El reto ya no se pisa: se guarda por ceremonia (ver P3). | `Login.vue:33-37`; `PasskeyGateway.php:77`; `AppServiceProvider` `passkey-login` |
+| P3 | B | Minor | Tras usar el botón (y cancelar o fallar) el autofill no se reactiva hasta recargar | T-13 | Corregido: reto por ceremonia en sesion (clave = reto del `clientDataJSON`, hasta 5 vigentes, un solo uso): autofill+boton o dos pestañas no se invalidan (tests `PasskeyLogin P3` x3). `Login.vue` gestiona el autofill con `Passkeys.autofill` y lo relanza tras cancelar o fallar el boton. Verificado por build (no hay runner JS en el repo). | `Login.vue:40-47` |
+| P4 | B | Minor | Mensajes crudos en inglés o técnicos (419 «CSRF token mismatch.», HTML tras 302 de `guest`, AbortError) | T-13 | Corregido: `passkeyErrorMessage` mapea 419 («La página ha caducado, recárgala…»), HTML/redireccion («Ya has iniciado sesión o la sesión cambió; recarga la página.»), AbortError (silencioso, `null`), cancelar («Se canceló la passkey.») y red; solo muestra el texto del servidor si es una de sus frases en español, nunca el crudo. Verificado por revision + `npm run build` (sin runner JS). | `useSecureContext.js:53` |
+| P5 | B | Minor | `{id}` que desborda int → 500 (TypeError) en vez de 404 | T-10 | Corregido: rutas `{id}` con `where [0-9]{1,18}`: un id desbordado es 404. Test `PasskeyManagement P5` (RED: TypeError 500). | `PasskeyController.php:62,76` |
+| P6 | B | Minor | Attestation enviada al login auditada como `unknown_credential` | T-09 | Corregido: nuevo motivo `invalid_response` cuando la respuesta presentada no es una assertion; el fake imita al paquete y el test `PasskeyLogin P6` comprueba `invalid_response` con `user_id` nulo. | `PasskeyGateway.php:101` |
+| P7 | C | Minor | Una passkey (credencial que sustituye a contraseña+2FA) no se avisa por correo al darla de alta: tras robo de sesión en la ventana de `password.confirm`, la víctima no se entera — CWE-613/640 | T-10/T-11 | Corregido: notificacion `PasskeyAdded` (mail, en cola) tras un alta correcta: nombre (sin marcado), fecha, IP aproximada (ultimo octeto oculto) y enlace al perfil. Tests `PasskeyManagement P7` x3 con `Notification::fake()` (no se envia en un alta rechazada). | `PasskeyController.php:147-166` |
+| P8 | C | Minor | El reto en sesión no tiene TTL de servidor (vale mientras viva la sesión) | T-09 | Corregido: TTL de servidor `passkeys.challenge_ttl` = 300 s por reto (alta y login), podado al guardar y al consumir. Tests `PasskeyLogin P8` (301 s caduca con la sesion viva, 290 s vale) y `PasskeyManagement P8`. | `PasskeyGateway.php:126` |
+| P9 | A | Minor | Sin contexto seguro la tarjeta de passkeys se sigue pintando (título y texto); la spec pide ocultarla | T-13 | Corregido: sin contexto seguro `Edit.vue` no pinta `PasskeysForm` (la tarjeta entera) y deja una linea discreta (`httpsNotice`) en la tarjeta Seguridad. Verificado por revision + build. | `PasskeysForm.vue:152-165` |
+| P10 | A | Minor | Passkey de otro RP ID: la spec pide «Esta passkey no es válida en este dominio» y sale el genérico | T-11/T-13 | Corregido: «otro dominio» tiene codigo `invalid_domain` y mensaje «Esta passkey no es válida en este dominio.»: el origen de `clientDataJSON` se comprueba contra la lista fija ANTES de buscar la credencial (no es un oraculo de cuentas) y los rechazos de origen/RP ID de la libreria se mapean igual. El cliente lo muestra (frase del servidor). Tests en `PasskeyCeremony` (origen y RP ID, login) y `PasskeyManagement P10` (alta). | `PasskeyGateway.php:530`; `useSecureContext.js:36-37` |
+| P11 | A+C | Minor | `.env.production.example` dice que `PASSKEYS_USER_HANDLE_SECRET` es obligatorio, pero cae en `APP_KEY` sin avisar; `.env.example` dice que rotarlo invalida passkeys y no es así | T-08 | Corregido: aviso `Log::warning` al pedir opciones de alta en produccion con `PASSKEYS_USER_HANDLE_SECRET` vacio y linea en `php artisan about`; comentarios de config, `.env.example` y `.env.production.example` corregidos (rotarlo no invalida las existentes). Tests `PasskeyManagement P11` x2. | `config/passkeys.php:28-31`; `.env.example:199`; `.env.production.example:68` |
+| P12 | D | Minor | `credential_id` es `string(255)`; WebAuthn permite IDs de hasta 1023 bytes (~1364 en base64url): un autenticador con ID largo falla con el mensaje genérico | T-08 | Corregido: migracion `2026_11_05_090000` amplia `credential_id` a `string(1400)` (MySQL: `ascii`/`ascii_bin`, 1400 bytes < 3072 del indice unico; ademas evita colisiones por mayusculas). Verificada en MySQL real (BD temporal, ya borrada: `varchar(1400) ascii_bin` + unique, dos IDs de 1364 chars distintos solo en mayusculas conviven). Test `PasskeyManagement P12` (ID de 1023 bytes, alta y login; sqlite no limita la longitud, la garantia es la prueba MySQL). | `create_passkeys_table.php:16` |
+| P13 | B | Minor | `tests/Support/FakePasskeys.php` lleva bytes NUL literales: git lo trata como binario y su diff no se puede revisar | T-12 | Corregido: los NUL literales de `FakePasskeys.php` son `str_repeat("\0", 37)`; git ya lo trata como texto (`grep` sin «Binary file»). | `FakePasskeys.php:83,92` |
+| P14 | C | Minor | `ownerOf` atribuye `login_failed` al dueño de cualquier `credential_id` presentado (ruido en su auditoría) | T-09 | Corregido y documentado en el docblock de `authenticate`: el dueño solo se atribuye a `login_failed` cuando la verificacion llego a la firma (contador que retrocede); firma invalida, reto/origen, credencial desconocida o respuesta no valida dejan `user_id` nulo. Tests `PasskeyLogin CA-18`, `PasskeyCeremony` (reto distinto) y `PasskeyGateway` (clasificacion). | `PasskeyGateway.php:545` |
+
+## Revisión de dos lentes — intento 2: Fase 2 (T-08..T-13) — 12 de 14 cerrados, 2 a medias y 3 Minor nuevos, corregidos
+
+Lentes A+B+C+D re-evalúan solo lo corregido (`git diff 7507268..HEAD`). P2, P4–P14 → ✓ cerrados (P8: reto consumido antes de verificar, búsqueda exacta en la sesión, firma sobre `clientDataJSON`; reenvío → `session_expired`). Sin Critical ni Important.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| N1 | B+C | Minor | Arreglo de P1: una firma ES256 no DER lanza `InvalidArgumentException` de cose-lib (sin envolver) → 500 + `Log::error` provocables por cualquiera (CWE-755); P1 quedaba a medias | T-09 | corregido: `isExpected()` trata como rechazo del cliente lo que lanzan sin envolver `vendor/web-auth/*` y `vendor/spomky-labs/*` al decodificar (salvo `QueryException`) | `PasskeyCeremonyTest` «una firma malformada es un rechazo del cliente (422)… (N1)» con `Log::shouldNotHaveReceived('error')` |
+| N2 | B | Minor | Máscara de IPv6 del correo: formas comprimidas salían completas (`2001:db8::1` → `2001:db8::1::x`) | T-10 | corregido: `maskIp` expande con `inet_pton`, conserva el /64 (`2001:db8:0:0:x:x:x:x`) y enmascara la IPv4 mapeada como IPv4 | `PasskeyManagementTest` (compacta, `::1`, `::ffff:1.2.3.4`) |
+| N2b | C | Minor | El hash del RP ID solo lo comprobaba la librería tras buscar la credencial: `invalid_domain` vs `unknown_credential` delataba si un `credential_id` existe (CWE-204) | T-09 | corregido: `assertRelyingPartyHash()` compara `authenticatorData.rpIdHash` con el RP ID configurado antes de buscar la credencial; los fakes de los tests usan ahora el hash real | `PasskeyCeremonyTest` «…responde igual exista o no la credencial (N2b)» (cuerpos idénticos) |
+| N3 | B | Minor | Resto de P3: `storeOptions`/`pullOptions` leen-modifican-escriben la sesión sin bloqueo: dos GET concurrentes (dos pestañas) pierden un reto | T-09/T-13 | corregido: `->block(5, 5)` en las 4 rutas que tocan los retos (serializa por sesión; `CACHE_STORE=database` es `LockProvider`) | `PasskeyLoginTest` «N3»; tinker: `locksFor()=5`, `DatabaseStore` con locks |
+
+**Evidencia (intento 2)**: `php artisan test` → 928 passed (6933 assertions); `vendor/bin/pint --test` ok. Sin gaps Critical/Important abiertos: el bucle de la Fase 2 cierra en el intento 2.
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-15..T-19) — sin gaps Critical ni Important
+
+Lentes: A+B+C. C se activó por la ruta `.env.production.example`. Puerta `scope-check`: los únicos ficheros fuera de alcance son herramientas sin seguimiento (`.serena/`, `metricool-parity/.claude/`) y los documentos PM de la propia iniciativa (`spec.md`, `evaluation.md`, `design.md`, `test-plan.md`, `testing/results.json`); ya se rebatió en fases anteriores. `qa-gate` sobre `testing/results.json` → VERDE (223 passed · 0 failed · 0 flaky · 2 skipped).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Minor | La guía de operación decía que un `WEBAUTHN_*` vacío «falla cerrado», pero cae en `APP_URL` | T-19 | corregido: texto ajustado (vacía = no definida; solo un valor incoherente falla cerrado) | `docs/modulos/despliegue.md`; `config/passkeys.php:16,22` |
+| A2 | Minor | La guía de usuario ofrecía «desactiva el doble factor» sin código, y desactivar exige TOTP o un código de recuperación | T-19 | corregido: primero se generan códigos nuevos y luego se desactiva con uno de ellos | `docs/usuario/guia-de-usuario.md`; `TwoFactorController.php:99-104` |
+| A3 | Minor | E2E-04 decía cubrir CA-08 (reto caducado) y el comentario del spec llamaba CA-08 a la desactivación | T-16 | corregido: E2E-04 remite CA-08 a Pest (`TwoFactorChallengeTest`); el comentario pasa a CA-03 | `test-plan.md`; `tests/e2e/security.spec.ts:202` |
+| A4 | Minor | «Cubre (tests)» de T-15 no casaba con la tabla del test-plan | T-15 | corregido: E2E-01, E2E-02, E2E-05, E2E-06 | `tasks.md` T-15 |
+| A5 | Minor | Ningún criterio de T-20 recogía la aceptación pendiente de ADR-003 | T-20 | corregido: criterio nuevo en T-20 (visto bueno explícito del usuario o pendiente en el resumen) | `tasks.md` T-20 |
+| A6 | Minor | El arranque manual del servidor E2E omitía `TRUSTED_PROXIES=` | T-15 | corregido en la tabla y en el comando | `docs/guias/desarrollo-local.md` |
+| B1 | Minor | El test de autocompletado pasa también por el botón, así que no detecta si el autocompletado deja de arrancar | T-17 | deuda aceptada (Minor): el autocompletado condicional del autenticador virtual no es determinista en Chromium; el botón lo cubre E2E-06 y el autocompletado real queda en la prueba manual M-02 | `tests/e2e/security.spec.ts:376` |
+| B2 | Minor | El teardown dejaba huérfanas en `audit_logs` (user_id NULL) las filas de los usuarios e2e | T-15 | corregido: `deleteE2eUsers` borra antes sus filas de auditoría. Tras la ejecución solo queda `auth.passkey.login_failed` de la passkey borrada, que no tiene usuario por diseño | `tests/e2e/helpers.ts:147-155` |
+| B3 | Minor | `dotenv` no expande `${VAR}`, así que el servidor E2E heredaba `MAIL_FROM_NAME="${APP_NAME}"` literal | T-15 | corregido: expansión en `playwright.config.ts` | `playwright.config.ts:6-12` |
+| B4 | Minor | Con `E2E_BASE_URL` apuntando a una IP o sin puerto, el `webServer` arrancaba mal sin dar un error claro | T-15 | corregido: error explícito al cargar la configuración | `playwright.config.ts:15-21` |
+| B5 | Minor | Posible carrera en `confirmPasswordIfAsked` (`networkidle` antes del XHR de Inertia) | T-16, T-17 | deuda aceptada (Minor): no se ha reproducido; 3 proyectos verdes en 3 ejecuciones | `tests/e2e/helpers.ts` |
+
+Lente C: sin hallazgos. Verificado además que rotar `APP_KEY` o `PASSKEYS_USER_HANDLE_SECRET` no invalida las passkeys, porque la verificación usa el `userHandle` guardado (`vendor/laravel/passkeys/src/Actions/VerifyPasskey.php:121`).
+**Verificación de las correcciones (2026-10-22)**: `npx tsc --noEmit -p .` → 0 errores; `npx playwright test tests/e2e/security.spec.ts --project=desktop` → 8 passed; 0 usuarios `e2e-sec-*` tras el teardown.

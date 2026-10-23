@@ -1,0 +1,127 @@
+{
+  "_about": "Vector grabado con el autenticador virtual de Chromium (ver README.md). Solo datos publicos.",
+  "origin": "http://localhost:8080",
+  "rpId": "localhost",
+  "chromium": "131.0.6778.33",
+  "counters": [
+    2,
+    3,
+    4
+  ],
+  "registration": {
+    "options": {
+      "rp": {
+        "name": "localhost",
+        "id": "localhost"
+      },
+      "user": {
+        "id": "gud1EzidXGsrzE0eIvT2EtdgW8H8g4z91gJAxMTr7Gw",
+        "name": "vector@example.test",
+        "displayName": "Vector de prueba"
+      },
+      "challenge": "zlMya6s_4VNE1vRTDdjuvmhfSDaQ-kUWYqmjt87ewvI",
+      "pubKeyCredParams": [
+        {
+          "type": "public-key",
+          "alg": -7
+        },
+        {
+          "type": "public-key",
+          "alg": -257
+        }
+      ],
+      "timeout": 60000,
+      "excludeCredentials": [],
+      "authenticatorSelection": {
+        "residentKey": "required",
+        "userVerification": "required"
+      },
+      "attestation": "none"
+    },
+    "credential": {
+      "authenticatorAttachment": "platform",
+      "clientExtensionResults": {},
+      "id": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+      "rawId": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+      "response": {
+        "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVikSZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NFAAAAAQECAwQFBgcIAQIDBAUGBwgAILqc1gxLhfmUuNwP-1CCvMiZRw8DrbQGKrmXypX533jLpQECAyYgASFYII6rl6kEcCpJgrNxea8QSVJLZyNIA7izyQPDk_7CLBKoIlggDZKqHhIQFKIOdhpKzCbu-ITr1rbW0WKc3Qq0625v-Fs",
+        "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NFAAAAAQECAwQFBgcIAQIDBAUGBwgAILqc1gxLhfmUuNwP-1CCvMiZRw8DrbQGKrmXypX533jLpQECAyYgASFYII6rl6kEcCpJgrNxea8QSVJLZyNIA7izyQPDk_7CLBKoIlggDZKqHhIQFKIOdhpKzCbu-ITr1rbW0WKc3Qq0625v-Fs",
+        "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiemxNeWE2c180Vk5FMXZSVERkanV2bWhmU0RhUS1rVVdZcW1qdDg3ZXd2SSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+        "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEjquXqQRwKkmCs3F5rxBJUktnI0gDuLPJA8OT_sIsEqgNkqoeEhAUog52GkrMJu74hOvWttbRYpzdCrTrbm_4Ww",
+        "publicKeyAlgorithm": -7,
+        "transports": [
+          "internal"
+        ]
+      },
+      "type": "public-key"
+    }
+  },
+  "assertions": [
+    {
+      "options": {
+        "challenge": "ENug9-329J21czL1dlJ2w7j19Ze6MI3ALchnf9YQAAA",
+        "rpId": "localhost",
+        "timeout": 60000,
+        "userVerification": "required",
+        "allowCredentials": []
+      },
+      "credential": {
+        "authenticatorAttachment": "platform",
+        "clientExtensionResults": {},
+        "id": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+        "rawId": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+        "response": {
+          "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAg",
+          "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRU51ZzktMzI5SjIxY3pMMWRsSjJ3N2oxOVplNk1JM0FMY2huZjlZUUFBQSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEUCIHFep3RKf8SBlrQXomgNDD4dMKSXuCfZM7EW7J-hNmnoAiEAqCPyUFqUPK_CX7-wNE7BnVqjPFYZqEaOBbhvMEh8C5k",
+          "userHandle": "gud1EzidXGsrzE0eIvT2EtdgW8H8g4z91gJAxMTr7Gw"
+        },
+        "type": "public-key"
+      }
+    },
+    {
+      "options": {
+        "challenge": "5kJXqOEybRXk5KnvTMYphUUHEdCIhNYPvVUk8kncejQ",
+        "rpId": "localhost",
+        "timeout": 60000,
+        "userVerification": "required",
+        "allowCredentials": []
+      },
+      "credential": {
+        "authenticatorAttachment": "platform",
+        "clientExtensionResults": {},
+        "id": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+        "rawId": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+        "response": {
+          "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAw",
+          "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiNWtKWHFPRXliUlhrNUtudlRNWXBoVVVIRWRDSWhOWVB2VlVrOGtuY2VqUSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZSwib3RoZXJfa2V5c19jYW5fYmVfYWRkZWRfaGVyZSI6ImRvIG5vdCBjb21wYXJlIGNsaWVudERhdGFKU09OIGFnYWluc3QgYSB0ZW1wbGF0ZS4gU2VlIGh0dHBzOi8vZ29vLmdsL3lhYlBleCJ9",
+          "signature": "MEUCIDmNaM0TcXZQoVmGyNUB45Jpri1ihxeyfvHoS3yKcloqAiEAySGY0xwdTy5pt2EJijZS5gH3Y5qmCErWyq2x5Z36oQo",
+          "userHandle": "gud1EzidXGsrzE0eIvT2EtdgW8H8g4z91gJAxMTr7Gw"
+        },
+        "type": "public-key"
+      }
+    },
+    {
+      "options": {
+        "challenge": "Ax6khOGTlyQWDXDcfqCIDwycL0-PE5ezDr4-djSyMDM",
+        "rpId": "localhost",
+        "timeout": 60000,
+        "userVerification": "required",
+        "allowCredentials": []
+      },
+      "credential": {
+        "authenticatorAttachment": "platform",
+        "clientExtensionResults": {},
+        "id": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+        "rawId": "upzWDEuF-ZS43A_7UIK8yJlHDwOttAYquZfKlfnfeMs",
+        "response": {
+          "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABA",
+          "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiQXg2a2hPR1RseVFXRFhEY2ZxQ0lEd3ljTDAtUEU1ZXpEcjQtZGpTeU1ETSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEQCIHxE5KOmwOr-LFlB_wd2xeUSPFx3FON_lAJmuGKyh532AiBW2ZxOFt2eEfCuDhWp46mRRCmQNcbSTKyOrMVNj8WZLw",
+          "userHandle": "gud1EzidXGsrzE0eIvT2EtdgW8H8g4z91gJAxMTr7Gw"
+        },
+        "type": "public-key"
+      }
+    }
+  ]
+}

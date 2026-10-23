@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Connectors\Data;
+
+/** Resultado de publicar o sondear: publicada, en proceso (asincrono) o fallida de forma definitiva. */
+final class PublishResult
+{
+    public const PUBLISHED = 'published';
+
+    public const PROCESSING = 'processing';
+
+    public const FAILED = 'failed';
+
+    /** Referencia provisional mientras el contenido aun SE ESTA SUBIENDO a la red (aun no hay ID de la publicacion). */
+    public const UPLOADING = 'subiendo';
+
+    /** @param array<string, mixed> $raw Respuesta de la red (sin secretos) para depuracion. */
+    private function __construct(
+        public readonly string $status,
+        public readonly ?string $externalId = null,
+        public readonly ?string $url = null,
+        public readonly ?string $reference = null,
+        public readonly ?string $message = null,
+        public readonly array $raw = [],
+        public readonly ?string $note = null,
+        public readonly ?array $progress = null,
+    ) {}
+
+    /** @param ?string $note Aclaracion para el usuario cuando «publicada» no es la historia completa (p. ej. borrador en la bandeja de TikTok). */
+    public static function published(string $externalId, ?string $url = null, array $raw = [], ?string $note = null, ?array $progress = null): self
+    {
+        return new self(self::PUBLISHED, $externalId, $url, null, null, $raw, $note, $progress);
+    }
+
+    /**
+     * Sigue el contenido subiendose a la red (fase de SUBIDA, no de procesado)? Es la fase con plazo propio
+     * (`publishing.upload_max_minutes`): referencia `subiendo` (YouTube) o `progress.phase = uploading` (TikTok).
+     *
+     * @param  ?array<string, mixed>  $progress
+     */
+    public static function isUploadingState(?string $reference, ?array $progress): bool
+    {
+        return $reference === self::UPLOADING || ($progress['phase'] ?? null) === 'uploading';
+    }
+
+    /** @param ?array<string, mixed> $progress Progreso reanudable que se guarda en el destino (null = no cambia). */
+    public static function processing(string $reference, array $raw = [], ?array $progress = null): self
+    {
+        return new self(self::PROCESSING, null, null, $reference, null, $raw, null, $progress);
+    }
+
+    public static function failed(string $message, array $raw = []): self
+    {
+        return new self(self::FAILED, null, null, null, $message, $raw);
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->status === self::PUBLISHED;
+    }
+
+    public function isProcessing(): bool
+    {
+        return $this->status === self::PROCESSING;
+    }
+
+    public function isFailed(): bool
+    {
+        return $this->status === self::FAILED;
+    }
+}

@@ -1,0 +1,90 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToUser;
+use App\Scopes\UserScope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * Fichero de media subido por un usuario (directo navegador -> R2). Guarda metadatos para validarlo
+ * por red/tipo (T-18) y la URL accesible por Meta/TikTok.
+ */
+class MediaAsset extends Model
+{
+    use BelongsToUser, HasFactory;
+
+    public const STATUS_PENDING = 'pendiente';
+
+    public const STATUS_READY = 'listo';
+
+    public const STATUS_INVALID = 'invalido';
+
+    public const KIND_IMAGE = 'image';
+
+    public const KIND_VIDEO = 'video';
+
+    protected $fillable = [
+        'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
+        'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error',
+    ];
+
+    protected $hidden = ['upload_id'];
+
+    protected function casts(): array
+    {
+        return [
+            'declared_size' => 'integer',
+            'size' => 'integer',
+            'width' => 'integer',
+            'height' => 'integer',
+            'duration' => 'float',
+            'fps' => 'float',
+        ];
+    }
+
+    public function posts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class, 'post_media')->withoutGlobalScope(UserScope::class);
+    }
+
+    public function isVideo(): bool
+    {
+        return $this->kind === self::KIND_VIDEO;
+    }
+
+    public function isReady(): bool
+    {
+        return $this->status === self::STATUS_READY;
+    }
+
+    /** URL temporal firmada que las redes pueden descargar (Meta, TikTok PULL_FROM_URL). */
+    public function publicUrl(?int $minutes = null): string
+    {
+        return Storage::disk($this->disk)->temporaryUrl(
+            $this->path,
+            now()->addMinutes($minutes ?? (int) config('media.public_url_ttl', 720)),
+        );
+    }
+
+    /** Campos seguros para el navegador. */
+    public function toPublicArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->original_name,
+            'kind' => $this->kind,
+            'mime' => $this->mime,
+            'size' => $this->size ?? $this->declared_size,
+            'width' => $this->width,
+            'height' => $this->height,
+            'duration' => $this->duration,
+            'fps' => $this->fps,
+            'status' => $this->status,
+            'error' => $this->error,
+        ];
+    }
+}

@@ -46,10 +46,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01 | 8 | 8 | 100% | 0 / 28,0h | 0 / 3,8h | 0 / 0,9h | 0 / 1,13M |
 | Fase 2 — C-08 | 9 | 9 | 100% | 0 / 29,0h | 0 / 3,9h | 0 / 1,0h | 0 / 1,17M |
 | Fase 3 — C-03 | 7 | 8 | 88% | 0 / 32,0h | 0 / 4,3h | 0 / 1,1h | 0 / 1,29M |
-| Fase 4 — C-04 | 4 | 8 | 50% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
+| Fase 4 — C-04 | 5 | 8 | 62% | 0 / 27,0h | 0 / 3,6h | 0 / 0,9h | 0 / 1,09M |
 | Fase 5 — C-09 notas y C-05a generador UTM | 0 | 5 | 0% | 0 / 14,0h | 0 / 1,9h | 0 / 0,5h | 0 / 0,57M |
 | Fase 6 — C-11 | 0 | 4 | 0% | 0 / 12,0h | 0 / 1,6h | 0 / 0,4h | 0 / 0,48M |
-| **TOTAL** | **28** | **42** | **67%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
+| **TOTAL** | **29** | **42** | **69%** | **0 / 142,0h** | **0 / 19,2h** | **0 / 4,8h** | **0 / 5,74M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. No hay `.claude/jira.json`: no aplica.
 
@@ -1018,11 +1018,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-31 — Paridad del MCP: `options` en `PostPayload` y `get_post`
 
 - **Descripción**: El esquema `options` entra en `PostPayload` y `presentPost()`, con las mismas reglas de `PostRequest`. Solo las opciones confirmadas en T-26.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,03h (≈25 % IA) · real —
+- **Changelog**: El MCP acepta y devuelve las opciones de cada red con las mismas reglas que la web, y una opción que la cuenta no admite da un error claro del destino.
+- **Estado**: completado
+- **Tiempo humano**: est. 1,0h · real 1.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0.14h (estimado)
+- **Supervisión**: est. 0,03h (≈25 % IA) · real 0.03h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-28
 - **Tipo**: backend
@@ -1033,18 +1033,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Mcp` → en verde
 
 **Criterios de aceptación**
-- [ ] Una opción no admitida por la cuenta da error de validación del destino, igual que en la web
-- [ ] `get_post` devuelve las opciones
+- [x] Una opción no admitida por la cuenta da error de validación del destino, igual que en la web
+- [x] `get_post` devuelve las opciones
 
 **Subtareas**
-- [ ] Esquema
-- [ ] Test
-- [ ] Documentar
+- [x] Esquema
+- [x] Test
+- [x] Documentar
 
-**Notas**: —
-
----
-
+**Notas**: **Evidencia**: `--filter=McpOptions` → 5 passed (create_post con opciones de YouTube y get_post las devuelve; forma inválida rechazada con el campo; TikTok en modo borrador, y opciones de YouTube en TikTok, rechazadas como error del destino; con TikTok directo se aceptan y el contenido de marca privado se rechaza; update_post sustituye las opciones y no se escribe ningún preset). `tests/Feature/Mcp` en verde. Las reglas son las de `PostRequest` (forma) y `PostService::optionErrors` (cuenta), compartidas con la web por `validatedPayload()` y `plan()`; el esquema `options` de `PostPayload` documenta solo las opciones confirmadas en T-26. `docs/modulos/mcp.md` actualizado.
 ### T-32 — Pest y E2E de C-04 (CA-13..CA-16)
 
 - **Descripción**: E2E con dos marcas `e2e-`: guardar una opción en A, abrir un post nuevo en A y B, y comprobar que la etiqueta IA no aparece donde no se admite. Con axe y sin desbordamiento.

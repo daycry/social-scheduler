@@ -128,6 +128,7 @@ abstract class SchedulerTool extends Tool
                 // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
                 'text' => $t->text,
                 'effective_text' => $t->text ?? $post->text,
+                'options' => $t->options ?? [],
                 'status' => $t->status->value,
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,

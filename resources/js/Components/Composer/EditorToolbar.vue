@@ -11,7 +11,8 @@ import { countHashtags } from '@/Composables/textCount';
  * (lo recoge `TextSection` y lo pasa al cursor del `TextEditor`); la IA y la media usan los controles que ya existían.
  */
 const emit = defineEmits(['emoji']);
-const { brand, form, editable, selectedNetwork, onUploaded } = useComposerContext();
+const { brand, form, editable, selectedNetwork, onUploaded, uploadingMedia } = useComposerContext();
+const setUploading = (b) => { uploadingMedia.value = b; };
 
 const emojiOpen = ref(false);
 const emojiButton = ref(null);
@@ -20,7 +21,7 @@ const hashtags = computed(() => countHashtags(form.text));
 
 <template>
     <div v-if="editable" class="mt-2 flex flex-wrap items-start gap-2" role="toolbar" aria-label="Herramientas del editor" data-testid="editor-toolbar">
-        <MediaUploader label="Añadir imagen o vídeo" @uploaded="onUploaded" />
+        <MediaUploader label="Añadir imagen o vídeo" @uploaded="onUploaded" @busy="setUploading" />
 
         <div class="relative">
             <button

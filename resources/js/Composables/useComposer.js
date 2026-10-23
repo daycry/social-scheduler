@@ -82,11 +82,28 @@ export function useComposer(props) {
 
     // Una sola lista: errores en vivo (bloquean Programar y Publicar ahora) y los que devuelve el servidor al enviar.
     // Los del servidor se descartan en cuanto el usuario cambia algo, para que el panel no muestre errores ya corregidos.
+    // Fecha ya pasada (en la zona de la marca): se valida en el cliente, el servidor la revalida al enviar. Bloquea Programar, no
+    // Guardar borrador ni Publicar ahora (que pone la fecha el servidor).
+    const clock = ref(Date.now());
+    const clockTimer = setInterval(() => (clock.value = Date.now()), 15000);
+    onBeforeUnmount(() => clearInterval(clockTimer));
+    const dateErrorList = computed(() => {
+        const at = form.scheduled_at;
+        if (!editable.value || !at || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(at)) return [];
+        let zone = props.brand.timezone || 'UTC';
+        try { new Intl.DateTimeFormat('en-CA', { timeZone: zone }); } catch { zone = 'UTC'; }
+        const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(clock.value)).map((x) => [x.type, x.value]));
+        const nowLocal = `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+        return at.slice(0, 16) <= nowLocal ? normalizeErrors({ scheduled_at: ['La fecha de publicacion debe ser futura.'] }) : [];
+    });
     const errorList = computed(() => {
         const seen = new Set();
-        return [...liveErrorList.value, ...normalizeErrors(form.errors, describeTarget)].filter((e) => !seen.has(e.id) && seen.add(e.id));
+        return [...liveErrorList.value, ...dateErrorList.value, ...normalizeErrors(form.errors, describeTarget)].filter((e) => !seen.has(e.id) && seen.add(e.id));
     });
-    const hasBlockingErrors = computed(() => liveErrorList.value.length > 0);
+    // Subida de media en curso (la reporta el uploader): no se programa, publica ni guarda en la biblioteca con la media a medias.
+    const uploadingMedia = ref(false);
+    const hasBlockingErrors = computed(() => liveErrorList.value.length > 0 || uploadingMedia.value);
+    const scheduleBlocked = computed(() => hasBlockingErrors.value || dateErrorList.value.length > 0);
     watch(() => [form.text, form.media, form.targets, form.scheduled_at], () => form.clearErrors(), { deep: true });
 
     const errorsFor = (accountId) => {
@@ -104,7 +121,8 @@ export function useComposer(props) {
     // Un envío ya en curso (clic doble, Enter repetido) no lanza otra petición.
     const sendingNow = ref(false);
     const submit = (schedule) => {
-        if (sendingNow.value || form.processing) return;
+        if (sendingNow.value || form.processing || uploadingMedia.value) return;
+        if (schedule && dateErrorList.value.length > 0) return;
         form.schedule = schedule;
         send();
     };
@@ -135,7 +153,7 @@ export function useComposer(props) {
     const libraryErrors = ref({});
     const saveToLibrary = (name, { onSaved } = {}) => {
         const clean = (name ?? '').trim();
-        if (!clean || savingToLibrary.value) return;
+        if (!clean || savingToLibrary.value || uploadingMedia.value) return;
         router.post(route('brands.library.store', props.brand.id), {
             name: clean,
             text: form.text,
@@ -170,7 +188,7 @@ export function useComposer(props) {
         post, brand, accounts, contentTypes, limits, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeInfo, toggleAccount,
-        liveErrors, errorsFor, errorList, hasBlockingErrors, submit, publishNow, sendingNow, remove,
+        liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
         libraryName, savingToLibrary, libraryErrors, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,

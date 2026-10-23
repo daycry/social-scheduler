@@ -70,9 +70,12 @@ const weeks = computed(() => {
     while (cells.length % 7) cells.push(null);
     return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
 });
-const isPast = (date) => date < today.value;
+// Si en la zona de la marca ya no queda ninguna franja válida hoy (a partir de las 23:55), el día de hoy deja de ser elegible.
+const todayExhausted = computed(() => Math.ceil((now.value.minutes + 1) / 5) * 5 > 23 * 60 + 55);
+const firstDay = computed(() => (todayExhausted.value ? addDays(today.value, 1) : today.value));
+const isPast = (date) => date < firstDay.value;
 // No se navega a meses enteramente pasados.
-const canGoPrev = computed(() => addMonths(ymd(view.value.y, view.value.m, 1), -1).slice(0, 7) >= today.value.slice(0, 7));
+const canGoPrev = computed(() => addMonths(ymd(view.value.y, view.value.m, 1), -1).slice(0, 7) >= firstDay.value.slice(0, 7));
 
 const label = computed(() => {
     if (!value.value) return 'Elegir fecha y hora';
@@ -109,7 +112,7 @@ const focusCell = async () => {
     dialog.value?.querySelector(`[data-date="${focusDate.value}"]`)?.focus();
 };
 const moveFocus = (target) => {
-    focusDate.value = target < today.value ? today.value : target;
+    focusDate.value = target < firstDay.value ? firstDay.value : target;
     focusCell();
 };
 const onGridKey = (e) => {
@@ -126,13 +129,13 @@ const onGridKey = (e) => {
 };
 const shiftMonth = (n) => {
     const target = addMonths(focusDate.value, n);
-    focusDate.value = target < today.value ? today.value : target;
+    focusDate.value = target < firstDay.value ? firstDay.value : target;
 };
 
 const openPicker = async () => {
     if (props.disabled) return;
     now.value = nowInZone();
-    focusDate.value = value.value?.date && value.value.date >= today.value ? value.value.date : today.value;
+    focusDate.value = value.value?.date && value.value.date >= firstDay.value ? value.value.date : firstDay.value;
     open.value = true;
     await focusCell();
 };
@@ -159,7 +162,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
 watch(() => props.disabled, (d) => d && (open.value = false));
 
 // Respaldo nativo: el valor de un `datetime-local` ya es `Y-m-d\TH:i`.
-const minNative = computed(() => `${today.value}T${pad(Math.floor(minMinutesFor(today.value) / 60))}:${pad(minMinutesFor(today.value) % 60)}`);
+const minNative = computed(() => (todayExhausted.value ? `${firstDay.value}T00:00` : `${today.value}T${pad(Math.floor(minMinutesFor(today.value) / 60))}:${pad(minMinutesFor(today.value) % 60)}`));
 </script>
 
 <template>

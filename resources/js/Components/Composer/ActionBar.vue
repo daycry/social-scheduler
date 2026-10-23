@@ -9,7 +9,7 @@ import { useComposerContext } from '@/Composables/useComposer';
  * errores en vivo (`ErrorsPanel`); Guardar borrador y Guardar en biblioteca siguen disponibles. Enviar a revisión y
  * publicaciones recurrentes quedan fuera del alcance.
  */
-const { post, form, editable, submit, remove, publishNow, sendingNow, hasBlockingErrors, libraryName, savingToLibrary, libraryErrors, saveToLibrary } = useComposerContext();
+const { post, form, editable, submit, remove, publishNow, sendingNow, hasBlockingErrors, scheduleBlocked, uploadingMedia, libraryName, savingToLibrary, libraryErrors, saveToLibrary } = useComposerContext();
 
 const open = ref(false);
 const root = ref(null);
@@ -17,12 +17,14 @@ const toggle = ref(null);
 const menu = ref(null);
 
 const busy = computed(() => form.processing || sendingNow.value);
-const blocked = computed(() => busy.value || hasBlockingErrors.value);
-const canPublishNow = computed(() => !blocked.value && form.targets.length > 0);
+// Programar también se bloquea con la fecha pasada; Publicar ahora y Guardar borrador no dependen de la fecha. Con una subida de
+// media en curso se bloquean Programar, Publicar ahora y Guardar en biblioteca (el borrador sí se puede guardar).
+const blocked = computed(() => busy.value || scheduleBlocked.value);
+const canPublishNow = computed(() => !busy.value && !hasBlockingErrors.value && form.targets.length > 0);
 
 const items = computed(() => [
     { key: 'draft', label: 'Guardar borrador', disabled: busy.value, run: () => submit(false) },
-    { key: 'library', label: 'Guardar en biblioteca', disabled: savingToLibrary.value, run: () => openLibrary() },
+    { key: 'library', label: 'Guardar en biblioteca', disabled: savingToLibrary.value || uploadingMedia.value, run: () => openLibrary() },
     { key: 'now', label: 'Publicar ahora', disabled: !canPublishNow.value, run: () => publishNow() },
 ]);
 

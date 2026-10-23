@@ -1,17 +1,19 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 /**
  * Sube un fichero de media. En produccion el navegador envia el binario directamente a R2 con URLs
  * prefirmadas (un PUT, o multipart por partes para videos grandes); la app solo prefirma y finaliza.
  * Emite `uploaded` con el asset listo (y el File original, para previsualizar) (metadatos extraidos) o `error` con el motivo.
  */
-const emit = defineEmits(['uploaded', 'error']);
+const emit = defineEmits(['uploaded', 'error', 'busy']);
 defineProps({ label: { type: String, default: 'Subir imagen o video' } });
 
 const busy = ref(false);
 const progress = ref(0);
 const message = ref('');
+// Quien lo usa (el compositor) se entera de que hay una subida en curso.
+watch(busy, (b) => emit('busy', b));
 
 const xsrf = () => decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) || [])[1] || '');
 

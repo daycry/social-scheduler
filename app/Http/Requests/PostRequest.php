@@ -26,6 +26,8 @@ class PostRequest extends FormRequest
             'targets' => ['nullable', 'array', 'max:40'],
             'targets.*.account_id' => ['required', 'integer'],
             'targets.*.content_type' => ['required', 'string', 'max:40'],
+            // Texto propio del destino (C-03): `null` = vinculado a la plantilla. El maximo real por red lo pone MediaValidator.
+            'targets.*.text' => ['nullable', 'string', 'max:70000'],
             'targets.*.options' => ['nullable', 'array'],
             'targets.*.options.share_to_feed' => ['nullable', 'boolean'],
             'targets.*.options.link' => ['nullable', 'url', 'max:2000'],

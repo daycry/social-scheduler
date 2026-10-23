@@ -614,11 +614,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-18 — Migración `post_targets.text`, modelo y reglas de `PostRequest`
 
 - **Descripción**: Migración **solo aditiva** (`text` nullable; `null` = vinculado a la plantilla), `fillable` y `PostTarget::effectiveText()` (texto propio si no es `null`, si no `post->text`), y las reglas `targets.*.text` en `PostRequest::rules()`, la única fuente que reutiliza el MCP.
-- **Changelog**: 
-- **Estado**: borrador
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Changelog**: Cada destino puede tener su propio texto (columna nueva, sin tocar lo ya guardado); sin él sigue vinculado al texto de la plantilla.
+- **Estado**: completado
+- **Tiempo humano**: est. 3,0h · real 3.0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.4h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0.1h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-17
 - **Tipo**: db
@@ -630,16 +630,16 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - `php artisan test --compact tests/Feature/Posts tests/Feature/Mcp` → en verde
 
 **Criterios de aceptación**
-- [ ] La migración solo añade: no altera filas existentes ni borra nada
-- [ ] Un destino con `text = ''` (texto propio vacío) se distingue de uno `null` (vinculado)
-- [ ] Ningún test ni migración toca al usuario id 28
+- [x] La migración solo añade: no altera filas existentes ni borra nada
+- [x] Un destino con `text = ''` (texto propio vacío) se distingue de uno `null` (vinculado)
+- [x] Ningún test ni migración toca al usuario id 28
 
 **Subtareas**
-- [ ] Migración aditiva y `down()` simétrica
-- [ ] `effectiveText()`
-- [ ] Reglas de `PostRequest` (máximo y tipos)
+- [x] Migración aditiva y `down()` simétrica
+- [x] `effectiveText()`
+- [x] Reglas de `PostRequest` (máximo y tipos)
 
-**Notas**: —
+**Notas**: **Evidencia**: `migrate:fresh --env=testing` migra `2026_11_09_090000_add_text_to_post_targets_table`; `tests/Unit/PostTargetEffectiveTextTest.php` → 2 passed (vinculado, propio, cadena vacía propia); `tests/Feature/Posts tests/Feature/Mcp` → 250 passed. TDD n/a: columna y accesor. Regla `targets.*.text` (nullable, string, máx. 70000) en `PostRequest`; el máximo real por red lo pone MediaValidator en T-19. Nota: `ConvertEmptyStringsToNull` convierte un texto propio vacío enviado por la web en `null` (vinculado); el MCP sí conserva la cadena vacía. Se revisa en T-25.
 
 ---
 

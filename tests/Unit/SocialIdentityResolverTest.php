@@ -181,3 +181,17 @@ test('B6: el fallo por id vacio al vincular se audita como DENIED del usuario au
 
     expect(AuditLog::where('action', 'social.linked')->where('user_id', $user->id)->where('outcome', 'denied')->count())->toBe(1);
 });
+
+// El filtro en PHP es la defensa real en MySQL (collation `_ci`); aqui se le dan las filas que MySQL devolveria de mas.
+test('pickExactEmail descarta lo que una collation _ci da por igual (CWE-176)', function (string $local, string $google, bool $match) {
+    $user = new User(['email' => $local]);
+
+    expect(SocialIdentityResolver::pickExactEmail([$user], $google))->toBe($match ? $user : null);
+})->with([
+    'ß frente a ss' => ['alice@straße.de', 'alice@strasse.de', false],
+    'ss frente a ß' => ['alice@strasse.de', 'alice@straße.de', false],
+    'ä frente a a' => ['alice@exämple.com', 'alice@example.com', false],
+    'a frente a ä' => ['alice@example.com', 'alice@exämple.com', false],
+    'mayusculas' => ['Alice@Example.com', 'alice@example.com', true],
+    'identico no ASCII' => ['alice@exämple.com', 'ALICE@EXÄMPLE.COM', true],
+]);

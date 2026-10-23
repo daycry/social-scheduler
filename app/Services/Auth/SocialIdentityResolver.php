@@ -241,10 +241,27 @@ class SocialIdentityResolver
      */
     private function userByExactEmail(string $email): ?User
     {
-        $wanted = mb_strtolower($email);
+        $candidates = User::where('email', $email)->orWhere('email', mb_strtolower($email))->limit(20)->get();
 
-        return User::where('email', $email)->orWhere('email', $wanted)->limit(20)->get()
-            ->first(fn (User $u) => hash_equals(mb_strtolower((string) $u->email), $wanted));
+        return self::pickExactEmail($candidates, $email);
+    }
+
+    /**
+     * Filtro definitivo de {@see userByExactEmail()}: de las filas que devuelve la consulta (que con una collation
+     * `_ci` pueden incluir `ß` para `ss`), solo la que tiene el email en minusculas identico byte a byte.
+     *
+     * @param  iterable<User>  $candidates
+     */
+    public static function pickExactEmail(iterable $candidates, string $email): ?User
+    {
+        $wanted = mb_strtolower($email);
+        foreach ($candidates as $user) {
+            if (hash_equals(mb_strtolower((string) $user->email), $wanted)) {
+                return $user;
+            }
+        }
+
+        return null;
     }
 
     /** Falla cerrado: solo el booleano true (o la cadena "true") del userinfo de Google cuenta como verificado. */

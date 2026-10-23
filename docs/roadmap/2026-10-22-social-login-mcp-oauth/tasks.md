@@ -36,9 +36,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-02 · Servidor OAuth del MCP | 11 | 12 | 92% | 0 / 50,0h | 0 / 6,8h | 0 / 1,7h | 0 / 2,03M |
-| Fase 2 — C-01 · Login social | 6 | 7 | 86% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
+| Fase 2 — C-01 · Login social | 7 | 7 | 100% | 0 / 26,0h | 0 / 3,5h | 0 / 0,9h | 0 / 1,05M |
 | Fase 3 — C-03 · UI, E2E, docs y cierre | 0 | 9 | 0% | 0 / 21,0h | 0 / 2,8h | 0 / 0,7h | 0 / 0,85M |
-| **TOTAL** | **17** | **28** | **61%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
+| **TOTAL** | **18** | **28** | **64%** | **0 / 97,0h** | **0 / 13,1h** | **0 / 3,3h** | **0 / 3,93M** |
 
 > **Horas reales (G7).** Las horas reales de la Fase 1 son una **estimación a juicio** (marcadas `(estimado)` en cada tarea): no se midieron con `usage-meter` (las tareas se cerraron sin marcadores de medición), así que no hay dato medido. Suma de las tareas cerradas T-01..T-10 ≈ 4,5h IA ejecución, ≈ 1,1h supervisión y ≈ 5,3h humanas (las tareas pesan muy por debajo de la estimación porque la IA ejecutó casi todo el trabajo); más ≈ 0,8h IA de la revisión F1 (intento 1). La tabla de arriba deja las columnas «real» a 0 hasta que existan datos medidos; estas cifras no se imputan a Jira.
 
@@ -705,15 +705,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 ### T-19 — Revisión de seguridad de C-01 (toma de cuenta y enumeración)
 
 - **Descripción**: Revisión dirigida del login social: toma de cuenta por email no verificado, identidad ajena, `state`, mensajes que no revelan el email, `LoginFlow` compartido y bloqueo al desvincular. Checklist firmada en las Notas y huecos corregidos antes de la UI. Puerta de salida de la fase 2.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El login con Google y Facebook pasó una revisión de seguridad independiente: los emails se comparan byte a byte (ya no se confunden `ß` y `ss`), desvincular quita todas las identidades del proveedor y la protección CSRF del regreso del proveedor queda cubierta por tests.
+- **Estado**: completado
 - **Tiempo humano**: est. 2,0h · real —
 - **Tiempo IA (ejec.)**: est. 0.27h · real —
 - **Supervisión**: est. 0.07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-18
 - **Tipo**: docs
-- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `tests/Feature/Auth/Social/SocialSecurityReviewTest.php`
+- **Archivos**: `docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md`, `tests/Unit/SocialIdentityResolverTest.php`, `app/Services/Auth/SocialIdentityResolver.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → suite completa en verde
@@ -721,17 +721,20 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
   - lectura: checklist de revisión en Notas con cada punto marcado
 
 **Criterios de aceptación**
-- [ ] La suite completa pasa sin desactivar ni modificar tests existentes
-- [ ] Cada hallazgo Important o Critical tiene test y corrección
-- [ ] Ningún secreto en log ni auditoría
+- [x] La suite completa pasa sin desactivar ni modificar tests existentes (salvo `InfraTest --memory=1024`, aceptado en T-18: infraestructura de test sin cambio de aserciones)
+- [x] Cada hallazgo Important o Critical tiene test y corrección
+- [x] Ningún secreto en log ni auditoría
 
 **Subtareas**
-- [ ] Revisar la resolución de identidad
-- [ ] Revisar `LoginFlow` y el 2FA
-- [ ] Suite y Pint
+- [x] Revisar la resolución de identidad
+- [x] Revisar `LoginFlow` y el 2FA
+- [x] Suite y Pint
 
 **Notas**: Puerta de salida de la fase 2.
 
+
+**Evidencia (2026-10-23)**: revisión de dos lentes, intentos 1 y 2 (tablas al final del ledger); `php artisan test --compact` → 1205 passed; `vendor/bin/pint --test` → passed. C1 comprobado contra el MySQL local de Laragon (collation `utf8mb4_unicode_ci`) dentro de transacciones con `rollBack`: la consulta devuelve la fila equivocada (`straße` para `strasse`, `exämple` para `example`) y `pickExactEmail` la descarta; el test `pickExactEmail descarta lo que una collation _ci da por igual` falla con el filtro anterior. Los casos adversariales de esta fase quedan fijados en `SocialIdentityResolverTest`, `SocialErrorsTest` y `SocialIntendedTest` (no se creó `SocialSecurityReviewTest`). Ningún secreto en auditoría ni log: `SocialAuditLeakTest`.
+**Checklist**: vínculo por `sub` y nunca por email ✓ · Google solo con `email_verified` y cuenta local verificada ✓ · comparación de email exacta (CWE-176) ✓ · Facebook nunca automático ✓ · `state` validado con el driver real ✓ · sin bypass del 2FA y `regenerate` tras el login ✓ · mensaje único (sin enumeración) ✓ · vincular y desvincular con `password.confirm` ✓ · callback serializado y limitado a 20/min ✓.
 ---
 
 ## Fase 3 — C-03 · UI, E2E, accesibilidad, documentación y cierre
@@ -1036,3 +1039,35 @@ Lentes B+C sobre `42bd1f0..HEAD`. Lo aprobado y lo rebatido en el intento 1 no s
 | N6 | Minor | El ASM anidado devuelve `issuer` sin `/mcp` (RFC 8414 §3.3) | T-04 | descartado (rebatido): el PRM anuncia el servidor de autorización en la raíz, así que los clientes piden el ASM raíz, cuyo issuer coincide; la variante anidada es un alias | `MetadataController.php:34`; `MetadataTest` |
 
 Resultado: sin gaps Critical ni Important pendientes. Suite 1102 passed.
+
+
+## Revisión de dos lentes — intento 1: Fase 2 (T-13..T-18) — 2 Important y 12 Minor
+
+Lentes A+B+C+D (C: rutas de auth/sesión; D: migración `social_identities`). Diff `5b312ef..HEAD`. `scope-check --base 5b312ef` → 0 fuera de alcance.
+
+| # | Lente | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|---|
+| C1 | C | Important | La vinculación automática de Google comparaba con `lower(email)` y heredaba `utf8mb4_unicode_ci`: `ß`=`ss` y `ä`=`a` vinculaban la cuenta equivocada (CWE-176/287) | T-14 | corregido (693031d): consulta indexada y filtro exacto en PHP con `hash_equals` | `SocialIdentityResolver::userByExactEmail`, `pickExactEmail` |
+| B1 | B | Important | RELINKED desbloqueaba sin comprobar otra identidad activa del proveedor: 2 Google activos y desvincular solo quitaba uno | T-17 | corregido: `hasOtherActive` en RELINKED; `unlink` bloquea todas | `SocialIdentityResolver.php:99,147,181`; `SocialIdentityResolverTest.php:141,153` |
+| D2 | D | Minor | `lower(email)` impedía usar el índice (full scan en cada callback) | T-14 | corregido con C1 | EXPLAIN `const` |
+| B2 | B | Minor | Una identidad desvinculada quedaba reservada para siempre al antiguo dueño | T-17 | corregido: `transfer` de una identidad bloqueada, con `password.confirm` y el `sub` del intercambio OAuth | `SocialIdentityResolver.php:145-171` |
+| B3 | B | Minor | Callbacks concurrentes podían pisar la sesión | T-14 | corregido: `->block(5, 5)` | `routes/auth.php:62` |
+| B4 | B | Minor | Los tests de `state` no probaban el `state` | T-18 | corregido: test con el driver real y `MockHandler` | `SocialErrorsTest.php:79` |
+| B5 | B | Minor | `LoginFlow` sin 2FA no olvidaba `login.*` de un reto abandonado | T-15 | corregido | `LoginFlow.php:35`; `SocialIntendedTest.php:125` |
+| B6 | B | Minor | Fallos de vinculación auditados como `auth.social.login` sin usuario; TAKEN por carrera sin auditar | T-15, T-17 | corregido | `SocialLoginController.php:151`; `SocialIdentityResolver.php:78,121,163` |
+| A1 | A | Minor | Criterio «sin modificar tests existentes» marcado pese a `InfraTest --memory=1024` | T-18 | corregido en el ledger; cambio aceptado (solo afecta al worker dentro de Pest, no al de producción) | T-18 |
+| A2 | A | Minor | Textos de error distintos de la tabla de la spec | T-14, T-15 | corregido; los mensajes del perfil (OTHER_IDENTITY, TAKEN) se mantienen como desviación anotada | `SocialLoginController.php` |
+| A3 | A | Minor | CA-06 sin test con Facebook | T-18 | corregido | `SocialIntendedTest` |
+| A4 | A | Minor | CA-03 «Google sin email» no comprobaba la auditoría DENIED | T-18 | corregido | `SocialLoginTest` |
+
+## Revisión de dos lentes — intento 2: Fase 2 (fix1) — sin gaps Critical ni Important
+
+Lentes B+C sobre `693031d~1..HEAD`. C1 verificado contra el MySQL local con transacciones deshechas.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Minor | Los tests de C1 pasaban también con el código vulnerable (SQLite no tiene collation `_ci`) | T-18 | corregido: filtro extraído a `pickExactEmail` y probado con las filas que MySQL devolvería de más | `SocialIdentityResolverTest` (dataset CWE-176) |
+| N2 | Minor | `block(5,5)` puede dar 500 si dos callbacks de la misma sesión se solapan más de 5 s con un proveedor lento | T-14 | deuda aceptada (Minor): ventana estrecha, sin cuelgue ni efecto de seguridad | `routes/auth.php:62` |
+| N3 | Minor | `transfer` borra la fila bloqueada del dueño anterior y con ella su exclusión de la vinculación automática | T-17 | deuda aceptada (Minor): solo afecta si Google reasignara el email de A a otra cuenta Google | `SocialIdentityResolver.php:153` |
+
+Resultado: sin gaps Critical ni Important pendientes. Suite 1205 passed.

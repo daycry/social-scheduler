@@ -32,6 +32,8 @@ class PostRequest extends FormRequest
             'targets.*.content_type' => ['required', 'string', 'max:40'],
             // Texto propio del destino (C-03): `null` = vinculado a la plantilla. El maximo real por red lo pone MediaValidator.
             'targets.*.text' => ['nullable', 'string', 'max:70000'],
+            // Primer comentario del destino (C-01b): el maximo real por red lo pone PostService::plan() con `media_specs`.
+            'targets.*.first_comment' => ['nullable', 'string', 'max:10000'],
             'targets.*.options' => ['nullable', 'array'],
             'targets.*.options.share_to_feed' => ['nullable', 'boolean'],
             'targets.*.options.link' => ['nullable', 'url', 'max:2000'],

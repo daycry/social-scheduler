@@ -200,7 +200,7 @@ class PostService
             'text' => $post->text,
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
-                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text,
+                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment,
             ])->all(),
         ];
     }
@@ -455,7 +455,7 @@ class PostService
      * Valida todo y devuelve el plan normalizado (sin tocar la BD).
      *
      * @param  array<string, mixed>  $data
-     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string}>}
+     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}
      */
     private function plan(User $user, Brand $brand, array $data): array
     {
@@ -548,7 +548,18 @@ class PostService
                 $errors[$key][] = $message;
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText];
+            // Primer comentario (C-01b): vacio = sin comentario. El maximo y los tipos que lo admiten salen de `media_specs`.
+            $firstComment = isset($raw['first_comment']) && trim((string) $raw['first_comment']) !== '' ? (string) $raw['first_comment'] : null;
+            if ($firstComment !== null) {
+                $max = config("media_specs.types.{$type->value}.first_comment.max");
+                if ($max === null) {
+                    $errors[$key][] = "{$account->network->label()} no admite primer comentario en este tipo de contenido.";
+                } elseif (mb_strlen($firstComment) > (int) $max) {
+                    $errors[$key][] = "El primer comentario admite como maximo $max caracteres en {$account->network->label()} (tiene ".mb_strlen($firstComment).').';
+                }
+            }
+
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment];
         }
 
         if ($errors !== []) {
@@ -571,7 +582,7 @@ class PostService
      * Sincroniza media y destinos con el plan. Los destinos existentes (ya bloqueados y editables) se actualizan;
      * los que sobran se borran; los nuevos se crean.
      *
-     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string}>}  $plan
+     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}  $plan
      * @param  Collection<string, PostTarget>|null  $existing
      * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
@@ -595,6 +606,7 @@ class PostService
                     'status' => $plan['status'],
                     'options' => $t['options'] ?: null,
                     'text' => $t['text'],
+                    'first_comment' => $t['first_comment'] ?? null,
                 ]);
                 $target->user_id = $post->user_id;
                 $target->post_id = $post->id;
@@ -614,7 +626,8 @@ class PostService
             $textChanged = $before !== null && $oldText !== $newText;
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
             $fresh = $current->status === PostStatus::Failed || $mediaChanged || $textChanged || $optionsChanged;
-            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text']] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
+            // El primer comentario NO cuenta para `$fresh`: se publica despues del destino y no cambia lo que sale en la red.
+            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'first_comment' => $t['first_comment'] ?? null] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
             }

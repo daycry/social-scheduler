@@ -431,11 +431,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-12 — `PostRequest`, `PostService::plan()`/`fill()` y máximos en `media_specs`
 
 - **Descripción**: Regla `targets.*.first_comment`, máximo por tipo en `config/media_specs.php` (IG 2.200, FB 8.000, YT 10.000) y `fill()` sin reiniciar el intento de publicación cuando solo cambia el comentario; no se ofrece en TikTok ni en Stories. Requisito: CA-06.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Cada destino de Instagram, Facebook y YouTube admite un primer comentario con el máximo de su red; TikTok y las Stories no.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.12h (medido)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
@@ -447,16 +448,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/Posts/TargetTextPlanFillTest.php` → verde (el texto por destino no cambia)
 
 **Criterios de aceptación**
-- [ ] Se rechaza un comentario por encima del máximo de su red.
-- [ ] TikTok y Stories no admiten `first_comment`.
-- [ ] Cambiar solo `first_comment` no llama a `freshAttempt()`.
+- [x] Se rechaza un comentario por encima del máximo de su red.
+- [x] TikTok y Stories no admiten `first_comment`.
+- [x] Cambiar solo `first_comment` no llama a `freshAttempt()`.
 
 **Subtareas**
-- [ ] Caracterización de `TargetTextPlanFillTest`
-- [ ] Test RED de máximos
-- [ ] Regla, `plan()` y `fill()`
+- [x] Caracterización de `TargetTextPlanFillTest`
+- [x] Test RED de máximos
+- [x] Regla, `plan()` y `fill()`
 
 **Notas**: Patrón: validación de texto por destino en `app/Services/PostService.php` (`plan()` en `:460`) y límites en `config/media_specs.php`. Comparte ficheros con C-03: va antes (en serie).
+
+**Evidencia**: FirstComment+Posts+Mcp: 337 passed (TargetTextPlanFillTest en verde antes y despues); RED previo: 10 de 11 fallaban. pint --test: passed.
+
 
 ### T-13 — `FirstCommentService`: editar, reintentar y aviso in-app
 

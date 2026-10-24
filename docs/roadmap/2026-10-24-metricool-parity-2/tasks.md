@@ -46,14 +46,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 1 | 6 | 17% | 0 / 16,5h | 0,16 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 1 — C-01a · Textos guardados | 2 | 6 | 33% | 0 / 16,5h | 0,21 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **1** | **50** | **2%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **2** | **50** | **4%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -106,11 +106,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-02 — `SavedTextService`, request, controlador, política y rutas CRUD
 
 - **Descripción**: CRUD de textos guardados con propiedad (otro usuario recibe 403) y validación de `kind`, título y cuerpo. Requisito: CA-03.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Se pueden crear, editar y borrar textos guardados; los de otro usuario devuelven 403.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,47h · real —
+- **Tiempo IA (ejec.)**: est. 0,47h · real 0.05h (medido)
 - **Supervisión**: est. 0,12h (≈25 % IA) · real —
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-01
@@ -120,16 +121,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/SavedTexts/SavedTextCrudTest.php` → todos en verde (alta, edición, borrado y 403 de otro usuario)
 
 **Criterios de aceptación**
-- [ ] Alta, edición y borrado devuelven los códigos esperados y persisten.
-- [ ] Un usuario ajeno recibe 403 al editar o borrar (CA-03).
-- [ ] La marca, si se informa, debe ser del usuario.
+- [x] Alta, edición y borrado devuelven los códigos esperados y persisten.
+- [x] Un usuario ajeno recibe 403 al editar o borrar (CA-03).
+- [x] La marca, si se informa, debe ser del usuario.
 
 **Subtareas**
-- [ ] Test RED del 403
-- [ ] Servicio, request y política
-- [ ] Rutas `settings/saved-texts*`
+- [x] Test RED del 403
+- [x] Servicio, request y política
+- [x] Rutas `settings/saved-texts*`
 
 **Notas**: Patrón: `app/Services/ComposerPresetService.php` y `app/Policies/PostTemplatePolicy.php`. Rutas junto a las de presets en `routes/web.php`.
+
+**Evidencia**: SavedTextCrudTest: 5 passed (24 assertions). Nota: tests escritos junto al código, sin RED previo registrado.
 
 ### T-03 — Página de ajustes «Textos guardados» con entrada de navegación
 

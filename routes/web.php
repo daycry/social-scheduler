@@ -14,6 +14,7 @@ use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SavedTextController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -84,6 +85,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Consentimiento OAuth del MCP (ADR-004): `auth` guarda url.intended y vuelve tras el login (2FA incluido).
     Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->middleware('throttle:mcp-oauth-authorize')->name('mcp.oauth.authorize');
     Route::post('oauth/authorize', [AuthorizeController::class, 'decide'])->middleware('throttle:mcp-oauth-authorize')->name('mcp.oauth.authorize.decide');
+
+    // Ajustes · Textos guardados (C-01a). `{id}` a mano: el texto de otro usuario responde 403, no 404.
+    Route::get('settings/saved-texts', [SavedTextController::class, 'index'])->name('saved-texts.index');
+    Route::post('settings/saved-texts', [SavedTextController::class, 'store'])->name('saved-texts.store');
+    Route::put('settings/saved-texts/{id}', [SavedTextController::class, 'update'])->whereNumber('id')->name('saved-texts.update');
+    Route::delete('settings/saved-texts/{id}', [SavedTextController::class, 'destroy'])->whereNumber('id')->name('saved-texts.destroy');
 
     // API keys personales para el MCP (T-28).
     Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');

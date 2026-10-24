@@ -64,6 +64,15 @@ Por ahora el vídeo se envía como **borrador a tu bandeja de TikTok**: recibir�
 
 Vista de semana o mes (y lista) con el estado por red. Puedes filtrar por red y reprogramar una publicación pendiente moviéndola.
 
+### Cuadrícula de Instagram
+
+En **Planificación > Cuadrícula** ves cómo quedará el perfil de una cuenta de Instagram de la marca (si hay varias, las eliges arriba). Son tres columnas, como en Instagram: primero lo **programado** (con su fecha; la más tardía primero y un clic abre el compositor) y debajo lo **ya publicado** (un clic abre la publicación en Instagram). Es de solo lectura.
+
+- Las **Stories no aparecen** (no forman parte del perfil) y un Reel programado solo aparece si está marcado **compartir en el feed**.
+- Los posts **fijados** en el perfil no se reflejan: aquí se ordena por fecha.
+- Las miniaturas se recortan en vertical, así que pueden no coincidir exactamente con el recorte de Instagram. Un carrusel muestra su primera pieza y un vídeo sin miniatura muestra su primer fotograma.
+- Lo publicado se lee de Instagram y se **actualiza cada 10 minutos**; una publicación recién hecha puede tardar en salir. Si Instagram no responde o la cuenta necesita reconectarse, verás un aviso y lo programado se sigue mostrando.
+
 ## Estadísticas
 
 El **Dashboard** muestra por marca seguidores, alcance, visualizaciones e interacciones, con total y desglose por red. Elige el periodo y compara con otro. Las métricas que una red no ofrece se muestran como "no disponible", nunca como 0. Los datos se actualizan una vez al día (sobre las 12:00 UTC); los de las publicaciones recientes, cada 6 horas.

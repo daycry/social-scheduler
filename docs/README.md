@@ -25,7 +25,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
 | Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php`, `app/Services/SavedTextService.php` |
 | Media y validación | [media.md](modulos/media.md) | `app/Services/Media*.php`, `config/media_specs.php` |
-| Calendario | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php` |
+| Calendario y cuadrícula de Instagram | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php`, `app/Services/GridService.php` |
 | Analítica y snapshots | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php` |
 | Informes PDF/CSV | [informes.md](modulos/informes.md) | `app/Services/ReportService.php` |
 | Servidor MCP y API keys | [mcp.md](modulos/mcp.md) | `app/Mcp/`, `routes/ai.php` |

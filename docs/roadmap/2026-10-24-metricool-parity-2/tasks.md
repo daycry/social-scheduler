@@ -48,12 +48,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0.71 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
-| Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
+| Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **18** | **50** | **36%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **23** | **50** | **46%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -676,7 +676,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 3 — C-02 · Cuadrícula de Instagram
 
-**Estado**: borrador · **Estimado**: 23,5h base (28,2h con margen) · **Real**: — · **Coste est.**: 1.410 € + tokens (⚠️ verificar) · **Tokens est.**: 952k
+**Estado**: completado · **Estimado**: 23,5h base (28,2h con margen) · **Real**: IA 0.26h (medido; T-19 estimado 0.05h) · humano —  · **Coste est.**: 1.410 € + tokens (⚠️ verificar) · **Tokens est.**: 952k
 
 ### T-19 — `InstagramGrid`: lectura paginada de `/{ig}/media`
 
@@ -805,11 +805,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-23 — Documentación y revisión de C-02
 
 - **Descripción**: Documentar la cuadrícula y sus límites (URLs del CDN que caducan, fijados, recorte de teselas) y revisar el consumo de Graph (una lectura cada 10 min por cuenta).
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La guía de usuario y la documentación técnica explican la cuadrícula de Instagram, sus límites (miniaturas que caducan, fijados, recorte, actualización cada 10 minutos) y su consumo de Graph.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0.03h (medido)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-22
@@ -819,16 +820,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `grep -n "Cuadrícula" docs/modulos/calendario.md docs/usuario/guia-de-usuario.md` → al menos una coincidencia en cada fichero
 
 **Criterios de aceptación**
-- [ ] Documentados los límites de la cuadrícula.
-- [ ] Revisadas la caché y los errores de Graph.
+- [x] Documentados los límites de la cuadrícula.
+- [x] Revisadas la caché y los errores de Graph.
 
 **Subtareas**
-- [ ] Redactar documentación
-- [ ] Revisión
+- [x] Redactar documentación
+- [x] Revisión
 
 **Notas**: lectura: contrastar con CA-08..CA-10.
 
 ---
+
+**Evidencia**: grep Cuadrícula: calendario.md y guia-de-usuario.md con coincidencias; docs/README.md actualizado. Revisión: caché 10 min por cuenta (máx. 3 peticiones a Graph por ventana), errores de Graph no se cachean y no rompen la página; contrastado con CA-08..CA-10.
 
 ## Fase 4 — C-03 · Campañas
 

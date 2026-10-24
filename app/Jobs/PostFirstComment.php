@@ -13,6 +13,8 @@ use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Models\User;
+use App\Notifications\FirstCommentFailed;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -144,6 +146,20 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
             'first_comment_external_id' => $externalId ?? $target->first_comment_external_id,
             'first_comment_error' => $message !== null ? mb_substr($message, 0, 500) : null,
         ])->save();
+
+        if ($status === FirstCommentStatus::Failed) {
+            $this->notifyFailure($target, (string) $message);
+        }
+    }
+
+    /** Aviso in-app UNA vez por fallo definitivo; nunca impide que el estado quede registrado. */
+    private function notifyFailure(PostTarget $target, string $message): void
+    {
+        try {
+            User::find($target->user_id)?->notify(new FirstCommentFailed($target, $message));
+        } catch (Throwable $e) {
+            Log::error('first_comment.failure_notification_failed', ['target_id' => $target->id, 'exception' => $e::class]);
+        }
     }
 
     private function retryLater(PostTarget $target, string $message): void

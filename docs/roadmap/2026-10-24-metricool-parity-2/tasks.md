@@ -465,11 +465,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-13 — `FirstCommentService`: editar, reintentar y aviso in-app
 
 - **Descripción**: Servicio con `update()` (solo si el comentario está `fallido`; no toca `text` ni el intento) y `retry()`, rutas `PATCH posts/{post}/targets/{target}/first-comment` y `POST …/first-comment/retry` con `throttle` y política del post, y la notificación `FirstCommentFailed` (canal `database`). Requisito: CA-05 y la decisión del usuario de poder editar el comentario fallido antes de reintentar (A1).
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Si el primer comentario falla puedes editar su texto y reintentarlo desde la web, y recibes un aviso en la aplicación del fallo.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.12h (medido)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-12
@@ -479,16 +480,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/FirstComment/FirstCommentRetryTest.php` → verde (edita solo en `fallido`, reintenta con el texto vigente, 403 ajeno, aviso creado)
 
 **Criterios de aceptación**
-- [ ] `update()` rechaza si el comentario no está `fallido`.
-- [ ] `retry()` reinicia intentos, despacha el job y usa el texto vigente.
-- [ ] Un fallo genera una notificación in-app.
+- [x] `update()` rechaza si el comentario no está `fallido`.
+- [x] `retry()` reinicia intentos, despacha el job y usa el texto vigente.
+- [x] Un fallo genera una notificación in-app.
 
 **Subtareas**
-- [ ] Test RED del flujo editar y reintentar
-- [ ] Servicio, rutas y política
-- [ ] Notificación
+- [x] Test RED del flujo editar y reintentar
+- [x] Servicio, rutas y política
+- [x] Notificación
 
 **Notas**: Patrón de notificaciones: `app/Notifications/PublishFailed.php`. Política: `app/Policies/PostPolicy.php`. Es la única edición admitida en un destino `Published` y no pasa por `lockEditableTargets()`.
+
+**Evidencia**: FirstCommentRetryTest + FirstComment + Publishing + Notifications en verde; RED verificado retirando servicio y controlador: 11 de 13 fallaban (el test se escribio tras el codigo, RED retrospectivo). pint --test: passed.
+
 
 ### T-14 — UI del primer comentario: campo por destino, contador, estado, editar y Reintentar
 

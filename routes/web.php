@@ -6,6 +6,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FirstCommentController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
@@ -72,6 +73,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
     Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+    // Primer comentario (C-01b): editar el texto de un comentario `fallido` y reintentarlo. Solo web; el MCP no lo expone.
+    Route::patch('posts/{post}/targets/{target}/first-comment', [FirstCommentController::class, 'update'])->middleware('throttle:30,1')->name('posts.first-comment.update');
+    Route::post('posts/{post}/targets/{target}/first-comment/retry', [FirstCommentController::class, 'retry'])->middleware('throttle:30,1')->name('posts.first-comment.retry');
     // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
     Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:publish-now')->name('posts.publish-now');
 

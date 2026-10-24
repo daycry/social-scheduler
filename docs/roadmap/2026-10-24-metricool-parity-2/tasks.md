@@ -46,8 +46,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0,66 / 2,2h | 0 / 0,6h | 0 / 668k |
-| Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 1.34 / 4,8h | 0 / 1,2h | 0 / 1,44M |
+| Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0.71 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 1.60 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
@@ -71,7 +71,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 1 — C-01a · Textos guardados
 
-**Estado**: en-progreso · **Estimado**: 16,5h base (19,8h con margen) · **Real**: — · **Coste est.**: 990 € + tokens (⚠️ verificar) · **Tokens est.**: 668k
+**Estado**: completado · **Estimado**: 16,5h base (19,8h con margen) · **Real**: — · **Coste est.**: 990 € + tokens (⚠️ verificar) · **Tokens est.**: 668k
 
 ### T-01 — Migración, modelo y factoría de `SavedText`
 
@@ -175,7 +175,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,47h · real 0.16h (medido)
+- **Tiempo IA (ejec.)**: est. 0,47h · real 0.21h (medido; incl. fix1 0.05h)
 - **Supervisión**: est. 0,12h (≈25 % IA) · real —
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
@@ -197,6 +197,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Inserción en el cursor
 
 **Notas**: Añadido `Compose.vue` a Archivos (declara la prop `savedTexts`; no estaba en el plan). Patrón: `resources/js/Composables/useComposer.js` y `textCount.js`; menú hermano `resources/js/Components/Composer/EmojiPicker.vue`. El campo del primer comentario (T-14) reutiliza el campo activo.
+
+**Revisión 1**: `forBrand` carga `brand` en bloque (gap 5, sin N+1; test de conteo de consultas).
 
 **Evidencia**: SavedTextsComposerPropsTest verde (tests/Feature/SavedTexts + Posts: 102 passed); RED previo: savedTexts ausente; npm run build exit 0. Inserción en cursor y contador: se cubren en E2E-02 (T-05).
 
@@ -281,7 +283,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `config/social.php`, `app/Connectors/Google/YouTubePublisher.php`, `app/Connectors/Google/YouTubeConnector.php`, `tests/Feature/Connections/YouTubeCommentScopeTest.php`
+- **Archivos**: `config/social.php`, `app/Connectors/Google/YouTubePublisher.php`, `tests/Feature/Connections/YouTubeCommentScopeTest.php`
 - **Cubre (tests)**: M-02
 - **Verificación**: `php artisan test --compact tests/Feature/Connections/YouTubeCommentScopeTest.php` → verde (scope pedido y aviso sin scope)
 
@@ -338,7 +340,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real 0.16h (medido)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.30h (medido; incl. fix1 0.14h, compartido con T-10)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
@@ -359,6 +361,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: `app/Connectors/Meta/Comments.php:50` (`fetch`), `:133` (`reply`), `:151` (`normalize` con `is_own`). Pendiente de verificar en la documentación de Meta: el comentario de Reels de Facebook va sobre el id del vídeo.
 
+**Revisión 1**: `Comments::findOwn` pasa a búsqueda acotada (solo nivel superior, `social.first_comment.find_pages`/`find_budget_seconds`), orden `chronological` en Facebook (Instagram no documenta `order`: recorrido con tope) y lanza `CommentSearchInconclusiveException` si no llega al final (gaps 3 y 4). Decisión: ante búsqueda inconclusa el job NO crea a ciegas en reintentos o recuperación (reintenta con backoff y, agotado, queda fallido); solo en el primer intento, donde nada pudo enviarse antes, crea.
+
 **Evidencia**: FirstCommenterMetaTest 8 passed + tests/Feature/Connectors/Meta: 98 passed; RED previo: 0 passed (contrato inexistente).
 
 
@@ -370,7 +374,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real 0.09h (medido)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.15h (medido; incl. fix1 0.06h)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-07, T-09
@@ -390,6 +394,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón de llamadas y cuota: `app/Connectors/Google/YouTubePublisher.php` (`beginPass` en `:413`). Verificado en la documentación oficial: `commentThreads.insert` exige `youtube.force-ssl` y cuesta 50 unidades.
 
+**Revisión 1**: `findOwnComment` traduce 403 `commentsDisabled`/404 `videoNotFound` a `CommentNotAllowedException` (gap 1, test por el camino del job con `YouTubePublisher` real). `commentThreads.list` solo admite `order=time|relevance` (sin cronológico ascendente): se usa `searchTerms` con el texto, hasta `find_pages` páginas, más una página reciente sin filtro; cuota de la búsqueda 1 + 1 por llamada (gap 4).
+
 **Evidencia**: FirstCommenterYouTubeTest + tests/Feature/Connectors/Google: 75 passed; RED previo: 0 passed. Corrige de paso un ¿ mal codificado de T-07 en YouTubePublisher.
 
 
@@ -401,7 +407,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real 0.2h (medido)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0.26h (medido; incl. fix1 0.06h)
 - **Supervisión**: est. 0,20h (≈25 % IA) · real —
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-08, T-09, T-10
@@ -424,6 +430,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Job, enganche y recuperación
 
 **Notas**: `app/Services/PublishOutcomes.php:38` (`published`). Reclamo: copiar el `claim()` de `app/Jobs/PublishPostTarget.php`. Idempotencia: `tests/Feature/Publishing/TargetTextIdempotencyInstagramTest.php`. Recuperación: `app/Services/PublishRecovery.php:32` (`run`).
+
+**Revisión 1**: un `Throwable` con la pasada agotada cierra en `fallido` con motivo y aviso (gap 2); `PublishRecovery::resumeComments` cierra en `fallido` con motivo los `pendiente`/`comentando` sin `external_id` en vez de relanzarlos (gap 6); búsqueda inconclusa gestionada en el job (gap 3).
 
 **Evidencia**: tests/Feature/FirstComment + tests/Feature/Publishing: 163 passed (PublishingTest en verde antes y despues, PublishNowDoubleDispatchTest incluido); RED previo: 16 de 17 fallaban (job inexistente). pint --test: passed.
 
@@ -570,7 +578,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real Noneh (medido)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-13, T-15
@@ -1592,3 +1600,20 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [ ] Pint
 
 **Notas**: Requiere `npm run build` previo y el servidor de pruebas que levanta `playwright.config.ts`.
+
+## Revisión de dos lentes — intento 1: Fase 1-2 (T-01..T-18) — 4 Important, 6 Minor
+
+Lentes: A+B+C+D (C por ruta `AuthenticatedLayout.vue` · D por `SchedulerTool.php` y migraciones). Diff `main...feature/metricool-parity-2`. Lente A: los criterios de T-01..T-18 se cumplen (264 Pest en verde). Lente C: sin hallazgos (IDOR, mass assignment, XSS, SSRF y MCP revisados).
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | YouTube: un 403 `commentsDisabled` o un 404 `videoNotFound` de `commentThreads.list` (en `findOwnComment`) pasa por `exceptionFor()` y acaba en `fallido` pidiendo reconectar el canal. Debería dar `no_admitido` | T-10, T-11 | pendiente | Lente B: `YouTubePublisher.php:300`, `PostFirstComment.php:94`; reproducido (probe S1) |
+| 2 | Important | Un `Throwable` persistente con los intentos agotados deja el destino en `comentando` para siempre, sin aviso y sin Reintentar | T-11 | pendiente | Lente B: `PostFirstComment.php:112-115,143`; reproducido (probe S2) |
+| 3 | Important | La idempotencia en Meta reutiliza `Comments::fetch()` del inbox: hasta 5 páginas, recorre también las respuestas y no tiene `$deadline`. Con un post popular supera el timeout de 110 s, y la rama `exhausted` vuelve a buscar, así que entra en bucle cada 10 min | T-09, T-11 | pendiente | Lente D gap 2: `Comments.php:52-131`, `PostFirstComment.php:389` |
+| 4 | Important | La idempotencia no encuentra el comentario propio cuando el post tiene más de 250 comentarios (FB `reverse_chronological`) o más de 100 (YT `order=time`, los más recientes primero). En ese caso se duplica al reintentar o recuperar | T-09, T-10 | pendiente | Lente D (fuera de lente, verificado por el orquestador leyendo `findOwn`/`findOwnComment`) |
+| 5 | Minor | N+1 en `SavedTextService::forBrand` (lazy `brand`) en cada carga del compositor | T-04 | pendiente | Lente D gap 1: `SavedTextService.php:78-80`; con 100 textos, 101 consultas |
+| 6 | Minor | `resumeComments` relanza cada pasada un `pendiente` cuyo `claim()` devuelve null para siempre (p. ej. `external_id` nulo) | T-11 | pendiente | Lente D (fuera de lente) |
+| 7 | Minor | RED previo ausente en T-02 y retrospectivo en T-13 | T-02, T-13 | deuda aceptada (tests presentes y en verde; el ledger lo declara) | Lente A gap 1 |
+| 8 | Minor | Ledger: T-07 `Archivos` cita `YouTubeConnector.php`, que no existe; la cabecera de la Fase 1 sigue `en-progreso`; T-16 dice «real Noneh» | T-06, T-07, T-16 | pendiente | Lente A gaps 2, 3 y 5 |
+| 9 | Minor | La anotación de alcance de T-50 no declara los dos candidatos de `docs/knowledge/candidates/pending/` ni `docs/roadmap/README.md` | T-50 | pendiente | Lente A gap 4 |
+| 10 | Minor | Con la cuota de YouTube agotada el comentario pasa a `fallido` a los ~6 min, aunque la cuota no se repone hasta el día siguiente | T-11 | anotado (degradación con aviso declarado) | Lente B (fuera de lente) |

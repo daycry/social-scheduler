@@ -302,11 +302,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-08 — Migración aditiva del estado del comentario en `post_targets` y enum `FirstCommentStatus`
 
 - **Descripción**: Seis columnas nulas en `post_targets` (`first_comment`, `first_comment_status`, `first_comment_attempts`, `first_comment_external_id`, `first_comment_error`, `first_comment_at`) con índice `(first_comment_status, first_comment_at)` y el enum `FirstCommentStatus` (pendiente · comentando · publicado · fallido · no_admitido). Requisito: diseño, opción A1.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Los destinos guardan el primer comentario y su estado, sin afectar al estado de la publicación.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0.04h (medido)
 - **Supervisión**: est. 0,05h (≈25 % IA) · real —
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
@@ -316,15 +317,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/FirstComment/FirstCommentColumnsTest.php` → verde (columnas, casts y valores del enum)
 
 **Criterios de aceptación**
-- [ ] La migración solo añade columnas nulas y se revierte sin perder datos.
-- [ ] `PostTarget` castea el estado al enum.
-- [ ] El estado del comentario es independiente de `PostStatus`.
+- [x] La migración solo añade columnas nulas y se revierte sin perder datos.
+- [x] `PostTarget` castea el estado al enum.
+- [x] El estado del comentario es independiente de `PostStatus`.
 
 **Subtareas**
-- [ ] Test RED de columnas y casts
-- [ ] Migración, enum y modelo
+- [x] Test RED de columnas y casts
+- [x] Migración, enum y modelo
 
 **Notas**: Patrón de enums: `app/Enums/`. Modelo: `app/Models/PostTarget.php`. Diseño §5 (A1: columnas en `post_targets`, no tabla aparte).
+
+**Evidencia**: FirstCommentColumnsTest: 4 passed; RED previo: columnas y enum inexistentes. migrate aplicada en dev.
+
 
 ### T-09 — Contrato `FirstCommenter` y `comment()`/`findOwnComment()` en Instagram y Facebook
 

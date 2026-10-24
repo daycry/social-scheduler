@@ -998,11 +998,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-29 — `CampaignAnalytics`: extraer la consulta del último snapshot y agregar
 
 - **Descripción**: Extraer de `AnalyticsService::postStats` la consulta del último snapshot sin cambiar el dashboard, y agregar por red, totales y serie diaria; una métrica sin datos es `null`, no 0. Requisito: CA-11.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Se calculan las métricas agregadas de una campaña (suma del último dato de cada publicación, por red y día); lo que no tiene datos se muestra como sin datos, no como 0.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 8,5h · real —
-- **Tiempo IA (ejec.)**: est. 1,15h · real —
+- **Tiempo IA (ejec.)**: est. 1,15h · real 0.17h (medido)
 - **Supervisión**: est. 0,29h (≈25 % IA) · real —
 - **Previsión IA**: 310k in / 34k out tok · ⚠️ verificar €
 - **Dependencias**: T-24
@@ -1014,16 +1015,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/Campaigns/CampaignAnalyticsTest.php` → verde (suma de últimos snapshots; `null` y sin snapshots)
 
 **Criterios de aceptación**
-- [ ] Los KPIs suman los últimos snapshots de cada destino (CA-11).
-- [ ] «Sin datos» se distingue de 0.
-- [ ] El dashboard conserva su comportamiento.
+- [x] Los KPIs suman los últimos snapshots de cada destino (CA-11).
+- [x] «Sin datos» se distingue de 0.
+- [x] El dashboard conserva su comportamiento.
 
 **Subtareas**
-- [ ] Caracterización del dashboard
-- [ ] Test RED de agregación
-- [ ] Extracción y servicio
+- [x] Caracterización del dashboard
+- [x] Test RED de agregación
+- [x] Extracción y servicio
 
 **Notas**: `app/Services/AnalyticsService.php:228` (`postStats`). Las métricas se congelan a los 30 días (`recent_post_days`, `config/social.php:158`): el panel lo dice.
+
+**Evidencia**: Caracterización previa en verde: Dashboard+Analytics 25 passed, y test nuevo de postStats (26 passed) antes de extraer; tras extraer withLatestSnapshot: Dashboard+Analytics+Reports 55 passed. CampaignAnalyticsTest: 6 passed (RED previo: clase inexistente).
 
 ### T-30 — Panel `Pages/Campaigns/Show.vue`: KPIs, tabla por red, gráfica y posts
 

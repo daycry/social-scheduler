@@ -235,16 +235,11 @@ class AnalyticsService
 
         [$from, $to] = $this->bounds($brand, $period);
 
-        $query = fn (): Builder => PostTarget::withoutUserScope()
+        $query = fn (): Builder => self::withLatestSnapshot(PostTarget::withoutUserScope()
             ->where('post_targets.user_id', $user->id)
             ->whereIn('post_targets.social_account_id', $accounts->pluck('id'))
             ->where('post_targets.status', PostStatus::Published->value)
-            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to)
-            ->leftJoinSub(
-                PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
-                'lm', 'lm.post_target_id', '=', 'post_targets.id',
-            )
-            ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));
+            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to), $user->id);
 
         $grammar = DB::connection((new PostTarget)->getConnectionName())->getQueryGrammar();
         // Un `null` JSON es "no disponible": NULLIF evita que MySQL lo lea como la cadena 'null' (que casteada seria 0).
@@ -290,6 +285,20 @@ class AnalyticsService
             'total' => $total,
             'limit' => $limit,
         ];
+    }
+
+    /**
+     * Une cada destino con su ULTIMO snapshot de metricas (`pm.metrics`, `lm.last_date`). Pieza compartida entre el dashboard
+     * (`postStats`) y el panel de campana (`CampaignAnalytics`): los dos deben leer el mismo "ultimo valor".
+     */
+    public static function withLatestSnapshot(Builder $query, int $userId): Builder
+    {
+        return $query
+            ->leftJoinSub(
+                PostMetricSnapshot::withoutUserScope()->where('user_id', $userId)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
+                'lm', 'lm.post_target_id', '=', 'post_targets.id',
+            )
+            ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));
     }
 
     /**

@@ -49,11 +49,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0.71 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
-| Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
+| Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **23** | **50** | **46%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **32** | **50** | **64%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -835,7 +835,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 4 — C-03 · Campañas
 
-**Estado**: borrador · **Estimado**: 36,5h base (43,8h con margen) · **Real**: — · **Coste est.**: 2.190 € + tokens (⚠️ verificar) · **Tokens est.**: 1,48M
+**Estado**: completado · **Estimado**: 36,5h base (43,8h con margen) · **Real**: — · **Coste est.**: 2.190 € + tokens (⚠️ verificar) · **Tokens est.**: 1,48M
 
 ### T-24 — Migración, modelo `Campaign`, `UserScope` y regla «misma marca»
 
@@ -1008,7 +1008,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 310k in / 34k out tok · ⚠️ verificar €
 - **Dependencias**: T-24
 - **Tipo**: backend
-- **Archivos**: `app/Services/CampaignAnalytics.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Campaigns/CampaignAnalyticsTest.php`, `tests/Feature/Dashboard/DashboardTest.php`
+- **Archivos**: `app/Services/CampaignAnalytics.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Campaigns/CampaignAnalyticsTest.php`, `tests/Feature/Analytics/AnalyticsServiceTest.php` (la caracterización de postStats vive aquí; DashboardTest ya estaba en verde y no se toca), `tests/Feature/Dashboard/DashboardTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Dashboard/DashboardTest.php` → verde antes y después de extraer
@@ -1095,29 +1095,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-32 — Documentación y revisión de C-03
 
 - **Descripción**: Documentar campañas, el congelado de métricas y el MCP, y revisar la regresión del dashboard.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La guía de usuario y la documentación técnica explican las campañas, el alcance acumulado, el límite de 30 días de las métricas y las herramientas MCP.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.03h (medido)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-28, T-31
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/analitica.md`, `docs/modulos/mcp.md`, `docs/usuario/guia-de-usuario.md`
+- **Archivos**: `docs/modulos/analitica.md`, `docs/modulos/mcp.md`, `docs/usuario/guia-de-usuario.md`, `docs/README.md`
 - **Cubre (tests)**: —
 - **Verificación**: `grep -n "campaña" docs/modulos/analitica.md docs/modulos/mcp.md` → al menos una coincidencia en cada fichero
 
 **Criterios de aceptación**
-- [ ] `list_campaigns` y `campaign_id` documentados en el módulo MCP.
-- [ ] Documentado el límite de 30 días.
-- [ ] Dashboard sin regresión.
+- [x] `list_campaigns` y `campaign_id` documentados en el módulo MCP.
+- [x] Documentado el límite de 30 días.
+- [x] Dashboard sin regresión.
 
 **Subtareas**
-- [ ] Documentación
-- [ ] Revisión
+- [x] Documentación
+- [x] Revisión
 
 **Notas**: lectura: contrastar con CA-11..CA-13.
+
+**Evidencia**: grep campaña: analitica.md (3 coincidencias) y mcp.md (1) y guía de usuario con sección Campañas. Revisión: Dashboard+Analytics+Reports 55 passed tras extraer withLatestSnapshot; contrastado con CA-11..CA-13.
 
 ---
 

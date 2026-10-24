@@ -73,6 +73,14 @@ En **Planificación > Cuadrícula** ves cómo quedará el perfil de una cuenta d
 - Las miniaturas se recortan en vertical, así que pueden no coincidir exactamente con el recorte de Instagram. Un carrusel muestra su primera pieza y un vídeo sin miniatura muestra su primer fotograma.
 - Lo publicado se lee de Instagram y se **actualiza cada 10 minutos**; una publicación recién hecha puede tardar en salir. Si Instagram no responde o la cuenta necesita reconectarse, verás un aviso y lo programado se sigue mostrando.
 
+## Campañas
+
+En **Planificación > Campañas** agrupas las publicaciones de una marca para medirlas juntas. Crea una campaña con nombre, color y fechas (el fin no puede ser anterior al inicio), edítala, **archívala** para que deje de ofrecerse, o bórrala: sus publicaciones se conservan, sin campaña.
+
+En el compositor, el selector **Campaña** de la cabecera asigna la publicación entera a una campaña de la marca (también puedes crear una al momento con **Nueva campaña**). Duplicar una publicación o guardarla en la biblioteca conserva la campaña. Desde un asistente de IA (MCP) se usa `campaign_id` y `list_campaigns`.
+
+Al abrir una campaña ves publicaciones, visualizaciones, **alcance acumulado**, interacciones, me gusta, comentarios, compartidos, guardados y engagement, con el desglose por red, la evolución diaria y cada publicación. Es la suma del último dato leído de cada destino; lo que no se ha podido medir sale como "No disponible", nunca como 0, y el alcance no cuenta usuarios únicos. Las métricas de una publicación se actualizan durante **30 días** tras publicarla; después quedan congeladas.
+
 ## Estadísticas
 
 El **Dashboard** muestra por marca seguidores, alcance, visualizaciones e interacciones, con total y desglose por red. Elige el periodo y compara con otro. Las métricas que una red no ofrece se muestran como "no disponible", nunca como 0. Los datos se actualizan una vez al día (sobre las 12:00 UTC); los de las publicaciones recientes, cada 6 horas.

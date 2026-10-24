@@ -38,6 +38,7 @@ El compositor ocupa toda la pantalla. Arriba eliges las redes con pastillas; cad
 - **UTM.** El botón de enlaces abre un generador: escribes la dirección y los parámetros `utm_` (origen, medio y campaña son obligatorios) y **Añadir** inserta el enlace ya montado en el texto.
 - **Emojis y asistente de texto** desde la barra del editor.
 - **Textos guardados.** Guarda firmas, llamadas a la acción o grupos de hashtags y reutilízalos. Créalos en **Textos guardados** (menú de tu usuario, arriba a la derecha): elige el tipo (**Fragmento** o **Grupo de hashtags**), un título, el texto y, si quieres, una marca; sin marca valen para **Todas las marcas**. Puedes buscarlos, filtrarlos por marca, editarlos y borrarlos. En el compositor, el botón **Textos guardados** de la barra muestra los de la marca actual y los de Todas las marcas; al elegir uno se inserta **en la posición del cursor** del campo en el que estabas escribiendo (el texto común o el texto propio de una red) y el contador de hashtags se actualiza. Solo tú ves tus textos.
+- **Primer comentario.** En Instagram, Facebook y YouTube puedes escribir un comentario que la cuenta deja justo después de publicar (por ejemplo, el enlace o los hashtags). Aparece en las opciones de cada red, con un contador que respeta el máximo de la red (Instagram 2.200, Facebook 8.000, YouTube 10.000); en TikTok y en las Historias no existe. Tras publicar, el estado se ve en **Estado por red**: **Pendiente**, **Comentando**, **Comentado**, **Fallido** (con el motivo) o **No admitido** (comentarios cerrados o vídeo privado o «para niños»). Si falla, recibes un aviso en la app; pulsa **Editar** para corregir el texto y **Reintentar**. La publicación sigue como **Publicada** aunque el comentario falle. El primer comentario no se guarda en la biblioteca. **YouTube:** hay que **reconectar el canal** una vez para dar el permiso de comentarios; hasta entonces el campo sale desactivado con el aviso «Reconecta el canal para comentar». Desde un asistente de IA (MCP) puedes indicarlo al crear o editar, pero no corregir un comentario fallido: eso se hace en la web.
 - **Programar, borrador y Publicar ahora.** El botón principal programa; el menú que lo acompaña (**Más acciones de publicación**) guarda como borrador, guarda en la biblioteca o **publica ahora**. Publicar ahora no espera a la fecha: pide confirmación y envía la publicación enseguida. Durante unos segundos el estado se ve «Programada» hasta que se empieza a publicar. También lo ofrecen el calendario y la lista. Si sales con cambios sin guardar, la app te avisa.
 - **Biblioteca.** Guarda una publicación como plantilla desde el menú del compositor o desde la lista del calendario; en **Biblioteca**, **Usar** crea un borrador a partir de ella.
 
@@ -53,7 +54,7 @@ Aviso: si publicas en la misma cuenta dos destinos con exactamente el mismo text
 
 ### YouTube
 
-Cada subida gasta unas 1.600 de las 10.000 unidades diarias: unas 6 subidas al día.
+Cada subida gasta unas 1.600 de las 10.000 unidades diarias: unas 6 subidas al día. Cada primer comentario gasta 50 más (y 1 la comprobación previa). Para comentar hay que reconectar el canal una vez (permiso de comentarios).
 
 ### TikTok
 

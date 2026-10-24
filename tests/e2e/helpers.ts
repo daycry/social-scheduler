@@ -507,6 +507,7 @@ export function cleanComposerBrands(email: string) {
             String.raw`$brands = App\Models\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get(); ` +
             String.raw`$ids = App\Models\PostTarget::withoutUserScope()->whereIn('post_id', App\Models\Post::withoutUserScope()->withTrashed()->whereIn('brand_id', $brands->pluck('id'))->select('id'))->pluck('id'); ` +
             String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PublishPostTarget%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
+            String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PostFirstComment%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
             String.raw`$brands->each->delete(); ` +
             String.raw`App\Models\MediaAsset::withoutUserScope()->where('user_id', $u->id)->get()->each->delete(); }`,
     );
@@ -579,4 +580,37 @@ export function seedSavedTexts(email: string, brandId: number, label: string) {
             `$mk(${brandId}, 'fragmento', 'e2e-firma-marca', 'Un saludo de la marca'); ` +
             `$mk($other->id, 'fragmento', 'e2e-texto-otra-marca', 'No debe verse');`,
     );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Primer comentario (C-01b): destino publicado sembrado. Nunca se publica ni se comenta en una red real.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type PublishedComment = { postId: number; targetId: number };
+
+/**
+ * Publicación de Instagram ya `publicada` (sembrada, sin pasar por la red) cuyo primer comentario está en `status`
+ * (`fallido` por defecto, con el motivo). Reintentar solo encola un `PostFirstComment` en la cola `database`: sin worker no llega a ninguna red.
+ */
+export function seedPublishedWithComment(email: string, brandId: number, status = 'fallido', error = 'Instagram no admite comentarios en esta publicacion.'): PublishedComment {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e publicada con comentario', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $ig->id, 'content_type' => 'instagram_image', 'first_comment' => 'e2e Mas info en el enlace']]]); ` +
+            String.raw`$p->targets->each(fn ($t) => $t->forceFill(['status' => 'publicada', 'published_at' => now(), 'external_id' => 'e2e-ext-1', 'external_url' => 'https://example.test/e2e', 'first_comment_status' => ${q(status)}, 'first_comment_attempts' => 3, 'first_comment_error' => ${q(error)}])->save()); $p->syncStatus(); ` +
+            String.raw`echo 'IDS:' . $p->id . ',' . $p->targets()->first()->id;`,
+    );
+    const [postId, targetId] = out.match(/IDS:([\d,]+)/)![1].split(',');
+    return { postId: Number(postId), targetId: Number(targetId) };
+}
+
+/** Estado del primer comentario de un destino (columna), para comprobar el efecto de Editar y Reintentar. */
+export function firstCommentOf(targetId: number): { status: string; text: string; postStatus: string } {
+    const out = artisan(
+        String.raw`$t = App\Models\PostTarget::withoutUserScope()->findOrFail(${targetId}); ` +
+            String.raw`echo 'FC:' . json_encode(['status' => $t->first_comment_status?->value, 'text' => $t->first_comment, 'postStatus' => $t->status->value]);`,
+    );
+    return JSON.parse(out.match(/FC:(\{.*\})/)![1]);
 }

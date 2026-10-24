@@ -49,6 +49,17 @@ Las **opciones por red** (YouTube y TikTok) viajan en `options` de cada destino 
 
 **Textos guardados** (`saved_texts`, `App\Models\SavedText`): fragmentos y grupos de hashtags por usuario (`user_id` con `UserScope`) con `brand_id` opcional (nulo = «Todas las marcas»; al borrar la marca se borran los suyos). `SavedTextService` hace el CRUD y `forBrand()` devuelve al compositor (prop `savedTexts` de `PostController::compose`) los de la marca más los globales. `SavedTextController` sirve `settings/saved-texts*` (la página `SavedTexts/Index` y el CRUD); la `SavedTextPolicy` responde 403 al editar o borrar un texto ajeno (el controlador carga sin `UserScope` para poder auditarlo, `access.denied`) y `SavedTextRequest` exige que la marca sea del usuario. En el cliente, `useComposer` registra el «campo activo» (`registerField`/`insertIntoActive`; cada `TextEditor` se registra al recibir el foco) y `Composer/SavedTextsMenu.vue` inserta en el cursor de ese campo. No hay herramienta MCP: no son un campo del post.
 
+**Primer comentario** (C-01b, Instagram, Facebook y YouTube; TikTok y las Stories no lo admiten). Vive en columnas de `post_targets` (`first_comment`, `first_comment_status`, `first_comment_attempts`, `first_comment_external_id`, `first_comment_error`, `first_comment_at`) y su estado, el enum `FirstCommentStatus` (`pendiente` · `comentando` · `publicado` · `fallido` · `no_admitido`), es **independiente de `PostStatus`**: un fallo del comentario nunca degrada un destino publicado.
+
+- **Alta y máximo.** `PostRequest` (`targets.*.first_comment`) y `PostService::plan()` validan contra `media_specs.types.*.first_comment.max` (Instagram 2.200, Facebook 8.000, YouTube 10.000); un tipo sin entrada (TikTok, Stories) lo rechaza. Cambiar solo el comentario **no** llama a `freshAttempt()`. No se guarda en la biblioteca ni en las autolistas.
+- **Encolado.** `PublishOutcomes::published()` es el único punto de entrada: deja el comentario `pendiente` en la misma transacción y despacha `PostFirstComment` con `DB::afterCommit`. `PublishPostTarget` no cambia.
+- **Job `PostFirstComment`** (cola `publishing.comment_queue`, por defecto `poll`): `ShouldBeUnique` (`fc:{id}`) y reclamo con `lockForUpdate` (pasa a `comentando` y persiste antes de llamar a la red). Idempotencia en tres capas: si ya hay `first_comment_external_id` no hace nada; **siempre** busca el comentario propio (`FirstCommenter::findOwnComment`, por autor y texto normalizado) antes de crear; crea y guarda el id en la misma pasada. La única ventana de duplicado es «la red aceptó y el worker murió antes de guardar el id»: el siguiente intento la cierra con la búsqueda. Transitorio: vuelve a `pendiente` y se libera con backoff `[60, 300]` s (tope `PUBLISH_COMMENT_MAX_ATTEMPTS`, 3); permanente o reconexión: `fallido` con el motivo y aviso in-app (`FirstCommentFailed`, canal `database`); comentarios cerrados, vídeo privado o «para niños»: `no_admitido`, sin aviso.
+- **Conectores.** Contrato `Connectors\Contracts\FirstCommenter` (`comment()`, `findOwnComment()`), aparte de `Publisher`; `ConnectorRegistry::commenterFor()` lo devuelve si el publicador de la red lo implementa (Instagram y Facebook sobre `Meta/Comments`; YouTube con `commentThreads`, 50 unidades de cuota por comentario y 1 por búsqueda). TikTok no lo implementa.
+- **YouTube y reconexión.** Comentar exige el scope `youtube.force-ssl` (`config/social.php`). Las cuentas conectadas antes no lo tienen: `YouTubePublisher::canComment()` es falso, el compositor deshabilita el campo y pide reconectar el canal, y el job deja `fallido` («Reconecta el canal…») sin llamar a la API. Publicar no se ve afectado.
+- **Recuperación.** El paso 6 de `PublishRecovery::run()` (`comments`) relanza los `comentando` colgados y los `pendiente` sin job vivo desde hace más de `PUBLISH_STUCK_AFTER_MINUTES`.
+- **Editar y reintentar (solo web).** `FirstCommentService::update()` cambia el texto de un comentario `fallido` (`PATCH posts/{post}/targets/{target}/first-comment`, valida el máximo, no toca `text` ni los intentos) y `retry()` (`POST …/first-comment/retry`) lo pasa a `pendiente`, reinicia los intentos y despacha el job con el texto vigente; ambas con `throttle` y la política del post. Es la única edición admitida en un destino publicado. El MCP no lo expone: `create_post`/`update_post` aceptan `targets[].first_comment` (mismas reglas, vía `PostRequest::rules()`) y `get_post` devuelve `first_comment`, `first_comment_status` y `first_comment_error`.
+- **UI.** `Composer/FirstCommentField.vue` (contador por red, campo activo para textos guardados) dentro de `TargetOptions.vue`; `TargetStatusPanel.vue` muestra el estado con Editar y Reintentar cuando está `fallido`.
+
 Limitación conocida (anterior a esta iniciativa, fuera de alcance): dos destinos de la **misma cuenta** con el **mismo texto efectivo** pueden confundirse en `Publisher::findPublished()`, que identifica lo ya publicado por el contenido. Si hace falta publicar dos veces en una cuenta, usa textos distintos.
 
 ## Recuperación (`PublishRecovery::run()`)
@@ -59,6 +70,7 @@ Se ejecuta al inicio de cada pasada del despachador:
 - `failInactiveProcessing`: destino `procesando` con cuenta sin reconectar más de `PUBLISH_RECONNECT_GRACE_HOURS` (72 h) → `fallida` (`cuenta_no_disponible`).
 - `failExpired`: vencidas con más de `PUBLISH_MAX_LATENESS_HOURS` (24 h) de retraso → `fallida` (vencida).
 - `resumeStuck` y `repoll`: retoma colgadas y procesos asíncronos.
+- `resumeComments` (clave `comments`): relanza los primeros comentarios colgados o pendientes sin job vivo (ver «Primer comentario»).
 
 ## Política de cuota
 
@@ -77,4 +89,4 @@ Por defecto el vídeo va a la bandeja de TikTok. El destino queda `publicada` co
 
 ## Avisos
 
-`PublishFailed` (base de datos + correo, cola `poll`) y `ReconnectRequired`. La UI los lista en `/notifications`.
+`PublishFailed` (base de datos + correo, cola `poll`), `ReconnectRequired` y `FirstCommentFailed` (solo base de datos). La UI los lista en `/notifications`.

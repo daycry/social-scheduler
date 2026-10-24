@@ -596,11 +596,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-17 — E2E y documentación del primer comentario
 
 - **Descripción**: Playwright con axe del campo, el estado y Reintentar (destino sembrado con un helper), a 375 y 360 px, más la documentación del módulo y de la reconexión de YouTube. Requisito: CA-05, CA-06.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La guía de usuario y la documentación del módulo explican el primer comentario: estados, edición, reintento y la reconexión de YouTube.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0.24h (medido)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-14, T-15
@@ -612,16 +613,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npx playwright test tests/e2e/first-comment.spec.ts --project=mobile-360` → todos pasan, sin desbordamiento
 
 **Criterios de aceptación**
-- [ ] 0 violaciones `serious`/`critical` de axe.
-- [ ] Sin desbordamiento a 375 y 360 px.
-- [ ] La documentación explica estados, edición y reconexión de YouTube.
+- [x] 0 violaciones `serious`/`critical` de axe.
+- [x] Sin desbordamiento a 375 y 360 px.
+- [x] La documentación explica estados, edición y reconexión de YouTube.
 
 **Subtareas**
-- [ ] Helper de siembra de destino publicado
-- [ ] Spec E2E
-- [ ] Documentación
+- [x] Helper de siembra de destino publicado
+- [x] Spec E2E
+- [x] Documentación
 
 **Notas**: Patrón: `tests/e2e/composer.spec.ts`. Solo `e2e-sec-*`; nunca comenta en redes reales.
+
+**Evidencia**: first-comment.spec.ts: desktop 4 passed; mobile (375) y mobile-360 8 passed; axe sin serious/critical y sin desbordamiento. npm run build previo. Helpers seedPublishedWithComment/firstCommentOf y limpieza de jobs PostFirstComment en helpers.ts.
+
 
 ### T-18 — Revisión de robustez del primer comentario
 

@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 5 | 9 | 56% | 0 / 24,5h | 1.35 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 6 | 9 | 67% | 0 / 24,5h | 1.45 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1290,29 +1290,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-38 — MCP `import_media_from_url`
 
 - **Descripción**: Herramienta que llama al mismo servicio y devuelve el asset `pendiente`; `list_media` ya lista el estado. Requisito: CA-14, CA-15. Tarea transversal de paridad MCP.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Los agentes conectados por MCP pueden importar media desde una URL pública con la herramienta import_media_from_url, con las mismas protecciones que la web.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.10 (estimado)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-36
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/ImportMediaFromUrl.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`
+- **Archivos**: `app/Mcp/Tools/ImportMediaFromUrl.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `docs/modulos/mcp.md`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp/Tools/McpImportMediaTest.php` → verde (acepta URL pública, rechaza interna)
 
 **Criterios de aceptación**
-- [ ] La misma `UrlGuard` protege la herramienta.
-- [ ] Devuelve el asset `pendiente`.
-- [ ] Registrada en el servidor.
+- [x] La misma `UrlGuard` protege la herramienta.
+- [x] Devuelve el asset `pendiente`.
+- [x] Registrada en el servidor.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Herramienta
+- [x] Test RED
+- [x] Herramienta
 
 **Notas**: `app/Mcp/Servers/SchedulerServer.php:42`; herramienta hermana `app/Mcp/Tools/ListMedia.php`.
+
+**Evidencia**: RED: McpImportMediaTest 14 fallos (herramienta no registrada, 400) · 2026-10-24. McpImportMediaTest: 14 passed; tests/Feature/Mcp: 237 passed (1396 assertions). tools/list ofrece 21 herramientas en una página (eran 20 antes de esta; el recuento de docs/modulos/mcp.md pasa a 21).
 
 ### T-39 — E2E de importación por URL con axe
 

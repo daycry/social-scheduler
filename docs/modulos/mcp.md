@@ -103,13 +103,15 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 `*` también vale. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
 
-## Herramientas (20)
+## Herramientas (21)
 
-`list_brands`, `list_accounts`, `list_media`, `list_campaigns`, `get_calendar`, `get_post`, `create_post`, `update_post`, `update_post_notes`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
+`list_brands`, `list_accounts`, `list_media`, `import_media_from_url`, `list_campaigns`, `get_calendar`, `get_post`, `create_post`, `update_post`, `update_post_notes`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
 
 `publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
 
-Notas internas: `get_post`, `create_post` y `update_post` devuelven `notes` (texto plano, o `null`). `create_post` y `update_post` aceptan `notes` (hasta 5.000 caracteres; omitido = no se toca, vacío = se borra). `update_post_notes` (`post_id`, `notes`, ability `posts:write`) edita solo las notas y funciona aunque la publicación ya esté publicada o en vuelo, porque las notas nunca se publican: no toca los destinos ni reinicia ningún intento. Una publicación de otro usuario responde como inexistente y la auditoría registra la herramienta y la publicación, nunca el contenido de las notas. Con 20 herramientas se mantiene el límite de 25 por página de `tools/list`.
+`import_media_from_url` (`url`, ability `posts:write`) importa una imagen (JPG, PNG o WebP) o un vídeo (MP4 o MOV) desde una URL pública y devuelve el asset en estado `pendiente` con su progreso (`bytes` y `total`). Usa la misma guardia SSRF que la web (`UrlGuard`): solo `http`/`https` en los puertos 80 y 443, sin credenciales, y se rechazan las direcciones internas, de bucle, de metadatos y las redirecciones hacia ellas. La descarga ocurre en segundo plano (cola `media`); `list_media` solo lista el asset cuando está `listo`. Máximo 3 importaciones en curso por usuario.
+
+Notas internas: `get_post`, `create_post` y `update_post` devuelven `notes` (texto plano, o `null`). `create_post` y `update_post` aceptan `notes` (hasta 5.000 caracteres; omitido = no se toca, vacío = se borra). `update_post_notes` (`post_id`, `notes`, ability `posts:write`) edita solo las notas y funciona aunque la publicación ya esté publicada o en vuelo, porque las notas nunca se publican: no toca los destinos ni reinicia ningún intento. Una publicación de otro usuario responde como inexistente y la auditoría registra la herramienta y la publicación, nunca el contenido de las notas. Con 21 herramientas se mantiene el límite de 25 por página de `tools/list`.
 
 Campañas (C-03): `create_post` y `update_post` aceptan `campaign_id` (omitido = no se toca, `null` = se quita) y `get_post` devuelve `campaign_id` y `campaign` (nombre). La campaña debe ser de la misma marca y del usuario; si no, el error es `campaign_id` como en la web. `list_campaigns` (`brand_id`, ability `brands:read`) lista las campañas de la marca, las activas primero.
 
@@ -129,7 +131,7 @@ Paridad web y MCP (compositor nuevo):
 | Generador de enlaces con UTM | diálogo del compositor (solo en el navegador, no guarda nada en el servidor) | sin herramienta: el agente escribe la URL ya con sus parámetros en el texto |
 | Biblioteca (guardar como plantilla y «Usar») | calendario, lista y `/library` | sin herramienta |
 
-Regresión: `tests/Feature/Mcp/Tools/` cubre cada herramienta de posts frente a las fases 1-5 (`McpToolsTest`, `McpTargetTextTest`, `McpOptionsTest`, `McpNotesTest`, `PublishPostNowToolTest`), incluido un ciclo completo `create_post` → `update_post_notes` → `publish_post_now` → `get_post` y que `tools/list` sigue ofreciendo las 20 herramientas.
+Regresión: `tests/Feature/Mcp/Tools/` cubre cada herramienta de posts frente a las fases 1-5 (`McpToolsTest`, `McpTargetTextTest`, `McpOptionsTest`, `McpNotesTest`, `PublishPostNowToolTest`, `McpImportMediaTest`), incluido un ciclo completo `create_post` → `update_post_notes` → `publish_post_now` → `get_post` y que `tools/list` sigue ofreciendo las 21 herramientas.
 
 Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `list_campaigns` (opcional) → `create_post`. `get_report` devuelve una URL firmada de 5 min.
 

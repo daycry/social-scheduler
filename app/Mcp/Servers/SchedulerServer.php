@@ -12,6 +12,7 @@ use App\Mcp\Tools\GetPost;
 use App\Mcp\Tools\GetPostStats;
 use App\Mcp\Tools\GetReport;
 use App\Mcp\Tools\GetStats;
+use App\Mcp\Tools\ImportMediaFromUrl;
 use App\Mcp\Tools\ListAccounts;
 use App\Mcp\Tools\ListBrands;
 use App\Mcp\Tools\ListCampaigns;
@@ -34,7 +35,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 #[Icon('/favicon.svg', 'image/svg+xml', ['any'])]
 #[Name('Social Scheduler')]
 #[Version('1.0.0')]
-#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube y TikTok. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; get_best_times da el engagement medio por dia y hora para elegir cuando publicar. Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB, filtros network/unread) y reply_comment (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Solo ves y modificas los datos del usuario dueno de la API key.')]
+#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube y TikTok. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente hasta que list_media la lista) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; get_best_times da el engagement medio por dia y hora para elegir cuando publicar. Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB, filtros network/unread) y reply_comment (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Solo ves y modificas los datos del usuario dueno de la API key.')]
 class SchedulerServer extends Server
 {
     /** Todas las herramientas en la primera pagina de `tools/list` (el valor por defecto, 15, dejaba fuera a las ultimas). */
@@ -44,6 +45,7 @@ class SchedulerServer extends Server
         ListBrands::class,
         ListAccounts::class,
         ListMedia::class,
+        ImportMediaFromUrl::class,
         ListCampaigns::class,
         GetCalendar::class,
         GetPost::class,

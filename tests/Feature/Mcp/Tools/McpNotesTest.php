@@ -80,7 +80,7 @@ test('McpNotes: mas de 5.000 caracteres se rechaza y el vacio borra', function (
     expect($err)->toBeFalse()->and($res['notes'])->toBeNull();
 });
 
-test('McpNotes: create_post admite notes y las 20 herramientas caben en la primera pagina', function () {
+test('McpNotes: create_post admite notes y las 21 herramientas caben en la primera pagina', function () {
     [$err, $res] = $this->callTool($this->key, 'create_post', [
         'brand_id' => $this->brand->id, 'text' => 'Hola', 'schedule' => false, 'notes' => 'desde mcp',
         'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']],
@@ -90,7 +90,7 @@ test('McpNotes: create_post admite notes y las 20 herramientas caben en la prime
     $r = $this->rpc($this->key, 'tools/list')->assertOk();
     $names = collect($r->json('result.tools'))->pluck('name');
 
-    expect($names)->toHaveCount(20)->and($names)->toContain('update_post_notes', 'publish_post_now')
+    expect($names)->toHaveCount(21)->and($names)->toContain('update_post_notes', 'publish_post_now')
         ->and($r->json('result.nextCursor'))->toBeNull();
 });
 

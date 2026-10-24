@@ -23,16 +23,24 @@ class MediaAsset extends Model
 
     public const STATUS_INVALID = 'invalido';
 
+    public const SOURCE_UPLOAD = 'upload';
+
+    public const SOURCE_URL = 'url';
+
+    public const SOURCE_DRIVE = 'drive';
+
     public const KIND_IMAGE = 'image';
 
     public const KIND_VIDEO = 'video';
 
     protected $fillable = [
         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
-        'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error',
+        'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error', 'source', 'source_ref', 'import_state',
     ];
 
-    protected $hidden = ['upload_id'];
+    protected $attributes = ['source' => self::SOURCE_UPLOAD];
+
+    protected $hidden = ['upload_id', 'source_ref', 'import_state'];
 
     protected function casts(): array
     {
@@ -43,6 +51,7 @@ class MediaAsset extends Model
             'height' => 'integer',
             'duration' => 'float',
             'fps' => 'float',
+            'import_state' => 'array',
         ];
     }
 
@@ -85,6 +94,10 @@ class MediaAsset extends Model
             'fps' => $this->fps,
             'status' => $this->status,
             'error' => $this->error,
+            'source' => $this->source,
+            // Progreso de una importacion remota (barra de progreso). Nunca la URL, el validador ni el resto de `import_state`.
+            'bytes' => $this->import_state['bytes'] ?? null,
+            'total' => $this->import_state['total'] ?? null,
         ];
     }
 }

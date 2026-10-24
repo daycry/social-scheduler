@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 1 | 9 | 11% | 0 / 24,5h | 0.30 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 2 | 9 | 22% | 0 / 24,5h | 0.40 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1162,29 +1162,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-34 — Migración `source`/`source_ref`/`import_state` y configuración de la cola `media`
 
 - **Descripción**: Columnas aditivas en `media_assets` (`source` `upload|url|drive`, `source_ref`, `import_state` JSON), progreso en `toPublicArray()` y claves `media.import_budget_seconds` (80) e `import_queue`; `media` en `QUEUE_NAMES`. Requisito: diseño B1.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Las importaciones remotas tendrán su propia cola «media» con presupuesto de 80 s por pasada, y cada archivo registra su origen.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0.10 (estimado)
 - **Supervisión**: est. 0,05h (≈25 % IA) · real —
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: db
-- **Archivos**: `database/migrations/*_add_source_to_media_assets.php`, `app/Models/MediaAsset.php`, `config/media.php`, `config/queue.php`, `tests/Feature/Media/MediaAssetSourceTest.php`
+- **Archivos**: `database/migrations/*_add_source_to_media_assets.php`, `app/Models/MediaAsset.php`, `config/media.php`, `config/queue.php`, `tests/Feature/Media/MediaAssetSourceTest.php`, `tests/Feature/Infra/InfraTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/MediaAssetSourceTest.php` → verde (columnas, valor por defecto `upload`, progreso en el array público)
 
 **Criterios de aceptación**
-- [ ] Los assets existentes quedan con `source = upload`.
-- [ ] `toPublicArray()` expone `bytes` y `total` sin filtrar la URL sensible.
-- [ ] `media` figura en las colas por defecto.
+- [x] Los assets existentes quedan con `source = upload`.
+- [x] `toPublicArray()` expone `bytes` y `total` sin filtrar la URL sensible.
+- [x] `media` figura en las colas por defecto.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Migración, modelo y configuración
+- [x] Test RED
+- [x] Migración, modelo y configuración
 
 **Notas**: `config/queue.php:35` (`names`). Migraciones solo aditivas.
+
+**Evidencia**: RED: MediaAssetSourceTest falló (columnas inexistentes) · 2026-10-24. MediaAssetSourceTest: 5 passed (21 assertions); migrate aplicada; tests/Feature/Media + Mcp 268 passed. Fuera de Archivos: tests/Feature/Infra/InfraTest.php (la cola `media` entra en la lista de colas por defecto).
 
 ### T-35 — `RemoteMediaImporter` y job `ImportRemoteMedia` por tramos con `Range`
 

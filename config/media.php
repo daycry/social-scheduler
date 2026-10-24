@@ -42,4 +42,12 @@ return [
 
     /* Un MP4 FRAGMENTADO (moof) no guarda su duracion en `moov`: se baja entero hasta este tope; por encima se rechaza pidiendo `faststart`. */
     'probe_fragmented_max_bytes' => (int) env('MEDIA_PROBE_FRAGMENTED_MAX_BYTES', 256 * 1024 * 1024),
+
+    /*
+    | Importacion remota (URL / Drive, C-04a). Cada pasada del job `ImportRemoteMedia` descarga como mucho este presupuesto
+    | de segundos y se vuelve a encolar con `Range`; debe quedar por debajo de `$timeout` del job (110) y del `--timeout` del
+    | worker (120). El job va en la cola `import_queue`. Requiere `MEDIA_DISK=local` (el parcial se anexa en disco).
+    */
+    'import_budget_seconds' => (int) env('MEDIA_IMPORT_BUDGET_SECONDS', 80),
+    'import_queue' => env('MEDIA_IMPORT_QUEUE', 'media'),
 ];

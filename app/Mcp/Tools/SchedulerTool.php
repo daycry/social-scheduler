@@ -129,6 +129,10 @@ abstract class SchedulerTool extends Tool
                 // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
                 'text' => $t->text,
                 'effective_text' => $t->text ?? $post->text,
+                // Primer comentario (C-01b): su estado es independiente del estado de publicacion del destino.
+                'first_comment' => $t->first_comment,
+                'first_comment_status' => $t->first_comment_status?->value,
+                'first_comment_error' => $t->first_comment_error,
                 'options' => $t->options ?? [],
                 'status' => $t->status->value,
                 'error_message' => $t->error_message,

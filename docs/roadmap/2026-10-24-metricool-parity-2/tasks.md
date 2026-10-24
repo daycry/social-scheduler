@@ -531,32 +531,36 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-15 — Paridad MCP del primer comentario (`PostPayload`, `create_post`, `update_post`, `get_post`)
 
 - **Descripción**: Esquema `targets.*.first_comment` en `PostPayload` y estado del comentario en `GetPost`. `update_post` sobre un post publicado sigue rechazando `first_comment`. Requisito: CA-07.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El MCP admite el primer comentario por destino al crear y editar publicaciones, y get_post devuelve el comentario y su estado.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.07h (medido)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-12
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Tools/GetPost.php`, `app/Mcp/Tools/CreatePost.php`, `app/Mcp/Tools/UpdatePost.php`, `tests/Feature/Mcp/Tools/McpFirstCommentTest.php`
+- **Archivos**: `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Tools/GetPost.php`, `app/Mcp/Tools/CreatePost.php`, `app/Mcp/Tools/UpdatePost.php`, `app/Mcp/Tools/SchedulerTool.php`, `tests/Feature/Mcp/Tools/McpFirstCommentTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Mcp/Tools/McpFirstCommentTest.php` → verde (crea con `first_comment` y `get_post` lo devuelve con estado)
   - `php artisan test --compact tests/Feature/Mcp/Tools/McpTargetTextTest.php` → verde (la paridad de texto por destino no cambia)
 
 **Criterios de aceptación**
-- [ ] Las reglas de validación son las de `PostRequest::rules()`.
-- [ ] `get_post` devuelve `first_comment`, `first_comment_status` y `first_comment_error`.
-- [ ] Editar el comentario fallido por MCP queda fuera de esta iteración.
+- [x] Las reglas de validación son las de `PostRequest::rules()`.
+- [x] `get_post` devuelve `first_comment`, `first_comment_status` y `first_comment_error`.
+- [x] Editar el comentario fallido por MCP queda fuera de esta iteración.
 
 **Subtareas**
-- [ ] Caracterización de `McpTargetTextTest`
-- [ ] Test RED de paridad
-- [ ] Esquema y salida
+- [x] Caracterización de `McpTargetTextTest`
+- [x] Test RED de paridad
+- [x] Esquema y salida
 
 **Notas**: `app/Mcp/Tools/PostPayload.php:35` (`validatedPayload` ya reutiliza `PostRequest::rules()`). Patrón de test: `tests/Feature/Mcp/Tools/McpTargetTextTest.php`. Tarea transversal de paridad MCP.
+
+**Evidencia**: tests/Feature/Mcp: 218 passed (McpTargetTextTest en verde antes y despues); RED previo: el test de create/get fallaba sin first_comment en la salida. Editar el comentario fallido por MCP queda fuera. pint --test: passed. Nota de alcance: se toca tambien SchedulerTool.php (presentPost).
+
 
 ### T-16 — Pest de integración del primer comentario con `Http::fake`
 

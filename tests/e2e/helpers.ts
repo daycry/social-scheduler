@@ -652,3 +652,39 @@ export function cleanInstagramGridCache(email: string) {
             String.raw`if ($u) { App\Models\SocialAccount::withoutUserScope()->where('user_id', $u->id)->where('network', 'instagram')->pluck('id')->each(fn ($id) => Illuminate\Support\Facades\Cache::forget('ig-grid:' . $id)); }`,
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Campañas (C-03): datos `e2e-` en marcas `e2e-composer-*` (se van con la marca por cascade). Nada se publica en una red.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Otra marca `e2e-composer-otra-…` con una campaña: NO debe ofrecerse en el compositor de la marca principal. */
+export function seedOtherBrandCampaign(email: string, label: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$o = App\Models\Brand::factory()->for($u)->create(['name' => ${q(`e2e-composer-otra-${label}`)}]); ` +
+            String.raw`App\Models\Campaign::factory()->create(['user_id' => $u->id, 'brand_id' => $o->id, 'name' => 'e2e-camp-otra-marca']);`,
+    );
+}
+
+export type CampaignSeed = { campaignId: number };
+
+/**
+ * Campaña `e2e-camp-panel` con un post de dos destinos `publicada` (Instagram y Facebook) y snapshots sembrados: Instagram con
+ * 100 visualizaciones, 80 de alcance y 20 interacciones; Facebook con 50 y 40 y las interacciones en `null` (sin datos).
+ */
+export function seedCampaignPanel(email: string, brandId: number): CampaignSeed {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$c = App\Models\Campaign::factory()->create(['user_id' => $u->id, 'brand_id' => $b->id, 'name' => 'e2e-camp-panel', 'color' => '#0f766e']); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$fb = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'facebook')->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e post de campaña', 'schedule' => false, 'campaign_id' => $c->id, 'media' => [$m->id], 'targets' => [['account_id' => $ig->id, 'content_type' => 'instagram_image'], ['account_id' => $fb->id, 'content_type' => 'facebook_photo']]]); ` +
+            String.raw`$metrics = ['instagram' => ['views' => 100, 'reach' => 80, 'interactions' => 20], 'facebook' => ['views' => 50, 'reach' => 40, 'interactions' => null]]; ` +
+            String.raw`foreach ($p->targets as $t) { $t->forceFill(['status' => 'publicada', 'published_at' => now()->subDays(2), 'external_id' => 'e2e-camp-' . $t->id, 'external_url' => 'https://example.test/e2e-' . $t->id])->save(); ` +
+            String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'post_target_id' => $t->id, 'social_account_id' => $t->social_account_id, 'network' => $t->network->value, 'date' => now()->subDay()->toDateString(), 'metrics' => $metrics[$t->network->value]]); } ` +
+            String.raw`$p->syncStatus(); echo 'CAMP:' . $c->id;`,
+    );
+    return { campaignId: Number(out.match(/CAMP:(\d+)/)![1]) };
+}

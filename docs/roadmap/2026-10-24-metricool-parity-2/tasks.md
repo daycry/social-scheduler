@@ -1063,31 +1063,34 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-31 — E2E de campañas con axe y sin desbordamiento
 
 - **Descripción**: Playwright de la gestión, el selector y el panel en desktop, 375 y 360 px. Requisito: CA-11..CA-13.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Pruebas de extremo a extremo de la gestión de campañas, el selector del compositor y el panel, con accesibilidad y sin desbordamiento a 375 y 360 px.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0.19h (medido)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-30
 - **Tipo**: test
-- **Archivos**: `tests/e2e/campaigns.spec.ts`
+- **Archivos**: `tests/e2e/campaigns.spec.ts`, `tests/e2e/helpers.ts` (siembra de campañas)
 - **Cubre (tests)**: E2E-06, E2E-07
 - **Verificación**:
   - `npx playwright test tests/e2e/campaigns.spec.ts --project=desktop` → todos pasan
   - `npx playwright test tests/e2e/campaigns.spec.ts --project=mobile-360` → todos pasan, sin desbordamiento
 
 **Criterios de aceptación**
-- [ ] 0 violaciones `serious`/`critical` de axe.
-- [ ] Sin desbordamiento a 375 y 360 px.
-- [ ] Datos solo con marcas `e2e-`.
+- [x] 0 violaciones `serious`/`critical` de axe.
+- [x] Sin desbordamiento a 375 y 360 px.
+- [x] Datos solo con marcas `e2e-`.
 
 **Subtareas**
-- [ ] Spec de gestión
-- [ ] Spec de panel
+- [x] Spec de gestión
+- [x] Spec de panel
 
 **Notas**: Patrón: `tests/e2e/flows.spec.ts`.
+
+**Evidencia**: npm run build ok; campaigns.spec.ts (E2E_NO_SERVER=1, https://metricool.test): desktop 2 passed, mobile 2 passed, mobile-360 2 passed (axe sin serious/critical, sin desbordamiento, sin errores de consola; solo marcas e2e-composer-*).
 
 ### T-32 — Documentación y revisión de C-03
 

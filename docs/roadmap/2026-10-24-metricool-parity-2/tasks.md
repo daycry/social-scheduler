@@ -1624,6 +1624,6 @@ Lentes: A+D (juntas) y B. Re-evaluación solo de lo corregido (`78e2a20..47b4228
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Important | El «primer intento» se decide por `first_comment_attempts`, y Reintentar lo pone a 0. Con una búsqueda inconclusa, si el comentario pudo enviarse antes (timeout del POST que Meta sí creó), Reintentar lo crea a ciegas y queda duplicado. El mensaje de error pide justo esa acción | T-09, T-11, T-13 | pendiente | Lente B: `PostFirstComment.php:101`, `FirstCommentService.php:47-49`, `Comments.php:224`, `YouTubePublisher.php:337`; reproducido (probe2: 2 POST) |
-| 2 | Minor | El resumen de horas de la Fase 2 (1.60) no cuadra con la suma de sus tareas (1.94, incluido T-16 estimado) | T-16 | pendiente | Lente A+D: `tasks.md:50` frente a `:581` |
-| 3 | Minor | La rama nueva de `resumeComments` deja `fallido` sin el aviso FirstCommentFailed (en la práctica no se alcanza) | T-11 | pendiente | Lente B (fuera de lente): `PublishRecovery.php:155-158` |
+| 1 | Important | El «primer intento» se decide por `first_comment_attempts`, y Reintentar lo pone a 0. Con una búsqueda inconclusa, si el comentario pudo enviarse antes (timeout del POST que Meta sí creó), Reintentar lo crea a ciegas y queda duplicado. El mensaje de error pide justo esa acción | T-09, T-11, T-13 | corregido (999fa0f) | Lente B: `PostFirstComment.php:101`, `FirstCommentService.php:47-49`, `Comments.php:224`, `YouTubePublisher.php:337`; reproducido (probe2: 2 POST) |
+| 2 | Minor | El resumen de horas de la Fase 2 (1.60) no cuadra con la suma de sus tareas (1.94, incluido T-16 estimado) | T-16 | corregido (aac5094) | Lente A+D: `tasks.md:50` frente a `:581` |
+| 3 | Minor | La rama nueva de `resumeComments` deja `fallido` sin el aviso FirstCommentFailed (en la práctica no se alcanza) | T-11 | corregido (d168242) | Lente B (fuera de lente): `PublishRecovery.php:155-158` |

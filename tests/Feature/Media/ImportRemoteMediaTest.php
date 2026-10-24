@@ -369,3 +369,16 @@ test('ImportRemoteMedia: pruneAbandoned borra el parcial de un asset pendiente a
     expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(1);
     Storage::disk('local')->assertMissing($asset->path);
 });
+
+test('ImportRemoteMedia (revision): un fallo de red no filtra la URL con su token a la excepcion ni al log', function () {
+    Http::fake(['cdn.example.com/*' => Http::failedConnection('cURL error 7: Failed to connect to https://cdn.example.com/a.jpg?token=SECRETO')]);
+    $source = new UrlSource(app(UrlGuard::class), 'https://cdn.example.com/a.jpg?token=SECRETO');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
+
+    try {
+        (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg?token=SECRETO'))->handle(app(RemoteMediaImporter::class));
+        $this->fail('Debia lanzar');
+    } catch (Throwable $e) {
+        expect($e->getMessage())->not->toContain('SECRETO')->and($e->getPrevious())->toBeNull();
+    }
+});

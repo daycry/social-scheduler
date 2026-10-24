@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 8 | 9 | 89% | 0 / 24,5h | 1.63 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 9 | 9 | 100% | 0 / 24,5h | 1.69 / 3,3h (estimado; sin medir) | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1126,7 +1126,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 5 — C-04a · Media desde URL
 
-**Estado**: en-progreso · **Estimado**: 24,5h base (29,4h con margen) · **Real**: — · **Coste est.**: 1.470 € + tokens (⚠️ verificar) · **Tokens est.**: 992k
+**Estado**: completado · **Estimado**: 24,5h base (29,4h con margen) · **Real**: — · **Coste est.**: 1.470 € + tokens (⚠️ verificar) · **Tokens est.**: 992k
 
 ### T-33 — `UrlGuard`: guardia SSRF con DNS, IPs, redirecciones y puertos
 
@@ -1381,29 +1381,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-41 — Revisión de seguridad SSRF de la importación
 
 - **Descripción**: Revisión específica: DNS rebinding, redirecciones, literales numéricos, IPv6 incrustado, límites de tamaño y token de Drive fuera de logs y de `media_assets`.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Revisión de seguridad de las importaciones por URL: se corrigieron una posible filtración del token de la URL en errores y la reconstrucción de la URL validada.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 0,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,07h · real —
+- **Tiempo IA (ejec.)**: est. 0,07h · real 0.06 (estimado)
 - **Supervisión**: est. 0,02h (≈25 % IA) · real —
 - **Previsión IA**: 18k in / 2k out tok · ⚠️ verificar €
 - **Dependencias**: T-33, T-36, T-38
 - **Tipo**: docs
-- **Archivos**: `tests/Unit/UrlGuardTest.php`, `tests/Feature/Media/ImportUrlEndpointTest.php`
+- **Archivos**: `tests/Unit/UrlGuardTest.php`, `tests/Feature/Media/ImportUrlEndpointTest.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`, `app/Services/Media/UrlGuard.php`, `app/Services/Media/RemoteMediaImporter.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Unit/UrlGuardTest.php tests/Feature/Media/ImportUrlEndpointTest.php` → verde
 
 **Criterios de aceptación**
-- [ ] Sin gaps Critical/Important abiertos.
-- [ ] Cada hallazgo tiene test.
-- [ ] Sección de revisión anotada en la tarea.
+- [x] Sin gaps Critical/Important abiertos.
+- [x] Cada hallazgo tiene test.
+- [x] Sección de revisión anotada en la tarea.
 
 **Subtareas**
-- [ ] Revisar cada vector
-- [ ] Anotar hallazgos
+- [x] Revisar cada vector
+- [x] Anotar hallazgos
 
 **Notas**: lectura: verificar que ninguna petición sale a una IP no validada, incluida cada redirección.
+
+**Evidencia**: RED: 4 pruebas nuevas fallaron contra el código previo · 2026-10-24. Revisión de vectores: (1) DNS rebinding: UrlGuard resuelve en cada validación y fija CURLOPT_RESOLVE por pasada y salto; probado con resolvedor que cambia y con espía de client(). (2) Redirecciones: cada Location se revalida antes de pedirse (assertSentCount); 5 saltos máx.; relativas, protocol-relative, esquemas y puertos. (3) Literales: decimal, octal, hex, abreviado, punto final, %-codificado, zonas IPv6. (4) IPv6 incrustado: ::ffff, 64:ff9b, 2002, ::/96, fc00::/7, fe80::/10, documentación. (5) Tamaño: Content-Length ausente, mentiroso a la baja y mayor que el máximo; MIME falseado (finfo) y no admitido. (6) Token de Drive: n/a en esta fase (T-42); la URL con query no sale en asset público, source_ref ni respuestas. HALLAZGOS corregidos: H1 (Important) el mensaje de excepción de Guzzle/cURL llevaba la URL completa con su query (posible token) hacia failed_jobs/log → RemoteMediaImporter relanza sin la original y con la URL enmascarada; H2 (Important) la petición usaba la cadena original: ahora se reconstruye desde lo validado (sin fragmento ni userinfo) y el host solo admite [a-z0-9-.] (rechaza %, _ y zonas IPv6). Sin gaps Critical/Important abiertos. Riesgo residual (no cubrible sin red): el corte por CURLOPT_PROGRESSFUNCTION y on_headers de cURL real, y que el job reanuda tras abortar; queda para el smoke del usuario. UrlGuardTest + tests/Feature/Media + Mcp + Ui + Infra: 508 passed (2257 assertions).
 
 ---
 

@@ -65,8 +65,9 @@ class RemoteMediaImporter
             return $this->fail($asset, $e->getMessage());
         } catch (\Throwable $e) {
             fclose($sink);
-            // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial.
-            throw $e;
+            // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial. Se relanza SIN la excepcion original: los mensajes
+            // de Guzzle/cURL llevan la URL completa (con su query, que puede ser un token) y acabarian en `failed_jobs` y en el log.
+            throw new \RuntimeException(preg_replace('#https?://\S+#i', '[url]', $e->getMessage()) ?: class_basename($e));
         }
 
         if ($pass->restart) {

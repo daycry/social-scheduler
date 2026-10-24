@@ -262,3 +262,64 @@ test('UrlGuard: una respuesta no redirigida se devuelve tal cual', function () {
 
     expect($r)->toBeInstanceOf(Response::class)->and($r->status())->toBe(404);
 });
+
+// ---- T-41: revision de seguridad SSRF ----
+
+test('UrlGuard (revision): la peticion se hace a la URL reconstruida con lo validado, sin fragmento ni userinfo oculto', function () {
+    $g = guard(['example.com' => [PUBLIC_IP]]);
+
+    expect($g->validate('HTTP://Example.COM/a/b.jpg?x=1#frag')->url)->toBe('http://example.com/a/b.jpg?x=1')
+        ->and($g->validate('https://example.com')->url)->toBe('https://example.com/')
+        ->and($g->validate('https://example.com:443/a')->url)->toBe('https://example.com:443/a');
+});
+
+test('UrlGuard (revision): un fragmento que imita un userinfo no cambia el host validado ni viaja en la peticion', function () {
+    $v = guard(['example.com' => [PUBLIC_IP]])->validate('http://example.com#@127.0.0.1/a.jpg');
+
+    expect($v->host)->toBe('example.com')->and($v->url)->toBe('http://example.com/')->and($v->ip)->toBe(PUBLIC_IP);
+});
+
+test('UrlGuard (revision): hosts con formas ambiguas se rechazan', function (string $url) {
+    expect(fn () => guard(['example.com' => [PUBLIC_IP]])->validate($url))->toThrow(UnsafeUrlException::class);
+    Http::assertNothingSent();
+})->with([
+    'host codificado en porcentaje' => 'http://%31%32%37.0.0.1/a.jpg',
+    'zona IPv6' => 'http://[fe80::1%25eth0]/a.jpg',
+    'guion bajo' => 'http://my_host.example.com/a.jpg',
+    'IPv4 con punto final' => 'http://127.0.0.1./a.jpg',
+    'IPv4 octal con cero inicial' => 'http://010.0.0.1/a.jpg',
+    'doble arroba' => 'http://a@b@example.com/a.jpg',
+    'tabulador' => "http://exam\tple.com/a.jpg",
+    'nulo' => "http://example.com/a\0.jpg",
+    'IPv6 abreviado de loopback' => 'http://[0:0:0:0:0:0:0:1]/a.jpg',
+    'IPv6 mapeado en decimal' => 'http://[::ffff:0:127.0.0.1]/a.jpg',
+    'cabecera inyectada' => "http://example.com/a.jpg\r\nHost: 127.0.0.1",
+]);
+
+test('UrlGuard (revision): una redireccion con salto de esquema o IP numerica no pasa', function (string $location) {
+    $g = guard(['a.example.com' => [PUBLIC_IP]]);
+    Http::fake(['a.example.com/*' => redirectTo($location)]);
+
+    expect(fn () => $g->follow('http://a.example.com/x', fn ($v, $o) => $g->client($v)->get($v->url)))->toThrow(UnsafeUrlException::class);
+    Http::assertSentCount(1);
+})->with([
+    'javascript' => 'javascript:alert(1)',
+    'gopher' => 'gopher://a.example.com/_x',
+    'IP hexadecimal' => 'http://0x7f000001/',
+    'IPv6 con zona' => 'http://[fe80::1%25eth0]/',
+]);
+
+test('UrlGuard (revision): ningun candidato de la tabla de IPs privadas llega a hacer una peticion', function () {
+    $internal = ['127.0.0.1', '127.255.255.254', '10.1.2.3', '172.16.5.5', '192.168.0.10', '169.254.169.254', '100.64.1.1', '0.0.0.0', '::1', '::', 'fe80::abcd', 'fd00::1', '::ffff:192.168.1.1'];
+    $dns = [];
+    foreach ($internal as $i => $ip) {
+        $dns["h{$i}.example.com"] = [$ip];
+    }
+    $g = guard($dns);
+
+    foreach ($internal as $i => $ip) {
+        expect(fn () => $g->follow("http://h{$i}.example.com/a.jpg", fn ($v, $o) => $g->client($v)->get($v->url)))->toThrow(UnsafeUrlException::class);
+    }
+
+    Http::assertNothingSent();
+});

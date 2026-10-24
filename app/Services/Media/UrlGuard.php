@@ -88,7 +88,12 @@ class UrlGuard
             }
         }
 
-        return new ValidatedUrl($url, $scheme, $host, $port, $ips[0], $ips);
+        // La peticion se hace a una URL RECONSTRUIDA con lo que se valido (no a la cadena original): el cliente HTTP y `parse_url`
+        // no pueden interpretar el host de otra manera y saltarse la IP fijada (CURLOPT_RESOLVE va por host:puerto).
+        $canonical = $scheme.'://'.(str_contains($host, ':') ? "[$host]" : $host).(isset($parts['port']) ? ':'.$parts['port'] : '')
+            .(($parts['path'] ?? '') !== '' ? $parts['path'] : '/').(isset($parts['query']) ? '?'.$parts['query'] : '');
+
+        return new ValidatedUrl($canonical, $scheme, $host, $port, $ips[0], $ips);
     }
 
     /**
@@ -243,6 +248,11 @@ class UrlGuard
         // Literal de IP: se juzga tal cual, sin DNS. Cualquier otra forma numerica (decimal, octal, hex, abreviada) se rechaza.
         if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
             return [$host];
+        }
+
+        // Un nombre de dominio solo lleva letras, digitos, guiones y puntos: `%`, `_`, zonas IPv6 (`%25eth0`) y similares se rechazan.
+        if (strlen($host) > 253 || ! preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/', $host)) {
+            throw new UnsafeUrlException('El dominio de la URL no es valido.');
         }
 
         if ($host === 'localhost' || str_ends_with($host, '.localhost') || self::looksNumeric($host)) {

@@ -149,3 +149,27 @@ test('ImportUrlEndpoint: app:media-prune borra los parciales abandonados y respe
     $disk->assertExists('media/1/foto.jpg');
     expect($live->fresh())->not->toBeNull();
 });
+
+// ---- T-41: revision de seguridad SSRF ----
+
+test('ImportUrlEndpoint (revision): hosts ambiguos y esquemas peligrosos se rechazan en el endpoint', function (string $url) {
+    importPost($url)->assertStatus(422);
+
+    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
+    Queue::assertNothingPushed();
+    Http::assertNothingSent();
+})->with([
+    'http://%31%32%37.0.0.1/a.jpg', 'http://[fe80::1%25eth0]/a.jpg', 'http://127.0.0.1./a.jpg', 'http://0x7f000001/a.jpg',
+    'http://[::ffff:7f00:1]/a.jpg', 'http://[64:ff9b::7f00:1]/a.jpg', 'http://[2002:7f00:1::]/a.jpg', 'javascript:alert(1)', 'data:text/html,x',
+    'gopher://cdn.example.com/', 'http://cdn.example.com:6379/',
+]);
+
+test('ImportUrlEndpoint (revision): ni el error ni el asset publico dejan la URL con su token', function () {
+    $response = importPost('https://cdn.example.com/a.jpg?token=SECRETO');
+
+    expect($response->getContent())->not->toContain('SECRETO');
+    $asset = MediaAsset::withoutUserScope()->latest('id')->first();
+    expect(json_encode($asset->toPublicArray()))->not->toContain('SECRETO')
+        ->and(json_encode($asset->toArray()))->not->toContain('SECRETO')
+        ->and(json_encode($asset->getAttributes()))->not->toContain('SECRETO');
+});

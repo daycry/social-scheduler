@@ -47,13 +47,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0,66 / 2,2h | 0 / 0,6h | 0 / 668k |
-| Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
+| Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 1.34 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **6** | **50** | **12%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **18** | **50** | **36%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -266,7 +266,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 2 — C-01b · Primer comentario (IG, FB y YT)
 
-**Estado**: borrador · **Estimado**: 35,5h base (42,6h con margen) · **Real**: — · **Coste est.**: 2.130 € + tokens (⚠️ verificar) · **Tokens est.**: 1,44M
+**Estado**: completado · **Estimado**: 35,5h base (42,6h con margen) · **Real**: — · **Coste est.**: 2.130 € + tokens (⚠️ verificar) · **Tokens est.**: 1,44M
 
 ### T-07 — Scope `youtube.force-ssl` y detección de reconexión
 
@@ -343,7 +343,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Contracts/FirstCommenter.php`, `app/Connectors/ConnectorRegistry.php`, `app/Connectors/Meta/Comments.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php`, `app/Connectors/Meta/Facebook/FacebookPublisher.php`, `tests/Feature/Connectors/FirstCommenterMetaTest.php`
+- **Archivos**: `app/Connectors/Contracts/FirstCommenter.php`, `app/Connectors/ConnectorRegistry.php`, `app/Connectors/Meta/Comments.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php`, `app/Connectors/Meta/Facebook/FacebookPublisher.php`, `app/Connectors/Exceptions/CommentNotAllowedException.php`, `tests/Feature/Connectors/FirstCommenterMetaTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/FirstCommenterMetaTest.php` → verde con `Http::fake` (comenta, encuentra el propio, mapea errores)
 
@@ -406,7 +406,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-08, T-09, T-10
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/PostFirstComment.php`, `app/Services/PublishOutcomes.php`, `app/Services/PublishRecovery.php`, `config/publishing.php`, `tests/Feature/FirstComment/PostFirstCommentJobTest.php`, `tests/Feature/FirstComment/FirstCommentRecoveryTest.php`
+- **Archivos**: `app/Jobs/PostFirstComment.php`, `tests/Support/FakeCommenter.php`, `app/Services/PublishOutcomes.php`, `app/Services/PublishRecovery.php`, `config/publishing.php`, `tests/Feature/FirstComment/PostFirstCommentJobTest.php`, `tests/Feature/FirstComment/FirstCommentRecoveryTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/FirstComment/PostFirstCommentJobTest.php` → verde (repetir el job no crea un segundo comentario; un fallo deja el destino `Published`)
@@ -475,7 +475,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Services/FirstCommentService.php`, `app/Http/Controllers/FirstCommentController.php`, `app/Notifications/FirstCommentFailed.php`, `routes/web.php`, `tests/Feature/FirstComment/FirstCommentRetryTest.php`
+- **Archivos**: `app/Services/FirstCommentService.php`, `app/Http/Controllers/FirstCommentController.php`, `app/Notifications/FirstCommentFailed.php`, `resources/js/Pages/Notifications/Index.vue`, `routes/web.php`, `tests/Feature/FirstComment/FirstCommentRetryTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/FirstComment/FirstCommentRetryTest.php` → verde (edita solo en `fallido`, reintenta con el texto vigente, 403 ajeno, aviso creado)
 

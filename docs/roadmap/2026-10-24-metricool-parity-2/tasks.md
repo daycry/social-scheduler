@@ -565,11 +565,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-16 — Pest de integración del primer comentario con `Http::fake`
 
 - **Descripción**: Casos CA-04..CA-07 de extremo a extremo con redes simuladas: «creado pero no listado», doble despacho, error de red, reconexión y reintento.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Cobertura de extremo a extremo del primer comentario en Instagram, Facebook y YouTube con redes simuladas.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real Noneh (medido)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-13, T-15
@@ -579,15 +580,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/FirstComment` → todos en verde
 
 **Criterios de aceptación**
-- [ ] Nunca se llama a una red real.
-- [ ] El caso «la lista de Meta aún no muestra el comentario» no duplica.
-- [ ] Cubre IG, FB y YT.
+- [x] Nunca se llama a una red real.
+- [x] El caso «la lista de Meta aún no muestra el comentario» no duplica.
+- [x] Cubre IG, FB y YT.
 
 **Subtareas**
-- [ ] Escenarios de flujo
-- [ ] Casos de borde de idempotencia
+- [x] Escenarios de flujo
+- [x] Casos de borde de idempotencia
 
 **Notas**: Patrón: `tests/Feature/Publishing/TargetTextIdempotencyFacebookTest.php`.
+
+**Evidencia**: tests/Feature/FirstComment: todos en verde (FirstCommentFlowTest 9 casos IG/FB/YT con FakeGraph/FakeHttp, sin red real); fichero inexistente antes (oraculo: ausente).
+
 
 ### T-17 — E2E y documentación del primer comentario
 

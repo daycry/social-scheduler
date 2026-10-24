@@ -46,14 +46,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 0 | 6 | 0% | 0 / 16,5h | 0 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 1 — C-01a · Textos guardados | 1 | 6 | 17% | 0 / 16,5h | 0,16 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **0** | **50** | **0%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **1** | **50** | **2%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -71,16 +71,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 1 — C-01a · Textos guardados
 
-**Estado**: borrador · **Estimado**: 16,5h base (19,8h con margen) · **Real**: — · **Coste est.**: 990 € + tokens (⚠️ verificar) · **Tokens est.**: 668k
+**Estado**: en-progreso · **Estimado**: 16,5h base (19,8h con margen) · **Real**: — · **Coste est.**: 990 € + tokens (⚠️ verificar) · **Tokens est.**: 668k
 
 ### T-01 — Migración, modelo y factoría de `SavedText`
 
 - **Descripción**: Crear la tabla `saved_texts` (`user_id`, `brand_id` nulo, `kind` `fragmento`/`hashtags`, `title`, `body`) y el modelo con `UserScope`. Requisito: D1 (por usuario con marca opcional; nula = «Todas las marcas»), CA-01 y CA-03.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nueva tabla de textos guardados por usuario, con marca opcional («Todas las marcas»).
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0.16h (medido)
 - **Supervisión**: est. 0,05h (≈25 % IA) · real —
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
@@ -90,15 +91,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/SavedTexts/SavedTextModelTest.php` → todos en verde (aislamiento por usuario y `brand_id` nulo)
 
 **Criterios de aceptación**
-- [ ] La migración es aditiva y reversible (`down()` borra solo `saved_texts`).
-- [ ] El modelo usa `UserScope`: otro usuario no ve filas ajenas.
-- [ ] `brand_id` nulo es válido; al borrar la marca se borran sus textos (`cascadeOnDelete`).
+- [x] La migración es aditiva y reversible (`down()` borra solo `saved_texts`).
+- [x] El modelo usa `UserScope`: otro usuario no ve filas ajenas.
+- [x] `brand_id` nulo es válido; al borrar la marca se borran sus textos (`cascadeOnDelete`).
 
 **Subtareas**
-- [ ] Escribir el test RED de aislamiento
-- [ ] Migración, modelo y factoría
+- [x] Escribir el test RED de aislamiento
+- [x] Migración, modelo y factoría
 
 **Notas**: Patrón: `app/Models/ComposerPreset.php` y el trait `app/Models/Concerns/BelongsToUser.php` (`UserScope`). Migraciones solo aditivas.
+
+**Evidencia**: SavedTextModelTest: 3 passed (4 assertions); RED previo: Class App\Models\SavedText not found.
 
 ### T-02 — `SavedTextService`, request, controlador, política y rutas CRUD
 

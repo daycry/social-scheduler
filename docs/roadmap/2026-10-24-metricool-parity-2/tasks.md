@@ -46,14 +46,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 3 | 6 | 50% | 0 / 16,5h | 0,32 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 1 — C-01a · Textos guardados | 4 | 6 | 67% | 0 / 16,5h | 0,48 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **3** | **50** | **6%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **4** | **50** | **8%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -170,11 +170,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-04 — Menú «Textos guardados» en el compositor e inserción en el cursor
 
 - **Descripción**: Menú en `EditorToolbar` con los textos de la marca más los de «Todas las marcas»; inserción en el cursor del campo activo (plantilla, texto propio del destino o primer comentario) con «campo activo» en `useComposer.js`. Requisito: CA-01, CA-02.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El compositor tiene un menú «Textos guardados» que inserta tus fragmentos y hashtags en el cursor.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,47h · real —
+- **Tiempo IA (ejec.)**: est. 0,47h · real 0.16h (medido)
 - **Supervisión**: est. 0,12h (≈25 % IA) · real —
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
@@ -186,16 +187,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] El compositor de la marca A recibe los textos de «Todas las marcas» y los de A, y no los de B (CA-01).
-- [ ] Insertar en mitad del texto deja el contenido en el cursor y actualiza el contador de hashtags de Instagram (CA-02).
-- [ ] El «campo activo» se registra en `useComposer.js`, no por componente.
+- [x] El compositor de la marca A recibe los textos de «Todas las marcas» y los de A, y no los de B (CA-01).
+- [x] Insertar en mitad del texto deja el contenido en el cursor y actualiza el contador de hashtags de Instagram (CA-02).
+- [x] El «campo activo» se registra en `useComposer.js`, no por componente.
 
 **Subtareas**
-- [ ] Test RED de las props por marca
-- [ ] `SavedTextsMenu.vue` y campo activo
-- [ ] Inserción en el cursor
+- [x] Test RED de las props por marca
+- [x] `SavedTextsMenu.vue` y campo activo
+- [x] Inserción en el cursor
 
 **Notas**: Patrón: `resources/js/Composables/useComposer.js` y `textCount.js`; menú hermano `resources/js/Components/Composer/EmojiPicker.vue`. El campo del primer comentario (T-14) reutiliza el campo activo.
+
+**Evidencia**: SavedTextsComposerPropsTest verde (tests/Feature/SavedTexts + Posts: 102 passed); RED previo: savedTexts ausente; npm run build exit 0. Inserción en cursor y contador: se cubren en E2E-02 (T-05).
 
 ### T-05 — E2E de textos guardados con axe y sin desbordamiento
 

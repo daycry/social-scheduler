@@ -1,4 +1,4 @@
-import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
@@ -279,6 +279,18 @@ export function useComposer(props) {
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 
+    // Textos guardados (C-01a) y «campo activo»: el último textarea del compositor que tuvo el foco (texto común, texto propio de una
+    // red o, más adelante, el primer comentario). Cada campo se registra aquí, no en cada componente; `insertIntoActive` inserta en SU cursor.
+    const savedTexts = computed(() => props.savedTexts ?? []);
+    const activeField = shallowRef(null); // { insertAtCursor(text) }
+    const registerField = (field) => { activeField.value = field; };
+    const unregisterField = (field) => { if (activeField.value === field) activeField.value = null; };
+    const insertIntoActive = (text) => {
+        if (!activeField.value) return false;
+        activeField.value.insertAtCursor(text);
+        return true;
+    };
+
     const api = {
         post, brand, accounts, contentTypes, limits, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
@@ -288,6 +300,7 @@ export function useComposer(props) {
         libraryName, savingToLibrary, libraryErrors, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,
+        savedTexts, activeField, registerField, unregisterField, insertIntoActive,
         isUnlinked, hasOwnText, unlinkedCount, byNetwork, activeTab, currentTab, unlink, relink, openTargetText,
     };
     provide(KEY, api);

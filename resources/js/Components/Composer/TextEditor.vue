@@ -1,5 +1,6 @@
 <script setup>
-import { nextTick, ref } from 'vue';
+import { nextTick, onBeforeUnmount, ref } from 'vue';
+import { useComposerContext } from '@/Composables/useComposer';
 
 /**
  * Área de texto grande del compositor. Expone `insertAtCursor(texto)`: sustituye la selección actual (o inserta en el
@@ -29,6 +30,12 @@ const insertAtCursor = async (text) => {
     el.setSelectionRange(start + text.length, start + text.length);
 };
 
+// «Campo activo» del compositor: al recibir el foco, este editor pasa a ser el destino de los textos guardados.
+const composer = useComposerContext();
+const self = { insertAtCursor };
+const onFocus = () => composer?.registerField(self);
+onBeforeUnmount(() => composer?.unregisterField(self));
+
 defineExpose({ insertAtCursor, focus: () => area.value?.focus() });
 </script>
 
@@ -41,6 +48,7 @@ defineExpose({ insertAtCursor, focus: () => area.value?.focus() });
         :disabled="disabled"
         rows="9"
         class="field mt-1 min-h-[12rem] resize-y text-base"
+        @focus="onFocus"
         @input="emit('update:modelValue', $event.target.value)"
     ></textarea>
 </template>

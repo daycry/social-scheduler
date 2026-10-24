@@ -23,6 +23,7 @@ const props = defineProps({
     typeLabels: { type: Object, default: () => ({}) },
     limits: Object,
     presets: Object,
+    savedTexts: { type: Array, default: () => [] },
     post: Object,
     flash: Object,
 });

@@ -13,6 +13,7 @@ use App\Models\SocialAccount;
 use App\Services\ComposerPresetService;
 use App\Services\MediaValidator;
 use App\Services\PostService;
+use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ class PostController extends Controller
         private readonly SocialAccountService $accounts,
         private readonly MediaValidator $validator,
         private readonly ComposerPresetService $presets,
+        private readonly SavedTextService $savedTexts,
     ) {}
 
     public function create(Request $request, Brand $brand): Response
@@ -189,6 +191,7 @@ class PostController extends Controller
                 return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
             }),
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
+            'savedTexts' => $this->savedTexts->forBrand($user, $brand->id), // textos guardados de la marca + «Todas las marcas» (C-01a)
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
         ]);

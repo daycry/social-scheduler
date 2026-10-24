@@ -47,7 +47,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0.71 / 2,2h | 0 / 0,6h | 0 / 668k |
-| Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 1.60 / 4,8h | 0 / 1,2h | 0 / 1,44M |
+| Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |

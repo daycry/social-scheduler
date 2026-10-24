@@ -155,9 +155,9 @@ test('McpTools: regresion de las fases 1-5, un ciclo completo con texto por dest
     Queue::fake();
     $fb = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook, 'name' => 'FB A']);
 
-    // La lista de herramientas sigue completa (19) y cabe en una pagina de tools/list.
+    // La lista de herramientas sigue completa (20) y cabe en una pagina de tools/list.
     $names = collect($this->rpc($this->key, 'tools/list')->assertOk()->json('result.tools'))->pluck('name');
-    expect($names)->toHaveCount(19)->and($names)->toContain('publish_post_now', 'update_post_notes', 'create_post', 'update_post', 'get_post');
+    expect($names)->toHaveCount(20)->and($names)->toContain('publish_post_now', 'update_post_notes', 'create_post', 'update_post', 'get_post');
 
     // Alta con texto comun, texto propio en una red y notas internas.
     [$err, $post] = $this->callTool($this->key, 'create_post', [

@@ -103,13 +103,15 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 `*` también vale. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
 
-## Herramientas (19)
+## Herramientas (20)
 
-`list_brands`, `list_accounts`, `list_media`, `get_calendar`, `get_post`, `create_post`, `update_post`, `update_post_notes`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
+`list_brands`, `list_accounts`, `list_media`, `list_campaigns`, `get_calendar`, `get_post`, `create_post`, `update_post`, `update_post_notes`, `reschedule_post`, `publish_post_now`, `cancel_post`, `delete_post`, `get_stats`, `get_post_stats`, `get_best_times`, `generate_report`, `get_report`, `list_comments`, `reply_comment`.
 
 `publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
 
-Notas internas: `get_post`, `create_post` y `update_post` devuelven `notes` (texto plano, o `null`). `create_post` y `update_post` aceptan `notes` (hasta 5.000 caracteres; omitido = no se toca, vacío = se borra). `update_post_notes` (`post_id`, `notes`, ability `posts:write`) edita solo las notas y funciona aunque la publicación ya esté publicada o en vuelo, porque las notas nunca se publican: no toca los destinos ni reinicia ningún intento. Una publicación de otro usuario responde como inexistente y la auditoría registra la herramienta y la publicación, nunca el contenido de las notas. Con 19 herramientas se mantiene el límite de 25 por página de `tools/list`.
+Notas internas: `get_post`, `create_post` y `update_post` devuelven `notes` (texto plano, o `null`). `create_post` y `update_post` aceptan `notes` (hasta 5.000 caracteres; omitido = no se toca, vacío = se borra). `update_post_notes` (`post_id`, `notes`, ability `posts:write`) edita solo las notas y funciona aunque la publicación ya esté publicada o en vuelo, porque las notas nunca se publican: no toca los destinos ni reinicia ningún intento. Una publicación de otro usuario responde como inexistente y la auditoría registra la herramienta y la publicación, nunca el contenido de las notas. Con 20 herramientas se mantiene el límite de 25 por página de `tools/list`.
+
+Campañas (C-03): `create_post` y `update_post` aceptan `campaign_id` (omitido = no se toca, `null` = se quita) y `get_post` devuelve `campaign_id` y `campaign` (nombre). La campaña debe ser de la misma marca y del usuario; si no, el error es `campaign_id` como en la web. `list_campaigns` (`brand_id`, ability `brands:read`) lista las campañas de la marca, las activas primero.
 
 Texto por destino: cada elemento de `targets` de `create_post` y `update_post` acepta `text`. Omitido o `null` = el destino está vinculado a la plantilla (el `text` de la publicación); una cadena con contenido es su texto propio, que solo se publica en esa red. Un texto vacío o solo con espacios cuenta como omitido (vinculado), igual que en la web. `get_post`, `create_post` y `update_post` devuelven, por destino, `text` (`null` = vinculado) y `effective_text` (lo que se publica). Se validan con las mismas reglas que la web (`PostRequest` y los límites de caracteres y hashtags de cada red sobre el texto efectivo). `update_post` sustituye los destinos: un destino sin `text` vuelve a estar vinculado.
 
@@ -127,8 +129,8 @@ Paridad web y MCP (compositor nuevo):
 | Generador de enlaces con UTM | diálogo del compositor (solo en el navegador, no guarda nada en el servidor) | sin herramienta: el agente escribe la URL ya con sus parámetros en el texto |
 | Biblioteca (guardar como plantilla y «Usar») | calendario, lista y `/library` | sin herramienta |
 
-Regresión: `tests/Feature/Mcp/Tools/` cubre cada herramienta de posts frente a las fases 1-5 (`McpToolsTest`, `McpTargetTextTest`, `McpOptionsTest`, `McpNotesTest`, `PublishPostNowToolTest`), incluido un ciclo completo `create_post` → `update_post_notes` → `publish_post_now` → `get_post` y que `tools/list` sigue ofreciendo las 19 herramientas.
+Regresión: `tests/Feature/Mcp/Tools/` cubre cada herramienta de posts frente a las fases 1-5 (`McpToolsTest`, `McpTargetTextTest`, `McpOptionsTest`, `McpNotesTest`, `PublishPostNowToolTest`), incluido un ciclo completo `create_post` → `update_post_notes` → `publish_post_now` → `get_post` y que `tools/list` sigue ofreciendo las 20 herramientas.
 
-Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `create_post`. `get_report` devuelve una URL firmada de 5 min.
+Flujo recomendado (de las instrucciones del servidor): `list_brands` → `list_accounts` (cuentas y tipos válidos) → `list_media` → `list_campaigns` (opcional) → `create_post`. `get_report` devuelve una URL firmada de 5 min.
 
 Aislamiento: cada herramienta ejecuta sobre los servicios con el usuario del token (key u OAuth); un recurso ajeno responde "no encontrado" (`NotOwned`). Pruebas en `tests/Feature/Mcp/` (incluido `tests/Feature/Mcp/OAuth/`), `tests/Feature/Isolation/` y la batería E2E `tests/e2e/oauth.spec.ts`.

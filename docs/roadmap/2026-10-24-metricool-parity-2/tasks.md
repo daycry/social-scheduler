@@ -965,32 +965,35 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-28 — Paridad MCP de campañas: `campaign_id` y `list_campaigns`
 
 - **Descripción**: `campaign_id` en `create_post`, `update_post` y `get_post`, y herramienta `list_campaigns` registrada en el servidor. Requisito: CA-13. Tarea transversal de paridad MCP.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El MCP admite campaign_id al crear y editar publicaciones, get_post devuelve la campaña y hay una herramienta nueva list_campaigns (20 herramientas, caben en la primera página).
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0.12h (medido)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-15
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Tools/GetPost.php`, `app/Mcp/Tools/ListCampaigns.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpCampaignsTest.php`
+- **Archivos**: `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Tools/GetPost.php`, `app/Mcp/Tools/ListCampaigns.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/SchedulerTool.php` (presentPost), `docs/modulos/mcp.md` (recuento 19 a 20), `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php` (recuento), `tests/Feature/Mcp/Tools/McpCampaignsTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Mcp/Tools/McpCampaignsTest.php` → verde (paridad de validación y `list_campaigns`)
   - `php artisan test --compact tests/Feature/Mcp/Tools/McpFirstCommentTest.php` → verde (sin regresión)
 
 **Criterios de aceptación**
-- [ ] `campaign_id` valida igual que en la web.
-- [ ] `list_campaigns` devuelve solo las campañas de la marca.
-- [ ] `get_post` expone la campaña.
+- [x] `campaign_id` valida igual que en la web.
+- [x] `list_campaigns` devuelve solo las campañas de la marca.
+- [x] `get_post` expone la campaña.
 
 **Subtareas**
-- [ ] Caracterización del payload actual
-- [ ] Test RED
-- [ ] Herramienta y registro
+- [x] Caracterización del payload actual
+- [x] Test RED
+- [x] Herramienta y registro
 
 **Notas**: `app/Mcp/Servers/SchedulerServer.php:42` (`$tools`). Patrón de herramienta: `app/Mcp/Tools/ListBrands.php`.
+
+**Evidencia**: Caracterización previa: Mcp 218 passed. McpCampaignsTest: 5 passed (RED previo: 3 fallos); Mcp+Campaigns: 239 passed (1383 assertions); McpFirstCommentTest en verde; tools/list = 20 (< 25 por página); mcp.md actualizado.
 
 ### T-29 — `CampaignAnalytics`: extraer la consulta del último snapshot y agregar
 

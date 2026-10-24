@@ -107,7 +107,7 @@ abstract class SchedulerTool extends Tool
     /** @return array<string, mixed> */
     protected function presentPost(Post $post): array
     {
-        $post->loadMissing(['brand', 'targets', 'media']);
+        $post->loadMissing(['brand', 'campaign', 'targets', 'media']);
         $tz = $post->brand?->timezone ?: 'UTC';
         $targets = $post->targets;
 
@@ -116,6 +116,8 @@ abstract class SchedulerTool extends Tool
             'brand_id' => $post->brand_id,
             'text' => $post->text,
             'notes' => $post->notes, // internas: nunca se publican
+            'campaign_id' => $post->campaign_id,
+            'campaign' => $post->campaign?->name,
             'status' => $post->status->value,
             'scheduled_at_utc' => $post->scheduled_at?->copy()->utc()->toIso8601String(),
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),

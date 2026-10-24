@@ -8,9 +8,11 @@ use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\CampaignService;
 use App\Services\ComposerPresetService;
 use App\Services\MediaValidator;
 use App\Services\PostService;
@@ -38,6 +40,7 @@ class PostController extends Controller
         private readonly MediaValidator $validator,
         private readonly ComposerPresetService $presets,
         private readonly SavedTextService $savedTexts,
+        private readonly CampaignService $campaigns,
     ) {}
 
     public function create(Request $request, Brand $brand): Response
@@ -198,6 +201,10 @@ class PostController extends Controller
                 ->mapWithKeys(fn (ContentType $t) => [$t->value => config("media_specs.types.{$t->value}.first_comment.max")])->filter(),
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
             'savedTexts' => $this->savedTexts->forBrand($user, $brand->id), // textos guardados de la marca + «Todas las marcas» (C-01a)
+            // Campañas de la marca para el selector (C-03): las activas y, al editar, la del post aunque esté archivada.
+            'campaigns' => $this->campaigns->listForBrand($user, $brand->id)
+                ->filter(fn (Campaign $c) => ! $c->isArchived() || ($post && $c->id === $post->campaign_id))
+                ->map(fn (Campaign $c) => ['id' => $c->id, 'name' => $c->name, 'color' => $c->color, 'archived' => $c->isArchived()])->values(),
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
         ]);
@@ -213,6 +220,7 @@ class PostController extends Controller
             'id' => $post->id,
             'text' => $post->text,
             'notes' => $post->notes,
+            'campaign_id' => $post->campaign_id,
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.

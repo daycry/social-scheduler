@@ -83,6 +83,7 @@ class LibraryController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'text' => ['nullable', 'string', 'max:70000'],
+            'campaign_id' => ['nullable', 'integer'], // C-03: la plantilla conserva la campaña; la marca la valida LibraryService::store()
             'media' => ['nullable', 'array', 'max:35'],
             'media.*' => ['integer'],
             'targets' => ['nullable', 'array', 'max:40'],

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTemplate;
@@ -32,7 +33,7 @@ class LibraryService
         $targets = $post->targets()->whereNotNull('social_account_id')->get()
             ->map(fn ($t) => ['account_id' => $t->social_account_id, 'content_type' => $t->content_type->value] + $this->ownText($t->text))->values()->all();
 
-        return $this->store($user, Brand::withoutUserScope()->findOrFail($post->brand_id), $name, $post->text, $post->media()->pluck('media_assets.id')->all(), $targets);
+        return $this->store($user, Brand::withoutUserScope()->findOrFail($post->brand_id), $name, $post->text, $post->media()->pluck('media_assets.id')->all(), $targets, $post->campaign_id);
     }
 
     /**
@@ -58,14 +59,14 @@ class LibraryService
             }
         }
 
-        return $this->store($user, $brand, $name, isset($data['text']) ? (string) $data['text'] : null, array_map('intval', (array) ($data['media'] ?? [])), $targets);
+        return $this->store($user, $brand, $name, isset($data['text']) ? (string) $data['text'] : null, array_map('intval', (array) ($data['media'] ?? [])), $targets, isset($data['campaign_id']) ? (int) $data['campaign_id'] : null);
     }
 
     /**
      * @param  list<int>  $mediaIds
      * @param  list<array{account_id: int, content_type: string, text?: string}>  $targets  `text` solo si el destino tiene texto propio
      */
-    public function store(User $user, Brand $brand, string $name, ?string $text, array $mediaIds = [], array $targets = []): PostTemplate
+    public function store(User $user, Brand $brand, string $name, ?string $text, array $mediaIds = [], array $targets = [], ?int $campaignId = null): PostTemplate
     {
         if ($brand->user_id !== $user->id) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
@@ -75,12 +76,16 @@ class LibraryService
         if ($name === '' || mb_strlen($name) > 120) {
             throw new PostValidationException(['name' => ['El nombre es obligatorio (maximo 120 caracteres).']]);
         }
+        if ($campaignId !== null && ! Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereKey($campaignId)->exists()) {
+            throw new PostValidationException(['campaign_id' => ['La campaña no existe en esta marca.']]);
+        }
         if (PostTemplate::withoutUserScope()->where('user_id', $user->id)->count() >= self::MAX_PER_USER) {
             throw new PostValidationException(['name' => ['Has alcanzado el maximo de plantillas.']]);
         }
 
-        return DB::transaction(function () use ($user, $brand, $name, $text, $mediaIds, $targets) {
+        return DB::transaction(function () use ($user, $brand, $name, $text, $mediaIds, $targets, $campaignId) {
             $template = new PostTemplate(['name' => $name, 'text' => $text, 'targets' => $targets ?: null]);
+            $template->campaign_id = $campaignId;
             $template->user_id = $user->id;
             $template->brand_id = $brand->id;
             $template->save();
@@ -128,6 +133,10 @@ class LibraryService
         }
 
         $data = ['text' => $template->text, 'schedule' => false, 'media' => $mediaIds];
+        // La campaña viaja con la plantilla (C-03); si ya no existe en la marca, el borrador nace sin ella (la FK la anula al borrarla).
+        if ($template->campaign_id !== null) {
+            $data['campaign_id'] = $template->campaign_id;
+        }
 
         try {
             return $this->posts->create($user, $brand, $data + ['targets' => $targets]);

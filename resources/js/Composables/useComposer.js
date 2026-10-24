@@ -21,6 +21,8 @@ export function useComposer(props) {
         text: (props.post?.text ?? '').replace(/\r\n?/g, '\n'), // LF: el valor de un textarea siempre usa LF y los offsets del cursor deben coincidir
         // Notas internas (C-09): texto plano que nunca se publica. En un post no editable se guardan con su propio endpoint.
         notes: (props.post?.notes ?? '').replace(/\r\n?/g, '\n'),
+        // Campaña del post entero (C-03); `null` = sin campaña. Solo se ofrecen las de la marca.
+        campaign_id: props.post?.campaign_id ?? null,
         scheduled_at: props.post?.scheduled_at ?? '',
         schedule: true,
         media: (props.post?.media ?? []).map((m) => m.id),
@@ -215,6 +217,7 @@ export function useComposer(props) {
         router.post(route('brands.library.store', props.brand.id), {
             name: clean,
             text: form.text,
+            campaign_id: form.campaign_id,
             media: form.media,
             targets: form.targets.map((t) => ({ account_id: t.account_id, content_type: t.content_type, text: t.text })),
         }, {
@@ -296,7 +299,31 @@ export function useComposer(props) {
         return true;
     };
 
+    // Campañas (C-03): selector del encabezado con alta en línea. El alta recarga solo la lista y deja elegida la nueva.
+    const campaigns = computed(() => props.campaigns ?? []);
+    const creatingCampaign = ref(false);
+    const campaignError = ref('');
+    const createCampaign = (name, { onCreated } = {}) => {
+        const clean = (name ?? '').trim();
+        if (!clean || creatingCampaign.value) return;
+        const known = new Set(campaigns.value.map((c) => c.id));
+        router.post(route('campaigns.store'), { brand_id: props.brand.id, name: clean, color: '#4f46e5' }, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['campaigns', 'flash'],
+            onStart: () => { creatingCampaign.value = true; campaignError.value = ''; },
+            onSuccess: () => {
+                const created = campaigns.value.find((c) => !known.has(c.id));
+                if (created) form.campaign_id = created.id;
+                onCreated?.();
+            },
+            onError: (errors) => (campaignError.value = errors.name ?? errors.brand_id ?? 'No se pudo crear la campaña.'),
+            onFinish: () => (creatingCampaign.value = false),
+        });
+    };
+
     const api = {
+        campaigns, creatingCampaign, campaignError, createCampaign,
         post, brand, accounts, contentTypes, limits, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,

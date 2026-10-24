@@ -932,32 +932,35 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-27 — Selector de campaña en el compositor, `PostRequest` y `PostService::fill()`
 
 - **Descripción**: Selector en `ComposerHeader` con alta en línea; `campaign_id` en `PostRequest` y `fill()`; las copias desde biblioteca y plantillas conservan la campaña. Requisito: CA-12.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El compositor permite elegir la campaña de la publicación (o crearla al momento); solo se admiten campañas de la marca y las copias desde la biblioteca la conservan.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 4,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,61h · real —
+- **Tiempo IA (ejec.)**: est. 0,61h · real 0.33h (medido)
 - **Supervisión**: est. 0,15h (≈25 % IA) · real —
 - **Previsión IA**: 164k in / 18k out tok · ⚠️ verificar €
 - **Dependencias**: T-25, T-12
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/ComposerHeader.vue`, `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `app/Services/LibraryService.php`, `tests/Feature/Campaigns/CampaignAssignTest.php`
+- **Archivos**: `resources/js/Components/Composer/ComposerHeader.vue`, `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Http/Controllers/PostController.php`, `app/Http/Controllers/LibraryController.php`, `app/Models/PostTemplate.php`, `database/migrations/*_add_campaign_id_to_post_templates.php` (la plantilla conserva la campaña), `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `tests/Feature/Campaigns/CampaignAssignTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Campaigns/CampaignAssignTest.php` → verde (rechaza campaña de otra marca; las copias conservan la campaña)
   - `php artisan test --compact tests/Feature/Library` → verde (biblioteca sin regresión)
 
 **Criterios de aceptación**
-- [ ] Asignar una campaña de la marca A a un post de la marca B se rechaza (CA-12).
-- [ ] Duplicar o guardar desde biblioteca conserva la campaña.
-- [ ] Alta en línea desde el compositor.
+- [x] Asignar una campaña de la marca A a un post de la marca B se rechaza (CA-12).
+- [x] Duplicar o guardar desde biblioteca conserva la campaña.
+- [x] Alta en línea desde el compositor.
 
 **Subtareas**
-- [ ] Caracterización de `tests/Feature/Library` y `PostsTest`
-- [ ] Test RED
-- [ ] Selector y servicio
+- [x] Caracterización de `tests/Feature/Library` y `PostsTest`
+- [x] Test RED
+- [x] Selector y servicio
 
 **Notas**: Comparte `PostRequest`, `PostService` y `PostPayload` con C-01b: va después (T-12, T-15), en serie. `app/Services/LibraryService.php:68` (`store` copia destinos).
+
+**Evidencia**: Caracterización previa en verde: Library+Posts 107 passed. CampaignAssignTest: 8 passed (RED previo: 7 fallos); Campaigns+Library+Posts+Ui+SavedTexts+FirstComment+Mcp: 447 passed (2598 assertions); npm run build ok; migrate aplicado.
 
 ### T-28 — Paridad MCP de campañas: `campaign_id` y `list_campaigns`
 

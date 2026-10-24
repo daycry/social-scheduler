@@ -25,6 +25,7 @@ const props = defineProps({
     firstCommentMax: { type: Object, default: () => ({}) },
     presets: Object,
     savedTexts: { type: Array, default: () => [] },
+    campaigns: { type: Array, default: () => [] },
     post: Object,
     flash: Object,
 });

@@ -14,6 +14,7 @@ use App\Http\Requests\PostRequest;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
@@ -97,6 +98,9 @@ class PostService
             }
             $post->user_id = $user->id;
             $post->brand_id = $brand->id;
+            if ($plan['campaign_id'] !== false) {
+                $post->campaign_id = $plan['campaign_id'];
+            }
             $post->save();
 
             $this->fill($post, $plan);
@@ -132,6 +136,9 @@ class PostService
             $post->forceFill(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']]);
             if ($plan['notes'] !== false) {
                 $post->notes = $plan['notes']; // fuera de `$before`/`fill()`: una nota nunca cuenta como «contenido cambiado»
+            }
+            if ($plan['campaign_id'] !== false) {
+                $post->campaign_id = $plan['campaign_id']; // por post entero (D3): no cuenta como «contenido cambiado»
             }
             $post->save();
             $this->fill($post, $plan, $existing, $before);
@@ -562,11 +569,21 @@ class PostService
             $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment];
         }
 
+        // Campaña (C-03, CA-12): null = quitarla; solo de esta marca y de este usuario. Omitida = no se toca (`false`).
+        $campaignId = false;
+        if (array_key_exists('campaign_id', $data)) {
+            $campaignId = ($data['campaign_id'] === null || $data['campaign_id'] === '') ? null : (int) $data['campaign_id'];
+            if ($campaignId !== null && ! Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereKey($campaignId)->exists()) {
+                $errors['campaign_id'][] = 'La campaña no existe en esta marca.';
+            }
+        }
+
         if ($errors !== []) {
             throw new PostValidationException($errors);
         }
 
         return [
+            'campaign_id' => $campaignId,
             'text' => $text,
             // Notas internas: null = la entrada no las trae (no se tocan); '' o solo espacios = borrarlas. Nunca viajan a los publishers.
             'notes' => array_key_exists('notes', $data) ? self::normalizeNotes($data['notes']) : false,

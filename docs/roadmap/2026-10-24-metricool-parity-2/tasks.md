@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 3 | 9 | 33% | 0 / 24,5h | 1.00 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 4 | 9 | 44% | 0 / 24,5h | 1.20 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1225,32 +1225,35 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-36 — Endpoint de importación por URL con `throttle`, límite por usuario y limpieza de `.part`
 
 - **Descripción**: `MediaController::importUrl` con `throttle` y máximo de 3 importaciones vivas por usuario, estado sondeable y limpieza de `.part` huérfanos en `app:media-prune`. Requisito: CA-14, CA-15.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Se puede importar media pegando una URL: se rechazan las direcciones internas, hay un máximo de 3 importaciones a la vez y la limpieza horaria borra las descargas abandonadas.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0.20 (estimado)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-35
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/MediaController.php`, `routes/web.php`, `app/Console/Commands/PruneMedia.php`, `tests/Feature/Media/ImportUrlEndpointTest.php`
+- **Archivos**: `app/Http/Controllers/MediaController.php`, `routes/web.php`, `app/Console/Commands/PruneMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportUrlEndpointTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Media/ImportUrlEndpointTest.php` → verde (alta, límite de 3, URL interna rechazada)
   - `php artisan test --compact tests/Feature/Media/MediaUploadTest.php` → verde (sin regresión)
 
 **Criterios de aceptación**
-- [ ] Una URL interna se rechaza con 422 y mensaje en español.
-- [ ] La cuarta importación viva se rechaza.
-- [ ] `app:media-prune` borra los `.part` abandonados.
+- [x] Una URL interna se rechaza con 422 y mensaje en español.
+- [x] La cuarta importación viva se rechaza.
+- [x] `app:media-prune` borra los `.part` abandonados.
 
 **Subtareas**
-- [ ] Caracterización de `MediaUploadTest`
-- [ ] Test RED
-- [ ] Endpoint y poda
+- [x] Caracterización de `MediaUploadTest`
+- [x] Test RED
+- [x] Endpoint y poda
 
 **Notas**: Rutas de media en `routes/web.php:94-98`. `app/Console/Commands/PruneMedia.php`.
+
+**Evidencia**: Caracterización: MediaUploadTest 11 passed antes de tocar. RED: ImportUrlEndpointTest 22 errores (ruta media.import-url inexistente) · 2026-10-24. ImportUrlEndpointTest: 23 passed (alta 202 en cola media, 12 URLs rechazadas con 422, límite de 3 por usuario, throttle 10/min, sondeo y 403 ajeno, prune de .part). tests/Feature/Media: 106 passed. Lógica compartida con MCP en MediaUploadService::importFromUrl.
 
 ### T-37 — UI «Desde URL» en `MediaSection` con sondeo y errores
 

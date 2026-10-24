@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MediaAsset;
+use App\Services\Media\UnsafeUrlException;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -50,6 +51,28 @@ class MediaController extends Controller
         }
 
         return response()->json(['asset' => $result['asset']->toPublicArray(), 'upload' => $upload], 201);
+    }
+
+    /** Importa media desde una URL publica (C-04a): valida con `UrlGuard`, responde 202 con el asset `pendiente` y descarga en la cola `media`. */
+    public function importUrl(Request $request): JsonResponse
+    {
+        $data = $request->validate(['url' => ['required', 'string', 'max:2048']]);
+
+        try {
+            $asset = $this->uploads->importFromUrl($request->user(), $data['url']);
+        } catch (UnsafeUrlException|InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['asset' => $asset->toPublicArray()], 202);
+    }
+
+    /** Estado de un asset (para sondear el progreso de una importacion). */
+    public function show(MediaAsset $asset): JsonResponse
+    {
+        $this->authorize('view', $asset);
+
+        return response()->json(['asset' => $asset->toPublicArray()]);
     }
 
     /** Subida directa a la app, solo con el disco local (dev/test). En produccion (R2) no se usa. */

@@ -117,6 +117,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Media (T-17): prefirmado/finalizacion JSON; el binario va directo a R2 (o a `upload` en dev).
     Route::get('media', [MediaController::class, 'index'])->name('media.index');
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
+    // Importacion remota (C-04a). `import-url` antes que `{asset}` para que no lo capture el comodin.
+    Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:10,1')->name('media.import-url');
+    Route::get('media/{asset}', [MediaController::class, 'show'])->whereNumber('asset')->name('media.show');
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
     Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');
     Route::delete('media/{asset}', [MediaController::class, 'destroy'])->name('media.destroy');

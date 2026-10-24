@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\Media\UnsafeUrlException;
+use App\Services\Media\UrlGuard;
+use App\Services\Media\UrlSource;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -85,6 +89,36 @@ class MediaUploadService
             'url' => (string) $client->createPresignedRequest($cmd, $ttl)->getUri(),
             'headers' => ['Content-Type' => $mime],
         ]];
+    }
+
+    /** Importaciones remotas vivas (pendientes y recientes) que un usuario puede tener a la vez. */
+    public const MAX_LIVE_IMPORTS = 3;
+
+    /**
+     * Importa media desde una URL publica: valida la URL con `UrlGuard` (sin ninguna peticion a destinos internos), aplica el
+     * limite de importaciones vivas por usuario, registra el asset `pendiente` y encola la descarga en la cola `media`.
+     * Lo comparten el endpoint web y la herramienta MCP.
+     *
+     * @throws UnsafeUrlException si la URL no es segura.
+     * @throws InvalidArgumentException si hay demasiadas importaciones en curso o el almacenamiento no es local.
+     */
+    public function importFromUrl(User $user, string $url): MediaAsset
+    {
+        app(UrlGuard::class)->validate($url);
+
+        $live = MediaAsset::withoutUserScope()->where('user_id', $user->id)
+            ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE])
+            ->where('created_at', '>', now()->subHours(6))->count();
+
+        if ($live >= self::MAX_LIVE_IMPORTS) {
+            throw new InvalidArgumentException('Ya tienes '.self::MAX_LIVE_IMPORTS.' importaciones en curso; espera a que terminen.');
+        }
+
+        $source = new UrlSource(app(UrlGuard::class), $url);
+        $asset = $this->beginImport($user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
+        ImportRemoteMedia::dispatch($asset->id, $url);
+
+        return $asset;
     }
 
     /**
@@ -247,6 +281,38 @@ class MediaUploadService
                     }
                 }
             });
+
+        return $n;
+    }
+
+    /**
+     * Borra los parciales de importacion (`media/{user}/*.part`) abandonados: de mas de `$hours` horas y sin un asset
+     * `pendiente` que los siga usando. Solo disco local (en S3/R2 no hay parciales).
+     *
+     * @return int Ficheros eliminados.
+     */
+    public function pruneOrphanParts(int $hours): int
+    {
+        if ($this->storage->isS3()) {
+            return 0;
+        }
+
+        $disk = $this->storage->disk();
+        $limit = now()->subHours($hours)->getTimestamp();
+        $n = 0;
+
+        foreach ($disk->allFiles('media') as $file) {
+            if (! str_ends_with($file, '.part') || $disk->lastModified($file) >= $limit) {
+                continue;
+            }
+
+            $active = MediaAsset::withoutUserScope()->where('path', $file)->where('status', MediaAsset::STATUS_PENDING)->exists();
+
+            if (! $active) {
+                $disk->delete($file);
+                $n++;
+            }
+        }
 
         return $n;
     }

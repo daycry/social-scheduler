@@ -27,6 +27,7 @@ class SavedTextService
     {
         return SavedText::withoutUserScope()->where('user_id', $user->id)
             ->where(fn ($q) => $q->whereNull('brand_id')->orWhere('brand_id', $brandId))
+            ->with('brand:id,name')
             ->orderBy('title')->get()->map(fn (SavedText $t) => $this->toArray($t))->values()->all();
     }
 

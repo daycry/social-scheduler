@@ -47,9 +47,16 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 600;
 
-    /** `$force`: el usuario confirmo «Publicar igualmente»; solo salta la guarda de busqueda inconclusa. */
+    /** Instante (unix) en que se pidio el job; con `$force` fija hasta que envio previo vale la confirmacion del usuario. */
+    public readonly int $requestedAt;
+
+    /**
+     * `$force`: el usuario confirmo «Publicar igualmente»; solo salta la guarda de busqueda inconclusa para el PRIMER envio
+     * forzado: si `first_comment_sent_at` es de esta pasada forzada (>= `requestedAt`), se vuelve a la regla normal.
+     */
     public function __construct(public readonly int $targetId, public readonly bool $force = false)
     {
+        $this->requestedAt = now()->getTimestamp();
         $this->onQueue((string) config('publishing.comment_queue', 'poll'));
     }
 
@@ -100,7 +107,7 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
                 // La busqueda acotada no llego al final de la lista. Se crea solo si ningun envio previo es posible
                 // (`first_comment_sent_at` nulo: se escribe ANTES del POST y Reintentar no la borra) o si el usuario fuerza
                 // «Publicar igualmente». Si no, NO se crea a ciegas: backoff y, agotado, fallido con las dos salidas.
-                if ($exhausted || ($target->first_comment_sent_at !== null && ! $this->force)) {
+                if ($exhausted || ($target->first_comment_sent_at !== null && ! $this->forceCoversSend($target))) {
                     throw $e;
                 }
                 $id = null;
@@ -136,6 +143,12 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
                 $this->settle($target, FirstCommentStatus::Failed, 'Un error inesperado impidio comentar tras varios intentos y se dio por fallido. Pulsa Reintentar para volver a intentarlo o edita el comentario.');
             }
         }
+    }
+
+    /** La confirmacion solo cubre envios anteriores al clic: la marca escrita por la propia pasada forzada ya no se salta. */
+    private function forceCoversSend(PostTarget $target): bool
+    {
+        return $this->force && $target->first_comment_sent_at !== null && $target->first_comment_sent_at->getTimestamp() < $this->requestedAt;
     }
 
     /**

@@ -375,3 +375,18 @@ test('«Ya esta publicado» cierra como publicado sin llamar a la red', function
     // Solo vale sobre un comentario fallido.
     $this->actingAs($this->user)->post("/posts/{$t->post_id}/targets/{$t->id}/first-comment/published")->assertSessionHasErrors('first_comment');
 });
+
+test('«Publicar igualmente» solo salta la guarda en el primer envio: tras timeout y release vale la regla normal', function () {
+    Queue::fake();
+    $graph = (new FakeGraph)->on('POST', '#^PAGE1_9/comments$#', FakeGraph::seq(new ConnectionException('timeout tras crear'), ['id' => 'NO1'], ['id' => 'NO2']));
+    flowBusyPost($graph);
+    $t = flowPublishedFb(3, FirstCommentStatus::Failed, ['first_comment_sent_at' => now()->subHour()]);
+    app(FirstCommentService::class)->retry($t->fresh(), true);
+    $job = new PostFirstComment($t->id, true);
+
+    for ($i = 0; $i < 3; $i++) {
+        app()->call([unserialize(serialize($job)), 'handle']);
+    }
+
+    expect($graph->callsTo('POST', '#/comments$#'))->toHaveCount(1)->and($t->fresh()->first_comment_external_id)->toBeNull();
+});

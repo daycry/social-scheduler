@@ -63,6 +63,7 @@ class CampaignService
             'id' => $c->id, 'brand_id' => $c->brand_id, 'name' => $c->name, 'color' => $c->color,
             'starts_on' => $c->starts_on?->toDateString(), 'ends_on' => $c->ends_on?->toDateString(),
             'archived' => $c->isArchived(), 'posts_count' => $c->posts_count ?? null,
+            'show_url' => route('campaigns.show', $c->id, false),
         ];
     }
 }

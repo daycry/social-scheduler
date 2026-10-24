@@ -1031,31 +1031,34 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-30 — Panel `Pages/Campaigns/Show.vue`: KPIs, tabla por red, gráfica y posts
 
 - **Descripción**: Panel de campaña con KPIs (posts, vistas, alcance acumulado, interacciones, likes, comentarios, compartidos, guardados, engagement), tabla por red, serie diaria con `LineChart` y lista de posts. Requisito: CA-11.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nuevo panel de campaña con las métricas agregadas, el desglose por red, la evolución diaria y las publicaciones; indica el alcance acumulado y el congelado de métricas a 30 días.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 6,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,88h · real —
+- **Tiempo IA (ejec.)**: est. 0,88h · real 0.14h (medido)
 - **Supervisión**: est. 0,22h (≈25 % IA) · real —
 - **Previsión IA**: 237k in / 26k out tok · ⚠️ verificar €
 - **Dependencias**: T-26, T-29
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Campaigns/Show.vue`, `app/Http/Controllers/CampaignController.php`, `tests/Feature/Ui/CampaignShowPageTest.php`
+- **Archivos**: `resources/js/Pages/Campaigns/Show.vue`, `app/Http/Controllers/CampaignController.php`, `app/Services/CampaignService.php` (show_url), `routes/web.php`, `tests/Feature/Ui/CampaignShowPageTest.php`
 - **Cubre (tests)**: E2E-07, M-05
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/CampaignShowPageTest.php` → verde (props del panel)
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] Muestra «sin datos» donde no hay métrica.
-- [ ] Rotula «alcance acumulado» y avisa del congelado a 30 días.
-- [ ] Funciona a 360 px.
+- [x] Muestra «sin datos» donde no hay métrica.
+- [x] Rotula «alcance acumulado» y avisa del congelado a 30 días.
+- [x] Funciona a 360 px.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Componente y gráfica
+- [x] Test RED
+- [x] Componente y gráfica
 
 **Notas**: Patrón de gráficas: `resources/js/Pages/Dashboard` (`LineChart`).
+
+**Evidencia**: CampaignShowPageTest: 4 passed (RED previo: ruta y componente inexistentes); Ui+Campaigns: 53 passed; npm run build ok.
 
 ### T-31 — E2E de campañas con axe y sin desbordamiento
 

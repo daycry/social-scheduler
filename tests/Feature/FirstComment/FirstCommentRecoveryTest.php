@@ -9,8 +9,10 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\FirstCommentFailed;
 use App\Services\PublishRecovery;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Tests\Support\FakeCommenter;
 
 // C-01b: paso 6 de PublishRecovery — relanza comentarios colgados y pendientes sin job vivo.
@@ -61,6 +63,7 @@ test('no toca lo reciente ni lo ya resuelto', function () {
 });
 
 test('un pendiente o colgado sin external_id se cierra en fallido con motivo y no se relanza en cada pasada', function (FirstCommentStatus $status) {
+    Notification::fake();
     $t = recTarget($status, ['external_id' => null, 'first_comment_at' => now()->subMinutes(30)]);
     PostTarget::withoutUserScope()->whereKey($t->id)->update(['updated_at' => now()->subMinutes(30)]);
 
@@ -69,5 +72,6 @@ test('un pendiente o colgado sin external_id se cierra en fallido con motivo y n
     $t = $t->fresh();
     expect($t->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($t->first_comment_error)->toContain('identificador de la publicacion')
         ->and($this->net->commentCalls)->toBe(0)->and($this->net->findCommentCalls)->toBe(0);
+    Notification::assertSentToTimes($this->user, FirstCommentFailed::class, 1);
     expect(app(PublishRecovery::class)->run()['comments'])->toBe(0);
 })->with([[FirstCommentStatus::Pending], [FirstCommentStatus::Commenting]]);

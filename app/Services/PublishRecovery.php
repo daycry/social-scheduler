@@ -11,6 +11,8 @@ use App\Jobs\PublishPostTarget;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Models\User;
+use App\Notifications\FirstCommentFailed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -152,10 +154,9 @@ class PublishRecovery
             ->chunkById(100, function ($targets) {
                 foreach ($targets as $target) {
                     $this->guard($target, function () use ($target) {
-                        $target->forceFill([
-                            'first_comment_status' => FirstCommentStatus::Failed,
-                            'first_comment_error' => 'La red no devolvio el identificador de la publicacion, asi que no se puede comentar en ella. Comentalo a mano en la red.',
-                        ])->save();
+                        $reason = 'La red no devolvio el identificador de la publicacion, asi que no se puede comentar en ella. Comentalo a mano en la red.';
+                        $target->forceFill(['first_comment_status' => FirstCommentStatus::Failed, 'first_comment_error' => $reason])->save();
+                        User::find($target->user_id)?->notify(new FirstCommentFailed($target, $reason)); // como el resto de cierres en `fallido`
                     });
                 }
             });

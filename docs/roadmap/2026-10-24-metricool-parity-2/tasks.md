@@ -396,11 +396,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-11 — Job `PostFirstComment`, enganche en `published()` y recuperación
 
 - **Descripción**: Job `PostFirstComment` (`ShouldBeUnique`, cola `poll`, reclamo con `lockForUpdate`) encolado desde `PublishOutcomes::published()` con `afterCommit`; idempotencia en tres capas, backoff `[60, 300]`, tope de 3 intentos, espera a que el vídeo de YouTube esté publicado y paso 6 de `PublishRecovery`. Un fallo no degrada el destino. Requisito: CA-04, CA-05; diseño A1.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El primer comentario se publica solo tras publicar el post, sin duplicarse, y si falla no afecta a la publicación.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0.2h (medido)
 - **Supervisión**: est. 0,20h (≈25 % IA) · real —
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-08, T-09, T-10
@@ -413,16 +414,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/FirstComment/FirstCommentRecoveryTest.php` → verde
 
 **Criterios de aceptación**
-- [ ] Si ya hay `first_comment_external_id`, el job no hace nada; siempre busca el comentario propio antes de crear uno.
-- [ ] El destino sigue `Published` ante cualquier fallo del comentario; el comentario queda `fallido` con el motivo en español.
-- [ ] `PublishPostTarget` no se modifica y `published()` es el único punto de entrada.
+- [x] Si ya hay `first_comment_external_id`, el job no hace nada; siempre busca el comentario propio antes de crear uno.
+- [x] El destino sigue `Published` ante cualquier fallo del comentario; el comentario queda `fallido` con el motivo en español.
+- [x] `PublishPostTarget` no se modifica y `published()` es el único punto de entrada.
 
 **Subtareas**
-- [ ] Caracterización de `PublishingTest` y `PublishNowDoubleDispatchTest`
-- [ ] Test RED de idempotencia
-- [ ] Job, enganche y recuperación
+- [x] Caracterización de `PublishingTest` y `PublishNowDoubleDispatchTest`
+- [x] Test RED de idempotencia
+- [x] Job, enganche y recuperación
 
 **Notas**: `app/Services/PublishOutcomes.php:38` (`published`). Reclamo: copiar el `claim()` de `app/Jobs/PublishPostTarget.php`. Idempotencia: `tests/Feature/Publishing/TargetTextIdempotencyInstagramTest.php`. Recuperación: `app/Services/PublishRecovery.php:32` (`run`).
+
+**Evidencia**: tests/Feature/FirstComment + tests/Feature/Publishing: 163 passed (PublishingTest en verde antes y despues, PublishNowDoubleDispatchTest incluido); RED previo: 16 de 17 fallaban (job inexistente). pint --test: passed.
+
 
 ### T-12 — `PostRequest`, `PostService::plan()`/`fill()` y máximos en `media_specs`
 

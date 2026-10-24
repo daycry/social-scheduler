@@ -6,6 +6,11 @@ return [
     'queue' => env('PUBLISH_QUEUE', 'publish'),
     'poll_queue' => env('PUBLISH_POLL_QUEUE', 'poll'),
 
+    /* Primer comentario (C-01b): cola del job `PostFirstComment`, intentos de negocio y espera (s) entre ellos. */
+    'comment_queue' => env('PUBLISH_COMMENT_QUEUE', env('PUBLISH_POLL_QUEUE', 'poll')),
+    'comment_max_attempts' => (int) env('PUBLISH_COMMENT_MAX_ATTEMPTS', 3),
+    'comment_backoff_seconds' => [60, 300],
+
     /* Intentos totales de publicar un destino antes de darlo por fallido (errores transitorios). */
     'max_attempts' => (int) env('PUBLISH_MAX_ATTEMPTS', 4),
 

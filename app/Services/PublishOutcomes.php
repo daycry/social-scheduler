@@ -3,12 +3,15 @@
 namespace App\Services;
 
 use App\Connectors\Data\PublishResult;
+use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
+use App\Jobs\PostFirstComment;
 use App\Models\PostTarget;
 use App\Models\PublishAttempt;
 use App\Models\User;
 use App\Notifications\PublishFailed;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -39,12 +42,23 @@ class PublishOutcomes
     {
         $this->close($attempt, PublishAttempt::OUTCOME_PUBLISHED);
 
-        return $this->posts->transition($target, PostStatus::Published, [
+        // Primer comentario (C-01b): unico punto de entrada, asi que cubre los tres caminos a `publicada`. Queda `pendiente`
+        // en la misma transaccion que la publicacion y el job se encola al confirmarla; su fallo nunca degrada el destino.
+        $wantsComment = trim((string) $target->first_comment) !== '' && $target->first_comment_external_id === null;
+
+        $published = $this->posts->transition($target, PostStatus::Published, [
             'external_id' => $result->externalId,
             'external_url' => $result->url,
             'external_reference' => $result->reference ?? $target->external_reference,
             'status_note' => $result->note !== null ? mb_substr($result->note, 0, 300) : null,
-        ] + ($result->progress !== null ? ['progress' => $result->progress] : []));
+        ] + ($result->progress !== null ? ['progress' => $result->progress] : [])
+          + ($wantsComment ? ['first_comment_status' => FirstCommentStatus::Pending, 'first_comment_attempts' => 0, 'first_comment_error' => null, 'first_comment_at' => null] : []));
+
+        if ($wantsComment) {
+            DB::afterCommit(fn () => PostFirstComment::dispatch($published->id));
+        }
+
+        return $published;
     }
 
     /** Publicacion asincrona en la red: se sondea hasta que termine. */

@@ -6,6 +6,7 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeQuota;
 use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
@@ -46,18 +47,18 @@ test('inserta el comentario, devuelve su id y descuenta 50 unidades de cuota', f
         ->and($call['json']['snippet']['videoId'])->toBe('VID1')
         ->and($call['json']['snippet']['topLevelComment']['snippet']['textOriginal'])->toBe('Mas info')
         ->and($call['headers']['authorization'])->toBe('Bearer yt-token')
-        ->and((new App\Connectors\Google\YouTubeQuota)->used())->toBe(50);
+        ->and((new YouTubeQuota)->used())->toBe(50);
 });
 
 test('findOwnComment filtra por el canal autor y el texto, y no gasta la cuota de insertar', function () {
     $this->http->on('GET', YTC_THREADS, ['status' => 200, 'json' => ['items' => [
         ytThread('A', 'UCotro', 'Mas info'),
-        ytThread('B', YTC_CHANNEL, "Mas  info "),
+        ytThread('B', YTC_CHANNEL, 'Mas  info '),
     ]]]);
 
     expect($this->yt->findOwnComment($this->account, 'VID1', 'Mas info'))->toBe('B')
         ->and($this->yt->findOwnComment($this->account, 'VID1', 'Otro'))->toBeNull()
-        ->and((new App\Connectors\Google\YouTubeQuota)->used())->toBe(2);
+        ->and((new YouTubeQuota)->used())->toBe(2);
     expect($this->http->callsTo('GET', YTC_THREADS)[0]['url'])->toContain('videoId=VID1');
 });
 
@@ -65,7 +66,7 @@ test('video privado o hecho para ninos da CommentNotAllowedException', function 
     $this->http->on('POST', YTC_THREADS, ['status' => $status, 'json' => ['error' => ['code' => $status, 'message' => 'x', 'errors' => [['reason' => $reason]]]]]);
 
     expect(fn () => $this->yt->comment($this->account, 'VID1', 'x'))->toThrow(CommentNotAllowedException::class);
-    expect((new App\Connectors\Google\YouTubeQuota)->used())->toBe(0);
+    expect((new YouTubeQuota)->used())->toBe(0);
 })->with([[403, 'commentsDisabled'], [404, 'videoNotFound']]);
 
 test('sin el scope force-ssl no se llama a la API', function () {

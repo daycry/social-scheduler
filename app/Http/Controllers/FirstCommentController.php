@@ -35,13 +35,28 @@ class FirstCommentController extends Controller
     {
         $this->guard($post, $target);
 
+        $force = $request->validate(['force' => ['sometimes', 'boolean']])['force'] ?? false;
+
         try {
-            $this->comments->retry($target);
+            $this->comments->retry($target, (bool) $force);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }
 
-        return back()->with('success', 'Reintentando el primer comentario.');
+        return back()->with('success', $force ? 'Publicando el primer comentario igualmente.' : 'Reintentando el primer comentario.');
+    }
+
+    public function markPublished(Request $request, Post $post, PostTarget $target): RedirectResponse
+    {
+        $this->guard($post, $target);
+
+        try {
+            $this->comments->markPublished($target);
+        } catch (PostValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('success', 'Primer comentario marcado como publicado.');
     }
 
     /** Post ajeno = 404/403 por UserScope y policy; un destino de otro post tambien es 404. */

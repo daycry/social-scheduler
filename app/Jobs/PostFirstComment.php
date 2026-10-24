@@ -47,7 +47,8 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 600;
 
-    public function __construct(public readonly int $targetId)
+    /** `$force`: el usuario confirmo «Publicar igualmente»; solo salta la guarda de busqueda inconclusa. */
+    public function __construct(public readonly int $targetId, public readonly bool $force = false)
     {
         $this->onQueue((string) config('publishing.comment_queue', 'poll'));
     }
@@ -96,9 +97,10 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
             try {
                 $id = $commenter->findOwnComment($account, (string) $target->external_id, $text);
             } catch (CommentSearchInconclusiveException $e) {
-                // La busqueda acotada no llego al final de la lista. Solo en el PRIMER intento (ningun envio previo posible) se crea;
-                // en cualquier reintento o recuperacion NO se crea a ciegas: se reintenta con backoff y, agotado, queda fallido.
-                if ($exhausted || (int) $target->first_comment_attempts > 1) {
+                // La busqueda acotada no llego al final de la lista. Se crea solo si ningun envio previo es posible
+                // (`first_comment_sent_at` nulo: se escribe ANTES del POST y Reintentar no la borra) o si el usuario fuerza
+                // «Publicar igualmente». Si no, NO se crea a ciegas: backoff y, agotado, fallido con las dos salidas.
+                if ($exhausted || ($target->first_comment_sent_at !== null && ! $this->force)) {
                     throw $e;
                 }
                 $id = null;
@@ -111,7 +113,11 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
                 return;
             }
 
-            $id ??= $commenter->comment($account, (string) $target->external_id, $text);
+            if ($id === null) {
+                // Marca persistida antes de tocar la red: si el POST da timeout pero la red lo crea, queda constancia.
+                $target->forceFill(['first_comment_sent_at' => now()])->save();
+                $id = $commenter->comment($account, (string) $target->external_id, $text);
+            }
 
             $this->settle($target, FirstCommentStatus::Published, null, $id);
         } catch (CommentNotAllowedException $e) {

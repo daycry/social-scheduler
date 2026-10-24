@@ -338,7 +338,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         }
 
         if ($more) {
-            throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: el video tiene demasiados comentarios con ese texto. No se crea otro a ciegas; pulsa Reintentar.', 'busqueda_inconclusa');
+            throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: el video tiene demasiados comentarios con ese texto. No se crea otro a ciegas: comprueba en la red si ya esta; si lo esta, pulsa «Ya esta publicado», y si no, «Publicar igualmente» (puede duplicarse si en realidad ya existe).', 'busqueda_inconclusa');
         }
 
         // 2) Red de seguridad: los 100 hilos mas recientes sin filtro.

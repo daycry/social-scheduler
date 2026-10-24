@@ -592,14 +592,14 @@ export type PublishedComment = { postId: number; targetId: number };
  * Publicación de Instagram ya `publicada` (sembrada, sin pasar por la red) cuyo primer comentario está en `status`
  * (`fallido` por defecto, con el motivo). Reintentar solo encola un `PostFirstComment` en la cola `database`: sin worker no llega a ninguna red.
  */
-export function seedPublishedWithComment(email: string, brandId: number, status = 'fallido', error = 'Instagram no admite comentarios en esta publicacion.'): PublishedComment {
+export function seedPublishedWithComment(email: string, brandId: number, status = 'fallido', error = 'Instagram no admite comentarios en esta publicacion.', sentAt = false): PublishedComment {
     const out = artisan(
         String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
             String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
             String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
             String.raw`$m = App\Models\MediaAsset::factory()->for($u)->create(); ` +
             String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e publicada con comentario', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $ig->id, 'content_type' => 'instagram_image', 'first_comment' => 'e2e Mas info en el enlace']]]); ` +
-            String.raw`$p->targets->each(fn ($t) => $t->forceFill(['status' => 'publicada', 'published_at' => now(), 'external_id' => 'e2e-ext-1', 'external_url' => 'https://example.test/e2e', 'first_comment_status' => ${q(status)}, 'first_comment_attempts' => 3, 'first_comment_error' => ${q(error)}])->save()); $p->syncStatus(); ` +
+            String.raw`$p->targets->each(fn ($t) => $t->forceFill(['status' => 'publicada', 'published_at' => now(), 'external_id' => 'e2e-ext-1', 'external_url' => 'https://example.test/e2e', 'first_comment_status' => ${q(status)}, 'first_comment_attempts' => 3, 'first_comment_error' => ${q(error)}, 'first_comment_sent_at' => ${sentAt ? 'now()' : 'null'}])->save()); $p->syncStatus(); ` +
             String.raw`echo 'IDS:' . $p->id . ',' . $p->targets()->first()->id;`,
     );
     const [postId, targetId] = out.match(/IDS:([\d,]+)/)![1].split(',');

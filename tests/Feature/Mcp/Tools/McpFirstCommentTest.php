@@ -42,13 +42,13 @@ function fcIg(array $extra = []): array
 
 test('McpFirstComment: create_post acepta first_comment y get_post lo devuelve con su estado', function () {
     [$err, $created] = $this->callTool($this->key, 'create_post', fcArgs(fcIg(['first_comment' => 'Mas info en el enlace'])));
-    expect($err)->toBeFalse()->and($created['targets'][0])->toMatchArray(['first_comment' => 'Mas info en el enlace', 'first_comment_status' => null, 'first_comment_error' => null]);
+    expect($err)->toBeFalse()->and($created['targets'][0])->toMatchArray(['first_comment' => 'Mas info en el enlace', 'first_comment_status' => null, 'first_comment_error' => null, 'first_comment_may_exist' => false]);
 
-    PostTarget::withoutUserScope()->where('post_id', $created['id'])->update(['first_comment_status' => FirstCommentStatus::Failed->value, 'first_comment_error' => 'Comentarios cerrados']);
+    PostTarget::withoutUserScope()->where('post_id', $created['id'])->update(['first_comment_status' => FirstCommentStatus::Failed->value, 'first_comment_error' => 'Comentarios cerrados', 'first_comment_sent_at' => now()]);
 
     [$err, $post] = $this->callTool($this->key, 'get_post', ['post_id' => $created['id']]);
     expect($err)->toBeFalse()->and($post['targets'][0])->toMatchArray([
-        'first_comment' => 'Mas info en el enlace', 'first_comment_status' => 'fallido', 'first_comment_error' => 'Comentarios cerrados',
+        'first_comment' => 'Mas info en el enlace', 'first_comment_status' => 'fallido', 'first_comment_error' => 'Comentarios cerrados', 'first_comment_may_exist' => true,
     ]);
 });
 

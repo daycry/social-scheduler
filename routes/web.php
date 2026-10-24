@@ -76,6 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Primer comentario (C-01b): editar el texto de un comentario `fallido` y reintentarlo. Solo web; el MCP no lo expone.
     Route::patch('posts/{post}/targets/{target}/first-comment', [FirstCommentController::class, 'update'])->middleware('throttle:30,1')->name('posts.first-comment.update');
     Route::post('posts/{post}/targets/{target}/first-comment/retry', [FirstCommentController::class, 'retry'])->middleware('throttle:30,1')->name('posts.first-comment.retry');
+    Route::post('posts/{post}/targets/{target}/first-comment/published', [FirstCommentController::class, 'markPublished'])->middleware('throttle:30,1')->name('posts.first-comment.published');
     // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
     Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:publish-now')->name('posts.publish-now');
 

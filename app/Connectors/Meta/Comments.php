@@ -220,7 +220,7 @@ class Comments
             }
         }
 
-        throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: la publicacion tiene demasiados comentarios para revisarlos todos. No se crea otro a ciegas; pulsa Reintentar.', 'busqueda_inconclusa');
+        throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: la publicacion tiene demasiados comentarios para revisarlos todos. No se crea otro a ciegas: comprueba en la red si ya esta; si lo esta, pulsa «Ya esta publicado», y si no, «Publicar igualmente» (puede duplicarse si en realidad ya existe).', 'busqueda_inconclusa');
     }
 
     private function findLimit(): int

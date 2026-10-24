@@ -38,10 +38,14 @@ class FirstCommentService
         });
     }
 
-    /** Reintenta un comentario `fallido` con el texto vigente: reinicia los intentos y despacha el job. */
-    public function retry(PostTarget $target): PostTarget
+    /**
+     * Reintenta un comentario `fallido` con el texto vigente: reinicia los intentos y despacha el job. NO borra
+     * `first_comment_sent_at`: con una busqueda inconclusa y un envio previo posible, no se crea a ciegas salvo `$force`
+     * («Publicar igualmente», confirmado por el usuario).
+     */
+    public function retry(PostTarget $target, bool $force = false): PostTarget
     {
-        $fresh = DB::transaction(function () use ($target) {
+        $fresh = DB::transaction(function () use ($target, $force) {
             $fresh = $this->lockFailed($target, 'Solo se puede reintentar un primer comentario que ha fallado.');
             $fresh->forceFill([
                 'first_comment_status' => FirstCommentStatus::Pending,
@@ -50,12 +54,23 @@ class FirstCommentService
                 'first_comment_at' => null,
             ])->save();
 
-            DB::afterCommit(fn () => PostFirstComment::dispatch($fresh->id));
+            DB::afterCommit(fn () => PostFirstComment::dispatch($fresh->id, $force));
 
             return $fresh;
         });
 
         return $fresh;
+    }
+
+    /** «Ya esta publicado»: el usuario confirma que el comentario existe en la red. Cierra como `publicado` sin llamar a la red. */
+    public function markPublished(PostTarget $target): PostTarget
+    {
+        return DB::transaction(function () use ($target) {
+            $fresh = $this->lockFailed($target, 'Solo se puede marcar como publicado un primer comentario que ha fallado.');
+            $fresh->forceFill(['first_comment_status' => FirstCommentStatus::Published, 'first_comment_error' => null])->save();
+
+            return $fresh;
+        });
     }
 
     private function lockFailed(PostTarget $target, string $message): PostTarget

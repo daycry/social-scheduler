@@ -16,12 +16,15 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Notifications\FirstCommentFailed;
+use App\Services\FirstCommentService;
 use App\Services\PublishOutcomes;
 use App\Services\PublishRecovery;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Tests\Support\FakeGraph;
 use Tests\Support\FakeHttp;
 
@@ -295,7 +298,7 @@ function flowBusyPost(FakeGraph $graph): void
 test('busqueda inconclusa en un REINTENTO: no crea el comentario a ciegas, reintenta y agotado queda fallido', function () {
     $graph = (new FakeGraph)->on('POST', '#^PAGE1_9/comments$#', ['id' => 'NO']);
     flowBusyPost($graph);
-    $t = flowPublishedFb(1); // el claim lo lleva al intento 2: un envio previo pudo haber ocurrido
+    $t = flowPublishedFb(1, extra: ['first_comment_sent_at' => now()->subMinute()]); // un envio previo pudo haber ocurrido
 
     flowRun($t);
 
@@ -320,4 +323,55 @@ test('busqueda inconclusa en el PRIMER intento: nada pudo enviarse antes, asi qu
     flowRun($t);
 
     expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Published)->and($graph->callsTo('POST', '#/comments$#'))->toHaveCount(1);
+});
+
+test('timeout del POST que la red si creo + busqueda inconclusa: ni los reintentos ni Reintentar duplican (un solo POST)', function () {
+    Queue::fake();
+    $graph = (new FakeGraph)->on('POST', '#^PAGE1_9/comments$#', FakeGraph::seq(new ConnectionException('timeout tras crear'), ['id' => 'C2'], ['id' => 'C3']));
+    flowBusyPost($graph);
+    $t = flowPublishedFb(0);
+
+    flowRun($t); // intento 1: nada pudo enviarse antes, crea; el POST da timeout
+    expect($t->fresh()->first_comment_sent_at)->not->toBeNull();
+    flowRun($t->fresh());
+    flowRun($t->fresh());
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($t->fresh()->first_comment_error)->toContain('Publicar igualmente');
+
+    app(FirstCommentService::class)->retry($t->fresh());
+    expect($t->fresh()->first_comment_sent_at)->not->toBeNull(); // Reintentar no borra la evidencia
+    flowRun($t->fresh());
+
+    expect($graph->callsTo('POST', '#/comments$#'))->toHaveCount(1)
+        ->and($t->fresh()->first_comment_status)->not->toBe(FirstCommentStatus::Published);
+});
+
+test('«Publicar igualmente» (force) crea el comentario aunque la busqueda siga inconclusa', function () {
+    Queue::fake();
+    $graph = (new FakeGraph)->on('POST', '#^PAGE1_9/comments$#', ['id' => 'PAGE1_9_7']);
+    flowBusyPost($graph);
+    $t = flowPublishedFb(3, FirstCommentStatus::Failed, ['first_comment_sent_at' => now()->subHour()]);
+
+    $this->actingAs($this->user)->post("/posts/{$t->post_id}/targets/{$t->id}/first-comment/retry", ['force' => true])->assertRedirect()->assertSessionHasNoErrors();
+    Queue::assertPushed(PostFirstComment::class, fn ($j) => $j->targetId === $t->id && $j->force === true);
+
+    app()->call([new PostFirstComment($t->id, true), 'handle']);
+
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Published)->and($t->fresh()->first_comment_external_id)->toBe('PAGE1_9_7')
+        ->and($graph->callsTo('POST', '#/comments$#'))->toHaveCount(1);
+});
+
+test('«Ya esta publicado» cierra como publicado sin llamar a la red', function () {
+    Queue::fake();
+    Http::fake();
+    $t = flowPublishedFb(3, FirstCommentStatus::Failed, ['first_comment_sent_at' => now()->subHour(), 'first_comment_error' => 'busqueda inconclusa']);
+
+    $this->actingAs($this->user)->post("/posts/{$t->post_id}/targets/{$t->id}/first-comment/published")->assertRedirect()->assertSessionHasNoErrors();
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Published)->and($t->first_comment_error)->toBeNull()->and($t->status)->toBe(PostStatus::Published);
+    Http::assertNothingSent();
+    Queue::assertNothingPushed();
+
+    // Solo vale sobre un comentario fallido.
+    $this->actingAs($this->user)->post("/posts/{$t->post_id}/targets/{$t->id}/first-comment/published")->assertSessionHasErrors('first_comment');
 });

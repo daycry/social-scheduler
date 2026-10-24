@@ -133,6 +133,7 @@ abstract class SchedulerTool extends Tool
                 'first_comment' => $t->first_comment,
                 'first_comment_status' => $t->first_comment_status?->value,
                 'first_comment_error' => $t->first_comment_error,
+                'first_comment_may_exist' => $t->first_comment_sent_at !== null, // se intento enviar: puede existir en la red aunque el estado sea fallido
                 'options' => $t->options ?? [],
                 'status' => $t->status->value,
                 'error_message' => $t->error_message,

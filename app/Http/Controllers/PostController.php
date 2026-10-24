@@ -235,6 +235,7 @@ class PostController extends Controller
                 'first_comment_status' => $t->first_comment_status?->value,
                 'first_comment_status_label' => $t->first_comment_status?->label(),
                 'first_comment_error' => $t->first_comment_error,
+                'first_comment_may_exist' => $t->first_comment_sent_at !== null,
             ])->values(),
         ];
     }

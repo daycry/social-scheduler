@@ -131,3 +131,43 @@ test('E2E-04 · un comentario publicado no se edita ni se reintenta', async ({ p
     await expect(status.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);
     await expectNoOverflow(page);
 });
+
+test('E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación', async ({ page }, info) => {
+    const w = watch(page);
+    const email = e2eUser(info.project.name).email;
+    const seeded = seedPublishedWithComment(email, brand.id, 'fallido', 'No se pudo comprobar si el comentario ya existe.', true);
+    await page.goto(`/posts/${seeded.postId}/edit`);
+    await settle(page);
+
+    const status = page.getByTestId('first-comment-status');
+    await expect(status.getByRole('button', { name: 'Ya está publicado' })).toBeVisible();
+
+    // Publicar igualmente: segundo clic con aviso de duplicado; Cancelar no cambia nada.
+    await status.getByRole('button', { name: 'Publicar igualmente' }).click();
+    const force = status.getByTestId('first-comment-force');
+    await expect(force).toContainText('quedará duplicado');
+    await expect(force.getByRole('button', { name: 'Sí, publicar igualmente' })).toBeFocused();
+    await expectNoOverflow(page);
+    await axeNow(page, 'confirmación de Publicar igualmente');
+    await force.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(force).toHaveCount(0);
+    expect(firstCommentOf(seeded.targetId)).toMatchObject({ status: 'fallido' });
+
+    // Ya está publicado: queda Comentado sin más botones.
+    await status.getByRole('button', { name: 'Ya está publicado' }).click();
+    await expect(status.getByTestId('first-comment-badge')).toHaveText('Comentado');
+    await expect(status.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);
+    expect(firstCommentOf(seeded.targetId)).toMatchObject({ status: 'publicado', postStatus: 'publicada' });
+    await expectNoOverflow(page);
+    expect(w.errors, w.errors.join('\n')).toEqual([]);
+});
+
+test('E2E-04 · sin envío previo no se ofrecen las salidas de duplicado', async ({ page }, info) => {
+    const seeded = seedPublishedWithComment(e2eUser(info.project.name).email, brand.id);
+    await page.goto(`/posts/${seeded.postId}/edit`);
+    await settle(page);
+    const status = page.getByTestId('first-comment-status');
+    await expect(status.getByRole('button', { name: 'Reintentar' })).toBeVisible();
+    await expect(status.getByRole('button', { name: 'Ya está publicado' })).toHaveCount(0);
+    await expect(status.getByRole('button', { name: 'Publicar igualmente' })).toHaveCount(0);
+});

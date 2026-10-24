@@ -39,14 +39,35 @@ const saveEdit = (t) => {
         onFinish: () => { if (edit[t.id]) edit[t.id].busy = false; },
     });
 };
-const retry = (t) => {
-    const e = (edit[t.id] ??= { open: false, text: '', busy: false });
+const stateOf = (t) => (edit[t.id] ??= { open: false, text: '', busy: false });
+const retry = (t, force = false) => {
+    const e = stateOf(t);
     if (e.busy) return;
     e.busy = true;
-    router.post(route('posts.first-comment.retry', [post.value.id, t.id]), {}, {
+    router.post(route('posts.first-comment.retry', [post.value.id, t.id]), force ? { force: true } : {}, {
+        preserveScroll: true,
+        onFinish: () => { if (edit[t.id]) { edit[t.id].busy = false; edit[t.id].confirmForce = false; } },
+    });
+};
+// «Ya esta publicado»: lo marca hecho sin llamar a la red.
+const markPublished = (t) => {
+    const e = stateOf(t);
+    if (e.busy) return;
+    e.busy = true;
+    router.post(route('posts.first-comment.published', [post.value.id, t.id]), {}, {
         preserveScroll: true,
         onFinish: () => { if (edit[t.id]) edit[t.id].busy = false; },
     });
+};
+// «Publicar igualmente»: segundo clic con aviso de duplicado (sin confirm() del navegador).
+const askForce = async (t) => {
+    stateOf(t).confirmForce = true;
+    await nextTick();
+    document.getElementById(`fc-force-confirm-${t.id}`)?.focus();
+};
+const cancelForce = (t) => {
+    stateOf(t).confirmForce = false;
+    nextTick(() => document.getElementById(`fc-force-btn-${t.id}`)?.focus());
 };
 </script>
 
@@ -83,6 +104,17 @@ const retry = (t) => {
                         <div v-else class="flex flex-wrap gap-2">
                             <button :id="`fc-edit-btn-${t.id}`" type="button" class="btn btn-secondary px-3 py-1 text-sm" @click="startEdit(t)">Editar</button>
                             <button type="button" class="btn btn-primary px-3 py-1 text-sm" :disabled="edit[t.id]?.busy" @click="retry(t)">Reintentar</button>
+                            <template v-if="t.first_comment_may_exist">
+                                <button type="button" class="btn btn-secondary px-3 py-1 text-sm" :disabled="edit[t.id]?.busy" @click="markPublished(t)">Ya está publicado</button>
+                                <button :id="`fc-force-btn-${t.id}`" type="button" class="btn btn-secondary px-3 py-1 text-sm" :disabled="edit[t.id]?.busy" @click="askForce(t)">Publicar igualmente</button>
+                            </template>
+                        </div>
+                        <div v-if="edit[t.id]?.confirmForce" class="mt-2 space-y-1 rounded border border-amber-300 bg-amber-50 p-2" role="group" :aria-labelledby="`fc-force-msg-${t.id}`" data-testid="first-comment-force">
+                            <p :id="`fc-force-msg-${t.id}`" class="text-xs text-amber-900">Si el comentario ya existe en la red, quedará duplicado. Comprueba antes la publicación. ¿Publicarlo igualmente?</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button :id="`fc-force-confirm-${t.id}`" type="button" class="btn btn-primary px-3 py-1 text-sm" :disabled="edit[t.id].busy" @keydown.esc.stop="cancelForce(t)" @click="retry(t, true)">Sí, publicar igualmente</button>
+                                <button type="button" class="btn btn-secondary px-3 py-1 text-sm" @click="cancelForce(t)">Cancelar</button>
+                            </div>
                         </div>
                     </div>
                 </div>

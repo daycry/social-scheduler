@@ -340,7 +340,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real 0.30h (medido; incl. fix1 0.14h, compartido con T-10)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.40h (medido; incl. fix1 0.14h, compartido con T-10, y fix2 0.10h)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
@@ -407,12 +407,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real 0.26h (medido; incl. fix1 0.06h)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0.36h (medido; incl. fix1 0.06h y fix2 0.10h)
 - **Supervisión**: est. 0,20h (≈25 % IA) · real —
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-08, T-09, T-10
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/PostFirstComment.php`, `tests/Support/FakeCommenter.php`, `app/Services/PublishOutcomes.php`, `app/Services/PublishRecovery.php`, `config/publishing.php`, `tests/Feature/FirstComment/PostFirstCommentJobTest.php`, `tests/Feature/FirstComment/FirstCommentRecoveryTest.php`
+- **Archivos**: `app/Jobs/PostFirstComment.php`, `tests/Support/FakeCommenter.php`, `app/Services/PublishOutcomes.php`, `app/Services/PublishRecovery.php`, `config/publishing.php`, `tests/Feature/FirstComment/PostFirstCommentJobTest.php`, `tests/Feature/FirstComment/FirstCommentRecoveryTest.php`, `database/migrations/2026_11_14_090000_add_first_comment_sent_at_to_post_targets.php`, `app/Models/PostTarget.php` (revisión 2: marca `first_comment_sent_at` escrita antes del POST; aviso FirstCommentFailed en la rama sin `external_id`)
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/FirstComment/PostFirstCommentJobTest.php` → verde (repetir el job no crea un segundo comentario; un fallo deja el destino `Published`)
@@ -478,12 +478,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real 0.12h (medido)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.23h (medido; incl. fix2 0.11h)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-11, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Services/FirstCommentService.php`, `app/Http/Controllers/FirstCommentController.php`, `app/Notifications/FirstCommentFailed.php`, `resources/js/Pages/Notifications/Index.vue`, `routes/web.php`, `tests/Feature/FirstComment/FirstCommentRetryTest.php`
+- **Archivos**: `app/Services/FirstCommentService.php`, `app/Http/Controllers/FirstCommentController.php`, `app/Notifications/FirstCommentFailed.php`, `resources/js/Pages/Notifications/Index.vue`, `routes/web.php`, `tests/Feature/FirstComment/FirstCommentRetryTest.php`, `resources/js/Components/Composer/TargetStatusPanel.vue`, `app/Http/Controllers/PostController.php` (revisión 2: «Ya está publicado» y «Publicar igualmente» con confirmación; `first_comment_may_exist` en los props)
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/FirstComment/FirstCommentRetryTest.php` → verde (edita solo en `fallido`, reintenta con el texto vigente, 403 ajeno, aviso creado)
 
@@ -1617,3 +1617,13 @@ Lentes: A+B+C+D (C por ruta `AuthenticatedLayout.vue` · D por `SchedulerTool.ph
 | 8 | Minor | Ledger: T-07 `Archivos` cita `YouTubeConnector.php`, que no existe; la cabecera de la Fase 1 sigue `en-progreso`; T-16 dice «real Noneh» | T-06, T-07, T-16 | corregido (18a01fc) | Lente A gaps 2, 3 y 5 |
 | 9 | Minor | La anotación de alcance de T-50 no declara los dos candidatos de `docs/knowledge/candidates/pending/` ni `docs/roadmap/README.md` | T-50 | corregido (1a182a9) | Lente A gap 4 |
 | 10 | Minor | Con la cuota de YouTube agotada el comentario pasa a `fallido` a los ~6 min, aunque la cuota no se repone hasta el día siguiente | T-11 | anotado (degradación con aviso declarado) | Lente B (fuera de lente) |
+
+## Revisión de dos lentes — intento 2: Fase 1-2 (T-01..T-18) — 1 Important, 1 Minor
+
+Lentes: A+D (juntas) y B. Re-evaluación solo de lo corregido (`78e2a20..47b4228`). Los gaps 1, 2, 5, 6, 8 y 9 del intento 1 están resueltos. El gap 4 está resuelto en FB e IG; en YouTube no se puede verificar sin la API real (`searchTerms`; la evidencia de la documentación queda pendiente para el smoke M-01). El gap 3 cierra el bucle y el timeout, pero introduce el defecto 1. Tests: 312/312 y Publishing 142/142; `ledger-lint` y `scope-check` con exit 0.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | El «primer intento» se decide por `first_comment_attempts`, y Reintentar lo pone a 0. Con una búsqueda inconclusa, si el comentario pudo enviarse antes (timeout del POST que Meta sí creó), Reintentar lo crea a ciegas y queda duplicado. El mensaje de error pide justo esa acción | T-09, T-11, T-13 | pendiente | Lente B: `PostFirstComment.php:101`, `FirstCommentService.php:47-49`, `Comments.php:224`, `YouTubePublisher.php:337`; reproducido (probe2: 2 POST) |
+| 2 | Minor | El resumen de horas de la Fase 2 (1.60) no cuadra con la suma de sus tareas (1.94, incluido T-16 estimado) | T-16 | pendiente | Lente A+D: `tasks.md:50` frente a `:581` |
+| 3 | Minor | La rama nueva de `resumeComments` deja `fallido` sin el aviso FirstCommentFailed (en la práctica no se alcanza) | T-11 | pendiente | Lente B (fuera de lente): `PublishRecovery.php:155-158` |

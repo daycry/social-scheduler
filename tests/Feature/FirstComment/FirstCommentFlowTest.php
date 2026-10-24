@@ -17,6 +17,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Notifications\FirstCommentFailed;
 use App\Services\PublishOutcomes;
+use App\Services\PublishRecovery;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -206,4 +207,57 @@ test('editar el comentario fallido y reintentar envia el texto nuevo', function 
 
     expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Published)
         ->and($graph->callsTo('POST', '#/comments$#')[1]['params']['message'])->toBe('Texto nuevo');
+});
+
+test('un comentario que se cuelga una y otra vez no se reintenta sin fin: agotado, solo busca el propio y si no esta queda fallido', function () {
+    $graph = (new FakeGraph)->on('GET', '#^MEDIA1/comments$#', ['data' => []])->on('POST', '#^MEDIA1/comments$#', ['id' => 'NO']);
+    $t = flowTarget($this->ig, 'instagram_image');
+    $t->forceFill(['status' => PostStatus::Published, 'external_id' => 'MEDIA1', 'first_comment_status' => FirstCommentStatus::Commenting, 'first_comment_attempts' => 3, 'first_comment_at' => now()->subMinutes(30)])->save();
+
+    flowRun($t);
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($t->first_comment_error)->toContain('colgado')
+        ->and($t->first_comment_attempts)->toBe(3)->and($graph->callsTo('POST', '#/comments$#'))->toBe([]);
+    Notification::assertSentTo($this->user, FirstCommentFailed::class);
+});
+
+test('un comentario colgado y agotado que la red SI tiene se adopta sin fallar ni duplicar', function () {
+    $graph = (new FakeGraph)
+        ->on('GET', '#^MEDIA1/comments$#', ['data' => [['id' => 'C7', 'text' => 'Mas info en el enlace', 'username' => 'mimarca', 'timestamp' => '2026-11-01T11:50:00+0000']]])
+        ->on('POST', '#^MEDIA1/comments$#', ['id' => 'NO']);
+    $t = flowTarget($this->ig, 'instagram_image');
+    $t->forceFill(['status' => PostStatus::Published, 'external_id' => 'MEDIA1', 'first_comment_status' => FirstCommentStatus::Commenting, 'first_comment_attempts' => 3, 'first_comment_at' => now()->subMinutes(30)])->save();
+
+    flowRun($t);
+
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Published)->and($t->fresh()->first_comment_external_id)->toBe('C7')
+        ->and($graph->callsTo('POST', '#/comments$#'))->toBe([]);
+});
+
+test('editar el comentario mientras el job comenta no se admite y no se pisa el texto en vuelo', function () {
+    $t = flowTarget($this->ig, 'instagram_image');
+    $t->forceFill(['status' => PostStatus::Published, 'external_id' => 'MEDIA1', 'first_comment_status' => FirstCommentStatus::Commenting, 'first_comment_attempts' => 1, 'first_comment_at' => now()])->save();
+
+    $this->actingAs($this->user)->patch("/posts/{$t->post_id}/targets/{$t->id}/first-comment", ['first_comment' => 'Otro texto'])->assertSessionHasErrors('first_comment');
+    $this->actingAs($this->user)->post("/posts/{$t->post_id}/targets/{$t->id}/first-comment/retry")->assertSessionHasErrors('first_comment');
+
+    expect($t->fresh()->first_comment)->toBe('Mas info en el enlace')->and($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Commenting);
+});
+
+test('un fallo al guardar el id tras crear el comentario se cierra en la recuperacion sin duplicar', function () {
+    $graph = (new FakeGraph)
+        ->on('GET', '#^MEDIA1/comments$#', ['data' => [['id' => 'C5', 'text' => 'Mas info en el enlace', 'username' => 'mimarca', 'timestamp' => '2026-11-01T12:00:00+0000']]])
+        ->on('POST', '#^MEDIA1/comments$#', ['id' => 'C5']);
+    $t = flowTarget($this->ig, 'instagram_image');
+    $t->forceFill(['status' => PostStatus::Published, 'external_id' => 'MEDIA1', 'first_comment_status' => FirstCommentStatus::Pending, 'first_comment_attempts' => 0])->save();
+
+    // La red acepta el comentario, pero el worker muere antes de guardar el id: el destino queda `comentando`.
+    PostTarget::withoutUserScope()->whereKey($t->id)->update(['first_comment_status' => FirstCommentStatus::Commenting->value, 'first_comment_attempts' => 1, 'first_comment_at' => now()->subMinutes(30)]);
+
+    expect(app(PublishRecovery::class)->run()['comments'])->toBe(1);
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Published)->and($t->first_comment_external_id)->toBe('C5')
+        ->and($graph->callsTo('POST', '#/comments$#'))->toBe([]);
 });

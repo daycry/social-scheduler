@@ -630,31 +630,41 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-18 — Revisión de robustez del primer comentario
 
 - **Descripción**: Revisión específica de doble comentario y de estados colgados (LES-001, LES-009): carreras entre el job y la recuperación, edición concurrente y comentarios en `comentando` tras un `queue:restart`.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Un primer comentario que se cuelga repetidamente deja de reintentarse y queda fallido con aviso, sin crear comentarios duplicados.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.04h (medido)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-16, T-17
 - **Tipo**: docs
-- **Archivos**: `tests/Feature/FirstComment/FirstCommentFlowTest.php`, `docs/roadmap/2026-10-24-metricool-parity-2/tasks.md`
+- **Archivos**: `tests/Feature/FirstComment/FirstCommentFlowTest.php`, `app/Jobs/PostFirstComment.php`, `docs/roadmap/2026-10-24-metricool-parity-2/tasks.md`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/FirstComment tests/Feature/Publishing` → todos en verde
 
 **Criterios de aceptación**
-- [ ] Sin gaps Critical/Important abiertos.
-- [ ] Cada hallazgo corregido tiene test.
-- [ ] Sección «Revisión de dos lentes» anotada en la tarea.
+- [x] Sin gaps Critical/Important abiertos.
+- [x] Cada hallazgo corregido tiene test.
+- [x] Sección «Revisión de dos lentes» anotada en la tarea.
 
 **Subtareas**
-- [ ] Revisar carreras
-- [ ] Anotar hallazgos
+- [x] Revisar carreras
+- [x] Anotar hallazgos
 
 **Notas**: lectura: confirmar que no hay camino a un duplicado fuera de la ventana «la red aceptó, el worker murió antes de guardar el id».
 
+**Revisión de dos lentes** (autorrevisión del implementador; sin segundo revisor independiente)
+
+- Lente A (carreras e idempotencia). Job vs recuperación: seguras, `ShouldBeUnique` + reclamo con `lockForUpdate`; `comentando` reciente no se pisa. Edición/Reintentar concurrentes con el job: `FirstCommentService` relee con lock y solo actúa en `fallido` (test: en `comentando` se rechazan y no cambian el texto). Ventana «la red aceptó y el worker murió antes de guardar el id»: el siguiente intento (o el paso 6 de `PublishRecovery`) busca el comentario propio y lo adopta (tests con y sin job intermedio). `queue:restart`: el `comentando` colgado vuelve por `PublishRecovery` pasado `stuck_after_minutes`.
+- Lente B (estados colgados). **Hallazgo Important corregido:** un worker que muere siempre dejaba el comentario `comentando` y la recuperación lo relanzaba sin fin (los intentos crecían sin tope). Ahora, colgado con intentos agotados, el job solo consulta la red: si el comentario está lo adopta; si no, queda `fallido` con aviso y NO crea otro (dos tests). Resto de caminos a duplicado: ninguno fuera de la ventana declarada; el id guardado hace inocuo repetir el job.
+- Riesgos asumidos: el texto se compara normalizado (espacios) con el comentario propio, así que un comentario propio manual idéntico se adopta; la lista de Meta puede tardar en mostrar un comentario recién creado, pero el id ya queda guardado tras `comment()`. Sin gaps Critical/Important abiertos.
+
 ---
+
+**Evidencia**: tests/Feature/FirstComment + tests/Feature/Publishing: 199 passed. RED previo: el caso de comentario colgado y agotado volvia a comentar (2 fallos). Pint ok.
+
 
 ## Fase 3 — C-02 · Cuadrícula de Instagram
 

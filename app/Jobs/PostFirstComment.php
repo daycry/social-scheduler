@@ -57,11 +57,13 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
 
     public function handle(ConnectorRegistry $connectors): void
     {
-        $target = $this->claim();
+        $claim = $this->claim();
 
-        if ($target === null) {
+        if ($claim === null) {
             return; // nada que hacer: ya comentado, en vuelo en otro worker, resuelto o sin texto
         }
+
+        [$target, $exhausted] = $claim;
 
         $account = $target->social_account_id ? SocialAccount::withoutUserScope()->find($target->social_account_id) : null;
 
@@ -89,8 +91,16 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
 
         try {
             // Capas 2 y 3: la red manda. Si el comentario propio ya esta, se adopta; si no, se crea y se guarda el id.
-            $id = $commenter->findOwnComment($account, (string) $target->external_id, $text)
-                ?? $commenter->comment($account, (string) $target->external_id, $text);
+            $id = $commenter->findOwnComment($account, (string) $target->external_id, $text);
+
+            if ($id === null && $exhausted) {
+                // Colgado en el ultimo intento y la red no tiene constancia: no se crea otro, se da por fallido.
+                $this->settle($target, FirstCommentStatus::Failed, 'El comentario se quedo colgado varias veces y se dio por fallido. Pulsa Reintentar para volver a intentarlo.');
+
+                return;
+            }
+
+            $id ??= $commenter->comment($account, (string) $target->external_id, $text);
 
             $this->settle($target, FirstCommentStatus::Published, null, $id);
         } catch (CommentNotAllowedException $e) {
@@ -107,11 +117,17 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Reclama el destino de forma atomica. Devuelve el destino reclamado (en `comentando`, intento +1) o null.
+     * Reclama el destino de forma atomica. Devuelve [destino reclamado (en `comentando`), agotado] o null.
+     *
+     * `agotado` es `true` cuando el comentario se quedo colgado en el ultimo intento permitido: no cuenta otro intento ni
+     * crea otro comentario, solo consulta la red (como `PublishPostTarget`), para que un worker que muere siempre no reintente sin fin.
+     *
+     * @return array{0: PostTarget, 1: bool}|null
      */
-    private function claim(): ?PostTarget
+    private function claim(): ?array
     {
-        return DB::transaction(function (): ?PostTarget {
+        return DB::transaction(function (): ?array {
+            $exhausted = false;
             $target = PostTarget::withoutUserScope()->lockForUpdate()->find($this->targetId);
 
             if (! $target || $target->status !== PostStatus::Published || $target->external_id === null
@@ -124,17 +140,18 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
                 if ($target->first_comment_at === null || $target->first_comment_at->gt(now()->subMinutes($stuckAfter))) {
                     return null; // en vuelo en otro worker
                 }
+                $exhausted = (int) $target->first_comment_attempts >= (int) config('publishing.comment_max_attempts', 3);
             } elseif ($target->first_comment_status !== FirstCommentStatus::Pending) {
                 return null;
             }
 
             $target->forceFill([
                 'first_comment_status' => FirstCommentStatus::Commenting,
-                'first_comment_attempts' => (int) $target->first_comment_attempts + 1,
+                'first_comment_attempts' => $exhausted ? (int) $target->first_comment_attempts : (int) $target->first_comment_attempts + 1,
                 'first_comment_at' => now(),
             ])->save();
 
-            return $target;
+            return [$target, $exhausted];
         });
     }
 

@@ -38,7 +38,7 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `DB_CONNECTION` ... `DB_PASSWORD` | `mysql`, `127.0.0.1`, `3306`, `metricool`, `root` | MariaDB >= 10.6 / MySQL >= 8.0 |
 | `QUEUE_CONNECTION` | `database` | Sin Redis |
 | `DB_QUEUE_RETRY_AFTER` | `180` | Debe superar el `--timeout` del worker (120 s) |
-| `QUEUE_NAMES` | `publish,poll,metrics,reports` | Colas que atienden los workers |
+| `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers |
 
 ## Media (disco local o R2)
 

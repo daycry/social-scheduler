@@ -59,4 +59,4 @@ Las transiciones válidas están en `App\Enums\PostStatus::allowedNext()`. `publ
 
 ## Colas
 
-Cuatro colas en `config/queue.php` (`QUEUE_NAMES`): `publish`, `poll`, `metrics`, `reports`. Plazos encadenados: `$timeout` del job (110 s) < `--timeout` del worker (120 s) < `retry_after` (180 s, `DB_QUEUE_RETRY_AFTER`). Ver [publicación](modulos/publicacion.md).
+Cinco colas en `config/queue.php` (`QUEUE_NAMES`): `publish`, `poll`, `metrics`, `reports` y `media` (importación de media desde URL o Drive, con su propio worker `ss-media`). Plazos encadenados: `$timeout` del job (110 s) < `--timeout` del worker (120 s) < `retry_after` (180 s, `DB_QUEUE_RETRY_AFTER`). Ver [publicación](modulos/publicacion.md).

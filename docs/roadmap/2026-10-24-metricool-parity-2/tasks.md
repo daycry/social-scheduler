@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 7 | 9 | 78% | 0 / 24,5h | 1.55 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 8 | 9 | 89% | 0 / 24,5h | 1.63 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1351,29 +1351,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-40 — Despliegue Hestia: cola `media` con su worker y cron
 
 - **Descripción**: Cuarta línea de cron `ss-media` (`flock -n`, `--queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3`), `media` en `QUEUE_NAMES` y documentación del despliegue. Requisito: D5 (cola nueva con su worker).
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La guía de despliegue en Hestia añade un cuarto cron (ss-media) para importar media, con su cola «media» y cómo procesarla a mano.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0.08 (estimado)
 - **Supervisión**: est. 0,03h (≈25 % IA) · real —
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-35
 - **Tipo**: devops
-- **Archivos**: `deploy/hestia/README.md`, `deploy/hestia/deploy.sh`, `docs/modulos/despliegue.md`, `docs/modulos/media.md`
+- **Archivos**: `deploy/hestia/README.md`, `deploy/hestia/deploy.sh`, `docs/modulos/despliegue.md`, `docs/modulos/media.md`, `docs/referencia/configuracion.md`, `docs/arquitectura.md`
 - **Cubre (tests)**: —
 - **Verificación**: `grep -n "ss-media" deploy/hestia/README.md docs/modulos/despliegue.md` → al menos una coincidencia en cada fichero
 
 **Criterios de aceptación**
-- [ ] El cron nuevo sigue el patrón de `ss-publish` y `ss-metrics`.
-- [ ] `--timeout` < `retry_after` (180 s).
-- [ ] Documentado cómo procesar la cola a mano.
+- [x] El cron nuevo sigue el patrón de `ss-publish` y `ss-metrics`.
+- [x] `--timeout` < `retry_after` (180 s).
+- [x] Documentado cómo procesar la cola a mano.
 
 **Subtareas**
-- [ ] Línea de cron
-- [ ] Documentación y solución de problemas
+- [x] Línea de cron
+- [x] Documentación y solución de problemas
 
 **Notas**: `deploy/hestia/README.md:84-87` (líneas `ss-publish` y `ss-metrics`); `docs/modulos/despliegue.md:112`.
+
+**Evidencia**: Caracterización: tests/Feature/Infra en verde antes de tocar (T-34). Verificación: grep -n "ss-media" → deploy/hestia/README.md (2 coincidencias) y docs/modulos/despliegue.md (4). --timeout=120 < retry_after=180. deploy.sh no necesita cambios (WORKER_UNITS es una variable del llamador). Pendiente del usuario en producción: añadir `media` a QUEUE_NAMES del .env si lo define y crear el cron 4 en Hestia.
 
 ### T-41 — Revisión de seguridad SSRF de la importación
 

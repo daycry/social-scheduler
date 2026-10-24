@@ -56,7 +56,7 @@ El scheduler (`schedule:run`, cada minuto) solo **encola** el trabajo; los **wor
 
 ### 5.1 Opción A: desde el panel de Hestia (cron), la de este despliegue
 
-En **Hestia → usuario → CRON → Añadir tarea**, tres tareas. `<USUARIO>`/`<DOMINIO>` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
+En **Hestia → usuario → CRON → Añadir tarea**, cuatro tareas. `<USUARIO>`/`<DOMINIO>` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
 
 **Antes de crear los workers: `pcntl` en el PHP de consola.** `queue:work` usa `pcntl_signal` para cortar un job colgado (`--timeout`) y pararse limpio. Hestia lo deja en `disable_functions`, y el worker falla con `Call to undefined function Illuminate\Queue\pcntl_signal()`. Se habilita **solo en el PHP de consola** (`cli`), no en el de la web (PHP-FPM), como root:
 
@@ -73,6 +73,7 @@ Repite el `sed` si una actualización de PHP o de Hestia restaura el `php.ini`.
 | 1 | **Scheduler**: encola lo que toca (publicaciones vencidas, métricas, comentarios, autolistas, limpiezas) | `*` | `*` | `*` | `*` | `*` |
 | 2 | **Worker de publicación**: colas `publish` y `poll` | `*` | `*` | `*` | `*` | `*` |
 | 3 | **Worker de métricas e informes**: colas `metrics` y `reports` | `*/5` | `*` | `*` | `*` | `*` |
+| 4 | **Worker de importación de media**: cola `media` (descargas desde URL o Drive) | `*` | `*` | `*` | `*` | `*` |
 
 Comandos (uno por tarea, en una sola línea):
 
@@ -85,6 +86,9 @@ cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-
 
 # 3. Worker de métricas e informes
 cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-metrics.lock /usr/bin/php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-metrics.log 2>&1
+
+# 4. Worker de importación de media (URL y Drive)
+cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-media.lock /usr/bin/php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-media.log 2>&1
 ```
 
 Qué hace cada opción:
@@ -93,7 +97,7 @@ Qué hace cada opción:
 |---|---|
 | `flock -n <lock>` | Si el worker anterior sigue trabajando, el nuevo no arranca: nunca hay dos a la vez sobre la misma cola. `~/tmp` existe en Hestia y es privado del usuario |
 | `--stop-when-empty` | El worker termina al vaciar la cola, en vez de quedarse vivo |
-| `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min) |
+| `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min). El de `media` va cada minuto con `280` y el `flock` evita el solape |
 | `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
 
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
@@ -123,16 +127,16 @@ Si la analítica sale «no disponible» tras conectar una cuenta, ver `docs/modu
 
 ### 5.4 Si algo no se ejecuta
 
-Los comandos escriben su salida en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`): lo primero es mirarla.
+Los comandos escriben su salida en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`, `ss-media.log`): lo primero es mirarla.
 
 | Síntoma | Causa | Solución |
 |---|---|---|
 | `app:health`: `scheduler FAIL sin latido` | `schedule:run` no se ha ejecutado en los últimos 10 min (el latido caduca a los 600 s) | `tail ~/tmp/ss-schedule.log`: debe verse `Running [health-heartbeat] … DONE` cada minuto. Un `schedule:run` a mano solo lo arregla 10 minutos |
 | `~/tmp/ss-schedule.log` no existe | El cron no ejecuta la tarea | Como root: `systemctl status cron`, `crontab -u <USUARIO> -l`, `journalctl -u cron --since "-10 min"`; si no aparece, `v-rebuild-cron-jobs <USUARIO>` y `systemctl restart cron`. Comprueba que la tarea no está suspendida (`v-list-cron-jobs <USUARIO>`) |
-| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las tres tareas |
+| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las cuatro tareas |
 | `Call to undefined function … pcntl_signal()` | `pcntl` desactivado en el PHP de consola | Ver «Antes de crear los workers» arriba |
 | Publicaciones que salen con minutos de retraso y `dispatch-due-posts` no aparece cada minuto en el log | Bloqueo de solapamiento enganchado (p. ej. tras lanzar `schedule:run` a mano a la vez que el cron) | `php artisan schedule:clear-cache` y no lanzar `schedule:run` a mano con el cron activo |
-| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log` o `ss-metrics.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
+| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log` o `ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
 
 ## 5 bis. Primer usuario [VPS]
 

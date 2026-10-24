@@ -46,14 +46,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 4 | 6 | 67% | 0 / 16,5h | 0,48 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 1 — C-01a · Textos guardados | 5 | 6 | 83% | 0 / 16,5h | 0,63 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **4** | **50** | **8%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **5** | **50** | **10%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -203,11 +203,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-05 — E2E de textos guardados con axe y sin desbordamiento
 
 - **Descripción**: Playwright de la página de ajustes y del menú del compositor en desktop, 375 y 360 px, con axe y `expectNoOverflow`. Requisito: CA-01..CA-03.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Textos guardados cubiertos con pruebas de navegador en escritorio y móvil, con accesibilidad y sin desbordamiento.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0.15h (medido)
 - **Supervisión**: est. 0,08h (≈25 % IA) · real —
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-03, T-04
@@ -219,15 +220,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npx playwright test tests/e2e/saved-texts.spec.ts --project=mobile-360` → todos pasan, sin desbordamiento
 
 **Criterios de aceptación**
-- [ ] 0 violaciones `serious`/`critical` de axe.
-- [ ] Sin desbordamiento horizontal a 375 y 360 px.
-- [ ] Solo usuarios `e2e-sec-*` y marcas `e2e-`.
+- [x] 0 violaciones `serious`/`critical` de axe.
+- [x] Sin desbordamiento horizontal a 375 y 360 px.
+- [x] Solo usuarios `e2e-sec-*` y marcas `e2e-`.
 
 **Subtareas**
-- [ ] Spec del CRUD
-- [ ] Spec de inserción en el cursor
+- [x] Spec del CRUD
+- [x] Spec de inserción en el cursor
 
 **Notas**: Patrón: `tests/e2e/composer.spec.ts` y los helpers de `tests/e2e/helpers.ts` (`loginAs`, `expectNoOverflow`, `borrarMarcasE2e`).
+
+**Evidencia**: saved-texts.spec.ts: desktop 2/2, mobile 2/2, mobile-360 2/2 (E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test, tras npm run build); axe sin serious/critical y 0 px de desbordamiento. Requirio aplicar migrate en la BD de desarrollo.
 
 ### T-06 — Documentación y revisión de C-01a
 

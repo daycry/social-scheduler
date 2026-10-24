@@ -553,3 +553,30 @@ export async function chooseContentType(page: Page, account: number | RegExp, la
     await page.getByRole('option', { name: new RegExp(`^${label}`) }).click();
     await expect(button).toContainText(label);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Textos guardados (C-01a): datos `e2e-` del usuario E2E. Los de una marca se van con ella (cascade); los de «Todas las marcas» se borran aparte.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Borra los textos guardados con título `e2e-…` del usuario E2E (los de marca ya se fueron con `cleanComposerBrands`). */
+export function cleanSavedTexts(email: string) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->first(); ` +
+            `if ($u) { App\\Models\\SavedText::withoutUserScope()->where('user_id', $u->id)->where('title', 'like', 'e2e-%')->delete(); }`,
+    );
+}
+
+/**
+ * Siembra tres textos: uno de «Todas las marcas» (hashtags), uno de la marca y uno de otra marca `e2e-composer-otra-…`.
+ * El de la otra marca NO debe aparecer en el compositor de `brandId`.
+ */
+export function seedSavedTexts(email: string, brandId: number, label: string) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `$other = App\\Models\\Brand::factory()->for($u)->create(['name' => ${q(`e2e-composer-otra-${label}`)}]); ` +
+            `$mk = fn ($brand, $kind, $title, $body) => App\\Models\\SavedText::factory()->create(['user_id' => $u->id, 'brand_id' => $brand, 'kind' => $kind, 'title' => $title, 'body' => $body]); ` +
+            `$mk(null, 'hashtags', 'e2e-hashtags-globales', '#uno #dos'); ` +
+            `$mk(${brandId}, 'fragmento', 'e2e-firma-marca', 'Un saludo de la marca'); ` +
+            `$mk($other->id, 'fragmento', 'e2e-texto-otra-marca', 'No debe verse');`,
+    );
+}

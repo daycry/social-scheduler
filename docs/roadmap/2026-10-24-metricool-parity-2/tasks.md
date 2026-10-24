@@ -870,11 +870,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-25 — `CampaignService`, controlador y validación
 
 - **Descripción**: CRUD de campañas con archivo, propiedad y validación. Requisito: CA-12, CA-13.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Se pueden crear, editar, archivar y borrar campañas de una marca; las de otro usuario devuelven 403.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,47h · real —
+- **Tiempo IA (ejec.)**: est. 0,47h · real 0.14h (medido)
 - **Supervisión**: est. 0,12h (≈25 % IA) · real —
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-24
@@ -884,15 +885,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Campaigns/CampaignCrudTest.php` → verde (CRUD, archivo y 403 ajeno)
 
 **Criterios de aceptación**
-- [ ] Alta, edición, archivo y borrado funcionan.
-- [ ] Otro usuario recibe 403.
-- [ ] Las fechas validan que fin ≥ inicio.
+- [x] Alta, edición, archivo y borrado funcionan.
+- [x] Otro usuario recibe 403.
+- [x] Las fechas validan que fin ≥ inicio.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Servicio, controlador y política
+- [x] Test RED
+- [x] Servicio, controlador y política
 
 **Notas**: Patrón: `app/Services/ComposerPresetService.php` y `app/Policies/PostTemplatePolicy.php`.
+
+**Evidencia**: CampaignCrudTest: 4 passed; CampaignModelTest sigue verde (8 tests, 37 assertions en Campaigns). RED previo: rutas campaigns.* inexistentes.
 
 ### T-26 — Página de campañas: lista, alta, edición, archivo y color
 

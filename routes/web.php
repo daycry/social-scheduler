@@ -4,6 +4,7 @@ use App\Connectors\Network;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FirstCommentController;
@@ -99,6 +100,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('settings/saved-texts', [SavedTextController::class, 'store'])->name('saved-texts.store');
     Route::put('settings/saved-texts/{id}', [SavedTextController::class, 'update'])->whereNumber('id')->name('saved-texts.update');
     Route::delete('settings/saved-texts/{id}', [SavedTextController::class, 'destroy'])->whereNumber('id')->name('saved-texts.destroy');
+
+    // Campañas (C-03). {id} a mano: la campaña de otro usuario responde 403, no 404.
+    Route::post('campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
+    Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->name('campaigns.update');
+    Route::put('campaigns/{id}/archive', [CampaignController::class, 'archive'])->whereNumber('id')->name('campaigns.archive');
+    Route::delete('campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id')->name('campaigns.destroy');
 
     // API keys personales para el MCP (T-28).
     Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');

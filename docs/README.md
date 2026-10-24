@@ -23,7 +23,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Módulo | Página | Código principal |
 |---|---|---|
 | Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
-| Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php` |
+| Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php`, `app/Services/SavedTextService.php` |
 | Media y validación | [media.md](modulos/media.md) | `app/Services/Media*.php`, `config/media_specs.php` |
 | Calendario | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php` |
 | Analítica y snapshots | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php` |

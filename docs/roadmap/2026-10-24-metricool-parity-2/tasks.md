@@ -46,14 +46,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 5 | 6 | 83% | 0 / 16,5h | 0,63 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 1 — C-01a · Textos guardados | 6 | 6 | 100% | 0 / 16,5h | 0,66 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **5** | **50** | **10%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **6** | **50** | **12%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -235,11 +235,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-06 — Documentación y revisión de C-01a
 
 - **Descripción**: Documentar los textos guardados (guía de usuario y módulo de publicación) y revisar propiedad y aislamiento antes de cerrar la entrega.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La guía de usuario explica cómo crear, filtrar e insertar textos guardados en el compositor.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0.03h (medido)
 - **Supervisión**: est. 0,05h (≈25 % IA) · real —
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
@@ -249,17 +250,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `grep -n "Textos guardados" docs/usuario/guia-de-usuario.md docs/modulos/publicacion.md` → al menos una coincidencia en cada fichero
 
 **Criterios de aceptación**
-- [ ] La guía explica cómo crear, filtrar por marca e insertar un texto.
-- [ ] El módulo describe la tabla y la política.
-- [ ] Revisión de propiedad hecha: ningún endpoint devuelve textos ajenos.
+- [x] La guía explica cómo crear, filtrar por marca e insertar un texto.
+- [x] El módulo describe la tabla y la política.
+- [x] Revisión de propiedad hecha: ningún endpoint devuelve textos ajenos.
 
 **Subtareas**
-- [ ] Redactar documentación
-- [ ] Revisión de robustez de propiedad
+- [x] Redactar documentación
+- [x] Revisión de robustez de propiedad
 
 **Notas**: lectura: contrastar con CA-01..CA-03.
 
 ---
+
+**Evidencia**: grep "Textos guardados": guia 1 coincidencia, modulo 1. Revision de propiedad: SavedTextCrudTest (403 ajeno en update y delete), SavedTextModelTest y list/forBrand filtran por user_id: ningun endpoint devuelve textos ajenos.
 
 ## Fase 2 — C-01b · Primer comentario (IG, FB y YT)
 

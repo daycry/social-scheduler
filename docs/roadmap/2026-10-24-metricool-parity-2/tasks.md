@@ -180,7 +180,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/EditorToolbar.vue`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/SavedTextsMenu.vue`, `resources/js/Composables/useComposer.js`, `app/Http/Controllers/PostController.php`, `tests/Feature/SavedTexts/SavedTextsComposerPropsTest.php`
+- **Archivos**: `resources/js/Components/Composer/EditorToolbar.vue`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/SavedTextsMenu.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `app/Http/Controllers/PostController.php`, `tests/Feature/SavedTexts/SavedTextsComposerPropsTest.php`
 - **Cubre (tests)**: E2E-02
 - **Verificación**:
   - `php artisan test --compact tests/Feature/SavedTexts/SavedTextsComposerPropsTest.php` → verde (props del compositor: la marca A ve «Todas» y A, no B)
@@ -196,7 +196,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `SavedTextsMenu.vue` y campo activo
 - [x] Inserción en el cursor
 
-**Notas**: Patrón: `resources/js/Composables/useComposer.js` y `textCount.js`; menú hermano `resources/js/Components/Composer/EmojiPicker.vue`. El campo del primer comentario (T-14) reutiliza el campo activo.
+**Notas**: Añadido `Compose.vue` a Archivos (declara la prop `savedTexts`; no estaba en el plan). Patrón: `resources/js/Composables/useComposer.js` y `textCount.js`; menú hermano `resources/js/Components/Composer/EmojiPicker.vue`. El campo del primer comentario (T-14) reutiliza el campo activo.
 
 **Evidencia**: SavedTextsComposerPropsTest verde (tests/Feature/SavedTexts + Posts: 102 passed); RED previo: savedTexts ausente; npm run build exit 0. Inserción en cursor y contador: se cubren en E2E-02 (T-05).
 

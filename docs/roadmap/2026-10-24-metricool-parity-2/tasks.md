@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 6 | 9 | 67% | 0 / 24,5h | 1.45 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 7 | 9 | 78% | 0 / 24,5h | 1.55 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1320,11 +1320,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-39 — E2E de importación por URL con axe
 
 - **Descripción**: Playwright: el flujo «Desde URL» con una URL rechazada por `UrlGuard` (la importación real se prueba en Pest), a 375 y 360 px. Requisito: CA-15.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Cubierto por pruebas automáticas: pegar una dirección interna en «Desde URL» muestra el error en español y no importa nada, en escritorio y móvil.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0.10 (estimado)
 - **Supervisión**: est. 0,05h (≈25 % IA) · real —
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-37
@@ -1336,14 +1337,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npx playwright test tests/e2e/media-import.spec.ts --project=mobile-360` → todos pasan, sin desbordamiento
 
 **Criterios de aceptación**
-- [ ] Se muestra el error en español para una IP interna.
-- [ ] 0 violaciones `serious`/`critical` de axe.
-- [ ] Sin desbordamiento a 375 y 360 px.
+- [x] Se muestra el error en español para una IP interna.
+- [x] 0 violaciones `serious`/`critical` de axe.
+- [x] Sin desbordamiento a 375 y 360 px.
 
 **Subtareas**
-- [ ] Spec
+- [x] Spec
 
 **Notas**: Patrón: `tests/e2e/composer.spec.ts`.
+
+**Evidencia**: npm run build exit 0; media-import.spec.ts (E2E_NO_SERVER=1, https://metricool.test): desktop 2 passed, mobile 2 passed, mobile-360 2 passed (axe sin serious/critical, sin desbordamiento, sin errores de consola salvo el 422 esperado; solo marcas e2e-composer-*).
 
 ### T-40 — Despliegue Hestia: cola `media` con su worker y cron
 

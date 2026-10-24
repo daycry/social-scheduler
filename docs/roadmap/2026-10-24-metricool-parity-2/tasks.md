@@ -774,30 +774,33 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-22 — E2E de la cuadrícula con axe y sin desbordamiento
 
 - **Descripción**: Playwright de la cuadrícula en desktop, 375 y 360 px, con axe. Requisito: CA-10.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La cuadrícula de Instagram queda cubierta por una prueba de extremo a extremo en escritorio y móvil (375 y 360 px), sin desbordamiento y con accesibilidad comprobada.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.04h (medido)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-21
 - **Tipo**: test
-- **Archivos**: `tests/e2e/instagram-grid.spec.ts`
+- **Archivos**: `tests/e2e/instagram-grid.spec.ts`, `tests/e2e/helpers.ts` (siembra de la cuadrícula)
 - **Cubre (tests)**: E2E-05
 - **Verificación**:
   - `npx playwright test tests/e2e/instagram-grid.spec.ts --project=desktop` → todos pasan
   - `npx playwright test tests/e2e/instagram-grid.spec.ts --project=mobile` → todos pasan, sin desbordamiento
 
 **Criterios de aceptación**
-- [ ] 0 violaciones `serious`/`critical` de axe.
-- [ ] Sin desbordamiento a 375 y 360 px.
-- [ ] Datos solo con marcas `e2e-`.
+- [x] 0 violaciones `serious`/`critical` de axe.
+- [x] Sin desbordamiento a 375 y 360 px.
+- [x] Datos solo con marcas `e2e-`.
 
 **Subtareas**
-- [ ] Spec de cuadrícula
+- [x] Spec de cuadrícula
 
 **Notas**: Patrón: `tests/e2e/pages.spec.ts`.
+
+**Evidencia**: npm run build ok; instagram-grid.spec.ts: desktop 1 passed, mobile 1 passed, mobile-360 1 passed (axe sin serious/critical, sin desbordamiento, sin errores de consola; Story fuera; Graph nunca llamado: publicadas sembradas en cache).
 
 ### T-23 — Documentación y revisión de C-02
 

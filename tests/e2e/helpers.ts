@@ -614,3 +614,41 @@ export function firstCommentOf(targetId: number): { status: string; text: string
     );
     return JSON.parse(out.match(/FC:(\{.*\})/)![1]);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Cuadrícula de Instagram (C-02): lo publicado se siembra en la caché de 10 min (nunca se llama a Graph) y lo programado en la BD.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type GridSeed = { accountId: number; later: number; earlier: number; story: number };
+
+/**
+ * Cuenta de Instagram de la marca E2E con tres publicadas «leídas» (caché `ig-grid:{cuenta}`, 10 min), dos posts programados
+ * (`later` es el más tardío) y una Story programada que NO debe aparecer. Miniaturas como `data:` URI: sin red.
+ */
+export function seedInstagramGrid(email: string, brandId: number): GridSeed {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$mk = fn ($type, $text, $at) => $svc->create($u, $b, ['text' => $text, 'schedule' => true, 'scheduled_at' => $at, 'media' => [App\Models\MediaAsset::factory()->for($u)->create()->id], 'targets' => [['account_id' => $ig->id, 'content_type' => $type]]]); ` +
+            String.raw`$when = now()->addDays(3)->setTimezone($b->timezone); ` +
+            String.raw`$earlier = $mk('instagram_image', 'e2e grid programada 1', $when->copy()->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$later = $mk('instagram_image', 'e2e grid programada 2', $when->copy()->addDay()->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$story = $mk('instagram_story', 'e2e grid story', $when->copy()->addDays(2)->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$svg = fn ($c) => 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="' . $c . '"/></svg>'); ` +
+            String.raw`$pub = fn ($id, $type, $c, $day) => ['kind' => 'published', 'id' => $id, 'target_id' => null, 'post_id' => null, 'type' => $type, 'image_url' => $svg($c), 'video_url' => null, 'permalink' => 'https://www.instagram.com/p/' . $id . '/', 'timestamp' => now()->subDays($day)->toIso8601String()]; ` +
+            String.raw`Illuminate\Support\Facades\Cache::put('ig-grid:' . $ig->id, [$pub('e2eP1', 'IMAGE', '#4f46e5', 1), $pub('e2eP2', 'VIDEO', '#0d9488', 2), $pub('e2eP3', 'CAROUSEL_ALBUM', '#be123c', 3)], now()->addMinutes(10)); ` +
+            String.raw`echo 'GRID:' . $ig->id . ',' . $later->id . ',' . $earlier->id . ',' . $story->id;`,
+    );
+    const [accountId, later, earlier, story] = out.match(/GRID:([\d,]+)/)![1].split(',');
+    return { accountId: Number(accountId), later: Number(later), earlier: Number(earlier), story: Number(story) };
+}
+
+/** Vacía la caché de la cuadrícula de las cuentas de Instagram del usuario E2E. */
+export function cleanInstagramGridCache(email: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); ` +
+            String.raw`if ($u) { App\Models\SocialAccount::withoutUserScope()->where('user_id', $u->id)->where('network', 'instagram')->pluck('id')->each(fn ($id) => Illuminate\Support\Facades\Cache::forget('ig-grid:' . $id)); }`,
+    );
+}

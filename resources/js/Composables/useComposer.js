@@ -13,6 +13,8 @@ export function useComposer(props) {
     const accounts = computed(() => props.accounts);
     const contentTypes = computed(() => props.contentTypes);
     const limits = computed(() => props.limits ?? {});
+    // Máximo del primer comentario por tipo (C-01b); los tipos sin entrada (TikTok, Stories) no lo admiten.
+    const firstCommentMax = computed(() => props.firstCommentMax ?? {});
     const editable = computed(() => !props.post || props.post.editable);
 
     const form = useForm({
@@ -27,6 +29,7 @@ export function useComposer(props) {
             content_type: t.content_type,
             // `null` = vinculado al texto común (plantilla); una cadena = texto propio de esta red (C-03).
             text: t.text ?? null,
+            first_comment: t.first_comment ?? '',
             options: { ...(t.options ?? {}) },
         })),
     });
@@ -107,12 +110,14 @@ export function useComposer(props) {
         seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
         pruneOptions();
         applyPresets(changed);
+        // Un tipo que no admite primer comentario (Story, TikTok) no arrastra el texto del tipo anterior.
+        for (const t of changed) if (firstCommentMax.value[t.content_type] == null) t.first_comment = '';
     });
 
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
             const type = typesOf(account.network)[0]?.value;
-            form.targets.push({ account_id: account.id, content_type: type, text: null, options: presetOptions(account, type) });
+            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', options: presetOptions(account, type) });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }
@@ -292,7 +297,7 @@ export function useComposer(props) {
     };
 
     const api = {
-        post, brand, accounts, contentTypes, limits, editable, form,
+        post, brand, accounts, contentTypes, limits, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,

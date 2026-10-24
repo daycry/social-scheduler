@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
 use App\Models\Brand;
 use App\Models\MediaAsset;
@@ -205,4 +206,50 @@ test('Compose: el compositor recibe los maximos de texto y hashtags por tipo', f
     $post = app(PostService::class)->create($this->user, $this->brand, composeBody());
     $this->actingAs($this->user)->get(route('posts.edit', $post))
         ->assertInertia(fn (Assert $page) => $page->where('limits.instagram_image.max_hashtags', 30));
+});
+
+test('Compose: el compositor recibe el maximo del primer comentario por tipo y no lo ofrece en Stories ni TikTok (C-01b)', function () {
+    $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('firstCommentMax.instagram_image', 2200)
+            ->where('firstCommentMax.facebook_photo', 8000)
+            ->where('firstCommentMax.youtube_video', 10000)
+            ->missing('firstCommentMax.instagram_story')
+            ->missing('firstCommentMax.tiktok_video')
+            ->where('accounts.0.can_comment', true));
+});
+
+test('Compose: YouTube sin el permiso de comentarios llega con can_comment a falso para pedir la reconexion (C-01b)', function () {
+    $old = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::YouTube, 'scopes' => ['https://www.googleapis.com/auth/youtube']]);
+    $new = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::YouTube, 'scopes' => ['https://www.googleapis.com/auth/youtube', 'https://www.googleapis.com/auth/youtube.force-ssl']]);
+
+    $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))
+        ->assertInertia(function (Assert $page) use ($old, $new) {
+            $yt = collect($page->toArray()['props']['accounts'])->where('network', 'youtube')->keyBy('id');
+            expect($yt[$old->id]['can_comment'])->toBeFalse()->and($yt[$new->id]['can_comment'])->toBeTrue();
+        });
+});
+
+test('Compose: el destino editado lleva su primer comentario, su estado y el motivo del fallo (C-01b)', function () {
+    $post = app(PostService::class)->create($this->user, $this->brand, composeBody([
+        'targets' => [['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'first_comment' => 'Mas info en el enlace']],
+    ]));
+    $target = $post->targets()->first();
+    $target->forceFill(['first_comment_status' => FirstCommentStatus::Failed, 'first_comment_error' => 'Comentarios cerrados'])->save();
+
+    $this->actingAs($this->user)->get(route('posts.edit', $post))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('post.targets.0.id', $target->id)
+            ->where('post.targets.0.first_comment', 'Mas info en el enlace')
+            ->where('post.targets.0.first_comment_status', 'fallido')
+            ->where('post.targets.0.first_comment_status_label', 'Fallido')
+            ->where('post.targets.0.first_comment_error', 'Comentarios cerrados'));
+});
+
+test('Compose: guardar con un primer comentario por encima del maximo se rechaza en el destino (C-01b)', function () {
+    $body = composeBody(['targets' => [['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'first_comment' => str_repeat('a', 2201)]]]);
+
+    $this->actingAs($this->user)->from(route('brands.posts.create', $this->brand))->post(route('brands.posts.store', $this->brand), $body)
+        ->assertSessionHasErrors('targets.0');
+    expect(Post::withoutUserScope()->count())->toBe(0);
 });

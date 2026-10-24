@@ -22,6 +22,7 @@ const props = defineProps({
     contentTypes: Object,
     typeLabels: { type: Object, default: () => ({}) },
     limits: Object,
+    firstCommentMax: { type: Object, default: () => ({}) },
     presets: Object,
     savedTexts: { type: Array, default: () => [] },
     post: Object,

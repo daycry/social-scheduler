@@ -497,32 +497,36 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-14 — UI del primer comentario: campo por destino, contador, estado, editar y Reintentar
 
 - **Descripción**: Campo `textarea` de primer comentario por destino con contador por red, oculto en TikTok y Stories, con inserción de textos guardados, estado y botones Editar/Reintentar en `TargetStatusPanel`. Requisito: CA-05, CA-06.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El compositor permite escribir un primer comentario por destino (Instagram, Facebook y YouTube), con contador, estado, edición y Reintentar si falla.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.2h (medido)
 - **Supervisión**: est. 0,17h (≈25 % IA) · real —
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-04, T-12, T-13
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Components/Composer/TargetStatusPanel.vue`, `resources/js/Composables/useComposer.js`, `tests/Feature/Posts/Compose/ComposeTest.php`
+- **Archivos**: `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Components/Composer/TargetStatusPanel.vue`, `resources/js/Composables/useComposer.js`, `tests/Feature/Posts/Compose/ComposeTest.php`, `resources/js/Components/Composer/FirstCommentField.vue`, `resources/js/Pages/Posts/Compose.vue`, `app/Http/Controllers/PostController.php`
 - **Cubre (tests)**: E2E-03, E2E-04, M-01
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Posts/Compose/ComposeTest.php` → verde (props del destino con `first_comment` y su estado)
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] El campo aparece en IG, FB y YT, y no en TikTok ni en Stories.
-- [ ] El estado del comentario se ve en `TargetStatusPanel`, con Reintentar y edición del texto cuando está `fallido`.
-- [ ] El contador respeta el máximo de la red.
+- [x] El campo aparece en IG, FB y YT, y no en TikTok ni en Stories.
+- [x] El estado del comentario se ve en `TargetStatusPanel`, con Reintentar y edición del texto cuando está `fallido`.
+- [x] El contador respeta el máximo de la red.
 
 **Subtareas**
-- [ ] Test RED de props
-- [ ] Campo y contador
-- [ ] Estado, editar y Reintentar
+- [x] Test RED de props
+- [x] Campo y contador
+- [x] Estado, editar y Reintentar
 
 **Notas**: Patrón: `resources/js/Components/Composer/TargetStatusPanel.vue` y `TargetOptions.vue`. La inserción de textos guardados reutiliza el campo activo de T-04.
+
+**Evidencia**: ComposeTest + Posts + FirstComment: 141 passed; RED previo: 2 de 18 fallaban sin el controlador. npm run build OK. UI verificada por E2E en T-17. pint --test: passed.
+
 
 ### T-15 — Paridad MCP del primer comentario (`PostPayload`, `create_post`, `update_post`, `get_post`)
 

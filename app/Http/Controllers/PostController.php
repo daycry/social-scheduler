@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
@@ -172,6 +173,8 @@ class PostController extends Controller
                 'username' => $a->username,
                 'status' => $a->status,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
+                // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
+                'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),
             ])->values(),
             // Tipos por red con sus limitaciones (T-21): el formulario las avisa al elegir el tipo.
             'contentTypes' => collect(Network::cases())->mapWithKeys(fn (Network $n) => [
@@ -190,6 +193,9 @@ class PostController extends Controller
 
                 return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
             }),
+            // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
+            'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()
+                ->mapWithKeys(fn (ContentType $t) => [$t->value => config("media_specs.types.{$t->value}.first_comment.max")])->filter(),
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
             'savedTexts' => $this->savedTexts->forBrand($user, $brand->id), // textos guardados de la marca + «Todas las marcas» (C-01a)
             'post' => $post ? $this->postProps($post) : null,
@@ -214,6 +220,7 @@ class PostController extends Controller
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media' => $post->media()->get()->map->toPublicArray()->values(),
             'targets' => $targets->map(fn (PostTarget $t) => [
+                'id' => $t->id,
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
                 'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
@@ -223,6 +230,11 @@ class PostController extends Controller
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,
                 'external_url' => $t->external_url,
+                // Primer comentario (C-01b) y su estado, independiente del estado de publicacion.
+                'first_comment' => $t->first_comment,
+                'first_comment_status' => $t->first_comment_status?->value,
+                'first_comment_status_label' => $t->first_comment_status?->label(),
+                'first_comment_error' => $t->first_comment_error,
             ])->values(),
         ];
     }

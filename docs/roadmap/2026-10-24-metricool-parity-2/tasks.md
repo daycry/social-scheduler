@@ -900,31 +900,34 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-26 — Página de campañas: lista, alta, edición, archivo y color
 
 - **Descripción**: `Pages/Campaigns/Index.vue` con la gestión completa y entrada de navegación. Requisito: CA-13.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nueva página Campañas, en Planificación, para crear, editar, archivar, restaurar y borrar las campañas de la marca, con su color y fechas.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.1h (medido)
 - **Supervisión**: est. 0,14h (≈25 % IA) · real —
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-25
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Campaigns/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Feature/Ui/CampaignsPageTest.php`
+- **Archivos**: `resources/js/Pages/Campaigns/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/navigation.js` (la entrada de navegación vive aquí, no en el layout), `app/Http/Controllers/CampaignController.php`, `routes/web.php`, `tests/Feature/Ui/CampaignsPageTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/CampaignsPageTest.php` → verde (componente Inertia y props)
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] Lista, crea, edita y archiva campañas de la marca.
-- [ ] El color se ve con contraste suficiente.
-- [ ] Entrada de navegación disponible.
+- [x] Lista, crea, edita y archiva campañas de la marca.
+- [x] El color se ve con contraste suficiente.
+- [x] Entrada de navegación disponible.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Componente
+- [x] Test RED
+- [x] Componente
 
 **Notas**: Patrón de páginas de gestión: `resources/js/Pages/Autolists`.
+
+**Evidencia**: CampaignsPageTest: 3 passed; Campaigns+Ui: 11 passed (77 assertions); npm run build ok. RED previo: ruta campaigns.index inexistente. E2E-06 se ejecuta en T-31.
 
 ### T-27 — Selector de campaña en el compositor, `PostRequest` y `PostService::fill()`
 

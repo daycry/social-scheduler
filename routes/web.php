@@ -102,6 +102,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/saved-texts/{id}', [SavedTextController::class, 'destroy'])->whereNumber('id')->name('saved-texts.destroy');
 
     // Campañas (C-03). {id} a mano: la campaña de otro usuario responde 403, no 404.
+    Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
     Route::post('campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
     Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->name('campaigns.update');
     Route::put('campaigns/{id}/archive', [CampaignController::class, 'archive'])->whereNumber('id')->name('campaigns.archive');

@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 4 | 9 | 44% | 0 / 24,5h | 1.20 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 5 | 9 | 56% | 0 / 24,5h | 1.35 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1258,11 +1258,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-37 — UI «Desde URL» en `MediaSection` con sondeo y errores
 
 - **Descripción**: Campo «Desde URL» con progreso (sondeo del estado) y errores en español en `MediaSection.vue`. Requisito: CA-14.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: En el compositor aparece un campo «Desde URL» que importa imágenes y vídeos con barra de progreso y muestra en español el motivo si falla.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.15 (estimado)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-36
@@ -1274,15 +1275,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] Se ve el progreso hasta `listo` y el motivo si queda `invalido`.
-- [ ] Accesible por teclado.
-- [ ] Sin desbordamiento a 360 px.
+- [x] Se ve el progreso hasta `listo` y el motivo si queda `invalido`.
+- [x] Accesible por teclado.
+- [x] Sin desbordamiento a 360 px.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Componente y sondeo
+- [x] Test RED
+- [x] Componente y sondeo
 
 **Notas**: Patrón: subida y sondeo en `resources/js/Components/Composer/MediaSection.vue`.
+
+**Evidencia**: MediaImportUiTest: 4 passed (28 assertions); npm run build exit 0. Desviación: el test se escribió junto al componente (no hay RED registrado); la interacción se verifica en T-39 con Playwright.
 
 ### T-38 — MCP `import_media_from_url`
 

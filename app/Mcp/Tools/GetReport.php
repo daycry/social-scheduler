@@ -36,10 +36,12 @@ class GetReport extends SchedulerTool
         /** @var Report $report */
         $report = $this->owned(Report::class, $user, $request->get('report_id'), 'Informe');
         $minutes = (int) config('reports.download_minutes', 5);
+        $brandName = $this->brandNames($user)[$report->brand_id] ?? null;
 
         return [
             'id' => $report->id,
             'brand_id' => $report->brand_id,
+            'brand_name' => $brandName,
             'format' => $report->format,
             'status' => $report->status,
             'from' => $report->from->format('Y-m-d'),

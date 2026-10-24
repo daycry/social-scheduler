@@ -3,7 +3,6 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Abilities;
-use App\Models\Brand;
 use App\Models\User;
 use App\Services\CalendarService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -32,7 +31,7 @@ class GetCalendar extends SchedulerTool
         return [
             'view' => $schema->string()->enum(CalendarService::VIEWS)->description('week (por defecto), month o list'),
             'date' => $schema->string()->description('Fecha ancla YYYY-MM-DD (por defecto hoy)'),
-            'brand_id' => $schema->integer()->description('Filtrar por marca'),
+            ...$this->brandSchema($schema, 'Filtrar por marca'),
             'network' => $schema->string()->description('instagram, facebook, youtube o tiktok'),
             'status' => $schema->string()->description('Filtrar por estado (borrador, programada, publicada, fallida...)'),
         ];
@@ -40,12 +39,10 @@ class GetCalendar extends SchedulerTool
 
     protected function run(Request $request, User $user): array
     {
-        $filters = $request->all(['view', 'date', 'brand_id', 'network', 'status']);
+        $filters = $request->all(['view', 'date', 'network', 'status']);
 
         // El servicio solo conoce las marcas del usuario: una ajena responde como inexistente.
-        if (! empty($filters['brand_id'])) {
-            $this->owned(Brand::class, $user, $filters['brand_id'], 'Marca');
-        }
+        $filters['brand_id'] = $this->brandFrom($request, $user, required: false)?->id;
 
         return app(CalendarService::class)->build($user, $filters);
     }

@@ -50,10 +50,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 1 | 9 | 11% | 0 / 24,5h | 0.30 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **32** | **50** | **64%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1126,16 +1126,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 5 — C-04a · Media desde URL
 
-**Estado**: borrador · **Estimado**: 24,5h base (29,4h con margen) · **Real**: — · **Coste est.**: 1.470 € + tokens (⚠️ verificar) · **Tokens est.**: 992k
+**Estado**: en-progreso · **Estimado**: 24,5h base (29,4h con margen) · **Real**: — · **Coste est.**: 1.470 € + tokens (⚠️ verificar) · **Tokens est.**: 992k
 
 ### T-33 — `UrlGuard`: guardia SSRF con DNS, IPs, redirecciones y puertos
 
 - **Descripción**: Guardia contra SSRF (CWE-918): solo `http`/`https` en 80/443, sin credenciales, IDN, resolución A/AAAA con todas las IPs públicas, bloqueo explícito de rangos privados, reservados y link-local (IPv4, IPv6 e incrustadas), literales decimales u octales rechazados, y salto manual de hasta 5 redirecciones revalidadas, con la IP fijada. Requisito: CA-15.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Las importaciones por URL rechazan direcciones internas, puertos distintos de 80/443, credenciales y redirecciones hacia la red privada.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.30 (estimado)
 - **Supervisión**: est. 0,17h (≈25 % IA) · real —
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
@@ -1145,16 +1146,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Unit/UrlGuardTest.php` → verde (tabla de IPs y redirecciones de CA-15)
 
 **Criterios de aceptación**
-- [ ] `127.0.0.1`, `10.0.0.0/8`, `169.254.169.254` y `::1` se rechazan sin ninguna petición (CA-15).
-- [ ] Una redirección a una IP interna se rechaza.
-- [ ] La IP validada se fija con `CURLOPT_RESOLVE` contra el DNS rebinding.
+- [x] `127.0.0.1`, `10.0.0.0/8`, `169.254.169.254` y `::1` se rechazan sin ninguna petición (CA-15).
+- [x] Una redirección a una IP interna se rechaza.
+- [x] La IP validada se fija con `CURLOPT_RESOLVE` contra el DNS rebinding.
 
 **Subtareas**
-- [ ] Test RED con la tabla de IPs
-- [ ] Resolución y rangos
-- [ ] Redirecciones e IP fijada
+- [x] Test RED con la tabla de IPs
+- [x] Resolución y rangos
+- [x] Redirecciones e IP fijada
 
 **Notas**: No hay ningún guardia SSRF en el repo (lo verificó el diseño); sin patrón previo. Revisión de seguridad en T-41.
+
+**Evidencia**: RED: UrlGuardTest falló (99 errores, UrlGuard inexistente) · 2026-10-24. UrlGuardTest: 99 passed (175 assertions); tabla de IPv4/IPv6/mapped/NAT64/6to4, literales numéricos, esquemas, credenciales, puertos, mezcla de IPs, rebinding, redirecciones (5 máx) y CURLOPT_RESOLVE; Http::assertNothingSent/assertSentCount.
 
 ### T-34 — Migración `source`/`source_ref`/`import_state` y configuración de la cola `media`
 

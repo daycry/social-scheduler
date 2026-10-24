@@ -1705,3 +1705,29 @@ Lentes: A+B (juntas), re-evaluación de lo corregido en el intento 2 (`47b4228..
 |---|---|---|---|---|---|
 | 1 | Minor | «Publicar igualmente» (`force`) sobrevive a `release()`. Si el POST forzado da timeout y la red sí lo creó, las pasadas siguientes vuelven a hacer POST a ciegas: 3 POST con un solo clic | T-11, T-13 | corregido (1d950d7) | probe5 (ahora 1 POST): `PostFirstComment.php:51,103,118-119,220` |
 | 2 | Minor | La guía de usuario y `docs/modulos/publicacion.md` no recogen «Ya está publicado», «Publicar igualmente», `first_comment_sent_at` ni la ruta `/published`. Un «publicado» marcado a mano se ve igual que uno verificado | T-13, T-17 | corregido (dbfc4ed) | `guia-de-usuario.md:41`, `publicacion.md:52,56`, `FirstCommentService.php:66-70` |
+
+## Revisión de dos lentes — intento 1: Fase 3-4 (T-19..T-32) — 3 Important, 14 Minor
+
+Lentes: A, B (más autorización e IDOR, porque la heurística no activó C) y D. Las tres revisaron el rango fijo `26bd2a9..583cff9`. Según la lente A, las 14 tareas cumplen sus criterios y la paridad MCP está completa (19→20 con un assert equivalente). La lente B no encontró IDOR, mass assignment, XSS ni fuga de tokens. Tests: 35/35 de Campaigns e Instagram y 79/79 sumando Dashboard, Analytics y MCP.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | No se puede asignar ni quitar la campaña de un post que tenga algún destino publicado o en vuelo: `campaign_id` pasa por el bloqueo de edición de `update()`. Es un metadato, igual que las notas. Ni la web (selector deshabilitado) ni `update_post` dejan meter en una campaña posts ya publicados, y así el panel se queda vacío | T-27, T-28 | pendiente | Lente B: `PostService.php:130,140-141`; `ComposerHeader.vue` (`:disabled="!editable"`) |
+| 2 | Important | `withLatestSnapshot`: la subconsulta `lm` calcula `MAX(date) GROUP BY post_target_id` sobre TODOS los snapshots del usuario, no solo sobre los destinos de la campaña. El coste crece lineal con el histórico (nunca se purga) | T-29, T-30 | pendiente | Lente D: `AnalyticsService.php:294-301`, `CampaignAnalytics.php:49`; con 1,44 M filas, 206 ms frente a 0,8 ms acotada (×250) |
+| 3 | Important | `daily()` hidrata como modelos todos los snapshots de la campaña, sin tope, y agrega en PHP. `summary()` carga todos los posts con su `text`. Una campaña de 1.000 posts × 2 redes × 90 días tarda 5,7 s y usa 375 MB; con 128 MB da un 500 a partir de unos 60 k snapshots | T-30 | pendiente | Lente D: `CampaignAnalytics.php:31,118-144` |
+| 4 | Minor | Cuando Graph da error, el error no se cachea: cada visita a la cuadrícula repite entre 1 y 3 llamadas de hasta 15 s y consume cuota de la cuenta | T-20 | pendiente | Lente D: `GridService.php:107-111` |
+| 5 | Minor | Lo publicado no descarta los Reels con `is_shared_to_feed=false` | T-19, T-20 | pendiente | Lente B: `InstagramGrid.php:17` |
+| 6 | Minor | El panel de campaña muestra la fecha en UTC (no en la zona de la marca) y el estado en crudo | T-30 | pendiente | Lente B: `Campaigns/Show.vue:17,114` |
+| 7 | Minor | La serie diaria arrastra el último valor no nulo mientras el KPI usa el último snapshot: el último punto no cuadra con el KPI | T-29 | pendiente | Lente B: `CampaignAnalytics.php:137` |
+| 8 | Minor | El diálogo «Guardar en biblioteca» no muestra `errors.campaign_id` | T-27 | pendiente | Lente B: `ActionBar.vue:130` |
+| 9 | Minor | Carrera: si se borra la campaña entre `plan()` y `save()`, el hook lanza una `InvalidArgumentException` y la web responde 500 | T-24, T-27 | pendiente | Lente B: `Post.php:44`, `PostController.php:59,82` |
+| 10 | Minor | Los errores de Graph en la cuadrícula (que solo lee) hablan de «publicar» | T-19, T-21 | pendiente | Lente B: `InstagramGrid.php:55` |
+| 11 | Minor | Las cuentas IG desconectadas aparecen en el selector y pueden salir por defecto | T-20, T-21 | pendiente | Lente B: `GridService.php:30-33` |
+| 12 | Minor | Un destino en `publicando` o `procesando` desaparece de la cuadrícula hasta que caduca la caché | T-20 | pendiente | Lente B: `GridService.php:53,108` |
+| 13 | Minor | Las rutas `campaigns/{id}` de otro usuario devuelven 403 en vez de 404 (CWE-204), al contrario que la convención del proyecto | T-25 | pendiente (decisión del orquestador: 404, como en el resto) | Lente B: `CampaignController.php:98` |
+| 14 | Minor | MCP: en el esquema `campaign_id` es `integer` y no admite null, aunque la descripción diga que null la quita; además se aceptan campañas archivadas | T-28 | pendiente | Lente B (fuera de lente) |
+| 15 | Minor | La lista del panel corta en 100 posts sin avisar (los KPIs sí cuentan todos) | T-30 | pendiente | Lente B (fuera de lente): `CampaignAnalytics.php:24,156` |
+| 16 | Minor | Faltan `config/social.php` `instagram.grid_cache_minutes`/`grid_published` (30) de la spec: se usa una constante y se piden hasta 72 publicadas | T-19, T-20 | pendiente | Lente A gap 2: `spec.md:76-77` |
+| 17 | Minor | Ledger y documentación: `README.md:41` sigue diciendo «19 herramientas»; T-21 no tiene RED registrado; la evidencia de T-23 está fuera de su bloque; T-26 y T-29 tienen `Archivos` declarados que no se tocan | T-21, T-23, T-26, T-28, T-29 | pendiente | Lente A gaps 1, 3 y 4 |
+
+Anotado sin corregir: en `PostFirstComment.php:59`, `requestedAt` sale del reloj del servidor web y se compara con `first_comment_sent_at`, que pone el worker. En producción los dos corren en el mismo host de Hestia y comparten reloj, así que se anota como riesgo y no como gap. Grid.vue usa `new Date("…+0000")`, que no se ha podido verificar en WebKit: se normaliza en el servidor dentro del gap 5.

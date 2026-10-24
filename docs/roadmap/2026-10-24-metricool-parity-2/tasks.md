@@ -1634,5 +1634,5 @@ Lentes: A+B (juntas), re-evaluación de lo corregido en el intento 2 (`47b4228..
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Minor | «Publicar igualmente» (`force`) sobrevive a `release()`. Si el POST forzado da timeout y la red sí lo creó, las pasadas siguientes vuelven a hacer POST a ciegas: 3 POST con un solo clic | T-11, T-13 | pendiente (se corrige antes de la Fase 3) | probe5: `PostFirstComment.php:51,103,118-119,220` |
-| 2 | Minor | La guía de usuario y `docs/modulos/publicacion.md` no recogen «Ya está publicado», «Publicar igualmente», `first_comment_sent_at` ni la ruta `/published`. Un «publicado» marcado a mano se ve igual que uno verificado | T-13, T-17 | pendiente (se corrige antes de la Fase 3) | `guia-de-usuario.md:41`, `publicacion.md:52,56`, `FirstCommentService.php:66-70` |
+| 1 | Minor | «Publicar igualmente» (`force`) sobrevive a `release()`. Si el POST forzado da timeout y la red sí lo creó, las pasadas siguientes vuelven a hacer POST a ciegas: 3 POST con un solo clic | T-11, T-13 | corregido (1d950d7) | probe5 (ahora 1 POST): `PostFirstComment.php:51,103,118-119,220` |
+| 2 | Minor | La guía de usuario y `docs/modulos/publicacion.md` no recogen «Ya está publicado», «Publicar igualmente», `first_comment_sent_at` ni la ruta `/published`. Un «publicado» marcado a mano se ve igual que uno verificado | T-13, T-17 | corregido (dbfc4ed) | `guia-de-usuario.md:41`, `publicacion.md:52,56`, `FirstCommentService.php:66-70` |

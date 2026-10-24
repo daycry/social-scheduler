@@ -1572,7 +1572,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-06, T-18, T-23, T-32, T-41, T-47, T-49
 - **Tipo**: test
-- **Archivos**: `docs/roadmap/2026-10-24-metricool-parity-2/tasks.md`, `docs/roadmap/2026-10-24-metricool-parity-2/test-plan.md`
+- **Archivos**: `docs/roadmap/2026-10-24-metricool-parity-2/tasks.md`, `docs/roadmap/2026-10-24-metricool-parity-2/test-plan.md`, `docs/roadmap/2026-10-24-metricool-parity-2/spec.md`, `docs/roadmap/2026-10-24-metricool-parity-2/evaluation.md`, `docs/roadmap/2026-10-24-metricool-parity-2/design.md`, `docs/roadmap/2026-10-24-metricool-parity-2/improvement-plan.md`, `docs/referencia/metricool-analisis-bundle.md` (orquestador: artefactos de la cadena spec→evaluación→diseño→plan y el inventario fuente, commit 45092da)
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06, E2E-07, E2E-08, E2E-09
 - **Verificación**:
   - `php artisan test --compact` → 0 fallos

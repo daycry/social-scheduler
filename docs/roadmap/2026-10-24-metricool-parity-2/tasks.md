@@ -365,11 +365,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-10 — `comment()` y `findOwnComment()` en YouTube con cuota
 
 - **Descripción**: `commentThreads.insert` y `commentThreads.list?videoId=…` filtrado por `authorChannelId` en `YouTubePublisher`, con las 50 unidades de cuota en `YouTubeQuota`. Requisito: CA-04, D2.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: YouTube puede dejar el primer comentario en el vídeo publicado, con control de cuota y aviso de vídeos que no admiten comentarios.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.09h (medido)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-07, T-09
@@ -379,15 +380,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/FirstCommenterYouTubeTest.php` → verde con `Http::fake` (inserta, encuentra el propio; privado o «para niños» → `no_admitido`)
 
 **Criterios de aceptación**
-- [ ] Comentar descuenta 50 unidades de cuota.
-- [ ] Vídeo privado o «hecho para niños» da `no_admitido`.
-- [ ] Sin el scope no se llama a la API.
+- [x] Comentar descuenta 50 unidades de cuota.
+- [x] Vídeo privado o «hecho para niños» da `no_admitido`.
+- [x] Sin el scope no se llama a la API.
 
 **Subtareas**
-- [ ] Test RED con `Http::fake`
-- [ ] Implementación y cuota
+- [x] Test RED con `Http::fake`
+- [x] Implementación y cuota
 
 **Notas**: Patrón de llamadas y cuota: `app/Connectors/Google/YouTubePublisher.php` (`beginPass` en `:413`). Verificado en la documentación oficial: `commentThreads.insert` exige `youtube.force-ssl` y cuesta 50 unidades.
+
+**Evidencia**: FirstCommenterYouTubeTest + tests/Feature/Connectors/Google: 75 passed; RED previo: 0 passed. Corrige de paso un ¿ mal codificado de T-07 en YouTubePublisher.
+
 
 ### T-11 — Job `PostFirstComment`, enganche en `published()` y recuperación
 

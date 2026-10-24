@@ -2,16 +2,19 @@
 
 namespace App\Connectors\Google;
 
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
+use App\Connectors\Exceptions\CommentNotAllowedException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Support\MediaChunkReader;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
@@ -47,12 +50,17 @@ use Illuminate\Support\Facades\Log;
  * guarda con `checkpoint` en cuanto se conoce, y un reintento reutiliza la sesion reanudable cacheada (no abre otra ni
  * vuelve a cobrar cuota).
  */
-class YouTubePublisher implements Publisher, StatusPoller
+class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
 {
     public const UPLOADING = PublishResult::UPLOADING;
 
     /** Permiso que exige `commentThreads.insert`. Las cuentas conectadas antes de pedirlo no pueden comentar hasta reconectar. */
     public const COMMENT_SCOPE = 'https://www.googleapis.com/auth/youtube.force-ssl';
+
+    /** Unidades de cuota de la API: `commentThreads.insert` cuesta 50 y `commentThreads.list` 1. */
+    private const COMMENT_COST = 50;
+
+    private const COMMENT_LIST_COST = 1;
 
     private const API = 'https://www.googleapis.com/youtube/v3';
 
@@ -88,7 +96,7 @@ class YouTubePublisher implements Publisher, StatusPoller
 
     public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota) {}
 
-    /** �El canal concedio el permiso de comentar? Sin el, solo se desactiva el primer comentario; publicar sigue igual. */
+    /** ¿El canal concedio el permiso de comentar? Sin el, solo se desactiva el primer comentario; publicar sigue igual. */
     public static function canComment(SocialAccount $account): bool
     {
         return in_array(self::COMMENT_SCOPE, (array) $account->scopes, true);
@@ -248,6 +256,63 @@ class YouTubePublisher implements Publisher, StatusPoller
         }
 
         return $this->poll($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $found, $request->since));
+    }
+
+    /**
+     * Primer comentario (`commentThreads.insert`, 50 ud, exige `youtube.force-ssl`). Sin el permiso no se llama a la API:
+     * pide reconectar. Comentarios desactivados, video no encontrado o privado -> `CommentNotAllowedException`.
+     */
+    public function comment(SocialAccount $account, string $externalId, string $text): string
+    {
+        if (! self::canComment($account)) {
+            throw new ReconnectRequiredException('Reconecta el canal de YouTube para poder comentar (falta el permiso de comentarios).');
+        }
+
+        $this->quota->assertAvailable(self::COMMENT_COST);
+
+        $response = $this->send($account, fn (PendingRequest $http) => $http->post(self::API.'/commentThreads?part=snippet', [
+            'snippet' => ['videoId' => $externalId, 'topLevelComment' => ['snippet' => ['textOriginal' => $text]]],
+        ]));
+
+        if (! $response->successful()) {
+            $reason = (string) ($response->json('error.errors.0.reason') ?? '');
+
+            if (in_array($reason, ['commentsDisabled', 'videoNotFound'], true)) {
+                throw new CommentNotAllowedException('YouTube no admite comentarios en este video (privado, con comentarios desactivados o «hecho para ninos»).', 'comentarios_cerrados');
+            }
+
+            throw $this->exceptionFor($response);
+        }
+
+        $this->quota->charge(self::COMMENT_COST);
+
+        return (string) ($response->json('snippet.topLevelComment.id') ?? $response->json('id') ?? '');
+    }
+
+    /** Comentario propio (autor = el canal) con ese texto entre los hilos mas recientes del video, o null. */
+    public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
+    {
+        if (! self::canComment($account)) {
+            return null;
+        }
+
+        $this->quota->assertAvailable(self::COMMENT_LIST_COST);
+        $json = $this->get($account, 'commentThreads', ['part' => 'snippet', 'videoId' => $externalId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText']);
+        $this->quota->charge(self::COMMENT_LIST_COST);
+
+        $wanted = Comments::canon($text);
+
+        foreach ((array) ($json['items'] ?? []) as $thread) {
+            $top = $thread['snippet']['topLevelComment'] ?? [];
+            $snippet = $top['snippet'] ?? [];
+
+            if (($snippet['authorChannelId']['value'] ?? null) === $account->external_id
+                && Comments::canon((string) ($snippet['textOriginal'] ?? $snippet['textDisplay'] ?? '')) === $wanted) {
+                return (string) ($top['id'] ?? '') ?: null;
+            }
+        }
+
+        return null;
     }
 
     /** Borra un video del canal (scope `youtube`; `youtube.upload` no lo permite). `false` si ya no existia. */

@@ -297,7 +297,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         }
 
         $this->quota->assertAvailable(self::COMMENT_LIST_COST);
-        $json = $this->get($account, 'commentThreads', ['part' => 'snippet', 'videoId' => $externalId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText']);
+        $json = $this->listThreads($account, ['part' => 'snippet', 'videoId' => $externalId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText']);
         $this->quota->charge(self::COMMENT_LIST_COST);
 
         $wanted = Comments::canon($text);
@@ -313,6 +313,29 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         }
 
         return null;
+    }
+
+    /**
+     * `commentThreads.list` para buscar el comentario propio. Comentarios desactivados o video inexistente/privado
+     * (403 `commentsDisabled`, 404 `videoNotFound`) son `CommentNotAllowedException` (-> `no_admitido`), igual que al insertar:
+     * no es un fallo de credenciales y reconectar el canal no lo arregla.
+     *
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function listThreads(SocialAccount $account, array $query): array
+    {
+        $response = $this->send($account, fn (PendingRequest $http) => $http->get(self::API.'/commentThreads', $query), false);
+
+        if (! $response->successful()) {
+            if (in_array((string) ($response->json('error.errors.0.reason') ?? ''), ['commentsDisabled', 'videoNotFound'], true)) {
+                throw new CommentNotAllowedException('YouTube no admite comentarios en este video (privado, con comentarios desactivados o «hecho para ninos»).', 'comentarios_cerrados');
+            }
+
+            throw $this->exceptionFor($response);
+        }
+
+        return $response->json() ?? [];
     }
 
     /** Borra un video del canal (scope `youtube`; `youtube.upload` no lo permite). `false` si ya no existia. */

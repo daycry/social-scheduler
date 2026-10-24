@@ -261,3 +261,19 @@ test('un fallo al guardar el id tras crear el comentario se cierra en la recuper
     expect($t->first_comment_status)->toBe(FirstCommentStatus::Published)->and($t->first_comment_external_id)->toBe('C5')
         ->and($graph->callsTo('POST', '#/comments$#'))->toBe([]);
 });
+
+test('YouTube: comentarios desactivados o video no encontrado al buscar el propio dejan no_admitido, sin aviso ni insertar', function (int $status, string $reason) {
+    $http = (new FakeHttp)
+        ->on('GET', FC_YT_THREADS, ['status' => $status, 'json' => ['error' => ['code' => $status, 'message' => 'x', 'errors' => [['reason' => $reason]]]]])
+        ->on('POST', FC_YT_THREADS, ['status' => 200, 'json' => ['id' => 'NO']]);
+    $t = flowTarget($this->yt, 'youtube_video');
+
+    flowPublish($t, 'VID1'); // published() encola el job real y, con la cola sincrona, busca y falla en commentThreads.list
+
+    $t = $t->fresh();
+    expect($t->status)->toBe(PostStatus::Published)->and($t->first_comment_status)->toBe(FirstCommentStatus::NotAllowed)
+        ->and($t->first_comment_error)->toContain('no admite comentarios')->and($t->first_comment_error)->not->toContain('Reconecta')
+        ->and($http->callsTo('POST', FC_YT_THREADS))->toBe([])
+        ->and((new YouTubeQuota)->used())->toBe(0);
+    Notification::assertNothingSent();
+})->with([[403, 'commentsDisabled'], [404, 'videoNotFound']]);

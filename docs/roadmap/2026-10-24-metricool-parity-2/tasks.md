@@ -50,7 +50,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 12 | 12 | 100% | 0 / 35,5h | 2.25 / 4,8h (incl. 0.34 estimado de T-16; resto medido) | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 5 | 5 | 100% | 0 / 23,5h | 0.26 / 3,2h (incl. 0.05 estimado de T-19; resto medido) | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
-| Fase 5 — C-04a · Media desde URL | 2 | 9 | 22% | 0 / 24,5h | 0.40 / 3,3h | 0 / 0,8h | 0 / 992k |
+| Fase 5 — C-04a · Media desde URL | 3 | 9 | 33% | 0 / 24,5h | 1.00 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
 | **TOTAL** | **33** | **50** | **66%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
@@ -1141,7 +1141,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/UrlGuard.php`, `tests/Unit/UrlGuardTest.php`
+- **Archivos**: `app/Services/Media/UrlGuard.php`, `app/Services/Media/UnsafeUrlException.php`, `app/Services/Media/ValidatedUrl.php`, `tests/Unit/UrlGuardTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Unit/UrlGuardTest.php` → verde (tabla de IPs y redirecciones de CA-15)
 
@@ -1192,32 +1192,35 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-35 — `RemoteMediaImporter` y job `ImportRemoteMedia` por tramos con `Range`
 
 - **Descripción**: Interfaz `RemoteSource` con `UrlSource` y job en la cola `media` (`ShouldBeUnique`, `ShouldBeEncrypted`, timeout 110) que descarga por pasadas de 80 s con `Range`/`If-Range` y punto de control en el `.part`, con tope de bytes, un único reinicio si el remoto cambia y, al final, `finalize()`. Requisito: CA-14, CA-16, CA-17; diseño B1.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Se pueden importar imágenes y vídeos desde una URL pública: se descargan en segundo plano por tramos y quedan como media lista, o inválida con el motivo.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 8,5h · real —
-- **Tiempo IA (ejec.)**: est. 1,15h · real —
+- **Tiempo IA (ejec.)**: est. 1,15h · real 0.60 (estimado)
 - **Supervisión**: est. 0,29h (≈25 % IA) · real —
 - **Previsión IA**: 310k in / 34k out tok · ⚠️ verificar €
 - **Dependencias**: T-33, T-34
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/RemoteSource.php`, `app/Services/Media/UrlSource.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`
+- **Archivos**: `app/Services/Media/RemoteSource.php`, `app/Services/Media/UrlSource.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Services/Media/ImportFailedException.php`, `app/Services/Media/RangeIgnored.php`, `app/Services/Media/RemotePass.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Media/ImportRemoteMediaTest.php` → verde (JPEG válido listo; tope y tipo → `invalido`; vídeo en varias pasadas; sin `Range` → error claro)
   - `php artisan test --compact tests/Feature/Media/MediaUploadTest.php` → verde (la subida directa no cambia)
 
 **Criterios de aceptación**
-- [ ] Una URL JPEG válida acaba en un asset `listo` (CA-14).
-- [ ] Superar `max_bytes` o un tipo real distinto corta la descarga y deja el asset `invalido` (CA-16).
-- [ ] Un vídeo grande se importa en varias pasadas, cada una bajo 120 s (CA-17); con `MEDIA_DISK=s3` falla con un error claro.
+- [x] Una URL JPEG válida acaba en un asset `listo` (CA-14).
+- [x] Superar `max_bytes` o un tipo real distinto corta la descarga y deja el asset `invalido` (CA-16).
+- [x] Un vídeo grande se importa en varias pasadas, cada una bajo 120 s (CA-17); con `MEDIA_DISK=s3` falla con un error claro.
 
 **Subtareas**
-- [ ] Test RED con `Http::fake`
-- [ ] Fuente y pasada
-- [ ] Job, reencolado y `finalize()`
+- [x] Test RED con `Http::fake`
+- [x] Fuente y pasada
+- [x] Job, reencolado y `finalize()`
 
 **Notas**: Patrón de pasadas con presupuesto: `app/Connectors/Google/YouTubePublisher.php:413` (`beginPass`) y `upload_budget_seconds` (80). `app/Services/MediaUploadService.php:119` (`finalize`): solo se fija `declared_size` antes de llamarlo.
+
+**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL.
 
 ### T-36 — Endpoint de importación por URL con `throttle`, límite por usuario y limpieza de `.part`
 

@@ -88,6 +88,36 @@ class MediaUploadService
     }
 
     /**
+     * Registra un asset `pendiente` que `ImportRemoteMedia` rellenara descargando de una URL o de Drive. El parcial vive en
+     * `media/{user}/{ulid}.part` (el tipo real aun no se conoce) y el importador lo renombra al terminar. Necesita disco local.
+     *
+     * @param  'url'|'drive'  $source
+     */
+    public function beginImport(User $user, string $source, string $reference, string $name): MediaAsset
+    {
+        if ($this->storage->isS3()) {
+            throw new InvalidArgumentException('La importacion remota necesita el almacenamiento local (MEDIA_DISK=local).');
+        }
+
+        $asset = new MediaAsset([
+            'disk' => $this->storage->diskName(),
+            'path' => sprintf('media/%d/%s.part', $user->id, Str::lower((string) Str::ulid())),
+            'original_name' => Str::limit(basename($name) ?: 'importado', 200, ''),
+            'mime' => 'application/octet-stream',
+            'kind' => MediaAsset::KIND_IMAGE,
+            'declared_size' => 0,
+            'status' => MediaAsset::STATUS_PENDING,
+            'source' => $source,
+            'source_ref' => Str::limit($reference, 500, ''),
+            'import_state' => ['bytes' => 0, 'total' => null, 'passes' => 0],
+        ]);
+        $asset->user_id = $user->id;
+        $asset->save();
+
+        return $asset;
+    }
+
+    /**
      * Finaliza la subida (cierra el multipart si lo hay), comprueba el objeto y extrae los metadatos.
      *
      * @param  list<array{number: int, etag: string}>  $parts
@@ -235,14 +265,14 @@ class MediaUploadService
         $this->storage->disk()->delete($asset->path);
     }
 
-    private function invalidate(MediaAsset $asset, string $reason): MediaAsset
+    public function invalidate(MediaAsset $asset, string $reason): MediaAsset
     {
         $asset->forceFill(['status' => MediaAsset::STATUS_INVALID, 'error' => $reason, 'upload_id' => null])->save();
 
         return $asset;
     }
 
-    private function kindFor(string $mime): string
+    public function kindFor(string $mime): string
     {
         foreach ((array) config('media.allowed_mimes') as $kind => $mimes) {
             if (in_array($mime, $mimes, true)) {
@@ -253,7 +283,7 @@ class MediaUploadService
         throw new InvalidArgumentException('Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
     }
 
-    private function extensionFor(string $mime): string
+    public function extensionFor(string $mime): string
     {
         return match ($mime) {
             'image/jpeg' => 'jpg',

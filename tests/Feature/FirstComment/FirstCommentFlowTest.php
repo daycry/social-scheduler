@@ -115,7 +115,7 @@ test('Facebook: un comentario ajeno con el mismo texto no cuenta como propio', f
     expect($t->fresh()->first_comment_external_id)->toBe('PAGE1_9_6')->and($graph->callsTo('POST', '#/comments$#'))->toHaveCount(1);
 });
 
-test('YouTube: comenta tras publicar, una sola vez, y gasta 50 + 1 unidades de cuota', function () {
+test('YouTube: comenta tras publicar, una sola vez, y gasta 50 + 2 unidades de cuota (insertar + busqueda y pagina reciente)', function () {
     $http = (new FakeHttp)
         ->on('GET', FC_YT_THREADS, ['status' => 200, 'json' => ['items' => []]])
         ->on('POST', FC_YT_THREADS, ['status' => 200, 'json' => ['id' => 'Ugx1', 'snippet' => ['topLevelComment' => ['id' => 'Ugx1']]]]);
@@ -127,7 +127,7 @@ test('YouTube: comenta tras publicar, una sola vez, y gasta 50 + 1 unidades de c
     $t = $t->fresh();
     expect($t->first_comment_status)->toBe(FirstCommentStatus::Published)->and($t->first_comment_external_id)->toBe('Ugx1')
         ->and($http->callsTo('POST', FC_YT_THREADS))->toHaveCount(1)
-        ->and((new YouTubeQuota)->used())->toBe(51);
+        ->and((new YouTubeQuota)->used())->toBe(52);
 });
 
 test('error de red: vuelve a pendiente, el destino sigue publicado y el siguiente intento comenta', function () {

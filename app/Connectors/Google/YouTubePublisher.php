@@ -9,6 +9,7 @@ use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
@@ -289,19 +290,77 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         return (string) ($response->json('snippet.topLevelComment.id') ?? $response->json('id') ?? '');
     }
 
-    /** Comentario propio (autor = el canal) con ese texto entre los hilos mas recientes del video, o null. */
+    /**
+     * Comentario propio (autor = el canal) con ese texto, o null. Busqueda ACOTADA (idempotencia del primer comentario).
+     *
+     * `commentThreads.list` solo ordena por `time` (mas recientes primero) o `relevance`: NO hay orden cronologico ascendente, asi
+     * que un video con mas de 100 comentarios nuevos dejaria el propio fuera de la primera pagina. La mejor opcion que permite la
+     * API es `searchTerms` (hilos que contienen el texto): se busca con el inicio del comentario hasta `social.first_comment.find_pages`
+     * paginas y un presupuesto de tiempo; si no aparece y la busqueda llego a su fin, se mira ademas la primera pagina sin filtro
+     * (por si el indice de busqueda va por detras). Si se agota el tope con mas paginas por leer, lanza
+     * `CommentSearchInconclusiveException` (el job no crea otro a ciegas en un reintento).
+     *
+     * @throws CommentSearchInconclusiveException
+     */
     public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
     {
         if (! self::canComment($account)) {
             return null;
         }
 
+        $wanted = Comments::canon($text);
+        $deadline = microtime(true) + (float) config('social.first_comment.find_budget_seconds', 80);
+        $base = ['part' => 'snippet', 'videoId' => $externalId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText'];
+
+        // 1) Hilos que contienen el texto.
+        $search = $base + ['searchTerms' => mb_substr($wanted, 0, 100)];
+        $more = false;
+        $token = null;
+
+        for ($page = 0, $max = max(1, (int) config('social.first_comment.find_pages', 3)); $page < $max; $page++) {
+            if ($page > 0 && microtime(true) + (float) config('social.http_timeout', 15) > $deadline) {
+                $more = true;
+                break;
+            }
+
+            $json = $this->threadsPage($account, $token === null ? $search : $search + ['pageToken' => $token]);
+
+            if (($found = $this->ownIn($json, $account, $wanted)) !== null) {
+                return $found;
+            }
+
+            $token = $json['nextPageToken'] ?? null;
+            $more = is_string($token) && $token !== '';
+
+            if (! $more) {
+                break;
+            }
+        }
+
+        if ($more) {
+            throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: el video tiene demasiados comentarios con ese texto. No se crea otro a ciegas; pulsa Reintentar.', 'busqueda_inconclusa');
+        }
+
+        // 2) Red de seguridad: los 100 hilos mas recientes sin filtro.
+        return $this->ownIn($this->threadsPage($account, $base), $account, $wanted);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function threadsPage(SocialAccount $account, array $query): array
+    {
         $this->quota->assertAvailable(self::COMMENT_LIST_COST);
-        $json = $this->listThreads($account, ['part' => 'snippet', 'videoId' => $externalId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText']);
+        $json = $this->listThreads($account, $query);
         $this->quota->charge(self::COMMENT_LIST_COST);
 
-        $wanted = Comments::canon($text);
+        return $json;
+    }
 
+    /** @param  array<string, mixed>  $json */
+    private function ownIn(array $json, SocialAccount $account, string $wanted): ?string
+    {
         foreach ((array) ($json['items'] ?? []) as $thread) {
             $top = $thread['snippet']['topLevelComment'] ?? [];
             $snippet = $top['snippet'] ?? [];

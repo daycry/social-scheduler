@@ -123,3 +123,21 @@ test('findOwn devuelve null (concluyente) si la lista termina sin el comentario 
 
     expect((new FacebookPublisher)->findOwnComment($this->fb, 'PAGE1_9', 'Hola'))->toBeNull();
 });
+
+test('Facebook pide el orden cronologico: con 250 comentarios el propio (el primero) sale en la primera pagina', function () {
+    $own = ['id' => 'PAGE1_9_1', 'message' => 'Hola', 'from' => ['id' => 'PAGE1', 'name' => 'Mi pagina'], 'created_time' => '2026-11-01T10:00:00+0000'];
+    $this->graph->on('GET', '#^PAGE1_9/comments$#', FakeGraph::commentsPage(99, 0, true, [$own]));
+
+    expect((new FacebookPublisher)->findOwnComment($this->fb, 'PAGE1_9', 'Hola'))->toBe('PAGE1_9_1');
+
+    $calls = $this->graph->callsTo('GET', '#comments$#');
+    expect($calls)->toHaveCount(1)->and($calls[0]['params']['order'])->toBe('chronological')->and($calls[0]['params']['filter'])->toBe('toplevel');
+});
+
+test('Instagram no documenta orden en el borde de comentarios: se recorre con tope y el propio en la pagina 3 se encuentra', function () {
+    $own = ['id' => 'IGC', 'text' => 'Hola', 'username' => 'mimarca', 'timestamp' => '2026-11-01T10:00:00+0000'];
+    $this->graph->on('GET', '#^MEDIA1/comments$#', FakeGraph::seq(FakeGraph::commentsPage(100, 0), FakeGraph::commentsPage(100, 100), FakeGraph::commentsPage(50, 200, false, [$own])));
+
+    expect((new InstagramPublisher)->findOwnComment($this->ig, 'MEDIA1', 'Hola'))->toBe('IGC')
+        ->and($this->graph->callsTo('GET', '#comments$#')[0]['params'])->not->toHaveKey('order');
+});

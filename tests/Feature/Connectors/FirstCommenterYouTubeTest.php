@@ -2,6 +2,7 @@
 
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
@@ -58,8 +59,8 @@ test('findOwnComment filtra por el canal autor y el texto, y no gasta la cuota d
 
     expect($this->yt->findOwnComment($this->account, 'VID1', 'Mas info'))->toBe('B')
         ->and($this->yt->findOwnComment($this->account, 'VID1', 'Otro'))->toBeNull()
-        ->and((new YouTubeQuota)->used())->toBe(2);
-    expect($this->http->callsTo('GET', YTC_THREADS)[0]['url'])->toContain('videoId=VID1');
+        ->and((new YouTubeQuota)->used())->toBe(3); // encontrado: 1 busqueda; no encontrado: busqueda + pagina reciente sin filtro
+    expect($this->http->callsTo('GET', YTC_THREADS)[0]['url'])->toContain('videoId=VID1')->toContain('searchTerms=Mas');
 });
 
 test('video privado o hecho para ninos da CommentNotAllowedException', function (int $status, string $reason) {
@@ -92,4 +93,38 @@ test('otros rechazos de YouTube conservan su clase permanente', function () {
     $this->http->on('POST', YTC_THREADS, ['status' => 400, 'json' => ['error' => ['code' => 400, 'message' => 'bad', 'errors' => [['reason' => 'invalidCommentText']]]]]);
 
     expect(fn () => $this->yt->comment($this->account, 'VID1', 'x'))->toThrow(PermanentPublishException::class);
+});
+
+/** @return list<array<string, mixed>> */
+function ytNoise(int $n, int $from): array
+{
+    return array_map(fn ($i) => ytThread('N'.$i, 'UCotro', 'ruido '.$i), range($from, $from + $n - 1));
+}
+
+test('un video con 250 comentarios: findOwnComment pide searchTerms con el texto y encuentra el propio sin recorrerlos', function () {
+    $this->http
+        ->on('GET', '#searchTerms=#', ['status' => 200, 'json' => ['items' => [ytThread('MIO', YTC_CHANNEL, 'Mas info')]]])
+        ->on('GET', YTC_THREADS, ['status' => 200, 'json' => ['items' => ytNoise(100, 0), 'nextPageToken' => 'P2']]);
+
+    expect($this->yt->findOwnComment($this->account, 'VID1', 'Mas info'))->toBe('MIO');
+
+    $calls = $this->http->callsTo('GET', YTC_THREADS);
+    expect($calls)->toHaveCount(1)->and($calls[0]['url'])->toContain('searchTerms=Mas%20info')->toContain('order=time')->toContain('maxResults=100');
+});
+
+test('si searchTerms no lo indexa aun, la pagina reciente sin filtro lo encuentra', function () {
+    $this->http
+        ->on('GET', '#searchTerms=#', ['status' => 200, 'json' => ['items' => []]])
+        ->on('GET', YTC_THREADS, ['status' => 200, 'json' => ['items' => array_merge(ytNoise(99, 0), [ytThread('MIO', YTC_CHANNEL, 'Mas info')]), 'nextPageToken' => 'P2']]);
+
+    expect($this->yt->findOwnComment($this->account, 'VID1', 'Mas info'))->toBe('MIO')
+        ->and($this->http->callsTo('GET', YTC_THREADS))->toHaveCount(2);
+});
+
+test('con muchisimos hilos que contienen el texto, el tope de paginas da busqueda inconclusa (no crea a ciegas)', function () {
+    config(['social.first_comment.find_pages' => 3]);
+    $this->http->on('GET', '#searchTerms=#', ['status' => 200, 'json' => ['items' => ytNoise(100, 0), 'nextPageToken' => 'MAS']]);
+
+    expect(fn () => $this->yt->findOwnComment($this->account, 'VID1', 'Mas info'))->toThrow(CommentSearchInconclusiveException::class);
+    expect($this->http->callsTo('GET', YTC_THREADS))->toHaveCount(3)->and((new YouTubeQuota)->used())->toBe(3);
 });

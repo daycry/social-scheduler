@@ -277,3 +277,47 @@ test('YouTube: comentarios desactivados o video no encontrado al buscar el propi
         ->and((new YouTubeQuota)->used())->toBe(0);
     Notification::assertNothingSent();
 })->with([[403, 'commentsDisabled'], [404, 'videoNotFound']]);
+
+/** Destino de Facebook publicado y listo para que el job lo reclame, con `attempts` intentos ya gastados. */
+function flowPublishedFb(int $attempts, FirstCommentStatus $status = FirstCommentStatus::Pending, array $extra = []): PostTarget
+{
+    $t = flowTarget(test()->fb, 'facebook_photo');
+    $t->forceFill(array_merge(['status' => PostStatus::Published, 'external_id' => 'PAGE1_9', 'first_comment_status' => $status, 'first_comment_attempts' => $attempts], $extra))->save();
+
+    return $t;
+}
+
+function flowBusyPost(FakeGraph $graph): void
+{
+    $graph->on('GET', '#^PAGE1_9/comments$#', FakeGraph::commentsPage(100, 0)); // siempre hay otra pagina y ninguna es nuestra
+}
+
+test('busqueda inconclusa en un REINTENTO: no crea el comentario a ciegas, reintenta y agotado queda fallido', function () {
+    $graph = (new FakeGraph)->on('POST', '#^PAGE1_9/comments$#', ['id' => 'NO']);
+    flowBusyPost($graph);
+    $t = flowPublishedFb(1); // el claim lo lleva al intento 2: un envio previo pudo haber ocurrido
+
+    flowRun($t);
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Pending)->and($t->first_comment_error)->toContain('demasiados comentarios')
+        ->and($graph->callsTo('POST', '#/comments$#'))->toBe([]);
+
+    // Agotado (colgado en el ultimo intento): no hay bucle cada 10 min, cierra fallido con aviso y sigue sin crear.
+    $t->forceFill(['first_comment_status' => FirstCommentStatus::Commenting, 'first_comment_attempts' => 3, 'first_comment_at' => now()->subMinutes(30)])->save();
+    flowRun($t->fresh());
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($graph->callsTo('POST', '#/comments$#'))->toBe([]);
+    Notification::assertSentTo($this->user, FirstCommentFailed::class);
+});
+
+test('busqueda inconclusa en el PRIMER intento: nada pudo enviarse antes, asi que crea el comentario', function () {
+    $graph = (new FakeGraph)->on('POST', '#^PAGE1_9/comments$#', ['id' => 'PAGE1_9_1']);
+    flowBusyPost($graph);
+    $t = flowPublishedFb(0);
+
+    flowRun($t);
+
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Published)->and($graph->callsTo('POST', '#/comments$#'))->toHaveCount(1);
+});

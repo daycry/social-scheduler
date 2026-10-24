@@ -3,6 +3,7 @@
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
@@ -94,4 +95,31 @@ test('commenterFor devuelve IG y FB pero no TikTok', function () {
     expect($registry->commenterFor(Network::Instagram))->toBeInstanceOf(FirstCommenter::class)
         ->and($registry->commenterFor(Network::Facebook))->toBeInstanceOf(FirstCommenter::class)
         ->and($registry->commenterFor(Network::TikTok))->toBeNull();
+});
+
+test('findOwn es una busqueda acotada: solo nivel superior, sin campos anidados, ni mas paginas que el tope', function () {
+    config(['social.first_comment.find_pages' => 3]);
+    $this->graph->on('GET', '#^PAGE1_9/comments$#', FakeGraph::commentsPage(100, 0));
+
+    expect(fn () => (new FacebookPublisher)->findOwnComment($this->fb, 'PAGE1_9', 'Hola'))->toThrow(CommentSearchInconclusiveException::class);
+
+    $calls = $this->graph->callsTo('GET', '#comments$#');
+    expect($calls)->toHaveCount(3) // tope de paginas, no 5 como el inbox
+        ->and($calls[0]['params']['filter'])->toBe('toplevel')
+        ->and($calls[0]['params']['fields'])->not->toContain('comments')->and($calls[0]['params']['limit'])->toBe('100');
+    expect($this->graph->callsTo('GET', '#^(?!PAGE1_9/comments$)#'))->toBe([]); // ninguna pagina de respuestas
+});
+
+test('findOwn respeta el deadline: sin presupuesto para otra llamada corta tras la primera pagina', function () {
+    config(['social.first_comment.find_budget_seconds' => 0, 'social.http_timeout' => 15]);
+    $this->graph->on('GET', '#^MEDIA1/comments$#', FakeGraph::commentsPage(100, 0));
+
+    expect(fn () => (new InstagramPublisher)->findOwnComment($this->ig, 'MEDIA1', 'Hola'))->toThrow(CommentSearchInconclusiveException::class);
+    expect($this->graph->callsTo('GET', '#comments$#'))->toHaveCount(1);
+});
+
+test('findOwn devuelve null (concluyente) si la lista termina sin el comentario y no lanza', function () {
+    $this->graph->on('GET', '#^PAGE1_9/comments$#', FakeGraph::commentsPage(5, 0, false));
+
+    expect((new FacebookPublisher)->findOwnComment($this->fb, 'PAGE1_9', 'Hola'))->toBeNull();
 });

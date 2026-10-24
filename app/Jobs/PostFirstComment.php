@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
@@ -92,7 +93,16 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
 
         try {
             // Capas 2 y 3: la red manda. Si el comentario propio ya esta, se adopta; si no, se crea y se guarda el id.
-            $id = $commenter->findOwnComment($account, (string) $target->external_id, $text);
+            try {
+                $id = $commenter->findOwnComment($account, (string) $target->external_id, $text);
+            } catch (CommentSearchInconclusiveException $e) {
+                // La busqueda acotada no llego al final de la lista. Solo en el PRIMER intento (ningun envio previo posible) se crea;
+                // en cualquier reintento o recuperacion NO se crea a ciegas: se reintenta con backoff y, agotado, queda fallido.
+                if ($exhausted || (int) $target->first_comment_attempts > 1) {
+                    throw $e;
+                }
+                $id = null;
+            }
 
             if ($id === null && $exhausted) {
                 // Colgado en el ultimo intento y la red no tiene constancia: no se crea otro, se da por fallido.

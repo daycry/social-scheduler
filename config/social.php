@@ -232,6 +232,16 @@ return [
         'reply_max_chars' => 2200,
     ],
 
+    /*
+    | Primer comentario: busqueda ACOTADA del comentario propio (idempotencia). Pocas paginas, comentarios de nivel superior y un
+    | presupuesto (s) por debajo del timeout del job (110 s). Si se agota sin llegar al final, el job no crea otro a ciegas.
+    */
+    'first_comment' => [
+        'find_pages' => (int) env('SOCIAL_FIRST_COMMENT_FIND_PAGES', 3),
+        'find_per_page' => (int) env('SOCIAL_FIRST_COMMENT_FIND_PER_PAGE', 100),
+        'find_budget_seconds' => (float) env('SOCIAL_FIRST_COMMENT_FIND_BUDGET', 80),
+    ],
+
     /* Meta Ads solo lectura (PA-11): cache corta de las respuestas de Graph (minutos) y topes de listado. */
     'ads' => [
         'cache_minutes' => (int) env('SOCIAL_ADS_CACHE_MINUTES', 10),

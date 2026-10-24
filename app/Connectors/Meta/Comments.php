@@ -3,6 +3,7 @@
 namespace App\Connectors\Meta;
 
 use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Network;
 use App\Models\SocialAccount;
@@ -167,18 +168,64 @@ class Comments
         return (string) ($json['id'] ?? '');
     }
 
-    /** Id de un comentario PROPIO de nivel superior cuyo texto (normalizado) coincide, o null. Es la comprobacion de idempotencia. */
-    public function findOwn(SocialAccount $account, string $postExternalId, string $text): ?string
+    /**
+     * Id de un comentario PROPIO de nivel superior cuyo texto (normalizado) coincide, o null. Es la comprobacion de idempotencia
+     * del primer comentario y NO reutiliza `fetch()` del inbox: es una busqueda ACOTADA, solo de comentarios de nivel superior
+     * (sin campos anidados ni paginas de respuestas), con pocas paginas (`social.first_comment.find_pages`) y un `$deadline`
+     * (microtime) por debajo del timeout del job; por defecto, `find_budget_seconds` desde ahora.
+     *
+     * Orden: Facebook admite `order=chronological` (el primer comentario, publicado justo tras el post, sale en la primera
+     * pagina). El borde de comentarios de Instagram no documenta ningun parametro `order` (solo `limit`/`after`/`before`): se
+     * recorre en el orden de la API con el tope de paginas.
+     *
+     * Si la lista llega a su fin sin el comentario, devuelve null (concluyente). Si se corta por tope de paginas o de tiempo con
+     * mas paginas por leer, lanza `CommentSearchInconclusiveException`: no se sabe si existe y el llamador decide el camino seguro.
+     *
+     * @throws CommentSearchInconclusiveException
+     */
+    public function findOwn(SocialAccount $account, string $postExternalId, string $text, ?float $deadline = null): ?string
     {
+        $this->assertId($postExternalId);
         $wanted = self::canon($text);
+        $deadline ??= microtime(true) + (float) config('social.first_comment.find_budget_seconds', 80);
+        $isIg = $account->network === Network::Instagram;
+        $query = $isIg
+            ? ['fields' => 'id,text,username,timestamp', 'limit' => $this->findLimit()]
+            : ['fields' => 'id,message,from{id,name},created_time', 'limit' => $this->findLimit(), 'filter' => 'toplevel', 'order' => 'chronological'];
 
-        foreach ($this->fetch($account, $postExternalId) as $comment) {
-            if ($comment['is_own'] && $comment['parent_external_id'] === null && self::canon((string) $comment['text']) === $wanted) {
-                return $comment['external_id'];
+        $after = null;
+        $more = false;
+
+        for ($page = 0, $max = max(1, (int) config('social.first_comment.find_pages', 3)); $page < $max; $page++) {
+            if ($page > 0 && ! $this->fits($deadline)) {
+                $more = true;
+                break;
+            }
+
+            $json = $this->graph->get($postExternalId.'/comments', $query + ($after !== null ? ['after' => $after] : []), (string) $account->access_token, true);
+
+            foreach ((array) ($json['data'] ?? []) as $c) {
+                $comment = $this->normalize($account, $c, null);
+
+                if ($comment && $comment['is_own'] && self::canon((string) $comment['text']) === $wanted) {
+                    return $comment['external_id'];
+                }
+            }
+
+            $after = $json['paging']['cursors']['after'] ?? null;
+            $more = ! empty($json['paging']['next']) && $after !== null && $after !== '';
+
+            if (! $more) {
+                return null; // fin de la lista: concluyente
             }
         }
 
-        return null;
+        throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: la publicacion tiene demasiados comentarios para revisarlos todos. No se crea otro a ciegas; pulsa Reintentar.', 'busqueda_inconclusa');
+    }
+
+    private function findLimit(): int
+    {
+        return max(1, min(100, (int) config('social.first_comment.find_per_page', 100)));
     }
 
     /** Texto comparable: sin espacios sobrantes ni diferencias de saltos de linea. */

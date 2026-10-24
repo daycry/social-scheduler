@@ -333,11 +333,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-09 — Contrato `FirstCommenter` y `comment()`/`findOwnComment()` en Instagram y Facebook
 
 - **Descripción**: Interfaz `App\Connectors\Contracts\FirstCommenter`, `ConnectorRegistry::commenterFor()` y su implementación en `InstagramPublisher` y `FacebookPublisher` sobre `Meta/Comments` (buscar con `fetch()` + `is_own` + texto normalizado). Requisito: CA-04, diseño A1.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Instagram y Facebook pueden dejar un comentario propio y detectar si ya existe, para no duplicarlo.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.16h (medido)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
@@ -347,16 +348,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/FirstCommenterMetaTest.php` → verde con `Http::fake` (comenta, encuentra el propio, mapea errores)
 
 **Criterios de aceptación**
-- [ ] `comment()` devuelve el id del comentario y `findOwnComment()` lo encuentra por `is_own` y texto.
-- [ ] Los errores de Graph se traducen al español; «comentarios cerrados» se mapea a `no_admitido`.
-- [ ] `Publisher` no cambia y TikTok no implementa el contrato.
+- [x] `comment()` devuelve el id del comentario y `findOwnComment()` lo encuentra por `is_own` y texto.
+- [x] Los errores de Graph se traducen al español; «comentarios cerrados» se mapea a `no_admitido`.
+- [x] `Publisher` no cambia y TikTok no implementa el contrato.
 
 **Subtareas**
-- [ ] Test RED con `Http::fake`
-- [ ] Interfaz y registro
-- [ ] Instagram y Facebook
+- [x] Test RED con `Http::fake`
+- [x] Interfaz y registro
+- [x] Instagram y Facebook
 
 **Notas**: `app/Connectors/Meta/Comments.php:50` (`fetch`), `:133` (`reply`), `:151` (`normalize` con `is_own`). Pendiente de verificar en la documentación de Meta: el comentario de Reels de Facebook va sobre el id del vídeo.
+
+**Evidencia**: FirstCommenterMetaTest 8 passed + tests/Feature/Connectors/Meta: 98 passed; RED previo: 0 passed (contrato inexistente).
+
 
 ### T-10 — `comment()` y `findOwnComment()` en YouTube con cuota
 

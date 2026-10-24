@@ -2,12 +2,14 @@
 
 namespace App\Connectors\Meta\Facebook;
 
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Meta\GraphClient;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
@@ -25,11 +27,21 @@ use Illuminate\Support\Facades\Log;
  * Idempotencia: `findPublished` busca en las publicaciones/videos recientes de la Pagina una con el mismo
  * texto posterior a la hora programada; un video ya creado se resuelve por su ID (sin crear otro).
  */
-class FacebookPublisher implements Publisher, StatusPoller
+class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 {
     private const RECENT = 25;
 
     public function __construct(private readonly GraphClient $graph = new GraphClient) {}
+
+    public function comment(SocialAccount $account, string $externalId, string $text): string
+    {
+        return (new Comments($this->graph))->create($account, $externalId, $text);
+    }
+
+    public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
+    {
+        return (new Comments($this->graph))->findOwn($account, $externalId, $text);
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {

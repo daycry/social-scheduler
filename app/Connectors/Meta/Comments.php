@@ -2,6 +2,8 @@
 
 namespace App\Connectors\Meta;
 
+use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Network;
 use App\Models\SocialAccount;
 use Carbon\CarbonImmutable;
@@ -137,6 +139,52 @@ class Comments
         $json = $this->graph->post($commentId.($isIg ? '/replies' : '/comments'), ['message' => $message], (string) $account->access_token);
 
         return (string) ($json['id'] ?? '');
+    }
+
+    /**
+     * Primer comentario: crea un comentario de nivel superior en una publicacion propia y devuelve su id. «Comentarios
+     * cerrados» se traduce a `CommentNotAllowedException`; el resto de errores de Graph conservan su clase (transitorio,
+     * reconexion, permanente).
+     */
+    public function create(SocialAccount $account, string $postExternalId, string $message): string
+    {
+        $this->assertId($postExternalId);
+
+        if (! self::hasScopes($account, true)) {
+            throw new PermanentPublishException('Falta el permiso para comentar en '.$account->network->label().'. Reconecta la cuenta y acepta todos los permisos.', 'permisos');
+        }
+
+        try {
+            $json = $this->graph->post($postExternalId.'/comments', ['message' => $message], (string) $account->access_token);
+        } catch (PermanentPublishException $e) {
+            if (preg_match('/comment.{0,40}(disabled|turned off|closed|not allowed)|(disabled|turned off|closed).{0,40}comment/i', $e->getMessage()) === 1) {
+                throw new CommentNotAllowedException('La publicacion tiene los comentarios cerrados.', 'comentarios_cerrados', $e);
+            }
+
+            throw $e;
+        }
+
+        return (string) ($json['id'] ?? '');
+    }
+
+    /** Id de un comentario PROPIO de nivel superior cuyo texto (normalizado) coincide, o null. Es la comprobacion de idempotencia. */
+    public function findOwn(SocialAccount $account, string $postExternalId, string $text): ?string
+    {
+        $wanted = self::canon($text);
+
+        foreach ($this->fetch($account, $postExternalId) as $comment) {
+            if ($comment['is_own'] && $comment['parent_external_id'] === null && self::canon((string) $comment['text']) === $wanted) {
+                return $comment['external_id'];
+            }
+        }
+
+        return null;
+    }
+
+    /** Texto comparable: sin espacios sobrantes ni diferencias de saltos de linea. */
+    public static function canon(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
     }
 
     /** Oculta (o vuelve a mostrar) un comentario. */

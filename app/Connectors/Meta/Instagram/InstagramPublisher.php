@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Meta\Instagram;
 
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishMedia;
@@ -11,6 +12,7 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
@@ -37,7 +39,7 @@ use Illuminate\Support\Facades\Log;
  * documentan como limitacion); un contenedor ya `PUBLISHED` se resuelve igual (las historias, que no se listan en
  * `/media`, por `/{ig}/stories`). Antes de crear contenedores se consulta `content_publishing_limit`.
  */
-class InstagramPublisher implements Publisher, StatusPoller
+class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
 {
     /** Referencia mientras un carrusel aun crea/espera a sus hijos (el avance vive en `progress`). */
     private const BUILDING = 'carousel';
@@ -46,6 +48,16 @@ class InstagramPublisher implements Publisher, StatusPoller
     private const RECENT_MEDIA = 25;
 
     public function __construct(private readonly GraphClient $graph = new GraphClient) {}
+
+    public function comment(SocialAccount $account, string $externalId, string $text): string
+    {
+        return (new Comments($this->graph))->create($account, $externalId, $text);
+    }
+
+    public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
+    {
+        return (new Comments($this->graph))->findOwn($account, $externalId, $text);
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {

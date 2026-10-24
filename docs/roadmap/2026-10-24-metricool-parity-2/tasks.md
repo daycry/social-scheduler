@@ -711,11 +711,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-20 — `GridService`: mezcla con lo programado, orden, caché y selector de cuenta
 
 - **Descripción**: Servicio que pone arriba los destinos programados (la más tardía primero; sin Stories; Reel solo con «compartir en el feed»; URL de `MediaAsset::publicUrl()`) y debajo lo publicado, con caché de 10 min y selector de cuenta. Requisito: CA-08, CA-09.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La cuadrícula ordena las publicaciones programadas arriba (la más tardía primero) y las ya publicadas debajo; las Stories no aparecen y las lecturas de Instagram se reutilizan 10 minutos.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0.05h (medido)
 - **Supervisión**: est. 0,20h (≈25 % IA) · real —
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-19
@@ -725,15 +726,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Instagram/GridServiceTest.php` → verde (orden, Story excluida, caché de 10 min)
 
 **Criterios de aceptación**
-- [ ] Las programadas van antes que las publicadas, la más tardía primero (CA-08).
-- [ ] Una Story programada no aparece (CA-09).
-- [ ] La segunda lectura dentro de 10 min sale de caché.
+- [x] Las programadas van antes que las publicadas, la más tardía primero (CA-08).
+- [x] Una Story programada no aparece (CA-09).
+- [x] La segunda lectura dentro de 10 min sale de caché.
 
 **Subtareas**
-- [ ] Test RED de orden y Stories
-- [ ] Servicio y caché
+- [x] Test RED de orden y Stories
+- [x] Servicio y caché
 
 **Notas**: Patrón de servicios de lectura y caché: `app/Services/CalendarService.php`.
+
+**Evidencia**: GridServiceTest + InstagramGridReaderTest: 13 passed (73 assertions). RED previo: clase GridService inexistente. Pint ok.
 
 ### T-21 — Ruta, controlador y `Pages/Instagram/Grid.vue` con navegación y miniatura de vídeo
 

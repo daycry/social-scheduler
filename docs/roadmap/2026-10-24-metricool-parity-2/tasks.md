@@ -681,11 +681,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-19 — `InstagramGrid`: lectura paginada de `/{ig}/media`
 
 - **Descripción**: Lector nuevo (sin tocar `InstagramPublisher`) con `media_type`, `media_url`, `thumbnail_url`, `permalink` y `timestamp`, primera pieza del carrusel y errores. Requisito: CA-08.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: La cuadrícula de Instagram puede leer lo ya publicado de la cuenta (imagen, vídeo y primera pieza del carrusel) sin permisos nuevos.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.05h (estimado)
 - **Supervisión**: est. 0,14h (≈25 % IA) · real —
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
@@ -695,15 +696,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Instagram/InstagramGridReaderTest.php` → verde con `Http::fake` (paginación, carrusel, error de Graph)
 
 **Criterios de aceptación**
-- [ ] Lee y normaliza las publicaciones con los campos pedidos.
-- [ ] Los errores de Graph se traducen sin lanzar excepción hacia la página.
-- [ ] No necesita permisos nuevos (`instagram_basic`).
+- [x] Lee y normaliza las publicaciones con los campos pedidos.
+- [x] Los errores de Graph se traducen sin lanzar excepción hacia la página.
+- [x] No necesita permisos nuevos (`instagram_basic`).
 
 **Subtareas**
-- [ ] Test RED con `Http::fake`
-- [ ] Lector paginado
+- [x] Test RED con `Http::fake`
+- [x] Lector paginado
 
 **Notas**: Ya se lee `/{ig}/media` para la idempotencia en `app/Connectors/Meta/Instagram/InstagramPublisher.php:402`; llamada vía `app/Connectors/Meta/GraphClient.php`.
+
+**Evidencia**: InstagramGridReaderTest: 6 passed (50 assertions). RED previo: 5 fallos por clase inexistente. Pint ok. Tiempo IA estimado: el marcador del meter se perdio.
 
 ### T-20 — `GridService`: mezcla con lo programado, orden, caché y selector de cuenta
 

@@ -271,11 +271,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-07 — Scope `youtube.force-ssl` y detección de reconexión
 
 - **Descripción**: Añadir `youtube.force-ssl` a los scopes de YouTube y detectar las cuentas conectadas sin él: el primer comentario de YouTube se desactiva con «Reconecta el canal para comentar». Requisito: D2 (el usuario reconectará) y diseño §6.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: YouTube pide el permiso de comentarios al conectar y avisa de que hay que reconectar el canal si se conectó antes.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en VERDE del comportamiento actual, ejecutado antes de tocar el código; después se añade el RED del cambio.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.06h (medido)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
@@ -285,15 +286,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connections/YouTubeCommentScopeTest.php` → verde (scope pedido y aviso sin scope)
 
 **Criterios de aceptación**
-- [ ] El conjunto de scopes de YouTube incluye `youtube.force-ssl` y conserva los anteriores.
-- [ ] Una cuenta sin el scope se marca como «no puede comentar» sin romper la publicación.
-- [ ] Los tests de conexiones existentes siguen en verde.
+- [x] El conjunto de scopes de YouTube incluye `youtube.force-ssl` y conserva los anteriores.
+- [x] Una cuenta sin el scope se marca como «no puede comentar» sin romper la publicación.
+- [x] Los tests de conexiones existentes siguen en verde.
 
 **Subtareas**
-- [ ] Caracterización de los scopes actuales
-- [ ] Cambio de scopes y comprobación al estilo `hasScopes`
+- [x] Caracterización de los scopes actuales
+- [x] Cambio de scopes y comprobación al estilo `hasScopes`
 
 **Notas**: `config/social.php:60-62` (scopes de YouTube). Patrón de comprobación: `Comments::hasScopes` en `app/Connectors/Meta/Comments.php:32`. La reconexión invalida los tokens actuales (riesgo aceptado en D2).
+
+**Evidencia**: YouTubeCommentScopeTest + GoogleOAuthTest: 21 passed; RED previo: force-ssl ausente de los scopes y canComment() inexistente.
+
 
 ### T-08 — Migración aditiva del estado del comentario en `post_targets` y enum `FirstCommentStatus`
 

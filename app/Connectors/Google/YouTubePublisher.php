@@ -51,6 +51,9 @@ class YouTubePublisher implements Publisher, StatusPoller
 {
     public const UPLOADING = PublishResult::UPLOADING;
 
+    /** Permiso que exige `commentThreads.insert`. Las cuentas conectadas antes de pedirlo no pueden comentar hasta reconectar. */
+    public const COMMENT_SCOPE = 'https://www.googleapis.com/auth/youtube.force-ssl';
+
     private const API = 'https://www.googleapis.com/youtube/v3';
 
     private const UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/videos';
@@ -84,6 +87,12 @@ class YouTubePublisher implements Publisher, StatusPoller
     private ?float $passStartedAt = null;
 
     public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota) {}
+
+    /** ¿El canal concedio el permiso de comentar? Sin el, solo se desactiva el primer comentario; publicar sigue igual. */
+    public static function canComment(SocialAccount $account): bool
+    {
+        return in_array(self::COMMENT_SCOPE, (array) $account->scopes, true);
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {

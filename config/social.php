@@ -60,6 +60,8 @@ return [
             'https://www.googleapis.com/auth/youtube',
             'https://www.googleapis.com/auth/youtube.readonly',
             'https://www.googleapis.com/auth/yt-analytics.readonly',
+            /* Primer comentario (commentThreads.insert). Las cuentas conectadas antes deben reconectar. */
+            'https://www.googleapis.com/auth/youtube.force-ssl',
         ],
     ],
 

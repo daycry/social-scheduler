@@ -1627,3 +1627,12 @@ Lentes: A+D (juntas) y B. Re-evaluación solo de lo corregido (`78e2a20..47b4228
 | 1 | Important | El «primer intento» se decide por `first_comment_attempts`, y Reintentar lo pone a 0. Con una búsqueda inconclusa, si el comentario pudo enviarse antes (timeout del POST que Meta sí creó), Reintentar lo crea a ciegas y queda duplicado. El mensaje de error pide justo esa acción | T-09, T-11, T-13 | corregido (999fa0f) | Lente B: `PostFirstComment.php:101`, `FirstCommentService.php:47-49`, `Comments.php:224`, `YouTubePublisher.php:337`; reproducido (probe2: 2 POST) |
 | 2 | Minor | El resumen de horas de la Fase 2 (1.60) no cuadra con la suma de sus tareas (1.94, incluido T-16 estimado) | T-16 | corregido (aac5094) | Lente A+D: `tasks.md:50` frente a `:581` |
 | 3 | Minor | La rama nueva de `resumeComments` deja `fallido` sin el aviso FirstCommentFailed (en la práctica no se alcanza) | T-11 | corregido (d168242) | Lente B (fuera de lente): `PublishRecovery.php:155-158` |
+
+## Revisión de dos lentes — intento 3: Fase 1-2 (T-01..T-18) — 0 Important, 2 Minor
+
+Lentes: A+B (juntas), re-evaluación de lo corregido en el intento 2 (`47b4228..HEAD`). El gap 1 del intento 2 queda corregido: probe3 hace 1 POST; `force` y `published` solo en `fallido`, con 404 para lo ajeno y throttle; `published` no llama a la red. Los gaps 2 y 3 también quedan corregidos. Tests: 665/665. `ledger-lint` y `scope-check` dan exit 0. **El bucle de revisión de la Fase 1-2 se cierra sin gaps Critical ni Important.**
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Minor | «Publicar igualmente» (`force`) sobrevive a `release()`. Si el POST forzado da timeout y la red sí lo creó, las pasadas siguientes vuelven a hacer POST a ciegas: 3 POST con un solo clic | T-11, T-13 | pendiente (se corrige antes de la Fase 3) | probe5: `PostFirstComment.php:51,103,118-119,220` |
+| 2 | Minor | La guía de usuario y `docs/modulos/publicacion.md` no recogen «Ya está publicado», «Publicar igualmente», `first_comment_sent_at` ni la ruta `/published`. Un «publicado» marcado a mano se ve igual que uno verificado | T-13, T-17 | pendiente (se corrige antes de la Fase 3) | `guia-de-usuario.md:41`, `publicacion.md:52,56`, `FirstCommentService.php:66-70` |

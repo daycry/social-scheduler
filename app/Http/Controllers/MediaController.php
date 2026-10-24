@@ -7,8 +7,10 @@ use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /** Endpoints JSON de la subida de media (prefirmado, finalizacion, subida local de dev, borrado). */
 class MediaController extends Controller
@@ -83,6 +85,28 @@ class MediaController extends Controller
         }
 
         return response()->json(['asset' => $asset->toPublicArray()], $asset->isReady() ? 200 : 422);
+    }
+
+    /**
+     * Fichero de la media ya guardada, solo para su dueño (previsualizacion del compositor). En disco local se sirve con
+     * soporte de rangos (los videos se pueden adelantar); con R2 redirige a una URL temporal firmada.
+     */
+    public function file(MediaAsset $asset): BinaryFileResponse|RedirectResponse
+    {
+        $this->authorize('view', $asset);
+        abort_unless($asset->isReady(), 404);
+
+        if ($this->storage->isS3()) {
+            return redirect()->away($asset->publicUrl(30));
+        }
+
+        $disk = $this->storage->disk();
+        abort_unless($disk->exists($asset->path), 404);
+
+        return response()->file($disk->path($asset->path), [
+            'Content-Type' => $asset->mime,
+            'X-Content-Type-Options' => 'nosniff',
+        ])->setPrivate()->setMaxAge(3600);
     }
 
     public function destroy(MediaAsset $asset): JsonResponse

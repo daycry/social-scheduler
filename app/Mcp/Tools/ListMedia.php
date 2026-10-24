@@ -46,7 +46,8 @@ class ListMedia extends SchedulerTool
         $page = $rows->take($limit);
 
         return [
-            'media' => $page->map->toPublicArray()->values()->all(),
+            // preview_url es de la web (necesita la sesion del navegador): no sirve a un cliente MCP.
+            'media' => $page->map(fn (MediaAsset $m) => array_diff_key($m->toPublicArray(), ['preview_url' => true]))->values()->all(),
             'has_more' => $hasMore,
             'next_cursor' => $hasMore ? $page->last()->id : null,
         ];

@@ -22,6 +22,9 @@ class FakeCommenter extends FakePublisher implements FirstCommenter
 
     public bool $hideNew = false;
 
+    /** Si se fija, findOwnComment() lanza esto (fallo inesperado al buscar el propio). */
+    public ?Throwable $findThrows = null;
+
     public int $commentCalls = 0;
 
     public int $findCommentCalls = 0;
@@ -48,6 +51,10 @@ class FakeCommenter extends FakePublisher implements FirstCommenter
     public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
     {
         $this->findCommentCalls++;
+
+        if ($this->findThrows) {
+            throw $this->findThrows;
+        }
 
         if ($this->hideNew) {
             return null;

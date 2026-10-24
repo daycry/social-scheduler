@@ -32,7 +32,8 @@ use Throwable;
  *  - Un fallo del comentario NUNCA degrada el destino (`status` sigue `publicada`): solo cambia `first_comment_status`.
  *  - Transitorio -> vuelve a `pendiente` y se reintenta con backoff (`publishing.comment_backoff_seconds`), tope
  *    `publishing.comment_max_attempts`. Permanente o reconexion -> `fallido` con el motivo. Cerrado / privado -> `no_admitido`.
- *  - Un fallo inesperado deja el destino `comentando`; `PublishRecovery` lo retoma pasado `stuck_after_minutes`.
+ *  - Un fallo inesperado deja el destino `comentando`; `PublishRecovery` lo retoma pasado `stuck_after_minutes`. Si ya estaba
+ *    agotado (rama `exhausted`), cierra en `fallido` con motivo y aviso: nunca queda `comentando` sin fin.
  */
 class PostFirstComment implements ShouldBeUnique, ShouldQueue
 {
@@ -111,8 +112,13 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
             $this->retryLater($target, $e->getMessage());
         } catch (Throwable $e) {
             // Inesperado: no se reintenta en caliente (podria duplicar). Queda `comentando` y lo recupera PublishRecovery,
-            // que busca el comentario propio antes de volver a crearlo.
-            Log::error('first_comment.unexpected_error', ['target_id' => $target->id, 'exception' => $e::class]);
+            // que busca el comentario propio antes de volver a crearlo. Tope: si ya es la pasada agotada (los intentos de
+            // `comment_max_attempts` se consumieron) NO se deja colgado otra vez: se cierra en `fallido` con motivo y aviso.
+            Log::error('first_comment.unexpected_error', ['target_id' => $target->id, 'exception' => $e::class, 'exhausted' => $exhausted]);
+
+            if ($exhausted) {
+                $this->settle($target, FirstCommentStatus::Failed, 'Un error inesperado impidio comentar tras varios intentos y se dio por fallido. Pulsa Reintentar para volver a intentarlo o edita el comentario.');
+            }
         }
     }
 

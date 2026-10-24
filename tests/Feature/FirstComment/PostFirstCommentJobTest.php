@@ -15,6 +15,7 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\FirstCommentFailed;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -186,4 +187,30 @@ test('un destino sin primer comentario no genera estado ni job', function () {
     app(DispatchDuePosts::class)();
 
     expect($t->fresh()->first_comment_status)->toBeNull()->and($this->net->commentCalls)->toBe(0);
+});
+
+test('un Throwable persistente con los intentos agotados cierra en fallido con motivo, aviso y Reintentar, sin quedar comentando', function () {
+    $t = fcTarget(['first_comment_status' => FirstCommentStatus::Commenting, 'first_comment_attempts' => 3, 'first_comment_at' => now()->subMinutes(30)]);
+    $this->net->findThrows = new RuntimeException('boom');
+
+    runFc($t);
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($t->first_comment_error)->toContain('error inesperado')->and($t->first_comment_error)->toContain('Reintentar')
+        ->and($t->status)->toBe(PostStatus::Published)->and($this->net->commentCalls)->toBe(0);
+    Notification::assertSentTo($this->user, FirstCommentFailed::class);
+    // Reintentar sigue disponible para un destino fallido.
+    $this->net->findThrows = null;
+    $this->actingAs($this->user)->post("/posts/{$t->post_id}/targets/{$t->id}/first-comment/retry")->assertSessionHasNoErrors();
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Published);
+});
+
+test('un Throwable con intentos por gastar queda comentando para la recuperacion (no se cierra aun)', function () {
+    $t = fcTarget();
+    $this->net->findThrows = new RuntimeException('boom');
+
+    runFc($t);
+
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Commenting);
+    Notification::assertNothingSent();
 });

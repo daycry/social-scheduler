@@ -59,3 +59,15 @@ test('no toca lo reciente ni lo ya resuelto', function () {
 
     expect(app(PublishRecovery::class)->run()['comments'])->toBe(0)->and($this->net->commentCalls)->toBe(0);
 });
+
+test('un pendiente o colgado sin external_id se cierra en fallido con motivo y no se relanza en cada pasada', function (FirstCommentStatus $status) {
+    $t = recTarget($status, ['external_id' => null, 'first_comment_at' => now()->subMinutes(30)]);
+    PostTarget::withoutUserScope()->whereKey($t->id)->update(['updated_at' => now()->subMinutes(30)]);
+
+    expect(app(PublishRecovery::class)->run()['comments'])->toBe(0);
+
+    $t = $t->fresh();
+    expect($t->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($t->first_comment_error)->toContain('identificador de la publicacion')
+        ->and($this->net->commentCalls)->toBe(0)->and($this->net->findCommentCalls)->toBe(0);
+    expect(app(PublishRecovery::class)->run()['comments'])->toBe(0);
+})->with([[FirstCommentStatus::Pending], [FirstCommentStatus::Commenting]]);

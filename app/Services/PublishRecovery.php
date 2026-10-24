@@ -142,8 +142,27 @@ class PublishRecovery
         $limit = now()->subMinutes((int) config('publishing.stuck_after_minutes', 10));
         $n = 0;
 
+        // Sin id de publicacion el job no puede reclamar el destino (`claim()` devuelve null siempre): se cierra con motivo en vez
+        // de relanzarlo en cada pasada. `fallido` deja Reintentar/Editar al usuario.
         PostTarget::withoutUserScope()->where('status', PostStatus::Published->value)
             ->whereNull('first_comment_external_id')
+            ->whereNull('external_id')
+            ->whereIn('first_comment_status', [FirstCommentStatus::Pending->value, FirstCommentStatus::Commenting->value])
+            ->whereIn('post_id', $this->livePosts())
+            ->chunkById(100, function ($targets) {
+                foreach ($targets as $target) {
+                    $this->guard($target, function () use ($target) {
+                        $target->forceFill([
+                            'first_comment_status' => FirstCommentStatus::Failed,
+                            'first_comment_error' => 'La red no devolvio el identificador de la publicacion, asi que no se puede comentar en ella. Comentalo a mano en la red.',
+                        ])->save();
+                    });
+                }
+            });
+
+        PostTarget::withoutUserScope()->where('status', PostStatus::Published->value)
+            ->whereNull('first_comment_external_id')
+            ->whereNotNull('external_id')
             ->whereIn('post_id', $this->livePosts())
             ->where(fn ($q) => $q
                 ->where(fn ($c) => $c->where('first_comment_status', FirstCommentStatus::Commenting->value)->where('first_comment_at', '<=', $limit))

@@ -741,32 +741,35 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-21 — Ruta, controlador y `Pages/Instagram/Grid.vue` con navegación y miniatura de vídeo
 
 - **Descripción**: Página «Cuadrícula» por cuenta de Instagram de la marca: tres columnas, insignias, enlaces al compositor e Instagram, estados vacío y de error, aviso de posts fijados y 360 px; vídeo sin miniatura con `<video preload="metadata">`. Requisito: CA-08..CA-10.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nueva página «Cuadrícula» en Planificación: muestra las tres columnas del perfil de Instagram con lo programado arriba y lo publicado debajo, selector de cuenta y avisos de error y de posts fijados.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 9,0h · real —
-- **Tiempo IA (ejec.)**: est. 1,22h · real —
+- **Tiempo IA (ejec.)**: est. 1,22h · real 0.09h (medido)
 - **Supervisión**: est. 0,30h (≈25 % IA) · real —
 - **Previsión IA**: 328k in / 36k out tok · ⚠️ verificar €
 - **Dependencias**: T-20
 - **Tipo**: frontend
-- **Archivos**: `routes/web.php`, `app/Http/Controllers/InstagramGridController.php`, `resources/js/Pages/Instagram/Grid.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tests/Feature/Ui/InstagramGridPageTest.php`
+- **Archivos**: `routes/web.php`, `app/Http/Controllers/InstagramGridController.php`, `resources/js/Pages/Instagram/Grid.vue`, `resources/js/navigation.js` (la entrada «Cuadrícula» vive aquí y no en el layout), `tests/Feature/Ui/InstagramGridPageTest.php`
 - **Cubre (tests)**: E2E-05, M-03, M-05
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/InstagramGridPageTest.php` → verde (componente Inertia y propiedad de la cuenta)
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] Tres columnas con el orden del perfil y enlace a cada pieza.
-- [ ] Un usuario ajeno no accede a la cuadrícula de otra marca.
-- [ ] Se avisa de que los fijados no se reflejan.
+- [x] Tres columnas con el orden del perfil y enlace a cada pieza.
+- [x] Un usuario ajeno no accede a la cuadrícula de otra marca.
+- [x] Se avisa de que los fijados no se reflejan.
 
 **Subtareas**
-- [ ] Test RED de la página
-- [ ] Controlador y ruta
-- [ ] Componente y navegación
+- [x] Test RED de la página
+- [x] Controlador y ruta
+- [x] Componente y navegación
 
 **Notas**: Patrón de página y controlador: `resources/js/Pages/Calendar` y `app/Http/Controllers/CalendarController.php`.
+
+**Evidencia**: InstagramGridPageTest: 6 passed; Ui+Instagram verdes; npm run build ok; pint ok. Entrada de navegacion en resources/js/navigation.js (el Layout no contiene la lista).
 
 ### T-22 — E2E de la cuadrícula con axe y sin desbordamiento
 

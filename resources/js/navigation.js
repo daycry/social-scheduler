@@ -28,11 +28,12 @@ export const MODULES = [
         key: 'planning',
         label: 'Planificación',
         icon: 'calendar',
-        match: ['calendar.*', 'posts.*', 'brands.posts.*', 'best-times.*', 'library.*', 'trash.*', 'autolists.*'],
+        match: ['calendar.*', 'instagram.grid', 'posts.*', 'brands.posts.*', 'best-times.*', 'library.*', 'trash.*', 'autolists.*'],
         href: (c) => c.route('calendar.index', c.q),
         side: [
             { key: 'calendar', label: 'Calendario', icon: 'calendar', match: ['calendar.*'], isActive: (c) => c.page.props.view !== 'list', href: (c) => c.route('calendar.index', { ...c.q, view: 'week' }) },
             { key: 'list', label: 'Lista', icon: 'list', match: ['calendar.*'], isActive: (c) => c.page.props.view === 'list', href: (c) => c.route('calendar.index', { ...c.q, view: 'list' }) },
+            { key: 'grid', label: 'Cuadrícula', icon: 'grid', match: ['instagram.grid'], when: (c) => c.has('instagram.grid'), href: (c) => c.route('instagram.grid', c.q) },
             { key: 'create', label: 'Crear publicación', icon: 'plus', match: ['brands.posts.*', 'posts.*'], when: (c) => !!c.brand, href: (c) => c.route('brands.posts.create', c.brand.id) },
             { key: 'best-times', label: 'Mejores horas', icon: 'clock', match: ['best-times.*'], when: (c) => c.has('best-times.index'), href: (c) => c.route('best-times.index', c.q) },
             { key: 'library', label: 'Biblioteca', icon: 'folder', match: ['library.*'], when: (c) => c.has('library.index'), href: (c) => c.route('library.index', c.q) },

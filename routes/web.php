@@ -7,6 +7,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FirstCommentController;
+use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
@@ -62,6 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Calendario (T-24).
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::patch('posts/{post}/reschedule', [CalendarController::class, 'reschedule'])->name('posts.reschedule');
+    // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
+    Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
 
     // Compositor de publicaciones (T-23).
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');

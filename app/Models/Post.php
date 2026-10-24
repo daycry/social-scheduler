@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use InvalidArgumentException;
 
 /**
  * Publicacion (texto + media + fecha) que se envia a una o varias cuentas mediante sus `PostTarget`.
@@ -30,6 +31,22 @@ class Post extends Model
 
     protected $fillable = ['text', 'notes', 'scheduled_at', 'status'];
 
+    /** Regla de C-03 (CA-12): un post solo admite una campaña de su propia marca. */
+    protected static function booted(): void
+    {
+        static::saving(function (Post $post): void {
+            if ($post->campaign_id === null || ! $post->isDirty('campaign_id')) {
+                return;
+            }
+
+            $campaignBrand = Campaign::withoutUserScope()->whereKey($post->campaign_id)->value('brand_id');
+
+            if ($campaignBrand === null || (int) $campaignBrand !== (int) $post->brand_id) {
+                throw new InvalidArgumentException('La campaña debe ser de la misma marca que el post.');
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -41,6 +58,11 @@ class Post extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class)->withoutGlobalScope(UserScope::class);
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class)->withoutGlobalScope(UserScope::class);
     }
 
     public function targets(): HasMany

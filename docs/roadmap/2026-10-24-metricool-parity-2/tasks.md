@@ -840,11 +840,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-24 — Migración, modelo `Campaign`, `UserScope` y regla «misma marca»
 
 - **Descripción**: Tabla `campaigns` por marca (nombre, color, fechas, archivo) y `posts.campaign_id` (`nullOnDelete`). Requisito: D3 (por marca y asignada al post entero), CA-12.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nueva tabla de campañas por marca y campo de campaña en los posts; un post solo admite campañas de su marca.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0.14h (medido)
 - **Supervisión**: est. 0,05h (≈25 % IA) · real —
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
@@ -854,15 +855,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Campaigns/CampaignModelTest.php` → verde (aislamiento y regla de misma marca)
 
 **Criterios de aceptación**
-- [ ] Migraciones aditivas.
-- [ ] Borrar la campaña deja el post sin campaña.
-- [ ] Un post solo admite campañas de su marca.
+- [x] Migraciones aditivas.
+- [x] Borrar la campaña deja el post sin campaña.
+- [x] Un post solo admite campañas de su marca.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Migraciones y modelo
+- [x] Test RED
+- [x] Migraciones y modelo
 
 **Notas**: Patrón: `app/Models/ComposerPreset.php`; trait `app/Models/Concerns/BelongsToUser.php`.
+
+**Evidencia**: CampaignModelTest: 4 passed (8 assertions); RED previo: Class App\Models\Campaign not found. php artisan migrate aplicado.
 
 ### T-25 — `CampaignService`, controlador y validación
 

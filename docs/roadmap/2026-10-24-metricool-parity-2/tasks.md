@@ -46,14 +46,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-01a · Textos guardados | 2 | 6 | 33% | 0 / 16,5h | 0,21 / 2,2h | 0 / 0,6h | 0 / 668k |
+| Fase 1 — C-01a · Textos guardados | 3 | 6 | 50% | 0 / 16,5h | 0,32 / 2,2h | 0 / 0,6h | 0 / 668k |
 | Fase 2 — C-01b · Primer comentario (IG, FB y YT) | 0 | 12 | 0% | 0 / 35,5h | 0 / 4,8h | 0 / 1,2h | 0 / 1,44M |
 | Fase 3 — C-02 · Cuadrícula de Instagram | 0 | 5 | 0% | 0 / 23,5h | 0 / 3,2h | 0 / 0,8h | 0 / 952k |
 | Fase 4 — C-03 · Campañas | 0 | 9 | 0% | 0 / 36,5h | 0 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 0 | 9 | 0% | 0 / 24,5h | 0 / 3,3h | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 0 | 6 | 0% | 0 / 14,5h | 0 / 2,0h | 0 / 0,5h | 0 / 587k |
 | Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **2** | **50** | **4%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| **TOTAL** | **3** | **50** | **6%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -137,11 +137,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-03 — Página de ajustes «Textos guardados» con entrada de navegación
 
 - **Descripción**: Página `SavedTexts/Index.vue`: lista, búsqueda, alta, edición y borrado, con filtro por marca o «Todas las marcas». UI en español. Requisito: CA-03.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nueva página «Textos guardados» (menú de usuario) para crear, buscar, filtrar por marca, editar y borrar tus textos.
+- **Cerrada**: 2026-10-24
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0.11h (medido)
 - **Supervisión**: est. 0,14h (≈25 % IA) · real —
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
@@ -153,16 +154,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] La página lista los textos del usuario y filtra por marca.
-- [ ] Alta, edición y borrado funcionan sin recargar la app.
-- [ ] Hay entrada de navegación hacia la página.
+- [x] La página lista los textos del usuario y filtra por marca.
+- [x] Alta, edición y borrado funcionan sin recargar la app.
+- [x] Hay entrada de navegación hacia la página.
 
 **Subtareas**
-- [ ] Test RED de la página Inertia
-- [ ] Componente Vue
-- [ ] Entrada de menú
+- [x] Test RED de la página Inertia
+- [x] Componente Vue
+- [x] Entrada de menú
 
 **Notas**: Patrón de páginas de ajustes: `resources/js/Pages/Profile` y `resources/js/Pages/Library`. El E2E con axe va en T-05.
+
+**Evidencia**: SavedTextsPageTest: 2 passed (28 assertions); RED previo: Inertia page component file [SavedTexts/Index] does not exist; npm run build exit 0.
 
 ### T-04 — Menú «Textos guardados» en el compositor e inserción en el cursor
 

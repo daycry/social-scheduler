@@ -14,6 +14,7 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Services\CampaignService;
 use App\Services\ComposerPresetService;
+use App\Services\Media\DriveFileSource;
 use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
@@ -218,11 +219,12 @@ class PostController extends Controller
             // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
             'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()
                 ->mapWithKeys(fn (ContentType $t) => [$t->value => config("media_specs.types.{$t->value}.first_comment.max")])->filter(),
-            // Google Picker (C-04b): sin `GOOGLE_PICKER_API_KEY` (o sin client id) no se expone nada y la UI no muestra el boton. La clave del
-            // Picker es publica por diseno (se restringe por dominio en Google Cloud); el token de Drive nunca pasa por aqui.
-            'drivePicker' => filled(config('services.google.picker_api_key')) && filled(config('services.google.client_id')) ? [
+            // Google Picker (C-04b): sin `GOOGLE_PICKER_API_KEY`, `GOOGLE_PICKER_APP_ID` (con `drive.file` el Picker necesita `setAppId`; sin el el
+            // fichero elegido da 404) o client id no se expone nada y la UI no muestra el boton. La clave del Picker es publica por diseno
+            // (se restringe por dominio en Google Cloud); el token de Drive nunca pasa por aqui.
+            'drivePicker' => DriveFileSource::pickerConfigured() ? [
                 'api_key' => config('services.google.picker_api_key'),
-                'app_id' => config('services.google.picker_app_id') ?: null,
+                'app_id' => config('services.google.picker_app_id'),
                 'client_id' => config('services.google.client_id'),
             ] : null,
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red

@@ -39,8 +39,8 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `QUEUE_CONNECTION` | `database` | Sin Redis |
 | `DB_QUEUE_RETRY_AFTER` | `180` | Debe superar el `--timeout` del worker (120 s) |
 | `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers; `media` es la de las importaciones por URL y Drive |
-| `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» ([guía](../guias/google-cloud-picker-drive.md)) |
-| `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker |
+| `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» (también sin `GOOGLE_PICKER_APP_ID`) ([guía](../guias/google-cloud-picker-drive.md)) |
+| `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
 | `MEDIA_IMPORT_QUEUE` | `media` | Cola de `ImportRemoteMedia` |
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
 | `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |

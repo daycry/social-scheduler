@@ -2,9 +2,12 @@
 
 namespace App\Services\Media;
 
+use Closure;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Descarga de un fichero de Google Drive (C-04b) con el token OAuth del usuario (`drive.file`). Comparte el pipeline de la URL
@@ -24,6 +27,14 @@ class DriveFileSource extends UrlSource
 
     public const EXPIRED = 'El acceso a Google Drive ha caducado o el fichero ya no está disponible. Vuelve a elegir el fichero en Drive.';
 
+    /** `reason` de los 403 de cuota de Drive: son TRANSITORIOS (se reintentan), a diferencia de un 403 de permisos. */
+    private const RATE_LIMIT_REASONS = ['userRateLimitExceeded', 'rateLimitExceeded'];
+
+    public const RATE_LIMITED = 'Google Drive está limitando las peticiones; inténtalo de nuevo en unos minutos.';
+
+    /** Ultimo 4xx permanente que fabrico `statusMessage()` en una descarga: permite distinguir un 403 de cuota de uno de permisos. */
+    private ?int $failedStatus = null;
+
     public function __construct(UrlGuard $guard, private readonly string $fileId, #[\SensitiveParameter] private readonly string $token)
     {
         if (! self::validFileId($fileId)) {
@@ -35,6 +46,12 @@ class DriveFileSource extends UrlSource
         }
 
         parent::__construct($guard, 'https://'.self::HOST.'/drive/v3/files/'.$fileId.'?alt=media');
+    }
+
+    /** El Picker solo cuenta como disponible con clave, app id (con `drive.file` lo exige `setAppId`) y client id (el `aud` del token). */
+    public static function pickerConfigured(): bool
+    {
+        return filled(config('services.google.picker_api_key')) && filled(config('services.google.picker_app_id')) && filled(config('services.google.client_id'));
     }
 
     public static function validFileId(string $fileId): bool
@@ -72,6 +89,10 @@ class DriveFileSource extends UrlSource
             throw new InvalidArgumentException('No se pudo contactar con Google Drive; inténtalo de nuevo.');
         }
 
+        if (self::isRateLimit($res)) {
+            throw new InvalidArgumentException(self::RATE_LIMITED);
+        }
+
         if (in_array($res->status(), [401, 403, 404], true)) {
             throw new InvalidArgumentException(self::EXPIRED);
         }
@@ -93,6 +114,51 @@ class DriveFileSource extends UrlSource
             'mime' => $mime,
             'size' => is_numeric($size) ? (int) $size : null,
         ];
+    }
+
+    /** Un 403/429 de Drive por limite de cuota (`userRateLimitExceeded`/`rateLimitExceeded`), no por permisos. */
+    public static function isRateLimit(Response $res): bool
+    {
+        if (! in_array($res->status(), [403, 429], true)) {
+            return false;
+        }
+
+        foreach ((array) $res->json('error.errors', []) as $error) {
+            if (in_array($error['reason'] ?? null, self::RATE_LIMIT_REASONS, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * El 403 de la DESCARGA llega en `on_headers`, sin cuerpo que mirar: si fue un 403, se consulta una vez mas el fichero (misma cuota)
+     * para ver el motivo. Una cuota agotada es transitoria (el job reintenta con espera); unos permisos perdidos siguen siendo permanentes.
+     */
+    public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline, ?int $knownTotal = null): RemotePass
+    {
+        $this->failedStatus = null;
+
+        try {
+            return parent::fetch($sink, $offset, $validator, $policy, $cap, $deadline, $knownTotal);
+        } catch (ImportFailedException $e) {
+            if ($this->failedStatus === 403 && $this->quotaExhausted()) {
+                throw new RuntimeException('Google Drive limitó las peticiones (cuota); se reintentará.');
+            }
+
+            throw $e;
+        }
+    }
+
+    private function quotaExhausted(): bool
+    {
+        try {
+            return self::isRateLimit(Http::withoutRedirecting()->timeout(15)->withToken($this->token)->acceptJson()
+                ->get('https://'.self::HOST.'/drive/v3/files/'.$this->fileId, ['fields' => 'id']));
+        } catch (ConnectionException) {
+            return false;
+        }
     }
 
     private function verifyToken(): void
@@ -132,6 +198,8 @@ class DriveFileSource extends UrlSource
 
     protected function statusMessage(int $status): string
     {
+        $this->failedStatus = $status;
+
         return in_array($status, [401, 403, 404], true) ? self::EXPIRED : parent::statusMessage($status);
     }
 }

@@ -15,7 +15,7 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 beforeEach(function () {
     Storage::fake('local');
-    config(['filesystems.media' => 'local', 'services.google.client_id' => 'client-123.apps.googleusercontent.com', 'services.google.picker_api_key' => 'test-key']);
+    config(['filesystems.media' => 'local', 'services.google.client_id' => 'client-123.apps.googleusercontent.com', 'services.google.picker_api_key' => 'test-key', 'services.google.picker_app_id' => '1234567890']);
     Http::preventStrayRequests();
     Queue::fake();
     $this->user = User::factory()->create();
@@ -100,6 +100,15 @@ test('sin GOOGLE_PICKER_API_KEY el endpoint no existe (404)', function () {
     Http::fake();
 
     postDrive()->assertNotFound();
+    Http::assertNothingSent();
+});
+
+test('B-1: sin GOOGLE_PICKER_APP_ID tampoco hay endpoint (con drive.file el Picker necesita setAppId: sin el, files.get da 404)', function () {
+    config(['services.google.picker_app_id' => null]);
+    Http::fake();
+
+    postDrive()->assertNotFound();
+    Queue::assertNothingPushed();
     Http::assertNothingSent();
 });
 

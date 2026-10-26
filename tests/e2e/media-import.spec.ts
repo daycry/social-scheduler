@@ -251,7 +251,7 @@ test('E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» 
 });
 
 /** Activa Drive en la página: reescribe las props de Inertia del HTML y sustituye Google por un stub que «elige» un fichero. */
-async function enableFakeDrive(page: Page, seen: { token: string | null; clicks: number; body: Record<string, string> | null }, pick: 'file' | 'cancel' = 'file') {
+async function enableFakeDrive(page: Page, seen: { token: string | null; clicks: number; body: Record<string, string> | null }, pick: 'file' | 'cancel' | 'gapi-error' | 'popup-blocked' = 'file') {
     // Se reescribe `data-page` en cuanto el parser crea el contenedor de Inertia, antes de que arranque la aplicación (el HTML no se
     // intercepta: `route.fetch` no acepta el certificado autofirmado de metricool.test).
     await page.addInitScript(() => {
@@ -270,7 +270,7 @@ async function enableFakeDrive(page: Page, seen: { token: string | null; clicks:
         const w = window as any;
         w.__drive = { token: null, clicks: 0 };
         w.google = {
-            accounts: { oauth2: { initTokenClient: (cfg: any) => ({ requestAccessToken: () => { w.__drive.clicks++; cfg.callback({ access_token: 'ya29.stub-token' }); } }) } },
+            accounts: { oauth2: { initTokenClient: (cfg: any) => ({ requestAccessToken: () => { w.__drive.clicks++; if (mode === 'popup-blocked') cfg.error_callback({ type: 'popup_failed_to_open' }); else cfg.callback({ access_token: 'ya29.stub-token' }); } }) } },
             picker: {
                 ViewId: { DOCS: 'docs' }, Response: { ACTION: 'action', DOCUMENTS: 'docs' }, Action: { PICKED: 'picked', CANCEL: 'cancel' }, Document: { ID: 'id', NAME: 'name' },
                 DocsView: class { setMimeTypes() { return this; } setIncludeFolders() { return this; } },
@@ -283,7 +283,7 @@ async function enableFakeDrive(page: Page, seen: { token: string | null; clicks:
                 },
             },
         };
-        w.gapi = { load: (_: string, cb: () => void) => cb() };
+        w.gapi = { load: (_: string, o: any) => (mode === 'gapi-error' ? o.onerror() : typeof o === 'function' ? o() : o.callback()) };
     }, pick);
     await page.route('**/media/import-drive', (route) => {
         seen.body = route.request().postDataJSON();
@@ -333,4 +333,56 @@ test('E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error', asy
     await expect(page.getByTestId('media-import-item')).toHaveCount(0);
     await expect(page.getByTestId('media-import-error')).toHaveText('');
     expect(seen.body).toBeNull();
+});
+
+test('E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje', async ({ page }) => {
+    const seen = { token: null as string | null, clicks: 0, body: null as Record<string, string> | null };
+    await enableFakeDrive(page, seen, 'gapi-error');
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    const button = page.getByTestId('media-import-drive');
+    await button.click();
+
+    await expect(page.getByTestId('media-import-error')).toContainText('No se pudo cargar Google');
+    await expect(button).toHaveText('Google Drive');
+    await expect(button).toBeEnabled();
+    expect(seen.body).toBeNull();
+});
+
+test('E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic', async ({ page }) => {
+    const seen = { token: null as string | null, clicks: 0, body: null as Record<string, string> | null };
+    await enableFakeDrive(page, seen, 'popup-blocked');
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    await page.getByTestId('media-import-drive').click();
+    await expect(page.getByTestId('media-import-error')).toContainText('bloqueado la ventana');
+    await expect(page.getByTestId('media-import-drive')).toHaveText('Google Drive');
+});
+
+test('E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real)', async ({ page }) => {
+    const loaded: string[] = [];
+    await page.route(/accounts\.google\.com\/gsi\/client|apis\.google\.com\/js\/api\.js/, (route) => {
+        loaded.push(route.request().url());
+        return route.fulfill({ status: 200, contentType: 'text/javascript', body: '/* stub */' });
+    });
+    await page.addInitScript(() => {
+        const patch = () => {
+            const el = document.getElementById('app');
+            const raw = el?.getAttribute('data-page');
+            if (!el || !raw || el.dataset.driveStub) return;
+            el.dataset.driveStub = '1';
+            const data = JSON.parse(raw);
+            data.props.drivePicker = { api_key: 'test-key', app_id: '123', client_id: 'cid.apps.googleusercontent.com' };
+            el.setAttribute('data-page', JSON.stringify(data));
+        };
+        new MutationObserver(patch).observe(document, { childList: true, subtree: true, attributes: true });
+    });
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    expect(loaded, 'al abrir el compositor no se carga nada de Google').toEqual([]);
+    await page.getByTestId('media-import-drive').hover();
+    await expect.poll(() => loaded.length).toBe(2);
 });

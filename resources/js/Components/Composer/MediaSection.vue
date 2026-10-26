@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
                 </div>
                 <button type="submit" class="btn-secondary" :disabled="sending || !url.trim()">{{ sending ? 'Importando…' : 'Importar' }}</button>
                 <button v-if="drive.available()" type="button" class="btn-secondary" data-testid="media-import-drive" :disabled="sending || drive.busy.value"
-                    aria-describedby="media-import-help" @click="importFromDrive">{{ drive.busy.value ? 'Abriendo Drive…' : 'Google Drive' }}</button>
+                    aria-describedby="media-import-help" @pointerenter="drive.preload()" @focus="drive.preload()" @click="importFromDrive">{{ drive.busy.value ? 'Abriendo Drive…' : 'Google Drive' }}</button>
             </form>
             <p id="media-import-help" class="mt-1 text-xs text-slate-600">Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()"> También puedes elegir un fichero de Google Drive.</template></p>
             <p id="media-import-error" role="alert" class="mt-1 text-sm text-red-700" data-testid="media-import-error">{{ error }}</p>

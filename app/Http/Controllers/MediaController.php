@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MediaAsset;
+use App\Services\Media\DriveFileSource;
 use App\Services\Media\UnsafeUrlException;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
@@ -70,12 +71,12 @@ class MediaController extends Controller
     }
 
     /**
-     * Importa un fichero de Google Drive (C-04b) con el token del Picker. Solo se acepta si `GOOGLE_PICKER_API_KEY` esta configurada.
+     * Importa un fichero de Google Drive (C-04b) con el token del Picker. Solo se acepta si el Picker esta configurado (clave, app id y client id).
      * El token no se guarda: viaja cifrado en el job y caduca en 1 h.
      */
     public function importDrive(Request $request): JsonResponse
     {
-        abort_unless(filled(config('services.google.picker_api_key')), 404);
+        abort_unless(DriveFileSource::pickerConfigured(), 404);
 
         $data = $request->validate([
             'file_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{1,128}$/'],

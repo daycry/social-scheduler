@@ -4,7 +4,7 @@ Guía para activar el botón «Google Drive» del compositor (importar media des
 
 Reglas del producto que conviene tener presentes:
 
-- **Sin clave, sin botón.** Con `GOOGLE_PICKER_API_KEY` vacía no aparece «Google Drive» ni se carga ningún script de Google. «Desde URL» sigue funcionando.
+- **Sin clave o sin app id, sin botón.** Con `drive.file` el Picker exige el número de proyecto (`setAppId`); sin él el fichero elegido da 404. Con `GOOGLE_PICKER_API_KEY` o `GOOGLE_PICKER_APP_ID` vacías (o sin `GOOGLE_CLIENT_ID`), el servidor no expone la configuración, no aparece «Google Drive» ni se carga ningún script de Google. «Desde URL» sigue funcionando.
 - **Permiso mínimo.** Se pide `drive.file`: la app solo ve los ficheros que el usuario elige en el Picker, no su Drive entero. El token solo viaja una vez al servidor, cifrado en el job, y no se guarda.
 - **Cliente OAuth ya existente.** Se usa el mismo cliente que los conectores (`GOOGLE_CLIENT_ID`), distinto del cliente del login social.
 - **Producción:** `https://social-scheduler.daycry.ovh`.
@@ -23,7 +23,7 @@ En Google Cloud Console, en el proyecto de los conectores (el de `GOOGLE_CLIENT_
 3. *Restricciones de la API*: limítala a **Google Picker API**.
 4. Copia la clave en `GOOGLE_PICKER_API_KEY`.
 
-El número de proyecto (el «Project number» del panel de Google Cloud, no el ID) va en `GOOGLE_PICKER_APP_ID`.
+El número de proyecto (el «Project number» del panel de Google Cloud, no el ID) va en `GOOGLE_PICKER_APP_ID` y es **obligatorio**: sin él no hay botón y `POST /media/import-drive` responde 404.
 
 ## 3. Pantalla de consentimiento y cliente OAuth
 
@@ -63,8 +63,11 @@ Estas comprobaciones con Google real son manuales (ver [pendientes manuales](../
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| No aparece el botón «Google Drive» | `GOOGLE_PICKER_API_KEY` vacía o configuración en caché | Rellenarla y `php artisan config:clear` |
+| No aparece el botón «Google Drive» | `GOOGLE_PICKER_API_KEY` o `GOOGLE_PICKER_APP_ID` vacías, o configuración en caché | Rellenarla y `php artisan config:clear` |
 | El Picker se abre en blanco o da `origin_mismatch` | Falta el dominio en los orígenes JavaScript autorizados | Paso 3.2 |
 | `API_KEY_HTTP_REFERRER_BLOCKED` | La clave está restringida a otro referrer | Paso 2.2 |
 | «El acceso a Google Drive ha caducado…» | El token dura una hora o el fichero ya no es legible | Volver a elegir el fichero |
 | La importación queda en «pendiente» | Falta el worker de la cola `media` | Cron `ss-media` y `QUEUE_NAMES` |
+| «El navegador ha bloqueado la ventana de Google» | El popup de permisos se bloqueó (los scripts de Google se precargan al acercarse al botón para que se abra dentro del clic) | Permitir las ventanas emergentes del sitio y volver a pulsar |
+| «No se pudo cargar Google…» | Scripts de Google bloqueados o sin red (hay un límite de 15 s) | Revisar el bloqueador de contenido; el botón vuelve a su estado |
+| «Google Drive está limitando las peticiones» | Error 403 de cuota (`userRateLimitExceeded`/`rateLimitExceeded`): es transitorio y la descarga lo reintenta sola | Esperar unos minutos |

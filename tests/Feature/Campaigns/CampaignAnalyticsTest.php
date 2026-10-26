@@ -121,3 +121,18 @@ test('CampaignAnalytics: no lee datos de otro usuario', function () {
 
     expect($r['kpis']['posts'])->toBe(0)->and($r['posts'])->toBe([]);
 });
+
+test('withLatestSnapshot acota la subconsulta lm a los destinos del conjunto y no cambia el resultado', function () {
+    $post = campPost($this->campaign);
+    campTarget($post, $this->ig, ['2026-10-04' => [Metric::VIEWS => 10], '2026-10-09' => [Metric::VIEWS => 100]]);
+    // Snapshots de OTRO destino (fuera de la campaña): no deben entrar en `lm` ni alterar la lectura.
+    campTarget(campPost(null), $this->ig, ['2026-10-20' => [Metric::VIEWS => 9999]]);
+
+    DB::enableQueryLog();
+    $r = $this->svc->summary($this->user, $this->campaign);
+    $sql = collect(DB::getQueryLog())->pluck('query')->first(fn ($q) => str_contains($q, 'last_date'));
+    DB::disableQueryLog();
+
+    expect($r['kpis']['views'])->toBe(100)
+        ->and($sql)->toContain('"post_target_id" in (select "post_targets"."id"');
+});

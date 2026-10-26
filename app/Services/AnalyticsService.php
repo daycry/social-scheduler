@@ -290,12 +290,18 @@ class AnalyticsService
     /**
      * Une cada destino con su ULTIMO snapshot de metricas (`pm.metrics`, `lm.last_date`). Pieza compartida entre el dashboard
      * (`postStats`) y el panel de campana (`CampaignAnalytics`): los dos deben leer el mismo "ultimo valor".
+     *
+     * La subconsulta `lm` (MAX(date) por destino) se ACOTA a los destinos de `$query` (los de la campana o los del dashboard
+     * segun sus filtros): sin ello recorria TODOS los snapshots del usuario y su coste crecia con el historico (nunca se purga).
+     * El resultado es el mismo, porque el join solo consulta `lm` por los destinos de `$query`.
      */
     public static function withLatestSnapshot(Builder $query, int $userId): Builder
     {
+        $scope = (clone $query)->select('post_targets.id');
+
         return $query
             ->leftJoinSub(
-                PostMetricSnapshot::withoutUserScope()->where('user_id', $userId)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
+                PostMetricSnapshot::withoutUserScope()->where('user_id', $userId)->whereIn('post_target_id', $scope)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
                 'lm', 'lm.post_target_id', '=', 'post_targets.id',
             )
             ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));

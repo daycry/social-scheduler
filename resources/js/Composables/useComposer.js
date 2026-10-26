@@ -262,9 +262,11 @@ export function useComposer(props) {
         return textOf(tab) || 'Aquí verás el texto de tu publicación.';
     });
     // Primera media con vista previa local (imagen o vídeo recién subidos): { url, kind }.
+    // Si no hay vista previa local (post reabierto, creado por MCP o elegido de la biblioteca), se usa el fichero guardado.
+    const previewOf = (id) => previews.value[id] ?? mediaById(id)?.preview_url ?? null;
     const firstPreview = computed(() => {
-        const id = form.media.find((m) => previews.value[m]);
-        return id === undefined ? null : { url: previews.value[id], kind: mediaById(id)?.kind ?? 'image' };
+        const id = form.media.find((m) => previewOf(m));
+        return id === undefined ? null : { url: previewOf(id), kind: mediaById(id)?.kind ?? 'image' };
     });
     const charCount = computed(() => countChars(form.text));
 

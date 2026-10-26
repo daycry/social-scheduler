@@ -3,7 +3,6 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Abilities;
-use App\Models\Brand;
 use App\Models\User;
 use App\Services\PostService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -29,14 +28,14 @@ class CreatePost extends SchedulerTool
 
     public function schema(JsonSchema $schema): array
     {
-        return ['brand_id' => $schema->integer()->description('ID de la marca')->required()] + $this->payloadSchema($schema);
+        return $this->brandSchema($schema, 'Marca de la publicacion (obligatoria)') + $this->payloadSchema($schema);
     }
 
     protected function run(Request $request, User $user): array
     {
-        $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
-        $data = $this->validatedPayload($request, ['brand_id' => ['required', 'integer']]);
-        unset($data['brand_id']);
+        $brand = $this->brandFrom($request, $user);
+        $data = $this->validatedPayload($request, ['brand_id' => ['nullable', 'integer'], 'brand' => ['nullable', 'string', 'max:255']]);
+        unset($data['brand_id'], $data['brand']);
 
         return $this->presentPost(app(PostService::class)->create($user, $brand, $data));
     }

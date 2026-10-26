@@ -4,10 +4,12 @@ namespace App\Mcp\Tools;
 
 use App\Exceptions\InvalidPostTransition;
 use App\Exceptions\PostValidationException;
+use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\User;
 use App\Services\AuditLog;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -104,6 +106,58 @@ abstract class SchedulerTool extends Tool
         throw new NotOwned("$label no encontrada.", strtolower(class_basename($model)), $id, $crossUser);
     }
 
+    /**
+     * Marca del usuario por `brand_id` o por su nombre (`brand`, sin distinguir mayusculas ni espacios de los extremos):
+     * quien usa el MCP no tiene por que conocer los ids. Un nombre repetido obliga a usar el id.
+     */
+    protected function brandFrom(Request $request, User $user, bool $required = true): ?Brand
+    {
+        if (filled($request->get('brand_id'))) {
+            return $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
+        }
+
+        $name = trim((string) $request->get('brand'));
+        if ($name === '') {
+            if ($required) {
+                throw new InvalidArgumentException('Indica la marca: brand (su nombre) o brand_id. Usa list_brands para verlas.');
+            }
+
+            return null;
+        }
+
+        $matches = Brand::withoutUserScope()->where('user_id', $user->id)->get()
+            ->filter(fn (Brand $b) => mb_strtolower(trim($b->name)) === mb_strtolower($name))->values();
+
+        if ($matches->count() > 1) {
+            throw new InvalidArgumentException("Hay varias marcas llamadas «{$name}»: indica brand_id (".$matches->pluck('id')->implode(', ').').');
+        }
+
+        return $matches->first() ?? throw new NotOwned("Marca «{$name}» no encontrada. Usa list_brands para ver los nombres.", 'brand', null, false);
+    }
+
+    /**
+     * Parametros de marca del esquema: el nombre o, si hay dos con el mismo, el id.
+     *
+     * @return array<string, mixed>
+     */
+    protected function brandSchema(JsonSchema $schema, string $purpose = 'Marca'): array
+    {
+        return [
+            'brand' => $schema->string()->description("$purpose: su nombre, tal como sale en list_brands (alternativa a brand_id)"),
+            'brand_id' => $schema->integer()->description("$purpose: su id (alternativa a brand; obligatorio si hay dos marcas con el mismo nombre)"),
+        ];
+    }
+
+    /**
+     * Nombre de cada marca del usuario por id, para acompanar los brand_id de las respuestas.
+     *
+     * @return array<int, string>
+     */
+    protected function brandNames(User $user): array
+    {
+        return Brand::withoutUserScope()->where('user_id', $user->id)->pluck('name', 'id')->all();
+    }
+
     /** @return array<string, mixed> */
     protected function presentPost(Post $post): array
     {
@@ -114,6 +168,7 @@ abstract class SchedulerTool extends Tool
         return [
             'id' => $post->id,
             'brand_id' => $post->brand_id,
+            'brand_name' => $post->brand?->name,
             'text' => $post->text,
             'notes' => $post->notes, // internas: nunca se publican
             'campaign_id' => $post->campaign_id,

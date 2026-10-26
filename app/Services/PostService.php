@@ -554,6 +554,11 @@ class PostService
             foreach ($this->optionErrors($type, $account, $options) as $message) {
                 $errors[$key][] = $message;
             }
+            // Directrices de TikTok: la visibilidad la elige el usuario en cada publicacion, sin valor por defecto. Un borrador puede
+            // guardarse sin ella; programar o publicar no.
+            if ($schedule && $type->network() === Network::TikTok && TikTokPublisher::directPost($account) && blank($options['privacy_level'] ?? null)) {
+                $errors[$key][] = 'Elige la visibilidad de TikTok antes de programar o publicar.';
+            }
 
             // Primer comentario (C-01b): vacio = sin comentario. El maximo y los tipos que lo admiten salen de `media_specs`.
             $firstComment = isset($raw['first_comment']) && trim((string) $raw['first_comment']) !== '' ? (string) $raw['first_comment'] : null;

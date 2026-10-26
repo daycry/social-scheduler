@@ -5,7 +5,6 @@ namespace App\Mcp\Tools;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Mcp\Abilities;
-use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\SocialAccountService;
@@ -32,14 +31,14 @@ class ListAccounts extends SchedulerTool
 
     public function schema(JsonSchema $schema): array
     {
-        return ['brand_id' => $schema->integer()->description('ID de la marca')->required()];
+        return $this->brandSchema($schema, 'Marca (obligatoria)');
     }
 
     protected function run(Request $request, User $user): array
     {
-        $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
+        $brand = $this->brandFrom($request, $user);
 
-        return ['accounts' => app(SocialAccountService::class)->listForBrand($user, $brand)
+        return ['brand_id' => $brand->id, 'brand_name' => $brand->name, 'accounts' => app(SocialAccountService::class)->listForBrand($user, $brand)
             ->map(fn (SocialAccount $a) => [
                 'id' => $a->id,
                 'network' => $a->network->value,

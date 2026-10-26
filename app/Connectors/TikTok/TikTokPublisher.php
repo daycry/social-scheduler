@@ -62,6 +62,9 @@ class TikTokPublisher implements Publisher, StatusPoller
 
     public const INBOX_UNCONFIRMED_NOTE = 'Enviado a la bandeja (TikTok no confirmo el estado); revisa tus borradores.';
 
+    /** Visibilidades de Direct Post, de la mas abierta a la mas cerrada (orden en que se ofrecen en el compositor). */
+    public const PRIVACY_LEVELS = ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'];
+
     /** Marca en `progress` de que `external_id` es un publish_id y no el ID de un video. */
     public const KIND_PUBLISH_ID = 'publish_id';
 

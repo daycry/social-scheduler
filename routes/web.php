@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('brands/{brand}/connections/pending', [ConnectionController::class, 'discardPending'])->name('brands.connections.pending.discard');
     Route::delete('brands/{brand}/connections/{account}', [ConnectionController::class, 'destroy'])->name('brands.connections.destroy');
     Route::patch('brands/{brand}/connections/{account}/direct-post', [ConnectionController::class, 'directPost'])->name('brands.connections.direct-post');
+    Route::get('brands/{brand}/connections/{account}/tiktok-creator', [ConnectionController::class, 'tiktokCreator'])->middleware('throttle:30,1')->name('brands.connections.tiktok-creator');
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])
@@ -123,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
     Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');
     Route::delete('media/{asset}', [MediaController::class, 'destroy'])->name('media.destroy');
+    Route::get('media/{asset}/file', [MediaController::class, 'file'])->name('media.file');
 });
 
 Route::middleware('auth')->group(function () {

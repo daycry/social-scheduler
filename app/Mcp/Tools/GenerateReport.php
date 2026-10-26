@@ -4,7 +4,6 @@ namespace App\Mcp\Tools;
 
 use App\Analytics\Period;
 use App\Mcp\Abilities;
-use App\Models\Brand;
 use App\Models\Report;
 use App\Models\User;
 use App\Services\ReportService;
@@ -30,7 +29,7 @@ class GenerateReport extends SchedulerTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'brand_id' => $schema->integer()->description('ID de la marca')->required(),
+            ...$this->brandSchema($schema, 'Marca del informe (obligatoria)'),
             'format' => $schema->string()->enum(Report::FORMATS)->description('pdf o csv')->required(),
             'from' => $schema->string()->description('Inicio YYYY-MM-DD (por defecto, 30 dias hasta ayer)'),
             'to' => $schema->string()->description('Fin YYYY-MM-DD'),
@@ -40,7 +39,7 @@ class GenerateReport extends SchedulerTool
 
     protected function run(Request $request, User $user): array
     {
-        $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
+        $brand = $this->brandFrom($request, $user);
         $period = Period::make($request->get('from'), $request->get('to'), $brand->timezone);
 
         $compare = (string) ($request->get('compare') ?: 'none');
@@ -50,7 +49,7 @@ class GenerateReport extends SchedulerTool
         [$report] = app(ReportService::class)->enqueue($user, $brand, [(string) $request->get('format')], $period, $compare);
 
         return [
-            'id' => $report->id, 'status' => $report->status, 'brand_id' => $brand->id, 'format' => $report->format,
+            'id' => $report->id, 'status' => $report->status, 'brand_id' => $brand->id, 'brand_name' => $brand->name, 'format' => $report->format,
             'from' => $period->toArray()['from'], 'to' => $period->toArray()['to'],
         ];
     }

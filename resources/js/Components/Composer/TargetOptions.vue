@@ -3,9 +3,26 @@ import NetworkIcon from '@/Components/NetworkIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PresetsPanel from '@/Components/Composer/PresetsPanel.vue';
 import FirstCommentField from '@/Components/Composer/FirstCommentField.vue';
+import { watchEffect } from 'vue';
 import { useComposerContext } from '@/Composables/useComposer';
+import { PRIVACY_LABELS, loadTiktokCreator, tiktokCreator } from '@/Composables/tiktokCreator';
 
-const { accounts, editable, targetFor, firstCommentMax } = useComposerContext();
+const { accounts, brand, editable, targetFor, firstCommentMax } = useComposerContext();
+
+// Direct Post de TikTok: al elegir la cuenta se consulta `creator_info` (nombre, visibilidades e interacciones de esa cuenta).
+watchEffect(() => {
+    for (const a of accounts.value) {
+        if (a.network === 'tiktok' && a.direct_post && targetFor(a.id)) loadTiktokCreator(brand.value.id, a.id);
+    }
+});
+
+// Sin valor por defecto: el usuario elige la visibilidad en cada publicación (Content Sharing Guidelines de TikTok).
+const setPrivacy = (account, value) => {
+    const options = targetFor(account.id).options;
+    if (value) options.privacy_level = value;
+    else delete options.privacy_level;
+};
+const brandedContent = (account) => targetFor(account.id).options.brand_content_toggle === true;
 
 const hasOptions = (account) => {
     const t = targetFor(account.id);
@@ -47,14 +64,28 @@ const hasOptions = (account) => {
             </div>
             <div v-if="account.network === 'tiktok'" class="space-y-1 text-sm">
                 <p v-if="!account.direct_post" class="text-xs text-slate-600">Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p>
-                <div v-else>
-                    <InputLabel :for="`tt-privacy-${account.id}`" value="Visibilidad (Direct Post)" />
-                    <select :id="`tt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy_level ?? 'SELF_ONLY'" :disabled="!editable" class="field mt-1 w-auto" @change="targetFor(account.id).options.privacy_level = $event.target.value">
-                        <option value="PUBLIC_TO_EVERYONE">Público</option>
-                        <option value="MUTUAL_FOLLOW_FRIENDS">Amigos</option>
-                        <option value="FOLLOWER_OF_CREATOR">Seguidores</option>
-                        <option value="SELF_ONLY">Solo yo</option>
-                    </select>
+                <div v-else class="space-y-2" data-testid="tiktok-direct">
+                    <p v-if="tiktokCreator(account.id).loading" role="status" class="text-xs text-slate-600">Consultando tu cuenta de TikTok…</p>
+                    <p v-else-if="tiktokCreator(account.id).error" role="alert" class="text-xs text-red-700">{{ tiktokCreator(account.id).error }}</p>
+                    <template v-else-if="tiktokCreator(account.id).data">
+                        <p class="flex items-center gap-2 text-sm text-slate-800" data-testid="tiktok-creator">
+                            <img v-if="tiktokCreator(account.id).data.avatar_url" :src="tiktokCreator(account.id).data.avatar_url" alt="" class="h-6 w-6 rounded-full" referrerpolicy="no-referrer" />
+                            Se publicará en <strong>{{ tiktokCreator(account.id).data.nickname }}</strong>
+                        </p>
+                        <div>
+                            <InputLabel :for="`tt-privacy-${account.id}`" value="¿Quién puede ver este vídeo? (obligatorio)" />
+                            <select :id="`tt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy_level ?? ''" :disabled="!editable" class="field mt-1 w-auto" required @change="setPrivacy(account, $event.target.value)">
+                                <option value="" disabled>Elige la visibilidad</option>
+                                <option
+                                    v-for="level in tiktokCreator(account.id).data.privacy_level_options" :key="level" :value="level"
+                                    :disabled="level === 'SELF_ONLY' && brandedContent(account)"
+                                >{{ PRIVACY_LABELS[level] ?? level }}{{ level === 'SELF_ONLY' && brandedContent(account) ? ' (no admite contenido de marca)' : '' }}</option>
+                            </select>
+                        </div>
+                        <p v-if="tiktokCreator(account.id).data.max_video_post_duration_sec" class="text-xs text-slate-600">
+                            Duración máxima en esta cuenta: {{ tiktokCreator(account.id).data.max_video_post_duration_sec }} s.
+                        </p>
+                    </template>
                 </div>
             </div>
             <!-- Interruptores por red (C-04): se recuerdan por marca y red; solo salen los que la API de la red admite -->

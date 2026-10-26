@@ -15,7 +15,7 @@ use InvalidArgumentException;
  */
 class RemoteMediaImporter
 {
-    /** Pasadas consecutivas sin bytes nuevos tras las que se da la importacion por fallida. */
+    /** Pasadas CONSECUTIVAS «pobres» (menos de `media.import_min_pass_bytes` sin completar) tras las que se da la importacion por fallida. */
     private const MAX_STALLS = 3;
 
     public function __construct(
@@ -33,6 +33,14 @@ class RemoteMediaImporter
             return $this->fail($asset, 'La importación remota necesita el almacenamiento local; descarga el fichero y súbelo.');
         }
 
+        // Acotan el reencolado SIN espera (gap F5-2 #1, CWE-400/834): ni por edad ni por numero total de pasadas puede una importacion
+        // vivir indefinidamente, aunque el remoto suelte unos pocos bytes por pasada.
+        $age = $asset->created_at === null ? 0 : (int) $asset->created_at->diffInSeconds(now(), true);
+
+        if ($age > (int) config('media.import_max_age_seconds', 7200) || (int) (((array) $asset->import_state)['passes'] ?? 0) >= (int) config('media.import_max_passes', 200)) {
+            return $this->fail($asset, 'La descarga tarda demasiado; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
+        }
+
         $disk = $this->storage->disk();
         $disk->makeDirectory(dirname($asset->path));
         $absolute = $disk->path($asset->path);
@@ -41,6 +49,11 @@ class RemoteMediaImporter
         clearstatcache(true, $absolute);
         $offset = (int) filesize($absolute);
         $state = (array) $asset->import_state;
+
+        // Latido (gap F5-2 #3): la pasada deja constancia de que el worker ha empezado, para que la UI distinga una cola parada
+        // (0 pasadas empezadas) de una pasada larga que aun no ha traido el primer byte.
+        $state['runs'] = ($state['runs'] ?? 0) + 1;
+        $this->save($asset, $state);
 
         $policy = function (?string $mime, ?int $total): int {
             try {
@@ -101,8 +114,9 @@ class RemoteMediaImporter
             'validator' => $state['validator'] ?? $pass->validator,
             'ranges' => ($state['ranges'] ?? false) || $pass->ranges,
             'passes' => ($state['passes'] ?? 0) + 1,
-            // Pasadas seguidas sin un solo byte nuevo: con la cola reencolando sin espera, evita un bucle infinito contra un remoto mudo.
-            'stalls' => $pass->written > 0 || $pass->complete ? 0 : ($state['stalls'] ?? 0) + 1,
+            // Pasadas seguidas «pobres» (menos del ritmo minimo por pasada): con la cola reencolando sin espera, un remoto que suelta
+            // 1 B por pasada (goteo) provocaba un bucle caliente que el contador de pasadas a 0 bytes no veia.
+            'stalls' => $pass->complete || $pass->written >= (int) config('media.import_min_pass_bytes', 65536) ? 0 : ($state['stalls'] ?? 0) + 1,
         ]);
 
         if (($state['stalls'] ?? 0) >= self::MAX_STALLS) {

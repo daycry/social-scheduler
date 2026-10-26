@@ -182,3 +182,24 @@ test('el fileId y el token se validan en la fuente', function () {
         ->and(fn () => new DriveFileSource($guard, FLOW_FILE, "tok\r\nX-Evil: 1"))->toThrow(InvalidArgumentException::class)
         ->and((new DriveFileSource($guard, FLOW_FILE, 'tok'))->reference())->toBe(FLOW_FILE);
 });
+
+test('un Drive que gotea 1 B por pasada acaba «invalido» en pocas pasadas (gap F5-2 #1)', function () {
+    $body = flowJpeg(200, 150);
+    $n = strlen($body);
+    ($this->fake)(driveOk($n) + [driveMedia() => fn (Request $r) => (function () use ($r, $body, $n) {
+        $from = preg_match('/bytes=(\d+)-/', $r->header('Range')[0] ?? '', $m) ? (int) $m[1] : 0;
+
+        return Http::response(substr($body, $from, 1), 206, ['Content-Type' => 'image/jpeg', 'Content-Range' => "bytes $from-$from/$n", 'ETag' => '"d1"', 'Accept-Ranges' => 'bytes']);
+    })()]);
+
+    [$asset, $job] = beginDrive();
+    $passes = 0;
+
+    while ($passes < 20 && MediaAsset::withoutUserScope()->find($job->assetId)->status === MediaAsset::STATUS_PENDING) {
+        $passes++;
+        $job->handle(app(RemoteMediaImporter::class));
+    }
+
+    expect($passes)->toBeLessThanOrEqual(3)->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)
+        ->and($asset->fresh()->error)->toContain('no avanza');
+});

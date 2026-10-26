@@ -4,6 +4,7 @@ use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\ImportFailedException;
+use App\Services\Media\RemoteMediaImporter;
 use App\Services\Media\UrlGuard;
 use App\Services\Media\UrlSource;
 use App\Services\Media\ValidatedUrl;
@@ -64,6 +65,19 @@ if ($path === '/slow.jpg') {
 if ($path === '/huge.jpg') {
     header('Content-Type: image/jpeg'); header('Content-Length: 5000');
     echo str_repeat('a', 5000); return;
+}
+if ($path === '/chunked.jpg') {
+    // Sin Content-Length (chunked): el tope solo se puede aplicar DURANTE el streaming. 400 trozos de 64 KB = ~25 MB si nadie corta.
+    header('Content-Type: image/jpeg');
+    for ($i = 0; $i < 400 && ! connection_aborted(); $i++) { echo str_repeat('a', 65536); @ob_flush(); flush(); usleep(2000); }
+    return;
+}
+if ($path === '/drip.jpg') {
+    // Goteo (gap F5-2 #1): soporta Range y entrega 1 byte por peticion, anunciando el total real.
+    $body = file_get_contents($file); $size = strlen($body);
+    header('Content-Type: image/jpeg'); header('Accept-Ranges: bytes'); header('ETag: "v1"');
+    $from = preg_match('/^bytes=(\d+)-$/', $_SERVER['HTTP_RANGE'] ?? '', $m) ? (int) $m[1] : 0;
+    http_response_code(206); header("Content-Range: bytes $from-$from/$size"); echo substr($body, $from, 1); return;
 }
 if ($path === '/proxy-check.jpg') { header('Content-Type: image/jpeg'); header('Content-Length: '.filesize($file)); readfile($file); return; }
 
@@ -243,4 +257,36 @@ test('ImportFailedException llega intacta desde on_headers con el manejador real
 
     expect(fn () => $source->fetch(fopen('php://temp', 'w+b'), 0, null, fn () => 1000, 1000, microtime(true) + 10))
         ->toThrow(ImportFailedException::class, 'El servidor remoto respondió 404');
+});
+
+test('manejador real: el tope se aplica DURANTE el streaming de una respuesta chunked sin Content-Length (gap F5-2 #2)', function () {
+    $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/chunked.jpg');
+    $sink = fopen('php://temp', 'w+b');
+    $started = microtime(true);
+
+    expect(fn () => $source->fetch($sink, 0, null, fn () => 100_000, 100_000, microtime(true) + 30))
+        ->toThrow(ImportFailedException::class, 'tamaño máximo');
+    // Cortó pronto: la respuesta entera serian ~25 MB y ~0,8 s de servidor; en el parcial solo caben unos trozos.
+    expect((int) fstat($sink)['size'])->toBeLessThan(2_000_000)->and(microtime(true) - $started)->toBeLessThan(5.0);
+
+    config(['media.max_bytes.image' => 100_000]);
+    $asset = loopbackImport('/chunked.jpg');
+
+    expect($asset->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->error)->toContain('tamaño máximo');
+});
+
+test('manejador real: un remoto que gotea 1 B por pasada acaba «invalido» en pocas pasadas, no en un bucle caliente (gap F5-2 #1)', function () {
+    $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/drip.jpg');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
+    $importer = app(RemoteMediaImporter::class);
+
+    $passes = 0;
+    do {
+        $passes++;
+        $done = $importer->run($asset->fresh(), $source);
+    } while (! $done && $passes < 50);
+
+    $asset = $asset->fresh();
+    expect($done)->toBeTrue()->and($passes)->toBeLessThanOrEqual(3)
+        ->and($asset->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->error)->toBe('La descarga no avanza; inténtalo de nuevo más tarde.');
 });

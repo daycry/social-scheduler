@@ -114,6 +114,8 @@ class MediaAsset extends Model
             // Progreso de una importacion remota (barra de progreso). Nunca la URL, el validador ni el resto de `import_state`.
             'bytes' => $this->import_state['bytes'] ?? null,
             'total' => $this->import_state['total'] ?? null,
+            // Latido: pasadas que el worker ha EMPEZADO; la UI lo usa (junto a `bytes`) para distinguir «cola parada» de una pasada larga.
+            'runs' => $this->import_state['runs'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
             'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
         ];

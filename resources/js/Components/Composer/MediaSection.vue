@@ -18,8 +18,10 @@ const imports = ref([]); // { id, name, bytes, total, status, error, stalled, ca
 // Sondeo con backoff: empieza a 2 s y, mientras no haya bytes nuevos, se alarga hasta 15 s; con progreso vuelve a 2 s.
 const POLL_MIN_MS = 2000;
 const POLL_MAX_MS = 15000;
-// Sin un solo byte pasados estos minutos, lo más probable es que ningún worker esté atendiendo la cola `media`.
+// Sin un solo byte y sin que el worker haya empezado ninguna pasada (`runs`, el latido) pasados estos minutos, lo más probable es que
+// ningún worker esté atendiendo la cola `media`. La cola puede estar solo llena: tras el aviso se sigue comprobando, más despacio.
 const STALL_MS = 3 * 60 * 1000;
+const STALL_POLL_MS = 20000;
 // Errores de consulta seguidos que se toleran antes de dar la importación por perdida (un fallo suelto de red no la mata).
 const MAX_POLL_FAILURES = 3;
 let timer = null;
@@ -48,7 +50,7 @@ const call = async (target, method, body) => {
 const percent = (item) => (item.total ? Math.min(100, Math.round((item.bytes / item.total) * 100)) : null);
 const megabytes = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`;
 
-const active = (item) => item.status === 'pendiente' && !item.stalled;
+const active = (item) => item.status === 'pendiente';
 const tracked = (id) => imports.value.some((i) => i.id === id);
 
 const stopPolling = () => {
@@ -70,13 +72,16 @@ const poll = async () => {
                 if (!alive || !tracked(item.id)) continue;
 
                 const bytes = asset.bytes ?? 0;
+                const started = bytes > 0 || (asset.runs ?? 0) > 0;
                 progressed ||= bytes !== item.bytes;
                 Object.assign(item, { name: asset.name, bytes, total: asset.total, status: asset.status, error: asset.error, failures: 0 });
+                // Si el worker acaba empezando (o trae bytes), el aviso de atasco se retira y vuelve el sondeo normal.
+                if (started) item.stalled = false;
 
                 if (asset.status === 'listo') {
                     onUploaded(asset, null);
                     imports.value = imports.value.filter((i) => i.id !== item.id);
-                } else if (asset.status === 'pendiente' && bytes === 0 && Date.now() - item.startedAt >= STALL_MS) {
+                } else if (asset.status === 'pendiente' && !started && Date.now() - item.startedAt >= STALL_MS) {
                     item.stalled = true;
                 }
             } catch (e) {
@@ -91,6 +96,9 @@ const poll = async () => {
     } finally {
         polling = false;
         delay = progressed ? POLL_MIN_MS : Math.min(POLL_MAX_MS, Math.round(delay * 1.5));
+        // Con todo lo pendiente marcado como atascado se comprueba con un intervalo largo, sin abandonar: si el worker vuelve, se completa.
+        const pending = imports.value.filter(active);
+        if (pending.length && pending.every((i) => i.stalled)) delay = STALL_POLL_MS;
     }
 };
 

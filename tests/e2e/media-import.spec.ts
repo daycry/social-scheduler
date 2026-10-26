@@ -165,15 +165,19 @@ test('E2E-08 · una importación que acaba «invalida» muestra el motivo y se p
     await expect(page.getByText('Todavía no has añadido archivos')).toBeVisible();
 });
 
-test('E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, deja de sondear y se descarta', async ({ page }) => {
-    const seen = await mockImport(page, [{ asset: fakeAsset() }]);
+test('E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve', async ({ page }) => {
+    test.setTimeout(90_000);
+    const seen = await mockImport(page, [
+        { asset: fakeAsset() }, { asset: fakeAsset() },
+        { asset: fakeAsset({ status: 'listo', bytes: 2000, total: 2000, size: 2000 }) },
+    ]);
     await startFakeImport(page);
 
     const item = page.getByTestId('media-import-item');
     await expect(item).toContainText('Importando foto.jpg');
     await expect.poll(() => seen.gets, { timeout: 15_000 }).toBeGreaterThan(0);
 
-    // Se adelanta el reloj de la página 4 minutos (el umbral es 3): el siguiente sondeo ve «pendiente» sin bytes pasado el plazo.
+    // Se adelanta el reloj de la página 4 minutos (el umbral es 3): el siguiente sondeo ve «pendiente» sin bytes ni latido pasado el plazo.
     await page.evaluate(() => {
         const real = Date.now;
         Date.now = () => real() + 4 * 60 * 1000;
@@ -181,9 +185,27 @@ test('E2E-08 · una importación que lleva minutos «pendiente» sin un byte avi
     await expect(item).toContainText('La cola de importación no está procesando', { timeout: 20_000 });
     await expect(item.getByRole('alert')).toBeVisible();
 
+    // Sigue comprobando, pero con intervalo largo (20 s): en 6 s no hay más de una consulta.
     const getsAtStall = seen.gets;
     await page.waitForTimeout(6000);
-    expect(seen.gets, 'deja de sondear al detectar el atasco').toBe(getsAtStall);
+    expect(seen.gets - getsAtStall, 'sondeo lento tras el aviso').toBeLessThanOrEqual(1);
+
+    // El worker vuelve y la importación se completa: el aviso desaparece y la media se añade.
+    await expect(item).toHaveCount(0, { timeout: 40_000 });
+    await expect(page.getByText('Todavía no has añadido archivos')).toHaveCount(0);
+});
+
+test('E2E-08 · un aviso de atasco se descarta con «Descartar»', async ({ page }) => {
+    const seen = await mockImport(page, [{ asset: fakeAsset() }]);
+    await startFakeImport(page);
+
+    const item = page.getByTestId('media-import-item');
+    await expect.poll(() => seen.gets, { timeout: 15_000 }).toBeGreaterThan(0);
+    await page.evaluate(() => {
+        const real = Date.now;
+        Date.now = () => real() + 4 * 60 * 1000;
+    });
+    await expect(item).toContainText('La cola de importación no está procesando', { timeout: 20_000 });
 
     // «Descartar» cancela el asset (DELETE) para liberar el cupo de importaciones.
     await item.getByRole('button', { name: 'Descartar' }).click();

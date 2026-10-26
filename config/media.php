@@ -51,5 +51,13 @@ return [
     'import_budget_seconds' => (int) env('MEDIA_IMPORT_BUDGET_SECONDS', 80),
     // Segundos del presupuesto que se reservan para `finalize()` (ffprobe...): la descarga corta antes.
     'import_finalize_reserve_seconds' => (int) env('MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS', 10),
+    /*
+    | Limites del reencolado sin espera (una pasada que termina pronto se vuelve a encolar al instante): una pasada que no completa y
+    | trae menos de `import_min_pass_bytes` cuenta como atasco (3 seguidas = fallo); y ninguna importacion vive mas de `import_max_age_seconds`
+    | ni de `import_max_passes` pasadas. Sin `delay` a proposito: con `--stop-when-empty` una espera dejaba ~40 s muertos entre pasadas.
+    */
+    'import_min_pass_bytes' => (int) env('MEDIA_IMPORT_MIN_PASS_BYTES', 64 * 1024),
+    'import_max_age_seconds' => (int) env('MEDIA_IMPORT_MAX_AGE_SECONDS', 7200),
+    'import_max_passes' => (int) env('MEDIA_IMPORT_MAX_PASSES', 200),
     'import_queue' => env('MEDIA_IMPORT_QUEUE', 'media'),
 ];

@@ -96,6 +96,20 @@ test('probe jobs are dispatched on each queue', function () {
     }
 });
 
+test('app:queue-probe sondea la cola media aunque QUEUE_NAMES no la liste (gap 4 de la revision de la Fase 5)', function () {
+    Queue::fake();
+    config(['queue.names' => ['publish', 'poll', 'metrics', 'reports']]);
+
+    Artisan::call('app:queue-probe');
+
+    Queue::assertPushedOn('media', QueueProbeJob::class);
+    Queue::assertPushed(QueueProbeJob::class, 5);
+});
+
+test('los .env de ejemplo listan la cola media en QUEUE_NAMES', function (string $file) {
+    expect(file_get_contents(base_path($file)))->toMatch('/^QUEUE_NAMES=.*,media/m');
+})->with(['.env.example', '.env.production.example']);
+
 test('database queue persists a probe job per queue and a worker processes it', function () {
     config(['queue.default' => 'database']);
 

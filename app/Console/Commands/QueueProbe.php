@@ -11,7 +11,7 @@ class QueueProbe extends Command
 {
     protected $signature = 'app:queue-probe {--wait=0 : Segundos a esperar a que un worker procese las pruebas}';
 
-    protected $description = 'Encola un job de prueba en cada cola (publish, poll, metrics, reports)';
+    protected $description = 'Encola un job de prueba en cada cola (publish, poll, metrics, reports, media)';
 
     public function handle(): int
     {
@@ -30,6 +30,9 @@ class QueueProbe extends Command
 
             return self::FAILURE;
         }
+
+        // La cola de importacion tiene su propio worker (`ss-media`, `--queue=media`): se sondea aunque QUEUE_NAMES no la liste.
+        $names = array_values(array_unique([...$names, (string) config('media.import_queue', 'media')]));
 
         $probes = [];
 

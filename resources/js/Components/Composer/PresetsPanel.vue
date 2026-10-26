@@ -3,13 +3,17 @@ import { reactive } from 'vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { YOUTUBE_CATEGORIES, hasYoutubeFields, switchesFor } from '@/Composables/composerOptions';
+import { CREATOR_LOCKS, tiktokCreator } from '@/Composables/tiktokCreator';
 
 const props = defineProps({ account: { type: Object, required: true } });
 const { editable, targetFor } = useComposerContext();
 
 const target = () => targetFor(props.account.id);
 const switches = () => switchesFor(props.account, target());
-const checked = (s) => target().options[s.key] ?? s.default;
+// Interacciones que la cuenta tiene desactivadas en TikTok (`creator_info`): el interruptor sale marcado y bloqueado.
+const lockedByTiktok = (s) => props.account.network === 'tiktok' && CREATOR_LOCKS[s.key] !== undefined
+    && tiktokCreator(props.account.id).data?.[CREATOR_LOCKS[s.key]] === true;
+const checked = (s) => lockedByTiktok(s) || (target().options[s.key] ?? s.default);
 const set = (s, value) => { target().options[s.key] = value; };
 
 // Los tags son un campo de texto separado por comas; la lista real vive en `options.tags` y no se recuerda entre publicaciones.
@@ -47,11 +51,12 @@ const setCategory = (value) => {
                 <label class="flex items-start gap-2 text-sm">
                     <input
                         type="checkbox" role="switch" class="mt-0.5"
-                        :checked="checked(s)" :aria-describedby="s.hint && checked(s) ? `hint-${account.id}-${s.key}` : undefined"
+                        :checked="checked(s)" :disabled="lockedByTiktok(s)" :aria-describedby="s.hint && checked(s) ? `hint-${account.id}-${s.key}` : undefined"
                         @change="set(s, $event.target.checked)"
                     />
                     <span>{{ s.label }}</span>
                 </label>
+                <p v-if="lockedByTiktok(s)" class="ml-6 text-xs text-slate-600">Desactivado en los ajustes de tu cuenta de TikTok.</p>
                 <p v-if="s.hint && checked(s)" :id="`hint-${account.id}-${s.key}`" class="ml-6 text-xs text-slate-600" role="status">{{ s.hint }}</p>
                 <p v-if="s.warning && checked(s)" class="ml-6 text-xs text-amber-800" role="status">{{ s.warning }}</p>
             </div>

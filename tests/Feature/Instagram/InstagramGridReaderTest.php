@@ -34,7 +34,7 @@ it('lee y normaliza imagen, video y carrusel (primera pieza) con los campos pedi
 
     expect($r['error'])->toBeNull()->and($r['items'])->toHaveCount(5);
     [$a, $b, $c, $d, $e] = $r['items'];
-    expect($a)->toMatchArray(['id' => 'A', 'type' => 'IMAGE', 'image_url' => 'https://cdn/A.jpg', 'video_url' => null, 'permalink' => 'https://instagram.com/p/A/', 'timestamp' => '2026-11-01T10:00:00+0000'])
+    expect($a)->toMatchArray(['id' => 'A', 'type' => 'IMAGE', 'image_url' => 'https://cdn/A.jpg', 'video_url' => null, 'permalink' => 'https://instagram.com/p/A/', 'timestamp' => '2026-11-01T10:00:00+00:00'])
         ->and($b)->toMatchArray(['type' => 'VIDEO', 'image_url' => 'https://cdn/B.jpg', 'video_url' => null])
         ->and($c)->toMatchArray(['type' => 'VIDEO', 'image_url' => null, 'video_url' => 'https://cdn/C.mp4'])
         ->and($d)->toMatchArray(['type' => 'CAROUSEL_ALBUM', 'image_url' => 'https://cdn/D1.jpg'])
@@ -86,4 +86,26 @@ it('pide solo los campos de lectura basicos (sin permisos nuevos)', function () 
     $graph = (new FakeGraph)->on('GET', '#^IGU1/media$#', ['data' => []]);
     (new InstagramGrid)->read($this->account);
     expect($graph->callsTo('GET', '#^IGU1/media$#')[0]['params']['fields'])->not->toContain('insights')->and($graph->callsTo('POST', '#.#'))->toBeEmpty();
+});
+
+it('descarta los Reels con is_shared_to_feed=false, pide el campo y normaliza el timestamp a ISO-8601 con dos puntos', function () use ($media) {
+    $graph = (new FakeGraph)->on('GET', '#^IGU1/media$#', ['data' => [
+        $media('A', ['media_type' => 'VIDEO', 'media_url' => 'https://cdn/A.mp4', 'is_shared_to_feed' => false]),
+        $media('B', ['media_type' => 'VIDEO', 'media_url' => 'https://cdn/B.mp4', 'is_shared_to_feed' => true]),
+        $media('C', ['timestamp' => 'no es una fecha']),
+    ]]);
+
+    $r = (new InstagramGrid)->read($this->account);
+
+    expect(array_column($r['items'], 'id'))->toBe(['B', 'C'])
+        ->and($r['items'][0]['timestamp'])->toBe('2026-11-01T10:00:00+00:00')->and($r['items'][1]['timestamp'])->toBeNull()
+        ->and($graph->callsTo('GET', '#^IGU1/media$#')[0]['params']['fields'])->toContain('is_shared_to_feed');
+});
+
+it('el mensaje de error de la lectura no habla de publicar', function () {
+    (new FakeGraph)->on('GET', '#^IGU1/media$#', FakeGraph::error(2, 'caido', null, 500));
+
+    $r = (new InstagramGrid)->read($this->account);
+
+    expect(mb_strtolower($r['error']))->not->toContain('publicar');
 });

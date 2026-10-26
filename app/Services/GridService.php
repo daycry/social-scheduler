@@ -16,21 +16,25 @@ use Throwable;
 
 /**
  * Cuadricula de Instagram (C-02): arriba lo PROGRAMADO (la fecha mas tardia primero) y debajo lo YA PUBLICADO (lectura en vivo de
- * `/{ig}/media`, mas reciente primero), que es el orden en que quedara el perfil. Lo publicado se cachea `CACHE_MINUTES` por cuenta
+ * `/{ig}/media`, mas reciente primero), que es el orden en que quedara el perfil. Lo publicado se cachea `grid_cache_minutes` por cuenta
  * y NO se persiste (las URLs del CDN de Meta caducan); lo programado sale siempre de la base de datos. Las Stories no entran, y un
- * Reel solo con «compartir en el feed». Un fallo de Graph no se cachea: se devuelve como `error` junto con lo programado.
+ * Reel solo con «compartir en el feed». Un fallo de Graph se recuerda `grid_error_cache_minutes` (pocos minutos, para no repetir
+ * llamadas lentas en cada visita) y se devuelve como `error` junto con lo programado. Tiempos y tamano: `config/social.php` `instagram`.
  */
 class GridService
 {
-    public const CACHE_MINUTES = 10;
-
     public function __construct(private readonly InstagramGrid $reader) {}
 
-    /** Cuentas de Instagram de la marca para el selector. @return list<array{id: int, name: string, username: ?string}> */
+    public static function cacheMinutes(): int
+    {
+        return max(1, (int) config('social.instagram.grid_cache_minutes', 10));
+    }
+
+    /** Cuentas de Instagram ACTIVAS de la marca para el selector (una desconectada o por reconectar no se puede leer). @return list<array{id: int, name: string, username: ?string}> */
     public function accounts(Brand $brand): array
     {
         return SocialAccount::withoutUserScope()->where('brand_id', $brand->id)->where('user_id', $brand->user_id)
-            ->where('network', Network::Instagram->value)->orderBy('name')->orderBy('id')->get()
+            ->where('network', Network::Instagram->value)->where('status', SocialAccount::STATUS_ACTIVE)->orderBy('name')->orderBy('id')->get()
             ->map(fn (SocialAccount $a) => ['id' => $a->id, 'name' => $a->name, 'username' => $a->username])->all();
     }
 
@@ -50,7 +54,7 @@ class GridService
     {
         $targets = PostTarget::withoutUserScope()->where('user_id', $user->id)
             ->where('social_account_id', $account->id)->where('network', Network::Instagram->value)
-            ->where('status', PostStatus::Scheduled->value)
+            ->whereIn('status', [PostStatus::Scheduled->value, PostStatus::Publishing->value, PostStatus::Processing->value])
             ->where('content_type', '!=', ContentType::InstagramStory->value)
             ->with(['post' => fn ($q) => $q->withoutGlobalScopes()->with(['media' => fn ($m) => $m->withoutGlobalScopes()])])
             ->get()
@@ -72,7 +76,7 @@ class GridService
 
         if ($media !== null) {
             try {
-                $url = $media->publicUrl(self::CACHE_MINUTES * 6);
+                $url = $media->publicUrl(self::cacheMinutes() * 6);
             } catch (Throwable) {
                 $url = null; // el disco no firma URLs: la tesela sale sin miniatura
             }
@@ -101,11 +105,20 @@ class GridService
             return [$hit, null, true];
         }
 
-        $read = $this->reader->read($account);
+        // Un fallo reciente de Graph se recuerda poco rato: sin ello cada visita repite 1-3 llamadas de hasta `http_timeout` s.
+        $failed = Cache::get($key.':error');
+        if (is_array($failed)) {
+            return [$failed['items'], $failed['error'], true];
+        }
+
+        $limit = max(1, (int) config('social.instagram.grid_published', 30));
+        $read = $this->reader->read($account, min(24, $limit), 3, $limit);
         $items = array_map(fn (array $i) => $i + ['kind' => 'published', 'target_id' => null, 'post_id' => null], $read['items']);
 
         if ($read['error'] === null) {
-            Cache::put($key, $items, now()->addMinutes(self::CACHE_MINUTES));
+            Cache::put($key, $items, now()->addMinutes(self::cacheMinutes()));
+        } else {
+            Cache::put($key.':error', ['items' => $items, 'error' => $read['error']], now()->addMinutes(max(1, (int) config('social.instagram.grid_error_cache_minutes', 2))));
         }
 
         return [$items, $read['error'], false];

@@ -55,6 +55,17 @@ return [
         )))),
     ],
 
+    /*
+    | Cuadricula de Instagram (C-02): lo ya publicado se lee en vivo de `/{ig}/media` y NO se persiste (las URLs del CDN de Meta
+    | caducan). `grid_cache_minutes`: cache por cuenta; `grid_error_cache_minutes`: cuanto se recuerda un error de Graph para no
+    | repetir 1-3 llamadas de hasta `http_timeout` s en cada visita; `grid_published`: elementos publicados (3 columnas x 10 filas).
+    */
+    'instagram' => [
+        'grid_cache_minutes' => (int) env('SOCIAL_IG_GRID_CACHE_MINUTES', 10),
+        'grid_error_cache_minutes' => (int) env('SOCIAL_IG_GRID_ERROR_CACHE_MINUTES', 2),
+        'grid_published' => (int) env('SOCIAL_IG_GRID_PUBLISHED', 30),
+    ],
+
     'google' => [
         'scopes' => [
             'https://www.googleapis.com/auth/youtube',

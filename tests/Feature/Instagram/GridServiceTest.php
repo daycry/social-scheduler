@@ -99,7 +99,7 @@ it('lo programado se lee siempre en vivo aunque lo publicado venga de cache', fu
     expect($this->svc->build($this->user, $this->ig)['items'])->toHaveCount(2);
 });
 
-it('un error de Graph no se cachea y deja ver lo programado', function () {
+it('un error de Graph se recuerda poco rato (no se repite en cada visita), deja ver lo programado y luego se reintenta', function () {
     $graph = (new FakeGraph)->on('GET', '#^IGU1/media$#', FakeGraph::seq(FakeGraph::error(190, 'caducado', null, 401), ['data' => []]));
     gridTarget($this, ContentType::InstagramImage, '2026-11-05 10:00:00');
 
@@ -107,11 +107,49 @@ it('un error de Graph no se cachea y deja ver lo programado', function () {
     expect($r['error'])->toContain('Reconecta')->and($r['items'])->toHaveCount(1);
 
     $r = $this->svc->build($this->user, $this->ig);
-    expect($r['error'])->toBeNull()->and($graph->callsTo('GET', '#^IGU1/media$#'))->toHaveCount(2); // el fallo no se cacheo: se volvio a leer
+    expect($r['error'])->toContain('Reconecta')->and($graph->callsTo('GET', '#^IGU1/media$#'))->toHaveCount(1); // cache del error
+
+    Carbon::setTestNow(now()->addMinutes(3)); // > grid_error_cache_minutes (2)
+    $r = $this->svc->build($this->user, $this->ig);
+    expect($r['error'])->toBeNull()->and($graph->callsTo('GET', '#^IGU1/media$#'))->toHaveCount(2);
 });
 
-it('lista las cuentas de Instagram de la marca para el selector', function () {
+it('los mensajes de error de la cuadricula hablan de leer, no de publicar', function () {
+    (new FakeGraph)->on('GET', '#^IGU1/media$#', FakeGraph::error(200, 'Permissions error', null, 403));
+
+    $error = $this->svc->build($this->user, $this->ig)['error'];
+
+    expect($error)->toContain('leer')->and(mb_strtolower($error))->not->toContain('publicar');
+});
+
+it('un destino publicando o procesando sigue en la cuadricula', function () {
+    gridPublished();
+    $a = gridTarget($this, ContentType::InstagramImage, '2026-11-05 10:00:00', ['status' => PostStatus::Publishing]);
+    $b = gridTarget($this, ContentType::InstagramImage, '2026-11-06 10:00:00', ['status' => PostStatus::Processing]);
+    gridTarget($this, ContentType::InstagramImage, '2026-11-07 10:00:00', ['status' => PostStatus::Published]);
+    gridTarget($this, ContentType::InstagramImage, '2026-11-08 10:00:00', ['status' => PostStatus::Failed]);
+
+    expect(array_column($this->svc->build($this->user, $this->ig)['items'], 'target_id'))->toBe([$b->id, $a->id]);
+});
+
+it('pide solo grid_published elementos y respeta la configuracion de la cache', function () {
+    config(['social.instagram.grid_published' => 3, 'social.instagram.grid_cache_minutes' => 1]);
+    $graph = gridPublished('P1', 'P2', 'P3', 'P4', 'P5');
+
+    expect(array_column($this->svc->build($this->user, $this->ig)['items'], 'id'))->toBe(['P1', 'P2', 'P3']);
+
+    Carbon::setTestNow(now()->addMinutes(2));
+    $this->svc->build($this->user, $this->ig);
+    expect($graph->callsTo('GET', '#^IGU1/media$#'))->toHaveCount(2);
+});
+
+it('el valor por defecto de la config sigue la spec (cache 10, 30 publicados)', function () {
+    expect(config('social.instagram.grid_cache_minutes'))->toBe(10)->and(config('social.instagram.grid_published'))->toBe(30);
+});
+
+it('lista las cuentas de Instagram ACTIVAS de la marca para el selector (las desconectadas no)', function () {
     SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
+    SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Instagram, 'status' => SocialAccount::STATUS_DISCONNECTED, 'name' => 'Vieja']);
 
     $accounts = $this->svc->accounts($this->brand);
 

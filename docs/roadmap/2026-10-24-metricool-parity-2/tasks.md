@@ -708,6 +708,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Evidencia**: InstagramGridReaderTest: 6 passed (50 assertions). RED previo: 5 fallos por clase inexistente. Pint ok. Tiempo IA estimado: el marcador del meter se perdio.
 
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 5, 10, 16): `is_shared_to_feed` pedido y Reels con `false` descartados; `timestamp` normalizado a ISO-8601 con dos puntos en el servidor; mensajes de lectura sin «publicar»; `read()` acepta un tope de elementos. Verificación: `php artisan test --compact tests/Feature/Instagram` → 25 passed.
+
 ### T-20 — `GridService`: mezcla con lo programado, orden, caché y selector de cuenta
 
 - **Descripción**: Servicio que pone arriba los destinos programados (la más tardía primero; sin Stories; Reel solo con «compartir en el feed»; URL de `MediaAsset::publicUrl()`) y debajo lo publicado, con caché de 10 min y selector de cuenta. Requisito: CA-08, CA-09.
@@ -737,6 +739,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón de servicios de lectura y caché: `app/Services/CalendarService.php`.
 
 **Evidencia**: GridServiceTest + InstagramGridReaderTest: 13 passed (73 assertions). RED previo: clase GridService inexistente. Pint ok.
+
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 4, 11, 12, 16): error de Graph cacheado `instagram.grid_error_cache_minutes` (2 min); selector solo con cuentas activas; `publicando`/`procesando` siguen en la cuadrícula; `config/social.php` `instagram.grid_cache_minutes` (10) y `grid_published` (30) usados por el servicio (se piden 30, no 72). Misma verificación: 25 passed.
 
 ### T-21 — Ruta, controlador y `Pages/Instagram/Grid.vue` con navegación y miniatura de vídeo
 
@@ -769,7 +773,11 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón de página y controlador: `resources/js/Pages/Calendar` y `app/Http/Controllers/CalendarController.php`.
 
+**RED no registrado**: la tarea es de clase «capacidad nueva» y su test Pest no dejó evidencia de fallo previo (`RED: …`) en el ledger; se anota aquí (revisión F3-4, gap 17) en vez de inventarla a posteriori.
+
 **Evidencia**: InstagramGridPageTest: 6 passed; Ui+Instagram verdes; npm run build ok; pint ok. Entrada de navegacion en resources/js/navigation.js (el Layout no contiene la lista).
+
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 10, 11): el selector recibe solo cuentas IG activas y los errores de la página hablan de leer. E2E de Playwright NO ejecutado en esta pasada (el servidor depende de MySQL): queda pendiente de lanzar por el orquestador; la UI se cubre con Pest (props de Inertia).
 
 ### T-22 — E2E de la cuadrícula con axe y sin desbordamiento
 
@@ -829,9 +837,11 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: lectura: contrastar con CA-08..CA-10.
 
----
-
 **Evidencia**: grep Cuadrícula: calendario.md y guia-de-usuario.md con coincidencias; docs/README.md actualizado. Revisión: caché 10 min por cuenta (máx. 3 peticiones a Graph por ventana), errores de Graph no se cachean y no rompen la página; contrastado con CA-08..CA-10.
+
+**Nota F3-4 (gap 17)**: la cuadrícula ya no «no cachea» los errores sino que los recuerda 2 min (`grid_error_cache_minutes`), la caché y el tamaño salen de `config/social.php` y se descartan los Reels sin «compartir en el feed»; `docs/modulos/calendario.md` actualizado.
+
+---
 
 ## Fase 4 — C-03 · Campañas
 
@@ -897,6 +907,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Evidencia**: CampaignCrudTest: 4 passed; CampaignModelTest sigue verde (8 tests, 37 assertions en Campaigns). RED previo: rutas campaigns.* inexistentes.
 
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gap 13): `campaigns/{id}` de otro usuario responde 404 por UserScope (antes 403 con `withoutUserScope`); tests ajustados en `CampaignCrudTest` y `CampaignShowPageTest`. `CampaignPolicy` queda como defensa en profundidad.
+
 ### T-26 — Página de campañas: lista, alta, edición, archivo y color
 
 - **Descripción**: `Pages/Campaigns/Index.vue` con la gestión completa y entrada de navegación. Requisito: CA-13.
@@ -910,7 +922,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-25
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Campaigns/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/navigation.js` (la entrada de navegación vive aquí, no en el layout), `app/Http/Controllers/CampaignController.php`, `routes/web.php`, `tests/Feature/Ui/CampaignsPageTest.php`
+- **Archivos**: `resources/js/Pages/Campaigns/Index.vue`, `resources/js/navigation.js` (la entrada de navegación vive aquí, no en el layout), `app/Http/Controllers/CampaignController.php`, `routes/web.php`, `tests/Feature/Ui/CampaignsPageTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/CampaignsPageTest.php` → verde (componente Inertia y props)
@@ -929,6 +941,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Evidencia**: CampaignsPageTest: 3 passed; Campaigns+Ui: 11 passed (77 assertions); npm run build ok. RED previo: ruta campaigns.index inexistente. E2E-06 se ejecuta en T-31.
 
+**Nota F3-4 (gap 17)**: se retira de `Archivos` el `AuthenticatedLayout.vue`, que no se tocó (la entrada de navegación vive en `navigation.js`).
+
 ### T-27 — Selector de campaña en el compositor, `PostRequest` y `PostService::fill()`
 
 - **Descripción**: Selector en `ComposerHeader` con alta en línea; `campaign_id` en `PostRequest` y `fill()`; las copias desde biblioteca y plantillas conservan la campaña. Requisito: CA-12.
@@ -942,7 +956,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 164k in / 18k out tok · ⚠️ verificar €
 - **Dependencias**: T-25, T-12
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/ComposerHeader.vue`, `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Http/Controllers/PostController.php`, `app/Http/Controllers/LibraryController.php`, `app/Models/PostTemplate.php`, `database/migrations/*_add_campaign_id_to_post_templates.php` (la plantilla conserva la campaña), `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `tests/Feature/Campaigns/CampaignAssignTest.php`
+- **Archivos**: `resources/js/Components/Composer/ComposerHeader.vue`, `resources/js/Components/Composer/ActionBar.vue` (errors.campaign_id en «Guardar en biblioteca», fix F3-4), `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Http/Controllers/PostController.php`, `app/Http/Controllers/LibraryController.php`, `app/Models/PostTemplate.php`, `database/migrations/*_add_campaign_id_to_post_templates.php` (la plantilla conserva la campaña), `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `tests/Feature/Campaigns/CampaignAssignTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Campaigns/CampaignAssignTest.php` → verde (rechaza campaña de otra marca; las copias conservan la campaña)
@@ -962,6 +976,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Evidencia**: Caracterización previa en verde: Library+Posts 107 passed. CampaignAssignTest: 8 passed (RED previo: 7 fallos); Campaigns+Library+Posts+Ui+SavedTexts+FirstComment+Mcp: 447 passed (2598 assertions); npm run build ok; migrate aplicado.
 
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 1, 8, 9): `PATCH posts/{post}/campaign` (`PostService::updateCampaign`) y selector activo aunque el post no sea editable (metadato, como las notas); misma marca y no archivada; «Guardar en biblioteca» muestra `errors.campaign_id`; el borrado de la campaña entre `plan()` y `save()` (hook `InvalidArgumentException` o FK) se traduce a `PostValidationException`, nunca 500. Verificación: `php artisan test --compact tests/Feature/Campaigns tests/Feature/Mcp tests/Feature/Ui` → 306+ passed. E2E pendiente (ver T-21).
+
 ### T-28 — Paridad MCP de campañas: `campaign_id` y `list_campaigns`
 
 - **Descripción**: `campaign_id` en `create_post`, `update_post` y `get_post`, y herramienta `list_campaigns` registrada en el servidor. Requisito: CA-13. Tarea transversal de paridad MCP.
@@ -975,7 +991,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-15
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Tools/GetPost.php`, `app/Mcp/Tools/ListCampaigns.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/SchedulerTool.php` (presentPost), `docs/modulos/mcp.md` (recuento 19 a 20), `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php` (recuento), `tests/Feature/Mcp/Tools/McpCampaignsTest.php`
+- **Archivos**: `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Tools/GetPost.php`, `app/Mcp/Tools/ListCampaigns.php`, `app/Mcp/Tools/UpdatePostCampaign.php` (fix F3-4: campaña en posts publicados), `README.md` (recuento de herramientas MCP, fix F3-4), `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/SchedulerTool.php` (presentPost), `docs/modulos/mcp.md` (recuento 19 a 20), `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php` (recuento), `tests/Feature/Mcp/Tools/McpCampaignsTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Mcp/Tools/McpCampaignsTest.php` → verde (paridad de validación y `list_campaigns`)
@@ -995,6 +1011,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Evidencia**: Caracterización previa: Mcp 218 passed. McpCampaignsTest: 5 passed (RED previo: 3 fallos); Mcp+Campaigns: 239 passed (1383 assertions); McpFirstCommentTest en verde; tools/list = 20 (< 25 por página); mcp.md actualizado.
 
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 1, 14, 17): decisión MCP = herramienta DEDICADA `update_post_campaign` (22 herramientas) y no relajar `update_post`: este sustituye texto, media y destinos y exige `schedule`, así que aceptar «solo campaign_id» en un post publicado mezclaría dos contratos; `update_post_notes` ya sienta el precedente. `campaign_id` es `integer|null` en el esquema y las campañas archivadas se rechazan con mensaje (criterio de archivado = `archived_at` no nulo; la campaña que el post ya tiene se conserva o se quita). Recuentos 21→22 en tests, `README.md:41` y `docs/modulos/mcp.md`.
+
 ### T-29 — `CampaignAnalytics`: extraer la consulta del último snapshot y agregar
 
 - **Descripción**: Extraer de `AnalyticsService::postStats` la consulta del último snapshot sin cambiar el dashboard, y agregar por red, totales y serie diaria; una métrica sin datos es `null`, no 0. Requisito: CA-11.
@@ -1008,7 +1026,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 310k in / 34k out tok · ⚠️ verificar €
 - **Dependencias**: T-24
 - **Tipo**: backend
-- **Archivos**: `app/Services/CampaignAnalytics.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Campaigns/CampaignAnalyticsTest.php`, `tests/Feature/Analytics/AnalyticsServiceTest.php` (la caracterización de postStats vive aquí; DashboardTest ya estaba en verde y no se toca), `tests/Feature/Dashboard/DashboardTest.php`
+- **Archivos**: `app/Services/CampaignAnalytics.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Campaigns/CampaignAnalyticsTest.php`, `tests/Feature/Analytics/AnalyticsServiceTest.php` (la caracterización de postStats vive aquí; DashboardTest ya estaba en verde y no se toca)
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Dashboard/DashboardTest.php` → verde antes y después de extraer
@@ -1027,6 +1045,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: `app/Services/AnalyticsService.php:228` (`postStats`). Las métricas se congelan a los 30 días (`recent_post_days`, `config/social.php:158`): el panel lo dice.
 
 **Evidencia**: Caracterización previa en verde: Dashboard+Analytics 25 passed, y test nuevo de postStats (26 passed) antes de extraer; tras extraer withLatestSnapshot: Dashboard+Analytics+Reports 55 passed. CampaignAnalyticsTest: 6 passed (RED previo: clase inexistente).
+
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 2, 7): `withLatestSnapshot` acota `lm` a los destinos de la consulta (`WHERE post_target_id IN (SELECT id …)`); caracterizado primero (Dashboard+Analytics+Campaigns 54 passed antes y después) y test del SQL acotado. Serie diaria = suma de los snapshots leídos cada día en SQL, sin arrastre ni null→0: DECISIÓN «documentarlo» (su último punto puede no coincidir con el KPI; lo dice el docblock, `docs/modulos/analitica.md` y la UI). Benchmark `bench.php 5000 1000 90` (sqlite en memoria, 900.000 snapshots), campaña pequeña de 20 posts: consulta de destinos 141,2 ms → 1,1 ms y summary 250 ms → 103 ms solo con este cambio; subconsulta `lm` aislada 45,0 ms (sin acotar) → 0,4 ms (acotada).
 
 ### T-30 — Panel `Pages/Campaigns/Show.vue`: KPIs, tabla por red, gráfica y posts
 
@@ -1059,6 +1079,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón de gráficas: `resources/js/Pages/Dashboard` (`LineChart`).
 
 **Evidencia**: CampaignShowPageTest: 4 passed (RED previo: ruta y componente inexistentes); Ui+Campaigns: 53 passed; npm run build ok.
+
+**Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 3, 6, 15): `daily()` agrega por fecha en SQL; `summary()` lee los destinos como filas planas y solo los 100 primeros posts con el texto recortado en SQL (`SUBSTR`), más `posts_total`/`posts_truncated`, con aviso en la UI; fecha en la zona de la marca (`scheduled_local` + zona) y estado con `status_label`. Benchmark `bench.php 5000 1000 90`, campaña de 1.000 posts × 2 redes × 90 días (180.000 snapshots): ANTES 5,158 s y 374,8 MB de pico, 3 consultas; DESPUÉS 0,471 s y 3,9 MB, 5 consultas (campaña de 20 posts: 250 ms/7,8 MB → 17 ms/0,5 MB). E2E pendiente (ver T-21).
 
 ### T-31 — E2E de campañas con axe y sin desbordamiento
 
@@ -1712,22 +1734,25 @@ Lentes: A, B (más autorización e IDOR, porque la heurística no activó C) y D
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Important | No se puede asignar ni quitar la campaña de un post que tenga algún destino publicado o en vuelo: `campaign_id` pasa por el bloqueo de edición de `update()`. Es un metadato, igual que las notas. Ni la web (selector deshabilitado) ni `update_post` dejan meter en una campaña posts ya publicados, y así el panel se queda vacío | T-27, T-28 | pendiente | Lente B: `PostService.php:130,140-141`; `ComposerHeader.vue` (`:disabled="!editable"`) |
-| 2 | Important | `withLatestSnapshot`: la subconsulta `lm` calcula `MAX(date) GROUP BY post_target_id` sobre TODOS los snapshots del usuario, no solo sobre los destinos de la campaña. El coste crece lineal con el histórico (nunca se purga) | T-29, T-30 | pendiente | Lente D: `AnalyticsService.php:294-301`, `CampaignAnalytics.php:49`; con 1,44 M filas, 206 ms frente a 0,8 ms acotada (×250) |
-| 3 | Important | `daily()` hidrata como modelos todos los snapshots de la campaña, sin tope, y agrega en PHP. `summary()` carga todos los posts con su `text`. Una campaña de 1.000 posts × 2 redes × 90 días tarda 5,7 s y usa 375 MB; con 128 MB da un 500 a partir de unos 60 k snapshots | T-30 | pendiente | Lente D: `CampaignAnalytics.php:31,118-144` |
-| 4 | Minor | Cuando Graph da error, el error no se cachea: cada visita a la cuadrícula repite entre 1 y 3 llamadas de hasta 15 s y consume cuota de la cuenta | T-20 | pendiente | Lente D: `GridService.php:107-111` |
-| 5 | Minor | Lo publicado no descarta los Reels con `is_shared_to_feed=false` | T-19, T-20 | pendiente | Lente B: `InstagramGrid.php:17` |
-| 6 | Minor | El panel de campaña muestra la fecha en UTC (no en la zona de la marca) y el estado en crudo | T-30 | pendiente | Lente B: `Campaigns/Show.vue:17,114` |
-| 7 | Minor | La serie diaria arrastra el último valor no nulo mientras el KPI usa el último snapshot: el último punto no cuadra con el KPI | T-29 | pendiente | Lente B: `CampaignAnalytics.php:137` |
-| 8 | Minor | El diálogo «Guardar en biblioteca» no muestra `errors.campaign_id` | T-27 | pendiente | Lente B: `ActionBar.vue:130` |
-| 9 | Minor | Carrera: si se borra la campaña entre `plan()` y `save()`, el hook lanza una `InvalidArgumentException` y la web responde 500 | T-24, T-27 | pendiente | Lente B: `Post.php:44`, `PostController.php:59,82` |
-| 10 | Minor | Los errores de Graph en la cuadrícula (que solo lee) hablan de «publicar» | T-19, T-21 | pendiente | Lente B: `InstagramGrid.php:55` |
-| 11 | Minor | Las cuentas IG desconectadas aparecen en el selector y pueden salir por defecto | T-20, T-21 | pendiente | Lente B: `GridService.php:30-33` |
-| 12 | Minor | Un destino en `publicando` o `procesando` desaparece de la cuadrícula hasta que caduca la caché | T-20 | pendiente | Lente B: `GridService.php:53,108` |
-| 13 | Minor | Las rutas `campaigns/{id}` de otro usuario devuelven 403 en vez de 404 (CWE-204), al contrario que la convención del proyecto | T-25 | pendiente (decisión del orquestador: 404, como en el resto) | Lente B: `CampaignController.php:98` |
-| 14 | Minor | MCP: en el esquema `campaign_id` es `integer` y no admite null, aunque la descripción diga que null la quita; además se aceptan campañas archivadas | T-28 | pendiente | Lente B (fuera de lente) |
-| 15 | Minor | La lista del panel corta en 100 posts sin avisar (los KPIs sí cuentan todos) | T-30 | pendiente | Lente B (fuera de lente): `CampaignAnalytics.php:24,156` |
-| 16 | Minor | Faltan `config/social.php` `instagram.grid_cache_minutes`/`grid_published` (30) de la spec: se usa una constante y se piden hasta 72 publicadas | T-19, T-20 | pendiente | Lente A gap 2: `spec.md:76-77` |
-| 17 | Minor | Ledger y documentación: `README.md:41` sigue diciendo «19 herramientas»; T-21 no tiene RED registrado; la evidencia de T-23 está fuera de su bloque; T-26 y T-29 tienen `Archivos` declarados que no se tocan | T-21, T-23, T-26, T-28, T-29 | pendiente | Lente A gaps 1, 3 y 4 |
+| 1 | Important | No se puede asignar ni quitar la campaña de un post que tenga algún destino publicado o en vuelo: `campaign_id` pasa por el bloqueo de edición de `update()`. Es un metadato, igual que las notas. Ni la web (selector deshabilitado) ni `update_post` dejan meter en una campaña posts ya publicados, y así el panel se queda vacío | T-27, T-28 | corregido (671ea6a) | Lente B: `PostService.php:130,140-141`; `ComposerHeader.vue` (`:disabled="!editable"`) |
+| 2 | Important | `withLatestSnapshot`: la subconsulta `lm` calcula `MAX(date) GROUP BY post_target_id` sobre TODOS los snapshots del usuario, no solo sobre los destinos de la campaña. El coste crece lineal con el histórico (nunca se purga) | T-29, T-30 | corregido (94abc42) | Lente D: `AnalyticsService.php:294-301`, `CampaignAnalytics.php:49`; con 1,44 M filas, 206 ms frente a 0,8 ms acotada (×250) |
+| 3 | Important | `daily()` hidrata como modelos todos los snapshots de la campaña, sin tope, y agrega en PHP. `summary()` carga todos los posts con su `text`. Una campaña de 1.000 posts × 2 redes × 90 días tarda 5,7 s y usa 375 MB; con 128 MB da un 500 a partir de unos 60 k snapshots | T-30 | corregido (3852150) | Lente D: `CampaignAnalytics.php:31,118-144` |
+| 4 | Minor | Cuando Graph da error, el error no se cachea: cada visita a la cuadrícula repite entre 1 y 3 llamadas de hasta 15 s y consume cuota de la cuenta | T-20 | corregido (11296d5) | Lente D: `GridService.php:107-111` |
+| 5 | Minor | Lo publicado no descarta los Reels con `is_shared_to_feed=false` | T-19, T-20 | corregido (11296d5) | Lente B: `InstagramGrid.php:17` |
+| 6 | Minor | El panel de campaña muestra la fecha en UTC (no en la zona de la marca) y el estado en crudo | T-30 | corregido (3852150) | Lente B: `Campaigns/Show.vue:17,114` |
+| 7 | Minor | La serie diaria arrastra el último valor no nulo mientras el KPI usa el último snapshot: el último punto no cuadra con el KPI | T-29 | corregido (3852150; documentado) | Lente B: `CampaignAnalytics.php:137` |
+| 8 | Minor | El diálogo «Guardar en biblioteca» no muestra `errors.campaign_id` | T-27 | corregido (671ea6a) | Lente B: `ActionBar.vue:130` |
+| 9 | Minor | Carrera: si se borra la campaña entre `plan()` y `save()`, el hook lanza una `InvalidArgumentException` y la web responde 500 | T-24, T-27 | corregido (671ea6a) | Lente B: `Post.php:44`, `PostController.php:59,82` |
+| 10 | Minor | Los errores de Graph en la cuadrícula (que solo lee) hablan de «publicar» | T-19, T-21 | corregido (11296d5) | Lente B: `InstagramGrid.php:55` |
+| 11 | Minor | Las cuentas IG desconectadas aparecen en el selector y pueden salir por defecto | T-20, T-21 | corregido (11296d5) | Lente B: `GridService.php:30-33` |
+| 12 | Minor | Un destino en `publicando` o `procesando` desaparece de la cuadrícula hasta que caduca la caché | T-20 | corregido (11296d5) | Lente B: `GridService.php:53,108` |
+| 13 | Minor | Las rutas `campaigns/{id}` de otro usuario devuelven 403 en vez de 404 (CWE-204), al contrario que la convención del proyecto | T-25 | corregido (671ea6a) | Lente B: `CampaignController.php:98` |
+| 14 | Minor | MCP: en el esquema `campaign_id` es `integer` y no admite null, aunque la descripción diga que null la quita; además se aceptan campañas archivadas | T-28 | corregido (671ea6a) | Lente B (fuera de lente) |
+| 15 | Minor | La lista del panel corta en 100 posts sin avisar (los KPIs sí cuentan todos) | T-30 | corregido (3852150) | Lente B (fuera de lente): `CampaignAnalytics.php:24,156` |
+| 16 | Minor | Faltan `config/social.php` `instagram.grid_cache_minutes`/`grid_published` (30) de la spec: se usa una constante y se piden hasta 72 publicadas | T-19, T-20 | corregido (11296d5) | Lente A gap 2: `spec.md:76-77` |
+| 17 | Minor | Ledger y documentación: `README.md:41` sigue diciendo «19 herramientas»; T-21 no tiene RED registrado; la evidencia de T-23 está fuera de su bloque; T-26 y T-29 tienen `Archivos` declarados que no se tocan | T-21, T-23, T-26, T-28, T-29 | corregido (efc2c66) | Lente A gaps 1, 3 y 4 |
 
 Anotado sin corregir: en `PostFirstComment.php:59`, `requestedAt` sale del reloj del servidor web y se compara con `first_comment_sent_at`, que pone el worker. En producción los dos corren en el mismo host de Hestia y comparten reloj, así que se anota como riesgo y no como gap. Grid.vue usa `new Date("…+0000")`, que no se ha podido verificar en WebKit: se normaliza en el servidor dentro del gap 5.
+
+Medición del tiempo de esta corrección: ESTIMADA (no se abrieron marcadores `usage-meter` por tarea `metricool-parity-2/T-XX-fix1`; el trabajo fue una sola pasada transversal a T-19..T-30).
+E2E de Playwright no ejecutado en esta corrección (MySQL del servidor de pruebas): cambios de UI cubiertos con Pest (props de Inertia); los E2E de campañas, cuadrícula y compositor quedan pendientes de lanzar.

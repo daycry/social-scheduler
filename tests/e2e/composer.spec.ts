@@ -881,6 +881,12 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     seedExtraAccount(otra.id, 'youtube', 'e2e YouTube B');
     const draft = seedYoutubeDraft(brand.id, 'e2e YouTube');
 
+    // creator_info simulado (sin llamar a TikTok): Duet desactivado en la cuenta y tres visibilidades.
+    await page.route('**/tiktok-creator', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        nickname: 'Marble e2e', username: 'marble_e2e', avatar_url: null, privacy_level_options: ['PUBLIC_TO_EVERYONE', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'],
+        comment_disabled: false, duet_disabled: true, stitch_disabled: false, max_video_post_duration_sec: 600,
+    }) }));
+
     // Edición de un borrador de YouTube en la marca A: interruptores con su valor por defecto y la etiqueta de IA de YouTube.
     await page.goto(`/posts/${draft}/edit`);
     await settle(page);
@@ -920,10 +926,25 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     await expect(borrador.getByRole('switch')).toHaveCount(0);
     await expect(borrador.getByText(/borrador a tu bandeja/)).toBeVisible();
     const directo = seccion(page, 'TikTok', 'e2e TikTok directo');
-    await expect(directo.getByRole('switch', { name: 'Desactivar Duet' })).toBeVisible();
-    await expect(directo.getByRole('switch', { name: 'Desactivar Stitch' })).toBeVisible();
+    // Content Sharing Guidelines de TikTok: cuenta de destino visible, visibilidad sin valor por defecto y solo las que admite la cuenta.
+    await expect(directo.getByTestId('tiktok-creator')).toContainText('Marble e2e');
+    const visibilidad = directo.getByLabel('¿Quién puede ver este vídeo? (obligatorio)');
+    await expect(visibilidad).toHaveValue('');
+    await expect(visibilidad.locator('option:not([disabled])')).toHaveText(['Todo el mundo', 'Seguidores', 'Solo yo']);
+    // Duet desactivado en la cuenta de TikTok: marcado y bloqueado; Stitch libre.
+    await expect(directo.getByRole('switch', { name: 'Desactivar Duet' })).toBeChecked();
+    await expect(directo.getByRole('switch', { name: 'Desactivar Duet' })).toBeDisabled();
+    await expect(directo.getByText('Desactivado en los ajustes de tu cuenta de TikTok.')).toBeVisible();
+    await expect(directo.getByRole('switch', { name: 'Desactivar Stitch' })).toBeEnabled();
+    // Consentimiento junto al botón; con contenido de marca nombra también la Branded Content Policy y «Solo yo» deja de poder elegirse.
+    await expect(page.getByTestId('tiktok-consent')).toContainText('Music Usage Confirmation');
+    await expect(page.getByTestId('tiktok-consent')).not.toContainText('Branded Content Policy');
     await directo.getByRole('switch', { name: /Contenido de marca \(Branded content\)/ }).check();
     await expect(directo.getByText(/No puede ser privado/)).toBeVisible();
+    await expect(page.getByTestId('tiktok-consent')).toContainText('Branded Content Policy');
+    await expect(visibilidad.locator('option', { hasText: 'Solo yo' })).toBeDisabled();
+    await visibilidad.selectOption('FOLLOWER_OF_CREATOR');
+    await expect(visibilidad).toHaveValue('FOLLOWER_OF_CREATOR');
     await page.screenshot({ path: 'test-results/composer-interruptores-por-red.png' });
     await expectNoOverflow(page);
     await axeNow(page, 'interruptores de YouTube y TikTok');

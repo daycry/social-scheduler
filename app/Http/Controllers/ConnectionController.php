@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Network;
+use App\Connectors\TikTok\TikTokPublisher;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -117,6 +120,37 @@ class ConnectionController extends Controller
         return redirect()->route('brands.connections.index', $brand)->with('success', $enabled
             ? 'Direct Post activado: TikTok publicara directamente (requiere auditoria aprobada).'
             : 'Direct Post desactivado: los videos se enviaran como borrador a la bandeja de TikTok.');
+    }
+
+    /**
+     * Datos de la cuenta de TikTok para el compositor (Content Sharing Guidelines de TikTok): nombre del creador, visibilidades que
+     * admite, interacciones que tiene desactivadas y duracion maxima. Se consultan al abrir el compositor, no se guardan.
+     */
+    public function tiktokCreator(Brand $brand, SocialAccount $account, TikTokPublisher $publisher): JsonResponse
+    {
+        $this->authorize('update', $brand);
+        $this->authorize('disconnect', $account);
+        abort_unless($account->brand_id === $brand->id && $account->network === Network::TikTok, 404);
+
+        try {
+            $info = $publisher->creatorInfo($account);
+        } catch (ConnectorException $e) {
+            // Por ejemplo `spam_risk_too_many_posts` o la cuenta sin permiso: el compositor no deja publicar y explica por que.
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'nickname' => $info['creator_nickname'] ?? $account->name,
+            'username' => $info['creator_username'] ?? $account->username,
+            'avatar_url' => $info['creator_avatar_url'] ?? null,
+            'privacy_level_options' => array_values(array_intersect(
+                TikTokPublisher::PRIVACY_LEVELS, (array) ($info['privacy_level_options'] ?? []),
+            )),
+            'comment_disabled' => (bool) ($info['comment_disabled'] ?? false),
+            'duet_disabled' => (bool) ($info['duet_disabled'] ?? false),
+            'stitch_disabled' => (bool) ($info['stitch_disabled'] ?? false),
+            'max_video_post_duration_sec' => isset($info['max_video_post_duration_sec']) ? (int) $info['max_video_post_duration_sec'] : null,
+        ]);
     }
 
     public function destroy(Request $request, Brand $brand, SocialAccount $account): RedirectResponse

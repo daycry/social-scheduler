@@ -1,4 +1,5 @@
 <script setup>
+import { BRANDED_CONTENT_URL, MUSIC_USAGE_URL } from '@/Composables/tiktokCreator';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import { useComposerContext } from '@/Composables/useComposer';
@@ -9,7 +10,11 @@ import { useComposerContext } from '@/Composables/useComposer';
  * errores en vivo (`ErrorsPanel`); Guardar borrador y Guardar en biblioteca siguen disponibles. Enviar a revisión y
  * publicaciones recurrentes quedan fuera del alcance.
  */
-const { post, form, editable, submit, remove, publishNow, sendingNow, hasBlockingErrors, scheduleBlocked, uploadingMedia, libraryName, savingToLibrary, libraryErrors, saveToLibrary } = useComposerContext();
+const { post, form, accounts, editable, submit, remove, publishNow, sendingNow, hasBlockingErrors, scheduleBlocked, uploadingMedia, libraryName, savingToLibrary, libraryErrors, saveToLibrary } = useComposerContext();
+
+// Consentimiento que TikTok exige mostrar antes de publicar con Direct Post (Content Sharing Guidelines).
+const tiktokDirect = computed(() => form.targets.filter((t) => accounts.value.find((a) => a.id === t.account_id && a.network === 'tiktok' && a.direct_post)));
+const tiktokBranded = computed(() => tiktokDirect.value.some((t) => t.options?.brand_content_toggle === true));
 
 const open = ref(false);
 const root = ref(null);
@@ -114,6 +119,11 @@ const onLibraryKey = (e) => {
             </ul>
         </div>
 
+        <p v-if="tiktokDirect.length" class="basis-full text-xs text-slate-700" data-testid="tiktok-consent">
+            Al publicar en TikTok, aceptas
+            <template v-if="tiktokBranded">la <a :href="BRANDED_CONTENT_URL" target="_blank" rel="noopener noreferrer" class="underline">Política de contenido de marca (Branded Content Policy)</a> y </template>la
+            <a :href="MUSIC_USAGE_URL" target="_blank" rel="noopener noreferrer" class="underline">Confirmación de uso de música de TikTok (Music Usage Confirmation)</a>.
+        </p>
         <p v-if="uploadingMedia" role="status" class="text-sm text-slate-700" data-testid="uploading-note">Espera a que termine la subida.</p>
         <p v-if="sendingNow" role="status" class="text-sm text-slate-700" data-testid="sending-now">Enviando… no cierres esta página.</p>
         <DangerButton v-if="post" type="button" class="ml-auto" @click="remove">Eliminar</DangerButton>

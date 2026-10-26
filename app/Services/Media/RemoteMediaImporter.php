@@ -33,13 +33,16 @@ class RemoteMediaImporter
             return $this->fail($asset, 'La importación remota necesita el almacenamiento local; descarga el fichero y súbelo.');
         }
 
-        // Acotan el reencolado SIN espera (gap F5-2 #1, CWE-400/834): ni por edad ni por numero total de pasadas puede una importacion
-        // vivir indefinidamente, aunque el remoto suelte unos pocos bytes por pasada.
-        $age = $asset->created_at === null ? 0 : (int) $asset->created_at->diffInSeconds(now(), true);
+        // Acotan el reencolado SIN espera (gap F5-2 #1, CWE-400/834) sin matar importaciones grandes legitimas (gap F5-3 N1): no hay
+        // tope de edad desde `created_at` (incluiria la espera en cola y el reparto del worker); el corte es por RITMO MEDIO sobre el
+        // tiempo de descarga EFECTIVO (suma de lo que duraron las pasadas) y por un numero de pasadas derivado del tamano esperado.
+        $state0 = (array) $asset->import_state;
 
-        if ($age > (int) config('media.import_max_age_seconds', 7200) || (int) (((array) $asset->import_state)['passes'] ?? 0) >= (int) config('media.import_max_passes', 200)) {
+        if ($this->tooSlow($state0) || (int) ($state0['passes'] ?? 0) >= $this->maxPasses($state0['total'] ?? null)) {
             return $this->fail($asset, 'La descarga tarda demasiado; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
         }
+
+        $passStarted = microtime(true);
 
         $disk = $this->storage->disk();
         $disk->makeDirectory(dirname($asset->path));
@@ -101,7 +104,7 @@ class RemoteMediaImporter
                 });
             }
 
-            $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1] + $state);
+            $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1, 'download_seconds' => round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3)] + $state);
 
             return false;
         }
@@ -114,6 +117,7 @@ class RemoteMediaImporter
             'validator' => $state['validator'] ?? $pass->validator,
             'ranges' => ($state['ranges'] ?? false) || $pass->ranges,
             'passes' => ($state['passes'] ?? 0) + 1,
+            'download_seconds' => round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3),
             // Pasadas seguidas «pobres» (menos del ritmo minimo por pasada): con la cola reencolando sin espera, un remoto que suelta
             // 1 B por pasada (goteo) provocaba un bucle caliente que el contador de pasadas a 0 bytes no veia.
             'stalls' => $pass->complete || $pass->written >= (int) config('media.import_min_pass_bytes', 65536) ? 0 : ($state['stalls'] ?? 0) + 1,
@@ -148,8 +152,45 @@ class RemoteMediaImporter
         }
 
         $this->save($asset, $state);
+        $this->pace($passStarted);
 
         return false;
+    }
+
+    /** Pasadas permitidas: el suelo `import_max_passes` o, si el total es conocido, el numero de tramos esperados con margen (un CDN que limita cada 206 a 8 MB y un fichero de 4 GiB piden 512). */
+    public function maxPasses(mixed $total): int
+    {
+        $floor = (int) config('media.import_max_passes', 200);
+
+        if (! is_numeric($total) || (int) $total <= 0) {
+            return $floor;
+        }
+
+        $chunk = max(1, (int) config('media.import_expected_chunk_bytes', 8 * 1024 * 1024));
+
+        return max($floor, (int) ceil(ceil((int) $total / $chunk) * 1.25) + 10);
+    }
+
+    /** Ritmo medio sobre el tiempo de descarga efectivo (sin espera en cola); solo se juzga pasada la gracia, para no penalizar el arranque. */
+    private function tooSlow(array $state): bool
+    {
+        $seconds = (float) ($state['download_seconds'] ?? 0);
+
+        if ($seconds < (int) config('media.import_rate_grace_seconds', 300)) {
+            return false;
+        }
+
+        return ((int) ($state['bytes'] ?? 0)) / $seconds < (int) config('media.import_min_rate_bytes', 16 * 1024);
+    }
+
+    /** Ritmo maximo de reencolado (gap F5-3 N2): una pasada incompleta mas corta que el minimo espera el resto DENTRO del job (sin `delay`, que dejaba ~40 s muertos). */
+    private function pace(float $passStarted): void
+    {
+        $remaining = (float) config('media.import_min_pass_seconds', 1) - (microtime(true) - $passStarted);
+
+        if ($remaining > 0) {
+            usleep((int) ($remaining * 1_000_000));
+        }
     }
 
     /**

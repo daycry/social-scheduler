@@ -45,8 +45,11 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
 | `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |
 | `MEDIA_IMPORT_MIN_PASS_BYTES` | 65536 | Ritmo mínimo por pasada; tres pasadas por debajo = importación fallida |
-| `MEDIA_IMPORT_MAX_AGE_SECONDS` | 7200 | Edad máxima de una importación |
-| `MEDIA_IMPORT_MAX_PASSES` | 200 | Pasadas máximas por importación |
+| `MEDIA_IMPORT_MIN_RATE_BYTES` | 16384 | Ritmo medio mínimo (B/s) sobre el tiempo de descarga efectivo, pasada la gracia |
+| `MEDIA_IMPORT_RATE_GRACE_SECONDS` | 300 | Descarga efectiva antes de juzgar el ritmo medio |
+| `MEDIA_IMPORT_EXPECTED_CHUNK_BYTES` | 8388608 | Tramo esperado por 206 para derivar el tope de pasadas del tamaño total |
+| `MEDIA_IMPORT_MAX_PASSES` | 200 | Suelo del tope de pasadas por importación |
+| `MEDIA_IMPORT_MIN_PASS_SECONDS` | 1 | Duración mínima de una pasada incompleta (ritmo máximo de reencolado) |
 
 ## Media (disco local o R2)
 

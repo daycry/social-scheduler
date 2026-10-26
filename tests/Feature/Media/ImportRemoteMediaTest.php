@@ -506,22 +506,14 @@ test('ImportRemoteMedia (revision): el job se reencola sin espera', function () 
     Queue::assertPushed(ImportRemoteMedia::class, fn ($job) => $job->delay === null);
 });
 
-test('tope de edad y de pasadas totales: una importacion que lleva demasiado se da por fallida (gap F5-2 #1)', function () {
+test('tope de pasadas totales: una importacion que lleva demasiadas se da por fallida (gap F5-2 #1)', function () {
     $pass = new RemotePass(false, false, true, 1_000_000, '"v1"', 'image/jpeg', 200_000);
 
-    // Demasiadas pasadas aunque cada una avance.
     config(['media.import_max_passes' => 3]);
     $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, 'https://cdn.example.com/a.jpg', 'a.jpg');
     $asset->forceFill(['import_state' => ['bytes' => 0, 'passes' => 3]])->save();
     expect(app(RemoteMediaImporter::class)->run($asset->fresh(), fakeSource($pass)))->toBeTrue()
         ->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->fresh()->error)->toContain('tarda demasiado');
-
-    // Demasiado vieja.
-    config(['media.import_max_passes' => 200, 'media.import_max_age_seconds' => 60]);
-    $old = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, 'https://cdn.example.com/b.jpg', 'b.jpg');
-    $old->forceFill(['created_at' => now()->subMinutes(5)])->save();
-    expect(app(RemoteMediaImporter::class)->run($old->fresh(), fakeSource($pass)))->toBeTrue()
-        ->and($old->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)->and($old->fresh()->error)->toContain('tarda demasiado');
 });
 
 test('la pasada deja un latido (runs) que la UI usa para distinguir una cola parada', function () {

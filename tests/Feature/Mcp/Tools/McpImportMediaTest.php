@@ -84,5 +84,5 @@ test('McpImportMedia: tools/list incluye la herramienta y sigue cabiendo en una 
     $response = $this->rpc($this->key, 'tools/list');
     $names = collect($response->json('result.tools'))->pluck('name')->all();
 
-    expect($names)->toContain('import_media_from_url')->toHaveCount(21)->and($response->json('result.nextCursor'))->toBeNull();
+    expect($names)->toContain('import_media_from_url')->toHaveCount(22)->and($response->json('result.nextCursor'))->toBeNull();
 });

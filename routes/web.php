@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
     Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
+    Route::patch('posts/{post}/campaign', [PostController::class, 'updateCampaign'])->name('posts.campaign');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
     // Primer comentario (C-01b): editar el texto de un comentario `fallido` y reintentarlo. Solo web; el MCP no lo expone.
     Route::patch('posts/{post}/targets/{target}/first-comment', [FirstCommentController::class, 'update'])->middleware('throttle:30,1')->name('posts.first-comment.update');

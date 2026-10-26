@@ -2,12 +2,15 @@
 
 use App\Connectors\Network;
 use App\Enums\PostStatus;
+use App\Mcp\Tools\CreatePost;
 use App\Models\AuditLog;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -80,7 +83,7 @@ test('McpNotes: mas de 5.000 caracteres se rechaza y el vacio borra', function (
     expect($err)->toBeFalse()->and($res['notes'])->toBeNull();
 });
 
-test('McpNotes: create_post admite notes y las 21 herramientas caben en la primera pagina', function () {
+test('McpNotes: create_post admite notes y las 22 herramientas caben en la primera pagina', function () {
     [$err, $res] = $this->callTool($this->key, 'create_post', [
         'brand_id' => $this->brand->id, 'text' => 'Hola', 'schedule' => false, 'notes' => 'desde mcp',
         'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']],
@@ -90,7 +93,7 @@ test('McpNotes: create_post admite notes y las 21 herramientas caben en la prime
     $r = $this->rpc($this->key, 'tools/list')->assertOk();
     $names = collect($r->json('result.tools'))->pluck('name');
 
-    expect($names)->toHaveCount(21)->and($names)->toContain('update_post_notes', 'publish_post_now')
+    expect($names)->toHaveCount(22)->and($names)->toContain('update_post_notes', 'publish_post_now')
         ->and($r->json('result.nextCursor'))->toBeNull();
 });
 
@@ -107,4 +110,36 @@ test('McpNotes: CRLF y CR suelto se guardan como LF y la linea en blanco se cons
     [$err, $res] = $this->callTool($this->key, 'update_post_notes', ['post_id' => $post->id, 'notes' => "a\r\n\r\nb\rc"]);
 
     expect($err)->toBeFalse()->and($res['notes'])->toBe("a\n\nb\nc")->and($post->fresh()->notes)->toBe("a\n\nb\nc");
+});
+
+test('McpCampaign: update_post_campaign asigna y quita la campaña de un post publicado y respeta marca y archivo', function () {
+    $post = mcpNotesPost();
+    $post->targets->first()->forceFill(['status' => PostStatus::Published])->save();
+    $mine = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id]);
+    $other = Campaign::factory()->create(['brand_id' => Brand::factory()->for($this->user)->create()->id, 'user_id' => $this->user->id]);
+    $archived = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'archived_at' => now()]);
+
+    [$err, $res] = $this->callTool($this->key, 'update_post_campaign', ['post_id' => $post->id, 'campaign_id' => $mine->id]);
+    expect($err)->toBeFalse()->and($res['campaign_id'])->toBe($mine->id);
+
+    [$err, $msg] = $this->callTool($this->key, 'update_post_campaign', ['post_id' => $post->id, 'campaign_id' => $other->id]);
+    expect($err)->toBeTrue()->and($msg)->toContain('campaign_id');
+    [$err, $msg] = $this->callTool($this->key, 'update_post_campaign', ['post_id' => $post->id, 'campaign_id' => $archived->id]);
+    expect($err)->toBeTrue()->and($msg)->toContain('archivada')->and($post->fresh()->campaign_id)->toBe($mine->id);
+
+    [$err, $res] = $this->callTool($this->key, 'update_post_campaign', ['post_id' => $post->id, 'campaign_id' => null]);
+    expect($err)->toBeFalse()->and($res['campaign_id'])->toBeNull();
+    Queue::assertNothingPushed();
+});
+
+test('McpCampaign: el esquema de campaign_id admite null y create_post rechaza campañas archivadas', function () {
+    $schema = (new CreatePost)->schema(new JsonSchemaTypeFactory);
+    expect($schema['campaign_id']->toArray()['type'])->toBe(['integer', 'null']);
+
+    $archived = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'archived_at' => now()]);
+    [$err, $msg] = $this->callTool($this->key, 'create_post', [
+        'brand_id' => $this->brand->id, 'text' => 'x', 'schedule' => false, 'campaign_id' => $archived->id,
+        'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']],
+    ]);
+    expect($err)->toBeTrue()->and($msg)->toContain('archivada');
 });

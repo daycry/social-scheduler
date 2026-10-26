@@ -23,6 +23,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -101,7 +102,7 @@ class PostService
             if ($plan['campaign_id'] !== false) {
                 $post->campaign_id = $plan['campaign_id'];
             }
-            $post->save();
+            $this->saveOrFailCampaign($post);
 
             $this->fill($post, $plan);
             $this->dispatchAfterCommit($post, $plan);
@@ -122,7 +123,7 @@ class PostService
         $this->assertOwns($user, $post);
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
-        $plan = $this->plan($user, $brand, $data);
+        $plan = $this->plan($user, $brand, $data, $post->campaign_id);
 
         return DB::transaction(function () use ($post, $plan) {
             // Bloquea los destinos ANTES de decidir: el claim de `PublishPostTarget` toma el mismo lock, asi que o
@@ -140,7 +141,7 @@ class PostService
             if ($plan['campaign_id'] !== false) {
                 $post->campaign_id = $plan['campaign_id']; // por post entero (D3): no cuenta como «contenido cambiado»
             }
-            $post->save();
+            $this->saveOrFailCampaign($post);
             $this->fill($post, $plan, $existing, $before);
             $this->dispatchAfterCommit($post, $plan);
 
@@ -164,6 +165,65 @@ class PostService
         $post->forceFill(['notes' => $notes])->save();
 
         return $post->fresh(['targets', 'media']);
+    }
+
+    /**
+     * Campaña (C-03): metadato del post entero, como las notas. Se asigna o se quita en cualquier estado (publicado o en vuelo
+     * incluidos) porque no se publica: no toca los destinos ni reinicia ningun intento. Misma marca y usuario; una campaña
+     * archivada no se asigna (la que el post ya tiene se puede conservar o quitar).
+     */
+    public function updateCampaign(User $user, Post $post, ?int $campaignId): Post
+    {
+        $this->assertOwns($user, $post);
+
+        $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
+        $errors = $this->campaignErrors($user, $brand, $campaignId, $post->campaign_id);
+        if ($errors !== []) {
+            throw new PostValidationException($errors);
+        }
+
+        $post->campaign_id = $campaignId;
+        $this->saveOrFailCampaign($post);
+
+        return $post->fresh(['targets', 'media', 'campaign']);
+    }
+
+    /**
+     * Guarda el post traduciendo la carrera «la campaña se borró entre la validacion y el guardado» (el hook de `Post` lanza
+     * `InvalidArgumentException`) a un error de validacion: nunca un 500.
+     */
+    private function saveOrFailCampaign(Post $post): void
+    {
+        try {
+            $post->save();
+        } catch (\InvalidArgumentException $e) {
+            throw new PostValidationException(['campaign_id' => ['La campaña ya no existe en esta marca.']]);
+        } catch (QueryException $e) {
+            // Borrada justo despues del hook y antes del UPDATE: la FK `campaign_id` lo rechaza.
+            if ($post->campaign_id !== null && ! Campaign::withoutUserScope()->whereKey($post->campaign_id)->exists()) {
+                throw new PostValidationException(['campaign_id' => ['La campaña ya no existe en esta marca.']]);
+            }
+
+            throw $e;
+        }
+    }
+
+    /** @return array<string, list<string>> */
+    private function campaignErrors(User $user, Brand $brand, ?int $campaignId, ?int $currentCampaignId): array
+    {
+        if ($campaignId === null) {
+            return [];
+        }
+
+        $campaign = Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->find($campaignId);
+        if ($campaign === null) {
+            return ['campaign_id' => ['La campaña no existe en esta marca.']];
+        }
+        if ($campaign->isArchived() && $campaignId !== $currentCampaignId) {
+            return ['campaign_id' => ['La campaña está archivada: restáurala antes de asignarle publicaciones.']];
+        }
+
+        return [];
     }
 
     private static function normalizeNotes(mixed $notes): ?string
@@ -464,7 +524,7 @@ class PostService
      * @param  array<string, mixed>  $data
      * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}
      */
-    private function plan(User $user, Brand $brand, array $data): array
+    private function plan(User $user, Brand $brand, array $data, ?int $currentCampaignId = null): array
     {
         $errors = [];
         $publishNow = (bool) ($data['publish_now'] ?? false);
@@ -578,9 +638,7 @@ class PostService
         $campaignId = false;
         if (array_key_exists('campaign_id', $data)) {
             $campaignId = ($data['campaign_id'] === null || $data['campaign_id'] === '') ? null : (int) $data['campaign_id'];
-            if ($campaignId !== null && ! Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereKey($campaignId)->exists()) {
-                $errors['campaign_id'][] = 'La campaña no existe en esta marca.';
-            }
+            $errors += $this->campaignErrors($user, $brand, $campaignId, $currentCampaignId);
         }
 
         if ($errors !== []) {

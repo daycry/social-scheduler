@@ -15,7 +15,7 @@ trait PostPayload
         return [
             'text' => $schema->string()->description('Texto de la publicacion (la plantilla: lo publican los destinos que no tienen texto propio)'),
             'notes' => $schema->string()->description('Notas internas (texto plano, hasta 5000 caracteres). No se publican. Omitidas = no se tocan; vacias = se borran. Para un post ya publicado usa update_post_notes'),
-            'campaign_id' => $schema->integer()->description('ID de la campana de la publicacion entera (list_campaigns); debe ser de la misma marca. Omitido = no se toca; null = se quita la campana'),
+            'campaign_id' => $schema->integer()->nullable()->description('ID de la campana de la publicacion entera (list_campaigns); debe ser de la misma marca y no estar archivada. Omitido = no se toca; null = se quita la campana. Para un post ya publicado usa update_post_campaign'),
             'scheduled_at' => $schema->string()->description('Fecha/hora YYYY-MM-DD HH:MM; sin zona = zona horaria de la marca. Debe ser futura si schedule=true'),
             'schedule' => $schema->boolean()->description('true = programar; false = guardar como borrador')->required(),
             'publish_now' => $schema->boolean()->description('true = publicar ahora (sin fecha: la pone el servidor; no se puede combinar con scheduled_at). Equivale a programar y encolar de inmediato'),

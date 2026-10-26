@@ -31,13 +31,13 @@ test('alta, edición, archivo y borrado persisten', function () {
     expect(Campaign::withoutUserScope()->find($c->id))->toBeNull();
 });
 
-test('un usuario ajeno recibe 403 en edición, archivo y borrado', function () {
+test('un usuario ajeno recibe 404 en edición, archivo y borrado (UserScope)', function () {
     $c = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'name' => 'Mía']);
     $other = User::factory()->create();
 
-    $this->actingAs($other)->put(route('campaigns.update', $c->id), ['name' => 'Robada', 'color' => '#000000'])->assertForbidden();
-    $this->actingAs($other)->put(route('campaigns.archive', $c->id), ['archived' => true])->assertForbidden();
-    $this->actingAs($other)->delete(route('campaigns.destroy', $c->id))->assertForbidden();
+    $this->actingAs($other)->put(route('campaigns.update', $c->id), ['name' => 'Robada', 'color' => '#000000'])->assertNotFound();
+    $this->actingAs($other)->put(route('campaigns.archive', $c->id), ['archived' => true])->assertNotFound();
+    $this->actingAs($other)->delete(route('campaigns.destroy', $c->id))->assertNotFound();
 
     expect($c->fresh()->name)->toBe('Mía')->and($c->fresh()->isArchived())->toBeFalse();
 });

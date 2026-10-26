@@ -41,10 +41,10 @@ it('una campaña sin posts muestra los KPIs vacíos', function () {
         ->assertInertia(fn (Assert $p) => $p->where('summary.kpis.posts', 0)->where('summary.kpis.views', null)->has('summary.posts', 0));
 });
 
-it('la campaña de otro usuario responde 403 y una inexistente 404', function () {
+it('la campaña de otro usuario responde 404 igual que una inexistente', function () {
     $other = User::factory()->create();
 
-    $this->actingAs($other)->get(route('campaigns.show', $this->campaign->id))->assertForbidden();
+    $this->actingAs($other)->get(route('campaigns.show', $this->campaign->id))->assertNotFound();
     $this->actingAs($this->user)->get(route('campaigns.show', 999999))->assertNotFound();
 });
 

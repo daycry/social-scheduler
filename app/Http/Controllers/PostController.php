@@ -132,6 +132,25 @@ class PostController extends Controller
         return back()->with('success', 'Notas guardadas.');
     }
 
+    /**
+     * Campaña del post (C-03): metadato como las notas, asignable o quitable aunque el post ya tenga destinos publicados o en
+     * vuelo. Misma marca, campaña no archivada; la carrera con un borrado de la campaña vuelve como error de validacion.
+     */
+    public function updateCampaign(Request $request, Post $post): RedirectResponse
+    {
+        $this->authorize('update', $post);
+
+        $data = $request->validate(['campaign_id' => ['present', 'nullable', 'integer']]);
+
+        try {
+            $this->posts->updateCampaign($request->user(), $post, $data['campaign_id'] === null ? null : (int) $data['campaign_id']);
+        } catch (PostValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('success', 'Campaña actualizada.');
+    }
+
     /** Mensaje honesto: si algun destino sigue en pausa por cuota, no se promete «unos segundos». */
     private function publishingMessage(Post $post): string
     {

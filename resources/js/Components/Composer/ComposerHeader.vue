@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { useComposerContext } from '@/Composables/useComposer';
 
-const { brand, post, form, editable, campaigns, creatingCampaign, campaignError, createCampaign } = useComposerContext();
+const { brand, post, form, editable, campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign } = useComposerContext();
 
 // Alta en línea de una campaña (C-03): el nombre se pide aquí mismo y la nueva queda elegida.
 const adding = ref(false);
@@ -20,7 +20,7 @@ const add = () => createCampaign(newName.value, { onCreated: () => { adding.valu
         <div class="flex min-w-0 flex-wrap items-center gap-2" data-testid="campaign-picker">
             <label class="flex min-w-0 items-center gap-2 text-sm">
                 <span class="shrink-0 text-xs font-medium text-slate-600">Campaña</span>
-                <select v-model="form.campaign_id" :disabled="!editable" class="field max-w-[11rem] py-1 text-sm sm:max-w-[16rem]" data-testid="campaign-select">
+                <select v-model="form.campaign_id" :disabled="savingCampaign" class="field max-w-[11rem] py-1 text-sm sm:max-w-[16rem]" data-testid="campaign-select" @change="saveCampaign">
                     <option :value="null">Sin campaña</option>
                     <option v-for="c in campaigns" :key="c.id" :value="c.id">{{ c.name }}{{ c.archived ? ' (archivada)' : '' }}</option>
                 </select>

@@ -37,7 +37,7 @@ class CampaignController extends Controller
         ]);
     }
 
-    /** Panel de la campaña (C-03, CA-11): KPIs agregados, desglose por red, serie diaria y posts. La de otro usuario responde 403. */
+    /** Panel de la campaña (C-03, CA-11): KPIs agregados, desglose por red, serie diaria y posts. La de otro usuario responde 404 (UserScope). */
     public function show(Request $request, int $id): Response
     {
         $campaign = $this->find($id);
@@ -92,9 +92,9 @@ class CampaignController extends Controller
         return back()->with('success', 'Campaña eliminada.');
     }
 
-    /** Sin UserScope a propósito: la campaña de otro usuario debe responder 403 (y auditarse), no 404. */
+    /** Con UserScope, como el resto del proyecto: la campaña de otro usuario responde 404 (no revela que existe, CWE-204). */
     private function find(int $id): Campaign
     {
-        return Campaign::withoutUserScope()->findOrFail($id);
+        return Campaign::findOrFail($id);
     }
 }

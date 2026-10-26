@@ -303,6 +303,22 @@ export function useComposer(props) {
 
     // Campañas (C-03): selector del encabezado con alta en línea. El alta recarga solo la lista y deja elegida la nueva.
     const campaigns = computed(() => props.campaigns ?? []);
+    // En un post ya no editable (destinos publicados o en vuelo) la campaña es metadato: se guarda al elegirla con
+    // `PATCH posts/{post}/campaign`, igual que las notas, sin tocar los destinos.
+    const savingCampaign = ref(false);
+    let savedCampaign = props.post?.campaign_id ?? null;
+    const saveCampaign = () => {
+        if (!props.post || editable.value || savingCampaign.value) return;
+        const value = form.campaign_id ?? null;
+        router.patch(route('posts.campaign', props.post.id), { campaign_id: value }, {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => { savingCampaign.value = true; campaignError.value = ''; },
+            onSuccess: () => { savedCampaign = value; form.defaults('campaign_id', value); },
+            onError: (errors) => { campaignError.value = errors.campaign_id ?? 'No se pudo guardar la campaña.'; form.campaign_id = savedCampaign; },
+            onFinish: () => (savingCampaign.value = false),
+        });
+    };
     const creatingCampaign = ref(false);
     const campaignError = ref('');
     const createCampaign = (name, { onCreated } = {}) => {
@@ -325,7 +341,7 @@ export function useComposer(props) {
     };
 
     const api = {
-        campaigns, creatingCampaign, campaignError, createCampaign,
+        campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
         post, brand, accounts, contentTypes, limits, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,

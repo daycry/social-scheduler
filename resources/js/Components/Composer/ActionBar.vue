@@ -137,7 +137,7 @@ const onLibraryKey = (e) => {
                 <span class="block text-xs font-medium text-slate-700">Nombre de la plantilla</span>
                 <input ref="nameInput" v-model="libraryName" type="text" maxlength="120" class="field" :aria-invalid="!!libraryErrors.name" aria-describedby="library-error" @keydown.enter.prevent="confirmLibrary" />
             </label>
-            <p id="library-error" class="mt-1 min-h-[1.25rem] text-sm text-red-700" role="alert">{{ libraryErrors.name ?? libraryErrors.brand ?? '' }}</p>
+            <p id="library-error" class="mt-1 min-h-[1.25rem] text-sm text-red-700" role="alert">{{ libraryErrors.name ?? libraryErrors.campaign_id ?? libraryErrors.brand ?? '' }}</p>
             <div class="mt-3 flex flex-wrap justify-end gap-2">
                 <button type="button" class="btn btn-secondary" @click="closeLibrary">Cancelar</button>
                 <button type="button" class="btn btn-primary" :disabled="savingToLibrary || !libraryName.trim()" @click="confirmLibrary">Guardar</button>

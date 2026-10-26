@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Campaign;
@@ -114,12 +115,80 @@ test('una plantilla cuya campaña ya no existe crea el borrador sin campaña', f
 
 test('el compositor recibe las campañas activas de la marca y la del post aunque esté archivada', function () {
     Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'name' => 'Vieja', 'archived_at' => now()]);
-    $archivedUsed = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'name' => 'Archivada con post', 'archived_at' => now()]);
 
     $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))->assertOk()
         ->assertInertia(fn (Assert $p) => $p->component('Posts/Compose')->has('campaigns', 1)->where('campaigns.0.name', 'Mía'));
 
+    $archivedUsed = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'name' => 'Archivada con post']);
     $post = $this->service->create($this->user, $this->brand, campaignBody(['campaign_id' => $archivedUsed->id]));
+    $archivedUsed->forceFill(['archived_at' => now()])->save();
     $this->actingAs($this->user)->get(route('posts.edit', $post))->assertOk()
         ->assertInertia(fn (Assert $p) => $p->has('campaigns', 2)->where('post.campaign_id', $archivedUsed->id));
+});
+
+test('la campaña se asigna y se quita en un post con destinos publicados o en vuelo (PATCH posts/{post}/campaign)', function () {
+    $post = $this->service->create($this->user, $this->brand, campaignBody());
+    $post->targets->first()->forceFill(['status' => PostStatus::Published])->save();
+
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), ['campaign_id' => $this->mine->id])->assertSessionHasNoErrors();
+    expect($post->fresh()->campaign_id)->toBe($this->mine->id)->and($post->targets()->first()->status)->toBe(PostStatus::Published);
+
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), ['campaign_id' => null])->assertSessionHasNoErrors();
+    expect($post->fresh()->campaign_id)->toBeNull();
+
+    $post->targets()->first()->forceFill(['status' => PostStatus::Publishing])->save();
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), ['campaign_id' => $this->mine->id])->assertSessionHasNoErrors();
+    expect($post->fresh()->campaign_id)->toBe($this->mine->id);
+    Queue::assertNothingPushed();
+});
+
+test('PATCH posts/{post}/campaign respeta la marca, el archivo, la propiedad y exige el campo', function () {
+    $post = $this->service->create($this->user, $this->brand, campaignBody());
+    $archived = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'archived_at' => now()]);
+
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), ['campaign_id' => $this->foreign->id])->assertSessionHasErrors('campaign_id');
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), ['campaign_id' => $archived->id])->assertSessionHasErrors('campaign_id');
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), [])->assertSessionHasErrors('campaign_id');
+    $this->actingAs(User::factory()->create())->patch(route('posts.campaign', $post), ['campaign_id' => null])->assertNotFound();
+    expect($post->fresh()->campaign_id)->toBeNull();
+});
+
+test('una campaña archivada no se asigna a un post nuevo, pero el post que ya la tiene la conserva', function () {
+    $archived = Campaign::factory()->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'archived_at' => now()]);
+
+    $this->actingAs($this->user)->post(route('brands.posts.store', $this->brand), campaignBody(['campaign_id' => $archived->id]))->assertSessionHasErrors('campaign_id');
+
+    $post = $this->service->create($this->user, $this->brand, campaignBody(['campaign_id' => $this->mine->id]));
+    $this->service->updateCampaign($this->user, $post, $this->mine->id);
+    $this->mine->forceFill(['archived_at' => now()])->save();
+    expect($this->service->updateCampaign($this->user, $post, $this->mine->id)->campaign_id)->toBe($this->mine->id);
+});
+
+test('carrera: si la campaña se borra entre la validación y el guardado no hay 500 sino un error de validación', function () {
+    $post = $this->service->create($this->user, $this->brand, campaignBody());
+    // Simula el borrado tras `plan()`: el hook de `Post::saving` ya no encuentra la campaña.
+    Post::saving(function (Post $p) {
+        Campaign::withoutUserScope()->whereKey($this->mine->id)->delete();
+    });
+
+    $this->actingAs($this->user)->put(route('posts.update', $post), campaignBody(['campaign_id' => $this->mine->id]))->assertSessionHasErrors('campaign_id');
+    $this->actingAs($this->user)->patch(route('posts.campaign', $post), ['campaign_id' => $this->mine->id])->assertSessionHasErrors('campaign_id');
+    expect($post->fresh()->campaign_id)->toBeNull();
+});
+
+test('carrera (hook): una campaña que ya no existe al guardar se traduce a PostValidationException', function () {
+    $post = $this->service->create($this->user, $this->brand, campaignBody());
+    $post->campaign_id = 999999;
+
+    $save = Closure::bind(fn () => $this->saveOrFailCampaign($post), $this->service, PostService::class);
+
+    expect($save)->toThrow(PostValidationException::class);
+});
+
+test('el compositor de un post publicado recibe las campañas y el post no editable (el selector sigue activo)', function () {
+    $post = $this->service->create($this->user, $this->brand, campaignBody(['campaign_id' => $this->mine->id]));
+    $post->targets->first()->forceFill(['status' => PostStatus::Published])->save();
+
+    $this->actingAs($this->user)->get(route('posts.edit', $post))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->where('post.editable', false)->where('post.campaign_id', $this->mine->id)->has('campaigns', 1));
 });

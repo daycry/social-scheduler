@@ -1224,7 +1224,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 310k in / 34k out tok · ⚠️ verificar €
 - **Dependencias**: T-33, T-34
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/RemoteSource.php`, `app/Services/Media/UrlSource.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Services/Media/ImportFailedException.php`, `app/Services/Media/RangeIgnored.php`, `app/Services/Media/RemotePass.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`, `app/Services/Media/UrlGuard.php`, `config/media.php`, `tests/Feature/Media/UrlSourceRealHandlerTest.php`, `tests/Unit/UrlGuardTest.php`
+- **Archivos**: `app/Services/Media/RemoteSource.php`, `app/Services/Media/UrlSource.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Services/Media/ImportFailedException.php`, `app/Services/Media/RangeIgnored.php`, `app/Services/Media/RemotePass.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`, `app/Services/Media/UrlGuard.php`, `config/media.php`, `tests/Feature/Media/UrlSourceRealHandlerTest.php`, `tests/Unit/UrlGuardTest.php`, `phpunit.xml`, `docs/modulos/media.md`, `docs/referencia/configuracion.md`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Media/ImportRemoteMediaTest.php` → verde (JPEG válido listo; tope y tipo → `invalido`; vídeo en varias pasadas; sin `Range` → error claro)
@@ -1242,7 +1242,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón de pasadas con presupuesto: `app/Connectors/Google/YouTubePublisher.php:413` (`beginPass`) y `upload_budget_seconds` (80). `app/Services/MediaUploadService.php:119` (`finalize`): solo se fija `declared_size` antes de llamarlo.
 
-**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL. Fix revisión F5 (526a25d): gaps 1, 5, 9, 10, 11, 13. Verificación: UrlSourceRealHandlerTest (CurlFactory real + servidor PHP local en 127.0.0.1, sin red externa) y ImportRemoteMediaTest 46 passed. Tiempo ESTIMADO 1,6h.
+**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL. Fix revisión F5 (526a25d): gaps 1, 5, 9, 10, 11, 13. Verificación: UrlSourceRealHandlerTest (CurlFactory real + servidor PHP local en 127.0.0.1, sin red externa) y ImportRemoteMediaTest 46 passed. Tiempo ESTIMADO 1,6h. Fix revisión F5-3 (N1, N2): sin tope de edad desde `created_at`; corte por ritmo medio sobre el tiempo de descarga efectivo (`download_seconds`; 16 KB/s tras 300 s de gracia); tope de pasadas = máx(200, ceil(tramos de 8 MB × 1,25) + 10) → 522 para 4 GiB; ritmo máximo de reencolado (una pasada incompleta de menos de 1 s espera el resto dentro del job, sin `delay`). Tests con el manejador real contra 127.0.0.1: remoto sano con tramos de 700 B y 5 h de espera en cola simulada completa (`listo`); `drip.jpg` sigue acabando `invalido` en ≤ 3 pasadas; ritmo medio sobre descarga efectiva; `maxPasses(4 GiB) ≥ 512`; pacing ≥ 0,45 s. `tests/Feature/Media`: 177 passed.
 
 ### T-36 — Endpoint de importación por URL con `throttle`, límite por usuario y limpieza de `.part`
 
@@ -1449,7 +1449,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-35, T-36
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/DriveFileSource.php`, `app/Http/Controllers/MediaController.php`, `routes/web.php`, `config/services.php`, `tests/Feature/Media/ImportDriveTest.php`
+- **Archivos**: `app/Services/Media/DriveFileSource.php`, `app/Http/Controllers/MediaController.php`, `routes/web.php`, `config/services.php`, `tests/Feature/Media/ImportDriveTest.php`, `app/Services/MediaUploadService.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/Media/UrlSource.php`, `tests/Feature/Media/ImportDriveFlowTest.php`, `.env.example`, `.env.production.example`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImportDriveTest.php` → verde con `Http::fake` (token válido; `aud` ajeno rechazado; `401` → `invalido`)
 
@@ -1463,9 +1463,9 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Fuente
 - [x] Endpoint y `tokeninfo`
 
-**Notas**: Reutiliza el pipeline de T-35. Verificado en la documentación oficial: `files.get?alt=media` admite `Range` y `drive.file` es no sensible.
+**Notas**: Reutiliza el pipeline de T-35. Verificado en la documentación oficial: `files.get?alt=media` admite `Range` y `drive.file` es no sensible. **A-1:** la Verificación de esta tarea cubre el `401` en los metadatos/`tokeninfo`; el `401` a mitad de la descarga («Vuelve a elegir el fichero en Drive» y borrado del parcial) se cubrió en T-45 (`ImportDriveFlowTest`).
 
-**Evidencia**: ImportDriveTest: 12 passed (54 assertions); tests/Feature/Media: 156 passed. Decision: DriveFileSource extiende UrlSource (pasa por UrlGuard e IP fijada) y rechaza, antes de la peticion, cualquier salto fuera de https://www.googleapis.com:443, asi el Bearer nunca sale a *.googleusercontent.com. Token: solo en el payload cifrado del job (ShouldBeEncrypted), no en media_assets ni en la respuesta. Se toco UrlSource (F5) para anadir ganchos protegidos headersFor/assertAllowed/statusMessage, sin cambio de comportamiento. Nota: el test se escribio junto al codigo, sin RED previo separado.
+**Evidencia**: ImportDriveTest: 12 passed (54 assertions); tests/Feature/Media: 156 passed. Decision: DriveFileSource extiende UrlSource (pasa por UrlGuard e IP fijada) y rechaza, antes de la peticion, cualquier salto fuera de https://www.googleapis.com:443, asi el Bearer nunca sale a *.googleusercontent.com. Token: solo en el payload cifrado del job (ShouldBeEncrypted), no en media_assets ni en la respuesta. Se toco UrlSource (F5) para anadir ganchos protegidos headersFor/assertAllowed/statusMessage, sin cambio de comportamiento. Nota: el test se escribio junto al codigo, sin RED previo separado (RED no registrado). Fix revisión F6-1: C-1 (`#[\SensitiveParameter]` en `importFromDrive` y en el constructor del job; `dispatch(new …)` sin argumentos variádicos para que el token no vaya en claro en la traza; test con control que prueba que sin el atributo SÍ se filtra), B-4 (403 `userRateLimitExceeded`/`rateLimitExceeded` en metadatos → «Drive está limitando las peticiones»; en la descarga se consulta el motivo y la cuota agotada es transitoria; un 403 de permisos sigue siendo permanente; 3 tests nuevos), B-1 en servidor (`DriveFileSource::pickerConfigured()` exige clave + app id + client id; sin app id, 404). `tests/Feature/Media`: 177 passed.
 
 ### T-43 — `useDrivePicker.js` con Google Identity Services y Picker
 
@@ -1480,7 +1480,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-42
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Composables/useDrivePicker.js`, `app/Http/Controllers/PostController.php`, `tests/Feature/Ui/DrivePickerConfigTest.php`
+- **Archivos**: `resources/js/Composables/useDrivePicker.js`, `app/Http/Controllers/PostController.php`, `tests/Feature/Ui/DrivePickerConfigTest.php`, `app/Services/Media/DriveFileSource.php`, `app/Http/Controllers/MediaController.php`, `resources/js/Components/Composer/MediaSection.vue`, `tests/e2e/media-import.spec.ts`, `.env.example`, `.env.production.example`, `docs/guias/google-cloud-picker-drive.md`, `docs/referencia/configuracion.md`, `docs/roadmap/2026-10-24-metricool-parity-2/test-plan.md`
 - **Cubre (tests)**: E2E-09
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/DrivePickerConfigTest.php` → verde (props presentes solo con la clave configurada)
@@ -1497,7 +1497,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón de composables: `resources/js/Composables/useComposer.js`.
 
-**Evidencia**: DrivePickerConfigTest: 4 passed (40 assertions); npm run build sin errores. Token solo en memoria (sin storage), scripts de Google cargados al pulsar el boton, props drivePicker=null sin GOOGLE_PICKER_API_KEY o sin client id.
+**Evidencia**: DrivePickerConfigTest: 4 passed (40 assertions); npm run build sin errores. Token solo en memoria (sin storage), scripts de Google cargados al pulsar el boton, props drivePicker=null sin GOOGLE_PICKER_API_KEY o sin client id. RED no registrado (el test se escribió con el código). Fix revisión F6-1: B-1 (el Picker solo está disponible con clave + `GOOGLE_PICKER_APP_ID` + client id, también en el cliente; `setAppId` siempre; `.env.example` y guía actualizados; tests: sin app id `drivePicker` es null y `importDrive` da 404 sin llamar a Google), B-2 (`gapi.load('picker', {callback, onerror, timeout, ontimeout})` y `try/catch` del builder rechazan con mensaje; los scripts tienen timeout de 15 s; el botón vuelve a «Google Drive»; E2E), B-3 (`preload()` al pasar el ratón o enfocar el botón: con los scripts listos no hay `await` antes de `requestAccessToken`; `popup_failed_to_open` → «El navegador ha bloqueado la ventana de Google…»; E2E). `media-import.spec.ts --project=desktop`: 13 passed; DrivePickerConfigTest + Media: 182 passed.
 
 ### T-44 — UI «Google Drive» en `MediaSection` (oculta sin configurar)
 
@@ -1529,7 +1529,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Mismo componente que T-37.
 
-**Evidencia**: npm run build ok; E2E -g Drive en desktop: 3 passed (boton oculto sin clave; con clave stub de window.google + POST simulado; cancelar). Accesible por teclado (foco + Intro). Token no queda en URL, storage ni DOM.
+**Evidencia**: npm run build ok; E2E -g Drive en desktop: 3 passed (boton oculto sin clave; con clave stub de window.google + POST simulado; cancelar). Accesible por teclado (foco + Intro). Token no queda en URL, storage ni DOM. RED no registrado (no hubo test Pest de comportamiento del botón; el comportamiento lo cubren los E2E-09 de Playwright, ampliados en el fix de la revisión F6-1 con B-2/B-3: fallo de `gapi.load`, popup bloqueado y precarga al pasar el ratón).
 
 ### T-45 — Pest de Drive con `Http::fake`
 
@@ -1579,7 +1579,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Criterios de aceptación**
 - [x] Sin clave no hay botón.
-- [x] 0 violaciones de axe.
+- [x] 0 violaciones de axe de impacto `critical` o `serious` (el filtro del proyecto en todas las specs: `axeNow` en `media-import.spec.ts:31`; los `moderate`/`minor` no bloquean). Criterio alineado con el filtro en el fix de la revisión F6-1 (A-4).
 - [x] Sin desbordamiento a 360 px.
 
 **Subtareas**
@@ -1619,6 +1619,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Evidencia**: Revision del token contra design §6 (payload cifrado, host fijo, sin logs ni persistencia); tests/Feature/Media: verde. M-04 queda listo en test-plan.md con preparacion y comprobacion de logs; el smoke real lo ejecuta el usuario.
 
+**Evidencia real de la Verificación (A-5, 2026-10-26, con `set -o pipefail`)**: `php artisan test --compact tests/Feature/Media` → exit 0, salida `{"tool":"pest","result":"passed","tests":177,"passed":177,"assertions":741,"duration_ms":16188}`. Suite completa tras el fix de la revisión: `php artisan test --compact` → `"tests":1906,"passed":1906,"assertions":11497`. M-04 actualizado con el app id obligatorio.
+
 ---
 
 ## Fase 7 — Transversal y cierre
@@ -1638,7 +1640,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-42, T-07
 - **Tipo**: docs
-- **Archivos**: `docs/guias/google-cloud-picker-drive.md`, `docs/README.md`, `docs/referencia/configuracion.md`, `docs/referencia/pendientes-manuales.md`
+- **Archivos**: `docs/guias/google-cloud-picker-drive.md`, `docs/README.md`, `docs/referencia/configuracion.md`, `docs/referencia/pendientes-manuales.md`, `resources/js/Components/Composer/FirstCommentField.vue`, `docs/modulos/publicacion.md`
 - **Cubre (tests)**: —
 - **Verificación**: `grep -n "drive.file\|youtube.force-ssl" docs/guias/google-cloud-picker-drive.md` → ambas cadenas presentes
 
@@ -1653,7 +1655,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón: `docs/guias/login-social-google-meta.md`. lectura: contrastar con D2 y D4.
 
-**Evidencia**: guía `docs/guias/google-cloud-picker-drive.md` con APIs, clave restringida por referrer, `drive.file`, orígenes JS de `https://social-scheduler.daycry.ovh`, variables `.env` y reconexión de YouTube (invalida los tokens actuales); enlazada desde `docs/README.md` y `pendientes-manuales.md`; variables nuevas en `configuracion.md`. `grep -n "drive.file\|youtube.force-ssl" docs/guias/google-cloud-picker-drive.md` → líneas 8, 30 y 46 (ambas cadenas presentes).
+**Evidencia**: guía `docs/guias/google-cloud-picker-drive.md` con APIs, clave restringida por referrer, `drive.file`, orígenes JS de `https://social-scheduler.daycry.ovh`, variables `.env` y reconexión de YouTube (invalida los tokens actuales); enlazada desde `docs/README.md` y `pendientes-manuales.md`; variables nuevas en `configuracion.md`. `grep -n "drive.file\|youtube.force-ssl" docs/guias/google-cloud-picker-drive.md` → líneas 8, 30 y 46 (ambas cadenas presentes). Fix revisión F5-3 (N4): la guía (§5) manda pulsar «+ Conectar» en la tarjeta de YouTube (`SocialAccountService` actualiza la cuenta por `external_id`; «Reconectar» solo sale si la cuenta no está activa) y el aviso de `FirstCommentField.vue` lo dice; el enlace «Ir a conexiones» lleva a esa pantalla, donde la acción existe. Fix F6-1 (B-1): app id documentado como obligatorio.
 
 ### T-49 — Documentación consolidada de la iniciativa
 
@@ -1681,7 +1683,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: lectura: coherencia entre los módulos documentados.
 
-**Evidencia**: `README.md` (1.896 tests Pest en 177 ficheros, 265 PHP, 95 Vue, 44 migraciones, 22 herramientas MCP, 82 documentos; funciones nuevas), `despliegue.md` (cola `media`, cron `ss-media`, `QUEUE_NAMES`), `pendientes-manuales.md` (P2-M-01..P2-M-05), fila del roadmap `en-progreso · 49/50`. `mcp.md` ya documentaba `import_media_from_url`, `list_campaigns` y `campaign_id` (sin cambios). `grep -n "metricool-parity-2" docs/roadmap/README.md` → una fila con el estado actualizado.
+**Evidencia**: `README.md` (1.896 tests Pest en 177 ficheros, 265 PHP, 95 Vue, 44 migraciones, 22 herramientas MCP, 82 documentos; funciones nuevas), `despliegue.md` (cola `media`, cron `ss-media`, `QUEUE_NAMES`), `pendientes-manuales.md` (P2-M-01..P2-M-05), fila del roadmap `en-progreso · 49/50`. `mcp.md` ya documentaba `import_media_from_url`, `list_campaigns` y `campaign_id` (sin cambios). `grep -n "metricool-parity-2" docs/roadmap/README.md` → una fila con el estado actualizado. Fix revisión F5-3 (N5, N6): README con `npx playwright test --list` → «Total: 420 tests in 12 files» (420 = 140 × 3 viewports) y 1.906 tests Pest; P2-M-01..05 reescritos con los M-01..M-05 del test-plan (fuente); la importación real por URL queda como nota, y un vídeo sin `Accept-Ranges` se completa en una sola pasada o acaba `invalido`, por diseño.
 
 ### T-50 — Regresión completa: Pest, Playwright y Pint
 
@@ -1847,12 +1849,12 @@ Lentes A+B+D. Rangos: `9d17895..412b4b7` (correcciones del intento 2 de la Fase 
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| N1 | Important | El tope de edad de 2 h cuenta desde `created_at`, así que incluye la espera en cola y el reparto del único worker. Mata importaciones grandes legítimas: 4 GiB a 500 KB/s se cortan con 3,5 GB bajados. Un CDN que limite cada 206 a 8 MB supera el tope de 200 pasadas. Contradice CA-17 y la documentación | T-35 | pendiente (3.er intento de la Fase 5: decisión del usuario) | `RemoteMediaImporter.php:38-40`, `config/media.php:60`, `media.md:30`; probe a escala |
-| N2 | Minor | Carga residual: 200 pasadas seguidas por asset si cada una trae ≥ 64 KB | T-35, T-40 | pendiente | probes `exact`/`alt`: unas 200 pasadas/s por asset |
-| N3 | Minor | `media.md:33` no refleja el latido ni el sondeo cada 20 s | T-37 | pendiente | `MediaSection.vue:75,84,99-101` |
-| N4 | Important | La guía (5.1) manda pulsar «Reconectar» en YouTube, pero ese botón solo aparece si la cuenta no está activa. La vía real es «+ Conectar» en la tarjeta de YouTube | T-48 | pendiente | `google-cloud-picker-drive.md:48`, `Connections.vue:104,132-137` |
-| N5 | Minor | El README dice «345 tests Playwright en 7 specs»; `--list` da 411 en 12 | T-49 | pendiente | `README.md:40` |
-| N6 | Minor | P2-M-01..05 no casan con los M-01..M-05 del test-plan. P2-M-03 espera `listo` en un vídeo sin `Accept-Ranges`, que por diseño acaba `invalido` si no completa en una sola pasada | T-49 | pendiente | `pendientes-manuales.md:21-25`, `test-plan.md:138-191` |
+| N1 | Important | El tope de edad de 2 h cuenta desde `created_at`, así que incluye la espera en cola y el reparto del único worker. Mata importaciones grandes legítimas: 4 GiB a 500 KB/s se cortan con 3,5 GB bajados. Un CDN que limite cada 206 a 8 MB supera el tope de 200 pasadas. Contradice CA-17 y la documentación | T-35 | Corregido (4de5241): sin tope de edad; ritmo medio sobre el tiempo de descarga efectivo (16 KB/s tras 300 s) y tope de pasadas derivado del total (522 para 4 GiB a 8 MB por 206); goteo sigue acabando `invalido` en ≤ 3 pasadas; tests con el manejador real (remoto sano con tramos pequeños y 5 h de cola simulada completa); doc en `media.md` | `RemoteMediaImporter.php:38-40`, `config/media.php:60`, `media.md:30`; probe a escala |
+| N2 | Minor | Carga residual: 200 pasadas seguidas por asset si cada una trae ≥ 64 KB | T-35, T-40 | Corregido (4de5241): ritmo máximo de reencolado, una pasada incompleta de menos de 1 s espera el resto dentro del job (sin `delay`, sin los ~40 s muertos); test | probes `exact`/`alt`: unas 200 pasadas/s por asset |
+| N3 | Minor | `media.md:33` no refleja el latido ni el sondeo cada 20 s | T-37 | Corregido (4de5241): `media.md` documenta el latido `runs` y el sondeo lento de 20 s (cola parada, sin abandonar) | `MediaSection.vue:75,84,99-101` |
+| N4 | Important | La guía (5.1) manda pulsar «Reconectar» en YouTube, pero ese botón solo aparece si la cuenta no está activa. La vía real es «+ Conectar» en la tarjeta de YouTube | T-48 | Corregido (da642e5): guía con «+ Conectar» en la tarjeta de YouTube; el aviso de `FirstCommentField` lo indica y el enlace lleva a Conexiones, donde existe esa acción | `google-cloud-picker-drive.md:48`, `Connections.vue:104,132-137` |
+| N5 | Minor | El README dice «345 tests Playwright en 7 specs»; `--list` da 411 en 12 | T-49 | Corregido (da642e5, 420 tras los E2E nuevos): README con la cifra de `--list` (420 tests en 12 specs) | `README.md:40` |
+| N6 | Minor | P2-M-01..05 no casan con los M-01..M-05 del test-plan. P2-M-03 espera `listo` en un vídeo sin `Accept-Ranges`, que por diseño acaba `invalido` si no completa en una sola pasada | T-49 | Corregido (da642e5): P2-M-01..05 alineados con M-01..M-05 del test-plan; P2-M-03 ya no pide `listo` sin `Accept-Ranges` (una pasada o `invalido`, por diseño) | `pendientes-manuales.md:21-25`, `test-plan.md:138-191` |
 
 > **Decisión del usuario (2026-10-26):** en el 3.er intento de la Fase 5 se elige **corregir y hacer una revisión final** acotada a N1 y los menores.
 
@@ -1862,13 +1864,13 @@ Lentes A+B+C+D sobre `df5e4fe..72f2d0c`. Lente C: el Bearer no sale a ningún ho
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| B-1 | Important | Con `drive.file`, el Picker necesita `setAppId` (número de proyecto), pero `GOOGLE_PICKER_APP_ID` se trata como opcional. Con la clave puesta y sin app id: el botón sale, `files.get` da 404 y el usuario entra en bucle con «Vuelve a elegir» | T-42, T-43 | pendiente | `PostController.php:225`, `useDrivePicker.js:67`, `DriveFileSource.php:75` |
-| C-1 | Minor | `$token` no lleva `#[\SensitiveParameter]` en `importFromDrive` ni en el constructor/dispatch del job: una excepción imprevista deja un prefijo del token en la traza (CWE-532) | T-42, T-47 | pendiente | `MediaUploadService.php:125`, `ImportRemoteMedia.php:37,62`; probe `trace.php` |
-| B-2 | Minor | Si falla `gapi.load('picker')` o el builder, la promesa no se resuelve y el botón se queda en «Abriendo Drive…» | T-43 | pendiente | `useDrivePicker.js:51` |
-| B-3 | Minor | `requestAccessToken` se llama después de un `await` de red, fuera del gesto del usuario: el popup se bloquea en el primer clic y el mensaje es engañoso | T-43 | pendiente | `useDrivePicker.js:78-82` |
-| B-4 | Minor | Un 403 por límite de cuota de Drive (`userRateLimitExceeded`/`rateLimitExceeded`) se trata como permanente | T-42 | pendiente | `DriveFileSource.php:75,135` |
-| A-1 | Minor | La Verificación de T-42 no probaba el 401 a mitad (llegó en T-45) | T-42 | pendiente (anotar) | `tasks.md` T-42 |
-| A-2 | Minor | `Archivos` de T-42 y T-43 está incompleto | T-42, T-43 | pendiente | — |
-| A-3 | Minor | RED marcado sin evidencia en T-43 y T-44; T-44 no tiene test Pest de comportamiento | T-43, T-44 | pendiente | — |
-| A-4 | Minor | El criterio dice «0 violaciones de axe», pero solo se filtran critical/serious | T-46 | pendiente (alinear criterio o filtro) | `media-import.spec.ts:31` |
-| A-5 | Minor | La evidencia de la Verificación de T-47 es solo «verde» | T-47 | pendiente | — |
+| B-1 | Important | Con `drive.file`, el Picker necesita `setAppId` (número de proyecto), pero `GOOGLE_PICKER_APP_ID` se trata como opcional. Con la clave puesta y sin app id: el botón sale, `files.get` da 404 y el usuario entra en bucle con «Vuelve a elegir» | T-42, T-43 | Corregido (f63c043): `DriveFileSource::pickerConfigured()` exige clave + app id + client id (botón, props y endpoint 404); tests; `.env.example`, guía, configuración y M-04 actualizados | `PostController.php:225`, `useDrivePicker.js:67`, `DriveFileSource.php:75` |
+| C-1 | Minor | `$token` no lleva `#[\SensitiveParameter]` en `importFromDrive` ni en el constructor/dispatch del job: una excepción imprevista deja un prefijo del token en la traza (CWE-532) | T-42, T-47 | Corregido (e30d913): `#[\SensitiveParameter]` en `importFromDrive` y en el constructor del job, y `dispatch(new …)` sin variádicos; test que fuerza una excepción y comprueba la traza (con control) | `MediaUploadService.php:125`, `ImportRemoteMedia.php:37,62`; probe `trace.php` |
+| B-2 | Minor | Si falla `gapi.load('picker')` o el builder, la promesa no se resuelve y el botón se queda en «Abriendo Drive…» | T-43 | Corregido (f63c043): `gapi.load` con onerror/timeout, `try/catch` del builder y timeout de scripts; el botón vuelve y hay mensaje; E2E | `useDrivePicker.js:51` |
+| B-3 | Minor | `requestAccessToken` se llama después de un `await` de red, fuera del gesto del usuario: el popup se bloquea en el primer clic y el mensaje es engañoso | T-43 | Corregido (f63c043): precarga al pasar el ratón o enfocar el botón (sin `await` antes de `requestAccessToken`); mensaje de popup bloqueado; E2E | `useDrivePicker.js:78-82` |
+| B-4 | Minor | Un 403 por límite de cuota de Drive (`userRateLimitExceeded`/`rateLimitExceeded`) se trata como permanente | T-42 | Corregido (e30d913): 403 de cuota transitorio en metadatos y descarga (3 tests); el 403 de permisos sigue permanente | `DriveFileSource.php:75,135` |
+| A-1 | Minor | La Verificación de T-42 no probaba el 401 a mitad (llegó en T-45) | T-42 | Corregido (e30d913): nota en T-42: el 401 a mitad de la descarga se cubrió en T-45 | `tasks.md` T-42 |
+| A-2 | Minor | `Archivos` de T-42 y T-43 está incompleto | T-42, T-43 | Corregido: `Archivos` de T-42 y T-43 completados | — |
+| A-3 | Minor | RED marcado sin evidencia en T-43 y T-44; T-44 no tiene test Pest de comportamiento | T-43, T-44 | Corregido: «RED no registrado» en T-43 y T-44; el comportamiento de T-44 lo cubren los E2E-09 ampliados (no se añade Pest: el botón es de Vue) | — |
+| A-4 | Minor | El criterio dice «0 violaciones de axe», pero solo se filtran critical/serious | T-46 | Corregido: criterio de T-46 alineado con el filtro critical/serious del proyecto | `media-import.spec.ts:31` |
+| A-5 | Minor | La evidencia de la Verificación de T-47 es solo «verde» | T-47 | Corregido: T-47 con la salida real de `tests/Feature/Media` (177 passed) y de la suite (1906) | — |

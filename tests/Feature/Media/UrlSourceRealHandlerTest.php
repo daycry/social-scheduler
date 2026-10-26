@@ -88,6 +88,18 @@ if ($path === '/chunk.jpg') {
     $to = min($size - 1, $from + 699);
     http_response_code(206); header("Content-Range: bytes $from-$to/$size"); echo substr($body, $from, $to - $from + 1); return;
 }
+if ($path === '/flaky.jpg' || $path === '/flaky-slow.jpg') {
+    // Alterna 503 y 206 (tramos de 700 B) contando peticiones en un fichero: las impares son 503 (la lenta tarda ~0,4 s en fallar).
+    $counter = __DIR__.'/'.basename($path).'.count';
+    $n = (int) @file_get_contents($counter) + 1; file_put_contents($counter, (string) $n);
+    if ($n % 2 === 1) { if ($path === '/flaky-slow.jpg') { usleep(400000); } http_response_code(503); echo 'ocupado'; return; }
+    $body = file_get_contents($file); $size = strlen($body);
+    header('Content-Type: image/jpeg'); header('Accept-Ranges: bytes'); header('ETag: "v1"');
+    $from = preg_match('/^bytes=(\d+)-$/', $_SERVER['HTTP_RANGE'] ?? '', $m) ? (int) $m[1] : 0;
+    if ($from >= $size) { http_response_code(416); header("Content-Range: bytes */$size"); return; }
+    $to = min($size - 1, $from + 699);
+    http_response_code(206); header("Content-Range: bytes $from-$to/$size"); echo substr($body, $from, $to - $from + 1); return;
+}
 if ($path === '/proxy-check.jpg') { header('Content-Type: image/jpeg'); header('Content-Length: '.filesize($file)); readfile($file); return; }
 
 $body = file_get_contents($file);
@@ -328,18 +340,92 @@ test('N1: el ritmo medio se mide sobre el tiempo de descarga efectivo, no sobre 
     // 1000 B en 400 s de descarga efectiva = 2,5 B/s < 16 KB/s: se corta.
     $slow = $mk(['bytes' => 0, 'passes' => 5, 'download_seconds' => 400]);
     expect($importer->run($slow->fresh(), $source))->toBeTrue()->and($slow->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)
-        ->and($slow->fresh()->error)->toContain('tarda demasiado');
+        ->and($slow->fresh()->error)->toContain('demasiado lenta');
 
     // Mismo asset de un dia de antiguedad, pero con buen ritmo medio: sigue.
     $fine = $mk(['bytes' => 400 * 1_000_000, 'passes' => 5, 'download_seconds' => 400, 'total' => 5_000_000_000]);
     expect($importer->run($fine->fresh(), $source))->toBeFalse()->and($fine->fresh()->status)->toBe(MediaAsset::STATUS_PENDING);
 });
 
-test('N1: el tope de pasadas se deriva del tamano total: un CDN a 8 MB por 206 y 4 GiB caben (512 pasadas)', function () {
+test('G1: el tope de pasadas sale del ritmo minimo prometido (formula) y sigue cubriendo un CDN que corta cada 206 a 8 MB', function () {
+    $importer = app(RemoteMediaImporter::class);
+    $gib = 1024 * 1024 * 1024;
+    // Por ritmo: ceil(ceil(total / (16 KiB/s x 70 s)) x 1,25) + 10. Por tramos de 8 MB: ceil(ceil(total / 8 MiB) x 1,25) + 10.
+    $byRate = fn (int $t) => (int) ceil(ceil($t / (16 * 1024 * 70)) * 1.25) + 10;
+
+    expect($importer->maxPasses(4 * $gib))->toBe($byRate(4 * $gib))->toBe(4692)->toBeGreaterThanOrEqual(650)
+        ->and($importer->maxPasses($gib))->toBe(1182)
+        ->and($importer->maxPasses(null))->toBe(200)->and($importer->maxPasses(1_000_000))->toBe(200);
+
+    // Con un ritmo minimo muy alto manda el calculo por tramos de 8 MB.
+    config(['media.import_min_rate_bytes' => 10 * 1024 * 1024]);
+    expect($importer->maxPasses(4 * $gib))->toBe(650);
+});
+
+test('G1: una descarga sana por encima del ritmo minimo (1 GiB a 50 KiB/s, 4 GiB a 20 KiB/s) no se corta por pasadas', function () {
+    $importer = app(RemoteMediaImporter::class);
+    $gib = 1024 * 1024 * 1024;
+    $perPass = fn (int $rate) => $rate * 70; // bytes que trae una pasada de 70 s al ritmo dado
+
+    foreach ([[$gib, 50 * 1024], [4 * $gib, 20 * 1024]] as [$total, $rate]) {
+        expect((int) ceil($total / $perPass($rate)))->toBeLessThan($importer->maxPasses($total));
+    }
+
+    // Estado real: a una pasada de completar 1 GiB a 50 KiB/s, con ritmo sano => sigue pendiente (antes se cortaba hacia las 170 pasadas).
+    $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, 'https://cdn.example.com/g1.jpg', 'g1.jpg');
+    $passes = (int) ceil($gib / $perPass(50 * 1024)) - 1;
+    $asset->forceFill(['import_state' => ['bytes' => $passes * $perPass(50 * 1024), 'total' => $gib, 'passes' => $passes, 'download_seconds' => $passes * 70.0, 'ranges' => true]])->save();
+    $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/chunk.jpg');
+
+    expect($passes)->toBeGreaterThan(170)
+        ->and(app(RemoteMediaImporter::class)->run($asset->fresh(), $source))->toBeFalse()->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_PENDING);
+});
+
+test('G2: una pasada que acaba en 503 suma su tiempo y su pasada; un 503 suelto no mata una descarga sana', function () {
+    $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/flaky.jpg');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
+    $importer = app(RemoteMediaImporter::class);
+    config(['media.import_min_pass_bytes' => 1, 'media.import_min_pass_seconds' => 0]);
+
+    expect(fn () => $importer->run($asset->fresh(), $source))->toThrow(RuntimeException::class, '503');
+    $state = $asset->fresh()->import_state;
+    expect($state['passes'])->toBe(1)->and($state['failed_passes'])->toBe(1)->and($state['download_seconds'])->toBeGreaterThan(0)
+        ->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_PENDING);
+
+    // El reintento (que el job hace tras su espera) sigue adelante y la descarga acaba bien.
+    $done = false;
+    for ($i = 0; $i < 30 && ! $done; $i++) {
+        try {
+            $done = $importer->run($asset->fresh(), $source);
+        } catch (RuntimeException) {
+        }
+    }
+
+    expect($done)->toBeTrue()->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_READY);
+});
+
+test('G2: un remoto que intercala 503 lentos acaba cortado por ritmo, con el tiempo de los fallos contabilizado', function () {
+    // Escala reducida: gracia 1 s y ritmo minimo 100 KB/s; cada 503 tarda ~0,4 s sin aportar bytes y cada 206 trae 700 B.
+    config(['media.import_min_pass_bytes' => 1, 'media.import_min_pass_seconds' => 0, 'media.import_rate_grace_seconds' => 1, 'media.import_min_rate_bytes' => 100_000]);
+    $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/flaky-slow.jpg');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
     $importer = app(RemoteMediaImporter::class);
 
-    expect($importer->maxPasses(4 * 1024 * 1024 * 1024))->toBeGreaterThanOrEqual(512)
-        ->and($importer->maxPasses(null))->toBe(200)->and($importer->maxPasses(1_000_000))->toBe(200);
+    $done = false;
+    $attempts = 0;
+    while (! $done && $attempts < 60) {
+        $attempts++;
+        try {
+            $done = $importer->run($asset->fresh(), $source);
+        } catch (RuntimeException) {
+        }
+    }
+
+    $asset = $asset->fresh();
+    expect($done)->toBeTrue()->and($attempts)->toBeLessThan(60)
+        ->and($asset->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->error)->toContain('demasiado lenta')
+        ->and($asset->import_state['failed_passes'])->toBeGreaterThanOrEqual(2)
+        ->and($asset->import_state['download_seconds'])->toBeGreaterThanOrEqual(1.0);
 });
 
 test('N2: una pasada incompleta mas corta que el minimo espera el resto dentro del job (ritmo maximo de reencolado)', function () {

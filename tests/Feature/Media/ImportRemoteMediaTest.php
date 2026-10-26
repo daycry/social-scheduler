@@ -513,7 +513,7 @@ test('tope de pasadas totales: una importacion que lleva demasiadas se da por fa
     $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, 'https://cdn.example.com/a.jpg', 'a.jpg');
     $asset->forceFill(['import_state' => ['bytes' => 0, 'passes' => 3]])->save();
     expect(app(RemoteMediaImporter::class)->run($asset->fresh(), fakeSource($pass)))->toBeTrue()
-        ->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->fresh()->error)->toContain('tarda demasiado');
+        ->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->fresh()->error)->toContain('demasiadas pasadas');
 });
 
 test('la pasada deja un latido (runs) que la UI usa para distinguir una cola parada', function () {

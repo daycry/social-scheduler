@@ -55,8 +55,8 @@ return [
     | Limites del reencolado sin espera (una pasada que termina pronto se vuelve a encolar al instante): una pasada que no completa y
     | trae menos de `import_min_pass_bytes` cuenta como atasco (3 seguidas = fallo). No hay tope de edad: el corte es por RITMO MEDIO
     | (`import_min_rate_bytes` B/s sobre el tiempo de descarga EFECTIVO, pasada la gracia `import_rate_grace_seconds`; la espera en cola no
-    | cuenta) y por pasadas (el mayor entre `import_max_passes` y los tramos de `import_expected_chunk_bytes` que pide el total, con
-    | margen). `import_min_pass_seconds` es el ritmo maximo de reencolado: una pasada incompleta mas corta espera el resto dentro del job.
+    | cuenta) y por pasadas (el mayor entre `import_max_passes`, los tramos de `import_expected_chunk_bytes` que pide el total y las pasadas que hacen
+    | falta al ritmo minimo prometido, estos dos con margen x1,25 + 10; una pasada fallida por error transitorio tambien cuenta). `import_min_pass_seconds` es el ritmo maximo de reencolado: una pasada incompleta mas corta espera el resto dentro del job.
     | Sin `delay` a proposito: con `--stop-when-empty` una espera dejaba ~40 s muertos entre pasadas.
     */
     'import_min_pass_bytes' => (int) env('MEDIA_IMPORT_MIN_PASS_BYTES', 64 * 1024),

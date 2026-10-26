@@ -38,8 +38,12 @@ class RemoteMediaImporter
         // tiempo de descarga EFECTIVO (suma de lo que duraron las pasadas) y por un numero de pasadas derivado del tamano esperado.
         $state0 = (array) $asset->import_state;
 
-        if ($this->tooSlow($state0) || (int) ($state0['passes'] ?? 0) >= $this->maxPasses($state0['total'] ?? null)) {
-            return $this->fail($asset, 'La descarga tarda demasiado; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
+        if ($this->tooSlow($state0)) {
+            return $this->fail($asset, 'La descarga es demasiado lenta; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
+        }
+
+        if ((int) ($state0['passes'] ?? 0) >= $this->maxPasses($state0['total'] ?? null)) {
+            return $this->fail($asset, 'La descarga necesita demasiadas pasadas; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
         }
 
         $passStarted = microtime(true);
@@ -86,6 +90,13 @@ class RemoteMediaImporter
             return $this->fail($asset, $e->getMessage());
         } catch (\Throwable $e) {
             fclose($sink);
+            // Gap G2: la pasada fallida cuenta. Suma su duracion y una pasada ANTES de relanzar, para que el ritmo medio y el tope de
+            // pasadas vean tambien a un remoto que intercala 5xx lentos (no basta con el latido `runs`). Un 5xx suelto en una descarga
+            // sana no la mata: solo desplaza un poco el ritmo medio y el contador, y los cortes siguen siendo los de siempre.
+            $state['passes'] = ($state['passes'] ?? 0) + 1;
+            $state['failed_passes'] = ($state['failed_passes'] ?? 0) + 1;
+            $state['download_seconds'] = round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3);
+            $this->save($asset, $state);
             // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial. Se relanza SIN la excepcion original: los mensajes
             // de Guzzle/cURL llevan la URL completa (con su query, que puede ser un token) y acabarian en `failed_jobs` y en el log.
             throw new \RuntimeException(preg_replace('#https?://\S+#i', '[url]', $e->getMessage()) ?: class_basename($e));
@@ -157,7 +168,12 @@ class RemoteMediaImporter
         return false;
     }
 
-    /** Pasadas permitidas: el suelo `import_max_passes` o, si el total es conocido, el numero de tramos esperados con margen (un CDN que limita cada 206 a 8 MB y un fichero de 4 GiB piden 512). */
+    /**
+     * Pasadas permitidas: el mayor entre el suelo `import_max_passes`, los tramos de `import_expected_chunk_bytes` que pide el total
+     * (un CDN que corta cada 206 a 8 MB) y las pasadas que hacen falta a la velocidad MINIMA prometida (`import_min_rate_bytes` x lo
+     * que dura una pasada, presupuesto menos reserva), ambos con un margen de x1,25 + 10. Asi una descarga sana por encima del ritmo
+     * minimo nunca se corta por pasadas; el limite real de lentitud es `tooSlow()`.
+     */
     public function maxPasses(mixed $total): int
     {
         $floor = (int) config('media.import_max_passes', 200);
@@ -166,9 +182,15 @@ class RemoteMediaImporter
             return $floor;
         }
 
+        $total = (int) $total;
         $chunk = max(1, (int) config('media.import_expected_chunk_bytes', 8 * 1024 * 1024));
+        $passSeconds = max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
+        $perPass = max(1, (int) config('media.import_min_rate_bytes', 16 * 1024) * $passSeconds);
 
-        return max($floor, (int) ceil(ceil((int) $total / $chunk) * 1.25) + 10);
+        $byChunk = (int) ceil(ceil($total / $chunk) * 1.25) + 10;
+        $byRate = (int) ceil(ceil($total / $perPass) * 1.25) + 10;
+
+        return max($floor, $byChunk, $byRate);
     }
 
     /** Ritmo medio sobre el tiempo de descarga efectivo (sin espera en cola); solo se juzga pasada la gracia, para no penalizar el arranque. */

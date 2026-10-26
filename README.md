@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-Laravel%20Pint-f05340.svg)](https://laravel.com/docs/pint)
-[![Tests](https://img.shields.io/badge/tests-Pest%201896-22c55e.svg)](tests)
+[![Tests](https://img.shields.io/badge/tests-Pest%201909-22c55e.svg)](tests)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20·%203%20viewports-2ead33.svg)](tests/e2e)
 [![Accesibilidad](https://img.shields.io/badge/a11y-axe%20WCAG%202.1%20AA-7c3aed.svg)](tests/e2e/a11y.spec.ts)
 
@@ -36,7 +36,7 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 | Código de aplicación | 265 ficheros PHP · ~25.300 líneas en `app/` |
 | Interfaz | 95 componentes Vue (Inertia) |
 | Base de datos | 44 migraciones |
-| Tests unitarios y de integración | **1.906 tests Pest** en 177 ficheros (SQLite en memoria) |
+| Tests unitarios y de integración | **1.909 tests Pest** en 177 ficheros (SQLite en memoria) |
 | Tests E2E | **420 tests Playwright** en 12 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
 | Servidor MCP | 22 herramientas (marcas, cuentas, calendario, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, informes, comentarios) |
 | Documentación | 82 documentos en `docs/` · 5 ADR · 6 iniciativas en el roadmap |

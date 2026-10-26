@@ -7,6 +7,7 @@ use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -65,6 +66,21 @@ class MediaAsset extends Model
         return $this->kind === self::KIND_VIDEO;
     }
 
+    /**
+     * Lista y con fichero: en disco local se comprueba que exista (un `stat`), para no ofrecer una vista previa rota; en R2 se
+     * da por presente (comprobarlo seria una peticion por asset en cada listado).
+     */
+    public function previewable(): bool
+    {
+        if (! $this->isReady() || $this->disk === null || $this->path === null) {
+            return false;
+        }
+
+        $disk = Storage::disk($this->disk);
+
+        return $disk instanceof AwsS3V3Adapter || $disk->exists($this->path);
+    }
+
     public function isReady(): bool
     {
         return $this->status === self::STATUS_READY;
@@ -99,7 +115,7 @@ class MediaAsset extends Model
             'bytes' => $this->import_state['bytes'] ?? null,
             'total' => $this->import_state['total'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
-            'preview_url' => $this->isReady() ? route('media.file', $this, absolute: false) : null,
+            'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
         ];
     }
 }

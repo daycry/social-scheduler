@@ -1809,3 +1809,28 @@ Lentes A+B+D, más la C de seguridad forzada por ser una pieza de SSRF, sobre el
 | 14 | Minor | El sondeo de la UI no tiene backoff ni tope | T-37 | corregido (756bec7): backoff de 2 a 15 s (vuelve a 2 s con progreso) | Lente D D2 |
 | 15 | Minor | Oráculo de DNS interno: el mensaje distingue «privada» de «no resuelve» y la validación es síncrona (CWE-204) | T-33, T-36, T-38 | corregido (526a25d): un solo mensaje para «privada», «localhost» y «no resuelve». La validación sigue siendo síncrona a propósito: el usuario necesita saber ya si la URL se acepta, y el oráculo restante (aceptada/rechazada) solo lo ve quien tiene sesión y está limitado a 10 peticiones por minuto | Lente C: `UrlGuard.php:87,259,265` |
 | 16 | Minor | Faltan en la lista de bloqueo las IPs de plataforma de Azure (`168.63.129.16`) (CWE-918, condicional) | T-33 | corregido (526a25d): `168.63.129.16/32` en la lista de bloqueo; test en `UrlGuardTest` | Lente C: `UrlGuard.php:24-28` |
+
+## Revisión de dos lentes — intento 3: Fase 3-4 (T-19..T-32) — 0 Important
+
+Lentes A+B+C+D en una sola pasada (`eece897..df5e4fe`). Quedan corregidos F3-4 i2 #1 (la plantilla con una campaña archivada crea un borrador sin campaña y avisa) y #2/#3 (documentación y alcance). **El bucle de revisión de la Fase 3-4 se cierra sin gaps Critical ni Important.**
+
+## Revisión de dos lentes — intento 2: Fase 5 (T-33..T-41) — 1 Important, 3 Minor
+
+Lentes A+B+C+D (`eece897..df5e4fe`). El Critical #1 está corregido y no reabre ninguna defensa SSRF. Se comprobó con probes reales contra 127.0.0.1:
+- `CURLOPT_RESOLVE` se aplica;
+- se ignora el proxy del entorno;
+- se rechazan las redirecciones a `169.254`, `gopher` y `file`;
+- el tope corta durante el streaming (50 MB chunked, se corta a 1 MB en 0,26 s);
+- el plazo se cumple;
+- `LoopbackGuard` solo existe en el test y no se puede activar en producción.
+
+Los gaps #2 a #16 quedan corregidos. Tests: 550/550.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | Sin `delay`, el contador de atascos solo cuenta las pasadas con 0 bytes. Un remoto que suelta 1 B por pasada provoca un bucle caliente de reencolado: no hay tope de pasadas, de antigüedad ni de ritmo (CWE-400/834) | T-35, T-40 | pendiente | `RemoteMediaImporter.php:105,132-138`, `ImportRemoteMedia.php:61`; probe `drip2.php`: 300 pasadas en 1,41 s |
+| 2 | Minor | El corte del tope DURANTE el streaming (`progress`) no tiene test con el manejador real: el test actual lo corta antes, en `on_headers`, por el `Content-Length` | T-35 | pendiente | `UrlSourceRealHandlerTest.php:64-66,193-199` |
+| 3 | Minor | Aviso falso de «la cola no está procesando»: los bytes solo se guardan al final de cada pasada, y con la cola llena una importación sana puede pasar más de 3 min a 0 | T-37 | pendiente | `MediaSection.vue` (`STALL_MS`) |
+| 4 | Minor | La columna Corrección atribuye a `526a25d` la documentación de #1/#13, pero `media.md` cambió en `756bec7` | T-35 | pendiente | `git log eece897..df5e4fe -- docs/modulos/media.md` |
+
+Incidencia de la revisión: un probe del revisor intentó conectar una vez con una IP externa (93.184.216.34) por una ruta mal reescrita en Git Bash. No llegó a conectar (timeout). Después se corrigió para usar solo 127.0.0.1.

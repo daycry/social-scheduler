@@ -855,8 +855,11 @@ test('E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (c
     await expect(page.getByTestId('linked-text')).toHaveText('e2e texto común');
     await expect(tabOf(page, /Facebook · e2e Pagina B/)).not.toContainText('propio');
 
-    // Guardado y recargado: el texto propio ya no existe (sin pestañas abiertas, todas con el texto común).
+    // Guardado y recargado: el texto propio ya no existe (sin pestañas abiertas, todas con el texto común). Se espera a que el PUT
+    // termine antes de recargar: si no, la recarga aborta el guardado y la prueba depende de la velocidad del servidor.
+    const guardado = page.waitForResponse((r) => r.request().method() === 'PUT' && /\/posts\/\d+$/.test(new URL(r.url()).pathname));
     await guardarBorrador(page);
+    await guardado;
     await page.reload();
     await settle(page);
     await expect(page.getByRole('tablist')).toHaveCount(0);

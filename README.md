@@ -37,7 +37,7 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 | Interfaz | 95 componentes Vue (Inertia) |
 | Base de datos | 44 migraciones |
 | Tests unitarios y de integración | **1.896 tests Pest** en 177 ficheros (SQLite en memoria) |
-| Tests E2E | **345 tests Playwright** en 7 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
+| Tests E2E | **411 tests Playwright** en 12 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
 | Servidor MCP | 22 herramientas (marcas, cuentas, calendario, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, informes, comentarios) |
 | Documentación | 82 documentos en `docs/` · 5 ADR · 6 iniciativas en el roadmap |
 

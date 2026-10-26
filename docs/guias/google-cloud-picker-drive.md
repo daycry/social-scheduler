@@ -45,7 +45,7 @@ Después, `php artisan config:clear` (o `config:cache` en producción). La impor
 
 El primer comentario de YouTube usa `commentThreads.insert`, que exige el scope `https://www.googleapis.com/auth/youtube.force-ssl`. Los canales conectados antes no lo tienen:
 
-1. Entra en *Conexiones* y pulsa **Reconectar** en el canal de YouTube.
+1. Entra en *Conexiones* y pulsa **+ Conectar** en la tarjeta de YouTube (el botón «Reconectar» de la cuenta solo aparece si ya figura como no activa; un canal activo sin el permiso nuevo se actualiza con «+ Conectar», que sustituye sus tokens al reconocer la misma cuenta por su identificador).
 2. En la pantalla de Google acepta el permiso nuevo (gestionar comentarios del canal).
 3. **Efecto:** la reconexión sustituye los tokens actuales por unos nuevos con el scope añadido; los anteriores dejan de valer. Las publicaciones ya programadas siguen su curso con la cuenta reconectada.
 

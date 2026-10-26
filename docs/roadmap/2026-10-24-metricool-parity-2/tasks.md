@@ -13,6 +13,8 @@ generacion:
   duracion: 40m
   ratio_usado: 300000   # default no calibrado   # ventana compartida con improvement-plan.md
 verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige ledger-lint (exit 1 si falta)
+estado: completado
+changelog: Added
 ---
 
 # Checklist de Tareas — Paridad con Metricool, segunda ola

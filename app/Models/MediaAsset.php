@@ -85,6 +85,8 @@ class MediaAsset extends Model
             'fps' => $this->fps,
             'status' => $this->status,
             'error' => $this->error,
+            // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
+            'preview_url' => $this->isReady() ? route('media.file', $this, absolute: false) : null,
         ];
     }
 }

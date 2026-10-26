@@ -96,6 +96,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
     Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');
     Route::delete('media/{asset}', [MediaController::class, 'destroy'])->name('media.destroy');
+    Route::get('media/{asset}/file', [MediaController::class, 'file'])->name('media.file');
 });
 
 Route::middleware('auth')->group(function () {

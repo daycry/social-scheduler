@@ -1840,3 +1840,35 @@ Los gaps #2 a #16 quedan corregidos. Tests: 550/550.
 | 4 | Minor | La columna Corrección atribuye a `526a25d` la documentación de #1/#13, pero `media.md` cambió en `756bec7` | T-35 | corregido: filas 1 y 13 de la tabla del intento 1 apuntan ahora a `756bec7` para la documentación | `git log eece897..df5e4fe -- docs/modulos/media.md` |
 
 Incidencia de la revisión: un probe del revisor intentó conectar una vez con una IP externa (93.184.216.34) por una ruta mal reescrita en Git Bash. No llegó a conectar (timeout). Después se corrigió para usar solo 127.0.0.1.
+
+## Revisión de dos lentes — intento 3: Fase 5 (T-33..T-41) y Fase 7 (T-48, T-49) — 2 Important, 4 Minor
+
+Lentes A+B+D. Rangos: `9d17895..412b4b7` (correcciones del intento 2 de la Fase 5) y `412b4b7..45249f5` (T-48/T-49). Los gaps 1 a 4 del intento 2 de la Fase 5 quedan corregidos. Bucle de goteo: `invalido` en 3 pasadas y 0,04 s. Tope en streaming probado con el manejador real. El latido no expone datos. Tests: 286/286. Cifras del README verificadas, enlaces sin roturas.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | El tope de edad de 2 h cuenta desde `created_at`, así que incluye la espera en cola y el reparto del único worker. Mata importaciones grandes legítimas: 4 GiB a 500 KB/s se cortan con 3,5 GB bajados. Un CDN que limite cada 206 a 8 MB supera el tope de 200 pasadas. Contradice CA-17 y la documentación | T-35 | pendiente (3.er intento de la Fase 5: decisión del usuario) | `RemoteMediaImporter.php:38-40`, `config/media.php:60`, `media.md:30`; probe a escala |
+| N2 | Minor | Carga residual: 200 pasadas seguidas por asset si cada una trae ≥ 64 KB | T-35, T-40 | pendiente | probes `exact`/`alt`: unas 200 pasadas/s por asset |
+| N3 | Minor | `media.md:33` no refleja el latido ni el sondeo cada 20 s | T-37 | pendiente | `MediaSection.vue:75,84,99-101` |
+| N4 | Important | La guía (5.1) manda pulsar «Reconectar» en YouTube, pero ese botón solo aparece si la cuenta no está activa. La vía real es «+ Conectar» en la tarjeta de YouTube | T-48 | pendiente | `google-cloud-picker-drive.md:48`, `Connections.vue:104,132-137` |
+| N5 | Minor | El README dice «345 tests Playwright en 7 specs»; `--list` da 411 en 12 | T-49 | pendiente | `README.md:40` |
+| N6 | Minor | P2-M-01..05 no casan con los M-01..M-05 del test-plan. P2-M-03 espera `listo` en un vídeo sin `Accept-Ranges`, que por diseño acaba `invalido` si no completa en una sola pasada | T-49 | pendiente | `pendientes-manuales.md:21-25`, `test-plan.md:138-191` |
+
+> **Decisión del usuario (2026-10-26):** en el 3.er intento de la Fase 5 se elige **corregir y hacer una revisión final** acotada a N1 y los menores.
+
+## Revisión de dos lentes — intento 1: Fase 6 (T-42..T-47) — 1 Important, 9 Minor
+
+Lentes A+B+C+D sobre `df5e4fe..72f2d0c`. Lente C: el Bearer no sale a ningún host distinto de `www.googleapis.com` por ningún camino probado (redirecciones a http, a `//evil`, a `:8443` y a `host@evil`; reanudación; `googleusercontent`). El `fileId` está validado dos veces; se comprueban `aud` y `drive.file`; el token no llega a `media_assets`, a la respuesta, al navegador ni a `jobs` (payload cifrado); hay CSRF y throttle. Tests: 286/286.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B-1 | Important | Con `drive.file`, el Picker necesita `setAppId` (número de proyecto), pero `GOOGLE_PICKER_APP_ID` se trata como opcional. Con la clave puesta y sin app id: el botón sale, `files.get` da 404 y el usuario entra en bucle con «Vuelve a elegir» | T-42, T-43 | pendiente | `PostController.php:225`, `useDrivePicker.js:67`, `DriveFileSource.php:75` |
+| C-1 | Minor | `$token` no lleva `#[\SensitiveParameter]` en `importFromDrive` ni en el constructor/dispatch del job: una excepción imprevista deja un prefijo del token en la traza (CWE-532) | T-42, T-47 | pendiente | `MediaUploadService.php:125`, `ImportRemoteMedia.php:37,62`; probe `trace.php` |
+| B-2 | Minor | Si falla `gapi.load('picker')` o el builder, la promesa no se resuelve y el botón se queda en «Abriendo Drive…» | T-43 | pendiente | `useDrivePicker.js:51` |
+| B-3 | Minor | `requestAccessToken` se llama después de un `await` de red, fuera del gesto del usuario: el popup se bloquea en el primer clic y el mensaje es engañoso | T-43 | pendiente | `useDrivePicker.js:78-82` |
+| B-4 | Minor | Un 403 por límite de cuota de Drive (`userRateLimitExceeded`/`rateLimitExceeded`) se trata como permanente | T-42 | pendiente | `DriveFileSource.php:75,135` |
+| A-1 | Minor | La Verificación de T-42 no probaba el 401 a mitad (llegó en T-45) | T-42 | pendiente (anotar) | `tasks.md` T-42 |
+| A-2 | Minor | `Archivos` de T-42 y T-43 está incompleto | T-42, T-43 | pendiente | — |
+| A-3 | Minor | RED marcado sin evidencia en T-43 y T-44; T-44 no tiene test Pest de comportamiento | T-43, T-44 | pendiente | — |
+| A-4 | Minor | El criterio dice «0 violaciones de axe», pero solo se filtran critical/serious | T-46 | pendiente (alinear criterio o filtro) | `media-import.spec.ts:31` |
+| A-5 | Minor | La evidencia de la Verificación de T-47 es solo «verde» | T-47 | pendiente | — |

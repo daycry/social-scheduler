@@ -1874,3 +1874,19 @@ Lentes A+B+C+D sobre `df5e4fe..72f2d0c`. Lente C: el Bearer no sale a ningún ho
 | A-3 | Minor | RED marcado sin evidencia en T-43 y T-44; T-44 no tiene test Pest de comportamiento | T-43, T-44 | Corregido: «RED no registrado» en T-43 y T-44; el comportamiento de T-44 lo cubren los E2E-09 ampliados (no se añade Pest: el botón es de Vue) | — |
 | A-4 | Minor | El criterio dice «0 violaciones de axe», pero solo se filtran critical/serious | T-46 | Corregido: criterio de T-46 alineado con el filtro critical/serious del proyecto | `media-import.spec.ts:31` |
 | A-5 | Minor | La evidencia de la Verificación de T-47 es solo «verde» | T-47 | Corregido: T-47 con la salida real de `tests/Feature/Media` (177 passed) y de la suite (1906) | — |
+
+## Revisión de dos lentes — intento 4: Fase 5 (N1 final), Fase 6 y Fase 7 (intento 2) — 2 Important, 3 Minor
+
+Lentes A+B+C+D, revisión final sobre `bcd883d..2675a2a`. Están corregidos N2..N6, B-1..B-4, C-1 y A-2..A-5. C-1: la prueba de control demuestra que sin el atributo la traza filtra el token. Sigue cortando el goteo: 3 pasadas en 2 s. Tests: 295/295. `ledger-lint` y `scope-check` dan exit 0.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| G1 | Important | El tope de pasadas sale de tramos de 8 MB, pero con un remoto lento cada pasada trae «ritmo × 70 s». Con eso, por debajo de unos 75-92 KiB/s se cortan descargas legítimas de 1-4 GB tras horas, cuando la documentación promete el corte a 16 KB/s | T-35 | pendiente (corrección acotada, decisión del usuario) | `RemoteMediaImporter.php:41,161-172`; probe `floor.php` |
+| G2 | Important | Una pasada que acaba en excepción transitoria (5xx, 408/425/429, timeout) no suma ni `download_seconds` ni `passes`. Un remoto podría ocupar el worker unas 40 h por asset (CWE-400/770) | T-35 | pendiente (corrección acotada, decisión del usuario) | `RemoteMediaImporter.php:58-59,87-91`; probe `p503.php` |
+| G3 | Minor | El ledger y `media.md` dicen 522 pasadas para 4 GiB; el código da 650 | T-35 | pendiente | `media.md:30` |
+| G4 | Minor | El badge del README dice 1896 tests Pest; son 1906 | T-49 | pendiente | `README.md:7` |
+| G5 | Minor | Los hashes de B-4 (código en f63c043) y A-1 (nota en 2675a2a) en la columna Corrección no coinciden con los commits | T-42, T-47 | pendiente | `tasks.md` |
+
+> **Decisión del usuario (2026-10-26):** corrección acotada de G1/G2 con tests deterministas y una comprobación corta, **sin otra ronda completa de revisión**. Después, PR.
+
+Regresión E2E completa (Playwright con su propio servidor en `localhost:8080`, proyectos desktop, mobile y mobile-360): **418 passed, 0 failed, 2 skipped** en 32,4 min, sobre 2675a2a.

@@ -905,7 +905,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón: `app/Services/ComposerPresetService.php` y `app/Policies/PostTemplatePolicy.php`.
 
-**Evidencia**: CampaignCrudTest: 4 passed; CampaignModelTest sigue verde (8 tests, 37 assertions en Campaigns). RED previo: rutas campaigns.* inexistentes.
+**Evidencia**: CampaignCrudTest: 4 passed; CampaignModelTest sigue verde (8 tests, 37 assertions en Campaigns). RED previo: rutas campaigns.* inexistentes. Fix revisión F3-4 i2 (25b6c53): el comentario de las rutas de campañas dice 404, no 403 (tiempo ESTIMADO 0,02h).
 
 **Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gap 13): `campaigns/{id}` de otro usuario responde 404 por UserScope (antes 403 con `withoutUserScope`); tests ajustados en `CampaignCrudTest` y `CampaignShowPageTest`. `CampaignPolicy` queda como defensa en profundidad.
 
@@ -956,7 +956,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 164k in / 18k out tok · ⚠️ verificar €
 - **Dependencias**: T-25, T-12
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/ComposerHeader.vue`, `resources/js/Components/Composer/ActionBar.vue` (errors.campaign_id en «Guardar en biblioteca», fix F3-4), `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Http/Controllers/PostController.php`, `app/Http/Controllers/LibraryController.php`, `app/Models/PostTemplate.php`, `database/migrations/*_add_campaign_id_to_post_templates.php` (la plantilla conserva la campaña), `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `tests/Feature/Campaigns/CampaignAssignTest.php`
+- **Archivos**: `resources/js/Components/Composer/ComposerHeader.vue`, `resources/js/Components/Composer/ActionBar.vue` (errors.campaign_id en «Guardar en biblioteca», fix F3-4), `app/Http/Requests/PostRequest.php`, `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Http/Controllers/PostController.php`, `app/Http/Controllers/LibraryController.php`, `app/Models/PostTemplate.php`, `database/migrations/*_add_campaign_id_to_post_templates.php` (la plantilla conserva la campaña), `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `tests/Feature/Campaigns/CampaignAssignTest.php`, `resources/js/Pages/Library/Index.vue`, `tests/Feature/Library/LibraryTargetTextTest.php`
 - **Cubre (tests)**: E2E-06
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Campaigns/CampaignAssignTest.php` → verde (rechaza campaña de otra marca; las copias conservan la campaña)
@@ -974,7 +974,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Comparte `PostRequest`, `PostService` y `PostPayload` con C-01b: va después (T-12, T-15), en serie. `app/Services/LibraryService.php:68` (`store` copia destinos).
 
-**Evidencia**: Caracterización previa en verde: Library+Posts 107 passed. CampaignAssignTest: 8 passed (RED previo: 7 fallos); Campaigns+Library+Posts+Ui+SavedTexts+FirstComment+Mcp: 447 passed (2598 assertions); npm run build ok; migrate aplicado.
+**Evidencia**: Caracterización previa en verde: Library+Posts 107 passed. CampaignAssignTest: 8 passed (RED previo: 7 fallos); Campaigns+Library+Posts+Ui+SavedTexts+FirstComment+Mcp: 447 passed (2598 assertions); npm run build ok; migrate aplicado. Fix revisión F3-4 i2 (d2b5671): «Usar» una plantilla con la campaña archivada crea el borrador sin campaña y con aviso; Library/Index.vue muestra los errores. Tiempo ESTIMADO 0,3h.
 
 **Corrección F3-4 (intento 1)**: Corrección F3-4 intento 1 (gaps 1, 8, 9): `PATCH posts/{post}/campaign` (`PostService::updateCampaign`) y selector activo aunque el post no sea editable (metadato, como las notas); misma marca y no archivada; «Guardar en biblioteca» muestra `errors.campaign_id`; el borrado de la campaña entre `plan()` y `save()` (hook `InvalidArgumentException` o FK) se traduce a `PostValidationException`, nunca 500. Verificación: `php artisan test --compact tests/Feature/Campaigns tests/Feature/Mcp tests/Feature/Ui` → 306+ passed. E2E pendiente (ver T-21).
 
@@ -1179,7 +1179,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: No hay ningún guardia SSRF en el repo (lo verificó el diseño); sin patrón previo. Revisión de seguridad en T-41.
 
-**Evidencia**: RED: UrlGuardTest falló (99 errores, UrlGuard inexistente) · 2026-10-24. UrlGuardTest: 99 passed (175 assertions); tabla de IPv4/IPv6/mapped/NAT64/6to4, literales numéricos, esquemas, credenciales, puertos, mezcla de IPs, rebinding, redirecciones (5 máx) y CURLOPT_RESOLVE; Http::assertNothingSent/assertSentCount.
+**Evidencia**: RED: UrlGuardTest falló (99 errores, UrlGuard inexistente) · 2026-10-24. UrlGuardTest: 99 passed (175 assertions); tabla de IPv4/IPv6/mapped/NAT64/6to4, literales numéricos, esquemas, credenciales, puertos, mezcla de IPs, rebinding, redirecciones (5 máx) y CURLOPT_RESOLVE; Http::assertNothingSent/assertSentCount. Fix revisión F5 (526a25d): opciones nativas de Guzzle 8 (gap 1), mensaje único privada/no resuelve (gap 15), `168.63.129.16/32` (gap 16). Tiempo ESTIMADO 0,4h.
 
 ### T-34 — Migración `source`/`source_ref`/`import_state` y configuración de la cola `media`
 
@@ -1224,7 +1224,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 310k in / 34k out tok · ⚠️ verificar €
 - **Dependencias**: T-33, T-34
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/RemoteSource.php`, `app/Services/Media/UrlSource.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Services/Media/ImportFailedException.php`, `app/Services/Media/RangeIgnored.php`, `app/Services/Media/RemotePass.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`
+- **Archivos**: `app/Services/Media/RemoteSource.php`, `app/Services/Media/UrlSource.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Services/Media/ImportFailedException.php`, `app/Services/Media/RangeIgnored.php`, `app/Services/Media/RemotePass.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`, `app/Services/Media/UrlGuard.php`, `config/media.php`, `tests/Feature/Media/UrlSourceRealHandlerTest.php`, `tests/Unit/UrlGuardTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Media/ImportRemoteMediaTest.php` → verde (JPEG válido listo; tope y tipo → `invalido`; vídeo en varias pasadas; sin `Range` → error claro)
@@ -1242,7 +1242,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón de pasadas con presupuesto: `app/Connectors/Google/YouTubePublisher.php:413` (`beginPass`) y `upload_budget_seconds` (80). `app/Services/MediaUploadService.php:119` (`finalize`): solo se fija `declared_size` antes de llamarlo.
 
-**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL.
+**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL. Fix revisión F5 (526a25d): gaps 1, 5, 9, 10, 11, 13. Verificación: UrlSourceRealHandlerTest (CurlFactory real + servidor PHP local en 127.0.0.1, sin red externa) y ImportRemoteMediaTest 46 passed. Tiempo ESTIMADO 1,6h.
 
 ### T-36 — Endpoint de importación por URL con `throttle`, límite por usuario y limpieza de `.part`
 
@@ -1275,7 +1275,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Rutas de media en `routes/web.php:94-98`. `app/Console/Commands/PruneMedia.php`.
 
-**Evidencia**: Caracterización: MediaUploadTest 11 passed antes de tocar. RED: ImportUrlEndpointTest 22 errores (ruta media.import-url inexistente) · 2026-10-24. ImportUrlEndpointTest: 23 passed (alta 202 en cola media, 12 URLs rechazadas con 422, límite de 3 por usuario, throttle 10/min, sondeo y 403 ajeno, prune de .part). tests/Feature/Media: 106 passed. Lógica compartida con MCP en MediaUploadService::importFromUrl.
+**Evidencia**: Caracterización: MediaUploadTest 11 passed antes de tocar. RED: ImportUrlEndpointTest 22 errores (ruta media.import-url inexistente) · 2026-10-24. ImportUrlEndpointTest: 23 passed (alta 202 en cola media, 12 URLs rechazadas con 422, límite de 3 por usuario, throttle 10/min, sondeo y 403 ajeno, prune de .part). tests/Feature/Media: 106 passed. Lógica compartida con MCP en MediaUploadService::importFromUrl. Fix revisión F5 (c5123bb): límite de importaciones vivas bajo bloqueo (gap 12). Tiempo ESTIMADO 0,15h.
 
 ### T-37 — UI «Desde URL» en `MediaSection` con sondeo y errores
 
@@ -1290,7 +1290,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-36
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/MediaSection.vue`, `tests/Feature/Ui/MediaImportUiTest.php`
+- **Archivos**: `resources/js/Components/Composer/MediaSection.vue`, `tests/Feature/Ui/MediaImportUiTest.php`, `resources/js/Composables/useComposer.js`, `tests/e2e/media-import.spec.ts`, `docs/modulos/media.md`
 - **Cubre (tests)**: E2E-08
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/MediaImportUiTest.php` → verde (props y ruta de importación)
@@ -1307,7 +1307,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón: subida y sondeo en `resources/js/Components/Composer/MediaSection.vue`.
 
-**Evidencia**: MediaImportUiTest: 4 passed (28 assertions); npm run build exit 0. Desviación: el test se escribió junto al componente (no hay RED registrado); la interacción se verifica en T-39 con Playwright.
+**Evidencia**: MediaImportUiTest: 4 passed (28 assertions); npm run build exit 0. Desviación: el test se escribió junto al componente (no hay RED registrado); la interacción se verifica en T-39 con Playwright. Fix revisión F5 (756bec7): gaps 3, 6, 7, 8, 14; E2E de media-import.spec.ts 6/6 en desktop. Tiempo ESTIMADO 1,0h.
 
 ### T-38 — MCP `import_media_from_url`
 
@@ -1322,7 +1322,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-36
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/ImportMediaFromUrl.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `docs/modulos/mcp.md`
+- **Archivos**: `app/Mcp/Tools/ImportMediaFromUrl.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `docs/modulos/mcp.md`, `app/Mcp/Tools/ListMedia.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp/Tools/McpImportMediaTest.php` → verde (acepta URL pública, rechaza interna)
 
@@ -1337,7 +1337,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: `app/Mcp/Servers/SchedulerServer.php:42`; herramienta hermana `app/Mcp/Tools/ListMedia.php`.
 
-**Evidencia**: RED: McpImportMediaTest 14 fallos (herramienta no registrada, 400) · 2026-10-24. McpImportMediaTest: 14 passed; tests/Feature/Mcp: 237 passed (1396 assertions). tools/list ofrece 21 herramientas en una página (eran 20 antes de esta; el recuento de docs/modulos/mcp.md pasa a 21).
+**Evidencia**: RED: McpImportMediaTest 14 fallos (herramienta no registrada, 400) · 2026-10-24. McpImportMediaTest: 14 passed; tests/Feature/Mcp: 237 passed (1396 assertions). tools/list ofrece 21 herramientas en una página (eran 20 antes de esta; el recuento de docs/modulos/mcp.md pasa a 21). Fix revisión F5 (4e392f6): list_media acepta status (gap 2); mcp.md con 22 herramientas. Tiempo ESTIMADO 0,3h.
 
 ### T-39 — E2E de importación por URL con axe
 
@@ -1383,7 +1383,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-35
 - **Tipo**: devops
-- **Archivos**: `deploy/hestia/README.md`, `deploy/hestia/deploy.sh`, `docs/modulos/despliegue.md`, `docs/modulos/media.md`, `docs/referencia/configuracion.md`, `docs/arquitectura.md`
+- **Archivos**: `deploy/hestia/README.md`, `deploy/hestia/deploy.sh`, `docs/modulos/despliegue.md`, `docs/modulos/media.md`, `docs/referencia/configuracion.md`, `docs/arquitectura.md`, `app/Console/Commands/QueueProbe.php`, `.env.example`, `.env.production.example`, `tests/Feature/Infra/InfraTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `grep -n "ss-media" deploy/hestia/README.md docs/modulos/despliegue.md` → al menos una coincidencia en cada fichero
 
@@ -1398,7 +1398,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: `deploy/hestia/README.md:84-87` (líneas `ss-publish` y `ss-metrics`); `docs/modulos/despliegue.md:112`.
 
-**Evidencia**: Caracterización: tests/Feature/Infra en verde antes de tocar (T-34). Verificación: grep -n "ss-media" → deploy/hestia/README.md (2 coincidencias) y docs/modulos/despliegue.md (4). --timeout=120 < retry_after=180. deploy.sh no necesita cambios (WORKER_UNITS es una variable del llamador). Pendiente del usuario en producción: añadir `media` a QUEUE_NAMES del .env si lo define y crear el cron 4 en Hestia.
+**Evidencia**: Caracterización: tests/Feature/Infra en verde antes de tocar (T-34). Verificación: grep -n "ss-media" → deploy/hestia/README.md (2 coincidencias) y docs/modulos/despliegue.md (4). --timeout=120 < retry_after=180. deploy.sh no necesita cambios (WORKER_UNITS es una variable del llamador). Pendiente del usuario en producción: añadir `media` a QUEUE_NAMES del .env si lo define y crear el cron 4 en Hestia. Fix revisión F5 (4448b1e): `media` en QUEUE_NAMES de los .env de ejemplo y app:queue-probe sondea media (gap 4). Tiempo ESTIMADO 0,15h.
 
 ### T-41 — Revisión de seguridad SSRF de la importación
 
@@ -1671,7 +1671,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-06, T-18, T-23, T-32, T-41, T-47, T-49
 - **Tipo**: test
-- **Archivos**: `docs/roadmap/2026-10-24-metricool-parity-2/tasks.md`, `docs/roadmap/2026-10-24-metricool-parity-2/test-plan.md`, `docs/roadmap/2026-10-24-metricool-parity-2/spec.md`, `docs/roadmap/2026-10-24-metricool-parity-2/evaluation.md`, `docs/roadmap/2026-10-24-metricool-parity-2/design.md`, `docs/roadmap/2026-10-24-metricool-parity-2/improvement-plan.md`, `docs/referencia/metricool-analisis-bundle.md` (orquestador: artefactos de la cadena spec→evaluación→diseño→plan y el inventario fuente, commit 45092da; y, del Curator, los candidatos `docs/knowledge/candidates/pending/2026-10-24-primer-comentario-columnas-y-job-propio.md` y `docs/knowledge/candidates/pending/2026-10-24-importacion-media-pipeline-unico-por-pasadas.md`, más el índice `docs/roadmap/README.md`)
+- **Archivos**: `docs/roadmap/2026-10-24-metricool-parity-2/tasks.md`, `docs/roadmap/2026-10-24-metricool-parity-2/test-plan.md`, `docs/roadmap/2026-10-24-metricool-parity-2/spec.md`, `docs/roadmap/2026-10-24-metricool-parity-2/evaluation.md`, `docs/roadmap/2026-10-24-metricool-parity-2/design.md`, `docs/roadmap/2026-10-24-metricool-parity-2/improvement-plan.md`, `docs/referencia/metricool-analisis-bundle.md` (orquestador: artefactos de la cadena spec→evaluación→diseño→plan y el inventario fuente, commit 45092da; y, del Curator, los candidatos `docs/knowledge/candidates/pending/2026-10-24-primer-comentario-columnas-y-job-propio.md` y `docs/knowledge/candidates/pending/2026-10-24-importacion-media-pipeline-unico-por-pasadas.md`, más el índice `docs/roadmap/README.md`), `tests/Feature/Media/MediaPreviewTest.php`, `tests/e2e/composer.spec.ts` (nota: ambos ficheros no son del plan; llegaron con el merge de main y el arreglo del E2E-08 y se declaran para que `scope-check --base origin/main` dé exit 0)
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06, E2E-07, E2E-08, E2E-09
 - **Verificación**:
   - `php artisan test --compact` → 0 fallos
@@ -1691,6 +1691,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [ ] Pint
 
 **Notas**: Requiere `npm run build` previo y el servidor de pruebas que levanta `playwright.config.ts`.
+
+**Evidencia**: Fix revisión F3-4 i2 (gap 3): `MediaPreviewTest.php` (PR #13, traído con el merge de main) y el ajuste de `composer.spec.ts` (commit 64fc942) declarados en Archivos.
 
 ## Revisión de dos lentes — intento 1: Fase 1-2 (T-01..T-18) — 4 Important, 6 Minor
 
@@ -1763,9 +1765,9 @@ Lentes A+B+D en una sola pasada, revisando solo lo corregido en `79c40c7..15858d
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Important | Rechazar las campañas archivadas en `plan()` rompe «Usar» de una plantilla de biblioteca cuya campaña se ha archivado después. No se crea el borrador y `Library/Index.vue` no muestra el error | T-27 | pendiente | `PostService.php:222,641`, `LibraryService.php:135-145`, `Library/Index.vue:19`; probe con PostValidationException `campaign_id` |
-| 2 | Minor | `docs/modulos/mcp.md:106` sigue diciendo «Herramientas (21)» y el comentario de `routes/web.php:106` dice «403, no 404» | T-28, T-25 | pendiente | Lente A |
-| 3 | Minor | `MediaPreviewTest.php` (de la PR #13 traída con el merge de main) está fuera del `Archivos` de cualquier tarea | T-50 | pendiente | scope-check `--base origin/main` |
+| 1 | Important | Rechazar las campañas archivadas en `plan()` rompe «Usar» de una plantilla de biblioteca cuya campaña se ha archivado después. No se crea el borrador y `Library/Index.vue` no muestra el error | T-27 | corregido (d2b5671): «Usar» crea el borrador sin campaña y con aviso si la campaña se archivó (o ya no existe); `Library/Index.vue` muestra los errores; test en `LibraryTargetTextTest` | `PostService.php:222,641`, `LibraryService.php:135-145`, `Library/Index.vue:19`; probe con PostValidationException `campaign_id` |
+| 2 | Minor | `docs/modulos/mcp.md:106` sigue diciendo «Herramientas (21)» y el comentario de `routes/web.php:106` dice «403, no 404» | T-28, T-25 | corregido (4e392f6: `mcp.md` «Herramientas (22)»; 25b6c53: comentario de `web.php` «404») | Lente A |
+| 3 | Minor | `MediaPreviewTest.php` (de la PR #13 traída con el merge de main) está fuera del `Archivos` de cualquier tarea | T-50 | corregido (esta revisión del ledger): `MediaPreviewTest.php` añadido a `Archivos` de T-50 con nota (llegó con el merge de main, PR #13) | scope-check `--base origin/main` |
 
 ## Revisión de dos lentes — intento 1: Fase 5 (T-33..T-41) — 1 Critical, 5 Important, 10 Minor
 
@@ -1773,19 +1775,19 @@ Lentes A+B+D, más la C de seguridad forzada por ser una pieza de SSRF, sobre el
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Critical | Con guzzlehttp/guzzle 8.3, `UrlGuard::curlOptions()` (`CURLOPT_PROXY`, `FOLLOWLOCATION`, `PROTOCOLS_STR`, `REDIR_PROTOCOLS_STR`, `NOPROGRESS`/`PROGRESSFUNCTION`) lanza `InvalidArgumentException` antes de conectar. **Ninguna importación real funciona.** La corrección debe conservar: el tope de bytes y el plazo durante la descarga, el proxy desactivado (`'proxy' => ''`), los protocolos y `allow_redirects=false` con opciones nativas de Guzzle, y `CURLOPT_RESOLVE`. Hace falta un test con el `CurlFactory` real que no conecte | T-33, T-35 | pendiente | Lentes C y B: `UrlGuard.php:108-120`, `UrlSource.php:43-44`; `curlopts*.php` |
-| 2 | Important | Paridad MCP: un agente no ve el progreso ni el motivo de fallo, porque `list_media` solo lista los `listo` y no hay otra consulta | T-38 | pendiente | `ListMedia.php:40` |
-| 3 | Important | El criterio de progreso y error de T-37 no tiene un test que se ejecute: el test solo busca literales en el `.vue` | T-37 | pendiente | `MediaImportUiTest.php:35-40` |
-| 4 | Important | `.env.example` y `.env.production.example` no ponen `media` en `QUEUE_NAMES`, y `app:queue-probe` no sondea esa cola | T-34, T-40 | pendiente | `.env.production.example:28`, `.env.example:83` |
-| 5 | Important | Un 4xx del remoto acaba como transitorio. `RequestException` pierde la `ImportFailedException` de `on_headers`, así que hay 3 reintentos y el mensaje es genérico | T-35 | pendiente | `UrlSource.php:60-74,151-153`, `RemoteMediaImporter.php:66-70` |
-| 6 | Important | Sin worker, la importación se queda `pendiente` sin aviso: la UI sondea sin fin y la poda la borra a las 24 h | T-35, T-37 | pendiente | `MediaSection.vue:41-53,64`, `MediaUploadService.php:109-113` |
-| 7 | Minor | Los sondeos se solapan sin candado, así que puede haber un `onUploaded` doble y media duplicada | T-37 | pendiente | `MediaSection.vue:41-53,64` |
-| 8 | Minor | Un solo error de sondeo se toma como fallo definitivo, y no se puede cancelar una importación en curso | T-37 | pendiente | `MediaSection.vue:49-51,92-125` |
-| 9 | Minor | Sin validador no se envía `If-Range` ni se compara el total del `Content-Range` entre pasadas: si el remoto cambia, se empalman dos versiones | T-35 | pendiente | `UrlSource.php:29-31`, `RemoteMediaImporter.php:93` |
-| 10 | Minor | Si el servidor anuncia `Accept-Ranges` pero responde 200, el motivo que se da es equivocado | T-35 | pendiente | `RemoteMediaImporter.php:78-81` |
-| 11 | Minor | La última pasada no reserva tiempo para `finalize()`. Además, el `path` final se guarda antes de `finalize()`, y un reintento renombra a `.mp4.mp4` | T-35 | pendiente | `RemoteMediaImporter.php:58,129-142` |
-| 12 | Minor | El límite de 3 importaciones vivas se comprueba sin bloqueo, así que hay una carrera | T-36 | pendiente | `MediaUploadService.php:109-117` |
-| 13 | Minor | Rendimiento: con `--stop-when-empty` y `delay(1s)`, hay unos 40 s muertos entre pasadas, un 33 % más lento | T-35, T-40 | pendiente | Lente D D1 |
-| 14 | Minor | El sondeo de la UI no tiene backoff ni tope | T-37 | pendiente | Lente D D2 |
-| 15 | Minor | Oráculo de DNS interno: el mensaje distingue «privada» de «no resuelve» y la validación es síncrona (CWE-204) | T-33, T-36, T-38 | pendiente | Lente C: `UrlGuard.php:87,259,265` |
-| 16 | Minor | Faltan en la lista de bloqueo las IPs de plataforma de Azure (`168.63.129.16`) (CWE-918, condicional) | T-33 | pendiente | Lente C: `UrlGuard.php:24-28` |
+| 1 | Critical | Con guzzlehttp/guzzle 8.3, `UrlGuard::curlOptions()` (`CURLOPT_PROXY`, `FOLLOWLOCATION`, `PROTOCOLS_STR`, `REDIR_PROTOCOLS_STR`, `NOPROGRESS`/`PROGRESSFUNCTION`) lanza `InvalidArgumentException` antes de conectar. **Ninguna importación real funciona.** La corrección debe conservar: el tope de bytes y el plazo durante la descarga, el proxy desactivado (`'proxy' => ''`), los protocolos y `allow_redirects=false` con opciones nativas de Guzzle, y `CURLOPT_RESOLVE`. Hace falta un test con el `CurlFactory` real que no conecte | T-33, T-35 | corregido (526a25d): la clave `curl` solo lleva `CURLOPT_RESOLVE`; `proxy => ''`, `allow_redirects => false`, `protocols`, `decode_content => false` y `progress` (tope de bytes y plazo) son opciones nativas de Guzzle. `UrlSourceRealHandlerTest` usa el `CurlFactory` real y un servidor PHP local en 127.0.0.1 | Lentes C y B: `UrlGuard.php:108-120`, `UrlSource.php:43-44`; `curlopts*.php` |
+| 2 | Important | Paridad MCP: un agente no ve el progreso ni el motivo de fallo, porque `list_media` solo lista los `listo` y no hay otra consulta | T-38 | corregido (4e392f6): `list_media` acepta `status` (`listo` por defecto, `pendiente`, `invalido`, `todos`); documentado en `mcp.md`; el recuento sigue en 22 (no hay herramienta nueva) | `ListMedia.php:40` |
+| 3 | Important | El criterio de progreso y error de T-37 no tiene un test que se ejecute: el test solo busca literales en el `.vue` | T-37 | corregido (756bec7): 4 E2E en `media-import.spec.ts` con `page.route` (progreso, error suelto tolerado, `listo`, `invalido` con motivo, atasco, cancelación) | `MediaImportUiTest.php:35-40` |
+| 4 | Important | `.env.example` y `.env.production.example` no ponen `media` en `QUEUE_NAMES`, y `app:queue-probe` no sondea esa cola | T-34, T-40 | corregido (4448b1e): `media` en `QUEUE_NAMES` de los dos `.env` de ejemplo y `app:queue-probe` sondea `media` siempre; tests en `InfraTest` | `.env.production.example:28`, `.env.example:83` |
+| 5 | Important | Un 4xx del remoto acaba como transitorio. `RequestException` pierde la `ImportFailedException` de `on_headers`, así que hay 3 reintentos y el mensaje es genérico | T-35 | corregido (526a25d): la causa se guarda desde `on_headers` y, si falta, se deduce del estado de la respuesta; 4xx (salvo 408, 425, 429) permanente con «El servidor remoto respondió 404.»; test con el manejador real | `UrlSource.php:60-74,151-153`, `RemoteMediaImporter.php:66-70` |
+| 6 | Important | Sin worker, la importación se queda `pendiente` sin aviso: la UI sondea sin fin y la poda la borra a las 24 h | T-35, T-37 | corregido (756bec7): tras 3 min `pendiente` sin bytes, la UI avisa «la cola de importación no está procesando», deja de sondear y «Descartar» borra el asset; sondeo con backoff 2-15 s; E2E | `MediaSection.vue:41-53,64`, `MediaUploadService.php:109-113` |
+| 7 | Minor | Los sondeos se solapan sin candado, así que puede haber un `onUploaded` doble y media duplicada | T-37 | corregido (756bec7): candado `polling` + comprobación de que el item sigue en la lista + `onUploaded` idempotente (`useComposer.js`) | `MediaSection.vue:41-53,64` |
+| 8 | Minor | Un solo error de sondeo se toma como fallo definitivo, y no se puede cancelar una importación en curso | T-37 | corregido (756bec7): se toleran 2 errores seguidos de consulta (403/404 es definitivo) y «Cancelar» borra el asset en curso; E2E | `MediaSection.vue:49-51,92-125` |
+| 9 | Minor | Sin validador no se envía `If-Range` ni se compara el total del `Content-Range` entre pasadas: si el remoto cambia, se empalman dos versiones | T-35 | corregido (526a25d): el total del `Content-Range` se compara con el de la pasada anterior (otro total = reinicio) y `If-Range` sigue cuando hay validador; tests | `UrlSource.php:29-31`, `RemoteMediaImporter.php:93` |
+| 10 | Minor | Si el servidor anuncia `Accept-Ranges` pero responde 200, el motivo que se da es equivocado | T-35 | corregido (526a25d): `RangeIgnored` lleva el motivo (`ignored` si el validador coincide, `changed` si difiere, desconocido → mensaje combinado); tests | `RemoteMediaImporter.php:78-81` |
+| 11 | Minor | La última pasada no reserva tiempo para `finalize()`. Además, el `path` final se guarda antes de `finalize()`, y un reintento renombra a `.mp4.mp4` | T-35 | corregido (526a25d): `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` (10 s) se resta del plazo; el `path` final se guarda con `finalize()` y si revienta el fichero vuelve a `.part`; el nombre se calcula sin `.mp4.mp4`; tests | `RemoteMediaImporter.php:58,129-142` |
+| 12 | Minor | El límite de 3 importaciones vivas se comprueba sin bloqueo, así que hay una carrera | T-36 | corregido (c5123bb): recuento y alta en una transacción con la fila del usuario bloqueada (`lockForUpdate`); test del nivel de transacción (SQLite ignora `FOR UPDATE`; en MySQL serializa) | `MediaUploadService.php:109-117` |
+| 13 | Minor | Rendimiento: con `--stop-when-empty` y `delay(1s)`, hay unos 40 s muertos entre pasadas, un 33 % más lento | T-35, T-40 | corregido (526a25d): el job se reencola sin `delay` y el importador corta a las 3 pasadas sin bytes nuevos; documentado en `media.md` | Lente D D1 |
+| 14 | Minor | El sondeo de la UI no tiene backoff ni tope | T-37 | corregido (756bec7): backoff de 2 a 15 s (vuelve a 2 s con progreso) | Lente D D2 |
+| 15 | Minor | Oráculo de DNS interno: el mensaje distingue «privada» de «no resuelve» y la validación es síncrona (CWE-204) | T-33, T-36, T-38 | corregido (526a25d): un solo mensaje para «privada», «localhost» y «no resuelve». La validación sigue siendo síncrona a propósito: el usuario necesita saber ya si la URL se acepta, y el oráculo restante (aceptada/rechazada) solo lo ve quien tiene sesión y está limitado a 10 peticiones por minuto | Lente C: `UrlGuard.php:87,259,265` |
+| 16 | Minor | Faltan en la lista de bloqueo las IPs de plataforma de Azure (`168.63.129.16`) (CWE-918, condicional) | T-33 | corregido (526a25d): `168.63.129.16/32` en la lista de bloqueo; test en `UrlGuardTest` | Lente C: `UrlGuard.php:24-28` |

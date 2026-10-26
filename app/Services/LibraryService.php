@@ -111,9 +111,14 @@ class LibraryService
         return is_string($text) ? ['text' => $text] : [];
     }
 
-    /** Crea un borrador a partir de la plantilla; descarta los destinos/media que ya no son validos. */
-    public function use(User $user, PostTemplate $template): Post
+    /**
+     * Crea un borrador a partir de la plantilla; descarta los destinos/media que ya no son validos. Si la campana de la plantilla
+     * ya no se puede asignar (archivada despues de guardarla, o borrada), el borrador nace SIN campana y `$notice` lo explica.
+     */
+    public function use(User $user, PostTemplate $template, ?string &$notice = null): Post
     {
+        $notice = null;
+
         if ($template->user_id !== $user->id) {
             throw new PostValidationException(['template' => ['La plantilla no pertenece al usuario.']]);
         }
@@ -133,9 +138,18 @@ class LibraryService
         }
 
         $data = ['text' => $template->text, 'schedule' => false, 'media' => $mediaIds];
-        // La campaña viaja con la plantilla (C-03); si ya no existe en la marca, el borrador nace sin ella (la FK la anula al borrarla).
+        // La campaña viaja con la plantilla (C-03). `PostService` rechaza asignar una campaña archivada, asi que una plantilla cuya
+        // campaña se archivo despues sigue siendo usable: el borrador nace sin campaña y se avisa (nunca se desarchiva sola).
         if ($template->campaign_id !== null) {
-            $data['campaign_id'] = $template->campaign_id;
+            $campaign = Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->find($template->campaign_id);
+
+            if ($campaign !== null && ! $campaign->isArchived()) {
+                $data['campaign_id'] = $campaign->id;
+            } else {
+                $notice = $campaign !== null
+                    ? "La campaña «{$campaign->name}» está archivada: el borrador se ha creado sin campaña."
+                    : 'La campaña de la plantilla ya no existe: el borrador se ha creado sin campaña.';
+            }
         }
 
         try {

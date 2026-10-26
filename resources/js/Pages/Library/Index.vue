@@ -4,6 +4,7 @@ import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import NetworkChip from '@/Components/NetworkChip.vue';
+import { ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 
 /** Biblioteca (PA-06): plantillas reutilizables de texto + media + redes. «Usar» crea un borrador y abre el editor. */
@@ -16,7 +17,16 @@ const props = defineProps({
 const form = useForm({ name: '', text: '', brand_id: props.brand?.id ?? '' });
 
 const submit = () => form.post(route('library.store'), { preserveScroll: true, onSuccess: () => form.reset('name', 'text') });
-const use = (t) => router.post(route('library.use', t.id));
+// «Usar» crea el borrador en el servidor: si no se puede (plantilla ajena, datos que ya no valen), el motivo se muestra aquí.
+const useError = ref('');
+const use = (t) => {
+    useError.value = '';
+    router.post(route('library.use', t.id), {}, {
+        onError: (errors) => {
+            useError.value = Object.values(errors).flat()[0] || 'No se pudo crear el borrador desde la plantilla.';
+        },
+    });
+};
 const remove = (t) => {
     if (confirm(`¿Eliminar la plantilla «${t.name}»?`)) router.delete(route('library.destroy', t.id), { preserveScroll: true });
 };
@@ -33,6 +43,7 @@ const remove = (t) => {
         <div class="space-y-5">
             <p v-if="flash?.success" class="text-sm text-emerald-700" role="status">{{ flash.success }}</p>
             <p v-if="flash?.error" class="text-sm text-red-600" role="alert">{{ flash.error }}</p>
+            <p v-if="useError" class="text-sm text-red-600" role="alert" data-testid="library-use-error">{{ useError }}</p>
 
             <FeatureEmpty
                 v-if="!brand"

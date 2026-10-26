@@ -107,12 +107,12 @@ class LibraryController extends Controller
         $this->authorize('view', $template);
 
         try {
-            $post = $this->library->use($request->user(), $template);
+            $post = $this->library->use($request->user(), $template, $notice);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }
 
-        return redirect()->route('posts.edit', $post)->with('success', 'Borrador creado desde la plantilla.');
+        return redirect()->route('posts.edit', $post)->with('success', trim('Borrador creado desde la plantilla. '.$notice));
     }
 
     public function destroy(PostTemplate $template): RedirectResponse

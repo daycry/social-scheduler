@@ -7,7 +7,7 @@ defineProps({ notifications: Array });
 
 const markRead = (id) => router.post(route('notifications.read', id), {}, { preserveScroll: true });
 const markAll = () => router.post(route('notifications.read-all'), {}, { preserveScroll: true });
-const title = (n) => (n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
+const title = (n) => (n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'first_comment_failed' ? `No se pudo dejar el primer comentario en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
 </script>
 
 <template>

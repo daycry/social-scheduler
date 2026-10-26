@@ -22,7 +22,11 @@ const props = defineProps({
     contentTypes: Object,
     typeLabels: { type: Object, default: () => ({}) },
     limits: Object,
+    firstCommentMax: { type: Object, default: () => ({}) },
     presets: Object,
+    drivePicker: { type: Object, default: null },
+    savedTexts: { type: Array, default: () => [] },
+    campaigns: { type: Array, default: () => [] },
     post: Object,
     flash: Object,
 });

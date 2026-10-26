@@ -15,6 +15,7 @@
 |   label        nombre legible en los mensajes
 |   media        count (min/max de elementos) y kinds permitidos (image|video)
 |   text         max (caracteres), required y max_hashtags (opcional; Instagram 30, el resto sin tope)
+|   first_comment max (caracteres) del primer comentario; ausente = el tipo no lo admite (TikTok y Stories)
 |   recommended  recomendaciones por clase de media (mismas claves min/max_*): solo avisos, nunca bloquean
 |   image|video  reglas por clase de media: mimes, max_bytes, min/max_width, min/max_height,
 |                aspect (ancho/alto) min|max, min/max_duration (s), min/max_fps, codecs, audio_codecs
@@ -34,6 +35,7 @@ return [
             'label' => 'una publicacion de imagen de Instagram',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
             'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
+            'first_comment' => ['max' => 2200],
             // La API solo admite JPEG; relacion 4:5 a 1.91:1; ancho minimo 320 px; 8 MB. Sin ancho maximo: IG reescala a 1440 px
             // (una foto de movil de 4032x3024 es valida).
             'image' => ['mimes' => $jpeg, 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.8, 'max' => 1.91]],
@@ -42,6 +44,7 @@ return [
             'label' => 'un carrusel de Instagram',
             'media' => ['min' => 2, 'max' => 10, 'kinds' => ['image', 'video']],
             'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
+            'first_comment' => ['max' => 2200],
             'image' => ['mimes' => $jpeg, 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.8, 'max' => 1.91]],
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.8, 'max' => 1.91]],
         ],
@@ -49,6 +52,7 @@ return [
             'label' => 'un reel de Instagram',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 2200, 'required' => false, 'max_hashtags' => 30],
+            'first_comment' => ['max' => 2200],
             // 3 s a 15 min, hasta 300 MB, 9:16 recomendado (se admite 0.01:1 a 10:1), minimo 540x960 recomendado.
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 300 * $mb, 'min_duration' => 3, 'max_duration' => 900, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'], 'audio_codecs' => ['aac']],
             // Recomendaciones: avisan en la vista previa pero NO bloquean (la red las acepta aunque degrade la calidad).
@@ -74,17 +78,20 @@ return [
             'label' => 'una publicacion de texto o enlace de Facebook',
             'media' => ['min' => 0, 'max' => 0, 'kinds' => []],
             'text' => ['max' => 63206, 'required' => true],
+            'first_comment' => ['max' => 8000],
         ],
         'facebook_photo' => [
             'label' => 'una foto de Facebook',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
             'text' => ['max' => 63206, 'required' => false],
+            'first_comment' => ['max' => 8000],
             'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp'], 'max_bytes' => 10 * $mb],
         ],
         'facebook_video' => [
             'label' => 'un video de Facebook',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 63206, 'required' => false],
+            'first_comment' => ['max' => 8000],
             // Subida por URL (file_url): hasta 1 GB y 20 min.
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 1, 'max_duration' => 1200],
         ],
@@ -92,6 +99,7 @@ return [
             'label' => 'un reel de Facebook',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 63206, 'required' => false],
+            'first_comment' => ['max' => 8000],
             // 3 a 90 s, 9:16, minimo 540x960, 24 a 60 fps.
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 3, 'max_duration' => 90, 'min_fps' => 24, 'max_fps' => 60, 'min_width' => 540, 'min_height' => 960, 'aspect' => ['min' => 0.5, 'max' => 0.6]],
         ],
@@ -101,12 +109,14 @@ return [
             'label' => 'un video de YouTube',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 5000, 'required' => false],
+            'first_comment' => ['max' => 10000],
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 4096 * $mb, 'min_duration' => 1, 'max_duration' => 43200],
         ],
         'youtube_short' => [
             'label' => 'un Short de YouTube',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 5000, 'required' => false],
+            'first_comment' => ['max' => 10000],
             // Hasta 3 minutos y relacion vertical o cuadrada.
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 4096 * $mb, 'min_duration' => 1, 'max_duration' => 180, 'aspect' => ['min' => 0.1, 'max' => 1.0]],
         ],

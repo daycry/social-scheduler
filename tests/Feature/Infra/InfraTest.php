@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 test('queues publish, poll, metrics and reports are configured', function () {
-    expect(config('queue.names'))->toBe(['publish', 'poll', 'metrics', 'reports']);
+    expect(config('queue.names'))->toBe(['publish', 'poll', 'metrics', 'reports', 'media']);
     expect(config('queue.connections.database.driver'))->toBe('database');
 });
 
@@ -91,21 +91,35 @@ test('probe jobs are dispatched on each queue', function () {
 
     Artisan::call('app:queue-probe');
 
-    foreach (['publish', 'poll', 'metrics', 'reports'] as $queue) {
+    foreach (['publish', 'poll', 'metrics', 'reports', 'media'] as $queue) {
         Queue::assertPushedOn($queue, QueueProbeJob::class);
     }
 });
+
+test('app:queue-probe sondea la cola media aunque QUEUE_NAMES no la liste (gap 4 de la revision de la Fase 5)', function () {
+    Queue::fake();
+    config(['queue.names' => ['publish', 'poll', 'metrics', 'reports']]);
+
+    Artisan::call('app:queue-probe');
+
+    Queue::assertPushedOn('media', QueueProbeJob::class);
+    Queue::assertPushed(QueueProbeJob::class, 5);
+});
+
+test('los .env de ejemplo listan la cola media en QUEUE_NAMES', function (string $file) {
+    expect(file_get_contents(base_path($file)))->toMatch('/^QUEUE_NAMES=.*,media/m');
+})->with(['.env.example', '.env.production.example']);
 
 test('database queue persists a probe job per queue and a worker processes it', function () {
     config(['queue.default' => 'database']);
 
     Artisan::call('app:queue-probe');
     expect(DB::table('jobs')->pluck('queue')->sort()->values()->all())
-        ->toBe(['metrics', 'poll', 'publish', 'reports']);
+        ->toBe(['media', 'metrics', 'poll', 'publish', 'reports']);
 
     Artisan::call('queue:work', [
         'connection' => 'database',
-        '--queue' => 'publish,poll,metrics,reports',
+        '--queue' => 'publish,poll,metrics,reports,media',
         '--stop-when-empty' => true,
         '--memory' => 1024, // el worker de prueba corre dentro del proceso de Pest: con la suite grande superaba los 128 MB por defecto y paraba tras el primer job
     ]);
@@ -181,7 +195,7 @@ test('empty QUEUE_NAMES falls back to the default queues', function () {
     unset($_ENV['QUEUE_NAMES']);
     putenv('QUEUE_NAMES');
 
-    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports']);
+    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports', 'media']);
 });
 
 test('stale heartbeat is detected', function () {

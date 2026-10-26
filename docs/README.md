@@ -2,7 +2,7 @@
 
 Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube y TikTok. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-10-22
+Última actualización: 2026-10-26
 
 ## Por dónde empezar
 
@@ -16,6 +16,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
 | Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
 | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
+| Activar «Google Drive» en el compositor y reconectar YouTube para el primer comentario | [Guía de Google Cloud](guias/google-cloud-picker-drive.md) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)
@@ -23,10 +24,10 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Módulo | Página | Código principal |
 |---|---|---|
 | Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
-| Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php` |
-| Media y validación | [media.md](modulos/media.md) | `app/Services/Media*.php`, `config/media_specs.php` |
-| Calendario | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php` |
-| Analítica y snapshots | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php` |
+| Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php`, `app/Services/SavedTextService.php` |
+| Media, validación e importación (URL y Drive) | [media.md](modulos/media.md) | `app/Services/Media*.php`, `app/Services/Media/`, `app/Jobs/ImportRemoteMedia.php`, `config/media*.php` |
+| Calendario y cuadrícula de Instagram | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php`, `app/Services/GridService.php` |
+| Analítica, snapshots y campañas | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php`, `app/Services/CampaignAnalytics.php` |
 | Informes PDF/CSV | [informes.md](modulos/informes.md) | `app/Services/ReportService.php` |
 | Servidor MCP y API keys | [mcp.md](modulos/mcp.md) | `app/Mcp/`, `routes/ai.php` |
 | Planificación avanzada (mejores horas, biblioteca, papelera, autolistas) | [planificacion-avanzada.md](modulos/planificacion-avanzada.md) | `app/Services/{BestTimes,Library,Trash,Autolist}Service.php` |

@@ -149,3 +149,30 @@ it('Analytics: aislamiento por usuario, no se leen datos de otra marca ni de otr
     expect(fn () => $this->svc->summary($this->user, $otherBrand, $this->period))->toThrow(InvalidArgumentException::class);
     expect(fn () => $this->svc->network($this->user, $otherBrand, Network::Instagram, $this->period))->toThrow(InvalidArgumentException::class);
 });
+
+it('Analytics: caracterizacion de postStats - ultimo snapshot por destino, metricas null fuera de las medias y orden por interacciones', function () {
+    $ig = acct($this->user, $this->brand, Network::Instagram);
+    $post = Post::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'text' => 'Caracterizacion']);
+    $mk = function (string $at, array $snaps) use ($ig, $post) {
+        $t = PostTarget::factory()->create(['post_id' => $post->id, 'social_account_id' => $ig->id, 'network' => Network::Instagram,
+            'content_type' => $snaps['type'] ?? 'instagram_image', 'status' => PostStatus::Published, 'external_id' => 'c'.$at, 'published_at' => $at]);
+        unset($snaps['type']);
+        foreach ($snaps as $date => $metrics) {
+            PostMetricSnapshot::withoutUserScope()->create(['user_id' => $this->user->id, 'post_target_id' => $t->id, 'social_account_id' => $ig->id,
+                'network' => 'instagram', 'date' => $date, 'metrics' => $metrics]);
+        }
+
+        return $t;
+    };
+    $a = $mk('2026-10-02 10:00:00', ['2026-10-03' => [Metric::VIEWS => 10, Metric::INTERACTIONS => 1], '2026-10-08' => [Metric::VIEWS => 100, Metric::INTERACTIONS => 20], 'type' => 'instagram_image']);
+    $b = $mk('2026-10-03 10:00:00', ['2026-10-08' => [Metric::VIEWS => 50, Metric::INTERACTIONS => null], 'type' => 'instagram_reel']);
+    $c = $mk('2026-10-04 10:00:00', ['type' => 'instagram_story']);
+
+    $d = $this->svc->network($this->user, $this->brand, Network::Instagram, $this->period);
+
+    expect($d['posts'])->toHaveCount(3)
+        ->and(collect($d['posts'])->pluck('id')->all())->toBe([$a->id, $c->id, $b->id]) // con interacciones primero; sin dato, la mas reciente antes
+        ->and($d['kpis']['per_post'])->toMatchArray(['posts' => 3, 'views' => 75.0, 'interactions' => 20.0, 'engagement_rate' => 20.0])
+        ->and($d['posts'][2]['metrics'][Metric::INTERACTIONS])->toBeNull()
+        ->and($d['posts'][1]['has_data'])->toBeFalse();
+});

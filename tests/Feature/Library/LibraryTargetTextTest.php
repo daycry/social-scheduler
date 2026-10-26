@@ -2,6 +2,7 @@
 
 use App\Connectors\Network;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTemplate;
@@ -93,4 +94,37 @@ test('LibraryTargetText: un texto propio que supera el maximo de su red se guard
     // Mismo comportamiento que ante cualquier destino invalido: borrador con el contenido y sin destinos.
     $post = Post::firstOrFail();
     expect($post->text)->toBe('Plantilla comun')->and($post->targets)->toHaveCount(0);
+});
+
+test('LibraryArchivedCampaign (revision F3-4 i2): una plantilla cuya campaña se archivó después se puede usar: borrador sin campaña y con aviso', function () {
+    $campaign = Campaign::factory()->create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'name' => 'Black Friday']);
+    $this->actingAs($this->user)->post(route('brands.library.store', $this->brand), [
+        'name' => 'Oferta', 'text' => 'Oferta', 'media' => [$this->image->id], 'campaign_id' => $campaign->id,
+        'targets' => [['account_id' => $this->ig->id, 'content_type' => 'instagram_image']],
+    ])->assertSessionHasNoErrors();
+    $template = PostTemplate::query()->firstOrFail();
+    expect($template->campaign_id)->toBe($campaign->id);
+
+    // Mientras está activa, el borrador la conserva.
+    $this->actingAs($this->user)->post(route('library.use', $template))->assertSessionHasNoErrors();
+    expect(Post::latest('id')->firstOrFail()->campaign_id)->toBe($campaign->id);
+
+    // Archivada después de guardar la plantilla: «Usar» ya no falla.
+    $campaign->forceFill(['archived_at' => now()])->save();
+    $count = Post::count();
+
+    $response = $this->actingAs($this->user)->post(route('library.use', $template));
+
+    $response->assertSessionHasNoErrors()->assertSessionHas('success', fn ($m) => str_contains($m, 'Black Friday') && str_contains($m, 'archivada') && str_contains($m, 'sin campaña'));
+    $post = Post::latest('id')->firstOrFail();
+    $response->assertRedirect(route('posts.edit', $post));
+    expect(Post::count())->toBe($count + 1)->and($post->campaign_id)->toBeNull()->and($post->text)->toBe('Oferta')
+        ->and($post->targets)->toHaveCount(1)->and($post->media->pluck('id')->all())->toBe([$this->image->id])
+        ->and($campaign->fresh()->archived_at)->not->toBeNull(); // no se desarchiva sola
+});
+
+test('LibraryArchivedCampaign: Library/Index.vue muestra el error de «Usar» (el borrador no se pudo crear)', function () {
+    $vue = file_get_contents(resource_path('js/Pages/Library/Index.vue'));
+
+    expect($vue)->toContain('onError')->toContain('useError')->toContain('data-testid="library-use-error"');
 });

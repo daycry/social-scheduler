@@ -161,7 +161,7 @@ abstract class SchedulerTool extends Tool
     /** @return array<string, mixed> */
     protected function presentPost(Post $post): array
     {
-        $post->loadMissing(['brand', 'targets', 'media']);
+        $post->loadMissing(['brand', 'campaign', 'targets', 'media']);
         $tz = $post->brand?->timezone ?: 'UTC';
         $targets = $post->targets;
 
@@ -171,6 +171,8 @@ abstract class SchedulerTool extends Tool
             'brand_name' => $post->brand?->name,
             'text' => $post->text,
             'notes' => $post->notes, // internas: nunca se publican
+            'campaign_id' => $post->campaign_id,
+            'campaign' => $post->campaign?->name,
             'status' => $post->status->value,
             'scheduled_at_utc' => $post->scheduled_at?->copy()->utc()->toIso8601String(),
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),
@@ -184,6 +186,11 @@ abstract class SchedulerTool extends Tool
                 // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
                 'text' => $t->text,
                 'effective_text' => $t->text ?? $post->text,
+                // Primer comentario (C-01b): su estado es independiente del estado de publicacion del destino.
+                'first_comment' => $t->first_comment,
+                'first_comment_status' => $t->first_comment_status?->value,
+                'first_comment_error' => $t->first_comment_error,
+                'first_comment_may_exist' => $t->first_comment_sent_at !== null, // se intento enviar: puede existir en la red aunque el estado sea fallido
                 'options' => $t->options ?? [],
                 'status' => $t->status->value,
                 'error_message' => $t->error_message,

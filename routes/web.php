@@ -4,8 +4,11 @@ use App\Connectors\Network;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FirstCommentController;
+use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
@@ -14,6 +17,7 @@ use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SavedTextController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -61,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Calendario (T-24).
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::patch('posts/{post}/reschedule', [CalendarController::class, 'reschedule'])->name('posts.reschedule');
+    // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
+    Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
 
     // Compositor de publicaciones (T-23).
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
@@ -71,7 +77,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
     Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
     Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
+    Route::patch('posts/{post}/campaign', [PostController::class, 'updateCampaign'])->name('posts.campaign');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+    // Primer comentario (C-01b): editar el texto de un comentario `fallido` y reintentarlo. Solo web; el MCP no lo expone.
+    Route::patch('posts/{post}/targets/{target}/first-comment', [FirstCommentController::class, 'update'])->middleware('throttle:30,1')->name('posts.first-comment.update');
+    Route::post('posts/{post}/targets/{target}/first-comment/retry', [FirstCommentController::class, 'retry'])->middleware('throttle:30,1')->name('posts.first-comment.retry');
+    Route::post('posts/{post}/targets/{target}/first-comment/published', [FirstCommentController::class, 'markPublished'])->middleware('throttle:30,1')->name('posts.first-comment.published');
     // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
     Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:publish-now')->name('posts.publish-now');
 
@@ -86,6 +97,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->middleware('throttle:mcp-oauth-authorize')->name('mcp.oauth.authorize');
     Route::post('oauth/authorize', [AuthorizeController::class, 'decide'])->middleware('throttle:mcp-oauth-authorize')->name('mcp.oauth.authorize.decide');
 
+    // Ajustes · Textos guardados (C-01a). `{id}` a mano: el texto de otro usuario responde 403, no 404.
+    Route::get('settings/saved-texts', [SavedTextController::class, 'index'])->name('saved-texts.index');
+    Route::post('settings/saved-texts', [SavedTextController::class, 'store'])->name('saved-texts.store');
+    Route::put('settings/saved-texts/{id}', [SavedTextController::class, 'update'])->whereNumber('id')->name('saved-texts.update');
+    Route::delete('settings/saved-texts/{id}', [SavedTextController::class, 'destroy'])->whereNumber('id')->name('saved-texts.destroy');
+
+    // Campañas (C-03). {id} a mano: la campaña de otro usuario responde 404 (UserScope), como el resto del proyecto.
+    Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
+    Route::get('campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id')->name('campaigns.show');
+    Route::post('campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
+    Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->name('campaigns.update');
+    Route::put('campaigns/{id}/archive', [CampaignController::class, 'archive'])->whereNumber('id')->name('campaigns.archive');
+    Route::delete('campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id')->name('campaigns.destroy');
+
     // API keys personales para el MCP (T-28).
     Route::get('api-keys', [ApiKeyController::class, 'index'])->name('api-keys.index');
     Route::post('api-keys', [ApiKeyController::class, 'store'])->name('api-keys.store');
@@ -94,6 +119,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Media (T-17): prefirmado/finalizacion JSON; el binario va directo a R2 (o a `upload` en dev).
     Route::get('media', [MediaController::class, 'index'])->name('media.index');
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
+    // Importacion remota (C-04a). `import-url` antes que `{asset}` para que no lo capture el comodin.
+    Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:10,1')->name('media.import-url');
+    Route::post('media/import-drive', [MediaController::class, 'importDrive'])->middleware('throttle:10,1')->name('media.import-drive');
+    Route::get('media/{asset}', [MediaController::class, 'show'])->whereNumber('asset')->name('media.show');
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
     Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');
     Route::delete('media/{asset}', [MediaController::class, 'destroy'])->name('media.destroy');

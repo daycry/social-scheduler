@@ -83,6 +83,7 @@ class LibraryController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'text' => ['nullable', 'string', 'max:70000'],
+            'campaign_id' => ['nullable', 'integer'], // C-03: la plantilla conserva la campaña; la marca la valida LibraryService::store()
             'media' => ['nullable', 'array', 'max:35'],
             'media.*' => ['integer'],
             'targets' => ['nullable', 'array', 'max:40'],
@@ -106,12 +107,12 @@ class LibraryController extends Controller
         $this->authorize('view', $template);
 
         try {
-            $post = $this->library->use($request->user(), $template);
+            $post = $this->library->use($request->user(), $template, $notice);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }
 
-        return redirect()->route('posts.edit', $post)->with('success', 'Borrador creado desde la plantilla.');
+        return redirect()->route('posts.edit', $post)->with('success', trim('Borrador creado desde la plantilla. '.$notice));
     }
 
     public function destroy(PostTemplate $template): RedirectResponse

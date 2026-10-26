@@ -54,6 +54,9 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Google Picker (C-04b, media desde Drive). Sin la clave, el boton «Google Drive» no se muestra. El `aud` del token debe ser `client_id`.
+        'picker_api_key' => env('GOOGLE_PICKER_API_KEY'),
+        'picker_app_id' => env('GOOGLE_PICKER_APP_ID'),
     ],
 
     'tiktok' => [

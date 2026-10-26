@@ -7,6 +7,7 @@ use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -23,16 +24,24 @@ class MediaAsset extends Model
 
     public const STATUS_INVALID = 'invalido';
 
+    public const SOURCE_UPLOAD = 'upload';
+
+    public const SOURCE_URL = 'url';
+
+    public const SOURCE_DRIVE = 'drive';
+
     public const KIND_IMAGE = 'image';
 
     public const KIND_VIDEO = 'video';
 
     protected $fillable = [
         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
-        'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error',
+        'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error', 'source', 'source_ref', 'import_state',
     ];
 
-    protected $hidden = ['upload_id'];
+    protected $attributes = ['source' => self::SOURCE_UPLOAD];
+
+    protected $hidden = ['upload_id', 'source_ref', 'import_state'];
 
     protected function casts(): array
     {
@@ -43,6 +52,7 @@ class MediaAsset extends Model
             'height' => 'integer',
             'duration' => 'float',
             'fps' => 'float',
+            'import_state' => 'array',
         ];
     }
 
@@ -54,6 +64,21 @@ class MediaAsset extends Model
     public function isVideo(): bool
     {
         return $this->kind === self::KIND_VIDEO;
+    }
+
+    /**
+     * Lista y con fichero: en disco local se comprueba que exista (un `stat`), para no ofrecer una vista previa rota; en R2 se
+     * da por presente (comprobarlo seria una peticion por asset en cada listado).
+     */
+    public function previewable(): bool
+    {
+        if (! $this->isReady() || $this->disk === null || $this->path === null) {
+            return false;
+        }
+
+        $disk = Storage::disk($this->disk);
+
+        return $disk instanceof AwsS3V3Adapter || $disk->exists($this->path);
     }
 
     public function isReady(): bool
@@ -85,8 +110,14 @@ class MediaAsset extends Model
             'fps' => $this->fps,
             'status' => $this->status,
             'error' => $this->error,
+            'source' => $this->source,
+            // Progreso de una importacion remota (barra de progreso). Nunca la URL, el validador ni el resto de `import_state`.
+            'bytes' => $this->import_state['bytes'] ?? null,
+            'total' => $this->import_state['total'] ?? null,
+            // Latido: pasadas que el worker ha EMPEZADO; la UI lo usa (junto a `bytes`) para distinguir «cola parada» de una pasada larga.
+            'runs' => $this->import_state['runs'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
-            'preview_url' => $this->isReady() ? route('media.file', $this, absolute: false) : null,
+            'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
         ];
     }
 }

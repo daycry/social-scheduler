@@ -70,10 +70,12 @@ test('MediaPreview: la media del post que se edita trae preview_url (para previs
         ->assertInertia(fn ($page) => $page->where('post.media.0.preview_url', route('media.file', $asset, absolute: false)));
 });
 
-test('MediaPreview: solo la media lista tiene preview_url', function () {
-    $ready = MediaAsset::factory()->for($this->user)->create();
+test('MediaPreview: solo la media lista y con fichero tiene preview_url', function () {
+    $ready = storedVideo($this->user);
     $pending = MediaAsset::factory()->for($this->user)->create(['status' => MediaAsset::STATUS_PENDING]);
+    $missing = MediaAsset::factory()->for($this->user)->create(); // lista, pero sin fichero en disco: no se ofrece una vista previa rota
 
     expect($ready->toPublicArray()['preview_url'])->toBe(route('media.file', $ready, absolute: false))
-        ->and($pending->toPublicArray()['preview_url'])->toBeNull();
+        ->and($pending->toPublicArray()['preview_url'])->toBeNull()
+        ->and($missing->toPublicArray()['preview_url'])->toBeNull();
 });

@@ -2,8 +2,13 @@
 
 namespace App\Services;
 
+use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\Media\DriveFileSource;
+use App\Services\Media\UnsafeUrlException;
+use App\Services\Media\UrlGuard;
+use App\Services\Media\UrlSource;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -85,6 +90,106 @@ class MediaUploadService
             'url' => (string) $client->createPresignedRequest($cmd, $ttl)->getUri(),
             'headers' => ['Content-Type' => $mime],
         ]];
+    }
+
+    /** Importaciones remotas vivas (pendientes y recientes) que un usuario puede tener a la vez. */
+    public const MAX_LIVE_IMPORTS = 3;
+
+    /**
+     * Importa media desde una URL publica: valida la URL con `UrlGuard` (sin ninguna peticion a destinos internos), aplica el
+     * limite de importaciones vivas por usuario, registra el asset `pendiente` y encola la descarga en la cola `media`.
+     * Lo comparten el endpoint web y la herramienta MCP.
+     *
+     * @throws UnsafeUrlException si la URL no es segura.
+     * @throws InvalidArgumentException si hay demasiadas importaciones en curso o el almacenamiento no es local.
+     */
+    public function importFromUrl(User $user, string $url): MediaAsset
+    {
+        app(UrlGuard::class)->validate($url);
+
+        $source = new UrlSource(app(UrlGuard::class), $url);
+
+        $asset = $this->beginLimited($user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
+
+        ImportRemoteMedia::dispatch($asset->id, $url);
+
+        return $asset;
+    }
+
+    /**
+     * Importa un fichero de Google Drive (C-04b). El token se verifica (`tokeninfo`: `aud` y `drive.file`), se piden los metadatos y
+     * se validan tipo y tamano ANTES de crear el asset. El token solo viaja cifrado en el job: no se guarda ni se registra.
+     *
+     * @throws InvalidArgumentException si el fileId, el token, el tipo, el tamano o el limite de importaciones no valen.
+     */
+    public function importFromDrive(User $user, string $fileId, #[\SensitiveParameter] string $token): MediaAsset
+    {
+        $source = new DriveFileSource(app(UrlGuard::class), $fileId, $token);
+        $meta = $source->inspect();
+
+        $kind = $this->kindFor($meta['mime']);
+
+        if ($meta['size'] !== null && $meta['size'] > (int) config("media.max_bytes.$kind")) {
+            throw new InvalidArgumentException('El fichero supera el tamaño máximo permitido para '.($kind === 'video' ? 'vídeos' : 'imágenes').'.');
+        }
+
+        $asset = $this->beginLimited($user, MediaAsset::SOURCE_DRIVE, $source->reference(), $meta['name']);
+
+        // `dispatch(new ...)` y no `::dispatch($id, $ref, $token)`: los argumentos variadicos de `dispatch` irian en claro en la traza de una excepcion (CWE-532).
+        dispatch(new ImportRemoteMedia($asset->id, $fileId, $token));
+
+        return $asset;
+    }
+
+    /**
+     * El recuento y el alta van en UNA transaccion con la fila del usuario bloqueada: dos peticiones simultaneas se serializan
+     * en vez de pasar las dos el limite (comprobar y crear por separado dejaba una carrera).
+     */
+    private function beginLimited(User $user, string $source, string $reference, string $name): MediaAsset
+    {
+        return DB::transaction(function () use ($user, $source, $reference, $name) {
+            User::query()->whereKey($user->id)->lockForUpdate()->value('id');
+
+            $live = MediaAsset::withoutUserScope()->where('user_id', $user->id)
+                ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE])
+                ->where('created_at', '>', now()->subHours(6))->count();
+
+            if ($live >= self::MAX_LIVE_IMPORTS) {
+                throw new InvalidArgumentException('Ya tienes '.self::MAX_LIVE_IMPORTS.' importaciones en curso; espera a que terminen.');
+            }
+
+            return $this->beginImport($user, $source, $reference, $name);
+        });
+    }
+
+    /**
+     * Registra un asset `pendiente` que `ImportRemoteMedia` rellenara descargando de una URL o de Drive. El parcial vive en
+     * `media/{user}/{ulid}.part` (el tipo real aun no se conoce) y el importador lo renombra al terminar. Necesita disco local.
+     *
+     * @param  'url'|'drive'  $source
+     */
+    public function beginImport(User $user, string $source, string $reference, string $name): MediaAsset
+    {
+        if ($this->storage->isS3()) {
+            throw new InvalidArgumentException('La importacion remota necesita el almacenamiento local (MEDIA_DISK=local).');
+        }
+
+        $asset = new MediaAsset([
+            'disk' => $this->storage->diskName(),
+            'path' => sprintf('media/%d/%s.part', $user->id, Str::lower((string) Str::ulid())),
+            'original_name' => Str::limit(basename($name) ?: 'importado', 200, ''),
+            'mime' => 'application/octet-stream',
+            'kind' => MediaAsset::KIND_IMAGE,
+            'declared_size' => 0,
+            'status' => MediaAsset::STATUS_PENDING,
+            'source' => $source,
+            'source_ref' => Str::limit($reference, 500, ''),
+            'import_state' => ['bytes' => 0, 'total' => null, 'passes' => 0],
+        ]);
+        $asset->user_id = $user->id;
+        $asset->save();
+
+        return $asset;
     }
 
     /**
@@ -221,6 +326,38 @@ class MediaUploadService
         return $n;
     }
 
+    /**
+     * Borra los parciales de importacion (`media/{user}/*.part`) abandonados: de mas de `$hours` horas y sin un asset
+     * `pendiente` que los siga usando. Solo disco local (en S3/R2 no hay parciales).
+     *
+     * @return int Ficheros eliminados.
+     */
+    public function pruneOrphanParts(int $hours): int
+    {
+        if ($this->storage->isS3()) {
+            return 0;
+        }
+
+        $disk = $this->storage->disk();
+        $limit = now()->subHours($hours)->getTimestamp();
+        $n = 0;
+
+        foreach ($disk->allFiles('media') as $file) {
+            if (! str_ends_with($file, '.part') || $disk->lastModified($file) >= $limit) {
+                continue;
+            }
+
+            $active = MediaAsset::withoutUserScope()->where('path', $file)->where('status', MediaAsset::STATUS_PENDING)->exists();
+
+            if (! $active) {
+                $disk->delete($file);
+                $n++;
+            }
+        }
+
+        return $n;
+    }
+
     /** Aborta el multipart abierto (si lo hay) y borra el objeto; ambos pasos tolerantes a «ya no existe». */
     private function removeObject(MediaAsset $asset): void
     {
@@ -235,14 +372,14 @@ class MediaUploadService
         $this->storage->disk()->delete($asset->path);
     }
 
-    private function invalidate(MediaAsset $asset, string $reason): MediaAsset
+    public function invalidate(MediaAsset $asset, string $reason): MediaAsset
     {
         $asset->forceFill(['status' => MediaAsset::STATUS_INVALID, 'error' => $reason, 'upload_id' => null])->save();
 
         return $asset;
     }
 
-    private function kindFor(string $mime): string
+    public function kindFor(string $mime): string
     {
         foreach ((array) config('media.allowed_mimes') as $kind => $mimes) {
             if (in_array($mime, $mimes, true)) {
@@ -253,7 +390,7 @@ class MediaUploadService
         throw new InvalidArgumentException('Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
     }
 
-    private function extensionFor(string $mime): string
+    public function extensionFor(string $mime): string
     {
         return match ($mime) {
             'image/jpeg' => 'jpg',

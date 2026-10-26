@@ -22,6 +22,8 @@ class PostRequest extends FormRequest
             // Hora local de la marca ("2026-11-02T10:00"); la zona la aplica PostService.
             // Con `publish_now` la fecha no se envia: la pone el servidor (`now()`).
             'scheduled_at' => ['nullable', 'string', 'max:40', 'prohibited_if:publish_now,true,1'],
+            // Campaña del post (C-03): omitida = no se toca; nula = quitarla. Que sea de la marca y del usuario lo valida PostService::plan().
+            'campaign_id' => ['nullable', 'integer'],
             'schedule' => ['required', 'boolean'],
             // «Publicar ahora»: programa con la fecha del servidor y encola tras el commit (PostService::publishNow, ADR-005).
             'publish_now' => ['nullable', 'boolean'],
@@ -32,6 +34,8 @@ class PostRequest extends FormRequest
             'targets.*.content_type' => ['required', 'string', 'max:40'],
             // Texto propio del destino (C-03): `null` = vinculado a la plantilla. El maximo real por red lo pone MediaValidator.
             'targets.*.text' => ['nullable', 'string', 'max:70000'],
+            // Primer comentario del destino (C-01b): el maximo real por red lo pone PostService::plan() con `media_specs`.
+            'targets.*.first_comment' => ['nullable', 'string', 'max:10000'],
             'targets.*.options' => ['nullable', 'array'],
             'targets.*.options.share_to_feed' => ['nullable', 'boolean'],
             'targets.*.options.link' => ['nullable', 'url', 'max:2000'],

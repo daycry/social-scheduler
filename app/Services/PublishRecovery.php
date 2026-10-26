@@ -2,13 +2,17 @@
 
 namespace App\Services;
 
+use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
 use App\Jobs\PollPublishStatus;
+use App\Jobs\PostFirstComment;
 use App\Jobs\PublishPostTarget;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Models\User;
+use App\Notifications\FirstCommentFailed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -23,12 +27,14 @@ use Throwable;
  *  4. Destinos `procesando` con sondeo vencido -> se vuelve a sondear.
  *  5. Destinos `procesando` cuya cuenta ya no esta activa: desconectada o borrada -> `fallida` (cuenta_no_disponible);
  *     pendiente de reconexion mas de `reconnect_grace_hours` -> `fallida` con motivo claro (nunca se quedan atascados).
+ *  6. Primer comentario (C-01b): `comentando` colgado o `pendiente` sin job vivo mas de `stuck_after_minutes` -> se relanza
+ *     (`PostFirstComment` es unico y busca el comentario propio antes de crear otro).
  */
 class PublishRecovery
 {
     public function __construct(private readonly PublishOutcomes $outcomes) {}
 
-    /** @return array{orphaned: int, expired: int, resumed: int, polled: int, abandoned: int} */
+    /** @return array{orphaned: int, expired: int, resumed: int, polled: int, abandoned: int, comments: int} */
     public function run(): array
     {
         return [
@@ -37,6 +43,7 @@ class PublishRecovery
             'resumed' => $this->resumeStuck(),
             'polled' => $this->repoll(),
             'abandoned' => $this->failInactiveProcessing(),
+            'comments' => $this->resumeComments(),
         ];
     }
 
@@ -124,6 +131,46 @@ class PublishRecovery
             ->chunkById(100, function ($targets) use (&$n) {
                 foreach ($targets as $target) {
                     PublishPostTarget::dispatch($target->id);
+                    $n++;
+                }
+            });
+
+        return $n;
+    }
+
+    /** Paso 6: relanza los primeros comentarios colgados (`comentando`) o pendientes sin job vivo. El job es unico por destino. */
+    private function resumeComments(): int
+    {
+        $limit = now()->subMinutes((int) config('publishing.stuck_after_minutes', 10));
+        $n = 0;
+
+        // Sin id de publicacion el job no puede reclamar el destino (`claim()` devuelve null siempre): se cierra con motivo en vez
+        // de relanzarlo en cada pasada. `fallido` deja Reintentar/Editar al usuario.
+        PostTarget::withoutUserScope()->where('status', PostStatus::Published->value)
+            ->whereNull('first_comment_external_id')
+            ->whereNull('external_id')
+            ->whereIn('first_comment_status', [FirstCommentStatus::Pending->value, FirstCommentStatus::Commenting->value])
+            ->whereIn('post_id', $this->livePosts())
+            ->chunkById(100, function ($targets) {
+                foreach ($targets as $target) {
+                    $this->guard($target, function () use ($target) {
+                        $reason = 'La red no devolvio el identificador de la publicacion, asi que no se puede comentar en ella. Comentalo a mano en la red.';
+                        $target->forceFill(['first_comment_status' => FirstCommentStatus::Failed, 'first_comment_error' => $reason])->save();
+                        User::find($target->user_id)?->notify(new FirstCommentFailed($target, $reason)); // como el resto de cierres en `fallido`
+                    });
+                }
+            });
+
+        PostTarget::withoutUserScope()->where('status', PostStatus::Published->value)
+            ->whereNull('first_comment_external_id')
+            ->whereNotNull('external_id')
+            ->whereIn('post_id', $this->livePosts())
+            ->where(fn ($q) => $q
+                ->where(fn ($c) => $c->where('first_comment_status', FirstCommentStatus::Commenting->value)->where('first_comment_at', '<=', $limit))
+                ->orWhere(fn ($p) => $p->where('first_comment_status', FirstCommentStatus::Pending->value)->where('updated_at', '<=', $limit)))
+            ->chunkById(100, function ($targets) use (&$n) {
+                foreach ($targets as $target) {
+                    PostFirstComment::dispatch($target->id);
                     $n++;
                 }
             });

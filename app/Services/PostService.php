@@ -14,6 +14,7 @@ use App\Http\Requests\PostRequest;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
@@ -22,6 +23,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -97,7 +99,10 @@ class PostService
             }
             $post->user_id = $user->id;
             $post->brand_id = $brand->id;
-            $post->save();
+            if ($plan['campaign_id'] !== false) {
+                $post->campaign_id = $plan['campaign_id'];
+            }
+            $this->saveOrFailCampaign($post);
 
             $this->fill($post, $plan);
             $this->dispatchAfterCommit($post, $plan);
@@ -118,7 +123,7 @@ class PostService
         $this->assertOwns($user, $post);
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
-        $plan = $this->plan($user, $brand, $data);
+        $plan = $this->plan($user, $brand, $data, $post->campaign_id);
 
         return DB::transaction(function () use ($post, $plan) {
             // Bloquea los destinos ANTES de decidir: el claim de `PublishPostTarget` toma el mismo lock, asi que o
@@ -133,7 +138,10 @@ class PostService
             if ($plan['notes'] !== false) {
                 $post->notes = $plan['notes']; // fuera de `$before`/`fill()`: una nota nunca cuenta como «contenido cambiado»
             }
-            $post->save();
+            if ($plan['campaign_id'] !== false) {
+                $post->campaign_id = $plan['campaign_id']; // por post entero (D3): no cuenta como «contenido cambiado»
+            }
+            $this->saveOrFailCampaign($post);
             $this->fill($post, $plan, $existing, $before);
             $this->dispatchAfterCommit($post, $plan);
 
@@ -157,6 +165,65 @@ class PostService
         $post->forceFill(['notes' => $notes])->save();
 
         return $post->fresh(['targets', 'media']);
+    }
+
+    /**
+     * Campaña (C-03): metadato del post entero, como las notas. Se asigna o se quita en cualquier estado (publicado o en vuelo
+     * incluidos) porque no se publica: no toca los destinos ni reinicia ningun intento. Misma marca y usuario; una campaña
+     * archivada no se asigna (la que el post ya tiene se puede conservar o quitar).
+     */
+    public function updateCampaign(User $user, Post $post, ?int $campaignId): Post
+    {
+        $this->assertOwns($user, $post);
+
+        $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
+        $errors = $this->campaignErrors($user, $brand, $campaignId, $post->campaign_id);
+        if ($errors !== []) {
+            throw new PostValidationException($errors);
+        }
+
+        $post->campaign_id = $campaignId;
+        $this->saveOrFailCampaign($post);
+
+        return $post->fresh(['targets', 'media', 'campaign']);
+    }
+
+    /**
+     * Guarda el post traduciendo la carrera «la campaña se borró entre la validacion y el guardado» (el hook de `Post` lanza
+     * `InvalidArgumentException`) a un error de validacion: nunca un 500.
+     */
+    private function saveOrFailCampaign(Post $post): void
+    {
+        try {
+            $post->save();
+        } catch (\InvalidArgumentException $e) {
+            throw new PostValidationException(['campaign_id' => ['La campaña ya no existe en esta marca.']]);
+        } catch (QueryException $e) {
+            // Borrada justo despues del hook y antes del UPDATE: la FK `campaign_id` lo rechaza.
+            if ($post->campaign_id !== null && ! Campaign::withoutUserScope()->whereKey($post->campaign_id)->exists()) {
+                throw new PostValidationException(['campaign_id' => ['La campaña ya no existe en esta marca.']]);
+            }
+
+            throw $e;
+        }
+    }
+
+    /** @return array<string, list<string>> */
+    private function campaignErrors(User $user, Brand $brand, ?int $campaignId, ?int $currentCampaignId): array
+    {
+        if ($campaignId === null) {
+            return [];
+        }
+
+        $campaign = Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->find($campaignId);
+        if ($campaign === null) {
+            return ['campaign_id' => ['La campaña no existe en esta marca.']];
+        }
+        if ($campaign->isArchived() && $campaignId !== $currentCampaignId) {
+            return ['campaign_id' => ['La campaña está archivada: restáurala antes de asignarle publicaciones.']];
+        }
+
+        return [];
     }
 
     private static function normalizeNotes(mixed $notes): ?string
@@ -200,7 +267,7 @@ class PostService
             'text' => $post->text,
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
-                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text,
+                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment,
             ])->all(),
         ];
     }
@@ -455,9 +522,9 @@ class PostService
      * Valida todo y devuelve el plan normalizado (sin tocar la BD).
      *
      * @param  array<string, mixed>  $data
-     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string}>}
+     * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}
      */
-    private function plan(User $user, Brand $brand, array $data): array
+    private function plan(User $user, Brand $brand, array $data, ?int $currentCampaignId = null): array
     {
         $errors = [];
         $publishNow = (bool) ($data['publish_now'] ?? false);
@@ -553,7 +620,25 @@ class PostService
                 $errors[$key][] = 'Elige la visibilidad de TikTok antes de programar o publicar.';
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText];
+            // Primer comentario (C-01b): vacio = sin comentario. El maximo y los tipos que lo admiten salen de `media_specs`.
+            $firstComment = isset($raw['first_comment']) && trim((string) $raw['first_comment']) !== '' ? (string) $raw['first_comment'] : null;
+            if ($firstComment !== null) {
+                $max = config("media_specs.types.{$type->value}.first_comment.max");
+                if ($max === null) {
+                    $errors[$key][] = "{$account->network->label()} no admite primer comentario en este tipo de contenido.";
+                } elseif (mb_strlen($firstComment) > (int) $max) {
+                    $errors[$key][] = "El primer comentario admite como maximo $max caracteres en {$account->network->label()} (tiene ".mb_strlen($firstComment).').';
+                }
+            }
+
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment];
+        }
+
+        // Campaña (C-03, CA-12): null = quitarla; solo de esta marca y de este usuario. Omitida = no se toca (`false`).
+        $campaignId = false;
+        if (array_key_exists('campaign_id', $data)) {
+            $campaignId = ($data['campaign_id'] === null || $data['campaign_id'] === '') ? null : (int) $data['campaign_id'];
+            $errors += $this->campaignErrors($user, $brand, $campaignId, $currentCampaignId);
         }
 
         if ($errors !== []) {
@@ -561,6 +646,7 @@ class PostService
         }
 
         return [
+            'campaign_id' => $campaignId,
             'text' => $text,
             // Notas internas: null = la entrada no las trae (no se tocan); '' o solo espacios = borrarlas. Nunca viajan a los publishers.
             'notes' => array_key_exists('notes', $data) ? self::normalizeNotes($data['notes']) : false,
@@ -576,7 +662,7 @@ class PostService
      * Sincroniza media y destinos con el plan. Los destinos existentes (ya bloqueados y editables) se actualizan;
      * los que sobran se borran; los nuevos se crean.
      *
-     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string}>}  $plan
+     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}  $plan
      * @param  Collection<string, PostTarget>|null  $existing
      * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
@@ -600,6 +686,7 @@ class PostService
                     'status' => $plan['status'],
                     'options' => $t['options'] ?: null,
                     'text' => $t['text'],
+                    'first_comment' => $t['first_comment'] ?? null,
                 ]);
                 $target->user_id = $post->user_id;
                 $target->post_id = $post->id;
@@ -619,7 +706,8 @@ class PostService
             $textChanged = $before !== null && $oldText !== $newText;
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
             $fresh = $current->status === PostStatus::Failed || $mediaChanged || $textChanged || $optionsChanged;
-            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text']] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
+            // El primer comentario NO cuenta para `$fresh`: se publica despues del destino y no cambia lo que sale en la red.
+            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'first_comment' => $t['first_comment'] ?? null] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
             }

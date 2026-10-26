@@ -2,11 +2,12 @@
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PresetsPanel from '@/Components/Composer/PresetsPanel.vue';
+import FirstCommentField from '@/Components/Composer/FirstCommentField.vue';
 import { watchEffect } from 'vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { PRIVACY_LABELS, loadTiktokCreator, tiktokCreator } from '@/Composables/tiktokCreator';
 
-const { accounts, brand, editable, targetFor } = useComposerContext();
+const { accounts, brand, editable, targetFor, firstCommentMax } = useComposerContext();
 
 // Direct Post de TikTok: al elegir la cuenta se consulta `creator_info` (nombre, visibilidades e interacciones de esa cuenta).
 watchEffect(() => {
@@ -26,6 +27,7 @@ const brandedContent = (account) => targetFor(account.id).options.brand_content_
 const hasOptions = (account) => {
     const t = targetFor(account.id);
     if (!t) return false;
+    if (firstCommentMax.value[t.content_type] != null) return true; // primer comentario (C-01b)
     return t.content_type === 'instagram_reel' || t.content_type === 'facebook_text'
         || account.network === 'youtube' || account.network === 'tiktok';
 };
@@ -88,6 +90,7 @@ const hasOptions = (account) => {
             </div>
             <!-- Interruptores por red (C-04): se recuerdan por marca y red; solo salen los que la API de la red admite -->
             <PresetsPanel v-if="account.network === 'youtube' || account.network === 'tiktok'" :account="account" />
+            <FirstCommentField :account="account" />
         </section>
     </template>
 </template>

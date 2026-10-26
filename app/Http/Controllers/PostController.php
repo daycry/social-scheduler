@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
 use App\Models\Brand;
+use App\Models\Campaign;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\CampaignService;
 use App\Services\ComposerPresetService;
+use App\Services\Media\DriveFileSource;
 use App\Services\MediaValidator;
 use App\Services\PostService;
+use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +40,8 @@ class PostController extends Controller
         private readonly SocialAccountService $accounts,
         private readonly MediaValidator $validator,
         private readonly ComposerPresetService $presets,
+        private readonly SavedTextService $savedTexts,
+        private readonly CampaignService $campaigns,
     ) {}
 
     public function create(Request $request, Brand $brand): Response
@@ -126,6 +133,25 @@ class PostController extends Controller
         return back()->with('success', 'Notas guardadas.');
     }
 
+    /**
+     * Campaña del post (C-03): metadato como las notas, asignable o quitable aunque el post ya tenga destinos publicados o en
+     * vuelo. Misma marca, campaña no archivada; la carrera con un borrado de la campaña vuelve como error de validacion.
+     */
+    public function updateCampaign(Request $request, Post $post): RedirectResponse
+    {
+        $this->authorize('update', $post);
+
+        $data = $request->validate(['campaign_id' => ['present', 'nullable', 'integer']]);
+
+        try {
+            $this->posts->updateCampaign($request->user(), $post, $data['campaign_id'] === null ? null : (int) $data['campaign_id']);
+        } catch (PostValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('success', 'Campaña actualizada.');
+    }
+
     /** Mensaje honesto: si algun destino sigue en pausa por cuota, no se promete «unos segundos». */
     private function publishingMessage(Post $post): string
     {
@@ -170,6 +196,8 @@ class PostController extends Controller
                 'username' => $a->username,
                 'status' => $a->status,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
+                // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
+                'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),
             ])->values(),
             // Tipos por red con sus limitaciones (T-21): el formulario las avisa al elegir el tipo.
             'contentTypes' => collect(Network::cases())->mapWithKeys(fn (Network $n) => [
@@ -188,7 +216,23 @@ class PostController extends Controller
 
                 return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
             }),
+            // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
+            'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()
+                ->mapWithKeys(fn (ContentType $t) => [$t->value => config("media_specs.types.{$t->value}.first_comment.max")])->filter(),
+            // Google Picker (C-04b): sin `GOOGLE_PICKER_API_KEY`, `GOOGLE_PICKER_APP_ID` (con `drive.file` el Picker necesita `setAppId`; sin el el
+            // fichero elegido da 404) o client id no se expone nada y la UI no muestra el boton. La clave del Picker es publica por diseno
+            // (se restringe por dominio en Google Cloud); el token de Drive nunca pasa por aqui.
+            'drivePicker' => DriveFileSource::pickerConfigured() ? [
+                'api_key' => config('services.google.picker_api_key'),
+                'app_id' => config('services.google.picker_app_id'),
+                'client_id' => config('services.google.client_id'),
+            ] : null,
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
+            'savedTexts' => $this->savedTexts->forBrand($user, $brand->id), // textos guardados de la marca + «Todas las marcas» (C-01a)
+            // Campañas de la marca para el selector (C-03): las activas y, al editar, la del post aunque esté archivada.
+            'campaigns' => $this->campaigns->listForBrand($user, $brand->id)
+                ->filter(fn (Campaign $c) => ! $c->isArchived() || ($post && $c->id === $post->campaign_id))
+                ->map(fn (Campaign $c) => ['id' => $c->id, 'name' => $c->name, 'color' => $c->color, 'archived' => $c->isArchived()])->values(),
             'post' => $post ? $this->postProps($post) : null,
             'flash' => ['success' => $request->session()->get('success')],
         ]);
@@ -204,6 +248,7 @@ class PostController extends Controller
             'id' => $post->id,
             'text' => $post->text,
             'notes' => $post->notes,
+            'campaign_id' => $post->campaign_id,
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.
@@ -211,6 +256,7 @@ class PostController extends Controller
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media' => $post->media()->get()->map->toPublicArray()->values(),
             'targets' => $targets->map(fn (PostTarget $t) => [
+                'id' => $t->id,
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
                 'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
@@ -220,6 +266,12 @@ class PostController extends Controller
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,
                 'external_url' => $t->external_url,
+                // Primer comentario (C-01b) y su estado, independiente del estado de publicacion.
+                'first_comment' => $t->first_comment,
+                'first_comment_status' => $t->first_comment_status?->value,
+                'first_comment_status_label' => $t->first_comment_status?->label(),
+                'first_comment_error' => $t->first_comment_error,
+                'first_comment_may_exist' => $t->first_comment_sent_at !== null,
             ])->values(),
         ];
     }

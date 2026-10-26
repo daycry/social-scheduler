@@ -1,0 +1,272 @@
+<?php
+
+namespace App\Services\Media;
+
+use App\Models\MediaAsset;
+use App\Services\MediaStorage;
+use App\Services\MediaUploadService;
+use InvalidArgumentException;
+
+/**
+ * Una PASADA de la importacion remota (B1). Descarga con `Range` a `media/{user}/{ulid}.part` durante como mucho
+ * `media.import_budget_seconds`; el punto de control es el tamano del propio parcial en disco (no hay otro contador que
+ * pueda desincronizarse). Devuelve `true` cuando el asset ya esta resuelto (`listo` o `invalido`) y `false` si hace falta otra
+ * pasada. Al terminar renombra el parcial y deja la validacion final (tamano, tipo real, metadatos) a `finalize()`.
+ */
+class RemoteMediaImporter
+{
+    /** Pasadas CONSECUTIVAS «pobres» (menos de `media.import_min_pass_bytes` sin completar) tras las que se da la importacion por fallida. */
+    private const MAX_STALLS = 3;
+
+    public function __construct(
+        private readonly MediaStorage $storage,
+        private readonly MediaUploadService $uploads,
+    ) {}
+
+    public function run(MediaAsset $asset, RemoteSource $source): bool
+    {
+        if ($asset->status !== MediaAsset::STATUS_PENDING) {
+            return true;
+        }
+
+        if ($this->storage->isS3()) {
+            return $this->fail($asset, 'La importación remota necesita el almacenamiento local; descarga el fichero y súbelo.');
+        }
+
+        // Acotan el reencolado SIN espera (gap F5-2 #1, CWE-400/834) sin matar importaciones grandes legitimas (gap F5-3 N1): no hay
+        // tope de edad desde `created_at` (incluiria la espera en cola y el reparto del worker); el corte es por RITMO MEDIO sobre el
+        // tiempo de descarga EFECTIVO (suma de lo que duraron las pasadas) y por un numero de pasadas derivado del tamano esperado.
+        $state0 = (array) $asset->import_state;
+
+        if ($this->tooSlow($state0)) {
+            return $this->fail($asset, 'La descarga es demasiado lenta; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
+        }
+
+        if ((int) ($state0['passes'] ?? 0) >= $this->maxPasses($state0['total'] ?? null)) {
+            return $this->fail($asset, 'La descarga necesita demasiadas pasadas; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
+        }
+
+        $passStarted = microtime(true);
+
+        $disk = $this->storage->disk();
+        $disk->makeDirectory(dirname($asset->path));
+        $absolute = $disk->path($asset->path);
+
+        $sink = fopen($absolute, 'c+b');
+        clearstatcache(true, $absolute);
+        $offset = (int) filesize($absolute);
+        $state = (array) $asset->import_state;
+
+        // Latido (gap F5-2 #3): la pasada deja constancia de que el worker ha empezado, para que la UI distinga una cola parada
+        // (0 pasadas empezadas) de una pasada larga que aun no ha traido el primer byte.
+        $state['runs'] = ($state['runs'] ?? 0) + 1;
+        $this->save($asset, $state);
+
+        $policy = function (?string $mime, ?int $total): int {
+            try {
+                $kind = $this->uploads->kindFor((string) $mime);
+            } catch (InvalidArgumentException) {
+                throw new ImportFailedException('Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
+            }
+
+            $cap = (int) config("media.max_bytes.$kind");
+
+            if ($total !== null && $total > $cap) {
+                throw new ImportFailedException('El fichero supera el tamaño máximo permitido para '.($kind === 'video' ? 'vídeos' : 'imágenes').'.');
+            }
+
+            return $cap;
+        };
+
+        // Se reserva tiempo al final del presupuesto para `finalize()` (tamano, tipo real, metadatos con ffprobe): sin ello la ultima
+        // pasada podria agotar el timeout del job justo al terminar.
+        $deadline = microtime(true) + max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
+
+        try {
+            $pass = $source->fetch($sink, $offset, $state['validator'] ?? null, $policy, (int) max((array) config('media.max_bytes')), $deadline, $state['total'] ?? null);
+        } catch (ImportFailedException|UnsafeUrlException $e) {
+            fclose($sink);
+
+            return $this->fail($asset, $e->getMessage());
+        } catch (\Throwable $e) {
+            fclose($sink);
+            // Gap G2: la pasada fallida cuenta. Suma su duracion y una pasada ANTES de relanzar, para que el ritmo medio y el tope de
+            // pasadas vean tambien a un remoto que intercala 5xx lentos (no basta con el latido `runs`). Un 5xx suelto en una descarga
+            // sana no la mata: solo desplaza un poco el ritmo medio y el contador, y los cortes siguen siendo los de siempre.
+            $state['passes'] = ($state['passes'] ?? 0) + 1;
+            $state['failed_passes'] = ($state['failed_passes'] ?? 0) + 1;
+            $state['download_seconds'] = round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3);
+            $this->save($asset, $state);
+            // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial. Se relanza SIN la excepcion original: los mensajes
+            // de Guzzle/cURL llevan la URL completa (con su query, que puede ser un token) y acabarian en `failed_jobs` y en el log.
+            throw new \RuntimeException(preg_replace('#https?://\S+#i', '[url]', $e->getMessage()) ?: class_basename($e));
+        }
+
+        if ($pass->restart) {
+            // El remoto ignoro `Range` o cambio: se descarta el parcial y se empieza de cero UNA vez.
+            ftruncate($sink, 0);
+            fclose($sink);
+
+            if (($state['restarts'] ?? 0) >= 1) {
+                return $this->fail($asset, match ($pass->restartReason) {
+                    RangeIgnored::IGNORED => 'El servidor no permite descargas por partes; descárgalo y súbelo.',
+                    RangeIgnored::CHANGED => 'El fichero remoto cambia durante la descarga; inténtalo de nuevo más tarde.',
+                    default => 'El servidor remoto no permite reanudar la descarga o el fichero cambia mientras se descarga; descárgalo y súbelo.',
+                });
+            }
+
+            $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1, 'download_seconds' => round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3)] + $state);
+
+            return false;
+        }
+
+        fclose($sink);
+        $bytes = $offset + $pass->written;
+        $state = array_replace($state, [
+            'bytes' => $bytes,
+            'total' => $pass->total ?? ($state['total'] ?? null),
+            'validator' => $state['validator'] ?? $pass->validator,
+            'ranges' => ($state['ranges'] ?? false) || $pass->ranges,
+            'passes' => ($state['passes'] ?? 0) + 1,
+            'download_seconds' => round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3),
+            // Pasadas seguidas «pobres» (menos del ritmo minimo por pasada): con la cola reencolando sin espera, un remoto que suelta
+            // 1 B por pasada (goteo) provocaba un bucle caliente que el contador de pasadas a 0 bytes no veia.
+            'stalls' => $pass->complete || $pass->written >= (int) config('media.import_min_pass_bytes', 65536) ? 0 : ($state['stalls'] ?? 0) + 1,
+        ]);
+
+        if (($state['stalls'] ?? 0) >= self::MAX_STALLS) {
+            return $this->fail($asset, 'La descarga no avanza; inténtalo de nuevo más tarde.');
+        }
+
+        if ($pass->mime !== null && $offset === 0) {
+            $kind = $this->uploads->kindFor($pass->mime);
+            $asset->forceFill(['mime' => $pass->mime, 'kind' => $kind]);
+            $state['mime'] = $pass->mime;
+        }
+
+        $mime = (string) ($state['mime'] ?? $asset->mime);
+
+        if (! ($state['sniffed'] ?? false) && ($bytes >= 16 || $pass->complete)) {
+            if (! $this->sniffMatches($absolute, $mime)) {
+                return $this->fail($asset, 'El contenido no coincide con el tipo de fichero declarado.');
+            }
+
+            $state['sniffed'] = true;
+        }
+
+        if ($pass->complete) {
+            return $this->finish($asset, $state, $mime, $bytes);
+        }
+
+        if (! ($state['ranges'] ?? false)) {
+            return $this->fail($asset, 'El servidor no permite descargas por partes; descárgalo y súbelo.');
+        }
+
+        $this->save($asset, $state);
+        $this->pace($passStarted);
+
+        return false;
+    }
+
+    /**
+     * Pasadas permitidas: el mayor entre el suelo `import_max_passes`, los tramos de `import_expected_chunk_bytes` que pide el total
+     * (un CDN que corta cada 206 a 8 MB) y las pasadas que hacen falta a la velocidad MINIMA prometida (`import_min_rate_bytes` x lo
+     * que dura una pasada, presupuesto menos reserva), ambos con un margen de x1,25 + 10. Asi una descarga sana por encima del ritmo
+     * minimo nunca se corta por pasadas; el limite real de lentitud es `tooSlow()`.
+     */
+    public function maxPasses(mixed $total): int
+    {
+        $floor = (int) config('media.import_max_passes', 200);
+
+        if (! is_numeric($total) || (int) $total <= 0) {
+            return $floor;
+        }
+
+        $total = (int) $total;
+        $chunk = max(1, (int) config('media.import_expected_chunk_bytes', 8 * 1024 * 1024));
+        $passSeconds = max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
+        $perPass = max(1, (int) config('media.import_min_rate_bytes', 16 * 1024) * $passSeconds);
+
+        $byChunk = (int) ceil(ceil($total / $chunk) * 1.25) + 10;
+        $byRate = (int) ceil(ceil($total / $perPass) * 1.25) + 10;
+
+        return max($floor, $byChunk, $byRate);
+    }
+
+    /** Ritmo medio sobre el tiempo de descarga efectivo (sin espera en cola); solo se juzga pasada la gracia, para no penalizar el arranque. */
+    private function tooSlow(array $state): bool
+    {
+        $seconds = (float) ($state['download_seconds'] ?? 0);
+
+        if ($seconds < (int) config('media.import_rate_grace_seconds', 300)) {
+            return false;
+        }
+
+        return ((int) ($state['bytes'] ?? 0)) / $seconds < (int) config('media.import_min_rate_bytes', 16 * 1024);
+    }
+
+    /** Ritmo maximo de reencolado (gap F5-3 N2): una pasada incompleta mas corta que el minimo espera el resto DENTRO del job (sin `delay`, que dejaba ~40 s muertos). */
+    private function pace(float $passStarted): void
+    {
+        $remaining = (float) config('media.import_min_pass_seconds', 1) - (microtime(true) - $passStarted);
+
+        if ($remaining > 0) {
+            usleep((int) ($remaining * 1_000_000));
+        }
+    }
+
+    /**
+     * Renombra el parcial al nombre final y deja a `finalize()` la comprobacion de tamano, tipo real y metadatos. El `path` final
+     * solo se guarda en base de datos cuando `finalize()` lo persiste (o `invalidate()`); si `finalize()` revienta, el fichero vuelve
+     * a su nombre de parcial para que el reintento lo reanude sin renombrarlo dos veces.
+     */
+    private function finish(MediaAsset $asset, array $state, string $mime, int $bytes): bool
+    {
+        $partial = $asset->path;
+        $final = preg_replace('/\.(part|jpe?g|png|webp|mp4|mov)$/i', '', $partial).'.'.$this->uploads->extensionFor($mime);
+        $disk = $this->storage->disk();
+        $disk->move($partial, $final);
+
+        $asset->forceFill([
+            'path' => $final,
+            'mime' => $mime,
+            'kind' => $this->uploads->kindFor($mime),
+            'declared_size' => $bytes,
+            'import_state' => $state,
+        ]);
+
+        try {
+            $this->uploads->finalize($asset);
+        } catch (\Throwable $e) {
+            if ($disk->exists($final)) {
+                $disk->move($final, $partial);
+            }
+
+            throw $e;
+        }
+
+        return true;
+    }
+
+    /** El contenido real (`finfo`) debe ser del mismo tipo que declaro el servidor: una cabecera `image/jpeg` no basta. */
+    private function sniffMatches(string $absolute, string $mime): bool
+    {
+        $head = (string) file_get_contents($absolute, false, null, 0, 4096);
+        $real = (new \finfo(FILEINFO_MIME_TYPE))->buffer($head) ?: '';
+
+        return $real === $mime;
+    }
+
+    private function save(MediaAsset $asset, array $state): void
+    {
+        $asset->forceFill(['import_state' => $state])->save();
+    }
+
+    private function fail(MediaAsset $asset, string $reason): bool
+    {
+        $this->storage->disk()->delete($asset->path);
+        $this->uploads->invalidate($asset, $reason);
+
+        return true;
+    }
+}

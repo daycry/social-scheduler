@@ -1,4 +1,4 @@
-import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
@@ -13,12 +13,17 @@ export function useComposer(props) {
     const accounts = computed(() => props.accounts);
     const contentTypes = computed(() => props.contentTypes);
     const limits = computed(() => props.limits ?? {});
+    const drivePicker = computed(() => props.drivePicker ?? null); // configuración del Picker de Google (null = sin Drive)
+    // Máximo del primer comentario por tipo (C-01b); los tipos sin entrada (TikTok, Stories) no lo admiten.
+    const firstCommentMax = computed(() => props.firstCommentMax ?? {});
     const editable = computed(() => !props.post || props.post.editable);
 
     const form = useForm({
         text: (props.post?.text ?? '').replace(/\r\n?/g, '\n'), // LF: el valor de un textarea siempre usa LF y los offsets del cursor deben coincidir
         // Notas internas (C-09): texto plano que nunca se publica. En un post no editable se guardan con su propio endpoint.
         notes: (props.post?.notes ?? '').replace(/\r\n?/g, '\n'),
+        // Campaña del post entero (C-03); `null` = sin campaña. Solo se ofrecen las de la marca.
+        campaign_id: props.post?.campaign_id ?? null,
         scheduled_at: props.post?.scheduled_at ?? '',
         schedule: true,
         media: (props.post?.media ?? []).map((m) => m.id),
@@ -27,6 +32,7 @@ export function useComposer(props) {
             content_type: t.content_type,
             // `null` = vinculado al texto común (plantilla); una cadena = texto propio de esta red (C-03).
             text: t.text ?? null,
+            first_comment: t.first_comment ?? '',
             options: { ...(t.options ?? {}) },
         })),
     });
@@ -38,6 +44,8 @@ export function useComposer(props) {
     onBeforeUnmount(() => objectUrls.forEach((u) => URL.revokeObjectURL(u)));
 
     const onUploaded = (asset, file) => {
+        // Idempotente: un sondeo repetido (o un doble evento) no duplica la media en la lista ni en la publicacion.
+        if (form.media.includes(asset.id) || mediaItems.value.some((m) => m.id === asset.id)) return;
         mediaItems.value.push(asset);
         form.media.push(asset.id);
         if (file && (asset.kind === 'image' || asset.kind === 'video')) {
@@ -107,12 +115,14 @@ export function useComposer(props) {
         seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
         pruneOptions();
         applyPresets(changed);
+        // Un tipo que no admite primer comentario (Story, TikTok) no arrastra el texto del tipo anterior.
+        for (const t of changed) if (firstCommentMax.value[t.content_type] == null) t.first_comment = '';
     });
 
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
             const type = typesOf(account.network)[0]?.value;
-            form.targets.push({ account_id: account.id, content_type: type, text: null, options: presetOptions(account, type) });
+            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', options: presetOptions(account, type) });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }
@@ -210,6 +220,7 @@ export function useComposer(props) {
         router.post(route('brands.library.store', props.brand.id), {
             name: clean,
             text: form.text,
+            campaign_id: form.campaign_id,
             media: form.media,
             targets: form.targets.map((t) => ({ account_id: t.account_id, content_type: t.content_type, text: t.text })),
         }, {
@@ -281,8 +292,60 @@ export function useComposer(props) {
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 
+    // Textos guardados (C-01a) y «campo activo»: el último textarea del compositor que tuvo el foco (texto común, texto propio de una
+    // red o, más adelante, el primer comentario). Cada campo se registra aquí, no en cada componente; `insertIntoActive` inserta en SU cursor.
+    const savedTexts = computed(() => props.savedTexts ?? []);
+    const activeField = shallowRef(null); // { insertAtCursor(text) }
+    const registerField = (field) => { activeField.value = field; };
+    const unregisterField = (field) => { if (activeField.value === field) activeField.value = null; };
+    const insertIntoActive = (text) => {
+        if (!activeField.value) return false;
+        activeField.value.insertAtCursor(text);
+        return true;
+    };
+
+    // Campañas (C-03): selector del encabezado con alta en línea. El alta recarga solo la lista y deja elegida la nueva.
+    const campaigns = computed(() => props.campaigns ?? []);
+    // En un post ya no editable (destinos publicados o en vuelo) la campaña es metadato: se guarda al elegirla con
+    // `PATCH posts/{post}/campaign`, igual que las notas, sin tocar los destinos.
+    const savingCampaign = ref(false);
+    let savedCampaign = props.post?.campaign_id ?? null;
+    const saveCampaign = () => {
+        if (!props.post || editable.value || savingCampaign.value) return;
+        const value = form.campaign_id ?? null;
+        router.patch(route('posts.campaign', props.post.id), { campaign_id: value }, {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => { savingCampaign.value = true; campaignError.value = ''; },
+            onSuccess: () => { savedCampaign = value; form.defaults('campaign_id', value); },
+            onError: (errors) => { campaignError.value = errors.campaign_id ?? 'No se pudo guardar la campaña.'; form.campaign_id = savedCampaign; },
+            onFinish: () => (savingCampaign.value = false),
+        });
+    };
+    const creatingCampaign = ref(false);
+    const campaignError = ref('');
+    const createCampaign = (name, { onCreated } = {}) => {
+        const clean = (name ?? '').trim();
+        if (!clean || creatingCampaign.value) return;
+        const known = new Set(campaigns.value.map((c) => c.id));
+        router.post(route('campaigns.store'), { brand_id: props.brand.id, name: clean, color: '#4f46e5' }, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['campaigns', 'flash'],
+            onStart: () => { creatingCampaign.value = true; campaignError.value = ''; },
+            onSuccess: () => {
+                const created = campaigns.value.find((c) => !known.has(c.id));
+                if (created) form.campaign_id = created.id;
+                onCreated?.();
+            },
+            onError: (errors) => (campaignError.value = errors.name ?? errors.brand_id ?? 'No se pudo crear la campaña.'),
+            onFinish: () => (creatingCampaign.value = false),
+        });
+    };
+
     const api = {
-        post, brand, accounts, contentTypes, limits, editable, form,
+        campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
+        post, brand, accounts, contentTypes, limits, drivePicker, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
@@ -290,6 +353,7 @@ export function useComposer(props) {
         libraryName, savingToLibrary, libraryErrors, saveToLibrary,
         selectedNetwork, previewText, firstPreview, charCount, accountName,
         textOf, charsOf, hashtagsOf,
+        savedTexts, activeField, registerField, unregisterField, insertIntoActive,
         isUnlinked, hasOwnText, unlinkedCount, byNetwork, activeTab, currentTab, unlink, relink, openTargetText,
     };
     provide(KEY, api);

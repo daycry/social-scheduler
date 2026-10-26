@@ -15,6 +15,7 @@ trait PostPayload
         return [
             'text' => $schema->string()->description('Texto de la publicacion (la plantilla: lo publican los destinos que no tienen texto propio)'),
             'notes' => $schema->string()->description('Notas internas (texto plano, hasta 5000 caracteres). No se publican. Omitidas = no se tocan; vacias = se borran. Para un post ya publicado usa update_post_notes'),
+            'campaign_id' => $schema->integer()->nullable()->description('ID de la campana de la publicacion entera (list_campaigns); debe ser de la misma marca y no estar archivada. Omitido = no se toca; null = se quita la campana. Para un post ya publicado usa update_post_campaign'),
             'scheduled_at' => $schema->string()->description('Fecha/hora YYYY-MM-DD HH:MM; sin zona = zona horaria de la marca. Debe ser futura si schedule=true'),
             'schedule' => $schema->boolean()->description('true = programar; false = guardar como borrador')->required(),
             'publish_now' => $schema->boolean()->description('true = publicar ahora (sin fecha: la pone el servidor; no se puede combinar con scheduled_at). Equivale a programar y encolar de inmediato'),
@@ -23,6 +24,7 @@ trait PostPayload
                 'account_id' => $schema->integer()->description('ID de cuenta (list_accounts)')->required(),
                 'content_type' => $schema->string()->description('Uno de content_types de la cuenta')->required(),
                 'text' => $schema->string()->description('Texto PROPIO de este destino. Omitido o null = vinculado a la plantilla (text de la publicacion); una cadena con contenido = ese texto se publica solo en este destino (vacia o solo espacios = vinculado). Se valida con los limites de su red'),
+                'first_comment' => $schema->string()->description('Primer comentario de este destino (Instagram, Facebook y YouTube; no TikTok ni Stories): se publica como comentario de la cuenta justo despues de publicar. Omitido o vacio = sin comentario. Maximo por red: Instagram 2200, Facebook 8000, YouTube 10000 (en YouTube la cuenta debe haberse reconectado con el permiso de comentarios; si no, el comentario queda fallido con el motivo). Su estado sale en get_post. Una vez publicado el destino no se edita por MCP'),
                 'options' => $schema->object()->description('Opciones por red (mismas reglas que la web; una opcion que la red o la cuenta no admite da error del destino). Instagram: link, share_to_feed. YouTube: title, privacy (public|unlisted|private), shorts_hashtag, category_id (numerico), tags (lista, se recortan a 500 caracteres en total), made_for_kids, notify_subscribers, contains_synthetic_media. TikTok: privacy_level, disable_comment y, solo con la publicacion directa de la cuenta, disable_duet y disable_stitch (solo video), brand_organic_toggle, brand_content_toggle (no puede ser privado), is_aigc. Los presets de la web no se tocan desde el MCP'),
             ]))->description('Cuentas y tipo de contenido de destino'),
         ];

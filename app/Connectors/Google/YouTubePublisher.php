@@ -2,16 +2,20 @@
 
 namespace App\Connectors\Google;
 
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
+use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Support\MediaChunkReader;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
@@ -47,9 +51,17 @@ use Illuminate\Support\Facades\Log;
  * guarda con `checkpoint` en cuanto se conoce, y un reintento reutiliza la sesion reanudable cacheada (no abre otra ni
  * vuelve a cobrar cuota).
  */
-class YouTubePublisher implements Publisher, StatusPoller
+class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
 {
     public const UPLOADING = PublishResult::UPLOADING;
+
+    /** Permiso que exige `commentThreads.insert`. Las cuentas conectadas antes de pedirlo no pueden comentar hasta reconectar. */
+    public const COMMENT_SCOPE = 'https://www.googleapis.com/auth/youtube.force-ssl';
+
+    /** Unidades de cuota de la API: `commentThreads.insert` cuesta 50 y `commentThreads.list` 1. */
+    private const COMMENT_COST = 50;
+
+    private const COMMENT_LIST_COST = 1;
 
     private const API = 'https://www.googleapis.com/youtube/v3';
 
@@ -84,6 +96,12 @@ class YouTubePublisher implements Publisher, StatusPoller
     private ?float $passStartedAt = null;
 
     public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota) {}
+
+    /** ¿El canal concedio el permiso de comentar? Sin el, solo se desactiva el primer comentario; publicar sigue igual. */
+    public static function canComment(SocialAccount $account): bool
+    {
+        return in_array(self::COMMENT_SCOPE, (array) $account->scopes, true);
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
@@ -239,6 +257,144 @@ class YouTubePublisher implements Publisher, StatusPoller
         }
 
         return $this->poll($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $found, $request->since));
+    }
+
+    /**
+     * Primer comentario (`commentThreads.insert`, 50 ud, exige `youtube.force-ssl`). Sin el permiso no se llama a la API:
+     * pide reconectar. Comentarios desactivados, video no encontrado o privado -> `CommentNotAllowedException`.
+     */
+    public function comment(SocialAccount $account, string $externalId, string $text): string
+    {
+        if (! self::canComment($account)) {
+            throw new ReconnectRequiredException('Reconecta el canal de YouTube para poder comentar (falta el permiso de comentarios).');
+        }
+
+        $this->quota->assertAvailable(self::COMMENT_COST);
+
+        $response = $this->send($account, fn (PendingRequest $http) => $http->post(self::API.'/commentThreads?part=snippet', [
+            'snippet' => ['videoId' => $externalId, 'topLevelComment' => ['snippet' => ['textOriginal' => $text]]],
+        ]));
+
+        if (! $response->successful()) {
+            $reason = (string) ($response->json('error.errors.0.reason') ?? '');
+
+            if (in_array($reason, ['commentsDisabled', 'videoNotFound'], true)) {
+                throw new CommentNotAllowedException('YouTube no admite comentarios en este video (privado, con comentarios desactivados o «hecho para ninos»).', 'comentarios_cerrados');
+            }
+
+            throw $this->exceptionFor($response);
+        }
+
+        $this->quota->charge(self::COMMENT_COST);
+
+        return (string) ($response->json('snippet.topLevelComment.id') ?? $response->json('id') ?? '');
+    }
+
+    /**
+     * Comentario propio (autor = el canal) con ese texto, o null. Busqueda ACOTADA (idempotencia del primer comentario).
+     *
+     * `commentThreads.list` solo ordena por `time` (mas recientes primero) o `relevance`: NO hay orden cronologico ascendente, asi
+     * que un video con mas de 100 comentarios nuevos dejaria el propio fuera de la primera pagina. La mejor opcion que permite la
+     * API es `searchTerms` (hilos que contienen el texto): se busca con el inicio del comentario hasta `social.first_comment.find_pages`
+     * paginas y un presupuesto de tiempo; si no aparece y la busqueda llego a su fin, se mira ademas la primera pagina sin filtro
+     * (por si el indice de busqueda va por detras). Si se agota el tope con mas paginas por leer, lanza
+     * `CommentSearchInconclusiveException` (el job no crea otro a ciegas en un reintento).
+     *
+     * @throws CommentSearchInconclusiveException
+     */
+    public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
+    {
+        if (! self::canComment($account)) {
+            return null;
+        }
+
+        $wanted = Comments::canon($text);
+        $deadline = microtime(true) + (float) config('social.first_comment.find_budget_seconds', 80);
+        $base = ['part' => 'snippet', 'videoId' => $externalId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText'];
+
+        // 1) Hilos que contienen el texto.
+        $search = $base + ['searchTerms' => mb_substr($wanted, 0, 100)];
+        $more = false;
+        $token = null;
+
+        for ($page = 0, $max = max(1, (int) config('social.first_comment.find_pages', 3)); $page < $max; $page++) {
+            if ($page > 0 && microtime(true) + (float) config('social.http_timeout', 15) > $deadline) {
+                $more = true;
+                break;
+            }
+
+            $json = $this->threadsPage($account, $token === null ? $search : $search + ['pageToken' => $token]);
+
+            if (($found = $this->ownIn($json, $account, $wanted)) !== null) {
+                return $found;
+            }
+
+            $token = $json['nextPageToken'] ?? null;
+            $more = is_string($token) && $token !== '';
+
+            if (! $more) {
+                break;
+            }
+        }
+
+        if ($more) {
+            throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: el video tiene demasiados comentarios con ese texto. No se crea otro a ciegas: comprueba en la red si ya esta; si lo esta, pulsa «Ya esta publicado», y si no, «Publicar igualmente» (puede duplicarse si en realidad ya existe).', 'busqueda_inconclusa');
+        }
+
+        // 2) Red de seguridad: los 100 hilos mas recientes sin filtro.
+        return $this->ownIn($this->threadsPage($account, $base), $account, $wanted);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function threadsPage(SocialAccount $account, array $query): array
+    {
+        $this->quota->assertAvailable(self::COMMENT_LIST_COST);
+        $json = $this->listThreads($account, $query);
+        $this->quota->charge(self::COMMENT_LIST_COST);
+
+        return $json;
+    }
+
+    /** @param  array<string, mixed>  $json */
+    private function ownIn(array $json, SocialAccount $account, string $wanted): ?string
+    {
+        foreach ((array) ($json['items'] ?? []) as $thread) {
+            $top = $thread['snippet']['topLevelComment'] ?? [];
+            $snippet = $top['snippet'] ?? [];
+
+            if (($snippet['authorChannelId']['value'] ?? null) === $account->external_id
+                && Comments::canon((string) ($snippet['textOriginal'] ?? $snippet['textDisplay'] ?? '')) === $wanted) {
+                return (string) ($top['id'] ?? '') ?: null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * `commentThreads.list` para buscar el comentario propio. Comentarios desactivados o video inexistente/privado
+     * (403 `commentsDisabled`, 404 `videoNotFound`) son `CommentNotAllowedException` (-> `no_admitido`), igual que al insertar:
+     * no es un fallo de credenciales y reconectar el canal no lo arregla.
+     *
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function listThreads(SocialAccount $account, array $query): array
+    {
+        $response = $this->send($account, fn (PendingRequest $http) => $http->get(self::API.'/commentThreads', $query), false);
+
+        if (! $response->successful()) {
+            if (in_array((string) ($response->json('error.errors.0.reason') ?? ''), ['commentsDisabled', 'videoNotFound'], true)) {
+                throw new CommentNotAllowedException('YouTube no admite comentarios en este video (privado, con comentarios desactivados o «hecho para ninos»).', 'comentarios_cerrados');
+            }
+
+            throw $this->exceptionFor($response);
+        }
+
+        return $response->json() ?? [];
     }
 
     /** Borra un video del canal (scope `youtube`; `youtube.upload` no lo permite). `false` si ya no existia. */

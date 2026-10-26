@@ -17,6 +17,11 @@ class PostTemplate extends Model
 
     protected $fillable = ['name', 'text', 'targets'];
 
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class)->withoutGlobalScope(UserScope::class);
+    }
+
     protected function casts(): array
     {
         return ['targets' => 'array'];

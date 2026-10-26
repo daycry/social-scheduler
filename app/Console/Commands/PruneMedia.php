@@ -19,6 +19,7 @@ class PruneMedia extends Command
         $n = $uploads->pruneAbandoned($hours);
 
         $this->info("Subidas abandonadas eliminadas: $n");
+        $this->info('Parciales de importacion eliminados: '.$uploads->pruneOrphanParts($hours));
         $this->info('Temporales de sondeo eliminados: '.MediaProbe::pruneTemporaries());
 
         return self::SUCCESS;

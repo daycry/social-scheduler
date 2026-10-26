@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\MediaAsset;
+use App\Services\Media\DriveFileSource;
+use App\Services\Media\UnsafeUrlException;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -52,6 +54,50 @@ class MediaController extends Controller
         }
 
         return response()->json(['asset' => $result['asset']->toPublicArray(), 'upload' => $upload], 201);
+    }
+
+    /** Importa media desde una URL publica (C-04a): valida con `UrlGuard`, responde 202 con el asset `pendiente` y descarga en la cola `media`. */
+    public function importUrl(Request $request): JsonResponse
+    {
+        $data = $request->validate(['url' => ['required', 'string', 'max:2048']]);
+
+        try {
+            $asset = $this->uploads->importFromUrl($request->user(), $data['url']);
+        } catch (UnsafeUrlException|InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['asset' => $asset->toPublicArray()], 202);
+    }
+
+    /**
+     * Importa un fichero de Google Drive (C-04b) con el token del Picker. Solo se acepta si el Picker esta configurado (clave, app id y client id).
+     * El token no se guarda: viaja cifrado en el job y caduca en 1 h.
+     */
+    public function importDrive(Request $request): JsonResponse
+    {
+        abort_unless(DriveFileSource::pickerConfigured(), 404);
+
+        $data = $request->validate([
+            'file_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{1,128}$/'],
+            'access_token' => ['required', 'string', 'max:4096'],
+        ]);
+
+        try {
+            $asset = $this->uploads->importFromDrive($request->user(), $data['file_id'], $data['access_token']);
+        } catch (UnsafeUrlException|InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['asset' => $asset->toPublicArray()], 202);
+    }
+
+    /** Estado de un asset (para sondear el progreso de una importacion). */
+    public function show(MediaAsset $asset): JsonResponse
+    {
+        $this->authorize('view', $asset);
+
+        return response()->json(['asset' => $asset->toPublicArray()]);
     }
 
     /** Subida directa a la app, solo con el disco local (dev/test). En produccion (R2) no se usa. */

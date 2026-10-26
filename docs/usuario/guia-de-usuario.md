@@ -37,6 +37,8 @@ El compositor ocupa toda la pantalla. Arriba eliges las redes con pastillas; cad
 - **Notas.** Un campo de notas internas para tu equipo o para ti. Nunca se publican. Se pueden editar también cuando la publicación ya está en curso o publicada (no tocan lo publicado). En el calendario, las publicaciones con notas llevan la insignia **Nota**, para que veas de un vistazo cuáles tienen indicaciones del equipo.
 - **UTM.** El botón de enlaces abre un generador: escribes la dirección y los parámetros `utm_` (origen, medio y campaña son obligatorios) y **Añadir** inserta el enlace ya montado en el texto.
 - **Emojis y asistente de texto** desde la barra del editor.
+- **Textos guardados.** Guarda firmas, llamadas a la acción o grupos de hashtags y reutilízalos. Créalos en **Textos guardados** (menú de tu usuario, arriba a la derecha): elige el tipo (**Fragmento** o **Grupo de hashtags**), un título, el texto y, si quieres, una marca; sin marca valen para **Todas las marcas**. Puedes buscarlos, filtrarlos por marca, editarlos y borrarlos. En el compositor, el botón **Textos guardados** de la barra muestra los de la marca actual y los de Todas las marcas; al elegir uno se inserta **en la posición del cursor** del campo en el que estabas escribiendo (el texto común o el texto propio de una red) y el contador de hashtags se actualiza. Solo tú ves tus textos.
+- **Primer comentario.** En Instagram, Facebook y YouTube puedes escribir un comentario que la cuenta deja justo después de publicar (por ejemplo, el enlace o los hashtags). Aparece en las opciones de cada red, con un contador que respeta el máximo de la red (Instagram 2.200, Facebook 8.000, YouTube 10.000); en TikTok y en las Historias no existe. Tras publicar, el estado se ve en **Estado por red**: **Pendiente**, **Comentando**, **Comentado**, **Fallido** (con el motivo) o **No admitido** (comentarios cerrados o vídeo privado o «para niños»). Si falla, recibes un aviso en la app; pulsa **Editar** para corregir el texto y **Reintentar**. Si el comentario falló porque la app no pudo comprobar si ya estaba en la red (la búsqueda quedó inconclusa) y podría existir ya, **Reintentar** no lo vuelve a crear a ciegas y el aviso ofrece dos salidas: **Ya está publicado** (lo has visto tú en la red; lo cierra como publicado sin tocar la red, así que un «publicado» marcado a mano no queda enlazado al comentario real) y **Publicar igualmente** (lo crea de todos modos, con el riesgo de que quede **duplicado** si ya estaba; solo se envía una vez por clic). La publicación sigue como **Publicada** aunque el comentario falle. El primer comentario no se guarda en la biblioteca. **YouTube:** hay que **reconectar el canal** una vez para dar el permiso de comentarios; hasta entonces el campo sale desactivado con el aviso «Reconecta el canal para comentar». Desde un asistente de IA (MCP) puedes indicarlo al crear o editar, pero no corregir un comentario fallido: eso se hace en la web.
 - **Programar, borrador y Publicar ahora.** El botón principal programa; el menú que lo acompaña (**Más acciones de publicación**) guarda como borrador, guarda en la biblioteca o **publica ahora**. Publicar ahora no espera a la fecha: pide confirmación y envía la publicación enseguida. Durante unos segundos el estado se ve «Programada» hasta que se empieza a publicar. También lo ofrecen el calendario y la lista. Si sales con cambios sin guardar, la app te avisa.
 - **Biblioteca.** Guarda una publicación como plantilla desde el menú del compositor o desde la lista del calendario; en **Biblioteca**, **Usar** crea un borrador a partir de ella.
 
@@ -52,7 +54,7 @@ Aviso: si publicas en la misma cuenta dos destinos con exactamente el mismo text
 
 ### YouTube
 
-Cada subida gasta unas 1.600 de las 10.000 unidades diarias: unas 6 subidas al día.
+Cada subida gasta unas 1.600 de las 10.000 unidades diarias: unas 6 subidas al día. Cada primer comentario gasta 50 más (y 1 la comprobación previa). Para comentar hay que reconectar el canal una vez (permiso de comentarios).
 
 ### TikTok
 
@@ -61,6 +63,23 @@ Por ahora el vídeo se envía como **borrador a tu bandeja de TikTok**: recibir�
 ## Calendario
 
 Vista de semana o mes (y lista) con el estado por red. Puedes filtrar por red y reprogramar una publicación pendiente moviéndola.
+
+### Cuadrícula de Instagram
+
+En **Planificación > Cuadrícula** ves cómo quedará el perfil de una cuenta de Instagram de la marca (si hay varias, las eliges arriba). Son tres columnas, como en Instagram: primero lo **programado** (con su fecha; la más tardía primero y un clic abre el compositor) y debajo lo **ya publicado** (un clic abre la publicación en Instagram). Es de solo lectura.
+
+- Las **Stories no aparecen** (no forman parte del perfil) y un Reel programado solo aparece si está marcado **compartir en el feed**.
+- Los posts **fijados** en el perfil no se reflejan: aquí se ordena por fecha.
+- Las miniaturas se recortan en vertical, así que pueden no coincidir exactamente con el recorte de Instagram. Un carrusel muestra su primera pieza y un vídeo sin miniatura muestra su primer fotograma.
+- Lo publicado se lee de Instagram y se **actualiza cada 10 minutos**; una publicación recién hecha puede tardar en salir. Si Instagram no responde o la cuenta necesita reconectarse, verás un aviso y lo programado se sigue mostrando.
+
+## Campañas
+
+En **Planificación > Campañas** agrupas las publicaciones de una marca para medirlas juntas. Crea una campaña con nombre, color y fechas (el fin no puede ser anterior al inicio), edítala, **archívala** para que deje de ofrecerse, o bórrala: sus publicaciones se conservan, sin campaña.
+
+En el compositor, el selector **Campaña** de la cabecera asigna la publicación entera a una campaña de la marca (también puedes crear una al momento con **Nueva campaña**). Duplicar una publicación o guardarla en la biblioteca conserva la campaña. Desde un asistente de IA (MCP) se usa `campaign_id` y `list_campaigns`.
+
+Al abrir una campaña ves publicaciones, visualizaciones, **alcance acumulado**, interacciones, me gusta, comentarios, compartidos, guardados y engagement, con el desglose por red, la evolución diaria y cada publicación. Es la suma del último dato leído de cada destino; lo que no se ha podido medir sale como "No disponible", nunca como 0, y el alcance no cuenta usuarios únicos. Las métricas de una publicación se actualizan durante **30 días** tras publicarla; después quedan congeladas.
 
 ## Estadísticas
 

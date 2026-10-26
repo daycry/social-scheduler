@@ -1,0 +1,329 @@
+<?php
+
+namespace App\Services\Media;
+
+use Closure;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Http;
+
+/**
+ * Guardia SSRF (CWE-918) para las descargas remotas. Una URL solo se pide si:
+ *  - es `http`/`https`, sin credenciales ni caracteres de control, y su puerto es 80 o 443;
+ *  - el host no es `localhost` ni un literal numerico raro (decimal, octal, hexadecimal, abreviado);
+ *  - TODAS las IPs a las que resuelve (A y AAAA) son publicas: sin privadas, reservadas, link-local, metadatos ni IPv4
+ *    incrustada en IPv6 (`::ffff:0:0/96`, `64:ff9b::/96`, `2002::/16`).
+ * La conexion se fija a la IP validada (`CURLOPT_RESOLVE`) para que un DNS que cambie entre la comprobacion y la conexion
+ * (rebinding) no pueda llevarla a otra direccion, y las redirecciones se siguen a mano revalidando cada `Location`.
+ */
+class UrlGuard
+{
+    public const MAX_REDIRECTS = 5;
+
+    /** Mensaje unico para «apunta a una red privada» y «no resuelve» (no es un oraculo de DNS interno, CWE-204). */
+    private const NOT_ALLOWED = 'La URL apunta a una direccion no permitida.';
+
+    /** @var list<array{string, int}> Rangos IPv4 bloqueados (red, prefijo). */
+    private const BLOCKED_V4 = [
+        ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16], ['172.16.0.0', 12],
+        ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.88.99.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15],
+        ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
+        ['168.63.129.16', 32], // IP virtual de la plataforma de Azure (WireServer / DNS)
+    ];
+
+    /** @var list<array{string, int}> Rangos IPv6 bloqueados dentro de 2000::/3 (el resto del espacio no es unicast global). */
+    private const BLOCKED_V6 = [
+        ['2001::', 32],     // Teredo
+        ['2001:2::', 48],   // benchmarking
+        ['2001:10::', 28],  // ORCHID
+        ['2001:db8::', 32], // documentacion
+    ];
+
+    /** @var Closure(string): list<string> */
+    private readonly Closure $resolver;
+
+    /** @param  (Closure(string): list<string>)|null  $resolver  Resuelve un host a sus IPs; inyectable en los tests. */
+    public function __construct(?Closure $resolver = null)
+    {
+        $this->resolver = $resolver ?? self::dnsResolver(...);
+    }
+
+    /**
+     * @throws UnsafeUrlException
+     */
+    public function validate(string $url): ValidatedUrl
+    {
+        $url = trim($url);
+
+        if ($url === '' || strlen($url) > 2048 || preg_match('/[\x00-\x20\x7f\\\\]/', $url)) {
+            throw new UnsafeUrlException('La URL no es valida.');
+        }
+
+        $parts = parse_url($url);
+
+        if ($parts === false || ! isset($parts['scheme'], $parts['host'])) {
+            throw new UnsafeUrlException('La URL no es valida.');
+        }
+
+        $scheme = strtolower($parts['scheme']);
+
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            throw new UnsafeUrlException('Solo se admiten URLs http o https.');
+        }
+
+        $authority = preg_match('#^[a-z][a-z0-9+.-]*://([^/?\#]*)#i', $url, $m) ? $m[1] : '';
+
+        if (isset($parts['user']) || isset($parts['pass']) || str_contains($authority, '@')) {
+            throw new UnsafeUrlException('La URL no puede llevar usuario ni contrasena.');
+        }
+
+        $port = $parts['port'] ?? ($scheme === 'https' ? 443 : 80);
+
+        if (! in_array($port, [80, 443], true)) {
+            throw new UnsafeUrlException('Solo se admiten los puertos 80 y 443.');
+        }
+
+        $host = $this->normalizeHost($parts['host']);
+        $ips = $this->resolve($host);
+
+        foreach ($ips as $ip) {
+            if (! self::isPublicIp($ip)) {
+                throw new UnsafeUrlException(self::NOT_ALLOWED);
+            }
+        }
+
+        // La peticion se hace a una URL RECONSTRUIDA con lo que se valido (no a la cadena original): el cliente HTTP y `parse_url`
+        // no pueden interpretar el host de otra manera y saltarse la IP fijada (CURLOPT_RESOLVE va por host:puerto).
+        $canonical = $scheme.'://'.(str_contains($host, ':') ? "[$host]" : $host).(isset($parts['port']) ? ':'.$parts['port'] : '')
+            .(($parts['path'] ?? '') !== '' ? $parts['path'] : '/').(isset($parts['query']) ? '?'.$parts['query'] : '');
+
+        return new ValidatedUrl($canonical, $scheme, $host, $port, $ips[0], $ips);
+    }
+
+    /**
+     * Opciones de cURL (clave `curl` de Guzzle) para una peticion ya validada. Solo lleva `CURLOPT_RESOLVE`: Guzzle 8 rechaza
+     * con `InvalidArgumentException` las opciones de cURL que tienen una opcion propia (proxy, redirecciones, protocolos,
+     * progreso...), asi que esas van en `requestOptions()`.
+     *
+     * @return array<int, mixed>
+     */
+    public function curlOptions(ValidatedUrl $v): array
+    {
+        $ip = str_contains($v->ip, ':') ? '['.$v->ip.']' : $v->ip;
+
+        return [CURLOPT_RESOLVE => ["{$v->host}:{$v->port}:{$ip}"]];
+    }
+
+    /**
+     * Opciones NATIVAS de Guzzle para una peticion validada: IP fijada, proxy desactivado (tambien el del entorno), sin
+     * redirecciones automaticas (las sigue `follow()` revalidando cada salto), solo http/https y sin decodificar el cuerpo.
+     *
+     * @return array<string, mixed>
+     */
+    public function requestOptions(ValidatedUrl $v): array
+    {
+        return [
+            'curl' => $this->curlOptions($v),
+            'proxy' => '',
+            'allow_redirects' => false,
+            'protocols' => ['http', 'https'],
+            'decode_content' => false,
+        ];
+    }
+
+    /** Cliente HTTP para UNA peticion validada: IP fijada, sin redirecciones automaticas y sin proxy. */
+    public function client(ValidatedUrl $v): PendingRequest
+    {
+        return Http::withoutRedirecting()->withOptions($this->requestOptions($v));
+    }
+
+    /**
+     * Pide `$url` con `$send` y sigue a mano hasta 5 redirecciones: cada destino se valida de nuevo (DNS incluido) ANTES
+     * de pedirlo, asi que una redireccion a una IP interna nunca llega a hacerse.
+     *
+     * @param  Closure(ValidatedUrl, array<int, mixed>): Response  $send  Hace UNA peticion sin seguir redirecciones.
+     *
+     * @throws UnsafeUrlException
+     */
+    public function follow(string $url, Closure $send): Response
+    {
+        for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+            $validated = $this->validate($url);
+            $response = $send($validated, $this->curlOptions($validated));
+
+            if (! in_array($response->status(), [301, 302, 303, 307, 308], true) || ! filled($location = $response->header('Location'))) {
+                return $response;
+            }
+
+            $url = self::resolveLocation($validated->url, $location);
+        }
+
+        throw new UnsafeUrlException('La URL redirige demasiadas veces.');
+    }
+
+    /** ¿Es una direccion IP publica y alcanzable (ni privada, ni reservada, ni de bucle, ni de metadatos)? */
+    public static function isPublicIp(string $ip): bool
+    {
+        $bin = filter_var($ip, FILTER_VALIDATE_IP) !== false ? @inet_pton($ip) : false;
+
+        if ($bin === false) {
+            return false;
+        }
+
+        return strlen($bin) === 4 ? self::publicV4($bin) : self::publicV6($bin);
+    }
+
+    private static function publicV4(string $bin): bool
+    {
+        foreach (self::BLOCKED_V4 as [$net, $prefix]) {
+            if (self::inRange($bin, (string) inet_pton($net), $prefix)) {
+                return false;
+            }
+        }
+
+        return filter_var(inet_ntop($bin), FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+
+    private static function publicV6(string $bin): bool
+    {
+        // IPv4 incrustada: se juzga la IPv4, nunca el envoltorio (::ffff:7f00:1 es loopback).
+        if (self::inRange($bin, (string) inet_pton('::ffff:0:0'), 96) || self::inRange($bin, (string) inet_pton('64:ff9b::'), 96)) {
+            return self::publicV4(substr($bin, 12, 4));
+        }
+
+        if (self::inRange($bin, (string) inet_pton('2002::'), 16)) {
+            return self::publicV4(substr($bin, 2, 4));
+        }
+
+        // Solo el unicast global (2000::/3): fuera quedan ::, ::1, ::/96 (IPv4-compatible), fc00::/7, fe80::/10, fec0::/10, ff00::/8...
+        if (! self::inRange($bin, (string) inet_pton('2000::'), 3)) {
+            return false;
+        }
+
+        foreach (self::BLOCKED_V6 as [$net, $prefix]) {
+            if (self::inRange($bin, (string) inet_pton($net), $prefix)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function inRange(string $bin, string $net, int $prefix): bool
+    {
+        $bytes = intdiv($prefix, 8);
+
+        if (substr($bin, 0, $bytes) !== substr($net, 0, $bytes)) {
+            return false;
+        }
+
+        $bits = $prefix % 8;
+
+        if ($bits === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $bits)) & 0xFF;
+
+        return (ord($bin[$bytes]) & $mask) === (ord($net[$bytes]) & $mask);
+    }
+
+    private function normalizeHost(string $host): string
+    {
+        $host = strtolower(rtrim(trim($host, '[]'), '.'));
+
+        if ($host === '') {
+            throw new UnsafeUrlException('La URL no es valida.');
+        }
+
+        if (! preg_match('/^[\x20-\x7e]+$/', $host)) {
+            $ascii = function_exists('idn_to_ascii') ? idn_to_ascii($host, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46) : false;
+
+            if ($ascii === false || $ascii === '') {
+                throw new UnsafeUrlException('El dominio de la URL no es valido.');
+            }
+
+            $host = strtolower($ascii);
+        }
+
+        return $host;
+    }
+
+    /**
+     * @return non-empty-list<string>
+     */
+    private function resolve(string $host): array
+    {
+        // Literal de IP: se juzga tal cual, sin DNS. Cualquier otra forma numerica (decimal, octal, hex, abreviada) se rechaza.
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return [$host];
+        }
+
+        // Un nombre de dominio solo lleva letras, digitos, guiones y puntos: `%`, `_`, zonas IPv6 (`%25eth0`) y similares se rechazan.
+        if (strlen($host) > 253 || ! preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/', $host)) {
+            throw new UnsafeUrlException('El dominio de la URL no es valido.');
+        }
+
+        if ($host === 'localhost' || str_ends_with($host, '.localhost') || self::looksNumeric($host)) {
+            throw new UnsafeUrlException(self::NOT_ALLOWED);
+        }
+
+        $ips = array_values(array_unique(array_filter(($this->resolver)($host), 'is_string')));
+
+        if ($ips === []) {
+            // Mismo mensaje que una IP privada: distinguirlos permitiria sondear la red interna por DNS (CWE-204).
+            throw new UnsafeUrlException(self::NOT_ALLOWED);
+        }
+
+        return $ips;
+    }
+
+    /** Un nombre cuya ultima etiqueta es numerica (o 0x..) no es un dominio: es una IP escrita de forma ambigua. */
+    private static function looksNumeric(string $host): bool
+    {
+        $last = substr($host, (int) strrpos('.'.$host, '.'));
+
+        return (bool) preg_match('/^(0x[0-9a-f]*|[0-9]+)$/i', $last);
+    }
+
+    /** @return list<string> */
+    private static function dnsResolver(string $host): array
+    {
+        $ips = [];
+
+        foreach ([DNS_A => 'ip', DNS_AAAA => 'ipv6'] as $type => $key) {
+            foreach (@dns_get_record($host, $type) ?: [] as $record) {
+                if (isset($record[$key])) {
+                    $ips[] = (string) $record[$key];
+                }
+            }
+        }
+
+        return $ips;
+    }
+
+    /** Resuelve el `Location` de una redireccion contra la URL que la devolvio. */
+    private static function resolveLocation(string $base, string $location): string
+    {
+        $location = trim($location);
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $location)) {
+            return $location;
+        }
+
+        $b = parse_url($base);
+        $origin = $b['scheme'].'://'.$b['host'].(isset($b['port']) ? ':'.$b['port'] : '');
+
+        if (str_starts_with($location, '//')) {
+            return $b['scheme'].':'.$location;
+        }
+
+        if (str_starts_with($location, '/')) {
+            return $origin.$location;
+        }
+
+        $dir = rtrim(substr($b['path'] ?? '/', 0, strrpos($b['path'] ?? '/', '/') + 1), '/');
+
+        return $origin.$dir.'/'.$location;
+    }
+}

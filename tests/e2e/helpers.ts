@@ -507,6 +507,7 @@ export function cleanComposerBrands(email: string) {
             String.raw`$brands = App\Models\Brand::withoutUserScope()->where('user_id', $u->id)->where('name', 'like', 'e2e-composer-%')->get(); ` +
             String.raw`$ids = App\Models\PostTarget::withoutUserScope()->whereIn('post_id', App\Models\Post::withoutUserScope()->withTrashed()->whereIn('brand_id', $brands->pluck('id'))->select('id'))->pluck('id'); ` +
             String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PublishPostTarget%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
+            String.raw`foreach ($ids as $id) { Illuminate\Support\Facades\DB::table('jobs')->where('payload', 'like', '%PostFirstComment%')->whereRaw("payload like ? escape '|'", ['%targetId\";i:' . $id . ';%'])->delete(); } ` +
             String.raw`$brands->each->delete(); ` +
             String.raw`App\Models\MediaAsset::withoutUserScope()->where('user_id', $u->id)->get()->each->delete(); }`,
     );
@@ -552,4 +553,138 @@ export async function chooseContentType(page: Page, account: number | RegExp, la
     await button.click();
     await page.getByRole('option', { name: new RegExp(`^${label}`) }).click();
     await expect(button).toContainText(label);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Textos guardados (C-01a): datos `e2e-` del usuario E2E. Los de una marca se van con ella (cascade); los de «Todas las marcas» se borran aparte.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Borra los textos guardados con título `e2e-…` del usuario E2E (los de marca ya se fueron con `cleanComposerBrands`). */
+export function cleanSavedTexts(email: string) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->first(); ` +
+            `if ($u) { App\\Models\\SavedText::withoutUserScope()->where('user_id', $u->id)->where('title', 'like', 'e2e-%')->delete(); }`,
+    );
+}
+
+/**
+ * Siembra tres textos: uno de «Todas las marcas» (hashtags), uno de la marca y uno de otra marca `e2e-composer-otra-…`.
+ * El de la otra marca NO debe aparecer en el compositor de `brandId`.
+ */
+export function seedSavedTexts(email: string, brandId: number, label: string) {
+    artisan(
+        `$u = App\\Models\\User::where('email', ${q(email)})->firstOrFail(); ` +
+            `$other = App\\Models\\Brand::factory()->for($u)->create(['name' => ${q(`e2e-composer-otra-${label}`)}]); ` +
+            `$mk = fn ($brand, $kind, $title, $body) => App\\Models\\SavedText::factory()->create(['user_id' => $u->id, 'brand_id' => $brand, 'kind' => $kind, 'title' => $title, 'body' => $body]); ` +
+            `$mk(null, 'hashtags', 'e2e-hashtags-globales', '#uno #dos'); ` +
+            `$mk(${brandId}, 'fragmento', 'e2e-firma-marca', 'Un saludo de la marca'); ` +
+            `$mk($other->id, 'fragmento', 'e2e-texto-otra-marca', 'No debe verse');`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Primer comentario (C-01b): destino publicado sembrado. Nunca se publica ni se comenta en una red real.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type PublishedComment = { postId: number; targetId: number };
+
+/**
+ * Publicación de Instagram ya `publicada` (sembrada, sin pasar por la red) cuyo primer comentario está en `status`
+ * (`fallido` por defecto, con el motivo). Reintentar solo encola un `PostFirstComment` en la cola `database`: sin worker no llega a ninguna red.
+ */
+export function seedPublishedWithComment(email: string, brandId: number, status = 'fallido', error = 'Instagram no admite comentarios en esta publicacion.', sentAt = false): PublishedComment {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e publicada con comentario', 'schedule' => false, 'media' => [$m->id], 'targets' => [['account_id' => $ig->id, 'content_type' => 'instagram_image', 'first_comment' => 'e2e Mas info en el enlace']]]); ` +
+            String.raw`$p->targets->each(fn ($t) => $t->forceFill(['status' => 'publicada', 'published_at' => now(), 'external_id' => 'e2e-ext-1', 'external_url' => 'https://example.test/e2e', 'first_comment_status' => ${q(status)}, 'first_comment_attempts' => 3, 'first_comment_error' => ${q(error)}, 'first_comment_sent_at' => ${sentAt ? 'now()' : 'null'}])->save()); $p->syncStatus(); ` +
+            String.raw`echo 'IDS:' . $p->id . ',' . $p->targets()->first()->id;`,
+    );
+    const [postId, targetId] = out.match(/IDS:([\d,]+)/)![1].split(',');
+    return { postId: Number(postId), targetId: Number(targetId) };
+}
+
+/** Estado del primer comentario de un destino (columna), para comprobar el efecto de Editar y Reintentar. */
+export function firstCommentOf(targetId: number): { status: string; text: string; postStatus: string } {
+    const out = artisan(
+        String.raw`$t = App\Models\PostTarget::withoutUserScope()->findOrFail(${targetId}); ` +
+            String.raw`echo 'FC:' . json_encode(['status' => $t->first_comment_status?->value, 'text' => $t->first_comment, 'postStatus' => $t->status->value]);`,
+    );
+    return JSON.parse(out.match(/FC:(\{.*\})/)![1]);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Cuadrícula de Instagram (C-02): lo publicado se siembra en la caché de 10 min (nunca se llama a Graph) y lo programado en la BD.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type GridSeed = { accountId: number; later: number; earlier: number; story: number };
+
+/**
+ * Cuenta de Instagram de la marca E2E con tres publicadas «leídas» (caché `ig-grid:{cuenta}`, 10 min), dos posts programados
+ * (`later` es el más tardío) y una Story programada que NO debe aparecer. Miniaturas como `data:` URI: sin red.
+ */
+export function seedInstagramGrid(email: string, brandId: number): GridSeed {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$mk = fn ($type, $text, $at) => $svc->create($u, $b, ['text' => $text, 'schedule' => true, 'scheduled_at' => $at, 'media' => [App\Models\MediaAsset::factory()->for($u)->create()->id], 'targets' => [['account_id' => $ig->id, 'content_type' => $type]]]); ` +
+            String.raw`$when = now()->addDays(3)->setTimezone($b->timezone); ` +
+            String.raw`$earlier = $mk('instagram_image', 'e2e grid programada 1', $when->copy()->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$later = $mk('instagram_image', 'e2e grid programada 2', $when->copy()->addDay()->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$story = $mk('instagram_story', 'e2e grid story', $when->copy()->addDays(2)->setTime(10, 0)->format('Y-m-d H:i')); ` +
+            String.raw`$svg = fn ($c) => 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="' . $c . '"/></svg>'); ` +
+            String.raw`$pub = fn ($id, $type, $c, $day) => ['kind' => 'published', 'id' => $id, 'target_id' => null, 'post_id' => null, 'type' => $type, 'image_url' => $svg($c), 'video_url' => null, 'permalink' => 'https://www.instagram.com/p/' . $id . '/', 'timestamp' => now()->subDays($day)->toIso8601String()]; ` +
+            String.raw`Illuminate\Support\Facades\Cache::put('ig-grid:' . $ig->id, [$pub('e2eP1', 'IMAGE', '#4f46e5', 1), $pub('e2eP2', 'VIDEO', '#0d9488', 2), $pub('e2eP3', 'CAROUSEL_ALBUM', '#be123c', 3)], now()->addMinutes(10)); ` +
+            String.raw`echo 'GRID:' . $ig->id . ',' . $later->id . ',' . $earlier->id . ',' . $story->id;`,
+    );
+    const [accountId, later, earlier, story] = out.match(/GRID:([\d,]+)/)![1].split(',');
+    return { accountId: Number(accountId), later: Number(later), earlier: Number(earlier), story: Number(story) };
+}
+
+/** Vacía la caché de la cuadrícula de las cuentas de Instagram del usuario E2E. */
+export function cleanInstagramGridCache(email: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); ` +
+            String.raw`if ($u) { App\Models\SocialAccount::withoutUserScope()->where('user_id', $u->id)->where('network', 'instagram')->pluck('id')->each(fn ($id) => Illuminate\Support\Facades\Cache::forget('ig-grid:' . $id)); }`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Campañas (C-03): datos `e2e-` en marcas `e2e-composer-*` (se van con la marca por cascade). Nada se publica en una red.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Otra marca `e2e-composer-otra-…` con una campaña: NO debe ofrecerse en el compositor de la marca principal. */
+export function seedOtherBrandCampaign(email: string, label: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$o = App\Models\Brand::factory()->for($u)->create(['name' => ${q(`e2e-composer-otra-${label}`)}]); ` +
+            String.raw`App\Models\Campaign::factory()->create(['user_id' => $u->id, 'brand_id' => $o->id, 'name' => 'e2e-camp-otra-marca']);`,
+    );
+}
+
+export type CampaignSeed = { campaignId: number };
+
+/**
+ * Campaña `e2e-camp-panel` con un post de dos destinos `publicada` (Instagram y Facebook) y snapshots sembrados: Instagram con
+ * 100 visualizaciones, 80 de alcance y 20 interacciones; Facebook con 50 y 40 y las interacciones en `null` (sin datos).
+ */
+export function seedCampaignPanel(email: string, brandId: number): CampaignSeed {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$c = App\Models\Campaign::factory()->create(['user_id' => $u->id, 'brand_id' => $b->id, 'name' => 'e2e-camp-panel', 'color' => '#0f766e']); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$fb = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'facebook')->firstOrFail(); ` +
+            String.raw`$m = App\Models\MediaAsset::factory()->for($u)->create(); ` +
+            String.raw`$p = app(App\Services\PostService::class)->create($u, $b, ['text' => 'e2e post de campaña', 'schedule' => false, 'campaign_id' => $c->id, 'media' => [$m->id], 'targets' => [['account_id' => $ig->id, 'content_type' => 'instagram_image'], ['account_id' => $fb->id, 'content_type' => 'facebook_photo']]]); ` +
+            String.raw`$metrics = ['instagram' => ['views' => 100, 'reach' => 80, 'interactions' => 20], 'facebook' => ['views' => 50, 'reach' => 40, 'interactions' => null]]; ` +
+            String.raw`foreach ($p->targets as $t) { $t->forceFill(['status' => 'publicada', 'published_at' => now()->subDays(2), 'external_id' => 'e2e-camp-' . $t->id, 'external_url' => 'https://example.test/e2e-' . $t->id])->save(); ` +
+            String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'post_target_id' => $t->id, 'social_account_id' => $t->social_account_id, 'network' => $t->network->value, 'date' => now()->subDay()->toDateString(), 'metrics' => $metrics[$t->network->value]]); } ` +
+            String.raw`$p->syncStatus(); echo 'CAMP:' . $c->id;`,
+    );
+    return { campaignId: Number(out.match(/CAMP:(\d+)/)![1]) };
 }

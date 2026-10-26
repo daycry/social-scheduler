@@ -1,6 +1,6 @@
 # Pendientes manuales
 
-Lo que no puede hacer un agente: requiere cuentas reales, el VPS o juicio del usuario. Fuente: [tasks.md](../roadmap/2026-10-19-social-scheduler/tasks.md) (ledger) y [test-plan.md](../roadmap/2026-10-19-social-scheduler/test-plan.md). Estado a 2026-10-20: ninguno ejecutado.
+Lo que no puede hacer un agente: requiere cuentas reales, el VPS o juicio del usuario. Fuente: [tasks.md](../roadmap/2026-10-19-social-scheduler/tasks.md) (ledger) y [test-plan.md](../roadmap/2026-10-19-social-scheduler/test-plan.md). Estado a 2026-10-26: ninguno ejecutado.
 
 ## Pruebas manuales M-01..M-05
 
@@ -11,6 +11,20 @@ Lo que no puede hacer un agente: requiere cuentas reales, el VPS o juicio del us
 | M-03 | Revisar dashboards y PDF con datos reales (job diario ~30 días); aprobar diseño y secciones del informe | El usuario aprueba; cierra T-37 y T-41 | T-37, T-39, T-41 |
 | M-04 | Desplegar en el VPS HestiaCP ([despliegue](../modulos/despliegue.md)) | `/up` 200 bajo HTTPS; un worker caído se levanta solo; una publicación vencida durante la caída sale al volver | T-09, T-10 |
 | M-05 | Revisar el informe del spike y la decisión G1 | Veredicto por plataforma con evidencia y decisión G1 por red | T-01..T-05 |
+
+## metricool-parity-2
+
+Pruebas con cuentas, datos y servicios reales de la iniciativa [metricool-parity-2](../roadmap/2026-10-24-metricool-parity-2/tasks.md) (el detalle está en su [test-plan](../roadmap/2026-10-24-metricool-parity-2/test-plan.md)). Antes del smoke de Drive y de YouTube, sigue la [guía de Google Cloud](../guias/google-cloud-picker-drive.md). Ninguno ejecutado.
+
+| Id | Qué hacer | Criterio de aceptación |
+|---|---|---|
+| P2-M-01 | **Primer comentario real en Instagram y Facebook** (test-plan M-01). Publicar un post de prueba con primer comentario; forzar un fallo y pulsar Reintentar | Un único comentario de la cuenta en Instagram y otro en Facebook; Reintentar no duplica el comentario |
+| P2-M-02 | **Reconexión de YouTube y comentario real** (test-plan M-02). En Conexiones pulsar «+ Conectar» en la tarjeta de YouTube (actualiza la cuenta; «Reconectar» solo sale si no está activa), aceptar `youtube.force-ssl` y comentar un vídeo propio | La reconexión pide el permiso nuevo; el comentario aparece en el vídeo; sin reconectar, el control avisa «Reconecta el canal para comentar» |
+| P2-M-03 | **Cuadrícula con la cuenta real de Instagram** (test-plan M-03). Comparar la cuadrícula con el perfil real | El orden de lo publicado coincide con el perfil (salvo fijados); las programadas se distinguen y enlazan al compositor; el aviso de fijados es comprensible |
+| P2-M-04 | **Importar un vídeo desde Google Drive** (test-plan M-04). Con `GOOGLE_PICKER_API_KEY`, `GOOGLE_PICKER_APP_ID` y `GOOGLE_CLIENT_ID` (sin cualquiera de los tres no hay botón), pulsar «Google Drive», conceder `drive.file` y elegir un vídeo de más de 100 MB. Tras el smoke, `grep -c "ya29" storage/logs/*.log` | El botón aparece; el vídeo se importa en varias pasadas hasta `listo` por el cron de la cola `media`; el grep da 0 |
+| P2-M-05 | **Revisión visual del panel de campaña y la cuadrícula en móvil** (test-plan M-05). Mirarlos en un móvil real | Gráfica y teselas legibles; nada se corta ni se solapa a 360 px; textos en español correcto |
+
+Importación por URL real (no figura en el test-plan, que la cubre con loopback): importar con «Desde URL» una imagen y un vídeo públicos reales y una URL que redirija; una IP interna se rechaza con el mensaje en español. **Por diseño**, un vídeo sin `Accept-Ranges` solo queda `listo` si cabe en una sola pasada (80 s de presupuesto); si no, acaba `invalido` con «El servidor no permite descargas por partes».
 
 ## Pendientes del servidor MCP
 

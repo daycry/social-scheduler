@@ -12,7 +12,8 @@ La app guarda un snapshot diario por cuenta y métricas por publicación recient
 | Recolector | `app/Analytics/SnapshotCollector.php` |
 | Día cerrado por zona | `app/Analytics/Days.php` |
 | Cálculos (crecimiento, engagement) | `app/Analytics/Calculator.php`, `Metric.php`, `Period.php` |
-| Servicio | `app/Services/AnalyticsService.php` |
+| Servicio | `app/Services/AnalyticsService.php` (`withLatestSnapshot`: el último snapshot de cada destino, compartido con las campañas) |
+| Campañas | `app/Services/CampaignAnalytics.php`, `resources/js/Pages/Campaigns/{Index,Show}.vue` |
 | Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php` |
 | UI | `resources/js/Pages/Dashboard/{Index,Network}.vue`, `LineChart.vue` |
 | Tablas | `account_snapshots` (con `settled_at`), `post_metric_snapshots` |
@@ -45,3 +46,15 @@ TikTok: solo lo que permitan `user.info.stats`/`video.list`; el `external_id` de
 ## Trabajo manual pendiente
 
 M-03: dejar correr el job con cuentas reales ~30 días y revisar los gráficos. Ver [pendientes](../referencia/pendientes-manuales.md).
+
+## Campañas (C-03)
+
+Una **campaña** es una etiqueta por marca (nombre, color, fechas, archivada o no) que se asigna al **post entero**: todos sus destinos cuentan. Al borrar la campaña los posts se conservan, sin campaña. Solo se admiten campañas de la marca del post (web y MCP).
+
+El panel (`/campaigns/{id}`) lee de las mismas tablas que el dashboard y reutiliza `AnalyticsService::withLatestSnapshot`, así que ambos ven el mismo «último valor» de cada destino. `CampaignAnalytics` suma el **último snapshot de cada destino publicado** de la campaña:
+
+- Una métrica que ningún destino informa es `null` y se muestra «No disponible», nunca 0. Si solo informan algunos destinos, la suma es la de los que informan.
+- El **alcance** se rotula «alcance acumulado»: es la suma del alcance de cada publicación, no usuarios únicos.
+- El engagement usa solo los destinos con visualizaciones e interacciones.
+- La serie diaria del panel de campaña se agrega en SQL: cada día suma los snapshots leídos ese día, sin arrastrar el último valor de los destinos que no se leyeron (su último punto puede no coincidir con los KPIs, que usan el último snapshot de cada destino; la UI lo avisa). La lista de posts se recorta a 100 (con el total y un aviso).
+- **Límite de 30 días:** las métricas de una publicación solo se refrescan durante `SOCIAL_ANALYTICS_RECENT_POST_DAYS` (30) días; pasado ese plazo quedan congeladas con el último dato leído. El panel lo avisa.

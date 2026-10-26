@@ -3,6 +3,7 @@
 namespace App\Connectors;
 
 use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\InsightsReader;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Exceptions\ConnectorException;
@@ -49,6 +50,14 @@ class ConnectorRegistry
     public function publisherFor(Network $network): ?Publisher
     {
         return $this->publishers[$network->value] ?? null;
+    }
+
+    /** Quien puede dejar el primer comentario en esa red: el publicador, si implementa `FirstCommenter` (TikTok no). */
+    public function commenterFor(Network $network): ?FirstCommenter
+    {
+        $publisher = $this->publishers[$network->value] ?? null;
+
+        return $publisher instanceof FirstCommenter ? $publisher : null;
     }
 
     public function has(string $provider): bool

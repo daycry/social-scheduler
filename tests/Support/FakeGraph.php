@@ -38,6 +38,18 @@ class FakeGraph
         return new Sequence($items);
     }
 
+    /** Pagina de comentarios de Graph con `$n` ajenos (ids X<from>..), mas los `$own` dados, y cursor a la siguiente si `$next`. */
+    public static function commentsPage(int $n, int $from, bool $next = true, array $own = []): array
+    {
+        $data = [];
+        for ($i = 0; $i < $n; $i++) {
+            $id = 'X'.($from + $i);
+            $data[] = ['id' => $id, 'message' => 'ruido '.$id, 'text' => 'ruido '.$id, 'username' => 'otro', 'from' => ['id' => 'OTRO', 'name' => 'Otro'], 'created_time' => '2026-11-01T10:00:00+0000', 'timestamp' => '2026-11-01T10:00:00+0000'];
+        }
+
+        return ['data' => array_merge($data, $own), 'paging' => array_filter(['cursors' => ['after' => 'CUR'.$from], 'next' => $next ? 'https://graph.facebook.com/next' : null])];
+    }
+
     /** Respuesta de error de Graph. */
     public static function error(int $code, string $message, ?int $subcode = null, int $status = 400): array
     {

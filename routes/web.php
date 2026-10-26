@@ -103,7 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('settings/saved-texts/{id}', [SavedTextController::class, 'update'])->whereNumber('id')->name('saved-texts.update');
     Route::delete('settings/saved-texts/{id}', [SavedTextController::class, 'destroy'])->whereNumber('id')->name('saved-texts.destroy');
 
-    // Campañas (C-03). {id} a mano: la campaña de otro usuario responde 403, no 404.
+    // Campañas (C-03). {id} a mano: la campaña de otro usuario responde 404 (UserScope), como el resto del proyecto.
     Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
     Route::get('campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id')->name('campaigns.show');
     Route::post('campaigns', [CampaignController::class, 'store'])->name('campaigns.store');

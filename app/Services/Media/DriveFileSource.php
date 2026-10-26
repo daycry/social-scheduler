@@ -126,7 +126,7 @@ class DriveFileSource extends UrlSource
     protected function assertAllowed(ValidatedUrl $v): void
     {
         if ($v->host !== self::HOST || $v->scheme !== 'https' || $v->port !== 443) {
-            throw new UnsafeUrlException('Google Drive redirigió la descarga a otro servidor; vuelve a elegir el fichero en Drive.');
+            throw new UnsafeUrlException('Google Drive redirigió la descarga a otro servidor. Vuelve a elegir el fichero en Drive.');
         }
     }
 

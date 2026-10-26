@@ -1534,11 +1534,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-45 — Pest de Drive con `Http::fake`
 
 - **Descripción**: Casos de Drive: metadatos, tipo y tamaño, tramos con `Range`, token caducado y `ShouldBeEncrypted`. Requisito: CA-18.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Cobertura de pruebas del flujo de Drive: descarga por tramos, token caducado, fichero demasiado grande y token cifrado en la cola.
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.27h (estimado)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-42
@@ -1548,14 +1549,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImportDriveFlowTest.php` → verde
 
 **Criterios de aceptación**
-- [ ] Nunca se llama a Drive real.
-- [ ] Cubre éxito, `401` y fichero demasiado grande.
-- [ ] El payload del job va cifrado.
+- [x] Nunca se llama a Drive real.
+- [x] Cubre éxito, `401` y fichero demasiado grande.
+- [x] El payload del job va cifrado.
 
 **Subtareas**
-- [ ] Escenarios
+- [x] Escenarios
 
 **Notas**: Patrón: `tests/Feature/Media/ImportRemoteMediaTest.php` (T-35).
+
+**Evidencia**: ImportDriveFlowTest: 7 passed (Http::fake, sin red); tests/Feature/Media + Ui: 204 passed. Cubre exito, 401 a mitad, fichero grande (metadatos y Content-Length), redireccion a googleusercontent sin token, Range/If-Range y payload de jobs sin el token en claro.
 
 ### T-46 — E2E de Drive: botón oculto sin clave
 

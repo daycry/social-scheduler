@@ -79,29 +79,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-01 — Migración, modelo y factoría de `InboxCommentNote`
 
 - **Descripción**: Tabla `inbox_comment_notes` (`user_id`, `inbox_comment_id`, `body`) con `UserScope`. Requisito: CA-17 (la nota sobrevive al resync del inbox) y C-04d de la evaluación.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los comentarios del inbox admiten notas internas que se conservan al resincronizar.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: db
-- **Archivos**: `database/migrations/*_create_inbox_comment_notes_table.php`, `app/Models/InboxCommentNote.php`, `database/factories/InboxCommentNoteFactory.php`, `tests/Feature/Inbox/InboxCommentNoteModelTest.php`
+- **Archivos**: `database/migrations/*_create_inbox_comment_notes_table.php`, `app/Models/InboxCommentNote.php`, `database/factories/InboxCommentNoteFactory.php`, `database/factories/InboxCommentFactory.php`, `app/Models/InboxComment.php`, `tests/Feature/Inbox/InboxCommentNoteModelTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Inbox/InboxCommentNoteModelTest.php` → todos en verde (aislamiento por usuario y relación con el comentario)
 
 **Criterios de aceptación**
-- [ ] La migración es aditiva y reversible (`down()` borra solo `inbox_comment_notes`).
-- [ ] El modelo usa `UserScope`: otro usuario no ve notas ajenas.
-- [ ] Un *upsert* del comentario (mismo `external_id`) conserva la fila y, por tanto, sus notas.
+- [x] La migración es aditiva y reversible (`down()` borra solo `inbox_comment_notes`).
+- [x] El modelo usa `UserScope`: otro usuario no ve notas ajenas.
+- [x] Un *upsert* del comentario (mismo `external_id`) conserva la fila y, por tanto, sus notas.
 
 **Subtareas**
-- [ ] Escribir el test RED de aislamiento y de *upsert*
-- [ ] Migración, modelo y factoría
+- [x] Escribir el test RED de aislamiento y de *upsert*
+- [x] Migración, modelo y factoría
 
-**Notas**: Patrón: `app/Models/SavedText.php` y `app/Models/Concerns/BelongsToUser.php` (`UserScope`); modelo del comentario en `app/Models/InboxComment.php`. El inbox hace *upsert* de `inbox_comments`, por eso las notas van en tabla aparte con FK a la fila. Migraciones solo aditivas.
+**Notas**: Patrón: `app/Models/SavedText.php` y `app/Models/Concerns/BelongsToUser.php` (`UserScope`); modelo del comentario en `app/Models/InboxComment.php`. El inbox hace *upsert* de `inbox_comments`, por eso las notas van en tabla aparte con FK a la fila. Migraciones solo aditivas. Nota de implementación: `InboxComment` no tenía factoría; se añade `InboxCommentFactory` (+ `HasFactory` y la relación `notes()` en el modelo) y se declaran en `Archivos`. Migración `2026_11_17_090000_…` (ya migrada).
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Inbox/InboxCommentNoteModelTest.php -> 4 passed (7 assertions)
 
 ### T-02 — `InboxNoteService`, request, controlador y rutas de notas
 

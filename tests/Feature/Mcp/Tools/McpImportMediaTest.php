@@ -86,3 +86,28 @@ test('McpImportMedia: tools/list incluye la herramienta y sigue cabiendo en una 
 
     expect($names)->toContain('import_media_from_url')->toHaveCount(22)->and($response->json('result.nextCursor'))->toBeNull();
 });
+
+test('McpImportMedia (revision): list_media con status ve el progreso y el motivo del fallo; por defecto solo lista las «listo»', function () {
+    $pending = MediaAsset::factory()->create(['user_id' => $this->user->id, 'status' => 'pendiente', 'source' => 'url', 'import_state' => ['bytes' => 500, 'total' => 2000, 'validator' => '"secreto"']]);
+    $invalid = MediaAsset::factory()->create(['user_id' => $this->user->id, 'status' => 'invalido', 'source' => 'url', 'error' => 'El servidor remoto respondió 404.']);
+    $ready = MediaAsset::factory()->create(['user_id' => $this->user->id, 'status' => 'listo']);
+    $foreign = MediaAsset::factory()->create(['user_id' => User::factory()->create()->id, 'status' => 'pendiente', 'source' => 'url']);
+
+    [, $default] = $this->callTool($this->key, 'list_media');
+    expect(collect($default['media'])->pluck('id')->all())->toBe([$ready->id]);
+
+    [$err, $p] = $this->callTool($this->key, 'list_media', ['status' => 'pendiente']);
+    expect($err)->toBeFalse()->and($p['media'])->toHaveCount(1)
+        ->and($p['media'][0])->toMatchArray(['id' => $pending->id, 'status' => 'pendiente', 'bytes' => 500, 'total' => 2000])
+        ->and(json_encode($p))->not->toContain('secreto');
+
+    [, $i] = $this->callTool($this->key, 'list_media', ['status' => 'invalido']);
+    expect(collect($i['media'])->pluck('id')->all())->toBe([$invalid->id])->and($i['media'][0]['error'])->toBe('El servidor remoto respondió 404.');
+
+    [, $all] = $this->callTool($this->key, 'list_media', ['status' => 'todos']);
+    expect(collect($all['media'])->pluck('id')->sort()->values()->all())->toBe(collect([$pending->id, $invalid->id, $ready->id])->sort()->values()->all())
+        ->and(collect($all['media'])->pluck('id')->all())->not->toContain($foreign->id);
+
+    [$err2, $msg] = $this->callTool($this->key, 'list_media', ['status' => 'borrada']);
+    expect($err2)->toBeTrue()->and($msg)->toContain('status');
+});

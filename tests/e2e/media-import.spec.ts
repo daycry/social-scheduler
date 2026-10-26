@@ -203,3 +203,112 @@ test('E2E-08 · se puede cancelar una importación en curso', async ({ page }) =
     expect(seen.deletes).toBe(1);
     await expect(page.getByText('Todavía no has añadido archivos')).toBeVisible();
 });
+
+/**
+ * Google Drive (C-04b, E2E-09). El servidor de pruebas no tiene `GOOGLE_PICKER_API_KEY`: sin clave el botón no existe. Con clave se simula la
+ * página (se inyecta `drivePicker` en las props de Inertia), `window.google`/`window.gapi` (stub del Picker, sin cargar ningún script de Google)
+ * y `POST /media/import-drive`: nada llega a Google.
+ */
+test('E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google', async ({ page }, info) => {
+    const google: string[] = [];
+    page.on('request', (r) => {
+        if (/accounts\.google\.com|apis\.google\.com/.test(r.url())) google.push(r.url());
+    });
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    await expect(page.getByTestId('media-import')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Google Drive' })).toHaveCount(0);
+    await expect(page.getByTestId('media-import-drive')).toHaveCount(0);
+    await expect(page.getByText('También puedes elegir un fichero de Google Drive')).toHaveCount(0);
+    expect(google, 'no se carga nada de Google').toEqual([]);
+
+    await page.getByTestId('media-import').scrollIntoViewIfNeeded();
+    await expectNoOverflow(page);
+    await axeNow(page, `compositor sin Drive (${info.project.name})`);
+});
+
+/** Activa Drive en la página: reescribe las props de Inertia del HTML y sustituye Google por un stub que «elige» un fichero. */
+async function enableFakeDrive(page: Page, seen: { token: string | null; clicks: number; body: Record<string, string> | null }, pick: 'file' | 'cancel' = 'file') {
+    // Se reescribe `data-page` en cuanto el parser crea el contenedor de Inertia, antes de que arranque la aplicación (el HTML no se
+    // intercepta: `route.fetch` no acepta el certificado autofirmado de metricool.test).
+    await page.addInitScript(() => {
+        const patch = () => {
+            const el = document.getElementById('app');
+            const raw = el?.getAttribute('data-page');
+            if (!el || !raw || el.dataset.driveStub) return;
+            el.dataset.driveStub = '1';
+            const data = JSON.parse(raw);
+            data.props.drivePicker = { api_key: 'test-key', app_id: '123', client_id: 'cid.apps.googleusercontent.com' };
+            el.setAttribute('data-page', JSON.stringify(data));
+        };
+        new MutationObserver(patch).observe(document, { childList: true, subtree: true, attributes: true });
+    });
+    await page.addInitScript((mode) => {
+        const w = window as any;
+        w.__drive = { token: null, clicks: 0 };
+        w.google = {
+            accounts: { oauth2: { initTokenClient: (cfg: any) => ({ requestAccessToken: () => { w.__drive.clicks++; cfg.callback({ access_token: 'ya29.stub-token' }); } }) } },
+            picker: {
+                ViewId: { DOCS: 'docs' }, Response: { ACTION: 'action', DOCUMENTS: 'docs' }, Action: { PICKED: 'picked', CANCEL: 'cancel' }, Document: { ID: 'id', NAME: 'name' },
+                DocsView: class { setMimeTypes() { return this; } setIncludeFolders() { return this; } },
+                PickerBuilder: class {
+                    cb: any;
+                    setOAuthToken(t: string) { w.__drive.token = t; return this; }
+                    setDeveloperKey() { return this; } setLocale() { return this; } setAppId() { return this; } addView() { return this; }
+                    setCallback(cb: any) { this.cb = cb; return this; }
+                    build() { return { setVisible: () => setTimeout(() => this.cb(mode === 'file' ? { action: 'picked', docs: [{ id: 'FILE_id-1', name: 'clip.mp4' }] } : { action: 'cancel' }), 0) }; }
+                },
+            },
+        };
+        w.gapi = { load: (_: string, cb: () => void) => cb() };
+    }, pick);
+    await page.route('**/media/import-drive', (route) => {
+        seen.body = route.request().postDataJSON();
+        return route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ asset: fakeAsset({ name: 'clip.mp4', kind: 'video', mime: 'video/mp4', source: 'drive' }) }) });
+    });
+    await page.route(`**/media/${FAKE_ID}`, (route) => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ asset: fakeAsset({ name: 'clip.mp4', kind: 'video', mime: 'video/mp4', status: 'listo', bytes: 10, total: 10, size: 10, duration: 3, source: 'drive' }) }),
+    }));
+}
+
+test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google', async ({ page }, info) => {
+    const seen = { token: null as string | null, clicks: 0, body: null as Record<string, string> | null };
+    await enableFakeDrive(page, seen);
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    const button = page.getByRole('button', { name: 'Google Drive' });
+    await expect(button).toBeVisible();
+    await button.scrollIntoViewIfNeeded();
+    await expectNoOverflow(page);
+    await axeNow(page, `compositor con Drive (${info.project.name})`);
+
+    // Accesible por teclado: foco y Intro.
+    await button.focus();
+    await expect(button).toBeFocused();
+    await page.keyboard.press('Enter');
+
+    await expect(page.getByText('1. clip.mp4')).toBeVisible({ timeout: 20_000 });
+    expect(seen.body).toEqual({ file_id: 'FILE_id-1', access_token: 'ya29.stub-token' });
+    // El token no queda en la URL, el almacenamiento ni el DOM.
+    expect(page.url()).not.toContain('ya29');
+    const leaked = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }) + document.documentElement.outerHTML.includes('ya29'));
+    expect(leaked).not.toContain('ya29');
+    expect(leaked).toContain('false');
+    await expectNoOverflow(page);
+});
+
+test('E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error', async ({ page }) => {
+    const seen = { token: null as string | null, clicks: 0, body: null as Record<string, string> | null };
+    await enableFakeDrive(page, seen, 'cancel');
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    await page.getByRole('button', { name: 'Google Drive' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).__drive.clicks)).toBe(1);
+    await expect(page.getByTestId('media-import-item')).toHaveCount(0);
+    await expect(page.getByTestId('media-import-error')).toHaveText('');
+    expect(seen.body).toBeNull();
+});

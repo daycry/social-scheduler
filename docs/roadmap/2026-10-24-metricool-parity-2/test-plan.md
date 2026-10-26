@@ -165,6 +165,13 @@
 ### M-04 — Importar un vídeo desde Google Drive (CA-18)
 - **Qué revisar**: Con Google Cloud configurado (guía de T-48), elegir un vídeo en el Picker e importarlo hasta `listo`.
 - **Por qué no se automatiza**: Exige OAuth y el Picker reales de Google.
+- **Preparación (la hace el usuario; guía `docs/guias/google-cloud-picker-drive.md`)**:
+  1. En Google Cloud: activar Picker API y Drive API, crear la clave de API restringida al dominio y añadir `drive.file` a la pantalla de consentimiento. El cliente OAuth es el que ya usan los conectores (`GOOGLE_CLIENT_ID`) y debe tener el dominio entre los orígenes JavaScript autorizados.
+  2. En el `.env` de producción: `GOOGLE_PICKER_API_KEY=` (obligatoria) y `GOOGLE_PICKER_APP_ID=` (número de proyecto); después `php artisan config:cache`.
+  3. Comprobar que el cron de la cola `media` de Hestia está activo (`queue:work database --queue=media --stop-when-empty`).
+- **Pasos**: abrir un borrador, pulsar «Google Drive», conceder el acceso y elegir un vídeo de más de 100 MB; seguir el progreso hasta `listo`; añadirlo al post.
+- **Revisión del token (T-47, hecha por el agente)**: el token viaja solo en el cuerpo de `POST /media/import-drive` y en el payload cifrado (`ShouldBeEncrypted`) del job; no se guarda en `media_assets`, no se devuelve en JSON ni se registra; `tokeninfo` lo recibe en un POST (no en la URL); el `Authorization` solo se envía a `www.googleapis.com` por HTTPS 443 (una redirección a otro host aborta la importación antes de la petición); en `jobs`/`failed_jobs` el payload va cifrado. Caduca en 1 h: si la cola tarda más, el asset queda `invalido` con «Vuelve a elegir el fichero en Drive».
+- **Comprobación extra recomendada**: tras el smoke, `grep -c "ya29" storage/logs/*.log` debe dar 0.
 - **Criterio de aceptación**:
   - [ ] El botón «Google Drive» aparece con la clave configurada.
   - [ ] El vídeo elegido se importa en varias pasadas y queda `listo`.

@@ -6,6 +6,7 @@ use App\Http\Controllers\AutolistController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CompetitorController;
 use App\Http\Controllers\InboxController;
+use App\Http\Controllers\InboxNoteController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\PublicSmartLinkController;
 use App\Http\Controllers\SmartLinkController;
@@ -66,6 +67,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inbox/{comment}/read', [InboxController::class, 'read'])->whereNumber('comment')->name('inbox.read');
     Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.reply');
     Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
+    // Notas internas de los comentarios (C-04d).
+    Route::post('inbox/{comment}/notes', [InboxNoteController::class, 'store'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.notes.store');
+    Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->whereNumber('note')->name('inbox.notes.destroy');
 
     // Analytics · Meta Ads, solo lectura (PA-11).
     Route::get('ads', [AdsController::class, 'index'])->middleware('throttle:30,1')->name('ads.index');

@@ -109,29 +109,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-02 — `InboxNoteService`, request, controlador y rutas de notas
 
 - **Descripción**: Alta y borrado de notas de un comentario, solo del dueño. Requisito: CA-17.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Se pueden añadir y borrar notas internas en los comentarios del inbox (hasta 2.000 caracteres).
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-01
 - **Tipo**: backend
-- **Archivos**: `app/Services/InboxNoteService.php`, `app/Http/Controllers/InboxNoteController.php`, `app/Http/Requests/InboxNoteRequest.php`, `routes/web.php`, `tests/Feature/Inbox/InboxNoteCrudTest.php`
+- **Archivos**: `app/Services/InboxNoteService.php`, `app/Http/Controllers/InboxNoteController.php`, `app/Http/Requests/InboxNoteRequest.php`, `routes/parity.php`, `tests/Feature/Inbox/InboxNoteCrudTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Inbox/InboxNoteCrudTest.php` → todos en verde (alta, borrado, 404 ajeno, validación)
 
 **Criterios de aceptación**
-- [ ] POST crea la nota y DELETE la borra, ambos solo para el dueño.
-- [ ] Un comentario ajeno responde 404 sin revelar su existencia.
-- [ ] La auditoría no guarda el cuerpo de la nota.
+- [x] POST crea la nota y DELETE la borra, ambos solo para el dueño.
+- [x] Un comentario ajeno responde 404 sin revelar su existencia.
+- [x] La auditoría no guarda el cuerpo de la nota.
 
 **Subtareas**
-- [ ] Test RED de CRUD y aislamiento
-- [ ] Servicio, request, controlador y rutas
+- [x] Test RED de CRUD y aislamiento
+- [x] Servicio, request, controlador y rutas
 
-**Notas**: Patrón: `app/Services/SavedTextService.php`, `app/Http/Controllers/SavedTextController.php`, `app/Http/Requests/SavedTextRequest.php` y rutas en `routes/web.php:101-103`. Comentario ajeno = 404. Texto plano, tope 2.000 caracteres (supuesto, ⚠️ confirmar). La auditoría (`app/Services/AuditLog.php`) registra la acción, nunca el cuerpo.
+**Notas**: Patrón: `app/Services/SavedTextService.php`, `app/Http/Controllers/SavedTextController.php`, `app/Http/Requests/SavedTextRequest.php` y rutas en `routes/web.php:101-103` (las del inbox viven en `routes/parity.php`, donde se añaden las de notas). Comentario ajeno = 404. Texto plano, tope 2.000 caracteres (supuesto, ⚠️ confirmar). La auditoría (`app/Services/AuditLog.php`) registra la acción, nunca el cuerpo.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Inbox/InboxNoteCrudTest.php -> 7 passed (24 assertions)
 
 ### T-03 — UI del inbox: hilo de notas, alta, borrado, insignia «con nota» y filtro
 

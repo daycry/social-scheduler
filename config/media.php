@@ -49,5 +49,7 @@ return [
     | worker (120). El job va en la cola `import_queue`. Requiere `MEDIA_DISK=local` (el parcial se anexa en disco).
     */
     'import_budget_seconds' => (int) env('MEDIA_IMPORT_BUDGET_SECONDS', 80),
+    // Segundos del presupuesto que se reservan para `finalize()` (ffprobe...): la descarga corta antes.
+    'import_finalize_reserve_seconds' => (int) env('MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS', 10),
     'import_queue' => env('MEDIA_IMPORT_QUEUE', 'media'),
 ];

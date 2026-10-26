@@ -4,6 +4,8 @@ use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\RemoteMediaImporter;
+use App\Services\Media\RemotePass;
+use App\Services\Media\RemoteSource;
 use App\Services\Media\UrlGuard;
 use App\Services\Media\UrlSource;
 use App\Services\Media\ValidatedUrl;
@@ -14,6 +16,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 // C-04a (T-35, CA-14/CA-16/CA-17): importacion remota por pasadas. Nunca hay red: DNS inyectado y `Http::fake`.
@@ -381,4 +384,124 @@ test('ImportRemoteMedia (revision): un fallo de red no filtra la URL con su toke
     } catch (Throwable $e) {
         expect($e->getMessage())->not->toContain('SECRETO')->and($e->getPrevious())->toBeNull();
     }
+});
+
+test('ImportRemoteMedia (revision): si el remoto anuncia Accept-Ranges pero responde 200 con el mismo ETag, el motivo es «no permite partes»', function () {
+    $body = importJpeg(120, 90);
+    $n = strlen($body);
+    $half = intdiv($n, 2);
+    $first = fn () => Http::response(substr($body, 0, $half), 206, ['Content-Type' => 'image/jpeg', 'Content-Range' => 'bytes 0-'.($half - 1)."/$n", 'ETag' => '"v1"', 'Accept-Ranges' => 'bytes']);
+    $ignored = fn () => Http::response($body, 200, jpegHeaders($n, ['ETag' => '"v1"', 'Accept-Ranges' => 'bytes']));
+    Http::fake(['cdn.example.com/*' => Http::sequence()->pushResponse($first())->pushResponse($ignored())->pushResponse($first())->pushResponse($ignored())]);
+
+    $asset = startImport('https://cdn.example.com/ignora.jpg');
+
+    expect($asset->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->error)->toContain('no permite descargas por partes');
+});
+
+test('ImportRemoteMedia (revision): sin validador, un total distinto entre pasadas reinicia en vez de empalmar dos versiones', function () {
+    $body = importJpeg(120, 90);
+    $n = strlen($body);
+    $half = intdiv($n, 2);
+    Http::fake(['cdn.example.com/*' => Http::sequence()
+        ->pushResponse(Http::response(substr($body, 0, $half), 206, ['Content-Type' => 'image/jpeg', 'Content-Range' => 'bytes 0-'.($half - 1)."/$n"]))
+        ->pushResponse(Http::response('xx', 206, ['Content-Type' => 'image/jpeg', 'Content-Range' => "bytes $half-".($half + 1).'/'.($n + 500)])) // otro total: el fichero cambio
+        ->pushResponse(Http::response($body, 200, jpegHeaders($n)))]); // reinicio desde 0
+
+    $asset = startImport('https://cdn.example.com/cambia.jpg');
+
+    expect($asset->status)->toBe(MediaAsset::STATUS_READY)->and($asset->size)->toBe($n)->and($asset->import_state['restarts'])->toBe(1);
+    Http::assertSent(fn (Request $r) => ! $r->hasHeader('If-Range'));
+});
+
+/** Fuente de mentira para probar el importador sin red: devuelve siempre la pasada que se le da. */
+function fakeSource(RemotePass $pass, ?float &$remaining = null): RemoteSource
+{
+    return new class($pass, $remaining) implements RemoteSource
+    {
+        public function __construct(private RemotePass $pass, private ?float &$remaining) {}
+
+        public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline, ?int $knownTotal = null): RemotePass
+        {
+            $this->remaining = $deadline - microtime(true);
+
+            return $this->pass;
+        }
+
+        public function name(): string
+        {
+            return 'a.jpg';
+        }
+
+        public function reference(): string
+        {
+            return 'https://cdn.example.com/a.jpg';
+        }
+    };
+}
+
+test('ImportRemoteMedia (revision): tres pasadas seguidas sin un byte nuevo dan la descarga por fallida (sin bucle sin espera)', function () {
+    $source = fakeSource(new RemotePass(false, false, true, 1000, '"v1"', 'image/jpeg', 0));
+    $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
+    $importer = app(RemoteMediaImporter::class);
+
+    expect($importer->run($asset->fresh(), $source))->toBeFalse()->and($importer->run($asset->fresh(), $source))->toBeFalse();
+    expect($importer->run($asset->fresh(), $source))->toBeTrue();
+    expect($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->fresh()->error)->toContain('no avanza');
+});
+
+test('ImportRemoteMedia (revision): la reanudacion de un asset ya renombrado no genera «.jpg.jpg»', function () {
+    $body = importJpeg(80, 60);
+    $n = strlen($body);
+    $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', 'https://cdn.example.com/a.jpg', 'a.jpg');
+    // Un intento anterior renombro el parcial a su nombre final pero no llego a guardarlo como terminado.
+    $asset->forceFill(['path' => 'media/'.$this->user->id.'/ya.jpg', 'import_state' => ['bytes' => $n, 'total' => $n, 'validator' => '"v1"', 'ranges' => true, 'mime' => 'image/jpeg', 'sniffed' => true, 'passes' => 1]])->save();
+    Storage::disk('local')->put($asset->path, $body);
+    Http::fake(['cdn.example.com/*' => Http::response('', 416, ['Content-Range' => "bytes */$n"])]);
+
+    (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class));
+
+    $fresh = $asset->fresh();
+    expect($fresh->status)->toBe(MediaAsset::STATUS_READY)->and($fresh->path)->toBe('media/'.$this->user->id.'/ya.jpg');
+    expect(Storage::disk('local')->allFiles('media'))->toBe(['media/'.$this->user->id.'/ya.jpg']);
+});
+
+test('ImportRemoteMedia (revision): si finalize() revienta, el fichero vuelve a su nombre de parcial y el path en base de datos no cambia', function () {
+    $body = importJpeg(80, 60);
+    Http::fake(['cdn.example.com/*' => Http::response($body, 200, jpegHeaders(strlen($body)))]);
+    $uploads = Mockery::mock(MediaUploadService::class)->makePartial();
+    $uploads->shouldReceive('finalize')->andThrow(new RuntimeException('ffprobe se colgo'));
+    $importer = new RemoteMediaImporter(app(MediaStorage::class), $uploads);
+    $source = new UrlSource(app(UrlGuard::class), 'https://cdn.example.com/a.jpg');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
+    $partial = $asset->path;
+
+    expect(fn () => $importer->run($asset, $source))->toThrow(RuntimeException::class, 'ffprobe');
+
+    expect(MediaAsset::withoutUserScope()->find($asset->id)->path)->toBe($partial)
+        ->and(Storage::disk('local')->allFiles('media'))->toBe([$partial]);
+});
+
+test('ImportRemoteMedia (revision): el presupuesto de la pasada reserva tiempo para finalize()', function () {
+    config(['media.import_budget_seconds' => 80, 'media.import_finalize_reserve_seconds' => 10]);
+    $remaining = null;
+    $source = fakeSource(new RemotePass(false, false, true, 1000, null, 'image/jpeg', 10), $remaining);
+    $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
+
+    app(RemoteMediaImporter::class)->run($asset, $source);
+
+    expect($remaining)->toBeGreaterThan(65.0)->toBeLessThanOrEqual(70.0);
+});
+
+test('ImportRemoteMedia (revision): el job se reencola sin espera', function () {
+    Queue::fake();
+    $body = importJpeg(120, 90);
+    $half = intdiv(strlen($body), 2);
+    Http::fake(['cdn.example.com/*' => Http::response(substr($body, 0, $half), 206, ['Content-Type' => 'image/jpeg', 'Content-Range' => 'bytes 0-'.($half - 1).'/'.strlen($body), 'ETag' => '"v1"'])]);
+    $source = new UrlSource(app(UrlGuard::class), 'https://cdn.example.com/a.jpg');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
+
+    (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class));
+
+    Queue::assertPushed(ImportRemoteMedia::class, fn ($job) => $job->delay === null);
 });

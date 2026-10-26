@@ -4,6 +4,7 @@ namespace App\Services\Media;
 
 use Closure;
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Client\ConnectionException;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
@@ -12,16 +13,40 @@ use Throwable;
 /** Descarga de una URL publica. Toda peticion (y cada redireccion) pasa por `UrlGuard` y va fijada a la IP validada. */
 class UrlSource implements RemoteSource
 {
+    /** 4xx que si se arreglan reintentando (el resto de 4xx es permanente). */
+    private const TRANSIENT_4XX = [408, 425, 429];
+
     public function __construct(private readonly UrlGuard $guard, private readonly string $url) {}
 
-    public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline): RemotePass
+    public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline, ?int $knownTotal = null): RemotePass
     {
         $meta = null;
+        $headerError = null;
+        $aborted = false;
 
-        // Cabeceras de la respuesta: en el cliente real se leen antes del cuerpo (corta una descarga que no vale).
-        $read = function (ResponseInterface $r) use (&$meta, &$cap, $offset, $policy): void {
-            $meta = $this->readHeaders($r, $offset, $policy);
-            $cap = $meta['cap'] ?? $cap;
+        // Cabeceras de la respuesta: en el cliente real se leen antes del cuerpo (corta una descarga que no vale). Guzzle envuelve
+        // lo que lance `on_headers` en una `RequestException` sin la causa, asi que se guarda aparte para recuperarla.
+        $read = function (ResponseInterface $r) use (&$meta, &$cap, &$headerError, $offset, $policy, $validator, $knownTotal): void {
+            try {
+                $meta = $this->readHeaders($r, $offset, $policy, $validator, $knownTotal);
+                $cap = $meta['cap'] ?? $cap;
+            } catch (Throwable $e) {
+                $headerError = $e;
+
+                throw $e;
+            }
+        };
+
+        // Tope de bytes y plazo DURANTE la descarga, con la opcion nativa `progress` de Guzzle (no con CURLOPT_PROGRESSFUNCTION,
+        // que Guzzle 8 rechaza): devolver `true` corta la transferencia y lo ya escrito queda en el parcial.
+        $progress = function (int $dlTotal, int $dlNow) use (&$cap, &$aborted, $offset, $deadline): bool {
+            if ($dlNow > $cap - $offset || microtime(true) >= $deadline) {
+                $aborted = true;
+
+                return true;
+            }
+
+            return false;
         };
 
         $headers = ['Range' => "bytes=$offset-", 'Accept-Encoding' => 'identity', 'User-Agent' => 'SocialScheduler/1.0 (media-import)'];
@@ -30,46 +55,38 @@ class UrlSource implements RemoteSource
             $headers['If-Range'] = $validator;
         }
 
-        $aborted = false;
         $response = null;
 
         try {
-            $response = $this->guard->follow($this->url, function (ValidatedUrl $v, array $curl) use ($sink, $offset, $headers, $deadline, &$cap, $read, &$meta) {
+            $response = $this->guard->follow($this->url, function (ValidatedUrl $v) use ($sink, $offset, $headers, $deadline, $read, $progress, &$meta, &$headerError, &$aborted) {
                 // Un salto anterior (redireccion, error) pudo dejar su cuerpo en el sink: se vuelve al punto de control.
                 ftruncate($sink, $offset);
                 fseek($sink, $offset);
                 $meta = null;
-
-                $curl[CURLOPT_NOPROGRESS] = false;
-                $curl[CURLOPT_PROGRESSFUNCTION] = function ($ch, $dlTotal, $dlNow) use (&$cap, $offset, $deadline) {
-                    return ($dlNow > $cap - $offset || microtime(true) >= $deadline) ? 1 : 0;
-                };
+                $headerError = null;
+                $aborted = false;
 
                 return $this->guard->client($v)
                     ->withHeaders($headers)
                     ->withOptions([
-                        'curl' => $curl,
                         'sink' => $sink,
-                        'decode_content' => false,
                         'connect_timeout' => 10,
-                        'timeout' => max(5.0, $deadline - microtime(true)) + 15,
+                        'timeout' => max(5.0, $deadline - microtime(true)) + 5,
                         'on_headers' => $read,
+                        'progress' => $progress,
                     ])
                     ->get($v->url);
             });
         } catch (Throwable $e) {
-            for ($p = $e; $p !== null; $p = $p->getPrevious()) {
-                if ($p instanceof ImportFailedException || $p instanceof RangeIgnored || $p instanceof UnsafeUrlException) {
-                    $e = $p;
-                    break;
-                }
-            }
+            $e = $this->rootCause($e, $headerError);
 
             if ($e instanceof RangeIgnored) {
-                return new RemotePass(true, false, false, null, null, null, 0);
+                return new RemotePass(true, false, false, null, null, null, 0, $e->reason);
             }
 
-            if (! ($e instanceof ConnectException || $e instanceof ConnectionException) || $meta === null) {
+            $timedOut = $e instanceof ConnectException || $e instanceof ConnectionException;
+
+            if (! ($aborted || $timedOut) || $meta === null) {
                 throw $e;
             }
 
@@ -79,10 +96,10 @@ class UrlSource implements RemoteSource
 
         if ($response !== null) {
             try {
-                $meta ??= $this->readHeaders($response->toPsrResponse(), $offset, $policy);
+                $meta ??= $this->readHeaders($response->toPsrResponse(), $offset, $policy, $validator, $knownTotal);
                 $cap = $meta['cap'] ?? $cap;
-            } catch (RangeIgnored) {
-                return new RemotePass(true, false, false, null, null, null, 0);
+            } catch (RangeIgnored $e) {
+                return new RemotePass(true, false, false, null, null, null, 0, $e->reason);
             }
         }
 
@@ -94,7 +111,7 @@ class UrlSource implements RemoteSource
             // Rango fuera de lo que tiene el remoto: o ya estaba completo, o cambio.
             return ($meta['total'] !== null && $meta['total'] === $offset)
                 ? new RemotePass(false, true, true, $meta['total'], $validator, null, 0)
-                : new RemotePass(true, false, false, null, null, null, 0);
+                : new RemotePass(true, false, false, null, null, null, 0, RangeIgnored::CHANGED);
         }
 
         fflush($sink);
@@ -125,11 +142,38 @@ class UrlSource implements RemoteSource
     }
 
     /**
+     * La causa real de un fallo: la que guardo `on_headers` o, si no, la primera excepcion nuestra de la cadena `previous`; y un 4xx
+     * de una `RequestException` sin causa recuperable se trata como permanente (mirando el estado de la respuesta).
+     */
+    private function rootCause(Throwable $e, ?Throwable $headerError): Throwable
+    {
+        if ($headerError !== null) {
+            return $headerError;
+        }
+
+        for ($p = $e; $p !== null; $p = $p->getPrevious()) {
+            if ($p instanceof ImportFailedException || $p instanceof RangeIgnored || $p instanceof UnsafeUrlException) {
+                return $p;
+            }
+        }
+
+        if ($e instanceof RequestException && $e->hasResponse()) {
+            $status = $e->getResponse()->getStatusCode();
+
+            if ($status >= 400 && $status < 500 && ! in_array($status, self::TRANSIENT_4XX, true)) {
+                return new ImportFailedException("El servidor remoto respondió {$status}.");
+            }
+        }
+
+        return $e;
+    }
+
+    /**
      * Lee y valida las cabeceras de una respuesta. `null` en una redireccion. Lanza si es un error o si el tipo o el tamano no valen.
      *
      * @return array{status: int, total: ?int, validator: ?string, mime: ?string, ranges: bool, cap: int}|null
      */
-    private function readHeaders(ResponseInterface $r, int $offset, Closure $policy): ?array
+    private function readHeaders(ResponseInterface $r, int $offset, Closure $policy, ?string $sentValidator = null, ?int $knownTotal = null): ?array
     {
         $status = $r->getStatusCode();
 
@@ -143,8 +187,8 @@ class UrlSource implements RemoteSource
             return ['status' => 416, 'total' => $total, 'validator' => null, 'mime' => null, 'ranges' => true, 'cap' => PHP_INT_MAX];
         }
 
-        // 5xx y 429 son transitorios: el job reintenta con espera. El resto de errores no se arregla reintentando.
-        if ($status >= 500 || $status === 429) {
+        // 5xx, 408, 425 y 429 son transitorios: el job reintenta con espera. El resto de errores no se arregla reintentando.
+        if ($status >= 500 || in_array($status, self::TRANSIENT_4XX, true)) {
             throw new RuntimeException("El servidor remoto respondió {$status}.");
         }
 
@@ -152,8 +196,16 @@ class UrlSource implements RemoteSource
             throw new ImportFailedException("El servidor remoto respondió {$status}.");
         }
 
+        $etag = $r->getHeaderLine('ETag');
+        $validator = ($etag !== '' && ! str_starts_with($etag, 'W/')) ? $etag : ($r->getHeaderLine('Last-Modified') ?: null);
+
         if ($offset > 0 && $status === 200) {
-            throw new RangeIgnored;
+            // Con `If-Range`, un 200 es «no admito Range» (mismo validador) o «el fichero cambio» (otro validador).
+            throw new RangeIgnored(match (true) {
+                $sentValidator === null || $validator === null => null,
+                $sentValidator === $validator => RangeIgnored::IGNORED,
+                default => RangeIgnored::CHANGED,
+            });
         }
 
         $mime = strtolower(trim(explode(';', $r->getHeaderLine('Content-Type'))[0]));
@@ -165,8 +217,10 @@ class UrlSource implements RemoteSource
             $total = ctype_digit($length) ? (int) $length : null;
         }
 
-        $etag = $r->getHeaderLine('ETag');
-        $validator = ($etag !== '' && ! str_starts_with($etag, 'W/')) ? $etag : ($r->getHeaderLine('Last-Modified') ?: null);
+        // Sin validador no se puede usar `If-Range`: el total declarado es la unica pista de que el remoto cambio entre pasadas.
+        if ($offset > 0 && $knownTotal !== null && $total !== null && $total !== $knownTotal) {
+            throw new RangeIgnored(RangeIgnored::CHANGED);
+        }
 
         return [
             'status' => $status,

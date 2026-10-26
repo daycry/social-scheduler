@@ -20,5 +20,7 @@ final class RemotePass
         public readonly ?string $mime,
         /** Bytes escritos por esta pasada. */
         public readonly int $written,
+        /** Si `restart`: por que (`RangeIgnored::IGNORED` el remoto no admite `Range`, `CHANGED` el fichero cambio, `null` no se sabe). */
+        public readonly ?string $restartReason = null,
     ) {}
 }

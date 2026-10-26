@@ -20,11 +20,15 @@ class UrlGuard
 {
     public const MAX_REDIRECTS = 5;
 
+    /** Mensaje unico para «apunta a una red privada» y «no resuelve» (no es un oraculo de DNS interno, CWE-204). */
+    private const NOT_ALLOWED = 'La URL apunta a una direccion no permitida.';
+
     /** @var list<array{string, int}> Rangos IPv4 bloqueados (red, prefijo). */
     private const BLOCKED_V4 = [
         ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16], ['172.16.0.0', 12],
         ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.88.99.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15],
         ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
+        ['168.63.129.16', 32], // IP virtual de la plataforma de Azure (WireServer / DNS)
     ];
 
     /** @var list<array{string, int}> Rangos IPv6 bloqueados dentro de 2000::/3 (el resto del espacio no es unicast global). */
@@ -84,7 +88,7 @@ class UrlGuard
 
         foreach ($ips as $ip) {
             if (! self::isPublicIp($ip)) {
-                throw new UnsafeUrlException('La URL apunta a una direccion no permitida.');
+                throw new UnsafeUrlException(self::NOT_ALLOWED);
             }
         }
 
@@ -97,35 +101,40 @@ class UrlGuard
     }
 
     /**
-     * Opciones de cURL (clave `curl` de Guzzle) para una peticion ya validada: IP fijada, solo HTTP/HTTPS (tambien en
-     * redirecciones), sin proxy y sin seguir redirecciones por cuenta de cURL.
+     * Opciones de cURL (clave `curl` de Guzzle) para una peticion ya validada. Solo lleva `CURLOPT_RESOLVE`: Guzzle 8 rechaza
+     * con `InvalidArgumentException` las opciones de cURL que tienen una opcion propia (proxy, redirecciones, protocolos,
+     * progreso...), asi que esas van en `requestOptions()`.
      *
      * @return array<int, mixed>
      */
     public function curlOptions(ValidatedUrl $v): array
     {
         $ip = str_contains($v->ip, ':') ? '['.$v->ip.']' : $v->ip;
-        $options = [
-            CURLOPT_RESOLVE => ["{$v->host}:{$v->port}:{$ip}"],
-            CURLOPT_PROXY => '',
-            CURLOPT_FOLLOWLOCATION => false,
+
+        return [CURLOPT_RESOLVE => ["{$v->host}:{$v->port}:{$ip}"]];
+    }
+
+    /**
+     * Opciones NATIVAS de Guzzle para una peticion validada: IP fijada, proxy desactivado (tambien el del entorno), sin
+     * redirecciones automaticas (las sigue `follow()` revalidando cada salto), solo http/https y sin decodificar el cuerpo.
+     *
+     * @return array<string, mixed>
+     */
+    public function requestOptions(ValidatedUrl $v): array
+    {
+        return [
+            'curl' => $this->curlOptions($v),
+            'proxy' => '',
+            'allow_redirects' => false,
+            'protocols' => ['http', 'https'],
+            'decode_content' => false,
         ];
-
-        if (defined('CURLOPT_PROTOCOLS_STR')) {
-            $options[CURLOPT_PROTOCOLS_STR] = 'http,https';
-            $options[CURLOPT_REDIR_PROTOCOLS_STR] = 'http,https';
-        } else {
-            $options[CURLOPT_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
-            $options[CURLOPT_REDIR_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
-        }
-
-        return $options;
     }
 
     /** Cliente HTTP para UNA peticion validada: IP fijada, sin redirecciones automaticas y sin proxy. */
     public function client(ValidatedUrl $v): PendingRequest
     {
-        return Http::withoutRedirecting()->withOptions(['proxy' => '', 'curl' => $this->curlOptions($v)]);
+        return Http::withoutRedirecting()->withOptions($this->requestOptions($v));
     }
 
     /**
@@ -256,13 +265,14 @@ class UrlGuard
         }
 
         if ($host === 'localhost' || str_ends_with($host, '.localhost') || self::looksNumeric($host)) {
-            throw new UnsafeUrlException('La URL apunta a una direccion no permitida.');
+            throw new UnsafeUrlException(self::NOT_ALLOWED);
         }
 
         $ips = array_values(array_unique(array_filter(($this->resolver)($host), 'is_string')));
 
         if ($ips === []) {
-            throw new UnsafeUrlException('No se pudo resolver el dominio de la URL.');
+            // Mismo mensaje que una IP privada: distinguirlos permitiria sondear la red interna por DNS (CWE-204).
+            throw new UnsafeUrlException(self::NOT_ALLOWED);
         }
 
         return $ips;

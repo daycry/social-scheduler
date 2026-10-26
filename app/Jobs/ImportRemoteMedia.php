@@ -17,7 +17,8 @@ use Throwable;
 
 /**
  * Importa media de una URL (o de Drive) por pasadas: cada ejecucion descarga como mucho `media.import_budget_seconds` y se
- * vuelve a encolar con 1 s de espera hasta que el fichero esta entero. Cifrado porque el token de Drive viaja en el payload.
+ * vuelve a encolar SIN espera hasta que el fichero esta entero (una espera dejaba al worker con `--stop-when-empty` ~40 s parado
+ * entre pasadas; el bucle lo acota el importador, que da por fallida una descarga que no avanza). Cifrado porque el token de Drive viaja en el payload.
  * `UntilProcessing`: el candado de unicidad se libera al EMPEZAR, para que la propia pasada pueda encolar la siguiente.
  */
 class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcessing, ShouldQueue
@@ -57,7 +58,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
         }
 
         if (! $importer->run($asset, $this->sourceFor($asset))) {
-            static::dispatch($this->assetId, $this->reference, $this->token)->delay(now()->addSecond());
+            static::dispatch($this->assetId, $this->reference, $this->token);
         }
     }
 

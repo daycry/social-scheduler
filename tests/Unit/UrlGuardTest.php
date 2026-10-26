@@ -146,14 +146,32 @@ test('UrlGuard: isPublicIp en los bordes de los rangos', function (string $ip, b
 
 test('UrlGuard: fija la IP validada (CURLOPT_RESOLVE) y limita los protocolos y el proxy', function () {
     $g = guard(['example.com' => [PUBLIC_IP]]);
-    $opts = $g->curlOptions($g->validate('http://example.com/a.jpg'));
+    $v = $g->validate('http://example.com/a.jpg');
+    $opts = $g->requestOptions($v);
 
-    expect($opts[CURLOPT_RESOLVE])->toBe(['example.com:80:'.PUBLIC_IP])
-        ->and($opts[CURLOPT_PROXY])->toBe('')
-        ->and($opts[CURLOPT_FOLLOWLOCATION])->toBeFalse();
+    // En la clave `curl` SOLO CURLOPT_RESOLVE: Guzzle 8 rechaza el resto (proxy, redirecciones, protocolos, progreso).
+    expect($g->curlOptions($v))->toBe([CURLOPT_RESOLVE => ['example.com:80:'.PUBLIC_IP]])
+        ->and($opts['curl'])->toBe($g->curlOptions($v))
+        ->and($opts['proxy'])->toBe('')
+        ->and($opts['allow_redirects'])->toBeFalse()
+        ->and($opts['protocols'])->toBe(['http', 'https'])
+        ->and($opts['decode_content'])->toBeFalse();
+});
 
-    $protocols = defined('CURLOPT_PROTOCOLS_STR') ? $opts[CURLOPT_PROTOCOLS_STR] : $opts[CURLOPT_PROTOCOLS];
-    expect($protocols)->toBe(defined('CURLOPT_PROTOCOLS_STR') ? 'http,https' : CURLPROTO_HTTP | CURLPROTO_HTTPS);
+test('UrlGuard (revision): las IPs de plataforma de Azure se bloquean y «privada» y «no resuelve» dan el mismo mensaje (CWE-204)', function () {
+    expect(UrlGuard::isPublicIp('168.63.129.16'))->toBeFalse()->and(UrlGuard::isPublicIp('168.63.129.17'))->toBeTrue();
+
+    $g = guard(['interno.example.com' => ['10.0.0.5'], 'azure.example.com' => ['168.63.129.16']]);
+    $messages = [];
+    foreach (['http://interno.example.com/a', 'http://azure.example.com/a', 'http://no-existe.example.com/a', 'http://localhost/a'] as $url) {
+        try {
+            $g->validate($url);
+        } catch (UnsafeUrlException $e) {
+            $messages[] = $e->getMessage();
+        }
+    }
+
+    expect($messages)->toHaveCount(4)->and(array_unique($messages))->toHaveCount(1);
 });
 
 test('UrlGuard: DNS rebinding — cada validacion vuelve a resolver y se rechaza la respuesta que pasa a ser privada', function () {

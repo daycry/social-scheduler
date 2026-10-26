@@ -14,10 +14,11 @@ interface RemoteSource
      * @param  Closure(?string, ?int): int  $policy  Recibe el tipo y el total declarados; lanza `ImportFailedException` si no valen y devuelve el tope de bytes.
      * @param  int  $cap  Tope de bytes mientras no se conozca el tipo.
      * @param  float  $deadline  Instante (microtime) en que la pasada debe cortar.
+     * @param  ?int  $knownTotal  Total que declaro el remoto en una pasada anterior: si ahora declara otro, el fichero cambio.
      *
      * @throws ImportFailedException|UnsafeUrlException si la descarga no puede continuar nunca.
      */
-    public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline): RemotePass;
+    public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline, ?int $knownTotal = null): RemotePass;
 
     /** Nombre sugerido para el fichero. */
     public function name(): string;

@@ -14,7 +14,6 @@ const props = defineProps({
 
 const k = computed(() => props.summary.kpis);
 const pct = (v) => (v === null || v === undefined ? UNAVAILABLE : `${fmt(v, 2)} %`);
-const day = (iso) => (iso ? iso.slice(0, 10) : '—');
 
 const cards = computed(() => [
     { key: 'posts', label: 'Publicaciones', value: fmt(k.value.posts), plain: true },
@@ -94,24 +93,30 @@ const range = computed(() => {
                     </div>
                 </section>
 
+                <p class="text-xs text-slate-600" data-testid="campaign-daily-note">
+                    La evolución diaria suma lo leído cada día de cada destino; un destino sin lectura ese día (p. ej. ya congelado) no suma, así que su último punto puede no coincidir con los totales de arriba, que usan el último dato de cada destino.
+                </p>
                 <section class="grid gap-4 lg:grid-cols-2" aria-label="Evolución diaria">
                     <div class="card p-5">
-                        <h2 class="text-sm font-medium text-slate-700">Visualizaciones acumuladas por día</h2>
+                        <h2 class="text-sm font-medium text-slate-700">Visualizaciones leídas por día</h2>
                         <div class="mt-3"><LineChart :series="chart('views', 'Visualizaciones')" :height="180" /></div>
                     </div>
                     <div class="card p-5">
-                        <h2 class="text-sm font-medium text-slate-700">Interacciones acumuladas por día</h2>
+                        <h2 class="text-sm font-medium text-slate-700">Interacciones leídas por día</h2>
                         <div class="mt-3"><LineChart :series="chart('interactions', 'Interacciones')" :height="180" /></div>
                     </div>
                 </section>
 
                 <section class="card p-5" aria-labelledby="camp-posts">
                     <h2 id="camp-posts" class="text-sm font-medium text-slate-700">Publicaciones</h2>
+                    <p v-if="summary.posts_truncated" class="mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900" role="status" data-testid="campaign-posts-truncated">
+                        Se muestran las {{ summary.posts_limit }} publicaciones más recientes de {{ summary.posts_total }}. Los totales y las gráficas incluyen todas.
+                    </p>
                     <ul class="mt-3 divide-y">
                         <li v-for="p in summary.posts" :key="p.id" class="py-3 text-sm" data-testid="campaign-post">
                             <div class="flex flex-wrap items-baseline justify-between gap-2">
                                 <Link :href="route('posts.edit', p.id)" class="min-w-0 break-words font-medium text-indigo-700 underline">{{ p.text || 'Sin texto' }}</Link>
-                                <span class="text-xs text-slate-600">{{ p.status }} · {{ day(p.scheduled_at) }}</span>
+                                <span class="text-xs text-slate-600">{{ p.status_label }} · {{ p.scheduled_local ? `${p.scheduled_local} (${p.timezone})` : 'Sin fecha' }}</span>
                             </div>
                             <div v-if="p.targets.length" class="mt-2 overflow-x-auto" tabindex="0" role="region" :aria-label="`Métricas por destino de la publicación ${p.id}`">
                                 <table class="min-w-full text-xs">
@@ -123,7 +128,7 @@ const range = computed(() => {
                                             <th scope="row" class="py-1 pr-3 text-left font-medium">
                                                 <a v-if="t.url" :href="t.url" target="_blank" rel="noopener noreferrer" class="text-indigo-700 underline">{{ t.network_label }}</a>
                                                 <template v-else>{{ t.network_label }}</template>
-                                                <span v-if="t.status !== 'publicada'" class="ms-1 font-normal text-slate-600">({{ t.status }})</span>
+                                                <span v-if="t.status !== 'publicada'" class="ms-1 font-normal text-slate-600">({{ t.status_label }})</span>
                                             </th>
                                             <td class="pr-3 text-right">{{ fmt(t.metrics.views) }}</td>
                                             <td class="pr-3 text-right">{{ fmt(t.metrics.reach) }}</td>

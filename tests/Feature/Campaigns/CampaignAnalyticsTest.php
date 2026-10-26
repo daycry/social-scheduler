@@ -101,7 +101,7 @@ test('CampaignAnalytics: solo cuentan los destinos publicados de los posts de la
     expect($r['kpis']['posts'])->toBe(2)->and($r['kpis']['targets'])->toBe(1)->and($r['kpis']['views'])->toBe(10);
 });
 
-test('CampaignAnalytics: serie diaria acumulada que arrastra el ultimo valor de cada destino', function () {
+test('CampaignAnalytics: serie diaria = suma de los snapshots de cada dia, sin arrastrar valores ni convertir null en 0', function () {
     $post = campPost($this->campaign);
     campTarget($post, $this->ig, ['2026-10-04' => [Metric::VIEWS => 10, Metric::INTERACTIONS => 1], '2026-10-06' => [Metric::VIEWS => 30, Metric::INTERACTIONS => 3]]);
     campTarget($post, $this->fb, ['2026-10-05' => [Metric::VIEWS => 5, Metric::INTERACTIONS => null]]);
@@ -110,8 +110,9 @@ test('CampaignAnalytics: serie diaria acumulada que arrastra el ultimo valor de 
 
     expect($daily->keys()->all())->toBe(['2026-10-04', '2026-10-05', '2026-10-06'])
         ->and($daily['2026-10-04'])->toMatchArray(['views' => 10, 'interactions' => 1])
-        ->and($daily['2026-10-05'])->toMatchArray(['views' => 15, 'interactions' => 1])
-        ->and($daily['2026-10-06'])->toMatchArray(['views' => 35, 'interactions' => 3]);
+        ->and($daily['2026-10-05']['views'])->toBe(5)->and($daily['2026-10-05']['interactions'])->toBeNull()
+        ->and($daily['2026-10-06'])->toMatchArray(['views' => 30, 'interactions' => 3])
+        ->and($daily['2026-10-04']['reach'])->toBeNull();
 });
 
 test('CampaignAnalytics: no lee datos de otro usuario', function () {
@@ -135,4 +136,28 @@ test('withLatestSnapshot acota la subconsulta lm a los destinos del conjunto y n
 
     expect($r['kpis']['views'])->toBe(100)
         ->and($sql)->toContain('"post_target_id" in (select "post_targets"."id"');
+});
+
+test('CampaignAnalytics: la lista se recorta a MAX_POSTS con el total, los KPIs cuentan todos y el texto no se carga entero', function () {
+    $max = CampaignAnalytics::MAX_POSTS;
+    for ($i = 0; $i < $max + 2; $i++) {
+        campTarget(campPost($this->campaign, ['text' => str_repeat('é', 500)]), $this->ig, ['2026-10-09' => [Metric::VIEWS => 1]]);
+    }
+
+    $r = $this->svc->summary($this->user, $this->campaign);
+
+    expect($r['posts'])->toHaveCount($max)->and($r['posts_total'])->toBe($max + 2)->and($r['posts_limit'])->toBe($max)->and($r['posts_truncated'])->toBeTrue()
+        ->and($r['kpis']['posts'])->toBe($max + 2)->and($r['kpis']['views'])->toBe($max + 2)
+        ->and(mb_strlen($r['posts'][0]['text']))->toBeLessThanOrEqual(140);
+});
+
+test('CampaignAnalytics: fecha en la zona de la marca y estado con etiqueta en español', function () {
+    $this->brand->forceFill(['timezone' => 'Asia/Tokyo'])->save();
+    $post = campPost($this->campaign, ['scheduled_at' => '2026-10-10 20:30:00', 'status' => PostStatus::Published]);
+    campTarget($post, $this->ig, ['2026-10-11' => [Metric::VIEWS => 1]]);
+
+    $p = $this->svc->summary($this->user, $this->campaign)['posts'][0];
+
+    expect($p['scheduled_local'])->toBe('2026-10-11 05:30')->and($p['timezone'])->toBe('Asia/Tokyo')
+        ->and($p['status_label'])->toBe(PostStatus::Published->label())->and($p['targets'][0]['status_label'])->toBe(PostStatus::Published->label());
 });

@@ -10,6 +10,7 @@ use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\CampaignAnalytics;
 use Inertia\Testing\AssertableInertia as Assert;
 
 // Panel de campaña (C-03, CA-11): props con KPIs, desglose por red, serie diaria y posts.
@@ -51,4 +52,15 @@ it('la campaña de otro usuario responde 404 igual que una inexistente', functio
 it('el listado enlaza al panel de cada campaña', function () {
     $this->actingAs($this->user)->get(route('campaigns.index', ['brand_id' => $this->brand->id]))
         ->assertInertia(fn (Assert $p) => $p->where('campaigns.0.show_url', route('campaigns.show', $this->campaign->id, false)));
+});
+
+it('avisa de que la lista de posts está recortada y entrega fecha local y estado en español', function () {
+    $this->brand->forceFill(['timezone' => 'Europe/Madrid'])->save();
+    $max = CampaignAnalytics::MAX_POSTS;
+    Post::factory()->count($max + 1)->create(['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'campaign_id' => $this->campaign->id, 'scheduled_at' => '2026-10-10 22:30:00']);
+
+    $this->actingAs($this->user)->get(route('campaigns.show', $this->campaign->id))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->where('summary.posts_truncated', true)->where('summary.posts_total', $max + 1)->where('summary.posts_limit', $max)
+            ->has('summary.posts', $max)->where('summary.posts.0.scheduled_local', '2026-10-11 00:30')->where('summary.posts.0.timezone', 'Europe/Madrid')
+            ->where('summary.posts.0.status_label', fn ($v) => is_string($v) && $v !== ''));
 });

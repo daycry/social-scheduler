@@ -121,6 +121,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
     // Importacion remota (C-04a). `import-url` antes que `{asset}` para que no lo capture el comodin.
     Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:10,1')->name('media.import-url');
+    Route::post('media/import-drive', [MediaController::class, 'importDrive'])->middleware('throttle:10,1')->name('media.import-drive');
     Route::get('media/{asset}', [MediaController::class, 'show'])->whereNumber('asset')->name('media.show');
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
     Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');

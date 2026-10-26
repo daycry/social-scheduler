@@ -69,6 +69,28 @@ class MediaController extends Controller
         return response()->json(['asset' => $asset->toPublicArray()], 202);
     }
 
+    /**
+     * Importa un fichero de Google Drive (C-04b) con el token del Picker. Solo se acepta si `GOOGLE_PICKER_API_KEY` esta configurada.
+     * El token no se guarda: viaja cifrado en el job y caduca en 1 h.
+     */
+    public function importDrive(Request $request): JsonResponse
+    {
+        abort_unless(filled(config('services.google.picker_api_key')), 404);
+
+        $data = $request->validate([
+            'file_id' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{1,128}$/'],
+            'access_token' => ['required', 'string', 'max:4096'],
+        ]);
+
+        try {
+            $asset = $this->uploads->importFromDrive($request->user(), $data['file_id'], $data['access_token']);
+        } catch (UnsafeUrlException|InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['asset' => $asset->toPublicArray()], 202);
+    }
+
     /** Estado de un asset (para sondear el progreso de una importacion). */
     public function show(MediaAsset $asset): JsonResponse
     {

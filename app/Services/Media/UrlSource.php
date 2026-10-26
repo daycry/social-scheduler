@@ -16,7 +16,7 @@ class UrlSource implements RemoteSource
     /** 4xx que si se arreglan reintentando (el resto de 4xx es permanente). */
     private const TRANSIENT_4XX = [408, 425, 429];
 
-    public function __construct(private readonly UrlGuard $guard, private readonly string $url) {}
+    public function __construct(protected readonly UrlGuard $guard, protected readonly string $url) {}
 
     public function fetch($sink, int $offset, ?string $validator, Closure $policy, int $cap, float $deadline, ?int $knownTotal = null): RemotePass
     {
@@ -59,6 +59,7 @@ class UrlSource implements RemoteSource
 
         try {
             $response = $this->guard->follow($this->url, function (ValidatedUrl $v) use ($sink, $offset, $headers, $deadline, $read, $progress, &$meta, &$headerError, &$aborted) {
+                $this->assertAllowed($v);
                 // Un salto anterior (redireccion, error) pudo dejar su cuerpo en el sink: se vuelve al punto de control.
                 ftruncate($sink, $offset);
                 fseek($sink, $offset);
@@ -67,7 +68,7 @@ class UrlSource implements RemoteSource
                 $aborted = false;
 
                 return $this->guard->client($v)
-                    ->withHeaders($headers)
+                    ->withHeaders($this->headersFor($v, $headers))
                     ->withOptions([
                         'sink' => $sink,
                         'connect_timeout' => 10,
@@ -126,6 +127,21 @@ class UrlSource implements RemoteSource
         return new RemotePass(false, $complete, $meta['ranges'], $meta['total'], $meta['validator'], $meta['mime'], $written);
     }
 
+    /** Cabeceras de UNA peticion (cada salto de redireccion pasa por aqui). Las fuentes con credenciales las restringen al host que toca. */
+    protected function headersFor(ValidatedUrl $v, array $headers): array
+    {
+        return $headers;
+    }
+
+    /** Gancho para restringir los destinos (cada salto, incluido el primero). Lanza `UnsafeUrlException` si no vale. */
+    protected function assertAllowed(ValidatedUrl $v): void {}
+
+    /** Mensaje de un error 4xx permanente del remoto. */
+    protected function statusMessage(int $status): string
+    {
+        return "El servidor remoto respondió {$status}.";
+    }
+
     public function name(): string
     {
         $path = (string) parse_url($this->url, PHP_URL_PATH);
@@ -161,7 +177,7 @@ class UrlSource implements RemoteSource
             $status = $e->getResponse()->getStatusCode();
 
             if ($status >= 400 && $status < 500 && ! in_array($status, self::TRANSIENT_4XX, true)) {
-                return new ImportFailedException("El servidor remoto respondió {$status}.");
+                return new ImportFailedException($this->statusMessage($status));
             }
         }
 
@@ -193,7 +209,7 @@ class UrlSource implements RemoteSource
         }
 
         if ($status !== 200 && $status !== 206) {
-            throw new ImportFailedException("El servidor remoto respondió {$status}.");
+            throw new ImportFailedException($this->statusMessage($status));
         }
 
         $etag = $r->getHeaderLine('ETag');

@@ -1439,11 +1439,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-42 — `DriveFileSource` y endpoint de importación desde Drive
 
 - **Descripción**: Fuente con host fijo `www.googleapis.com` y `files.get?alt=media` con Bearer, `fileId` validado, y endpoint que verifica el token con `tokeninfo` (`aud` y `drive.file`), pide metadatos y valida tipo y tamaño antes de crear el asset; el token viaja cifrado en el job y no se guarda. Requisito: CA-18; diseño B1.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Se pueden importar ficheros de Google Drive: el servidor descarga con tu acceso, sin guardarlo, y pide volver a elegir el fichero si caduca.
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0.68h (estimado)
 - **Supervisión**: est. 0,17h (≈25 % IA) · real —
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-35, T-36
@@ -1453,16 +1454,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImportDriveTest.php` → verde con `Http::fake` (token válido; `aud` ajeno rechazado; `401` → `invalido`)
 
 **Criterios de aceptación**
-- [ ] El token no se guarda en `media_assets` ni se registra.
-- [ ] Un `fileId` inválido o un `aud` distinto se rechaza.
-- [ ] Un `401` a mitad deja «Vuelve a elegir el fichero en Drive».
+- [x] El token no se guarda en `media_assets` ni se registra.
+- [x] Un `fileId` inválido o un `aud` distinto se rechaza.
+- [x] Un `401` a mitad deja «Vuelve a elegir el fichero en Drive».
 
 **Subtareas**
-- [ ] Test RED con `Http::fake`
-- [ ] Fuente
-- [ ] Endpoint y `tokeninfo`
+- [x] Test RED con `Http::fake`
+- [x] Fuente
+- [x] Endpoint y `tokeninfo`
 
 **Notas**: Reutiliza el pipeline de T-35. Verificado en la documentación oficial: `files.get?alt=media` admite `Range` y `drive.file` es no sensible.
+
+**Evidencia**: ImportDriveTest: 12 passed (54 assertions); tests/Feature/Media: 156 passed. Decision: DriveFileSource extiende UrlSource (pasa por UrlGuard e IP fijada) y rechaza, antes de la peticion, cualquier salto fuera de https://www.googleapis.com:443, asi el Bearer nunca sale a *.googleusercontent.com. Token: solo en el payload cifrado del job (ShouldBeEncrypted), no en media_assets ni en la respuesta. Se toco UrlSource (F5) para anadir ganchos protegidos headersFor/assertAllowed/statusMessage, sin cambio de comportamiento. Nota: el test se escribio junto al codigo, sin RED previo separado.
 
 ### T-43 — `useDrivePicker.js` con Google Identity Services y Picker
 

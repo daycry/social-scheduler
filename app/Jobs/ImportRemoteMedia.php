@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\MediaAsset;
+use App\Services\Media\DriveFileSource;
 use App\Services\Media\RemoteMediaImporter;
 use App\Services\Media\RemoteSource;
 use App\Services\Media\UrlGuard;
@@ -78,6 +79,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
     {
         return match ($asset->source) {
             MediaAsset::SOURCE_URL => new UrlSource(app(UrlGuard::class), $this->reference),
+            MediaAsset::SOURCE_DRIVE => new DriveFileSource(app(UrlGuard::class), $this->reference, (string) $this->token),
             default => throw new \LogicException("Origen de importacion desconocido: {$asset->source}"),
         };
     }

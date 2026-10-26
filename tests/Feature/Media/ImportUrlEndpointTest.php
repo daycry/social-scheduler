@@ -173,3 +173,22 @@ test('ImportUrlEndpoint (revision): ni el error ni el asset publico dejan la URL
         ->and(json_encode($asset->toArray()))->not->toContain('SECRETO')
         ->and(json_encode($asset->getAttributes()))->not->toContain('SECRETO');
 });
+
+test('ImportUrlEndpoint (revision): el recuento y el alta van dentro de una transaccion (con el usuario bloqueado)', function () {
+    $levels = [];
+    $base = DB::transactionLevel(); // RefreshDatabase ya abre una
+    DB::listen(function ($q) use (&$levels) {
+        $sql = strtolower($q->sql);
+        if (str_contains($sql, 'count(*)') && str_contains($sql, 'media_assets')) {
+            $levels['count'] = DB::transactionLevel();
+        }
+        if (str_starts_with($sql, 'insert into "media_assets"') || str_starts_with($sql, 'insert into `media_assets`')) {
+            $levels['insert'] = DB::transactionLevel();
+        }
+    });
+
+    importPost('https://cdn.example.com/a.jpg')->assertStatus(202);
+
+    // SQLite (la BD de los tests) ignora FOR UPDATE; en MySQL la fila de `users` queda bloqueada hasta el commit.
+    expect($levels['count'] ?? 0)->toBeGreaterThan($base)->and($levels['insert'] ?? 0)->toBeGreaterThan($base);
+});

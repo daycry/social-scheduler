@@ -106,16 +106,24 @@ class MediaUploadService
     {
         app(UrlGuard::class)->validate($url);
 
-        $live = MediaAsset::withoutUserScope()->where('user_id', $user->id)
-            ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE])
-            ->where('created_at', '>', now()->subHours(6))->count();
-
-        if ($live >= self::MAX_LIVE_IMPORTS) {
-            throw new InvalidArgumentException('Ya tienes '.self::MAX_LIVE_IMPORTS.' importaciones en curso; espera a que terminen.');
-        }
-
         $source = new UrlSource(app(UrlGuard::class), $url);
-        $asset = $this->beginImport($user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
+
+        // El recuento y el alta van en UNA transaccion con la fila del usuario bloqueada: dos peticiones simultaneas se serializan
+        // en vez de pasar las dos el limite (comprobar y crear por separado dejaba una carrera).
+        $asset = DB::transaction(function () use ($user, $source) {
+            User::query()->whereKey($user->id)->lockForUpdate()->value('id');
+
+            $live = MediaAsset::withoutUserScope()->where('user_id', $user->id)
+                ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE])
+                ->where('created_at', '>', now()->subHours(6))->count();
+
+            if ($live >= self::MAX_LIVE_IMPORTS) {
+                throw new InvalidArgumentException('Ya tienes '.self::MAX_LIVE_IMPORTS.' importaciones en curso; espera a que terminen.');
+            }
+
+            return $this->beginImport($user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
+        });
+
         ImportRemoteMedia::dispatch($asset->id, $url);
 
         return $asset;

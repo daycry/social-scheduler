@@ -31,7 +31,7 @@ generacion:
 | **Prioridad global** | Media |
 | **Solicitante** | daycry (usuario del proyecto), vía `/pm-cycle` |
 | **Spec** | [`spec.md`](spec.md) |
-| **Plan** | pendiente (handoff a planner) |
+| **Plan** | [`improvement-plan.md`](improvement-plan.md) |
 | **Características evaluadas** | 4, en 9 entregas separables: C-01, C-02, C-03a, C-03b, C-03c, C-04a, C-04b, C-04c y C-04d |
 
 ---

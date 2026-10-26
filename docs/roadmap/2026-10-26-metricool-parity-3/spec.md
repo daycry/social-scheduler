@@ -3,10 +3,10 @@ spec: metricool-parity-3
 descripcion: Tercera ola de paridad con Metricool para uso personal. Comprende dos redes nuevas (Bluesky y Threads), vistas de calendario guardadas, analítica agregada entre marcas, exportación CSV, sugerencias de hashtags, buscador de GIFs, programación en lenguaje natural y notas internas en el inbox.
 estado: aprobada          # borrador | aprobada | implementada | obsoleta
 creado: 2026-10-26
-actualizado: 2026-10-26
+actualizado: 2026-10-27    # cambios derivados de design.md (ver §Decisiones confirmadas, punto 3)
 evaluacion: evaluation.md
-design: n/a               # pendiente: se recomienda pasar por architect para C-01 y C-02 antes del plan
-plan: pendiente
+design: design.md         # aprobado 2026-10-27: C-01 = O1 (contrato segregado y catálogo de redes), C-02 = T1 (conector threads propio)
+plan: improvement-plan.md
 generacion:
   inicio: 2026-10-26T20:22:50Z
   fin: 2026-10-26T20:40:56Z
@@ -21,7 +21,8 @@ generacion:
 # Paridad con Metricool, tercera ola
 
 > **Evaluación:** [`evaluation.md`](evaluation.md)
-> **Plan de implementación:** pendiente (handoff a `planner` tras la puerta go/no-go)
+> **Diseño:** [`design.md`](design.md) (aprobado el 2026-10-27: O1 para C-01 y T1 para C-02; corrige los topes de Bluesky y los datos de Threads de esta spec, ver §Decisiones confirmadas)
+> **Plan de implementación:** [`improvement-plan.md`](improvement-plan.md)
 
 > **Terminología:**
 >
@@ -68,9 +69,10 @@ Cada característica se evalúa y se aprueba por separado:
 | Contrato del conector | Contrato nuevo de credenciales junto al de OAuth, de modo que el registro, el refresco y la desconexión sigan siendo comunes | `Contracts/Connector.php:20-54` asume OAuth (`authorizationUrl` y `exchangeCode`). Bluesky necesita un formulario (handle y app password), no una redirección |
 | Idempotencia de Bluesky | **`rkey` determinista** (un TID derivado del destino) en `com.atproto.repo.createRecord`; `findPublished` consulta ese registro con `getRecord` | Un reintento tras un *timeout* no duplica el post: el PDS rechaza la segunda escritura con la misma clave ⚠️ verificar que el PDS acepta un TID propuesto por el cliente |
 | Vídeo de Bluesky | Flujo recomendado: token de servicio, `app.bsky.video.uploadVideo` en `video.bsky.app` y sondeo con `getJobStatus` (`StatusPoller`) | Es el recomendado por la documentación oficial. Con `uploadBlob` el vídeo se procesa después de aparecer el post |
-| Imágenes de Bluesky > 1.000.000 bytes | **Recompresión automática** con GD a una copia derivada al publicar; el original no se toca | El límite de 1.000.000 bytes por imagen está verificado, y una foto de móvil suele pesar entre 2 y 5 MB. Rechazarlas haría la red casi inutilizable |
+| Imágenes de Bluesky > 2.000.000 bytes (`social.bluesky.image_max_bytes`, configurable) | **Recompresión automática** con GD a una copia derivada; el original no se toca | El lexicon vigente (`app.bsky.embed.images`) admite 2.000.000 bytes por imagen («antes 1 MB»), y una foto de móvil suele pesar entre 2 y 5 MB. Rechazarlas haría la red casi inutilizable. Corregido según `design.md` (2026-10-27) |
+| Vídeo de Bluesky de más de unos 50 MB (`social.bluesky.video_max_bytes`, configurable) | **Se rechaza al guardar** con un mensaje claro | `uploadVideo` es una sola petición y el worker corta a los 120 s. El usuario prefiere un tope a cambiar el despliegue (`design.md`, 2026-10-27) |
 | Texto de Bluesky | Máximo de 300 **grafemas** ⚠️, con *facets* (enlaces, menciones y hashtags) calculados en bytes UTF-8, e idioma (`langs`) por defecto `es` | Sin *facets* los enlaces y los hashtags no son clicables. El contador del compositor y el validador deben contar grafemas (extensión `intl`, ya instalada; `Intl.Segmenter` en el navegador) |
-| App de Threads | **Proveedor `threads` aparte de `meta`**, con su ID y su secreto de app de Threads, y OAuth en `threads.net` | La Threads API usa otro host (`graph.threads.net`), otros permisos (`threads_basic`, `threads_content_publish`, `threads_manage_insights`, `threads_read_replies` y `threads_manage_replies`) y otro canje de tokens ⚠️. Separarlo evita que pedir un permiso que falta rompa el login de Meta, que ya falla con «Invalid Scopes» (`config/social.php:50-55`) |
+| App de Threads | **Proveedor `threads` aparte de `meta`**, con su ID y su secreto de app de Threads, y OAuth en `threads.com` | La Threads API usa otros hosts (`threads.com` y `graph.threads.com`, verificados en `design.md`), otros permisos (`threads_basic`, `threads_content_publish`, `threads_manage_insights`, `threads_read_replies` y `threads_manage_replies`) y otro canje de tokens (`th_exchange_token`, verificado). Separarlo evita que pedir un permiso que falta rompa el login de Meta, que ya falla con «Invalid Scopes» (`config/social.php:50-55`) |
 | Revisión de Meta para Threads | **Sin App Review**: app en modo desarrollo y cuenta propia invitada como *tester* de Threads ⚠️ | El *spike* de 2026-10-19 demostró que el modo desarrollo basta en Instagram y Facebook para la cuenta propia (`social-scheduler/spike-report.md:15-20`). En Threads es un supuesto hasta probarlo (D2) |
 | Publicación en Threads | Patrón de contenedor de Instagram: contenedor, espera o sondeo, y `threads_publish` | La media va por URL pública (`MediaAsset::publicUrl()`, como en IG). Se reutiliza la experiencia de `InstagramPublisher` |
 | Fuente de los hashtags | **Histórico propio de rendimiento** (hashtags de lo publicado por la marca, cruzados con el último *snapshot* de cada destino) | Gratis, privado (no sale nada a terceros) y explicable con datos («usado 6 veces, +40 % de interacciones sobre la media»). Un complemento con IA queda como D5 |
@@ -130,16 +132,16 @@ Cada característica se evalúa y se aprueba por separado:
 
 1. **Conectar Bluesky.** En Conexiones, «Conectar Bluesky» abre un formulario con el handle y la app password. El servidor resuelve el handle a su DID y su PDS, crea la sesión y guarda la cuenta cifrada. Si la cuenta no tiene el email verificado, avisa de que no podrá subir vídeo.
 2. **Conectar Threads.** «Conectar Threads» redirige al OAuth de Threads. El servidor canjea el código por un token corto y después por uno de larga duración ⚠️, que el job `RefreshTokens` renueva.
-3. **Componer.** Bluesky y Threads aparecen en el selector de redes con sus tipos, contadores (grafemas en Bluesky y caracteres en Threads) y reglas de media. Desde el compositor se puede:
+3. **Componer.** Bluesky y Threads aparecen en el selector de redes con sus tipos, contadores (grafemas en Bluesky; en Threads, 500 caracteres con cada emoji contado por sus bytes UTF-8, según `design.md`) y reglas de media. Desde el compositor se puede:
    - insertar hashtags sugeridos por el histórico;
    - buscar un GIF en Giphy, que se importa como MP4;
    - escribir «el martes a las 9» para que la IA proponga la fecha.
 4. **Publicar.**
-   - **Bluesky:** sube los *blobs* (imágenes recomprimidas si pasan de 1.000.000 bytes, o el vídeo por `video.bsky.app` con sondeo) y crea el registro con su `rkey` determinista.
+   - **Bluesky:** sube los *blobs* (imágenes recomprimidas si pasan de 2.000.000 bytes, según `design.md`, o el vídeo por `video.bsky.app` con sondeo) y crea el registro con su `rkey` determinista.
    - **Threads:** crea el contenedor (o sus hijos, en un carrusel), espera a que esté listo y lo publica.
 5. **Medir.**
    - **Bluesky:** seguidores y número de posts (*stocks*) por cuenta, y me gusta, *reposts*, respuestas y citas por post. No hay visualizaciones.
-   - **Threads:** visualizaciones, me gusta, respuestas, *reposts*, citas y compartidos por post, y visualizaciones y seguidores por cuenta ⚠️.
+   - **Threads:** visualizaciones, me gusta, respuestas, *reposts*, citas y compartidos por post, y, por cuenta, visitas al perfil (`PROFILE_VIEWS`: el `views` de cuenta de Threads cuenta las visitas al perfil, según `design.md`) y seguidores.
    - Todo va en los *snapshots* actuales.
 6. **Ver.** Las dos redes salen en el calendario, el dashboard, la página de red, los informes PDF y CSV, las mejores horas y el MCP.
 7. **Calendario.** «Guardar vista» guarda los filtros actuales con un nombre. Al elegir una vista se aplican sus filtros.
@@ -191,7 +193,8 @@ Cada característica se evalúa y se aprueba por separado:
 | Se usa la contraseña principal de Bluesky en vez de una app password | Aviso en el formulario. No se puede detectar con certeza ⚠️, así que se recomienda crear una app password |
 | `refreshJwt` caducado o revocado | Se recrea la sesión con la app password guardada. Si también falla (revocada), la cuenta pasa a `requiere_reconexion` y se avisa in-app |
 | Cuenta de Bluesky sin el email verificado, o límite diario de vídeo agotado (`getUploadLimits`) | El tipo `bluesky_video` falla con un mensaje claro, y antes de programar se avisa si la API lo indica ⚠️ |
-| Imagen de Bluesky que no baja de 1.000.000 bytes ni recomprimida | Error de validación al guardar, con el tamaño alcanzado |
+| Imagen de Bluesky que no baja de 2.000.000 bytes ni recomprimida (tope configurable, `design.md`) | Error de validación al guardar, con el tamaño alcanzado |
+| Vídeo de Bluesky de más de unos 50 MB (tope configurable, `design.md`) | Error de validación al guardar en el compositor y en `create_post`: «Bluesky solo admite vídeos de hasta 50 MB en esta instalación; este pesa X MB.» |
 | Límite de escritura de Bluesky (5.000 puntos por hora y 35.000 al día; crear = 3) | `TransientPublishException` con reintento. Para uso personal es inalcanzable |
 | Reintento tras un *timeout* en Bluesky | `findPublished` encuentra el registro por su `rkey`: no hay duplicado |
 | Threads sin configurar (`THREADS_APP_ID` vacío) | La red no se ofrece en Conexiones ni en el compositor |
@@ -210,7 +213,7 @@ Cada característica se evalúa y se aprueba por separado:
 - [ ] La UI está en español y las páginas nuevas pasan axe sin violaciones serias ni críticas.
 - [ ] [GWT] CA-01 — Dado un usuario con una marca, Cuando conecta Bluesky con un handle y una app password válidos (API simulada), Entonces la cuenta aparece en Conexiones como conectada y sus credenciales se guardan cifradas.
 - [ ] [GWT] CA-02 — Dado un post de Bluesky de 301 grafemas, Cuando se guarda, Entonces el validador lo rechaza en el compositor y en `create_post` con el mismo mensaje. Con 300 grafemas que incluyen emojis compuestos, se acepta.
-- [ ] [GWT] CA-03 — Dado un post de Bluesky con 4 imágenes, una de ellas de 3 MB, Cuando se publica (API simulada), Entonces se suben 4 *blobs* de ≤ 1.000.000 bytes y el registro lleva los *facets* de sus enlaces y hashtags.
+- [ ] [GWT] CA-03 — Dado un post de Bluesky con 4 imágenes, una de ellas de 3 MB, Cuando se publica (API simulada), Entonces se suben 4 *blobs* de ≤ 2.000.000 bytes (tope configurable; ajustado según `design.md` el 2026-10-27) y el registro lleva los *facets* de sus enlaces y hashtags.
 - [ ] [GWT] CA-04 — Dado un destino de Bluesky cuya primera llamada a `createRecord` agota el tiempo, Cuando el job reintenta, Entonces `findPublished` encuentra el registro por su `rkey` y no se crea un segundo post.
 - [ ] [GWT] CA-05 — Dado un vídeo de Bluesky, Cuando se publica (API simulada), Entonces el destino pasa a `procesando` y, cuando `getJobStatus` devuelve el *blob*, a `publicada` con su enlace `bsky.app`.
 - [ ] [GWT] CA-06 — Dada una cuenta de Bluesky con posts publicados, Cuando corre el colector, Entonces se guardan los seguidores y, por post, los me gusta, compartidos y comentarios, con `views` = `null` («no disponible»), nunca 0.
@@ -253,7 +256,7 @@ Cada característica se evalúa y se aprueba por separado:
 - Documentación oficial consultada el 2026-10-26:
   - [Bluesky OAuth](https://docs.bsky.app/docs/oauth-client) (app password para herramientas de un solo propósito);
   - [atproto OAuth spec](https://atproto.com/specs/oauth) (PKCE, PAR, DPoP con *nonces*, metadatos del cliente; refresco de 180 días en clientes confidenciales y 2 semanas en públicos);
-  - [Bluesky posts](https://docs.bsky.app/docs/about-bluesky-content/posts) (4 imágenes de 1.000.000 bytes);
+  - [Bluesky posts](https://docs.bsky.app/docs/about-bluesky-content/posts) (4 imágenes; el lexicon vigente `app.bsky.embed.images` sube el tope a 2.000.000 bytes, ver `design.md`);
   - [Bluesky video](https://docs.bsky.app/docs/about-bluesky-content/video) (email verificado, límite diario, `video.bsky.app`);
   - [Bluesky rate limits](https://docs.bsky.app/docs/rate-limits);
   - [Tenor: cierre de la API](https://support.google.com/tenor/answer/10455265);
@@ -263,7 +266,13 @@ Cada característica se evalúa y se aprueba por separado:
 ## Decisiones confirmadas (revisión del usuario · pendiente)
 
 1. Alcance de las cuatro características aprobado por el usuario en la petición (2026-10-26). **Confirmado.**
-2. D1–D6 de la evaluación: pendientes de la puerta go/no-go.
+2. D1–D6 de la evaluación: resueltas en la puerta go (ver `evaluation.md`).
+3. **Diseño** ([`design.md`](design.md), aprobado el 2026-10-27): C-01 = O1 y C-02 = T1. Cambios en esta spec respecto a la versión aprobada, cada uno con su motivo:
+   - **Tope de imagen de Bluesky**: de 1.000.000 a **2.000.000 bytes**, configurable. CA-03 se ajusta. El lexicon vigente lo admite y el usuario lo eligió.
+   - **Tope de vídeo de Bluesky**: unos **50 MB**, configurable. Por encima se rechaza al guardar con un mensaje claro. Así se respeta el worker de 120 s sin cambiar el despliegue.
+   - **Hosts de Threads**: `threads.com` y `graph.threads.com`, no `.net`. Verificado en la documentación oficial.
+   - **Vistas de cuenta de Threads**: son `PROFILE_VIEWS`, no visualizaciones. Verificado.
+   - **Texto de Threads**: 500 caracteres, con cada emoji contado por sus bytes UTF-8. Verificado.
 
 ## Supuestos
 

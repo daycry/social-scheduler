@@ -130,6 +130,8 @@ Qué hace cada opción:
 
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
 
+**Cola `media` (importación por URL y Drive).** El cron 4 (`ss-media`) es obligatorio para que «Desde URL» y «Google Drive» avancen: sin él, las importaciones quedan «pendientes» y la interfaz avisa tras 3 minutos. `QUEUE_NAMES` debe incluir `media` si se define en `.env` (los `.env.example` ya lo traen) y `app:queue-probe` la sondea. Cada pasada del job dura hasta 80 s y se reencola sin espera, así que un worker de 280 s encadena unas tres; el resto lo recoge el cron siguiente. Variables de ajuste en [configuración](../referencia/configuracion.md); la guía de Google en [Google Cloud: Picker de Drive](../guias/google-cloud-picker-drive.md).
+
 Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
 
 ### Opción B: systemd (procesos siempre vivos)

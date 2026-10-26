@@ -52,8 +52,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 9 | 9 | 100% | 0 / 24,5h | 1.69 / 3,3h (estimado; sin medir) | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 6 | 6 | 100% | 0 / 14,5h | 1.97 / 2,0h (estimado; sin medir) | 0 / 0,5h | 0 / 587k |
-| Fase 7 — Transversal y cierre | 0 | 3 | 0% | 0 / 3,5h | 0 / 0,5h | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **39** | **50** | **78%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| Fase 7 — Transversal y cierre | 2 | 3 | 67% | 0 / 3,5h | 0.21 / 0,5h (estimado; sin medir) | 0 / 0,1h | 0 / 142k |
+| **TOTAL** | **41** | **50** | **82%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1623,16 +1623,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 7 — Transversal y cierre
 
-**Estado**: borrador · **Estimado**: 3,5h base (4,2h con margen) · **Real**: — · **Coste est.**: 210 € + tokens (⚠️ verificar) · **Tokens est.**: 142k
+**Estado**: en-progreso · **Estimado**: 3,5h base (4,2h con margen) · **Real**: — · **Coste est.**: 210 € + tokens (⚠️ verificar) · **Tokens est.**: 142k
 
 ### T-48 — Guía de configuración externa para el usuario (Google Cloud y YouTube)
 
 - **Descripción**: Guía paso a paso para activar Picker API y Drive API, crear la clave de API restringida al dominio, añadir `drive.file` a la pantalla de consentimiento (D4) y reconectar YouTube con `youtube.force-ssl` (D2).
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Nueva guía para activar «Google Drive» en el compositor (Picker, Drive y clave de API en Google Cloud) y para reconectar YouTube y poder dejar el primer comentario.
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0.14h (estimado)
 - **Supervisión**: est. 0,03h (≈25 % IA) · real —
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-42, T-07
@@ -1642,40 +1643,45 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `grep -n "drive.file\|youtube.force-ssl" docs/guias/google-cloud-picker-drive.md` → ambas cadenas presentes
 
 **Criterios de aceptación**
-- [ ] Lista los pasos y las variables `.env` (`GOOGLE_PICKER_API_KEY`, app id y client id).
-- [ ] Explica la reconexión de YouTube y que invalida los tokens actuales.
-- [ ] Enlazada desde `docs/README.md` y los pendientes manuales.
+- [x] Lista los pasos y las variables `.env` (`GOOGLE_PICKER_API_KEY`, app id y client id).
+- [x] Explica la reconexión de YouTube y que invalida los tokens actuales.
+- [x] Enlazada desde `docs/README.md` y los pendientes manuales.
 
 **Subtareas**
-- [ ] Redactar la guía
-- [ ] Enlazar desde el índice
+- [x] Redactar la guía
+- [x] Enlazar desde el índice
 
 **Notas**: Patrón: `docs/guias/login-social-google-meta.md`. lectura: contrastar con D2 y D4.
+
+**Evidencia**: guía `docs/guias/google-cloud-picker-drive.md` con APIs, clave restringida por referrer, `drive.file`, orígenes JS de `https://social-scheduler.daycry.ovh`, variables `.env` y reconexión de YouTube (invalida los tokens actuales); enlazada desde `docs/README.md` y `pendientes-manuales.md`; variables nuevas en `configuracion.md`. `grep -n "drive.file\|youtube.force-ssl" docs/guias/google-cloud-picker-drive.md` → líneas 8, 30 y 46 (ambas cadenas presentes).
 
 ### T-49 — Documentación consolidada de la iniciativa
 
 - **Descripción**: Actualizar las cifras y el estado en `docs/README.md`, las referencias del MCP y el índice del roadmap.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Documentación al día: cola `media` y cron `ss-media`, variables nuevas, README con las cifras y funciones nuevas, e índice de pruebas manuales de la iniciativa.
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 0,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,07h · real —
+- **Tiempo IA (ejec.)**: est. 0,07h · real 0.07h (estimado)
 - **Supervisión**: est. 0,02h (≈25 % IA) · real —
 - **Previsión IA**: 18k in / 2k out tok · ⚠️ verificar €
 - **Dependencias**: T-48
 - **Tipo**: docs
-- **Archivos**: `docs/README.md`, `docs/modulos/mcp.md`, `docs/roadmap/README.md`
+- **Archivos**: `docs/README.md`, `docs/modulos/mcp.md`, `docs/modulos/despliegue.md`, `docs/referencia/configuracion.md`, `docs/referencia/pendientes-manuales.md`, `docs/roadmap/README.md`, `README.md`
 - **Cubre (tests)**: —
 - **Verificación**: `grep -n "metricool-parity-2" docs/roadmap/README.md` → una fila con el estado actualizado
 
 **Criterios de aceptación**
-- [ ] Las herramientas MCP nuevas figuran en la documentación.
-- [ ] La fila del roadmap refleja el estado real.
+- [x] Las herramientas MCP nuevas figuran en la documentación.
+- [x] La fila del roadmap refleja el estado real.
 
 **Subtareas**
-- [ ] Actualizar índices
+- [x] Actualizar índices
 
 **Notas**: lectura: coherencia entre los módulos documentados.
+
+**Evidencia**: `README.md` (1.896 tests Pest en 177 ficheros, 265 PHP, 95 Vue, 44 migraciones, 22 herramientas MCP, 82 documentos; funciones nuevas), `despliegue.md` (cola `media`, cron `ss-media`, `QUEUE_NAMES`), `pendientes-manuales.md` (P2-M-01..P2-M-05), fila del roadmap `en-progreso · 49/50`. `mcp.md` ya documentaba `import_media_from_url`, `list_campaigns` y `campaign_id` (sin cambios). `grep -n "metricool-parity-2" docs/roadmap/README.md` → una fila con el estado actualizado.
 
 ### T-50 — Regresión completa: Pest, Playwright y Pint
 

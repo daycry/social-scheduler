@@ -38,7 +38,15 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `DB_CONNECTION` ... `DB_PASSWORD` | `mysql`, `127.0.0.1`, `3306`, `metricool`, `root` | MariaDB >= 10.6 / MySQL >= 8.0 |
 | `QUEUE_CONNECTION` | `database` | Sin Redis |
 | `DB_QUEUE_RETRY_AFTER` | `180` | Debe superar el `--timeout` del worker (120 s) |
-| `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers |
+| `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers; `media` es la de las importaciones por URL y Drive |
+| `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» ([guía](../guias/google-cloud-picker-drive.md)) |
+| `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker |
+| `MEDIA_IMPORT_QUEUE` | `media` | Cola de `ImportRemoteMedia` |
+| `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
+| `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |
+| `MEDIA_IMPORT_MIN_PASS_BYTES` | 65536 | Ritmo mínimo por pasada; tres pasadas por debajo = importación fallida |
+| `MEDIA_IMPORT_MAX_AGE_SECONDS` | 7200 | Edad máxima de una importación |
+| `MEDIA_IMPORT_MAX_PASSES` | 200 | Pasadas máximas por importación |
 
 ## Media (disco local o R2)
 

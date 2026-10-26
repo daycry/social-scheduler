@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-Laravel%20Pint-f05340.svg)](https://laravel.com/docs/pint)
-[![Tests](https://img.shields.io/badge/tests-Pest%201423-22c55e.svg)](tests)
+[![Tests](https://img.shields.io/badge/tests-Pest%201896-22c55e.svg)](tests)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20·%203%20viewports-2ead33.svg)](tests/e2e)
 [![Accesibilidad](https://img.shields.io/badge/a11y-axe%20WCAG%202.1%20AA-7c3aed.svg)](tests/e2e/a11y.spec.ts)
 
@@ -33,19 +33,21 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 
 | | |
 |---|---|
-| Código de aplicación | 229 ficheros PHP · ~21.600 líneas en `app/` |
-| Interfaz | 89 componentes Vue (Inertia) |
-| Base de datos | 37 migraciones |
-| Tests unitarios y de integración | **1.423 tests Pest** en 140 ficheros (SQLite en memoria) |
+| Código de aplicación | 265 ficheros PHP · ~25.300 líneas en `app/` |
+| Interfaz | 95 componentes Vue (Inertia) |
+| Base de datos | 44 migraciones |
+| Tests unitarios y de integración | **1.896 tests Pest** en 177 ficheros (SQLite en memoria) |
 | Tests E2E | **345 tests Playwright** en 7 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
 | Servidor MCP | 22 herramientas (marcas, cuentas, calendario, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, informes, comentarios) |
-| Documentación | 68 documentos en `docs/` · 5 ADR · 6 iniciativas en el roadmap |
+| Documentación | 82 documentos en `docs/` · 5 ADR · 6 iniciativas en el roadmap |
 
 ## Funcionalidades
 
 - **Publicación** en Instagram (post, carrusel, reel, story), páginas de Facebook, YouTube (vídeo y short) y TikTok, con cola con reintentos y calendario.
 - **Compositor a pantalla completa**: texto común o propio por red, tipo de publicación junto a cada red, contadores y errores en vivo, opciones por red recordadas por marca, notas internas, generador de enlaces con UTM, «Publicar ahora» y guardado en biblioteca.
 - **Analítica e informes**: dashboards por marca, mejores horas para publicar, informes PDF y comparativa con competidores.
+- **Primer comentario** automático al publicar (Instagram, Facebook y YouTube), textos guardados reutilizables, **campañas** con su panel de analítica y **cuadrícula de Instagram** con las programadas.
+- **Importar media** desde una URL pública o desde Google Drive (Picker): descarga en segundo plano por tramos, con progreso y cancelación ([guía de Google Cloud](docs/guias/google-cloud-picker-drive.md)).
 - **Bandeja de comentarios**, biblioteca de media, enlaces inteligentes y asistente de IA.
 - **Seguridad de cuenta**:
   - doble factor con app de autenticación (TOTP) y códigos de recuperación;

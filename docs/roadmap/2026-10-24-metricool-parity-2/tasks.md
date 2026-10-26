@@ -1470,11 +1470,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-43 — `useDrivePicker.js` con Google Identity Services y Picker
 
 - **Descripción**: Composable que pide el token con GIS (`drive.file`), abre el Picker filtrado a imagen y vídeo y entrega `fileId` y token; props de configuración (clave, app id, client id). Requisito: CA-18.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: El compositor sabe pedir el acceso a Google Drive y abrir el selector de ficheros (solo si el administrador lo ha configurado).
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0.41h (estimado)
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-42
@@ -1486,15 +1487,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] Sin `GOOGLE_PICKER_API_KEY` no se expone configuración.
-- [ ] El token solo vive en memoria en el navegador.
-- [ ] Los scripts de Google se cargan solo al usarlo.
+- [x] Sin `GOOGLE_PICKER_API_KEY` no se expone configuración.
+- [x] El token solo vive en memoria en el navegador.
+- [x] Los scripts de Google se cargan solo al usarlo.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Composable
+- [x] Test RED
+- [x] Composable
 
 **Notas**: Patrón de composables: `resources/js/Composables/useComposer.js`.
+
+**Evidencia**: DrivePickerConfigTest: 4 passed (40 assertions); npm run build sin errores. Token solo en memoria (sin storage), scripts de Google cargados al pulsar el boton, props drivePicker=null sin GOOGLE_PICKER_API_KEY o sin client id.
 
 ### T-44 — UI «Google Drive» en `MediaSection` (oculta sin configurar)
 

@@ -13,6 +13,7 @@ export function useComposer(props) {
     const accounts = computed(() => props.accounts);
     const contentTypes = computed(() => props.contentTypes);
     const limits = computed(() => props.limits ?? {});
+    const drivePicker = computed(() => props.drivePicker ?? null); // configuración del Picker de Google (null = sin Drive)
     // Máximo del primer comentario por tipo (C-01b); los tipos sin entrada (TikTok, Stories) no lo admiten.
     const firstCommentMax = computed(() => props.firstCommentMax ?? {});
     const editable = computed(() => !props.post || props.post.editable);
@@ -344,7 +345,7 @@ export function useComposer(props) {
 
     const api = {
         campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
-        post, brand, accounts, contentTypes, limits, firstCommentMax, editable, form,
+        post, brand, accounts, contentTypes, limits, drivePicker, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,

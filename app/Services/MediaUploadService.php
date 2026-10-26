@@ -122,7 +122,7 @@ class MediaUploadService
      *
      * @throws InvalidArgumentException si el fileId, el token, el tipo, el tamano o el limite de importaciones no valen.
      */
-    public function importFromDrive(User $user, string $fileId, string $token): MediaAsset
+    public function importFromDrive(User $user, string $fileId, #[\SensitiveParameter] string $token): MediaAsset
     {
         $source = new DriveFileSource(app(UrlGuard::class), $fileId, $token);
         $meta = $source->inspect();
@@ -135,7 +135,8 @@ class MediaUploadService
 
         $asset = $this->beginLimited($user, MediaAsset::SOURCE_DRIVE, $source->reference(), $meta['name']);
 
-        ImportRemoteMedia::dispatch($asset->id, $fileId, $token);
+        // `dispatch(new ...)` y no `::dispatch($id, $ref, $token)`: los argumentos variadicos de `dispatch` irian en claro en la traza de una excepcion (CWE-532).
+        dispatch(new ImportRemoteMedia($asset->id, $fileId, $token));
 
         return $asset;
     }

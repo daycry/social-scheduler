@@ -203,3 +203,63 @@ test('un Drive que gotea 1 B por pasada acaba «invalido» en pocas pasadas (gap
     expect($passes)->toBeLessThanOrEqual(3)->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)
         ->and($asset->fresh()->error)->toContain('no avanza');
 });
+
+test('C-1: una excepcion imprevista con el token en juego no deja su prefijo en la traza (CWE-532)', function () {
+    $secret = 'ya29.trace-secret-token-value';
+    ini_set('zend.exception_ignore_args', '0'); // con las trazas SIN argumentos el test no probaria nada
+
+    // Control: sin el atributo el prefijo SI aparece (la traza recorta cada cadena a 15 caracteres).
+    $leaky = function (string $token): never {
+        throw new RuntimeException('x');
+    };
+    try {
+        $leaky($secret);
+    } catch (RuntimeException $e) {
+        expect($e->getTraceAsString())->toContain('ya29.trace-sec');
+    }
+
+    // La peticion de metadatos revienta con una excepcion imprevista dentro de importFromDrive().
+    Http::swap(new Factory);
+    Http::fake(['*' => fn () => throw new LogicException('imprevisto')]);
+    $trace = '';
+    try {
+        app(MediaUploadService::class)->importFromDrive(test()->user, FLOW_FILE, $secret);
+    } catch (LogicException $e) {
+        $trace = $e->getTraceAsString();
+    }
+
+    expect($trace)->toContain('importFromDrive')->not->toContain('ya29.trace')->not->toContain($secret);
+
+    // El constructor del job y el de la fuente tambien llevan el atributo.
+    foreach ([[ImportRemoteMedia::class, 'token'], [DriveFileSource::class, 'token']] as [$class, $param]) {
+        $p = collect((new ReflectionClass($class))->getConstructor()->getParameters())->first(fn ($x) => $x->getName() === $param);
+        expect($p->getAttributes(SensitiveParameter::class))->toHaveCount(1);
+    }
+});
+
+test('B-4: un 403 de cuota (userRateLimitExceeded/rateLimitExceeded) es transitorio; un 403 de permisos sigue siendo permanente', function (string $reason) {
+    $quota = ['error' => ['code' => 403, 'errors' => [['reason' => $reason, 'domain' => 'usageLimits']]]];
+
+    // Metadatos: se pide reintentar, no «vuelve a elegir».
+    ($this->fake)(['oauth2.googleapis.com/tokeninfo' => Http::response(['aud' => 'cid.apps.googleusercontent.com', 'scope' => DriveFileSource::SCOPE]), 'www.googleapis.com/drive/v3/files/*' => Http::response($quota, 403)]);
+    expect(fn () => app(MediaUploadService::class)->importFromDrive(test()->user, FLOW_FILE, FLOW_TOKEN))
+        ->toThrow(InvalidArgumentException::class, DriveFileSource::RATE_LIMITED);
+
+    // Descarga: el 403 de cuota lanza un error TRANSITORIO (el job reintenta y el asset sigue pendiente).
+    $body = flowJpeg();
+    ($this->fake)(['www.googleapis.com/drive/v3/files/'.FLOW_FILE.'?fields=id' => Http::response($quota, 403), driveMedia() => Http::response($quota, 403)] + driveOk(strlen($body)));
+    [$asset, $job] = beginDrive();
+    expect(fn () => $job->handle(app(RemoteMediaImporter::class)))->toThrow(RuntimeException::class, 'cuota');
+    expect($asset->fresh()->status)->toBe(MediaAsset::STATUS_PENDING);
+})->with(['userRateLimitExceeded', 'rateLimitExceeded']);
+
+test('B-4: un 403 de permisos en la descarga sigue siendo permanente', function () {
+    $body = flowJpeg();
+    $forbidden = ['error' => ['code' => 403, 'errors' => [['reason' => 'forbidden']]]];
+    ($this->fake)(['www.googleapis.com/drive/v3/files/'.FLOW_FILE.'?fields=id' => Http::response($forbidden, 403), driveMedia() => Http::response($forbidden, 403)] + driveOk(strlen($body)));
+
+    [$asset, $job] = beginDrive();
+    runDrive($job);
+
+    expect($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->fresh()->error)->toContain('Vuelve a elegir el fichero en Drive');
+});

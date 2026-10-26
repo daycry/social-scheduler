@@ -34,7 +34,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
 
     public int $uniqueFor = 600;
 
-    public function __construct(public readonly int $assetId, public readonly string $reference, public readonly ?string $token = null)
+    public function __construct(public readonly int $assetId, public readonly string $reference, #[\SensitiveParameter] public readonly ?string $token = null)
     {
         $this->onQueue((string) config('media.import_queue', 'media'));
     }
@@ -59,7 +59,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
         }
 
         if (! $importer->run($asset, $this->sourceFor($asset))) {
-            static::dispatch($this->assetId, $this->reference, $this->token);
+            dispatch(new static($this->assetId, $this->reference, $this->token)); // sin argumentos variadicos: el token no iria en claro en una traza
         }
     }
 

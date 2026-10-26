@@ -19,7 +19,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | | |
 |---|---|
-| **Estado** | en-progreso |
+| **Estado** | completado |
 | **Fecha** | 2026-10-24 |
 | **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
 | **Diseño** | [`design.md`](./design.md) — opción O1 (C-01b = A1, C-04 = B1) |
@@ -52,8 +52,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03 · Campañas | 9 | 9 | 100% | 0 / 36,5h | 1.36 / 4,9h | 0 / 1,2h | 0 / 1,48M |
 | Fase 5 — C-04a · Media desde URL | 9 | 9 | 100% | 0 / 24,5h | 1.69 / 3,3h (estimado; sin medir) | 0 / 0,8h | 0 / 992k |
 | Fase 6 — C-04b · Media desde Google Drive | 6 | 6 | 100% | 0 / 14,5h | 1.97 / 2,0h (estimado; sin medir) | 0 / 0,5h | 0 / 587k |
-| Fase 7 — Transversal y cierre | 2 | 3 | 67% | 0 / 3,5h | 0.21 / 0,5h (estimado; sin medir) | 0 / 0,1h | 0 / 142k |
-| **TOTAL** | **41** | **50** | **82%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
+| Fase 7 — Transversal y cierre | 3 | 3 | 100% | 0 / 3,5h | 0.21 / 0,5h (estimado; sin medir) | 0 / 0,1h | 0 / 142k |
+| **TOTAL** | **50** | **50** | **100%** | **0 / 154,5h** | **0 / 20,9h** | **0 / 5,2h** | **0 / 6,26M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1242,7 +1242,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón de pasadas con presupuesto: `app/Connectors/Google/YouTubePublisher.php:413` (`beginPass`) y `upload_budget_seconds` (80). `app/Services/MediaUploadService.php:119` (`finalize`): solo se fija `declared_size` antes de llamarlo.
 
-**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL. Fix revisión F5 (526a25d): gaps 1, 5, 9, 10, 11, 13. Verificación: UrlSourceRealHandlerTest (CurlFactory real + servidor PHP local en 127.0.0.1, sin red externa) y ImportRemoteMediaTest 46 passed. Tiempo ESTIMADO 1,6h. Fix revisión F5-3 (N1, N2): sin tope de edad desde `created_at`; corte por ritmo medio sobre el tiempo de descarga efectivo (`download_seconds`; 16 KB/s tras 300 s de gracia); tope de pasadas = máx(200, ceil(tramos de 8 MB × 1,25) + 10) → 522 para 4 GiB; ritmo máximo de reencolado (una pasada incompleta de menos de 1 s espera el resto dentro del job, sin `delay`). Tests con el manejador real contra 127.0.0.1: remoto sano con tramos de 700 B y 5 h de espera en cola simulada completa (`listo`); `drip.jpg` sigue acabando `invalido` en ≤ 3 pasadas; ritmo medio sobre descarga efectiva; `maxPasses(4 GiB) ≥ 512`; pacing ≥ 0,45 s. `tests/Feature/Media`: 177 passed.
+**Evidencia**: RED: ImportRemoteMediaTest falló (clases inexistentes) · 2026-10-24. ImportRemoteMediaTest: 38 passed (135 assertions): JPEG válido listo; tope por Content-Length y por bytes reales; MIME falseado y no admitido; 3 pasadas con Range/If-Range; progreso; sin Range → error claro; reinicio único; URL interna/redirección/rebinding; IP fijada por pasada; S3 → error claro; 503 → reintento y failed(). MediaUploadTest en verde. Desviación: el job usa ShouldBeUniqueUntilProcessing (hereda ShouldBeUnique) para poder reencolarse a sí mismo. Pendiente de smoke real (no hay red en tests): progreso/on_headers de cURL. Fix revisión F5 (526a25d): gaps 1, 5, 9, 10, 11, 13. Verificación: UrlSourceRealHandlerTest (CurlFactory real + servidor PHP local en 127.0.0.1, sin red externa) y ImportRemoteMediaTest 46 passed. Tiempo ESTIMADO 1,6h. Fix revisión F5-3 (N1, N2): sin tope de edad desde `created_at`; corte por ritmo medio sobre el tiempo de descarga efectivo (`download_seconds`; 16 KB/s tras 300 s de gracia); tope de pasadas = máx(200, ceil(tramos de 8 MB × 1,25) + 10, ceil(total / (16 KB/s × 70 s) × 1,25) + 10) → 4692 para 4 GiB (650 solo por tramos; corregido en la revisión final, G1); ritmo máximo de reencolado (una pasada incompleta de menos de 1 s espera el resto dentro del job, sin `delay`). Tests con el manejador real contra 127.0.0.1: remoto sano con tramos de 700 B y 5 h de espera en cola simulada completa (`listo`); `drip.jpg` sigue acabando `invalido` en ≤ 3 pasadas; ritmo medio sobre descarga efectiva; `maxPasses(4 GiB) ≥ 512`; pacing ≥ 0,45 s. `tests/Feature/Media`: 177 passed.
 
 ### T-36 — Endpoint de importación por URL con `throttle`, límite por usuario y limpieza de `.part`
 
@@ -1625,7 +1625,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 7 — Transversal y cierre
 
-**Estado**: en-progreso · **Estimado**: 3,5h base (4,2h con margen) · **Real**: — · **Coste est.**: 210 € + tokens (⚠️ verificar) · **Tokens est.**: 142k
+**Estado**: completado · **Estimado**: 3,5h base (4,2h con margen) · **Real**: — · **Coste est.**: 210 € + tokens (⚠️ verificar) · **Tokens est.**: 142k
 
 ### T-48 — Guía de configuración externa para el usuario (Google Cloud y YouTube)
 
@@ -1688,11 +1688,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-50 — Regresión completa: Pest, Playwright y Pint
 
 - **Descripción**: Tarea final: suites completas en verde y estilo, antes de cerrar. El smoke real (M-01..M-05) lo ejecuta el usuario.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: Suite completa de Pest, regresión E2E en escritorio y dos tamaños de móvil, y estilo comprobados antes de cerrar la iniciativa.
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: el propio criterio verificable (comando de Verificación) ejecutado y visto fallar o ausente antes de dar la tarea por hecha.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.27h (estimado)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-06, T-18, T-23, T-32, T-41, T-47, T-49
@@ -1707,16 +1708,22 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `vendor/bin/pint --test` → exit 0
 
 **Criterios de aceptación**
-- [ ] Pest y Playwright (desktop, mobile y mobile-360) completos en verde.
-- [ ] Pint sin diferencias.
-- [ ] Evidencia pegada en la tarea.
+- [x] Pest y Playwright (desktop, mobile y mobile-360) completos en verde.
+- [x] Pint sin diferencias.
+- [x] Evidencia pegada en la tarea.
 
 **Subtareas**
-- [ ] Pest completo
-- [ ] Playwright en los tres proyectos
-- [ ] Pint
+- [x] Pest completo
+- [x] Playwright en los tres proyectos
+- [x] Pint
 
 **Notas**: Requiere `npm run build` previo y el servidor de pruebas que levanta `playwright.config.ts`.
+
+**Evidencia (2026-10-26, tras la corrección acotada de la revisión final G1..G5, commit 8563a85)**:
+- `php artisan test --compact` → **1909 passed** (11522 aserciones), 0 fallos (antes de la corrección: 1906; +4 tests nuevos de G1/G2, −1 sustituido).
+- `vendor/bin/pint --test` → `{"result":"passed"}`, exit 0. `npm run build` → compila.
+- Regresión E2E completa de Playwright con su propio servidor (`localhost:8080`), proyectos desktop, mobile y mobile-360, sobre 2675a2a: **418 passed, 0 failed, 2 skipped** (32,4 min). La corrección posterior es solo de backend (`RemoteMediaImporter`, config, tests Pest y docs), así que se repitió `media-import.spec.ts` en desktop con `E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test` → **13 passed** (1,9 min).
+- El smoke real M-01..M-05 lo ejecuta el usuario (`docs/referencia/pendientes-manuales.md`).
 
 **Evidencia**: Fix revisión F3-4 i2 (gap 3): `MediaPreviewTest.php` (PR #13, traído con el merge de main) y el ajuste de `composer.spec.ts` (commit 64fc942) declarados en Archivos.
 
@@ -1849,7 +1856,7 @@ Lentes A+B+D. Rangos: `9d17895..412b4b7` (correcciones del intento 2 de la Fase 
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| N1 | Important | El tope de edad de 2 h cuenta desde `created_at`, así que incluye la espera en cola y el reparto del único worker. Mata importaciones grandes legítimas: 4 GiB a 500 KB/s se cortan con 3,5 GB bajados. Un CDN que limite cada 206 a 8 MB supera el tope de 200 pasadas. Contradice CA-17 y la documentación | T-35 | Corregido (4de5241): sin tope de edad; ritmo medio sobre el tiempo de descarga efectivo (16 KB/s tras 300 s) y tope de pasadas derivado del total (522 para 4 GiB a 8 MB por 206); goteo sigue acabando `invalido` en ≤ 3 pasadas; tests con el manejador real (remoto sano con tramos pequeños y 5 h de cola simulada completa); doc en `media.md` | `RemoteMediaImporter.php:38-40`, `config/media.php:60`, `media.md:30`; probe a escala |
+| N1 | Important | El tope de edad de 2 h cuenta desde `created_at`, así que incluye la espera en cola y el reparto del único worker. Mata importaciones grandes legítimas: 4 GiB a 500 KB/s se cortan con 3,5 GB bajados. Un CDN que limite cada 206 a 8 MB supera el tope de 200 pasadas. Contradice CA-17 y la documentación | T-35 | Corregido (4de5241): sin tope de edad; ritmo medio sobre el tiempo de descarga efectivo (16 KB/s tras 300 s) y tope de pasadas derivado del total (4692 para 4 GiB, el mayor entre el ritmo mínimo y los tramos de 8 MB por 206; ver revisión final G1); goteo sigue acabando `invalido` en ≤ 3 pasadas; tests con el manejador real (remoto sano con tramos pequeños y 5 h de cola simulada completa); doc en `media.md` | `RemoteMediaImporter.php:38-40`, `config/media.php:60`, `media.md:30`; probe a escala |
 | N2 | Minor | Carga residual: 200 pasadas seguidas por asset si cada una trae ≥ 64 KB | T-35, T-40 | Corregido (4de5241): ritmo máximo de reencolado, una pasada incompleta de menos de 1 s espera el resto dentro del job (sin `delay`, sin los ~40 s muertos); test | probes `exact`/`alt`: unas 200 pasadas/s por asset |
 | N3 | Minor | `media.md:33` no refleja el latido ni el sondeo cada 20 s | T-37 | Corregido (4de5241): `media.md` documenta el latido `runs` y el sondeo lento de 20 s (cola parada, sin abandonar) | `MediaSection.vue:75,84,99-101` |
 | N4 | Important | La guía (5.1) manda pulsar «Reconectar» en YouTube, pero ese botón solo aparece si la cuenta no está activa. La vía real es «+ Conectar» en la tarjeta de YouTube | T-48 | Corregido (da642e5): guía con «+ Conectar» en la tarjeta de YouTube; el aviso de `FirstCommentField` lo indica y el enlace lleva a Conexiones, donde existe esa acción | `google-cloud-picker-drive.md:48`, `Connections.vue:104,132-137` |
@@ -1868,8 +1875,8 @@ Lentes A+B+C+D sobre `df5e4fe..72f2d0c`. Lente C: el Bearer no sale a ningún ho
 | C-1 | Minor | `$token` no lleva `#[\SensitiveParameter]` en `importFromDrive` ni en el constructor/dispatch del job: una excepción imprevista deja un prefijo del token en la traza (CWE-532) | T-42, T-47 | Corregido (e30d913): `#[\SensitiveParameter]` en `importFromDrive` y en el constructor del job, y `dispatch(new …)` sin variádicos; test que fuerza una excepción y comprueba la traza (con control) | `MediaUploadService.php:125`, `ImportRemoteMedia.php:37,62`; probe `trace.php` |
 | B-2 | Minor | Si falla `gapi.load('picker')` o el builder, la promesa no se resuelve y el botón se queda en «Abriendo Drive…» | T-43 | Corregido (f63c043): `gapi.load` con onerror/timeout, `try/catch` del builder y timeout de scripts; el botón vuelve y hay mensaje; E2E | `useDrivePicker.js:51` |
 | B-3 | Minor | `requestAccessToken` se llama después de un `await` de red, fuera del gesto del usuario: el popup se bloquea en el primer clic y el mensaje es engañoso | T-43 | Corregido (f63c043): precarga al pasar el ratón o enfocar el botón (sin `await` antes de `requestAccessToken`); mensaje de popup bloqueado; E2E | `useDrivePicker.js:78-82` |
-| B-4 | Minor | Un 403 por límite de cuota de Drive (`userRateLimitExceeded`/`rateLimitExceeded`) se trata como permanente | T-42 | Corregido (e30d913): 403 de cuota transitorio en metadatos y descarga (3 tests); el 403 de permisos sigue permanente | `DriveFileSource.php:75,135` |
-| A-1 | Minor | La Verificación de T-42 no probaba el 401 a mitad (llegó en T-45) | T-42 | Corregido (e30d913): nota en T-42: el 401 a mitad de la descarga se cubrió en T-45 | `tasks.md` T-42 |
+| B-4 | Minor | Un 403 por límite de cuota de Drive (`userRateLimitExceeded`/`rateLimitExceeded`) se trata como permanente | T-42 | Corregido (código en f63c043, tests en e30d913): 403 de cuota transitorio en metadatos y descarga (3 tests); el 403 de permisos sigue permanente | `DriveFileSource.php:75,135` |
+| A-1 | Minor | La Verificación de T-42 no probaba el 401 a mitad (llegó en T-45) | T-42 | Corregido (2675a2a): nota en T-42: el 401 a mitad de la descarga se cubrió en T-45 | `tasks.md` T-42 |
 | A-2 | Minor | `Archivos` de T-42 y T-43 está incompleto | T-42, T-43 | Corregido: `Archivos` de T-42 y T-43 completados | — |
 | A-3 | Minor | RED marcado sin evidencia en T-43 y T-44; T-44 no tiene test Pest de comportamiento | T-43, T-44 | Corregido: «RED no registrado» en T-43 y T-44; el comportamiento de T-44 lo cubren los E2E-09 ampliados (no se añade Pest: el botón es de Vue) | — |
 | A-4 | Minor | El criterio dice «0 violaciones de axe», pero solo se filtran critical/serious | T-46 | Corregido: criterio de T-46 alineado con el filtro critical/serious del proyecto | `media-import.spec.ts:31` |
@@ -1881,11 +1888,11 @@ Lentes A+B+C+D, revisión final sobre `bcd883d..2675a2a`. Están corregidos N2..
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| G1 | Important | El tope de pasadas sale de tramos de 8 MB, pero con un remoto lento cada pasada trae «ritmo × 70 s». Con eso, por debajo de unos 75-92 KiB/s se cortan descargas legítimas de 1-4 GB tras horas, cuando la documentación promete el corte a 16 KB/s | T-35 | pendiente (corrección acotada, decisión del usuario) | `RemoteMediaImporter.php:41,161-172`; probe `floor.php` |
-| G2 | Important | Una pasada que acaba en excepción transitoria (5xx, 408/425/429, timeout) no suma ni `download_seconds` ni `passes`. Un remoto podría ocupar el worker unas 40 h por asset (CWE-400/770) | T-35 | pendiente (corrección acotada, decisión del usuario) | `RemoteMediaImporter.php:58-59,87-91`; probe `p503.php` |
-| G3 | Minor | El ledger y `media.md` dicen 522 pasadas para 4 GiB; el código da 650 | T-35 | pendiente | `media.md:30` |
-| G4 | Minor | El badge del README dice 1896 tests Pest; son 1906 | T-49 | pendiente | `README.md:7` |
-| G5 | Minor | Los hashes de B-4 (código en f63c043) y A-1 (nota en 2675a2a) en la columna Corrección no coinciden con los commits | T-42, T-47 | pendiente | `tasks.md` |
+| G1 | Important | El tope de pasadas sale de tramos de 8 MB, pero con un remoto lento cada pasada trae «ritmo × 70 s». Con eso, por debajo de unos 75-92 KiB/s se cortan descargas legítimas de 1-4 GB tras horas, cuando la documentación promete el corte a 16 KB/s | T-35 | Corregido (8563a85): `maxPasses` = máx(200, tramos de 8 MB, `total / (16 KB/s × 70 s)`) con ×1,25 + 10 (4 GiB: 4692; 1 GiB: 1182); el corte real es `tooSlow`; mensajes «demasiado lenta» (ritmo) y «necesita demasiadas pasadas» (tope); tests: fórmula, 1 GiB a 50 KiB/s y 4 GiB a 20 KiB/s | `RemoteMediaImporter.php:41,161-172`; probe `floor.php` |
+| G2 | Important | Una pasada que acaba en excepción transitoria (5xx, 408/425/429, timeout) no suma ni `download_seconds` ni `passes`. Un remoto podría ocupar el worker unas 40 h por asset (CWE-400/770) | T-35 | Corregido (8563a85): una pasada con excepción transitoria suma `download_seconds`, `passes` y `failed_passes` antes de relanzar (ritmo medio y tope la incluyen; un 5xx suelto no es permanente); 2 tests con el manejador real contra 127.0.0.1 (503/206 alternos, uno corta por ritmo) | `RemoteMediaImporter.php:58-59,87-91`; probe `p503.php` |
+| G3 | Minor | El ledger y `media.md` dicen 522 pasadas para 4 GiB; el código da 650 | T-35 | Corregido (8563a85): 4 GiB = 4692 pasadas (650 solo por tramos) en `media.md` y en el ledger | `media.md:30` |
+| G4 | Minor | El badge del README dice 1896 tests Pest; son 1906 | T-49 | Corregido (8563a85): badge y cifra a 1909 (`pest --list-tests`) | `README.md:7` |
+| G5 | Minor | Los hashes de B-4 (código en f63c043) y A-1 (nota en 2675a2a) en la columna Corrección no coinciden con los commits | T-42, T-47 | Corregido: B-4 → f63c043 (código) y e30d913 (tests); A-1 → 2675a2a | `tasks.md` |
 
 > **Decisión del usuario (2026-10-26):** corrección acotada de G1/G2 con tests deterministas y una comprobación corta, **sin otra ronda completa de revisión**. Después, PR.
 

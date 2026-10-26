@@ -23,7 +23,7 @@ generacion:
 | | |
 |---|---|
 | **Fecha** | 2026-10-24 |
-| **Estado** | en-progreso |
+| **Estado** | completado |
 | **Tipo** | Nueva Funcionalidad |
 | **Prioridad** | Media |
 | **Solicitante** | daycry (usuario del proyecto) |

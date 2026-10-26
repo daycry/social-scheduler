@@ -1502,11 +1502,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-44 — UI «Google Drive» en `MediaSection` (oculta sin configurar)
 
 - **Descripción**: Botón «Google Drive» que aparece solo con la clave configurada y reutiliza el sondeo de «Desde URL». Requisito: CA-18.
-- **Changelog**: 
-- **Estado**: borrador
+- **Changelog**: En el compositor aparece el botón «Google Drive» (solo si está configurado) para importar un fichero de Drive con el mismo progreso que «Desde URL».
+- **Cerrada**: 2026-10-26
+- **Estado**: completado
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
 - **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0.27h (estimado)
 - **Supervisión**: est. 0,07h (≈25 % IA) · real —
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-43
@@ -1518,15 +1519,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npx playwright test tests/e2e/media-import.spec.ts --project=desktop -g "Drive"` → pasa (botón oculto sin clave)
 
 **Criterios de aceptación**
-- [ ] Sin clave no hay botón (CA-18).
-- [ ] Con clave, el fichero elegido se importa como en CA-14.
-- [ ] Accesible por teclado.
+- [x] Sin clave no hay botón (CA-18).
+- [x] Con clave, el fichero elegido se importa como en CA-14.
+- [x] Accesible por teclado.
 
 **Subtareas**
-- [ ] Botón y estado
-- [ ] Sondeo compartido
+- [x] Botón y estado
+- [x] Sondeo compartido
 
 **Notas**: Mismo componente que T-37.
+
+**Evidencia**: npm run build ok; E2E -g Drive en desktop: 3 passed (boton oculto sin clave; con clave stub de window.google + POST simulado; cancelar). Accesible por teclado (foco + Intro). Token no queda en URL, storage ni DOM.
 
 ### T-45 — Pest de Drive con `Http::fake`
 

@@ -1,10 +1,14 @@
 <script setup>
 import { onBeforeUnmount, ref } from 'vue';
 import { useComposerContext } from '@/Composables/useComposer';
+import { useDrivePicker } from '@/Composables/useDrivePicker';
 
 // La subida vive ahora en la barra del editor (`EditorToolbar`); aquí queda la lista ordenable de lo elegido
 // y la importación «Desde URL» (C-04a): el servidor descarga en segundo plano y aquí se sondea hasta `listo` o `invalido`.
-const { form, editable, mediaById, move, removeMedia, onUploaded } = useComposerContext();
+const { form, editable, mediaById, move, removeMedia, onUploaded, drivePicker } = useComposerContext();
+
+// «Google Drive» (C-04b): solo con el Picker configurado en el servidor. Comparte lista y sondeo con «Desde URL».
+const drive = useDrivePicker(() => drivePicker.value);
 
 const url = ref('');
 const sending = ref(false);
@@ -34,7 +38,7 @@ const call = async (target, method, body) => {
     });
     const json = await response.json().catch(() => ({}));
     if (!response.ok) {
-        const failure = new Error(json.message || json.errors?.url?.[0] || 'No se pudo importar la URL.');
+        const failure = new Error(json.message || json.errors?.url?.[0] || json.errors?.file_id?.[0] || 'No se pudo importar el fichero.');
         failure.status = response.status;
         throw failure;
     }
@@ -99,6 +103,12 @@ const schedule = () => {
     }, delay);
 };
 
+const track = (asset) => {
+    imports.value.push({ id: asset.id, name: asset.name, bytes: 0, total: null, status: 'pendiente', error: null, stalled: false, cancelling: false, startedAt: Date.now(), failures: 0 });
+    delay = POLL_MIN_MS;
+    schedule();
+};
+
 const startImport = async () => {
     const value = url.value.trim();
     if (!value || sending.value) return;
@@ -106,10 +116,25 @@ const startImport = async () => {
     error.value = '';
     try {
         const { asset } = await call(route('media.import-url'), 'POST', { url: value });
-        imports.value.push({ id: asset.id, name: asset.name, bytes: 0, total: null, status: 'pendiente', error: null, stalled: false, cancelling: false, startedAt: Date.now(), failures: 0 });
+        track(asset);
         url.value = '';
-        delay = POLL_MIN_MS;
-        schedule();
+    } catch (e) {
+        error.value = e.message;
+    } finally {
+        sending.value = false;
+    }
+};
+
+// El token de Drive solo existe en esta llamada: se envía al servidor (que lo cifra en el job) y se descarta.
+const importFromDrive = async () => {
+    if (sending.value || drive.busy.value) return;
+    error.value = '';
+    try {
+        const picked = await drive.pick();
+        if (!picked) return;
+        sending.value = true;
+        const { asset } = await call(route('media.import-drive'), 'POST', { file_id: picked.fileId, access_token: picked.token });
+        track(asset);
     } catch (e) {
         error.value = e.message;
     } finally {
@@ -173,8 +198,10 @@ onBeforeUnmount(() => {
                         aria-describedby="media-import-help media-import-error">
                 </div>
                 <button type="submit" class="btn-secondary" :disabled="sending || !url.trim()">{{ sending ? 'Importando…' : 'Importar' }}</button>
+                <button v-if="drive.available()" type="button" class="btn-secondary" data-testid="media-import-drive" :disabled="sending || drive.busy.value"
+                    aria-describedby="media-import-help" @click="importFromDrive">{{ drive.busy.value ? 'Abriendo Drive…' : 'Google Drive' }}</button>
             </form>
-            <p id="media-import-help" class="mt-1 text-xs text-slate-600">Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.</p>
+            <p id="media-import-help" class="mt-1 text-xs text-slate-600">Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()"> También puedes elegir un fichero de Google Drive.</template></p>
             <p id="media-import-error" role="alert" class="mt-1 text-sm text-red-700" data-testid="media-import-error">{{ error }}</p>
 
             <ul v-if="imports.length" class="mt-2 space-y-2" aria-live="polite">

@@ -4,7 +4,6 @@ namespace App\Mcp\Tools;
 
 use App\Connectors\Network;
 use App\Mcp\Abilities;
-use App\Models\Brand;
 use App\Models\User;
 use App\Services\BestTimesService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -32,7 +31,7 @@ class GetBestTimes extends SchedulerTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'brand_id' => $schema->integer()->description('ID de la marca')->required(),
+            ...$this->brandSchema($schema, 'Marca (obligatoria)'),
             'network' => $schema->string()->enum(array_column(Network::cases(), 'value'))->description('instagram, facebook, youtube o tiktok')->required(),
             'days' => $schema->integer()->description('Ventana en dias (7-365; por defecto 90)'),
         ];
@@ -40,7 +39,7 @@ class GetBestTimes extends SchedulerTool
 
     protected function run(Request $request, User $user): array
     {
-        $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
+        $brand = $this->brandFrom($request, $user);
         $network = Network::tryFrom((string) $request->get('network')) ?? throw new InvalidArgumentException('Red no valida.');
         $days = $request->get('days');
 

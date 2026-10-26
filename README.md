@@ -38,7 +38,7 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 | Base de datos | 37 migraciones |
 | Tests unitarios y de integración | **1.423 tests Pest** en 140 ficheros (SQLite en memoria) |
 | Tests E2E | **345 tests Playwright** en 7 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
-| Servidor MCP | 19 herramientas (marcas, cuentas, calendario, publicaciones —con «publicar ahora» y notas—, estadísticas, informes, comentarios) |
+| Servidor MCP | 22 herramientas (marcas, cuentas, calendario, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, informes, comentarios) |
 | Documentación | 68 documentos en `docs/` · 5 ADR · 6 iniciativas en el roadmap |
 
 ## Funcionalidades

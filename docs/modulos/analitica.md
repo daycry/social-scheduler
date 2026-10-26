@@ -56,5 +56,5 @@ El panel (`/campaigns/{id}`) lee de las mismas tablas que el dashboard y reutili
 - Una métrica que ningún destino informa es `null` y se muestra «No disponible», nunca 0. Si solo informan algunos destinos, la suma es la de los que informan.
 - El **alcance** se rotula «alcance acumulado»: es la suma del alcance de cada publicación, no usuarios únicos.
 - El engagement usa solo los destinos con visualizaciones e interacciones.
-- La serie diaria es acumulada: cada día suma el último valor conocido de cada destino.
+- La serie diaria del panel de campaña se agrega en SQL: cada día suma los snapshots leídos ese día, sin arrastrar el último valor de los destinos que no se leyeron (su último punto puede no coincidir con los KPIs, que usan el último snapshot de cada destino; la UI lo avisa). La lista de posts se recorta a 100 (con el total y un aviso).
 - **Límite de 30 días:** las métricas de una publicación solo se refrescan durante `SOCIAL_ANALYTICS_RECENT_POST_DAYS` (30) días; pasado ese plazo quedan congeladas con el último dato leído. El panel lo avisa.

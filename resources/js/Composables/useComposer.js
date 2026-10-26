@@ -43,6 +43,8 @@ export function useComposer(props) {
     onBeforeUnmount(() => objectUrls.forEach((u) => URL.revokeObjectURL(u)));
 
     const onUploaded = (asset, file) => {
+        // Idempotente: un sondeo repetido (o un doble evento) no duplica la media en la lista ni en la publicacion.
+        if (form.media.includes(asset.id) || mediaItems.value.some((m) => m.id === asset.id)) return;
         mediaItems.value.push(asset);
         form.media.push(asset.id);
         if (file && (asset.kind === 'image' || asset.kind === 'video')) {

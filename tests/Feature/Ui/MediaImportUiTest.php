@@ -33,6 +33,12 @@ test('MediaImportUi: es accesible — etiqueta, ayuda, error anunciado y progres
         ->toContain('<progress')->toContain('aria-label="`Progreso de');
 });
 
+test('MediaImportUi: el sondeo tiene candado, backoff, tolerancia a errores sueltos, cancelacion y aviso de atasco (revision F5)', function () {
+    // El comportamiento real se ejecuta en Playwright (media-import.spec.ts, con page.route): aqui solo se fija que las piezas existen.
+    expect($this->vue)->toContain('if (polling) return')->toContain('POLL_MAX_MS')->toContain('MAX_POLL_FAILURES')
+        ->toContain("route('media.destroy'")->toContain('La cola de importación no está procesando');
+});
+
 test('MediaImportUi: sondea hasta «listo» o «invalido» y deja de sondear', function () {
     expect($this->vue)->toContain("asset.status === 'listo'")->toContain('onUploaded(asset, null)')
         ->toContain('stopPolling')->toContain('onBeforeUnmount')

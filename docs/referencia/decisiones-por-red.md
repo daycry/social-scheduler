@@ -76,3 +76,37 @@ Decisiones de la tercera ola (opción O1 del diseño: contrato segregado y catá
 - **Idempotencia:** `rkey` TID guardada antes de `createRecord`; `getRecord` antes de fallar.
 - **Métricas:** solo seguidores y posts de cuenta; likes, respuestas, reposts y citas por post; sin visualizaciones ni alcance (`null`).
 - **Pendiente de verificar en el smoke real (T-30, M-01):** `aud` del `getServiceAuth` de subida de vídeo, error del PDS con `rkey` repetida y host público del AppView.
+
+## Threads
+
+Decisiones de la tercera ola (opción T1 del diseño: conector `threads` propio, sin heredar de Instagram ni tocar `InstagramPublisher`). Verificado en la documentación oficial de Meta (`developers.facebook.com/docs/threads`, páginas renderizadas en el navegador) el **2026-10-27**. Variables: `THREADS_ENABLED`, `THREADS_APP_ID`, `THREADS_APP_SECRET`; guía de alta: [threads-app-meta.md](../guias/threads-app-meta.md).
+
+### Tabla de verificación (T-54)
+
+| Punto (⚠️ del diseño) | Resultado | Valor fijado | Fuente (actualizada) |
+|---|---|---|---|
+| Texto máximo | Verificado | 500 caracteres | «Threads Posts» (13 oct 2026) |
+| Regla de emojis | Verificado la frase; la interpretación para secuencias (ZWJ, banderas) **no** | «los emojis cuentan el número de bytes UTF-8». `TextLength` suma los bytes de cada símbolo pictográfico y 1 por el resto; una familia compuesta cuenta cada pictograma con sus bytes más 1 por cada unión | «Threads Posts»; comprobar con texto al límite en el smoke (M-02) |
+| Carrusel | Verificado | de 2 a 20 elementos (imagen, vídeo o mezcla); cuenta 1 contra la cuota | «Threads Posts» |
+| Cuota de publicación | Verificado | 250 publicaciones por 24 h móviles; se lee en `GET /{user}/threads_publishing_limit?fields=quota_usage,config` (`config.quota_total`, `quota_duration`) | «Threads API overview» (22 dic 2025) |
+| Campos de `/me` | Verificado | `id`, `username`, `name`, `threads_profile_picture_url` (además `threads_biography`, `is_verified`) | «Threads Profiles» (13 abr 2026) |
+| *Permalink* | Verificado | `GET /{media-id}?fields=permalink` (se omite si el contenido tiene copyright marcado) | «Retrieve User Posts» (14 abr 2026) |
+| Métricas del post | Verificado | `views`, `likes`, `replies`, `reposts`, `quotes`, `shares`; `views` y `shares` figuran «en desarrollo» (→ `null` si no llegan); vacío para `REPOST_FACADE` | «Threads Insights API» (30 ene 2026) |
+| Métricas de cuenta | Verificado | `views` = **visitas al perfil** (serie diaria), `likes`, `replies`, `reposts`, `quotes`, `clicks` (por enlace), `followers_count` (sin `since`/`until`); rango no antes del 13-04-2024 (1712991600) | «Threads Insights API» |
+| ¿Basta el modo desarrollo? | Verificado en la documentación; **falta el smoke** | Sin App Review solo se publica y se leen datos de *testers* de la app; para otros usuarios hace falta aprobar `threads_content_publish` y publicar la app | «Threads Posts» y «Get started» |
+| Hosts y OAuth | Verificado | autorización `https://threads.com/oauth/authorize`; API `https://graph.threads.com` (la doc admite también `graph.threads.net`); canje `POST /oauth/access_token` (`grant_type=authorization_code`); largo `GET /access_token?grant_type=th_exchange_token` (60 días); renovación `GET /refresh_access_token?grant_type=th_refresh_token` (token de ≥ 24 h y no caducado). La respuesta del canje trae `user_id` | «Get access tokens» y «Long-lived tokens» |
+| Dos app IDs | Verificado | La app lleva dos IDs y secretos; se usan los de **Threads** (Configuración > Básica) | «Get started» |
+| Permisos | Verificado | `threads_basic`, `threads_content_publish`, `threads_manage_insights` (más `threads_read_replies`/`threads_manage_replies`, no usados) | «Get started» |
+| Estado del contenedor | Verificado | `GET /{container}?fields=status,error_message` → `IN_PROGRESS`, `FINISHED`, `ERROR`, `EXPIRED` (24 h), `PUBLISHED`; errores: `FAILED_DOWNLOADING_VIDEO`, `FAILED_PROCESSING_AUDIO`, `FAILED_PROCESSING_VIDEO`, `INVALID_ASPEC_RATIO` (sic), `INVALID_BIT_RATE`, `INVALID_DURATION`, `INVALID_FRAME_RATE`, `INVALID_AUDIO_CHANNELS`, `INVALID_AUDIO_CHANNEL_LAYOUT`, `UNKNOWN`. Se recomienda sondear 1 vez por minuto, 5 minutos como máximo, y esperar ~30 s antes de publicar | «Troubleshooting» (14 jul 2025) y «Threads Posts» |
+| Imagen | Verificado | JPEG y PNG, 8 MB, relación máxima 10:1, ancho 320–1440 px (la red reescala), sRGB | «Threads Posts» |
+| Vídeo | Verificado | MOV o MP4 (sin edit lists, moov al inicio), H.264/HEVC, AAC, 23–60 fps, ancho ≤ 1920, relación 0,01:1–10:1, ≤ 100 Mbps, de más de 0 s a 300 s, 1 GB | «Threads Posts» |
+| Enlaces | Verificado (nuevo) | Máximo 5 enlaces únicos por post de texto; más fallan con `THREADS_API__LINK_LIMIT_EXCEEDED` (desde el 22-12-2025) | «Threads Posts» |
+| Máximo de *hashtags* | Verificado | No hay tope: solo **una** etiqueta de tema por post (la primera válida del texto o `topic_tag`, de 1 a 50 caracteres, sin `.` ni `&`). Las demás quedan como texto. No se fija `max_hashtags` | «Threads Posts» |
+| Códigos de error de Graph propios de Threads | **No verificado** | Se reutilizan `REAUTH_CODES` y `RATE_LIMIT_CODES` de Graph (`190`, `4`, `17`, `613`…); la doc de Threads no los lista. Comprobar en el smoke | — |
+| Límite de llamadas | Verificado | `4800 × impresiones` en 24 h (mínimo 10 impresiones) por par app-usuario; se trata como transitorio | «Threads API overview» |
+
+### Cómo funciona
+
+- **Conexión:** OAuth en `threads.com` (red `threads`, proveedor `threads`, con `THREADS_APP_ID`/`THREADS_APP_SECRET` propios). Token corto (1 h) → largo (60 días) guardado en `access_token` con `token_expires_at`; `refresh_token` es `null` y `RefreshTokens` renueva con `th_refresh_token` antes del margen (168 h).
+- **Interruptor:** `THREADS_ENABLED=false` o sin `THREADS_APP_ID` retira la red de Conexiones, compositor, filtros, MCP y reprogramación (como `BLUESKY_ENABLED`).
+- **Pendiente del smoke (T-64, M-02):** modo desarrollo con *testers*, regla de emojis en secuencias, códigos de error propios y `shares`/`views` de post.

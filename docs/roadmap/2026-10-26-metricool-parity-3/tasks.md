@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 1 | 11 | 9% | 2 / 50,5h (estimado) | 0,27 / 6,83h (estimado) | 0,07 / 1,7h (estimado) | 81k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1761,17 +1761,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 8 — C-02 · Threads (al final, sin bloquear lo demás)
 
-**Estado**: borrador · **Estimado**: 50,5h · **Real**: — · **Coste est.**: 3.030 € (con margen; base 2.525 €) · **Tokens est.**: 2,05M
+**Estado**: en-progreso · **Estimado**: 50,5h · **Real**: — · **Coste est.**: 3.030 € (con margen; base 2.525 €) · **Tokens est.**: 2,05M
 
 ### T-54 — Verificar los ⚠️ de la Threads API y fijar los límites
 
 - **Descripción**: Comprobar con la documentación oficial (renderizada en el navegador) los límites no verificados: 500 caracteres y regla de emojis, carrusel 2-20, 250/24h, `/me` y campos, métricas y si basta el modo desarrollo. Requisito: D2 y `design.md` §1.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Verificados con la documentación oficial de Meta los límites de Threads: 500 caracteres (emojis por bytes), carrusel de 2 a 20, 250 publicaciones al día y las métricas disponibles.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: docs
@@ -1780,13 +1781,15 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: cada ⚠️ de Threads tiene fuente, valor y fecha, o sigue marcado con su plan de prueba → tabla completa
 
 **Criterios de aceptación**
-- [ ] Los valores de `media_specs` y `social.threads` de T-55/T-56 salen de esta tabla.
+- [x] Los valores de `media_specs` y `social.threads` de T-55/T-56 salen de esta tabla.
 
 **Subtareas**
-- [ ] Consultar la documentación
-- [ ] Anotar valores y fuentes
+- [x] Consultar la documentación
+- [x] Anotar valores y fuentes
 
 **Notas**: Resultado: tabla de verificación en `docs/referencia/decisiones-por-red.md`. Si algo no se puede verificar, queda en `config` y con un ⚠️ para el smoke (T-64).
+
+**Verificación ejecutada**: lectura (2026-10-27, páginas de developers.facebook.com/docs/threads renderizadas en el navegador): cada ⚠️ de Threads tiene fuente, valor y fecha en la tabla de decisiones-por-red.md («Threads»). Verificados: 500 caracteres y emojis por bytes UTF-8, carrusel 2-20, 250/24 h y lectura de cuota, campos de /me, permalink, métricas de post y de cuenta (views de cuenta = visitas al perfil), hosts y OAuth, token largo y refresco, estados del contenedor y límites de media. Sin verificar y con plan de prueba en el smoke (T-64, M-02): interpretación de emojis compuestos, códigos de error propios de Threads, modo desarrollo en vivo y valores reales de views/shares del post («en desarrollo»). El diseño (§7) queda actualizado.
 
 ### T-55 — `ThreadsConnector`, `ThreadsClient` y `GraphErrors`
 

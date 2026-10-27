@@ -441,6 +441,8 @@ Quedan abiertas:
    - los campos de `/me` en Threads y cómo se pide el *permalink*;
    - el máximo de un hashtag en Threads.
 
+   **Resuelto en T-54 (2026-10-27, documentación oficial de Meta):** los campos de `/me` (`id`, `username`, `name`, `threads_profile_picture_url`), el *permalink* (`GET /{media-id}?fields=permalink`) y el hashtag de Threads (solo una etiqueta de tema por post, sin tope de `max_hashtags`). Tabla completa y lo que sigue sin verificar (interpretación de emojis compuestos, códigos de error propios, modo desarrollo en vivo) en `docs/referencia/decisiones-por-red.md`.
+
 ---
 
 ## Changelog

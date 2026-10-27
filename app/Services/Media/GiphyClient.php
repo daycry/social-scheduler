@@ -3,8 +3,10 @@
 namespace App\Services\Media;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -19,6 +21,8 @@ class GiphyClient
     public const BASE = 'https://api.giphy.com/v1/gifs';
 
     public const RATE_LIMITED = 'Has hecho muchas búsquedas de GIF; prueba en unos minutos.';
+
+    public const INVALID_KEY = 'La clave de Giphy no es válida o no tiene permiso. Avisa al administrador.';
 
     public const UNAVAILABLE = 'Giphy no responde ahora mismo. Inténtalo de nuevo en unos minutos.';
 
@@ -40,7 +44,7 @@ class GiphyClient
             && strlen($url) <= 2048
             && ! preg_match('/[\x00-\x20\x7f\\\\]/', $url)
             && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
-            && ! isset($parts['user'], $parts['pass'])
+            && ! isset($parts['user']) && ! isset($parts['pass'])
             && (! isset($parts['port']) || (int) $parts['port'] === 443)
             && self::allowedHost((string) ($parts['host'] ?? ''))
             && str_ends_with(strtolower((string) ($parts['path'] ?? '')), '.mp4');
@@ -52,15 +56,59 @@ class GiphyClient
     }
 
     /** @return array{results: list<array{id: string, title: string, preview: string, width: int, height: int, mp4: string}>, next_offset: ?int} */
-    public function search(string $query, int $offset = 0): array
+    public function search(string $query, int $offset = 0, ?int $userId = null): array
     {
-        return $this->fetch('search', ['q' => $query], $offset);
+        // Normalizada (minusculas, sin espacios de mas): «Gato», «gato» y « gato  » comparten cache y no gastan otra llamada.
+        $q = mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $query)));
+
+        return $this->fetch('search', ['q' => $q], $offset, $userId);
     }
 
     /** @return array{results: list<array{id: string, title: string, preview: string, width: int, height: int, mp4: string}>, next_offset: ?int} */
-    public function trending(int $offset = 0): array
+    public function trending(int $offset = 0, ?int $userId = null): array
     {
-        return $this->fetch('trending', [], $offset);
+        return $this->fetch('trending', [], $offset, $userId);
+    }
+
+    /**
+     * URL del MP4 de un GIF pedido a Giphy POR SU ID (el servidor no se fia de la URL del cliente). El endpoint por id no filtra por
+     * rating: se comprueba el campo `rating` de la respuesta contra `social.giphy.rating`. Gasta cupo como cualquier llamada real.
+     *
+     * @throws GiphyException si Giphy no lo conoce, supera el rating permitido o no hay cupo.
+     */
+    public function mp4ById(string $id, ?int $userId = null): string
+    {
+        if (! self::configured()) {
+            throw new GiphyException('El buscador de GIFs no está configurado.', 404);
+        }
+        if (! preg_match('/^[A-Za-z0-9]{3,40}$/', $id)) {
+            throw new GiphyException('Ese GIF no es válido.', 422);
+        }
+
+        $key = 'giphy:'.sha1(json_encode(['id', $id], JSON_THROW_ON_ERROR));
+        $ttl = (int) config('social.giphy.cache_minutes', 10);
+        $item = $ttl > 0 ? Cache::get($key) : null;
+
+        if (! is_array($item)) {
+            $item = $this->call('/'.$id, [], $userId)->json('data');
+            if (! is_array($item)) {
+                throw new GiphyException('Ese GIF no existe en Giphy.', 422);
+            }
+            if ($ttl > 0) {
+                Cache::put($key, $item, now()->addMinutes($ttl));
+            }
+        }
+
+        $order = ['y' => 0, 'g' => 1, 'pg' => 2, 'pg-13' => 3, 'r' => 4];
+        $max = $order[strtolower((string) config('social.giphy.rating', 'pg-13'))] ?? 3;
+        $rating = $order[strtolower((string) data_get($item, 'rating', 'r'))] ?? 4;
+        if ($rating > $max) {
+            throw new GiphyException('Ese GIF no está permitido por su clasificación.', 422);
+        }
+
+        $mapped = $this->map($item);
+
+        return is_array($mapped) && $mapped['id'] === $id ? $mapped['mp4'] : throw new GiphyException('Ese GIF no tiene un MP4 que se pueda importar.', 422);
     }
 
     /**
@@ -69,7 +117,7 @@ class GiphyClient
      *
      * @throws GiphyException
      */
-    private function fetch(string $endpoint, array $params, int $offset): array
+    private function fetch(string $endpoint, array $params, int $offset, ?int $userId = null): array
     {
         if (! self::configured()) {
             throw new GiphyException('El buscador de GIFs no está configurado.', 404);
@@ -85,26 +133,9 @@ class GiphyClient
             return $hit;
         }
 
-        $this->spend();
+        $response = $this->call('/'.$endpoint, $params + ['limit' => $limit, 'offset' => $offset, 'rating' => $rating, 'lang' => 'es'], $userId);
 
-        try {
-            $response = Http::timeout(8)->acceptJson()->get(self::BASE.'/'.$endpoint, $params + [
-                'api_key' => (string) config('services.giphy.api_key'),
-                'limit' => $limit,
-                'offset' => $offset,
-                'rating' => $rating,
-                'lang' => 'es',
-            ]);
-        } catch (ConnectionException) {
-            // El mensaje de la excepcion lleva la URL con la clave: no se propaga ni se registra.
-            throw new GiphyException(self::UNAVAILABLE);
-        }
-
-        if ($response->status() === 429) {
-            throw new GiphyException(self::RATE_LIMITED, 429);
-        }
-
-        if (! $response->successful() || ! is_array($response->json('data'))) {
+        if (! is_array($response->json('data'))) {
             throw new GiphyException(self::UNAVAILABLE);
         }
 
@@ -126,14 +157,73 @@ class GiphyClient
         return $payload;
     }
 
-    /** Cuenta una llamada real en la ventana de la hora actual; pasado el tope no se llama a Giphy. */
-    private function spend(): void
+    /**
+     * Llamada REAL a Giphy: gasta cupo (global y del usuario), traduce los fallos a mensajes sin la clave y devuelve la respuesta buena.
+     *
+     * @param  array<string, mixed>  $params
+     *
+     * @throws GiphyException
+     */
+    private function call(string $path, array $params, ?int $userId): Response
     {
-        $key = 'giphy:calls:'.now('UTC')->format('YmdH');
-        Cache::add($key, 0, now()->addHours(2));
+        $spent = $this->spend($userId);
 
-        if ((int) Cache::increment($key) > (int) config('social.giphy.hourly_limit', 90)) {
+        try {
+            $response = Http::timeout(8)->acceptJson()->get(self::BASE.$path, $params + ['api_key' => (string) config('services.giphy.api_key')]);
+        } catch (ConnectionException) {
+            // El mensaje de la excepcion lleva la URL con la clave: no se propaga ni se registra.
+            throw new GiphyException(self::UNAVAILABLE);
+        }
+
+        if ($response->status() === 429) {
             throw new GiphyException(self::RATE_LIMITED, 429);
+        }
+
+        if (in_array($response->status(), [401, 403], true)) {
+            // Clave invalida o revocada: no es culpa del usuario ni gasta su cupo. Se registra SIN la clave ni la URL.
+            $this->refund($spent);
+            Log::warning('giphy.invalid_key', ['status' => $response->status()]);
+            throw new GiphyException(self::INVALID_KEY);
+        }
+
+        if (! $response->successful()) {
+            throw new GiphyException(self::UNAVAILABLE);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Cuenta una llamada real en la ventana de la hora actual: tope global Y tope por usuario (uno solo no agota el cupo de todos).
+     *
+     * @return list<string> claves incrementadas (para devolver el cupo si la clave es invalida)
+     */
+    private function spend(?int $userId): array
+    {
+        $hour = now('UTC')->format('YmdH');
+        $limits = ['giphy:calls:'.$hour => (int) config('social.giphy.hourly_limit', 90)];
+        if ($userId !== null) {
+            $limits = ['giphy:calls:u'.$userId.':'.$hour => (int) config('social.giphy.per_user_hourly_limit', 30)] + $limits;
+        }
+
+        $spent = [];
+        foreach ($limits as $key => $limit) {
+            Cache::add($key, 0, now()->addHours(2));
+            $spent[] = $key;
+            if ((int) Cache::increment($key) > $limit) {
+                $this->refund($spent);
+                throw new GiphyException(self::RATE_LIMITED, 429);
+            }
+        }
+
+        return $spent;
+    }
+
+    /** @param list<string> $keys */
+    private function refund(array $keys): void
+    {
+        foreach ($keys as $key) {
+            Cache::decrement($key);
         }
     }
 

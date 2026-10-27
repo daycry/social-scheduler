@@ -140,6 +140,7 @@ test('exige sesion y valida el texto y el desplazamiento', function () {
 });
 
 test('el throttle por usuario corta tras 20 busquedas por minuto', function () {
+    config(['social.giphy.per_user_hourly_limit' => 1000]);
     fakeGiphy([giphyItem()]);
     config(['social.giphy.hourly_limit' => 1000]);
 
@@ -147,4 +148,52 @@ test('el throttle por usuario corta tras 20 busquedas por minuto', function () {
         $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => "q$i"]))->assertOk();
     }
     $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => 'otra']))->assertStatus(429);
+});
+
+test('D: un usuario no puede agotar el tope global: tiene el suyo por hora y otro usuario sigue buscando', function () {
+    config(['social.giphy.hourly_limit' => 90, 'social.giphy.per_user_hourly_limit' => 2, 'social.giphy.per_user_per_minute' => 100]);
+    fakeGiphy([giphyItem()]);
+
+    foreach (['a', 'b'] as $q) {
+        $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => $q]))->assertOk();
+    }
+    $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => 'c']))->assertStatus(429);
+
+    $other = User::factory()->create();
+    $this->actingAs($other)->getJson(route('gifs.search', ['q' => 'c']))->assertOk();
+    Http::assertSentCount(3);
+});
+
+test('F: una clave invalida (401/403) da un mensaje claro, se registra sin la clave y no gasta cupo', function (int $status) {
+    config(['social.giphy.per_user_hourly_limit' => 5]);
+    fakeGiphy(status: $status);
+    Illuminate\Support\Facades\Log::spy();
+
+    $res = $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => 'x']))->assertStatus(502);
+
+    expect($res->json('message'))->toBe(GiphyClient::INVALID_KEY)->and($res->getContent())->not->toContain(GIPHY_TEST_KEY);
+    Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->withArgs(fn ($m, $ctx = []) => $m === 'giphy.invalid_key' && ! str_contains(json_encode($ctx), GIPHY_TEST_KEY))->once();
+    expect((int) Cache::get('giphy:calls:'.now('UTC')->format('YmdH')))->toBe(0)
+        ->and((int) Cache::get('giphy:calls:u'.$this->user->id.':'.now('UTC')->format('YmdH')))->toBe(0);
+})->with([401, 403]);
+
+test('K: la clave de caché normaliza mayúsculas y espacios: «Gato», « gato » y «gato» son una sola llamada', function () {
+    fakeGiphy([giphyItem()]);
+
+    foreach (['Gato', ' gato ', 'GATO', 'gato'] as $q) {
+        $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => $q]))->assertOk();
+    }
+
+    Http::assertSentCount(1);
+    Http::assertSent(fn ($r) => $r['q'] === 'gato');
+});
+
+test('J: el límite por minuto sale de SOCIAL_GIPHY_PER_USER_PER_MINUTE (limitador con nombre «giphy»)', function () {
+    config(['social.giphy.per_user_per_minute' => 2, 'social.giphy.hourly_limit' => 1000, 'social.giphy.per_user_hourly_limit' => 1000]);
+    fakeGiphy([giphyItem()]);
+
+    foreach (['a', 'b'] as $q) {
+        $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => $q]))->assertOk();
+    }
+    $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => 'c']))->assertStatus(429);
 });

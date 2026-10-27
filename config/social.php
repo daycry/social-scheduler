@@ -286,7 +286,9 @@ return [
         'cache_minutes' => (int) env('SOCIAL_GIPHY_CACHE_MINUTES', 10),
         /* Llamadas reales por hora a Giphy (la clave beta da 100; el margen deja sitio a otras llamadas). Una respuesta cacheada no cuenta. */
         'hourly_limit' => (int) env('SOCIAL_GIPHY_HOURLY_LIMIT', 90),
-        /* Busquedas por usuario y minuto (throttle de la ruta). */
+        /* Llamadas reales por usuario y hora: uno solo no agota el tope global de todos (CWE-770). */
+        'per_user_hourly_limit' => (int) env('SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT', 30),
+        /* Busquedas por usuario y minuto (limitador con nombre `giphy`, en AppServiceProvider). */
         'per_user_per_minute' => (int) env('SOCIAL_GIPHY_PER_USER_PER_MINUTE', 20),
         /* Hosts desde los que se descarga el MP4 elegido (lista cerrada, https y 443). Cualquier otro se rechaza ANTES de pedir nada. */
         'media_host_pattern' => '/^(?:media\d{0,2}|i)\.giphy\.com$/',

@@ -131,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
             ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
             : Limit::none());
+        RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
+            ->by('giphy:'.($request->user()?->id ?? $request->ip())));
+
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
         // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).

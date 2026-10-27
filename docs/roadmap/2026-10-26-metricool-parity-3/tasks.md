@@ -888,7 +888,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-16
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php`, `tests/Feature/ProfileTest.php`, `app/Analytics/SnapshotCollector.php`, `app/Connectors/Contracts/BatchPostInsights.php`, `app/Services/PostService.php`, `resources/js/Components/Composer/NetworkPicker.vue`, `tests/Feature/Mcp/Tools/McpBlueskyTest.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php`, `tests/Feature/ProfileTest.php`, `app/Analytics/SnapshotCollector.php`, `app/Connectors/Contracts/BatchPostInsights.php`, `app/Services/PostService.php`, `resources/js/Components/Composer/NetworkPicker.vue`, `tests/Feature/Mcp/Tools/McpBlueskyTest.php`, `app/Mcp/Tools/ListAccounts.php` (fix de la revisión F3, 090e0ef: Bluesky apagado sale no disponible; antes declarado en T-72)
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php` → en verde (seguidores, posts, por post y `views` nulo)
 
@@ -1835,6 +1835,9 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: `tests/Feature/Connectors/Meta` -> 90 passed (602 assertions); `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php` -> 12 passed (82 assertions); `tests/Feature/Connectors tests/Feature/Connections tests/Feature/Publishing tests/Feature/Mcp tests/Unit` -> verde tras ajustar 2 tests de conteo; pint -> passed.
 
+**Corrección revisión F8 (commit c48be99, ejecutada en la revisión F8-2/F10, A-6)**: `php artisan test --compact tests/Feature/Connectors/Threads/ThreadsConnectorTest.php` -> 14 passed (90 assertions), incluido el mensaje de cuenta que no es tester (`looksLikeNotTester`).
+
+
 ### T-56 — Tipos, reglas de media y conteo de Threads
 
 - **Descripción**: `threads_text`, `threads_image`, `threads_video` y `threads_carousel` en `ContentType` y `media_specs`; modo de conteo `threads`. Requisito: CA-08.
@@ -1855,6 +1858,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Criterios de aceptación**
 - [x] Las reglas de Threads validan igual en compositor y `create_post`.
 - [x] El conteo de reglas del test sube con Threads.
+- [x] El conteo de Threads cuenta las secuencias de emoji por bytes UTF-8 y el resto por code point, y PHP y JS dan lo mismo caso a caso (22 casos, incluidos devanagari, NFD y zalgo).
 
 **Subtareas**
 - [x] Test RED
@@ -1868,6 +1872,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Decisiones**: sin `max_hashtags` (Threads solo admite una etiqueta de tema por post: no hay tope por texto) y sin `first_comment` (responder exige `threads_manage_replies`, que no se pide). Mínimo de duración de vídeo 0,1 s («más de 0 s»). Versión de `media_specs` 2026-10-27; el test de conteo pasa de 15 a 19 reglas.
 
 **Verificación ejecutada**: `php artisan test --compact tests/Unit` -> 319 passed (861 assertions), incluidos `ThreadsRulesTest` (9) y `MediaValidatorTest` con 19 reglas; pint -> passed.
+
+**Corrección revisión F8 (commit c48be99, ejecutada en la revisión F8-2/F10, A-6)**: `php artisan test --compact tests/Unit/TextLengthTest.php tests/Unit/MediaValidator` -> 61 passed (283 assertions); `tests/Feature/Connectors/Threads/ThreadsSurfacesTest.php tests/Unit/Networks/NetworkCoverageTest.php` -> 16 passed (139 assertions).
+
+**Corrección revisión F8-2 (B-2/B-3, commit b0189b2)**: decisión del orquestador: el grafema/secuencia con emoji cuenta los bytes UTF-8 de toda la secuencia y fuera de los emojis se cuentan **code points** (no grafemas), sin depender de `\X` ni de `Intl.Segmenter`. Las secuencias de emoji se encuentran con la MISMA regex en `TextLength::EMOJI_SEQUENCE` (PHP) y `EMOJI_SEQUENCE` de `textLength.js` (banderas, keycap, pictograma + VS16/tono/etiquetas unido por ZWJ y modificadores sueltos). `text-length-cases.json` pasa de 15 a 22 casos (devanagari «क्षत्रिय» = 8 y «नमस्ते» = 6, NFD = 11, zalgo = 18, devanagari con emoji y banderas = 44, keycap = 15, `e` + tilde + emoji = 6; el caso previo «e + acento combinante» pasa de 1 a 2, a propósito). Comprobado ejecutando los dos lenguajes caso a caso: PHP = JS en los 22 (`TextLengthTest` -> 4 passed, 98 assertions, incluido el espejo JS); el modo `graphemes` también coincide en los 7 casos nuevos.
+
+**Corrección revisión F8-2 (A-3, commit b0189b2)**: E2E `threads.spec.ts` «compositor: con 2 etiquetas en Threads aparece el aviso…» (1 etiqueta sin aviso; 2 etiquetas -> `counter-hashtags-advice` con «Threads solo admite 1 etiqueta de tema por publicación: se usa la primera.», sin desborde y con axe). Servidor propio de Playwright con `THREADS_APP_ID`/`THREADS_APP_SECRET` falsos como variables del proceso: 3 passed (escritorio, móvil y móvil-360).
+
 
 ### T-57 — `ThreadsPublisher`: contenedores, carrusel, sondeo y publicación
 
@@ -1973,6 +1984,11 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: `ThreadsInsightsTest.php` -> 15 passed (mapa, null y rango); `tests/Feature/Connectors tests/Feature/Analytics tests/Unit` -> 767 passed (2997 assertions); pint -> passed.
 
+**Corrección revisión F8 (commit c48be99, ejecutada en la revisión F8-2/F10, A-6)**: `php artisan test --compact tests/Feature/Connectors/Threads/ThreadsInsightsTest.php` -> 19 passed (109 assertions) con los tests de la caché de rechazadas.
+
+**Corrección revisión F8-2 (B-1, commit 50edb6d)**: la caché de métricas rechazadas lleva ahora la clave de la CUENTA (`external_id`) + tipo de lectura + conjunto. Si todas las métricas de un post fallan sin que ningún error hable de la métrica o de un permiso de la cuenta (post borrado o inexistente, código 100 de un post), el post se salta sin cachear nada; solo se cachea el rechazo cuando otra métrica de la misma petición sí responde o el error nombra la métrica / es de permisos. Tests nuevos: «un post borrado no apaga las métricas de otros posts ni de otras cuentas» (el escenario del revisor el reproductor del revisor: tras un post borrado, un post sano de otra cuenta trae `likes` y `views`) y «la métrica rechazada se recuerda por cuenta». el reproductor del revisor ahora: `post sano de OTRA cuenta despues: likes=7 views=7 calls=1`.
+
+
 ### T-60 — Superficies de Threads: icono, pestañas, MCP, IA e informe
 
 - **Descripción**: Icono y resto de superficies; el catálogo de T-16/T-17 hace el resto. Requisito: CA-10.
@@ -2008,6 +2024,9 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Decisiones**: único cambio de código de esta tarea, el icono (`NetworkIcon.vue`); `ComposerPresetService.php` no cambia (Threads no tiene interruptores recordables) y `ReportService.php` tampoco (recorre las redes conectadas y `AnalyticsService::SUPPORTED`). El informe omite `Visualizaciones` de Threads (no está en `SUPPORTED`) y el CSV agregado la deja vacía, nunca 0 ni las visitas al perfil. Cubre E2E-08 en la parte de servidor; el escenario Playwright es T-62.
 
 **Verificación ejecutada**: `NetworkCoverageTest.php` -> 5 passed (todas las superficies de Threads, icono incluido); `ThreadsSurfacesTest.php` -> 11 passed: compositor, calendario, dashboard, MCP (500 caracteres y emojis por bytes), informe PDF/CSV, Conexiones, apagado por `THREADS_ENABLED`, sin `THREADS_APP_ID` y reprogramación; `tests/Feature/Reports` -> verde (46 con `tests/Unit/Networks`); pint -> passed.
+
+**Corrección revisión F8 (commit c48be99, ejecutada en la revisión F8-2/F10, A-6)**: `php artisan test --compact tests/Feature/Connectors/Threads tests/Unit/TextLengthTest.php tests/Feature/Mcp` -> 380 passed (2369 assertions): superficies de Threads, MCP con el `enum` de redes solo con las disponibles (`Network::availableValues()`) y conteo de 500 caracteres con emojis por bytes.
+
 
 ### T-61 — Pest de integración de Threads (CA-07..CA-09)
 
@@ -2300,6 +2319,9 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Corrección revisión P3 F6-9 (intento 3)**: B: `PublishMedia` lleva `source`; el vídeo de Bluesky con `source=giphy` va con `presentation: gif` en `app.bsky.embed.video` (test con giphy/upload/null). ⚠️ El campo `presentation` del lexicon NO se ha podido verificar sin red (design.md:405 lo daba por verificado): comprobar en el smoke contra un PDS real. Verificación: `php artisan test --compact tests/Feature/Connectors/Bluesky` -> 108 passed.
 
+**Alcance (revisión F8-2/F10)**: `app/Connectors/Data/PublishMedia.php` y `app/Services/PublishRequestFactory.php` están declarados en `Archivos` porque los tocó `d79b281` (entrada de GIF/vídeo corto en la petición de publicación).
+
+
 ### T-69 — Pest de integración CA-15
 
 - **Descripción**: Buscar «gato», elegir un GIF y que se importe como media (API simulada).
@@ -2403,7 +2425,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-61
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/ListAccounts.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/GetBestTimes.php`, `app/Mcp/Tools/SuggestHashtags.php`, `app/Connectors/Network.php`, `tests/Feature/Mcp/Tools/McpBlueskyThreadsTest.php`, `docs/modulos/mcp.md`
+- **Archivos**: `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpBlueskyThreadsTest.php`, `docs/modulos/mcp.md`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp` → todo en verde (cuentas y tipos, mismos mensajes de error que la web, 25 herramientas)
 
@@ -2422,6 +2444,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Decisiones**: sin código nuevo en `CreatePost`/`PostPayload` (declarados por el plan, sin tocar; `ListAccounts` ya lo cambiaron T-27/T-61) ni en `McpAuthTest`; el recuento y las instrucciones se prueban en el test nuevo. Alcance ampliado: `docs/modulos/mcp.md`, y la revisión P3 F8 (A3) hace que los `enum` de red solo listen las disponibles.
 
 **Verificación ejecutada**: `php artisan test --compact tests/Feature/Mcp` -> 281/281 verdes (cuentas y tipos de las dos redes, mensaje de 250 banderas igual en MCP y web, `tools/list` = 25, instrucciones con las 6 redes). `ListAccounts`, `CreatePost` y `PostPayload` no cambian: ya trataban Bluesky y Threads por el catálogo `Network` (T-27, T-61), y el test lo demuestra.
+
+**Corrección revisión F8-2 (A-5, commit 62fecb2)**: `Archivos` ajustado a lo que de verdad se tocó (`ListAccounts`, `GetBestTimes`, `SuggestHashtags` y `Network` no cambian en esta tarea). Evidencia del criterio de Bluesky con 301 grafemas: test «create_post con 301 grafemas en Bluesky falla con EXACTAMENTE el mismo mensaje que el compositor», que compara por igualdad el mensaje del MCP con el de `brands.posts.validate` (el MCP solo antepone «Datos no validos: targets.0: ») -> `McpBlueskyThreadsTest.php` 5 passed (36 assertions).
 
 
 ### T-73 — Guía para el usuario: app password de Bluesky
@@ -2524,7 +2548,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-72, T-71, T-63
 - **Tipo**: devops
-- **Archivos**: `.env.example`, `.env.production.example`, `docs/referencia/configuracion.md`, `docs/modulos/despliegue.md`, `docs/modulos/mcp.md`, `README.md`, `docs/README.md`, `docs/referencia/pendientes-manuales.md`
+- **Archivos**: `.env.example`, `.env.production.example`, `docs/referencia/configuracion.md`, `docs/modulos/despliegue.md`, `docs/modulos/mcp.md`, `README.md`, `docs/arquitectura.md`, `docs/README.md`, `docs/referencia/pendientes-manuales.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: `grep -rn "22 herramientas" README.md docs` → sin resultados; cada variable de `.env.example` documentada en `configuracion.md`
 
@@ -2542,6 +2566,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Decisiones**: alcance ampliado con `.env.production.example` y `pendientes-manuales.md` (petición del usuario). Las colas no cambian: Bluesky y Threads usan `publish`/`poll`/`metrics`; el GIF, `media`.
 
 **Verificación ejecutada**: `grep -rn "22 herramientas" README.md docs` (sin `roadmap/`) -> sin resultados; cada variable de Bluesky, Threads, Giphy, FFMPEG/FFPROBE de `.env.example` aparece en `configuracion.md` (comprobado con un bucle: 15/15). Cifras del README contadas: 307 ficheros PHP y ~30.600 líneas en `app/`, 101 componentes Vue, 47 migraciones, 233 ficheros de test (2.424 tests Pest en el pase completo), 495 tests Playwright en 21 specs, 75 documentos en `docs/`, 8 iniciativas. P3-M-01..M-05 añadidos a `pendientes-manuales.md`.
+
+**Corrección revisión F8-2 (A-1, A-2, A-4, commit 354bf59)**: A-1: `mcp.md` y `arquitectura.md` dicen 25 herramientas (`grep -rnE "(14|24) herramientas|siguen siendo 24" README.md docs` fuera de roadmap/journal -> sin resultados). A-2: `configuracion.md` documenta `SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT`, `SOCIAL_GIPHY_PER_USER_PER_MINUTE`, `SOCIAL_GIPHY_RATING`, `SOCIAL_GIPHY_LIMIT`, `SOCIAL_HASHTAGS_{MIN_USES,LIMIT,DAYS,CACHE_MINUTES}`, `SOCIAL_EXPORT_MAX_ROWS`, `SOCIAL_ALL_BRANDS_CACHE_MINUTES`, `SOCIAL_BACKFILL_DAYS_THREADS` y `AI_ASSISTANT_SCHEDULE_MAX_DAYS`; comprobado contra el diff de `config/` respecto a la rama base (todas las `env()` nuevas aparecen). A-4: definición de «documentos» en el README: ficheros `.md` bajo `docs/` (`git ls-files docs | grep -c '\.md$'` = 91); cifras de tests actualizadas al pase completo (2.456 Pest; 498 Playwright = 166 tests × 3 tamaños). `docs/arquitectura.md` añadido a `Archivos`.
 
 
 ### T-77 — Regresión final: Pest completo, Playwright en los 3 proyectos y Pint
@@ -2733,14 +2759,16 @@ Lentes A, B, C y D sobre la corrección `c48be99` (Fase 8) y sobre `a4bc94c`, `b
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| B-1 | Important | La caché de métricas rechazadas es global (sin cuenta ni post): un post borrado deja en `null` las métricas de Threads de todos los posts y cuentas durante 6 h | T-59 | pendiente | `ThreadsInsights.php:140,168-170`; reproducido con `d1.php` |
-| A-6 | Important | Las correcciones de la Fase 8 no tienen salida ejecutada en el ledger (T-55, T-56, T-59 y T-60) | T-55..T-60 | pendiente | `tasks.md` |
-| B-2 | Minor | Fuera de los emojis, la regla nueva cuenta 1 por grafema; con marcas combinantes (devanagari, NFD) es menos conservadora | T-56 | pendiente (decisión: code points fuera de los emojis) | `TextLength.php:64` |
-| B-3 | Minor | PHP (`\X`, Unicode 15) y JS (`Intl.Segmenter`) segmentan distinto el devanagari | T-56 | pendiente (se resuelve con B-2) | `TextLength.php:58`, `textLength.js:20` |
-| A-1 | Minor | Quedan recuentos de herramientas obsoletos: `mcp.md:112` dice 24 y `arquitectura.md:24` dice 14 | T-76 | pendiente | — |
-| A-2 | Minor | Variables nuevas sin documentar en `configuracion.md` (`SOCIAL_GIPHY_*`, `SOCIAL_HASHTAGS_*`, `SOCIAL_EXPORT_MAX_ROWS`, etc.) | T-76 | pendiente | `config/social.php` |
-| A-3 | Minor | El aviso de 1 etiqueta de Threads no tiene ningún test de UI | T-56 | pendiente | `NetworkCounters.vue:48-53` |
-| A-4 | Minor | La cifra «75 documentos» del README no se puede reproducir con la definición anterior | T-76 | pendiente | `README.md:42` |
-| A-5 | Minor | El `Archivos` de T-72 declara ficheros que no tocó, y la evidencia de Bluesky 301 frente a la web no compara por igualdad | T-72 | pendiente | `tasks.md` |
+| B-1 | Important | La caché de métricas rechazadas es global (sin cuenta ni post): un post borrado deja en `null` las métricas de Threads de todos los posts y cuentas durante 6 h | T-59 | corregido: clave por cuenta + tipo de lectura + conjunto; el error de un post concreto se salta sin cachear; test del escenario `d1.php` (`50edb6d`) | `ThreadsInsights.php:140,168-170`; reproducido con `d1.php` |
+| A-6 | Important | Las correcciones de la Fase 8 no tienen salida ejecutada en el ledger (T-55, T-56, T-59 y T-60) | T-55..T-60 | corregido: salida de los tests de F8 (c48be99) y de esta corrección pegada en T-55, T-56, T-59 y T-60 («Corrección revisión F8 (commit …)») | `tasks.md` |
+| B-2 | Minor | Fuera de los emojis, la regla nueva cuenta 1 por grafema; con marcas combinantes (devanagari, NFD) es menos conservadora | T-56 | corregido: secuencias de emoji por bytes y el resto por code point; 22 casos, PHP = JS (`b0189b2`) | `TextLength.php:64` |
+| B-3 | Minor | PHP (`\X`, Unicode 15) y JS (`Intl.Segmenter`) segmentan distinto el devanagari | T-56 | corregido: ya no se segmenta fuera de los emojis; PHP = JS con devanagari, NFD y zalgo (`b0189b2`) | `TextLength.php:58`, `textLength.js:20` |
+| A-1 | Minor | Quedan recuentos de herramientas obsoletos: `mcp.md:112` dice 24 y `arquitectura.md:24` dice 14 | T-76 | corregido: 25 herramientas en `mcp.md` y `arquitectura.md` (`354bf59`) | — |
+| A-2 | Minor | Variables nuevas sin documentar en `configuracion.md` (`SOCIAL_GIPHY_*`, `SOCIAL_HASHTAGS_*`, `SOCIAL_EXPORT_MAX_ROWS`, etc.) | T-76 | corregido: variables nuevas en `configuracion.md`, contrastadas con `config/*.php` (`354bf59`) | `config/social.php` |
+| A-3 | Minor | El aviso de 1 etiqueta de Threads no tiene ningún test de UI | T-56 | corregido: E2E del aviso de 2 etiquetas en `threads.spec.ts` (`b0189b2`) | `NetworkCounters.vue:48-53` |
+| A-4 | Minor | La cifra «75 documentos» del README no se puede reproducir con la definición anterior | T-76 | corregido: «documentos» = ficheros `.md` bajo `docs/` (91), escrito en el README (`354bf59`) | `README.md:42` |
+| A-5 | Minor | El `Archivos` de T-72 declara ficheros que no tocó, y la evidencia de Bluesky 301 frente a la web no compara por igualdad | T-72 | corregido: `Archivos` de T-72 ajustados y test de igualdad del mensaje web/MCP (`62fecb2`) | `tasks.md` |
 
 Fuera de rango: `scope-check` en HEAD falla por `PublishMedia.php` y `PublishRequestFactory.php` (`d79b281`), que hay que declarar en `Archivos` de T-68.
+
+Fuera de rango: `PublishMedia.php` y `PublishRequestFactory.php` declarados en `Archivos` de T-68 (`scope-check` con exit 0). `SOCIAL_GIPHY_PER_USER_PER_MINUTE` se lee de verdad: `AppServiceProvider.php:134` (limitador `giphy`, usado en `routes/web.php:142` con `throttle:giphy`) y lo cubre el test J de `GiphyProxyTest.php`.

@@ -127,6 +127,15 @@ Al abrir una campaña ves publicaciones, visualizaciones, **alcance acumulado**,
 
 El **Dashboard** muestra por marca seguidores, alcance, visualizaciones e interacciones, con total y desglose por red. Elige el periodo y compara con otro. Las métricas que una red no ofrece se muestran como "no disponible", nunca como 0. Los datos se actualizan una vez al día (sobre las 12:00 UTC); los de las publicaciones recientes, cada 6 horas.
 
+### Todas las marcas
+
+Si tienes más de una marca, el botón **Todas las marcas** del Dashboard abre la suma de todas ellas: seguidores (acumulado), visualizaciones, alcance e interacciones con su desglose por red, una gráfica y una tabla con una fila por marca. Puedes cambiar el periodo y comparar igual que en una marca.
+
+- Cada cifra suma las marcas que la tienen. Si ninguna la ofrece sale **No disponible**, nunca 0.
+- «Acumulado» suma el último dato de cada cuenta: no cuenta personas únicas.
+- Los días son días UTC. Con las mismas fechas, las cifras coinciden con las del Dashboard de cada marca.
+- Pulsa el nombre de una marca de la tabla para ver su Dashboard.
+
 ## Informes
 
 En **Informes** elige marca, rango y formato (PDF, CSV o ambos) y, si quieres, un periodo de comparación. Se generan en segundo plano; cuando estén listos pulsa Descargar (el enlace caduca en 5 minutos, pero se genera uno nuevo cada vez). Se conservan 30 días y puedes tener hasta 5 en curso.

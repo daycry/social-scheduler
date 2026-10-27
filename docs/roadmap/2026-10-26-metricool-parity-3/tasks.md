@@ -48,14 +48,14 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 1 — C-04d · Notas internas del inbox | 7 | 7 | 100% | 14,0 / 14,0h (estimado) | 1,89 / 1,89h (estimado) | 0,49 / 0,49h (estimado) | 567k / 567k (estimado) |
 | Fase 2 — C-03a · Vistas de calendario guardadas | 7 | 7 | 100% | 16,0 / 16,0h (estimado) | 2,17 / 2,17h (estimado) | 0,57 / 0,57h (estimado) | 648k / 648k (estimado) |
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
-| Fase 4 — C-03b · Analítica entre marcas | 0 | 6 | 0% | 0 / 21,5h | 0 / 2,91h | 0 / 0,73h | 0 / 871k |
+| Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,45h | 0 / 0,61h | 0 / 729k |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **30** | **77** | **39%** | **90,5 / 246,0h** | **12,27 / 33,21h** | **3,11 / 8,3h** | **3,66M / 9,96M** |
+| **TOTAL** | **36** | **77** | **47%** | **112,0 / 246,0h** | **15,18 / 33,21h** | **3,84 / 8,3h** | **4,53M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1027,7 +1027,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 4 — C-03b · Analítica entre marcas
 
-**Estado**: borrador · **Estimado**: 21,5h · **Real**: — · **Coste est.**: 1.290 € (con margen; base 1.075 €) · **Tokens est.**: 871k
+**Estado**: completado · **Estimado**: 21,5h · **Real**: — · **Coste est.**: 1.290 € (con margen; base 1.075 €) · **Tokens est.**: 871k
 
 ### T-31 — `AggregateAnalytics`: suma por métrica con `null`, tabla por marca y por red
 
@@ -1189,12 +1189,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-36 — Documentación y revisión de robustez de C-03b
 
 - **Descripción**: Documentar la analítica entre marcas y revisar robustez (rendimiento, zona horaria).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentada la analítica «Todas las marcas» (web y MCP): días UTC, acumulado, «no disponible» y caché.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-34, T-35
 - **Tipo**: docs
@@ -1203,14 +1204,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: `analitica.md` explica días UTC, acumulado y `null` → coherente con T-31..T-33
 
 **Criterios de aceptación**
-- [ ] La guía de usuario explica «Todas las marcas».
+- [x] La guía de usuario explica «Todas las marcas».
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez
+- [x] Redactar los docs
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/analitica.md` y `docs/modulos/mcp.md`.
 
+**Nota de cierre**: Robustez revisada: consultas acotadas (AllBrandsFlowTest fija que no crecen con snapshots ni cuentas) y solo marcas del usuario. Hallazgo anotado en la doc: el periodo por defecto se calcula en UTC sin zona de marca; con fechas explícitas los totales coinciden. Con muchas marcas el coste crece con su número (2 consultas por marca), mitigado por la caché de 5 min.
+
+**Verificación ejecutada**: lectura: analitica.md (sección «Todas las marcas»: días UTC, acumulado, null, caché, solo marcas propias), mcp.md (get_stats sin marca, 24 herramientas) y guia-de-usuario.md («Todas las marcas») coherentes con T-31..T-33
 
 ## Fase 5 — C-03c · Exportar a CSV
 

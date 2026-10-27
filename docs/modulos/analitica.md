@@ -67,3 +67,13 @@ El panel (`/campaigns/{id}`) lee de las mismas tablas que el dashboard y reutili
 - El engagement usa solo los destinos con visualizaciones e interacciones.
 - La serie diaria del panel de campaña se agrega en SQL: cada día suma los snapshots leídos ese día, sin arrastrar el último valor de los destinos que no se leyeron (su último punto puede no coincidir con los KPIs, que usan el último snapshot de cada destino; la UI lo avisa). La lista de posts se recorta a 100 (con el total y un aviso).
 - **Límite de 30 días:** las métricas de una publicación solo se refrescan durante `SOCIAL_ANALYTICS_RECENT_POST_DAYS` (30) días; pasado ese plazo quedan congeladas con el último dato leído. El panel lo avisa.
+
+## Todas las marcas (C-03b)
+
+La página `/dashboard/todas-las-marcas` (`DashboardController::allBrands`) y `get_stats` sin marca (MCP) leen de `app/Services/AggregateAnalytics.php`, que suma lo que `AnalyticsService::summary()` calcula para cada marca del usuario. No relee los snapshots por su cuenta: cada marca usa las mismas consultas acotadas de la paridad 2 (sin recorrer publicaciones ni hidratar modelos), así que el agregado y el dashboard por marca no pueden discrepar. Las consultas crecen con el número de marcas, no con el de snapshots ni cuentas (lo fija `AllBrandsFlowTest`).
+
+- **Suma con `null`:** cada métrica es la suma de las marcas que la tienen; si ninguna la tiene es `null` y se muestra «No disponible», nunca 0. Bluesky no da visualizaciones ni alcance, y Threads dará visitas al perfil, no visualizaciones: esas redes aparecen en el desglose como no disponibles.
+- **Acumulado:** seguidores, vídeos y publicaciones son *stocks*. Se suma el último valor de cada cuenta; no son usuarios únicos (una misma persona puede seguir varias redes) y así se rotula en la página.
+- **Días UTC:** sin marca no hay zona horaria, así que el periodo (y su valor por defecto) se calcula en días UTC, como los snapshots. Los snapshots se suman por su fecha, así que con fechas explícitas el total coincide con el de cada marca; solo el periodo por defecto (que termina en el último día cerrado) se calcula en UTC y no en la zona de cada marca, y puede terminar un día antes que el de una marca en otra zona.
+- **Caché:** el resultado se guarda `SOCIAL_ALL_BRANDS_CACHE_MINUTES` (5; 0 la desactiva) por usuario y periodo. Un snapshot nuevo tarda ese tiempo en reflejarse.
+- **Solo marcas propias:** se parte de las marcas del usuario; las de otros no se suman ni aparecen.

@@ -9,6 +9,7 @@ use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\CredentialConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
 use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
@@ -99,6 +100,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Informes PDF/CSV (T-40). `link` genera un enlace firmado nuevo al pulsar Descargar (no caduca en pantalla);
     // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.
+    // Exportaciones CSV sincronas (C-03c): analitica de una marca o de todas.
+    Route::get('export/analytics.csv', [ExportController::class, 'analytics'])->middleware('throttle:30,1')->name('exports.analytics');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
     Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');

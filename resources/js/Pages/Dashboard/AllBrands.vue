@@ -52,6 +52,9 @@ const columns = () => [{ key: 'followers', label: 'Seguidores (acumulado)' }, { 
 
             <template v-else>
                 <PeriodFilter route-name="dashboard.all" :brands="brands" :filters="filters" />
+                <div class="flex justify-end">
+                    <a :href="route('exports.analytics', { from: filters.from, to: filters.to, compare: filters.compare })" class="btn-secondary" data-testid="export-analytics">Exportar CSV</a>
+                </div>
 
                 <p class="text-xs text-slate-600" data-testid="all-brands-note">
                     Suma de {{ summary.brands.length }} {{ summary.brands.length === 1 ? 'marca' : 'marcas' }} en días UTC. «Acumulado» suma el último valor de cada cuenta: no son personas únicas.

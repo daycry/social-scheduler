@@ -1255,28 +1255,34 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-38 — CSV de la analítica (marca y todas)
 
 - **Descripción**: Descarga síncrona del CSV de la analítica, de una marca o de todas. Requisito: CA-13.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Se puede descargar en CSV la analítica de una marca o de todas (UTF-8 con BOM, separador «;», sin dato = celda vacía).
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
+- **RED**: AnalyticsCsvTest falló con «Route [exports.analytics] not defined» · 2026-10-27
 - **Dependencias**: T-37, T-31
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/ExportController.php`, `routes/web.php`, `tests/Feature/Reports/AnalyticsCsvTest.php`
+- **Archivos**: `app/Http/Controllers/ExportController.php`, `routes/web.php`, `tests/Feature/Reports/AnalyticsCsvTest.php`, `resources/js/Pages/Dashboard/AllBrands.vue`, `resources/js/Pages/Dashboard/Index.vue`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Reports/AnalyticsCsvTest.php` → en verde (BOM, `;`, `null` vacío, solo marcas propias)
 
 **Criterios de aceptación**
-- [ ] Descarga UTF-8 con BOM y `;`.
-- [ ] Un `null` sale vacío.
+- [x] Descarga UTF-8 con BOM y `;`.
+- [x] Un `null` sale vacío.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Controlador y ruta
+- [x] Test RED
+- [x] Controlador y ruta
 
 **Notas**: Patrón: `app/Http/Controllers/ReportController.php`, `ExportController` (nuevo) y `CsvWriter`. Incluye Bluesky y Threads por `Network::cases()`; `null` sale vacío, nunca 0.
+
+**Nota de cierre**: Ruta GET export/analytics.csv (nombre exports.analytics, throttle 30/min), en streaming con streamDownload. Se añade el botón «Exportar CSV» en Dashboard/Index.vue y AllBrands.vue (declarados en Archivos: sin ellos el CSV sería inalcanzable). Columnas: marca, red, metrica, tipo, valor, anterior, variacion_pct; con «Todas las marcas» añade una fila por marca y métrica.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Reports/AnalyticsCsvTest.php -> 3 passed (24 assertions)
 
 ### T-39 — CSV de publicaciones desde la vista Lista (filtros, vista guardada, métricas y tope)
 

@@ -170,29 +170,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-04 — MCP: notas en `list_comments` y herramienta `add_comment_note`
 
 - **Descripción**: `list_comments` devuelve las notas y `add_comment_note` añade una (ability `inbox:write`). Requisito: CA-17.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los asistentes MCP ven las notas internas en list_comments y pueden añadir una con add_comment_note.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/ListComments.php`, `app/Mcp/Tools/AddCommentNote.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Abilities.php`, `tests/Feature/Mcp/Tools/McpCommentNotesTest.php`
+- **Archivos**: `app/Mcp/Tools/ListComments.php`, `app/Mcp/Tools/AddCommentNote.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Abilities.php`, `tests/Feature/Mcp/Tools/McpCommentNotesTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp/Tools/McpCommentNotesTest.php` → todos en verde (lista con notas, alta, ability y comentario ajeno)
 
 **Criterios de aceptación**
-- [ ] `list_comments` incluye `notes` por comentario.
-- [ ] `add_comment_note` exige `inbox:write` y rechaza comentarios ajenos.
-- [ ] `tools/list` ofrece 23 herramientas.
+- [x] `list_comments` incluye `notes` por comentario.
+- [x] `add_comment_note` exige `inbox:write` y rechaza comentarios ajenos.
+- [x] `tools/list` ofrece 23 herramientas.
 
 **Subtareas**
-- [ ] Test RED de la herramienta
-- [ ] Herramienta, ability y registro
+- [x] Test RED de la herramienta
+- [x] Herramienta, ability y registro
 
-**Notas**: Patrón: `app/Mcp/Tools/ReplyComment.php` y `UpdatePostNotes.php` (nunca se auditan los cuerpos); abilities en `app/Mcp/Abilities.php`; registro en `app/Mcp/Servers/SchedulerServer.php` (pasa a **23** herramientas; el tope de página es 25).
+**Notas**: Patrón: `app/Mcp/Tools/ReplyComment.php` y `UpdatePostNotes.php` (nunca se auditan los cuerpos); abilities en `app/Mcp/Abilities.php`; registro en `app/Mcp/Servers/SchedulerServer.php` (pasa a **23** herramientas; el tope de página es 25). Nota de implementación: los tres tests existentes que contaban 22 herramientas pasan a 23 y se declaran en `Archivos`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Mcp/Tools/McpCommentNotesTest.php -> 7 passed; tests/Feature/Mcp completo 252 passed
 
 ### T-05 — Pest de integración CA-17: la nota sobrevive al resync del inbox
 

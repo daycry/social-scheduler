@@ -29,7 +29,7 @@ final class Abilities
             self::STATS_READ => 'Leer estadisticas de marcas, redes y publicaciones',
             self::REPORTS_WRITE => 'Generar informes PDF/CSV y consultar su estado',
             self::INBOX_READ => 'Leer los comentarios recibidos en Instagram y Facebook',
-            self::INBOX_WRITE => 'Responder a comentarios de Instagram y Facebook',
+            self::INBOX_WRITE => 'Responder a comentarios de Instagram y Facebook y anadirles notas internas',
         ];
     }
 

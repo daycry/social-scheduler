@@ -51,11 +51,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
-| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 2 | 5 | 40% | 10,0 / 18,0h (estimado) | 1,36 / 2,44h (estimado) | 0,34 / 0,62h (estimado) | 404k / 729k (estimado) |
+| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 3 | 5 | 60% | 14,0 / 18,0h (estimado) | 1,90 / 2,44h (estimado) | 0,48 / 0,62h (estimado) | 566k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **50** | **77** | **65%** | **158,0 / 246,0h** | **21,43 / 33,21h** | **5,41 / 8,3h** | **6,40M / 9,96M** |
+| **TOTAL** | **51** | **77** | **66%** | **162,0 / 246,0h** | **21,97 / 33,21h** | **5,55 / 8,3h** | **6,56M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1672,12 +1672,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-51 — Pest con respuestas simuladas (CA-16): tabla de frases y zonas
 
 - **Descripción**: Tabla de frases y zonas horarias con respuestas de IA simuladas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Probado con 11 frases y 3 zonas horarias (Madrid, México y Tokio) que la fecha propuesta se interpreta en la zona de la marca y no en UTC.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Tiempo humano**: est. 4,0h · real 4,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0,54h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0,14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-50
 - **Tipo**: test
@@ -1686,12 +1687,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Ai` → todo en verde
 
 **Criterios de aceptación**
-- [ ] CA-16 cubierto con ≥ 8 frases y 3 zonas.
+- [x] CA-16 cubierto con ≥ 8 frases y 3 zonas.
 
 **Subtareas**
-- [ ] Escribir la tabla
+- [x] Escribir la tabla
 
 **Notas**: Patrón: tests de `AiAssistant` en `tests/Feature/Ai/` con `Http::fake` a la Messages API.
+
+**Nota de cierre**: RED no aplica: tabla de verificación sobre T-49/T-50 ya construidos; pasó a la primera. 11 casos (≥ 8) en 3 zonas (Europe/Madrid con CET y CEST, America/Mexico_City, Asia/Tokyo) con la IA simulada: local, UTC, redes y la carga enviada (`ahora` en la zona de la marca, no en UTC). Más: la misma respuesta da 3 instantes distintos según la zona y una hora que ya pasó en Tokio se rechaza aunque en UTC sea futura.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ai -> 56 passed (181 assertions): ProposeScheduleTableTest 13 (11 frases x 3 zonas + 2), ProposeScheduleTest 26, ProposeScheduleEndpointTest 8, más los 9 de AiAssistantTest; vendor/bin/pint -> passed
 
 ### T-52 — E2E de programar en lenguaje natural con axe
 

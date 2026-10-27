@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\CredentialConnector;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokPublisher;
@@ -41,6 +42,7 @@ class ConnectionController extends Controller
                 'network' => $a->network->value,
                 'network_label' => $a->network->label(),
                 'provider' => $a->network->provider(),
+                'auth_kind' => $a->network->authKind(),
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
@@ -59,6 +61,8 @@ class ConnectionController extends Controller
                     'provider' => $n->provider(),
                     'auth_kind' => $n->authKind(),
                     'available' => $this->connectors->has($n->provider()),
+                    // Campos del formulario de las redes que se conectan con credenciales (nunca valores guardados).
+                    'fields' => $this->credentialFields($n),
                 ])->values(),
             'pending' => $pending ? [
                 'provider' => $pending['provider'],
@@ -69,6 +73,17 @@ class ConnectionController extends Controller
                 'error' => $request->session()->get('error'),
             ],
         ]);
+    }
+
+    /** @return list<array{name: string, label: string, type: string, help?: string}> */
+    private function credentialFields(Network $network): array
+    {
+        if ($network->authKind() !== Network::AUTH_CREDENTIALS || ! $this->connectors->has($network->provider())) {
+            return [];
+        }
+        $connector = $this->connectors->forProvider($network->provider());
+
+        return $connector instanceof CredentialConnector ? $connector->credentialFields() : [];
     }
 
     /** Conecta las cuentas elegidas entre las candidatas pendientes del ultimo OAuth. */

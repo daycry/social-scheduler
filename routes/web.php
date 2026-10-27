@@ -7,6 +7,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CalendarViewController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
+use App\Http\Controllers\CredentialConnectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FirstCommentController;
 use App\Http\Controllers\InstagramGridController;
@@ -56,6 +57,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])
         ->whereIn('provider', Network::providers())->name('brands.connections.connect');
+    // Conexion con credenciales (Bluesky: handle + app password). Throttle propio: es un formulario con secretos.
+    Route::post('brands/{brand}/connections/{provider}/credentials', [CredentialConnectionController::class, 'store'])
+        ->whereIn('provider', Network::providers())->middleware('throttle:10,1')->name('brands.connections.credentials');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', Network::providers())->name('connections.callback');
 

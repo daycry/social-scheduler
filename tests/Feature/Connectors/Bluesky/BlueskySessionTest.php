@@ -14,48 +14,24 @@ use App\Models\User;
 use App\Services\SocialAccountService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\BlueskyFake;
 
-const BSKY_DID = 'did:plc:abcdefghijklmnopqrstuvwx';
-const BSKY_PDS = 'https://pds.example.com';
+const BSKY_DID = BlueskyFake::DID;
+const BSKY_PDS = BlueskyFake::PDS;
 
-/** JWT sin firma valida: solo importa el `exp` (la app lo lee sin verificar). */
 function bskyJwt(int $expiresIn = 7200): string
 {
-    $b64 = fn (array $a) => rtrim(strtr(base64_encode(json_encode($a)), '+/', '-_'), '=');
-
-    return $b64(['alg' => 'ES256K']).'.'.$b64(['exp' => time() + $expiresIn, 'sub' => BSKY_DID]).'.sig';
+    return BlueskyFake::jwt($expiresIn);
 }
 
 function fakeBskyConnect(array $over = []): void
 {
-    Http::fake([
-        'bsky.social/xrpc/com.atproto.identity.resolveHandle*' => Http::response(['did' => BSKY_DID]),
-        'plc.directory/'.BSKY_DID => Http::response(['id' => BSKY_DID, 'service' => [
-            ['id' => '#atproto_pds', 'type' => 'AtprotoPersonalDataServer', 'serviceEndpoint' => BSKY_PDS],
-        ]]),
-        'pds.example.com/xrpc/com.atproto.server.createSession' => Http::response($over['session'] ?? [
-            'accessJwt' => bskyJwt(), 'refreshJwt' => 'REFRESH-1', 'did' => BSKY_DID, 'handle' => 'ana.example.com', 'emailConfirmed' => true,
-        ]),
-    ]);
+    BlueskyFake::connect($over);
 }
 
 function bskyAccount(array $over = []): SocialAccount
 {
-    $user = User::factory()->create();
-    $brand = Brand::factory()->for($user)->create();
-
-    return SocialAccount::factory()->for($user)->create(array_merge([
-        'brand_id' => $brand->id,
-        'network' => Network::Bluesky,
-        'external_id' => BSKY_DID,
-        'name' => 'ana.example.com',
-        'access_token' => 'OLD-ACCESS',
-        'refresh_token' => 'OLD-REFRESH',
-        'credential_secret' => 'APP-PASS-WORD-1234',
-        'token_expires_at' => now()->addMinutes(10),
-        'refresh_expires_at' => null,
-        'meta' => ['did' => BSKY_DID, 'pds' => BSKY_PDS, 'handle' => 'ana.example.com'],
-    ], $over));
+    return BlueskyFake::account($over);
 }
 
 beforeEach(function () {

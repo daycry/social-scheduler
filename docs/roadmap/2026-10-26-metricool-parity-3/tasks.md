@@ -659,12 +659,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-20 — Ruta, controlador y formulario de credenciales en Conexiones
 
 - **Descripción**: `CredentialConnectionController@store` y formulario «handle + app password» en Conexiones. Requisito: CA-01, D1.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: En Conexiones se puede conectar Bluesky con el handle y una app password, con errores claros y sin guardar la contraseña a la vista.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-15, T-16, T-19
 - **Tipo**: fullstack
@@ -673,16 +674,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connections/CredentialConnectionTest.php` → en verde (alta, *throttle*, credenciales inválidas, no filtra el secreto)
 
 **Criterios de aceptación**
-- [ ] Con handle y app password válidos (API simulada) la cuenta aparece conectada.
-- [ ] Una contraseña inválida da un error claro sin guardar nada.
-- [ ] El secreto no aparece en props, logs ni auditoría.
+- [x] Con handle y app password válidos (API simulada) la cuenta aparece conectada.
+- [x] Una contraseña inválida da un error claro sin guardar nada.
+- [x] El secreto no aparece en props, logs ni auditoría.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Controlador y ruta
-- [ ] Formulario
+- [x] Test RED
+- [x] Controlador y ruta
+- [x] Formulario
 
 **Notas**: Patrón: `app/Http/Controllers/ConnectionController.php:53`, `OAuthController` y `resources/js/Pages/Brands/Connections.vue`. `POST brands/{brand}/connections/{provider}/credentials` con *throttle* y CSRF; nunca se devuelve ni se registra la contraseña. Registro condicional de Bluesky en `AppServiceProvider.php:52-66`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Connections tests/Feature/Connectors tests/Feature/Ui -> 332 passed (2190 assertions); CredentialConnectionTest (alta, contrasena invalida, throttle 429, secreto fuera de props/sesion/BD/logs, 404 ajena/OAuth, sin conector no se ofrece); npm run build compila. El registro del conector en AppServiceProvider se difiere a T-26 (cuando Bluesky tiene todas sus superficies y NetworkCoverageTest lo exige); los tests lo registran en el contenedor.
 
 ### T-21 — Tipos, reglas de media y conteo de grafemas de Bluesky
 

@@ -167,6 +167,13 @@ return [
     /*
     | Analitica (fase 7, T-31..T-37). Cola `metrics`; los jobs tienen $timeout < 120 (timeout del worker).
     */
+    /*
+    | Exportacion CSV de publicaciones (C-03c): tope de filas por descarga. Por encima se recorta y se avisa (cabecera y aviso en la lista).
+    */
+    'export' => [
+        'max_rows' => (int) env('SOCIAL_EXPORT_MAX_ROWS', 5000),
+    ],
+
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
         /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */

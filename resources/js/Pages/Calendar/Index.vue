@@ -27,6 +27,7 @@ const props = defineProps({
     items: Array,
     undated: Array,
     truncated: Boolean,
+    export: { type: Object, default: null },
     filters: Object,
     views: { type: Array, default: () => [] },
     active_view: { type: Number, default: null },
@@ -37,6 +38,11 @@ const catalog = useNetworks();
 
 const go = (params) =>
     router.get(route('calendar.index'), { ...props.filters, view: props.view, date: props.date, ...params }, { preserveState: true, preserveScroll: true, replace: true });
+
+// `export` es palabra reservada: el aviso del tope se lee por `csvInfo`.
+const csvInfo = computed(() => props.export);
+// Exportar CSV (C-03c): mismos filtros que la lista (los de la vista guardada ya vienen aplicados en `filters`).
+const exportHref = computed(() => route('exports.posts', Object.fromEntries(Object.entries({ ...props.filters, date: props.date }).filter(([, v]) => v !== null && v !== undefined && v !== ''))));
 
 const setFilter = (key, value) => go({ [key]: value || undefined });
 
@@ -211,6 +217,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <option v-for="s in ['borrador', 'programada', 'publicando', 'procesando', 'publicada', 'fallida']" :key="s" :value="s">{{ s }}</option>
                             </select>
                             <input type="search" :value="filters.q ?? ''" placeholder="Buscar texto" class="field w-auto py-1.5" @keyup.enter="setFilter('q', $event.target.value)" />
+                            <a :href="exportHref" class="btn-secondary" data-testid="export-posts">Exportar CSV</a>
                         </template>
                     </div>
                 </div>
@@ -219,6 +226,10 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <Link v-if="createHref" :href="createHref" class="btn-primary">Crear publicación</Link>
                     <Link v-else :href="route('brands.index')" class="btn-primary">Crear una marca</Link>
                 </EmptyState>
+
+                <p v-if="view === 'list' && csvInfo?.truncated" class="text-sm text-amber-800" role="status" data-testid="export-truncated">
+                    Hay {{ csvInfo.total }} filas que exportar y el CSV incluye las primeras {{ csvInfo.max }}. Filtra por marca, red o estado para exportar el resto.
+                </p>
 
                 <p v-if="truncated" class="text-sm text-amber-700">Hay muchas publicaciones: se muestran las primeras 500. Filtra por marca o red.</p>
 

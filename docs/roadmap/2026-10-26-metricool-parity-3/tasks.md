@@ -1287,29 +1287,35 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-39 — CSV de publicaciones desde la vista Lista (filtros, vista guardada, métricas y tope)
 
 - **Descripción**: «Exportar CSV» en la vista Lista con exactamente las publicaciones del filtro activo (o de la vista guardada) y métricas del último *snapshot*, con un tope de filas. Requisito: CA-13.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La vista Lista tiene «Exportar CSV»: descarga las publicaciones del filtro (o de la vista guardada) con las métricas del último dato y avisa si pasan de 5.000 filas.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
+- **RED**: PostsCsvTest falló con «Route [exports.posts] not defined» · 2026-10-27
 - **Dependencias**: T-37, T-12
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/ExportController.php`, `app/Services/CalendarService.php`, `resources/js/Pages/Calendar/Index.vue`, `tests/Feature/Calendar/PostsCsvTest.php`
+- **Archivos**: `app/Http/Controllers/ExportController.php`, `app/Services/CalendarService.php`, `resources/js/Pages/Calendar/Index.vue`, `tests/Feature/Calendar/PostsCsvTest.php`, `app/Http/Controllers/CalendarController.php`, `routes/web.php`, `config/social.php`
 - **Cubre (tests)**: E2E-05
 - **Verificación**: `php artisan test --compact tests/Feature/Calendar/PostsCsvTest.php` → en verde (filtro activo, vista guardada, tope, neutralización)
 
 **Criterios de aceptación**
-- [ ] El CSV contiene exactamente las publicaciones del filtro.
-- [ ] Se respeta el tope y se avisa al superarlo.
+- [x] El CSV contiene exactamente las publicaciones del filtro.
+- [x] Se respeta el tope y se avisa al superarlo.
 
 **Subtareas**
-- [ ] Test RED (CA-13)
-- [ ] Exportador
-- [ ] Botón en la vista Lista
+- [x] Test RED (CA-13)
+- [x] Exportador
+- [x] Botón en la vista Lista
 
 **Notas**: Patrón: `app/Services/CalendarService.php` (mismos filtros que la lista) y `CsvWriter`. Columnas: fecha, marca, redes, estado, texto, enlace y métricas. Tope configurable (supuesto 5.000 filas ⚠️).
+
+**Nota de cierre**: Una fila por destino (red) de las publicaciones del filtro, con el mismo rango, marca, red, estado y búsqueda que la lista, más los borradores sin fecha de la marca (como la lista). Métricas del último snapshot vía AnalyticsService::withLatestSnapshot (acotada, sin N+1: lo fija un test de recuento de consultas); lectura en streaming con lazy(500) y tope social.export.max_rows (5.000, env SOCIAL_EXPORT_MAX_ROWS). El tope se anuncia en la cabecera X-Export-Truncated/X-Export-Total y en la propiedad export de la lista (aviso antes de descargar). A diferencia de la lista (500), el CSV no se limita a 500 publicaciones. La prop Inertia se llama export; en Vue se lee como csvInfo por ser palabra reservada.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Calendar tests/Feature/Ui tests/Feature/Reports -> 125 passed (2630 assertions); PostsCsvTest 4 passed
 
 ### T-40 — Pest de integración CA-13
 

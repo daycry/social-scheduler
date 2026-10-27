@@ -102,6 +102,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.
     // Exportaciones CSV sincronas (C-03c): analitica de una marca o de todas.
     Route::get('export/analytics.csv', [ExportController::class, 'analytics'])->middleware('throttle:30,1')->name('exports.analytics');
+    Route::get('export/posts.csv', [ExportController::class, 'posts'])->middleware('throttle:30,1')->name('exports.posts');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
     Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');

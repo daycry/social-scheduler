@@ -67,7 +67,10 @@ class CalendarController extends Controller
             abort(404, $e->getMessage());
         }
 
-        return Inertia::render('Calendar/Index', $data + [
+        // Exportar CSV (C-03c): solo la vista Lista; el aviso del tope llega antes de descargar.
+        $export = $data['view'] === 'list' ? $this->calendar->exportSummary($user, $filters) : null;
+
+        return Inertia::render('Calendar/Index', $data + ['export' => $export] + [
             'filters' => [
                 'brand_id' => $filters['brand_id'] ?? null,
                 'network' => $filters['network'] ?? null,

@@ -87,7 +87,16 @@ class ImageDownscaler
         try {
             // Un bloqueo por media y tope: dos publicaciones a la vez no recomprimen la misma imagen en paralelo (la segunda espera
             // y encuentra la copia hecha).
-            return Cache::lock('downscale:'.$id.':'.$maxBytes, 120)->block((int) config('media_specs.downscale_lock_wait', 60), function () use ($path, $target, $maxBytes, $id, $budget) {
+            // La espera se ata al presupuesto del paso y reserva las llamadas que SIEMPRE siguen (uploadBlob y createRecord).
+            $wait = (int) config('media_specs.downscale_lock_wait', 60);
+            if ($budget !== null) {
+                if (! $budget->allows(after: 2)) {
+                    throw new TransientPublishException('Sin tiempo para reducir la imagen en este intento; se reintentara.', 'sin_tiempo');
+                }
+                $wait = max(1, min($wait, (int) floor($budget->remaining() - 3 * (float) config('social.http_timeout', 15))));
+            }
+
+            return Cache::lock('downscale:'.$id.':'.$maxBytes, 120)->block($wait, function () use ($path, $target, $maxBytes, $id, $budget) {
                 if (($existing = $this->existing($target, $maxBytes)) !== null) {
                     return $existing;
                 }
@@ -356,10 +365,11 @@ class ImageDownscaler
 
                 $timeout = (float) config('media.ffmpeg_timeout', 60);
                 if ($budget !== null) {
-                    if (! $budget->allows() || $budget->remaining() < 1) {
+                    // Reserva las dos llamadas posteriores (uploadBlob y createRecord): el reductor no se come su tiempo.
+                    if (! $budget->allows(after: 2) || $budget->remaining() < 1) {
                         throw new TransientPublishException('Sin tiempo para reducir la imagen en este intento; se reintentara.', 'sin_tiempo');
                     }
-                    $timeout = min($timeout, $budget->remaining());
+                    $timeout = max(1.0, min($timeout, $budget->remaining() - 2 * (float) config('social.http_timeout', 15)));
                 }
 
                 $process = new Process([

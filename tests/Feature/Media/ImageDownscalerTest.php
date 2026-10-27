@@ -417,3 +417,13 @@ test('T-22: si el presupuesto del paso se agota el reductor lanza un error trans
     expect(fn () => app(ImageDownscaler::class)->fit($asset, 2_000_000, $budget))->toThrow(TransientPublishException::class, 'Sin tiempo')
         ->and(Storage::disk('local')->exists(app(ImageDownscaler::class)->derivedPath($asset->id, 2_000_000)))->toBeFalse();
 });
+
+test('C: el reductor reserva las dos llamadas posteriores: con tiempo para una pero no para tres no empieza ni espera el lock', function () {
+    config(['publishing.step_budget_seconds' => 40, 'social.http_timeout' => 15]); // 1 llamada (15) cabe; reductor + uploadBlob + createRecord (45) no
+    $budget = StepBudget::start();
+    $budget->spent();
+    $asset = storedImage(noisyJpeg());
+
+    expect(fn () => app(ImageDownscaler::class)->fit($asset, 2_000_000, $budget))->toThrow(TransientPublishException::class, 'Sin tiempo')
+        ->and(Storage::disk('local')->exists(app(ImageDownscaler::class)->derivedPath($asset->id, 2_000_000)))->toBeFalse();
+});

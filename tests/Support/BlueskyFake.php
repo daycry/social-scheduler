@@ -6,6 +6,7 @@ use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Media\UrlGuard;
 use Illuminate\Support\Facades\Http;
 
 /** Ayudas para los tests de Bluesky: JWT con `exp`, respuestas simuladas del entryway, el DID y el PDS, y cuentas listas. Sin red. */
@@ -23,9 +24,21 @@ final class BlueskyFake
         return $b64(['alg' => 'ES256K']).'.'.$b64(['exp' => time() + $expiresIn, 'sub' => self::DID]).'.sig';
     }
 
+    /**
+     * DNS simulado para la guardia SSRF: todo host con nombre resuelve a una IP publica, salvo los que se indiquen en `$hosts`
+     * (host => IPs). Sin red real.
+     *
+     * @param  array<string, list<string>>  $hosts
+     */
+    public static function dns(array $hosts = []): void
+    {
+        app()->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $hosts[$host] ?? ['93.184.216.34']));
+    }
+
     /** Simula resolveHandle, el documento DID y createSession. */
     public static function connect(array $over = []): void
     {
+        self::dns();
         Http::fake([
             'bsky.social/xrpc/com.atproto.identity.resolveHandle*' => Http::response(['did' => self::DID]),
             'plc.directory/'.self::DID => Http::response(['id' => self::DID, 'service' => [
@@ -39,6 +52,7 @@ final class BlueskyFake
 
     public static function account(array $over = [], ?User $user = null): SocialAccount
     {
+        self::dns();
         $user ??= User::factory()->create();
         $brand = Brand::factory()->for($user)->create();
 

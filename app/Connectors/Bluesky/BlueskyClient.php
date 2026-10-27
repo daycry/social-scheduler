@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Bluesky;
 
+use App\Services\Media\UrlGuard;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -18,7 +19,7 @@ class BlueskyClient
     /** Resuelve un handle a su DID en el entryway (`com.atproto.identity.resolveHandle`). */
     public function resolveHandle(string $handle): string
     {
-        $data = $this->get($this->entryway(), 'com.atproto.identity.resolveHandle', ['handle' => $handle]);
+        $data = $this->get($this->hosts()->fixed($this->entryway()), 'com.atproto.identity.resolveHandle', ['handle' => $handle]);
         $did = (string) ($data['did'] ?? '');
 
         if (! preg_match('/^did:(plc|web):[A-Za-z0-9._:%-]+$/', $did)) {
@@ -28,19 +29,30 @@ class BlueskyClient
         return $did;
     }
 
-    /** URL del PDS de una cuenta, leida de su documento DID (`#atproto_pds`). Solo https y hosts publicos. */
+    /**
+     * URL del PDS de una cuenta, leida de su documento DID (`#atproto_pds`). Solo https/443 y hosts publicos, y el documento tiene que
+     * ser el del DID pedido.
+     */
     public function pdsFor(string $did): string
     {
-        $url = str_starts_with($did, 'did:web:')
-            ? 'https://'.rawurldecode(substr($did, 8)).'/.well-known/did.json'
-            : rtrim((string) config('social.bluesky.plc_directory'), '/').'/'.$did;
+        if (str_starts_with($did, 'did:web:')) {
+            $url = BlueskyHosts::didWebUrl($did);
+        } elseif (preg_match('/^did:plc:[A-Za-z0-9]+$/', $did)) {
+            $url = $this->hosts()->fixed(rtrim((string) config('social.bluesky.plc_directory'), '/')).'/'.$did;
+        } else {
+            throw new BlueskyException('Ese identificador de Bluesky no es valido.', 'InvalidDid', 400);
+        }
 
-        $doc = $this->send(fn (PendingRequest $http) => $http->get($url));
+        $doc = $this->send($url, fn (PendingRequest $http, string $u) => $http->get($u));
+
+        if (($doc['id'] ?? null) !== $did) {
+            throw new BlueskyException('No se pudo localizar el servidor de esa cuenta de Bluesky.', 'PdsNotFound', 400);
+        }
 
         foreach ((array) ($doc['service'] ?? []) as $service) {
             $isPds = ($service['type'] ?? null) === 'AtprotoPersonalDataServer' || str_ends_with((string) ($service['id'] ?? ''), '#atproto_pds');
             if ($isPds && is_string($service['serviceEndpoint'] ?? null)) {
-                return self::assertPds($service['serviceEndpoint']);
+                return $this->assertPds($service['serviceEndpoint']);
             }
         }
 
@@ -71,7 +83,7 @@ class BlueskyClient
      */
     public function get(string $host, string $nsid, array $query = [], ?string $token = null): array
     {
-        return $this->send(fn (PendingRequest $http) => ($token ? $http->withToken($token) : $http)->get(rtrim($host, '/').'/xrpc/'.$nsid, $query));
+        return $this->send(rtrim($host, '/').'/xrpc/'.$nsid, fn (PendingRequest $http, string $u) => ($token ? $http->withToken($token) : $http)->get($u, $query));
     }
 
     /**
@@ -82,12 +94,12 @@ class BlueskyClient
      */
     public function post(string $host, string $nsid, array $body = [], ?string $token = null): array
     {
-        return $this->send(function (PendingRequest $http) use ($host, $nsid, $body, $token) {
+        return $this->send(rtrim($host, '/').'/xrpc/'.$nsid, function (PendingRequest $http, string $u) use ($body, $token) {
             $request = $token ? $http->withToken($token) : $http;
 
             return $body === []
-                ? $request->withBody('', 'application/json')->post(rtrim($host, '/').'/xrpc/'.$nsid)
-                : $request->asJson()->post(rtrim($host, '/').'/xrpc/'.$nsid, $body);
+                ? $request->withBody('', 'application/json')->post($u)
+                : $request->asJson()->post($u, $body);
         });
     }
 
@@ -98,7 +110,7 @@ class BlueskyClient
      */
     public function uploadBlob(string $pds, string $token, string $bytes, string $mime): array
     {
-        $data = $this->send(fn (PendingRequest $http) => $http->withToken($token)->withBody($bytes, $mime)->post(rtrim($pds, '/').'/xrpc/com.atproto.repo.uploadBlob'));
+        $data = $this->send(rtrim($pds, '/').'/xrpc/com.atproto.repo.uploadBlob', fn (PendingRequest $http, string $u) => $http->withToken($token)->withBody($bytes, $mime)->post($u));
         $blob = $data['blob'] ?? null;
 
         return is_array($blob) ? $blob : throw new BlueskyException('Bluesky no devolvio el blob subido.', 'InvalidBlob', 502);
@@ -145,7 +157,7 @@ class BlueskyClient
     {
         $query = implode('&', array_map(fn (string $uri) => 'uris='.rawurlencode($uri), $uris));
 
-        return $this->send(fn (PendingRequest $http) => $http->get(rtrim($host, '/').'/xrpc/app.bsky.feed.getPosts?'.$query));
+        return $this->send(rtrim($host, '/').'/xrpc/app.bsky.feed.getPosts', fn (PendingRequest $http, string $u) => $http->get($u.'?'.$query));
     }
 
     /** Token de servicio (`com.atproto.server.getServiceAuth`) para que otro servicio actue en nombre de la cuenta. */
@@ -160,7 +172,7 @@ class BlueskyClient
     /** @return array<string, mixed> canUpload, remainingDailyVideos, remainingDailyBytes, message, error */
     public function uploadLimits(string $serviceToken): array
     {
-        return $this->get((string) config('social.bluesky.video_service'), 'app.bsky.video.getUploadLimits', [], $serviceToken);
+        return $this->get($this->videoService(), 'app.bsky.video.getUploadLimits', [], $serviceToken);
     }
 
     /**
@@ -170,15 +182,15 @@ class BlueskyClient
      */
     public function uploadVideo(string $serviceToken, string $did, string $name, StreamInterface $body, int $timeout): array
     {
-        $url = rtrim((string) config('social.bluesky.video_service'), '/').'/xrpc/app.bsky.video.uploadVideo?'.http_build_query(['did' => $did, 'name' => $name]);
+        $url = $this->videoService().'/xrpc/app.bsky.video.uploadVideo';
 
-        return $this->send(fn (PendingRequest $http) => $http->withToken($serviceToken)->timeout($timeout)->withBody($body, 'video/mp4')->post($url));
+        return $this->send($url, fn (PendingRequest $http, string $u) => $http->withToken($serviceToken)->timeout($timeout)->withBody($body, 'video/mp4')->post($u.'?'.http_build_query(['did' => $did, 'name' => $name])));
     }
 
     /** @return array<string, mixed> `jobStatus`: jobId, state, progress, blob, error, message */
     public function jobStatus(string $jobId): array
     {
-        $data = $this->get((string) config('social.bluesky.video_service'), 'app.bsky.video.getJobStatus', ['jobId' => $jobId]);
+        $data = $this->get($this->videoService(), 'app.bsky.video.getJobStatus', ['jobId' => $jobId]);
 
         return (array) ($data['jobStatus'] ?? $data);
     }
@@ -188,41 +200,72 @@ class BlueskyClient
         return rtrim((string) config('social.bluesky.entryway'), '/');
     }
 
-    /** Solo https hacia un host con nombre publico: el PDS sale de un documento DID ajeno, no se confia a ciegas. */
-    public static function assertPds(string $url): string
+    /** AppView de lectura (host fijo y permitido). */
+    public function appview(): string
     {
-        $parts = parse_url($url);
-        $host = strtolower((string) ($parts['host'] ?? ''));
-        $local = $host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP) !== false
-            || str_ends_with($host, '.local') || str_ends_with($host, '.internal') || ! str_contains($host, '.');
+        return $this->hosts()->fixed(rtrim((string) config('social.bluesky.appview'), '/'));
+    }
 
-        if (($parts['scheme'] ?? '') !== 'https' || $local) {
-            throw new BlueskyException('El servidor de esa cuenta de Bluesky no es valido.', 'PdsInvalid', 400);
-        }
-
-        return 'https://'.$host.(isset($parts['port']) ? ':'.$parts['port'] : '');
+    /** Servicio de video (host fijo y permitido). */
+    public function videoService(): string
+    {
+        return $this->hosts()->fixed(rtrim((string) config('social.bluesky.video_service'), '/'));
     }
 
     /**
-     * @param  \Closure(PendingRequest): Response  $call
+     * El PDS sale de un documento DID ajeno: se normaliza a `https://host` (sin puerto ni ruta) tras validarlo (DNS publico). Se
+     * vuelve a validar en cada peticion, no solo al conectar.
+     */
+    public function assertPds(string $url): string
+    {
+        $v = $this->hosts()->validate($url);
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        if (($path !== '' && $path !== '/') || parse_url($url, PHP_URL_QUERY) !== null || parse_url($url, PHP_URL_FRAGMENT) !== null) {
+            throw new BlueskyException('El servidor de esa cuenta de Bluesky no es valido.', 'PdsInvalid', 400);
+        }
+
+        return 'https://'.$v->host;
+    }
+
+    private function hosts(): BlueskyHosts
+    {
+        return new BlueskyHosts(app(UrlGuard::class));
+    }
+
+    /**
+     * Toda peticion pasa por la guardia SSRF: la URL se valida (DNS incluido) justo antes de pedirla, la conexion se fija a la IP
+     * validada y no se siguen redirecciones (una 3xx es un error: ningun endpoint XRPC legitimo redirige).
+     *
+     * @param  \Closure(PendingRequest, string): Response  $call  Recibe el cliente y la URL validada.
      * @return array<string, mixed>
      */
-    private function send(\Closure $call): array
+    private function send(string $url, \Closure $call): array
     {
+        $validated = $this->hosts()->validate($url);
+        $http = Http::acceptJson()->timeout((int) config('social.http_timeout', 15))->withoutRedirecting()
+            ->withOptions(app(UrlGuard::class)->requestOptions($validated));
+
         try {
-            $response = $call(Http::acceptJson()->timeout((int) config('social.http_timeout', 15)));
+            $response = $call($http, $validated->url);
         } catch (ConnectionException) {
             throw new BlueskyException('No se pudo conectar con Bluesky. Reintenta en unos minutos.', 'ConnectionFailed', 0);
+        }
+
+        if ($response->status() >= 300 && $response->status() < 400) {
+            throw new BlueskyException('Bluesky respondio con una redireccion que no se admite.', 'RedirectBlocked', 400);
         }
 
         $json = $response->json();
         $json = is_array($json) ? $json : [];
 
         if ($response->failed()) {
-            $code = (string) ($json['error'] ?? 'UpstreamFailure');
-            $message = (string) ($json['message'] ?? 'Bluesky respondio con un error.');
+            $code = (string) ($json['error'] ?? '');
+            $code = preg_match('/^[A-Za-z][A-Za-z0-9_]{0,63}$/', $code) ? $code : 'UpstreamFailure';
+            // El mensaje lo escribe el servidor remoto: se limpia (sin control ni saltos) y se acota; un cuerpo que no sea JSON nunca se devuelve.
+            $message = is_string($json['message'] ?? null) ? trim((string) preg_replace('/[\x00-\x1f\x7f\s]+/u', ' ', $json['message'])) : '';
 
-            throw new BlueskyException(mb_substr($message, 0, 300), $code, $response->status(), $json);
+            throw new BlueskyException($message !== '' ? mb_substr($message, 0, 200) : 'Bluesky respondio con un error.', $code, $response->status(), $json);
         }
 
         return $json;

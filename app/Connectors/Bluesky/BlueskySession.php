@@ -38,7 +38,12 @@ class BlueskySession
         $pds = $this->client->pdsFor($did);
         $session = $this->client->createSession($pds, $did, $password);
 
-        return ['did' => (string) ($session['did'] ?? $did), 'handle' => (string) ($session['handle'] ?? $identifier), 'pds' => $pds, 'session' => $session];
+        // CWE-345: el DID de la sesion tiene que ser el que se resolvio. Un PDS propio podria devolver el de otra cuenta y suplantarla.
+        if (($session['did'] ?? null) !== $did) {
+            throw new BlueskyException('Bluesky devolvio una sesion que no corresponde a esa cuenta.', 'DidMismatch', 400);
+        }
+
+        return ['did' => $did, 'handle' => (string) ($session['handle'] ?? $identifier), 'pds' => $pds, 'session' => $session];
     }
 
     /** Fecha de caducidad (`exp`) de un JWT. Se lee SIN verificar la firma: solo sirve para planificar la renovacion. */
@@ -71,15 +76,19 @@ class BlueskySession
      */
     public function refresh(SocialAccount $account): RefreshResult
     {
-        return $this->locked($account, function () use ($account): RefreshResult {
-            $fresh = SocialAccount::withoutUserScope()->find($account->id) ?? $account;
+        return $this->locked($account, fn (): RefreshResult => $this->refreshing($account));
+    }
 
-            if ($fresh->access_token !== $account->access_token && ! self::expiresSoon($fresh)) {
-                return new RefreshResult((string) $fresh->access_token, $fresh->refresh_token, $fresh->token_expires_at);
-            }
+    /** @return RefreshResult Las credenciales vigentes: las de otro proceso si ya renovo, o las renovadas ahora. */
+    private function refreshing(SocialAccount $account): RefreshResult
+    {
+        $fresh = SocialAccount::withoutUserScope()->find($account->id) ?? $account;
 
-            return $this->renew($fresh);
-        });
+        if ($fresh->access_token !== $account->access_token && ! self::expiresSoon($fresh)) {
+            return new RefreshResult((string) $fresh->access_token, $fresh->refresh_token, $fresh->token_expires_at);
+        }
+
+        return $this->renew($fresh);
     }
 
     /**
@@ -101,8 +110,11 @@ class BlueskySession
             }
         }
 
-        $result = $this->refresh($account);
-        app(SocialAccountService::class)->applyRefresh($account, $result);
+        // Renovar Y guardar dentro del MISMO bloqueo: si se guardara fuera, otro proceso podria leer el refreshJwt viejo (ya rotado)
+        // y renovar de mas.
+        $this->locked($account, function () use ($account): void {
+            app(SocialAccountService::class)->applyRefresh($account, $this->refreshing($account));
+        });
 
         return $call((string) $account->access_token, self::pds($account));
     }
@@ -144,6 +156,11 @@ class BlueskySession
         $access = (string) ($session['accessJwt'] ?? '');
         if ($access === '') {
             throw new BlueskyException('Bluesky no devolvio una sesion valida.', 'InvalidSession', 502);
+        }
+
+        $expected = (string) ($account->meta['did'] ?? $account->external_id);
+        if (isset($session['did']) && $session['did'] !== $expected) {
+            throw new BlueskyException('Bluesky devolvio una sesion que no corresponde a esa cuenta.', 'DidMismatch', 400);
         }
 
         return new RefreshResult(

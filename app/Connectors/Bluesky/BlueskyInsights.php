@@ -102,7 +102,7 @@ class BlueskyInsights implements InsightsReader
 
     private function appview(): string
     {
-        return (string) config('social.bluesky.appview');
+        return $this->client->appview();
     }
 
     private function num(mixed $v): int|float|null

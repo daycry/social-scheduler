@@ -12,6 +12,7 @@ use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\SocialAccountService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\BlueskyFake;
@@ -35,6 +36,7 @@ function bskyAccount(array $over = []): SocialAccount
 }
 
 beforeEach(function () {
+    BlueskyFake::dns();
     $this->connector = app(BlueskyConnector::class);
 });
 
@@ -62,7 +64,7 @@ test('conectar guarda tokens y app password cifrados, con external_id = DID', fu
 test('una app password invalida da un error claro sin la contrasena', function () {
     Http::fake([
         'bsky.social/xrpc/com.atproto.identity.resolveHandle*' => Http::response(['did' => BSKY_DID]),
-        'plc.directory/*' => Http::response(['service' => [['id' => '#atproto_pds', 'serviceEndpoint' => BSKY_PDS]]]),
+        'plc.directory/*' => Http::response(['id' => BSKY_DID, 'service' => [['id' => '#atproto_pds', 'serviceEndpoint' => BSKY_PDS]]]),
         'pds.example.com/xrpc/com.atproto.server.createSession' => Http::response(['error' => 'AuthenticationRequired', 'message' => 'Invalid identifier or password'], 401),
     ]);
 
@@ -195,4 +197,32 @@ test('regresion: RefreshSocialAccount no marca reconexion con refresh_expires_at
         ->and($fresh->refresh_token)->toBe('NEW-REFRESH')
         ->and($fresh->refresh_expires_at)->toBeNull()
         ->and($fresh->credential_secret)->toBe('APP-PASS-WORD-1234');
+});
+
+test('B-8: las credenciales renovadas se guardan DENTRO del bloqueo por cuenta', function () {
+    $account = bskyAccount();
+    $held = null;
+    SocialAccount::saved(function (SocialAccount $saved) use ($account, &$held) {
+        if ($saved->id === $account->id && $saved->access_token !== 'OLD-ACCESS') {
+            $lock = Cache::lock("bsky-session:{$account->id}", 5);
+            $held = $lock->get() === false; // si se consigue, nadie lo tenia: el guardado iba fuera del bloqueo
+            if (! $held) {
+                $lock->release();
+            }
+        }
+    });
+    Http::fake([
+        'pds.example.com/xrpc/com.atproto.server.refreshSession' => Http::response(['accessJwt' => bskyJwt(7200), 'refreshJwt' => 'NEW-REFRESH', 'did' => BSKY_DID]),
+    ]);
+    $calls = 0;
+
+    app(BlueskySession::class)->call($account, function (string $token) use (&$calls) {
+        if ($calls++ === 0) {
+            throw new BlueskyException('caducado', 'ExpiredToken', 400);
+        }
+
+        return $token;
+    });
+
+    expect($held)->toBeTrue()->and($account->fresh()->refresh_token)->toBe('NEW-REFRESH');
 });

@@ -14,6 +14,7 @@ use Tests\Support\BlueskyFake;
 const BSKY_TEST_PASSWORD = 'abcd-efgh-ijkl-mnop';
 
 beforeEach(function () {
+    BlueskyFake::dns();
     app(ConnectorRegistry::class)->register(app(BlueskyConnector::class));
     $this->user = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create();
@@ -38,7 +39,7 @@ test('con handle y app password validos la cuenta aparece conectada', function (
 test('una contrasena invalida da un error claro y no guarda nada', function () {
     Http::fake([
         'bsky.social/xrpc/com.atproto.identity.resolveHandle*' => Http::response(['did' => BlueskyFake::DID]),
-        'plc.directory/*' => Http::response(['service' => [['id' => '#atproto_pds', 'serviceEndpoint' => BlueskyFake::PDS]]]),
+        'plc.directory/*' => Http::response(['id' => BlueskyFake::DID, 'service' => [['id' => '#atproto_pds', 'serviceEndpoint' => BlueskyFake::PDS]]]),
         'pds.example.com/xrpc/com.atproto.server.createSession' => Http::response(['error' => 'AuthenticationRequired', 'message' => 'Invalid identifier or password'], 401),
     ]);
 

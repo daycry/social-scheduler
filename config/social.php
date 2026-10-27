@@ -118,6 +118,8 @@ return [
         'plc_directory' => env('BLUESKY_PLC_DIRECTORY', 'https://plc.directory'),
         'appview' => env('BLUESKY_APPVIEW', 'https://public.api.bsky.app'),
         'video_service' => env('BLUESKY_VIDEO_SERVICE', 'https://video.bsky.app'),
+        /* Hosts FIJOS permitidos (entryway, PLC, AppView, video): un .env equivocado no puede apuntar el trafico a otro sitio (SSRF). */
+        'allowed_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('BLUESKY_ALLOWED_HOSTS', 'bsky.social,plc.directory,public.api.bsky.app,api.bsky.app,video.bsky.app'))))),
         'default_langs' => array_values(array_filter(array_map('trim', explode(',', (string) env('BLUESKY_DEFAULT_LANGS', 'es'))))),
         'image_max_bytes' => (int) env('BLUESKY_IMAGE_MAX_BYTES', 2_000_000),
         'video_max_bytes' => (int) env('BLUESKY_VIDEO_MAX_BYTES', 52_428_800),

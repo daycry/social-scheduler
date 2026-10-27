@@ -248,16 +248,15 @@ class AiAssistant
         // «15-11-2026 18:30» y «2026-11-15 18:00» (fecha + hora) se protegen antes: su fecha y la hora que la sigue sumarian digitos
         // y separadores suficientes para parecer un telefono. Se sustituyen por marcas sin digitos y se restauran al final.
         $kept = [];
-        $phrase = preg_replace_callback('/\b\d{1,4}([-.\/])\d{1,2}\1\d{1,4}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?/u', function (array $m) use (&$kept): string {
+        // La fecha es un token completo: no la precede ni la sigue un digito o un separador con digito («600-12-34-56» o «+34 600.12.34.56»
+        // son telefonos: un trozo «600-12-34» no es una fecha).
+        $phrase = preg_replace_callback('/(?<![\d+.\-\/])\d{1,4}([-.\/])\d{1,2}\1\d{1,4}(?!\d|[-.\/]\d)(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?/u', function (array $m) use (&$kept): string {
             $kept[] = $m[0];
 
             return "\x01".str_repeat('a', count($kept))."\x01";
         }, $phrase) ?? $phrase;
 
-        $phrase = preg_replace_callback('/\+?\d[\d\s().\-]{7,}\d/u', function (array $m): string {
-            // Una fecha (d-m-aaaa, aaaa-m-d, d.m.aaaa) conserva sus separadores y solo tiene grupos de 1 a 4 digitos.
-            return preg_match('/^\d{1,4}([-.])\d{1,2}\1\d{1,4}$/', $m[0]) ? $m[0] : '[teléfono]';
-        }, $phrase) ?? $phrase;
+        $phrase = preg_replace('/\+?\d[\d\s().\-]{7,}\d/u', '[teléfono]', $phrase) ?? $phrase;
 
         foreach ($kept as $i => $original) {
             $phrase = str_replace("\x01".str_repeat('a', $i + 1)."\x01", $original, $phrase);
@@ -266,12 +265,27 @@ class AiAssistant
         return $phrase;
     }
 
-    /** ¿La hora local ocurre dos veces (fin del horario de verano)? Es ambigua si una hora antes o despues se lee igual. */
+    /**
+     * ¿La hora local ocurre dos veces (fin del horario de verano)? Se mira con las transiciones reales de la zona (cubre cambios de
+     * 30 min como Lord_Howe): es ambigua si mas de un desfase UTC de la zona alrededor de esa hora la hace valida.
+     */
     private function isRepeatedHour(CarbonImmutable $local): bool
     {
-        $label = $local->format('Y-m-d\TH:i');
+        $zone = $local->getTimezone();
+        $wall = CarbonImmutable::parse($local->format('Y-m-d H:i:s'), 'UTC')->getTimestamp();
+        $offsets = [$zone->getOffset(new \DateTimeImmutable('@'.($wall - 86400)))];
+        foreach ($zone->getTransitions($wall - 2 * 86400, $wall + 2 * 86400) as $t) {
+            $offsets[] = $t['offset'];
+        }
 
-        return $local->subHour()->format('Y-m-d\TH:i') === $label || $local->addHour()->format('Y-m-d\TH:i') === $label;
+        $valid = 0;
+        foreach (array_unique($offsets) as $offset) {
+            if ($zone->getOffset(new \DateTimeImmutable('@'.($wall - $offset))) === $offset) {
+                $valid++;
+            }
+        }
+
+        return $valid > 1;
     }
 
     /** Quita emails, telefonos y enlaces del brief: no se envian a un tercero. */

@@ -2266,3 +2266,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Patrón: T-50 de `2026-10-24-metricool-parity-2/tasks.md`. No se ejecutan otros servidores; `npm run test:e2e` levanta `php artisan serve` con `APP_ENV=e2e` (`playwright.config.ts`). Lo que falle se corrige en una tarea nueva, no se silencia.
 
+
+## Revisión de dos lentes — intento 1: Fase 1-2 (T-01..T-14) — 1 Important, 9 Minor
+
+Lentes A+B+C+D sobre `f4a5272..5407825`. Lente C sin hallazgos de IDOR: la nota, el comentario y la vista ajenos dan 404 en la web y responden «inexistente» en el MCP. Tampoco hay mass assignment, XSS ni abilities incorrectas. Lente D sin N+1. Tests: 330 de 330. MCP: 24 herramientas, con el tope de 25 respetado.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B1 | Important | La vista por defecto no se aplica nunca al entrar desde la navegación. Los enlaces del shell llevan `brand_id`/`view` y `hasAny()` los toma como filtros explícitos | T-10, T-14 | pendiente | `CalendarController.php:47`, `navigation.js:31,34`, `CurrentBrand.php:59`. El E2E solo prueba `/calendar` |
+| B2 | Minor | `get_calendar` acepta `view` = `"1.9"`, `" 1"` y `"1e0"` como id | T-11 | pendiente | `GetCalendar.php:49` |
+| B3 | Minor | Con `view=<id>`, un `brand` inválido da error aunque mande la vista | T-11 | pendiente | `GetCalendar.php:58` |
+| B4 | Minor | «Guardar vista» no muestra los errores de red, estado ni vista | T-10 | pendiente | `ViewsMenu.vue:128` |
+| B5 | Minor | Se pueden poner notas a respuestas propias (`is_own`), que luego no se ven en ningún sitio | T-02, T-04 | pendiente | `InboxNoteController.php:18`, `AddCommentNote.php:44` |
+| B6 | Minor | El contador (code points) no coincide con `maxlength` (UTF-16) cuando hay emojis | T-03 | pendiente | `CommentNotes.vue:56,58` |
+| C1 | Minor | Vistas sin throttle ni límite por usuario; borrar notas sin throttle (CWE-770, autoinfligido) | T-09, T-02 | pendiente | `routes/web.php:70-72`, `routes/parity.php:72` |
+| A1 | Minor | La fila TOTAL del resumen no suma las fases cerradas | — | pendiente | `tasks.md:58` |
+| A2 | Minor | La cifra «33 passed» de T-10 no es posible | T-10 | pendiente | `tasks.md:382` |

@@ -2681,7 +2681,7 @@ Contenedores, cuota de 250/24 h y métricas null/0 correctos; sin `sleep` (con `
 | A2 | Minor | No hay mensaje específico para una cuenta que no es *tester* (caso límite de la spec) | T-55 | corregido: `ThreadsClient::looksLikeNotTester` detecta el error del canje y el `error_description` del callback; mensaje con la pista de Ajustes → Permisos del sitio web (tests) | `OAuthController.php:80-84` |
 | A3 | Minor | Con Threads apagada, los esquemas de `get_best_times`/`suggest_hashtags` siguen enumerando `threads` | T-60 | corregido: `Network::availableValues()` alimenta el `enum` de `get_best_times` y `suggest_hashtags`; con Threads apagada no se enumera | `GetBestTimes.php:35`, `SuggestHashtags.php:35` |
 
-## Revisión de dos lentes — cierre Fase 3 (gaps 1-2), intento 2: Fase 6-7 y intento 1: Fase 9 (GIFs) — 2 Important, 10 Minor
+## Revisión de dos lentes — intento 2: Fase 6-7 y cierre de la Fase 3, más intento 1 de la Fase 9 (GIFs) — 2 Important, 10 Minor
 
 Lentes A+B+C+D, todo leído en `8d106ec`.
 

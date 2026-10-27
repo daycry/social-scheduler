@@ -29,7 +29,7 @@ const color = computed(() => catalog.color(props.detail?.network.value));
 const metric = (key) => props.detail.metrics.find((m) => m.key === key);
 const GROUPS = [
     { title: 'Visibilidad', keys: ['views', 'reach', 'profile_views', 'watch_minutes'] },
-    { title: 'Interacciones', keys: ['interactions', 'likes', 'comments', 'shares', 'accounts_engaged'] },
+    { title: 'Interacciones', keys: ['interactions', 'likes', 'comments', 'shares', 'clicks', 'accounts_engaged'] },
     { title: 'Contenido', keys: ['video_count'] },
 ];
 const group = (g) => g.keys.map(metric).filter(Boolean);

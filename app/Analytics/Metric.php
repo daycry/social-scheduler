@@ -42,11 +42,14 @@ final class Metric
     /** Publicaciones de la cuenta (STOCK). `VIDEO_COUNT` significa «videos»; esta es la cifra de posts de Bluesky. */
     public const POST_COUNT = 'post_count';
 
+    /** Clics en los enlaces de las publicaciones de la cuenta (FLUJO del dia). Hoy solo lo da Threads (suma de `clicks` por enlace). */
+    public const CLICKS = 'clicks';
+
     /** @var list<string> Metricas de cuenta (orden estable en BD y UI). */
     public const ACCOUNT = [
         self::FOLLOWERS, self::FOLLOWERS_GAINED, self::FOLLOWERS_LOST, self::VIEWS, self::REACH, self::PROFILE_VIEWS,
         self::ACCOUNTS_ENGAGED, self::INTERACTIONS, self::LIKES, self::COMMENTS, self::SHARES, self::WATCH_MINUTES,
-        self::VIDEO_COUNT, self::POST_COUNT,
+        self::VIDEO_COUNT, self::POST_COUNT, self::CLICKS,
     ];
 
     /** @var list<string> Metricas de publicacion. */
@@ -70,6 +73,8 @@ final class Metric
         'tiktok' => [],
         // Bluesky solo ofrece STOCKS de cuenta (seguidores y posts), como TikTok: ningun flujo diario.
         'bluesky' => [],
+        // Threads: visitas al perfil y los totales del dia (sin `clicks`, que no existe si no hubo enlaces). Seguidores es un stock.
+        'threads' => [self::PROFILE_VIEWS, self::LIKES, self::COMMENTS, self::SHARES, self::INTERACTIONS],
     ];
 
     /**

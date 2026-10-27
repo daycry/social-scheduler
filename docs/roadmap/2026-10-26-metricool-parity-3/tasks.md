@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 5 | 11 | 45% | 26 / 50,5h (estimado) | 3,52 / 6,83h (estimado) | 0,87 / 1,7h (estimado) | 1051k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 6 | 11 | 55% | 33 / 50,5h (estimado) | 4,46 / 6,83h (estimado) | 1,1 / 1,7h (estimado) | 1334k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1936,29 +1936,36 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-59 — `ThreadsInsights`: post, cuenta y rango
 
 - **Descripción**: Métricas de post (`views`, likes, comentarios, compartidos) y de cuenta (`PROFILE_VIEWS`, likes, `clicks`, `followers_count`). Requisito: C-02 de la evaluación y CA-10.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las estadísticas de Threads llegan al panel: visitas al perfil, me gusta, respuestas, compartidos, clics en enlaces y seguidores, y por publicación vistas e interacciones.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 7,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,94h · real —
-- **Supervisión**: est. 0,23h (≈25 % IA) · real —
+- **Tiempo humano**: est. 7,0h · real 7,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,94h · real 0,94h (estimado)
+- **Supervisión**: est. 0,23h (≈25 % IA) · real 0,23h (estimado)
 - **Previsión IA**: 255k in / 28k out tok · ⚠️ verificar €
 - **Dependencias**: T-55
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Threads/ThreadsInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Threads/ThreadsInsightsTest.php`
+- **Archivos**: `app/Connectors/Threads/ThreadsInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Threads/ThreadsInsightsTest.php`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Dashboard/Network.vue`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Threads/ThreadsInsightsTest.php` → en verde (mapa, `null` y rango)
 
 **Criterios de aceptación**
-- [ ] Cada métrica se mapea según `design.md`.
-- [ ] `null` = no disponible.
+- [x] Cada métrica se mapea según `design.md`.
+- [x] `null` = no disponible.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Lector de insights
-- [ ] Entradas de `Metric` y `SUPPORTED`
+- [x] Test RED
+- [x] Lector de insights
+- [x] Entradas de `Metric` y `SUPPORTED`
 
 **Notas**: Patrón: `app/Connectors/Contracts/RangeInsightsReader.php`, `app/Connectors/Meta/Insights.php`, `Metric.php`. `views` de cuenta = visitas al perfil → `PROFILE_VIEWS`; `shares` del post «en desarrollo» ⚠️: `null` si no llega, nunca 0. Rango desde 2024-04-13.
+
+**Test RED**: `tests/Feature/Connectors/Threads/ThreadsInsightsTest.php` antes del código -> 15 errores (la clase `ThreadsInsights` no existe).
+
+**Decisiones**: `views` de cuenta = visitas al perfil -> `PROFILE_VIEWS` (`VIEWS` queda `null`, fuera de `SUPPORTED`); `reposts + quotes` -> `SHARES`; `clicks` llega por enlace y se suma en la nueva métrica de flujo `Metric::CLICKS` («Clics en enlaces», añadida a `ACCOUNT`, `LABELS` y al grupo Interacciones de `Dashboard/Network.vue`; no entra en `EXPECTED_FLOWS` porque sin enlaces pulsados no hay dato); `followers_count` solo para el último día cerrado (no admite `since/until`). El día se pide a las 00:00 de `America/Los_Angeles` con `since/until` Unix (⚠️ zona y formato a confirmar en el smoke) y se lee dia a dia (`maxRangeDays` = 0); antes del 13-04-2024 no se llama a la API. Si Threads rechaza el conjunto de métricas, se piden una a una y las rechazadas quedan `null`; en el post, `views` y `shares` («en desarrollo») también quedan `null` si no llegan. El ID de un contenedor (publicación no localizada) no se lee (`canReadPost`). Alcance ampliado: `AppServiceProvider.php` (registro del lector) y `Network.vue`.
+
+**Verificación ejecutada**: `ThreadsInsightsTest.php` -> 15 passed (mapa, null y rango); `tests/Feature/Connectors tests/Feature/Analytics tests/Unit` -> 767 passed (2997 assertions); pint -> passed.
 
 ### T-60 — Superficies de Threads: icono, pestañas, MCP, IA e informe
 

@@ -2573,8 +2573,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-77 — Regresión final: Pest completo, Playwright en los 3 proyectos y Pint
 
 - **Descripción**: Cierre de la iniciativa: Pest completo, Playwright en `desktop`, `mobile` y `mobile-360` con el servidor propio de Playwright (sin `E2E_NO_SERVER`) y Pint.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Regresión completa en verde antes de la PR: Pest, Playwright en escritorio y móvil, y Pint.
+- **Estado**: en-progreso
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
 - **Tiempo humano**: est. 3,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,41h · real —
@@ -2590,14 +2590,14 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `vendor/bin/pint --test` → sin diferencias
 
 **Criterios de aceptación**
-- [ ] Pest, Playwright y Pint en verde con las cifras anotadas en `Evidencia`.
+- [x] Pest, Playwright y Pint en verde con las cifras anotadas en `Evidencia`.
 - [ ] Todas las tareas anteriores `completado`.
 
 **Subtareas**
-- [ ] Pest completo
-- [ ] Playwright en 3 proyectos
-- [ ] Pint
-- [ ] Anotar cifras
+- [x] Pest completo
+- [x] Playwright en 3 proyectos
+- [x] Pint
+- [x] Anotar cifras
 
 **Notas**: Patrón: T-50 de `2026-10-24-metricool-parity-2/tasks.md`. No se ejecutan otros servidores; `npm run test:e2e` levanta `php artisan serve` con `APP_ENV=e2e` (`playwright.config.ts`). Lo que falle se corrige en una tarea nueva, no se silencia.
 
@@ -2791,3 +2791,11 @@ Tests: 917/917 + 252/252. **La revisión de la iniciativa se cierra sin gaps Cri
 | 3 | Minor | Diferencia previa entre PHP y JS en `trim` con NBSP/U+3000 en los extremos | T-56 | deuda aceptada (orquestador): ya existía antes de la iniciativa | `TextLength.php:33`, `textLength.js` |
 | 4 | Minor | El badge del README seguía en 2424 | T-76 | corregido (commit de cierre del orquestador: badge 2456) | `README.md:7` |
 | 5 | Minor | El ⚠️ de `presentation: gif` no se había llevado al smoke, y `design.md` decía «verificado» | T-68 | corregido (commit de cierre del orquestador: M-01, P3-M-01 y `design.md`) | — |
+
+**Verificación ejecutada (2026-10-27, orquestador)**:
+- `php artisan test --compact` → `{"result":"passed","tests":2456,"passed":2456}` sobre `9d0bf52`.
+- `THREADS_APP_ID=… THREADS_APP_SECRET=… npx playwright test` (servidor propio de Playwright, sin `E2E_NO_SERVER`; desktop, mobile y mobile-360) → **496 passed, 0 failed, 2 skipped** (40,3 min) sobre `d9d2953`. Los cambios posteriores (`9d0bf52`) son solo documentación.
+- `vendor/bin/pint --test` → sin diferencias.
+
+**Pendiente**: el criterio «todas las tareas anteriores `completado`» depende de T-30 (smoke real de Bluesky) y T-64 (smoke real de Threads), que hace el usuario con sus cuentas. T-77 se cierra cuando estén hechos.
+

@@ -2395,3 +2395,20 @@ Lentes A+B+C+D sobre `8630c77..68c8d67`. Se respeta O1: los tres conectores solo
 | C-10 | Minor | No se comprueba que el DID de la sesión coincida con el DID resuelto: un PDS propio podría suplantar un handle en la marca del atacante (CWE-345) | T-19 | corregido (5553242) | `BlueskySession.php:41` |
 | D-1 | Minor | Las métricas hacen un `getPosts` por post en lugar de lotes de 25 | T-26 | corregido (4837ac6) | `SnapshotCollector.php:205` |
 | A-11 | Minor | `Archivos` declara ficheros que no se tocaron | T-17, T-21, T-22 | corregido (de4c1ff) | — |
+
+## Revisión de dos lentes — intento 2: Fase 1-2 (T-01..T-14) — 0 Important
+
+Lentes A+B+C+D sobre las correcciones `7a16da2..93ba4a7`. Quedan resueltos B1..B6 y C1. A1 se mantiene: el gap era real en `5407825` y lo arregló de paso `407ffb5` (T-29), así que lo exacto es «corregido en 407ffb5». Los arreglos de los E2E intermitentes esperan la condición real. **La revisión de la Fase 1-2 se cierra sin gaps Critical ni Important.**
+
+## Revisión de dos lentes — intento 2: Fase 3 (T-15..T-30, T-73) — 1 Important, 5 Minor
+
+Lentes A+B+C+D sobre las correcciones `8df0324..3408763`. **C-1 (SSRF) está cerrado.** El único `Http::` de Bluesky está en `BlueskyClient::send()`, que valida cada petición con `UrlGuard`: https:443, IP pública fijada, sin proxy y sin redirecciones. El `serviceEndpoint` de PLC también pasa por la guardia. `BLUESKY_ALLOWED_HOSTS` no se puede usar para saltarla. Los casos raros de `did:web` (IDN, punto final, IPs y `\n`) se rechazan. En la sonda, 25 hosts rechazados y 0 peticiones enviadas. También quedan resueltos C-10, D-2, B-3, B-4, B-7, B-9, D-1, A-5, A-6 y A-11. Tests: 679/679 y 162/162.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 (B-2) | Important | Con los 256 MB de producción, la validación rechaza las fotos de más de unos 14 MP y más de 2 MB («demasiado grande para reducirla»): una foto normal de móvil no se puede guardar para Bluesky. El test lo esconde con `memory_limit=4G`, y la decisión usa la memoria del proceso web, no la del worker | T-22 | pendiente | `MediaValidator.php:192`, `ImageDownscaler.php:109`, `ImageDownscalerTest.php:122`; sonda `p_mem.php` |
+| N2 | Minor | `reschedule` no comprueba `isAvailable()`: con Bluesky desactivado, un destino se puede reprogramar y vuelve a fallar | T-26 | pendiente | `PostService.php:315-339` |
+| N3 | Minor | Si se agota la espera del lock de recompresión, se lanza `PermanentPublishException` cuando debería ser transitoria | T-22 | pendiente | `ImageDownscaler.php:86-88` |
+| N4 | Minor | No se verifica el handle que devuelve el PDS: una marca propia podría mostrar el handle de otra persona (CWE-345) | T-19 | pendiente | `BlueskySession.php:46` |
+| N5 | Minor | La orientación EXIF depende de `ext-exif`, que no se declara en `composer.json` ni en `deploy/hestia/README.md` | T-22 | pendiente | `ImageDownscaler.php:133` |
+| N6 | Minor | T-19..T-26 siguen con `[x] Test RED` aunque la nota dice «RED no registrado» | T-19..T-26 | pendiente | ledger |

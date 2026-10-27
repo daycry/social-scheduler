@@ -79,3 +79,11 @@ test('tools/list ofrece 24 herramientas en una sola página', function () {
 
     expect($names)->toHaveCount(24)->toContain('add_comment_note', 'list_comments')->and($response->json('result.nextCursor'))->toBeNull();
 });
+
+test('add_comment_note rechaza un comentario propio (is_own)', function () {
+    $own = InboxComment::factory()->create(['user_id' => $this->user->id, 'is_own' => true]);
+
+    [$err] = $this->callTool($this->key, 'add_comment_note', ['comment_id' => $own->id, 'body' => 'x']);
+
+    expect($err)->toBeTrue();
+});

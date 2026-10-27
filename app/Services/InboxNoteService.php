@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\InboxComment;
 use App\Models\InboxCommentNote;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Notas internas de los comentarios del inbox (C-04d): texto plano, solo del dueño, nunca se envían a la red.
@@ -14,6 +15,11 @@ class InboxNoteService
 {
     public function add(User $user, InboxComment $comment, string $body): InboxCommentNote
     {
+        // Las respuestas propias no se muestran en ningún sitio del inbox: una nota sobre ellas quedaría huérfana.
+        if ($comment->is_own) {
+            throw ValidationException::withMessages(['body' => 'No se pueden poner notas a tus propias respuestas.']);
+        }
+
         $note = new InboxCommentNote(['body' => trim($body)]);
         $note->user_id = $user->id;
         $note->inbox_comment_id = $comment->id;

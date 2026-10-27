@@ -1320,12 +1320,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-40 — Pest de integración CA-13
 
 - **Descripción**: Lista filtrada + exportación + neutralización de `=` en el texto.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cubierto de extremo a extremo que el CSV de la lista tiene las mismas publicaciones que se ven con el filtro y que los textos con = salen neutralizados.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-38, T-39
 - **Tipo**: test
@@ -1334,12 +1335,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Calendar tests/Feature/Reports` → todo en verde
 
 **Criterios de aceptación**
-- [ ] CA-13 cubierto.
+- [x] CA-13 cubierto.
 
 **Subtareas**
-- [ ] Escribir el test
+- [x] Escribir el test
 
 **Notas**: Patrón: `tests/Feature/Reports/`.
+
+**Nota de cierre**: RED no aplica: T-40 solo añade cobertura sobre T-38/T-39 ya hechas. Compara la lista (Inertia) con el CSV y la vista guardada con el filtro explícito.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Calendar tests/Feature/Reports -> 75 passed (1970 assertions)
 
 ### T-41 — E2E de la descarga de CSV
 

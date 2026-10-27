@@ -125,7 +125,7 @@ const summary = (v) =>
                     <span class="text-xs font-medium text-slate-700">Guardar los filtros actuales como vista</span>
                     <input v-model="form.name" type="text" maxlength="120" required class="field mt-1 py-1" placeholder="Nombre, p. ej. Pendientes IG" data-testid="view-name" />
                 </label>
-                <InputError :message="form.errors.name || form.errors['filters.brand_id']" />
+                <InputError :message="form.errors.name || form.errors['filters.brand_id'] || form.errors['filters.network'] || form.errors['filters.status'] || form.errors['filters.view'] || form.errors.filters" data-testid="view-save-error" />
                 <button type="submit" class="btn btn-primary px-3 py-1 text-xs" :disabled="form.processing || !form.name.trim()" data-testid="view-save">Guardar vista</button>
             </form>
         </div>

@@ -10,6 +10,8 @@ return [
         'meta' => (int) env('SOCIAL_REFRESH_MARGIN_META_HOURS', 168),
         'google' => (int) env('SOCIAL_REFRESH_MARGIN_GOOGLE_HOURS', 1),
         'tiktok' => (int) env('SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS', 6),
+        // El accessJwt de Bluesky dura horas; se renueva con margen de 1 h (RefreshTokens corre cada 30 min).
+        'bluesky' => (int) env('SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS', 1),
     ],
 
     /* Cola donde corre el refresco de tokens (ver config/queue.php names). */
@@ -101,6 +103,22 @@ return [
         | pagina cuesta 1 ud de cuota (playlistItems.list) + 1 (videos.list): como mucho 2 x paginas = 6 uds por comprobacion.
         */
         'lookup_max_pages' => (int) env('YOUTUBE_LOOKUP_MAX_PAGES', 3),
+    ],
+
+    /*
+    | Bluesky (D1: app password cifrada). `entryway`: resolucion de handles; el PDS de cada cuenta sale de su documento DID
+    | (`plc_directory`). Topes de media: imagen 2 MB (lexicon vigente; bajar a 1.000.000 si un PDS antiguo lo exige) y video
+    | unos 50 MB (decision del usuario 2026-10-27; el lexicon admite 300 MB, pero la subida es UNA peticion dentro de los 85 s
+    | del paso). Un video mayor se rechaza al guardar.
+    */
+    'bluesky' => [
+        'entryway' => env('BLUESKY_ENTRYWAY', 'https://bsky.social'),
+        'plc_directory' => env('BLUESKY_PLC_DIRECTORY', 'https://plc.directory'),
+        'appview' => env('BLUESKY_APPVIEW', 'https://public.api.bsky.app'),
+        'video_service' => env('BLUESKY_VIDEO_SERVICE', 'https://video.bsky.app'),
+        'default_langs' => array_values(array_filter(array_map('trim', explode(',', (string) env('BLUESKY_DEFAULT_LANGS', 'es'))))),
+        'image_max_bytes' => (int) env('BLUESKY_IMAGE_MAX_BYTES', 2_000_000),
+        'video_max_bytes' => (int) env('BLUESKY_VIDEO_MAX_BYTES', 52_428_800),
     ],
 
     'tiktok' => [

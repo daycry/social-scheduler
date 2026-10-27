@@ -51,8 +51,8 @@ enum Network: string
             self::Instagram => 'IG',
             self::Facebook => 'FB',
             self::YouTube => 'YT',
-            self::TikTok => 'TikTok',
-            self::Bluesky => 'Bluesky',
+            self::TikTok => 'TT',
+            self::Bluesky => 'BS',
         };
     }
 

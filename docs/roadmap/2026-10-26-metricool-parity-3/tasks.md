@@ -384,28 +384,31 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-11 — MCP: `list_calendar_views` y parámetro `view` en `get_calendar`
 
 - **Descripción**: Herramienta `list_calendar_views` y `view` en `get_calendar` con el mismo resultado que la UI. Requisito: CA-11.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los asistentes MCP pueden listar las vistas guardadas del calendario y pedir get_calendar con view=<id>.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/ListCalendarViews.php`, `app/Mcp/Tools/GetCalendar.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpCalendarViewsTest.php`
+- **Archivos**: `app/Mcp/Tools/ListCalendarViews.php`, `app/Mcp/Tools/GetCalendar.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpCalendarViewsTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`, `tests/Feature/Mcp/Tools/McpCommentNotesTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp/Tools/McpCalendarViewsTest.php` → en verde (`view` equivale a los filtros guardados; vista ajena no existe)
 
 **Criterios de aceptación**
-- [ ] `get_calendar view=<id>` devuelve lo mismo que los filtros equivalentes.
-- [ ] Una vista de otro usuario responde como inexistente.
+- [x] `get_calendar view=<id>` devuelve lo mismo que los filtros equivalentes.
+- [x] Una vista de otro usuario responde como inexistente.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Herramienta y parámetro
+- [x] Test RED
+- [x] Herramienta y parámetro
 
-**Notas**: Patrón: `app/Mcp/Tools/GetCalendar.php` y `ListCampaigns.php`; registro en `SchedulerServer.php` (pasa a **24**).
+**Notas**: Patrón: `app/Mcp/Tools/GetCalendar.php` y `ListCampaigns.php`; registro en `SchedulerServer.php` (pasa a **24**). Nota de implementación: `view` ya era week/month/list; ahora acepta además el id numérico de una vista guardada (el esquema deja de ser enum). Los tests que contaban 23 herramientas pasan a 24.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Mcp -> 258 passed (McpCalendarViewsTest 6; tools/list = 24)
 
 ### T-12 — Pest de integración CA-11 (vistas guardadas)
 

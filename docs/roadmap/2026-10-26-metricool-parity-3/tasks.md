@@ -50,12 +50,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
-| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 5 | 6 | 83% | 17,0 / 18,0h (estimado) | 2,30 / 2,44h (estimado) | 0,58 / 0,62h (estimado) | 687k / 729k (estimado) |
+| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **47** | **77** | **61%** | **147,0 / 246,0h** | **19,93 / 33,21h** | **5,03 / 8,3h** | **5,95M / 9,96M** |
+| **TOTAL** | **48** | **77** | **62%** | **148,0 / 246,0h** | **20,07 / 33,21h** | **5,07 / 8,3h** | **5,99M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1408,7 +1408,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA)
 
-**Estado**: en-progreso · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
+**Estado**: completado · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
 
 ### T-43 — `HashtagStats`: extracción, cruce con *snapshots*, ranking y caché
 
@@ -1573,12 +1573,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-48 — Documentación y revisión de robustez de C-04a
 
 - **Descripción**: Documentar las sugerencias de hashtags.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentadas las sugerencias de hashtags: salen de tu propio historial (mínimo 2 usos, máximo por red), sin IA, en el compositor y por MCP.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-46, T-47
 - **Tipo**: docs
@@ -1587,13 +1588,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: los docs explican fuente (histórico propio), mínimo y máximo por red → coherente con T-43..T-45
 
 **Criterios de aceptación**
-- [ ] Queda claro que no usa IA.
+- [x] Queda claro que no usa IA.
 
 **Subtareas**
-- [ ] Redactar los docs
+- [x] Redactar los docs
 
 **Notas**: Patrón: `docs/modulos/publicacion.md` y `docs/modulos/mcp.md`.
 
+**Nota de cierre**: Robustez revisada: sin llamadas externas (Http::assertNothingSent en servicio, endpoint, flujo y MCP); aislamiento por usuario y marca (marca ajena 404 en la web y «no encontrada» en el MCP, sin filtrar nombres ni hashtags); red validada con el enum (422 / error MCP); caché de 60 min por usuario, marca y red; ventana de 365 días y tope de 15; texto de hashtag renderizado como texto en Vue (sin v-html). Límite conocido: tras publicar, las sugerencias tardan hasta 1 h en reflejar el post nuevo (caché).
+
+**Verificación ejecutada**: lectura: publicacion.md (sección «Hashtags sugeridos»: fuente = histórico propio sin IA, mínimo 2 usos, ranking, caché, endpoint, cliente y máximo por red), mcp.md (25 herramientas, suggest_hashtags) y guia-de-usuario.md («Hashtags sugeridos») coherentes con T-43..T-45
 
 ## Fase 7 — C-04c · Programar en lenguaje natural (IA existente)
 

@@ -51,11 +51,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
-| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 3 | 5 | 60% | 14,0 / 18,0h (estimado) | 1,90 / 2,44h (estimado) | 0,48 / 0,62h (estimado) | 566k / 729k (estimado) |
+| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 4 | 5 | 80% | 16,5 / 18,0h (estimado) | 2,24 / 2,44h (estimado) | 0,57 / 0,62h (estimado) | 667k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **51** | **77** | **66%** | **162,0 / 246,0h** | **21,97 / 33,21h** | **5,55 / 8,3h** | **6,56M / 9,96M** |
+| **TOTAL** | **52** | **77** | **68%** | **164,5 / 246,0h** | **22,31 / 33,21h** | **5,64 / 8,3h** | **6,66M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1696,17 +1696,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Nota de cierre**: RED no aplica: tabla de verificación sobre T-49/T-50 ya construidos; pasó a la primera. 11 casos (≥ 8) en 3 zonas (Europe/Madrid con CET y CEST, America/Mexico_City, Asia/Tokyo) con la IA simulada: local, UTC, redes y la carga enviada (`ahora` en la zona de la marca, no en UTC). Más: la misma respuesta da 3 instantes distintos según la zona y una hora que ya pasó en Tokio se rechaza aunque en UTC sea futura.
 
-**Verificación ejecutada**: php artisan test --compact tests/Feature/Ai -> 56 passed (181 assertions): ProposeScheduleTableTest 13 (11 frases x 3 zonas + 2), ProposeScheduleTest 26, ProposeScheduleEndpointTest 8, más los 9 de AiAssistantTest; vendor/bin/pint -> passed
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ai -> 56 passed (181 assertions): ProposeScheduleTest 35, ProposeScheduleTableTest 13 (11 frases en 3 zonas + 2) y ProposeScheduleEndpointTest 8; vendor/bin/pint -> passed
 
 ### T-52 — E2E de programar en lenguaje natural con axe
 
 - **Descripción**: Escenario Playwright con respuesta de IA simulada por el servidor de pruebas. Requisito: CA-16.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Comprobado de extremo a extremo, en escritorio y móvil, que «Escribe cuándo» muestra la propuesta y no cambia nada hasta que pulsas Aplicar.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-50
 - **Tipo**: test
@@ -1715,14 +1716,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `npx playwright test tests/e2e/natural-schedule.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
 **Criterios de aceptación**
-- [ ] Propuesta visible y aplicada solo al confirmar.
-- [ ] 0 violaciones axe; sin desborde.
+- [x] Propuesta visible y aplicada solo al confirmar.
+- [x] 0 violaciones axe; sin desborde.
 
 **Subtareas**
-- [ ] Fake de IA en el entorno e2e
-- [ ] Spec E2E
+- [x] Fake de IA en el entorno e2e
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/composer.spec.ts`. La IA real no se llama (M-05 es manual).
+
+**Nota de cierre**: RED no aplica: el spec se escribió con el campo ya construido (T-50). La IA se simula EN EL NAVEGADOR con `page.route` (`GET ai/status` y `POST ai/schedule`): no hay ninguna petición a Anthropic ni cambios en el servidor de pruebas (la IA real es la prueba manual M-05). Cinco escenarios: propuesta visible y sin aplicar (fecha y redes intactas) y luego aplicada; descartar; red sin conectar avisada; error 422 de la IA; IA desactivada (el campo no aparece). Una primera pasada completa dio 2 fallos de `loginAs` (`waitForURL` agotado en el primer test de desktop y mobile-360, antes de llegar al compositor); el test pasó solo y la segunda pasada completa dio 15/15, sin cambios de código: intermitencia del inicio de sesión del entorno, no de la función.
+
+**Verificación ejecutada**: npm run build; E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/natural-schedule.spec.ts -> 15 passed en 1,2 min (5 escenarios x desktop, mobile, mobile-360): propuesta visible antes de aplicar (data-value vacío y redes sin marcar), al aplicar fecha y redes (Instagram y Bluesky, no Facebook), descartar, red ignorada, error, IA desactivada; axe sin violaciones serious/critical y sin desborde
 
 ### T-53 — Documentación y revisión de robustez de C-04c
 

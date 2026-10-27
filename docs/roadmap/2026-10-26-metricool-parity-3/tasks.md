@@ -2680,3 +2680,33 @@ Contenedores, cuota de 250/24 h y métricas null/0 correctos; sin `sleep` (con `
 | A1 | Minor | CA-14 pide avisar del máximo de 1 etiqueta de tema en Threads; no hay `max_hashtags` ni aviso, y la spec no se actualizó | T-56 | corregido: `advise_hashtags => 1` en los 4 tipos de Threads (aviso ámbar en el compositor con más de un hashtag, sin bloquear); CA-14 de `spec.md` actualizado con la decisión | `media_specs.php:164-199` |
 | A2 | Minor | No hay mensaje específico para una cuenta que no es *tester* (caso límite de la spec) | T-55 | corregido: `ThreadsClient::looksLikeNotTester` detecta el error del canje y el `error_description` del callback; mensaje con la pista de Ajustes → Permisos del sitio web (tests) | `OAuthController.php:80-84` |
 | A3 | Minor | Con Threads apagada, los esquemas de `get_best_times`/`suggest_hashtags` siguen enumerando `threads` | T-60 | corregido: `Network::availableValues()` alimenta el `enum` de `get_best_times` y `suggest_hashtags`; con Threads apagada no se enumera | `GetBestTimes.php:35`, `SuggestHashtags.php:35` |
+
+## Revisión de dos lentes — cierre Fase 3 (gaps 1-2), intento 2: Fase 6-7 y intento 1: Fase 9 (GIFs) — 2 Important, 10 Minor
+
+Lentes A+B+C+D, todo leído en `8d106ec`.
+
+**Fase 3, gap 1:** cerrado. Las 8 orientaciones salen bien con ffmpeg 9.0.2 y coinciden con GD. Queda cerrada la Fase 3 (decisión del usuario: corrección acotada); su resto pasa a Minor (C).
+
+**Fases 6-7:** quedan corregidos los gaps 3, 4, 6, 7, 8, 10 y 11. El gap 5 introduce la regresión A.
+
+**Fase 9 (GIFs), lente C:**
+- La clave no sale del servidor: no aparece en respuestas, props, errores, logs ni en la URL del navegador.
+- SSRF: se rechazan 23 URLs y 12 redirecciones maliciosas.
+- Sin XSS ni IDOR.
+
+Tests: 317/317 y 43/43.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A | Important | Regresión del arreglo del gap 5: los teléfonos con guiones o puntos («600-12-34-56», «+34 600.12.34.56») ya no se redactan y se envían a la IA (CWE-359) | T-49 | pendiente | `AiAssistant.php:251-256`; comparación con `6337d5d^` |
+| B | Important | El MP4 de Giphy no se publica en Bluesky con `presentation: gif`, aunque lo piden T-68 y el diseño, y la desviación no está declarada | T-68 | pendiente | `BlueskyPublisher.php:203-206`, `design.md:405` |
+| C | Minor | Resto del gap 2 de la Fase 3: el reductor no reserva tiempo para `uploadBlob`/`createRecord` y la espera del lock (60 s) no se ata al presupuesto | T-22 | pendiente | `ImageDownscaler.php:90,358-362` |
+| D | Minor | El tope de 90 llamadas/h a Giphy es global: un usuario puede agotárselo a todos (CWE-770) | T-65 | pendiente | `GiphyClient.php:130-138` |
+| E | Minor | La importación se fía de la URL del cliente y no la reconstruye por id, así que el filtro `pg-13` se puede saltar (CWE-602) | T-67 | pendiente | `GifController.php:45-48` |
+| F | Minor | Con una clave inválida (401/403) se muestra «Giphy no responde», no se registra y se gasta cupo | T-65 | pendiente | `GiphyClient.php:107-109` |
+| G | Minor | `allowedMediaUrl` usa `!isset(user, pass)`: solo rechaza si vienen los dos. Hoy no es explotable porque `UrlGuard` lo corta (CWE-20) | T-67 | pendiente | `GiphyClient.php:43` |
+| H | Minor | La detección de la hora repetida mira ±1 h y no detecta cambios de hora de 30 min (Lord_Howe) | T-49 | pendiente | `AiAssistant.php:270-275` |
+| I | Minor | `Archivos` de T-48 no incluye `README.md` | T-48 | pendiente | `git show --stat 6a43873` |
+| J | Minor | `SOCIAL_GIPHY_PER_USER_PER_MINUTE` no se usa; `media.md` dice que `.mp4` se comprueba en cada redirección y no es así | T-65, T-71 | pendiente | `routes/web.php:142`, `GiphySource.php:23-28` |
+| K | Minor | La caché de Giphy no normaliza mayúsculas: cada variante gasta una llamada real | T-65 | pendiente | `GiphyClient.php:81` |
+| L | Minor | T-66 no tiene RED registrado ni el aviso | T-66 | pendiente | ledger |

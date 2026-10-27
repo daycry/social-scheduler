@@ -1,4 +1,4 @@
-# Decisiones por red (Meta, YouTube, TikTok)
+# Decisiones por red (Meta, YouTube, TikTok, Bluesky)
 
 Resumen del spike de plataformas (2026-10-19) y de la decisión G1. Fuente completa y evidencia: [spike-report.md](../roadmap/2026-10-19-social-scheduler/spike-report.md).
 
@@ -65,3 +65,14 @@ Limitaciones: la cuenta debe estar en modo desarrollo con roles propios mientras
 5. Publicar una prueba. Desde ese momento el mismo post se publica directamente, sin pasar por la bandeja.
 
 Si TikTok responde `unaudited_client_can_only_post_to_private_accounts`, el destino falla de forma permanente: desactiva la opción.
+
+## Bluesky
+
+Decisiones de la tercera ola (opción O1 del diseño: contrato segregado y catálogo de redes en `Network`):
+
+- **Conexión (D1):** handle + app password, guardada cifrada (`social_accounts.credential_secret`). La sesión está aislada en `BlueskySession` para poder cambiarla por OAuth de atproto sin tocar publicador ni métricas.
+- **Límites** (lexicon vigente, revisado el 2026-10-26): texto de 300 grafemas y 3000 bytes; hasta 4 imágenes de **2.000.000 bytes** cada una (el lexicon decía 1 MB antes; si un PDS antiguo rechaza el blob, bajar `BLUESKY_IMAGE_MAX_BYTES` a 1.000.000); vídeo MP4 (el lexicon admite 300 MB).
+- **Tope de vídeo de esta instalación (D3, decisión del usuario 2026-10-27):** unos **50 MB** (`BLUESKY_VIDEO_MAX_BYTES`, 52.428.800). La subida es una sola petición dentro de los 85 s del paso del job (110 s; worker de 120 s): con unos 5 Mbps de subida, 50 MB caben en unos 80 s. Un vídeo mayor se rechaza al guardar. Hacen falta además el email de la cuenta verificado y cupo diario (`getUploadLimits`).
+- **Idempotencia:** `rkey` TID guardada antes de `createRecord`; `getRecord` antes de fallar.
+- **Métricas:** solo seguidores y posts de cuenta; likes, respuestas, reposts y citas por post; sin visualizaciones ni alcance (`null`).
+- **Pendiente de verificar en el smoke real (T-30, M-01):** `aud` del `getServiceAuth` de subida de vídeo, error del PDS con `rkey` repetida y host público del AppView.

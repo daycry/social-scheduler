@@ -47,15 +47,15 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-04d · Notas internas del inbox | 7 | 7 | 100% | 14,0 / 14,0h (estimado) | 1,89 / 1,89h (estimado) | 0,49 / 0,49h (estimado) | 567k / 567k (estimado) |
 | Fase 2 — C-03a · Vistas de calendario guardadas | 7 | 7 | 100% | 16,0 / 16,0h (estimado) | 2,17 / 2,17h (estimado) | 0,57 / 0,57h (estimado) | 648k / 648k (estimado) |
-| Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 0 | 16 | 0% | 0 / 61,5h | 0 / 8,34h | 0 / 2,08h | 0 / 2,49M |
+| Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 0 | 6 | 0% | 0 / 21,5h | 0 / 2,91h | 0 / 0,73h | 0 / 871k |
 | Fase 5 — C-03c · Exportar a CSV | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,45h | 0 / 0,61h | 0 / 729k |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
-| Fase 10 — Transversal y cierre | 0 | 6 | 0% | 0 / 10,0h | 0 / 1,36h | 0 / 0,35h | 0 / 405k |
-| **TOTAL** | **14** | **77** | **18%** | **30,0 / 246,0h** | **0 / 33,21h** | **0 / 8,3h** | **0 / 9,96M** |
+| Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
+| **TOTAL** | **30** | **77** | **39%** | **90,5 / 246,0h** | **12,27 / 33,21h** | **3,11 / 8,3h** | **3,66M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -496,7 +496,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes)
 
-**Estado**: borrador · **Estimado**: 61,5h · **Real**: — · **Coste est.**: 3.690 € (con margen; base 3.075 €) · **Tokens est.**: 2,49M
+**Estado**: en-progreso · **Estimado**: 61,5h · **Real**: 59,5h (estimado) · **Coste est.**: 3.690 € (con margen; base 3.075 €) · **Tokens est.**: 2,49M
 
 ### T-15 — Contrato segregado: `OAuthConnector`, `CredentialConnector` y `credential_secret`
 
@@ -941,12 +941,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-29 — Documentación y revisión de robustez de Bluesky
 
 - **Descripción**: Documentar el conector, los límites y la sesión; revisión de robustez (secretos, bloqueos, tiempos).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentado cómo funciona Bluesky: conexión y sesión, tipos y límites (300 grafemas, 2 MB, 50 MB), idempotencia y métricas.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-28
 - **Tipo**: docs
@@ -955,19 +956,21 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: los docs listan tipos, límites (300 grafemas, 2 MB, 50 MB), sesión y métricas de Bluesky → coherente con T-15..T-26
 
 **Criterios de aceptación**
-- [ ] Los límites del doc coinciden con `config/social.php` y `media_specs.php`.
+- [x] Los límites del doc coinciden con `config/social.php` y `media_specs.php`.
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez
+- [x] Redactar los docs
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/conexiones.md`, `publicacion.md`, `analitica.md` y `docs/referencia/decisiones-por-red.md`.
+
+**Verificación ejecutada**: lectura: conexiones.md (contrato segregado, catálogo, sesión y renovación), publicacion.md (tipos, límites, facets, imágenes, vídeo, rkey, errores), analitica.md (POST_COUNT, métricas por post) y decisiones-por-red.md (decisiones y ⚠️ pendientes) -> coherentes con T-15..T-26; los límites (300 grafemas/3000 bytes, 2.000.000 B, 52.428.800 B, 180 s) coinciden con config/social.php y config/media_specs.php. Robustez revisada: la app password solo vive cifrada (hidden, borrada al desconectar, sin logs ni props: tests), bloqueo por cuenta 30 s con espera 10 s, subida 80 s dentro del paso de 85 s, PDS solo https y host público, nunca se publica a ciegas tras un fallo de red.
 
 ### T-30 — Smoke real de Bluesky con el usuario
 
 - **Descripción**: El usuario conecta su cuenta con una app password y publica los tipos. Resuelve los ⚠️ de `aud` del *service auth*, `rkey` repetida y AppView.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
 - **Tiempo humano**: est. 2,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,27h · real —
@@ -975,7 +978,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-73
 - **Tipo**: qa
-- **Archivos**: `docs/roadmap/2026-10-26-metricool-parity-3/test-plan.md`
+- **Archivos**: `docs/roadmap/2026-10-26-metricool-parity-3/test-plan.md`, `docs/guias/bluesky-app-password.md`
 - **Cubre (tests)**: M-01
 - **Verificación**: lectura: M-01 del `test-plan.md` completado y anotado con los resultados reales → M-01 marcado
 
@@ -989,6 +992,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Orden: la guía T-73 se ejecuta antes. Es manual y con la cuenta real del usuario (M-01). No hay automatización.
 
+**Estado del smoke (preparado, pendiente del usuario)**: la guía T-73 ya está escrita (`docs/guias/bluesky-app-password.md`) y los pasos de M-01 (preparación, 7 pasos y tabla de ⚠️ a rellenar: `aud` del service auth, `rkey` repetida, AppView, límites reales y estados de `getJobStatus`) están en `test-plan.md`. **No se marca completada**: el smoke es manual con la cuenta real del usuario y queda `en-progreso` hasta que lo ejecute y anote los resultados (criterios sin marcar a propósito).
 
 ## Fase 4 — C-03b · Analítica entre marcas
 
@@ -2096,7 +2100,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 10 — Transversal y cierre
 
-**Estado**: borrador · **Estimado**: 10,0h · **Real**: — · **Coste est.**: 600 € (con margen; base 500 €) · **Tokens est.**: 405k
+**Estado**: en-progreso · **Estimado**: 10,0h · **Real**: 1,0h (estimado) · **Coste est.**: 600 € (con margen; base 500 €) · **Tokens est.**: 405k
 
 ### T-72 — Paridad MCP: Bluesky y Threads en `list_accounts` y `create_post`
 
@@ -2129,12 +2133,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-73 — Guía para el usuario: app password de Bluesky
 
 - **Descripción**: Guía paso a paso: crear una app password en Bluesky, email verificado para vídeo, qué se guarda y cómo revocarla. Requisito: D1, D3.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva guía para crear la app password de Bluesky, conectarla, publicar vídeo (email verificado y cupo diario) y revocarla.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-20
 - **Tipo**: docs
@@ -2143,13 +2148,15 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: la guía cubre alta de la app password, email verificado, límite diario de vídeo y revocación → completa; enlazada desde `docs/README.md`
 
 **Criterios de aceptación**
-- [ ] Un usuario nuevo puede conectar Bluesky solo con la guía.
+- [x] Un usuario nuevo puede conectar Bluesky solo con la guía.
 
 **Subtareas**
-- [ ] Redactar la guía
-- [ ] Enlazar desde el índice
+- [x] Redactar la guía
+- [x] Enlazar desde el índice
 
 **Notas**: Patrón: `docs/guias/google-cloud-picker-drive.md` y `docs/guias/tiktok-auditoria.md`. Se ejecuta **antes** del smoke T-30.
+
+**Verificación ejecutada**: lectura: docs/guias/bluesky-app-password.md cubre alta de la app password, conexión, errores, qué se guarda, email verificado, límite diario y revocación; enlazada desde docs/README.md, docs/RAG-INDEX.md, la guía de usuario y conexiones.md. Adelantada (Fase 10) porque el smoke M-01 la necesita.
 
 ### T-74 — Guía para el usuario: app de Meta para Threads (ID, secreto y tester)
 

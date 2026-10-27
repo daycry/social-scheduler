@@ -14,7 +14,7 @@ La app guarda un snapshot diario por cuenta y métricas por publicación recient
 | Cálculos (crecimiento, engagement) | `app/Analytics/Calculator.php`, `Metric.php`, `Period.php` |
 | Servicio | `app/Services/AnalyticsService.php` (`withLatestSnapshot`: el último snapshot de cada destino, compartido con las campañas) |
 | Campañas | `app/Services/CampaignAnalytics.php`, `resources/js/Pages/Campaigns/{Index,Show}.vue` |
-| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php` |
+| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php` |
 | UI | `resources/js/Pages/Dashboard/{Index,Network}.vue`, `LineChart.vue` |
 | Tablas | `account_snapshots` (con `settled_at`), `post_metric_snapshots` |
 
@@ -34,6 +34,7 @@ Las publicaciones se refrescan cada 6 h (`15 */6 * * *`) durante las primeras 72
 | Facebook | 90 | rangos de <= 30 días, 3 llamadas por rango |
 | YouTube | 365 | un informe `dimensions=day` por tramo de 90 días |
 | TikTok | 0 | la Display API no da serie histórica |
+| Bluesky | 0 | solo hay stocks (seguidores y posts): no existe el valor de un día pasado |
 
 ## Métricas: lo medido en el spike
 
@@ -42,6 +43,14 @@ Instagram: `impressions` ya no existe; se usa `views`. Facebook: `page_impressio
 Regla de producto (CA-10): una métrica que la red no ofrece se muestra como "no disponible", nunca como 0. El periodo por defecto termina en el último día ya cerrado y recogido de las redes de la marca (no «ayer» si aún no se ha recogido), en la zona horaria de la marca; web y MCP usan la misma regla. Los dashboards tienen periodo, comparación (anual de igual longitud) y KPIs por publicación calculados en SQL sobre todas las del periodo, con un top N explícito (`posts_total`, `posts_limit`, `posts_truncated`).
 
 TikTok: solo lo que permitan `user.info.stats`/`video.list`; el `external_id` de un borrador es el `publish_id`, no un ID de vídeo (`progress.external_id_kind = publish_id`), y no se usa para leer métricas.
+
+## Bluesky
+
+`BlueskyInsights` lee del AppView **público** (`BLUESKY_APPVIEW`, `public.api.bsky.app`, sin sesión: así una sesión caída no rompe las métricas). ⚠️ El host se confirma en el smoke (T-30).
+
+- **Cuenta** (`app.bsky.actor.getProfile`): `followersCount` → `followers` y `postsCount` → `post_count` (STOCK nuevo; `video_count` sigue significando «vídeos»). `EXPECTED_FLOWS['bluesky'] = []`, como TikTok: no hay flujos diarios. Solo se lee el último día cerrado (zona UTC).
+- **Post** (`app.bsky.feed.getPosts`, lotes de 25 URIs con `uris` repetido): `likeCount` → `likes`, `replyCount` → `comments`, `repostCount + quoteCount` → `shares` y la suma → `interactions`. `views`, `reach` y `saved` son `null` («no disponible», nunca 0). Un post borrado queda con todo `null`.
+- `AnalyticsService::SUPPORTED['bluesky']` = seguidores y publicaciones.
 
 ## Trabajo manual pendiente
 

@@ -14,7 +14,7 @@ Un `Post` tiene uno o varios `PostTarget` (uno por cuenta/red). Cada destino se 
 | Resultados y avisos | `app/Services/PublishOutcomes.php`, `app/Notifications/PublishFailed.php` |
 | Política de cuota | `app/Services/QuotaPolicy.php` |
 | Historial | `app/Models/PublishAttempt.php` (tabla `publish_attempts`) |
-| Publicadores | `Meta/Instagram/`, `Meta/Facebook/`, `Google/YouTubePublisher.php`, `TikTok/TikTokPublisher.php` |
+| Publicadores | `Meta/Instagram/`, `Meta/Facebook/`, `Google/YouTubePublisher.php`, `TikTok/TikTokPublisher.php`, `Bluesky/BlueskyPublisher.php` |
 
 ## Garantías (CA-06 / CA-07)
 
@@ -84,6 +84,22 @@ Se ejecuta al inicio de cada pasada del despachador:
 - YouTube: subida reanudable en trozos de 8 MiB leídos en streaming (`MediaChunkReader`), nunca el vídeo entero en memoria.
 - TikTok: subida por pasadas con presupuesto (`TIKTOK_UPLOAD_BUDGET` 80 s, marca dura `TIKTOK_PASS_SECONDS` 100 s). El estado vive en `progress`.
 - Plazos: `PUBLISH_POLL_MAX_MINUTES` (30) para el procesado; `PUBLISH_UPLOAD_MAX_MINUTES` (240) para la subida.
+
+## Bluesky
+
+`BlueskyPublisher` (`Publisher` + `StatusPoller`) escribe un `app.bsky.feed.post` en el repositorio de la cuenta. No cambia `PublishPostTarget` ni `PollPublishStatus`.
+
+| Tipo | Contenido | Límites (reglas en `config/media_specs.php`, topes en `config/social.php`) |
+|---|---|---|
+| `bluesky_post` | texto y de 0 a 4 imágenes | **300 grafemas** (un emoji compuesto cuenta 1) y 3000 bytes UTF-8; imagen: tope `BLUESKY_IMAGE_MAX_BYTES` (**2 MB** por defecto) |
+| `bluesky_video` | 1 MP4 con texto opcional | tope `BLUESKY_VIDEO_MAX_BYTES` (**50 MB** por defecto), hasta 3 min |
+
+- **Texto y facets.** `Facets::build()` genera enlaces (con esquema), hashtags (sin números puros, 64 grafemas como máximo) y menciones (`@handle`, solo si `resolveHandle` lo resuelve; si no quedan como texto plano). Los índices son **bytes UTF-8** (`byteStart`/`byteEnd`), no caracteres. `langs` sale de `BLUESKY_DEFAULT_LANGS` (`es`). El conteo por grafemas es `App\Support\TextLength` (PHP) y `resources/js/Composables/textLength.js` (`Intl.Segmenter`): `MediaValidator` lo aplica a compositor y MCP, así que el mensaje de 301 grafemas es el mismo en los dos.
+- **Imágenes.** `uploadBlob` por imagen con su `aspectRatio`. Una imagen por encima del tope se recomprime en una **copia derivada** JPEG (`ImageDownscaler`: calidad 85→55 y, si hace falta, reducción de tamaño; cacheada en el disco de media por media, tope y versión de reglas; la original no se toca). Si no baja del tope, **falla el guardado** con un mensaje claro; si se puede, se avisa de la recompresión.
+- **Vídeo.** `getUploadLimits` (cupo diario y email verificado; `canUpload` falso → fallo permanente con mensaje claro; cupo agotado → `QuotaExceededException` y la política de cuota), token de servicio (`getServiceAuth`), subida del MP4 en **una sola petición en streaming** (`MediaChunkReader`) a `video.bsky.app` con timeout `BLUESKY_UPLOAD_TIMEOUT` (80 s, dentro de los 85 s del paso) y el destino pasa a `procesando(jobId)`. `poll` consulta `getJobStatus`: `JOB_STATE_COMPLETED` con el *blob* → `createRecord` con `embed.video` y `publicada` con el enlace `bsky.app`; `JOB_STATE_FAILED` → fallo con su código. Un vídeo mayor que el tope se **rechaza al guardar**: «Bluesky solo admite vídeos de hasta 50 MB en esta instalación; este pesa X MB.»
+- **Idempotencia.** La `rkey` es una TID (`Tid::generate()`, 13 caracteres base32-sortable, monótona) generada y guardada con `checkpoint()` en `progress.rkey` **antes** de `createRecord`. Un reintento la reutiliza y `findPublished()` hace `getRecord` (`RecordNotFound` → no existe). Además, ante cualquier error de `createRecord` (timeout con la respuesta perdida, 5xx o `rkey` repetida: el error exacto del PDS no está verificado) se comprueba con `getRecord` antes de fallar. Un fallo de red al comprobar es transitorio: nunca se publica a ciegas.
+- **Errores** (`BlueskyErrors`): sesión inválida tras renovar → reconexión; 429/5xx/red → transitorio; cuenta suspendida o rechazo del contenido → permanente con mensaje.
+- ⚠️ Sin verificar hasta el smoke real (T-30): el `aud` de `getServiceAuth` para subir vídeo (se usa `did:web:` + host del PDS), el error del PDS ante una `rkey` repetida y el host de lectura pública de métricas.
 
 ## Estado final del borrador de TikTok
 

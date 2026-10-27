@@ -139,12 +139,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-03 — UI del inbox: hilo de notas, alta, borrado, insignia «con nota» y filtro
 
 - **Descripción**: En `Inbox/Index.vue`, hilo de notas bajo cada comentario, formulario de alta, borrado, insignia «con nota» y filtro. Requisito: CA-17. UI en español.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El inbox muestra un hilo de notas internas bajo cada comentario, con insignia «con nota» y filtro «Solo con nota».
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Tiempo humano**: est. 4,0h · real 4,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0,54h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0,14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-02
 - **Tipo**: frontend
@@ -153,16 +154,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Ui/InboxNotesPageTest.php` → props Inertia con `notes` y filtro `has_notes` en verde
 
 **Criterios de aceptación**
-- [ ] El hilo muestra las notas en orden cronológico con alta y borrado.
-- [ ] El filtro «con nota» deja solo los comentarios con notas.
-- [ ] La insignia aparece solo si hay notas.
+- [x] El hilo muestra las notas en orden cronológico con alta y borrado.
+- [x] El filtro «con nota» deja solo los comentarios con notas.
+- [x] La insignia aparece solo si hay notas.
 
 **Subtareas**
-- [ ] Props del controlador y filtro
-- [ ] Componente `CommentNotes.vue` y su integración
-- [ ] Estados vacío y de error
+- [x] Props del controlador y filtro
+- [x] Componente `CommentNotes.vue` y su integración
+- [x] Estados vacío y de error
 
 **Notas**: Patrón: `resources/js/Components/Composer/NotesPanel.vue` (notas de post) y filtros de `resources/js/Pages/Inbox/Index.vue`. `InboxController` añade `has_notes` al filtro. Accesible por teclado (axe) y sin desbordes a 360 px.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ui/InboxNotesPageTest.php -> 3 passed (50 assertions); tests/Feature/Parity/InboxTest.php sin regresión; npm run build OK
 
 ### T-04 — MCP: notas en `list_comments` y herramienta `add_comment_note`
 

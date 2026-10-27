@@ -6,7 +6,9 @@ use App\Connectors\Meta\Comments;
 use App\Exceptions\PostValidationException;
 use App\Jobs\SyncInboxComments;
 use App\Models\InboxComment;
+use App\Models\InboxCommentNote;
 use App\Models\SocialAccount;
+use App\Services\InboxNoteService;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -20,7 +22,7 @@ class InboxController extends Controller
 {
     use AuthorizesRequests;
 
-    public function __construct(private readonly InboxService $inbox) {}
+    public function __construct(private readonly InboxService $inbox, private readonly InboxNoteService $notes) {}
 
     public function index(Request $request): Response
     {
@@ -29,12 +31,13 @@ class InboxController extends Controller
             'network' => ['nullable', 'in:instagram,facebook'],
             'unread' => ['nullable', 'boolean'],
             'hidden' => ['nullable', 'boolean'],
+            'has_notes' => ['nullable', 'boolean'],
         ]);
         $brand = CurrentBrand::resolve($request);
-        $query = $this->inbox->query($user, ['network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'brand_id' => $brand?->id]
+        $query = $this->inbox->query($user, ['network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'brand_id' => $brand?->id, 'has_notes' => (bool) ($filters['has_notes'] ?? false)]
             + (isset($filters['hidden']) ? ['hidden' => (bool) $filters['hidden']] : []));
 
-        $page = $query->with(['target' => fn ($q) => $q->select('id', 'post_id', 'external_url', 'text')->with(['post' => fn ($p) => $p->withTrashed()->select('id', 'text')]), 'account:id,name,username,network'])
+        $page = $query->with(['notes', 'target' => fn ($q) => $q->select('id', 'post_id', 'external_url', 'text')->with(['post' => fn ($p) => $p->withTrashed()->select('id', 'text')]), 'account:id,name,username,network'])
             ->simplePaginate(30)->withQueryString();
 
         $own = InboxComment::withoutUserScope()->where('user_id', $user->id)->where('is_own', true)
@@ -44,7 +47,8 @@ class InboxController extends Controller
 
         return Inertia::render('Inbox/Index', [
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
-            'filters' => ['network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'hidden' => $filters['hidden'] ?? null],
+            'filters' => ['network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'hidden' => $filters['hidden'] ?? null, 'has_notes' => (bool) ($filters['has_notes'] ?? false)],
+            'note_max' => InboxCommentNote::BODY_MAX,
             'unread_count' => $this->inbox->unreadCount($user),
             'comments' => $page->through(fn (InboxComment $c) => [
                 'id' => $c->id,
@@ -54,6 +58,7 @@ class InboxController extends Controller
                 'commented_at' => $c->commented_at?->toIso8601String(),
                 'read' => $c->read_at !== null,
                 'hidden' => $c->hidden,
+                'notes' => $c->notes->map(fn (InboxCommentNote $n) => $this->notes->toArray($n))->values(),
                 'is_reply' => $c->parent_external_id !== null,
                 'account' => $c->account?->name,
                 'post_text' => $c->target?->post ? mb_substr((string) ($c->target->text ?? $c->target->post->text), 0, 120) : null, // texto efectivo del destino

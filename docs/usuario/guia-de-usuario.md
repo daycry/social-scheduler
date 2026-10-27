@@ -1,6 +1,6 @@
 # Guía de usuario
 
-Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube y TikTok, y te muestra cómo van tus cuentas. Está pensado para uso personal.
+Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube, TikTok y Bluesky, y te muestra cómo van tus cuentas. Está pensado para uso personal.
 
 ## Primeros pasos
 
@@ -10,10 +10,40 @@ Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube y Ti
 
 Si tienes varias páginas o canales, la app te pide elegir cuál conectar.
 
+Bluesky no usa una pantalla de permisos: se conecta con tu handle y una contraseña de aplicación (ver [Conectar Bluesky](#conectar-bluesky-con-una-app-password)).
+
 Avisos al conectar:
 
 - **Google/YouTube**: puede aparecer "Google no ha verificado esta aplicación". Es esperado en uso personal: pulsa Continuar.
 - **Instagram**: necesita una cuenta profesional enlazada a una Página de Facebook.
+
+## Conectar Bluesky con una app password
+
+Bluesky no tiene el botón «Autorizar» de las otras redes: se conecta con una **app password** (contraseña de aplicación). Guía completa: [Bluesky: crear una app password](../guias/bluesky-app-password.md). Es una contraseña aparte, solo para esta app, que puedes revocar cuando quieras sin tocar tu contraseña de siempre.
+
+**Crear la app password**
+
+1. Entra en Bluesky (web `bsky.app` o la app) con tu cuenta.
+2. Abre **Configuración → Privacidad y seguridad → Contraseñas de aplicación** (en inglés, *Settings → Privacy and security → App passwords*; también en `https://bsky.app/settings/app-passwords`).
+3. Pulsa **Añadir contraseña de aplicación**, ponle un nombre (por ejemplo «Social Scheduler») y créala.
+4. Copia la contraseña (formato `xxxx-xxxx-xxxx-xxxx`). **Bluesky solo te la enseña una vez.** No actives el permiso de mensajes directos: no hace falta.
+
+**Conectarla**
+
+1. En las **Conexiones** de tu marca, ve a la tarjeta de Bluesky y pulsa **+ Conectar**.
+2. Escribe tu **handle** completo (por ejemplo `tunombre.bsky.social`, sin la `@`) y pega la app password.
+3. Pulsa **Conectar Bluesky**. Si todo es correcto, la cuenta aparece como «Conectada».
+
+La app password se guarda **cifrada** y no se vuelve a mostrar. Si te equivocas, el mensaje te lo dice sin guardar nada.
+
+**Si deja de funcionar**: si la revocas en Bluesky o cambias de handle, la cuenta pasa a «Requiere reconexión» y las publicaciones programadas se conservan. Crea una app password nueva y vuelve a pulsar **+ Conectar** (no hay botón «Reconectar»). Para dejar de usar la app, desconecta la cuenta aquí y **revoca la app password** en Bluesky.
+
+### Qué se puede publicar en Bluesky
+
+- **Publicación:** texto de hasta **300 caracteres** y hasta 4 imágenes. Un emoji compuesto (como una familia) cuenta como 1. Los enlaces, los `#hashtags` y las `@menciones` salen clicables; una mención a un handle que no existe queda como texto normal.
+- **Imágenes:** hasta 2 MB cada una. Si una pesa más, se publica una copia reducida (tu original no cambia); si no se puede reducir, la app te lo dice al guardar.
+- **Vídeo:** un MP4 de hasta **50 MB** en esta instalación (se rechaza al guardar si pesa más) y hasta 3 minutos. Bluesky pide tener el **email de la cuenta verificado** y limita los vídeos por día; si no se puede, la publicación falla con un mensaje claro. Tras subirlo, Bluesky lo procesa unos minutos y la publicación aparece como «Procesando».
+- **Estadísticas:** seguidores y publicaciones de la cuenta, y me gusta, comentarios y compartidos de cada publicación. Bluesky no da visualizaciones ni alcance: se muestran como «no disponible».
 
 ## Subir contenido
 
@@ -59,6 +89,10 @@ Cada subida gasta unas 1.600 de las 10.000 unidades diarias: unas 6 subidas al d
 ### TikTok
 
 Por ahora el vídeo se envía como **borrador a tu bandeja de TikTok**: recibirás la notificación y terminas de publicarlo en la app. La publicación directa se activará cuando TikTok apruebe la auditoría. En la app aparece como "Publicada" con la nota "revisa tus borradores".
+
+### Bluesky
+
+Texto de hasta 300 caracteres con hasta 4 imágenes, o un vídeo MP4 de hasta 50 MB. Los contadores del compositor cuentan como Bluesky (un emoji compuesto es 1 carácter). Más detalle y cómo conectar la cuenta: [Conectar Bluesky](#conectar-bluesky-con-una-app-password).
 
 ## Calendario
 

@@ -4,6 +4,7 @@ import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
 import ViewsMenu from '@/Components/Calendar/ViewsMenu.vue';
+import { useNetworks } from '@/Composables/useNetworks';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -32,12 +33,7 @@ const props = defineProps({
     flash: Object,
 });
 
-const NETWORK_STYLE = {
-    instagram: { short: 'IG', classes: 'bg-pink-50 text-pink-800 border-pink-200' },
-    facebook: { short: 'FB', classes: 'bg-blue-50 text-blue-800 border-blue-200' },
-    youtube: { short: 'YT', classes: 'bg-red-50 text-red-800 border-red-200' },
-    tiktok: { short: 'TT', classes: 'bg-slate-800 text-white border-slate-900' },
-};
+const catalog = useNetworks();
 
 const go = (params) =>
     router.get(route('calendar.index'), { ...props.filters, view: props.view, date: props.date, ...params }, { preserveState: true, preserveScroll: true, replace: true });
@@ -91,7 +87,15 @@ const reschedule = (item, value) => {
 const shellBrand = computed(() => usePage().props.shell?.currentBrand?.id ?? null);
 const createBrand = computed(() => props.filters.brand_id ?? (props.brands.length === 1 ? props.brands[0].id : shellBrand.value));
 const createHref = computed(() => (createBrand.value ? route('brands.posts.create', createBrand.value) : null));
-const networkOf = (n) => NETWORK_STYLE[n] ?? { short: n, classes: 'bg-slate-100 text-slate-700 border-slate-300' };
+// Etiqueta corta y color de la red desde el catalogo del servidor: texto oscurecido sobre un tinte claro del color de marca.
+const networkOf = (n) => {
+    const c = catalog.color(n);
+
+    return {
+        short: catalog.shortLabel(n),
+        style: { backgroundColor: `color-mix(in srgb, ${c} 12%, white)`, color: `color-mix(in srgb, ${c} 60%, black)`, borderColor: `color-mix(in srgb, ${c} 35%, white)` },
+    };
+};
 const saveToLibrary = (item) =>
     router.post(route('library.store'), { post_id: item.id, name: (item.text || 'Mi plantilla').slice(0, 60) }, { preserveScroll: true });
 
@@ -230,7 +234,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     <Link :href="route('posts.edit', item.id)" class="block">
                                         <span class="flex flex-wrap items-center gap-1">
                                             <span class="text-slate-600">{{ item.local_time }}</span>
-                                            <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
+                                            <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :style="networkOf(t.network).style" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge :status="item.status" :label="item.status_label" />
                                             <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                         </span>
@@ -256,7 +260,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <Link :href="route('posts.edit', item.id)" class="block">
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="text-slate-500">{{ item.local_time }}</span>
-                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
+                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :style="networkOf(t.network).style" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                         <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                     </span>
                                     <span class="line-clamp-1 text-slate-800">{{ item.text || 'Sin texto' }}</span>
@@ -295,7 +299,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <td class="max-w-xs px-3 py-2"><Link :href="route('posts.edit', item.id)" class="text-slate-900 hover:underline">{{ item.text || 'Sin texto' }}</Link> <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span></td>
                                 <td class="px-3 py-2">
                                     <div class="flex flex-wrap gap-1">
-                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1 text-xs" :class="networkOf(t.network).classes">{{ t.network_label }}</span>
+                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1 text-xs" :style="networkOf(t.network).style">{{ t.network_label }}</span>
                                     </div>
                                 </td>
                                 <td class="px-3 py-2">

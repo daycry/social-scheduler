@@ -1,5 +1,6 @@
 <script setup>
 import NetworkIcon from '@/Components/NetworkIcon.vue';
+import { useNetworks } from '@/Composables/useNetworks';
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -13,16 +14,11 @@ const props = defineProps({
     filters: { type: Object, required: true },
 });
 
-const ALL = [
-    { value: 'instagram', label: 'Instagram' },
-    { value: 'facebook', label: 'Facebook' },
-    { value: 'youtube', label: 'YouTube' },
-    { value: 'tiktok', label: 'TikTok' },
-];
+const catalog = useNetworks();
 
 const query = (f) => ({ brand_id: f.brand_id, from: f.from, to: f.to, compare: f.compare });
 const connected = computed(() => new Set(props.networks.map((n) => n.value)));
-const chips = computed(() => ALL.map((n) => ({ ...n, connected: connected.value.has(n.value) })));
+const chips = computed(() => catalog.list().map((n) => ({ ...n, connected: connected.value.has(n.value) })));
 </script>
 
 <template>

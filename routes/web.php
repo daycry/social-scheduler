@@ -30,6 +30,7 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'networks' => array_map(fn (Network $n) => $n->toArray(), Network::offered()),
     ]);
 });
 

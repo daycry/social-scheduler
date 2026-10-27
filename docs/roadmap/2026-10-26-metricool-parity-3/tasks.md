@@ -568,12 +568,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-17 — Listas del frontend leen el catálogo y el icono de Bluesky
 
 - **Descripción**: `NetworkTabs.vue`, `Calendar/Index.vue`, `format.js`, `composerOptions.js` y `Welcome.vue` dejan sus listas fijas; icono de Bluesky.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Calendario, panel, portada y pestañas de red leen las redes del catálogo y ya hay icono de Bluesky.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en verde antes de tocar (se conserva como regresión).
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-16
 - **Tipo**: frontend
@@ -584,14 +585,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npm run build` → compila sin errores
 
 **Criterios de aceptación**
-- [ ] Ninguna lista fija de redes queda fuera de `NetworkIcon.vue`.
-- [ ] El icono de Bluesky se ve y es accesible (nombre).
+- [x] Ninguna lista fija de redes queda fuera de `NetworkIcon.vue`.
+- [x] El icono de Bluesky se ve y es accesible (nombre).
 
 **Subtareas**
-- [ ] Migrar cada lista
-- [ ] Icono de Bluesky
+- [x] Migrar cada lista
+- [x] Icono de Bluesky
 
 **Notas**: Patrón: `resources/js/Components/NetworkIcon.vue:28`, `Pages/Dashboard/Partials/{NetworkTabs.vue:20,format.js:5}`, `Pages/Calendar/Index.vue:36`, `Composables/composerOptions.js:43`; `NetworkChip.vue:13` ya lee `shell.networks`. `Welcome.vue` es pública: recibe la lista por prop.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ui tests/Unit/Networks -> 57 passed (719 assertions); npm run build -> compila sin errores; Playwright desktop calendar-views + pages (dashboards por red, consola limpia) -> 33 passed; E2E-02 (vista por defecto) falla solo en paralelo y pasa aislado (2 passed). Caracterización: pages.spec en verde antes de tocar.
 
 ### T-18 — Test de superficies de red y conteo de reglas de media
 

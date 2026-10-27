@@ -53,9 +53,9 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 10 | 11 | 91% | 48,5 / 50,5h (estimado) | 6,56 / 6,83h (estimado) | 1,63 / 1,7h (estimado) | 1,96M / 2,05M (estimado) |
-| Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
+| Fase 9 — C-04b · GIFs de Giphy | 7 | 7 | 100% | 18,5 / 18,5h (estimado) | 2,52 / 2,52h (estimado) | 0,63 / 0,63h (estimado) | 749k / 749k (estimado) |
 | Fase 10 — Transversal y cierre | 2 | 6 | 33% | 2,5 / 10,0h (estimado) | 0,34 / 1,36h (estimado) | 0,09 / 0,35h (estimado) | 101k / 405k (estimado) |
-| **TOTAL** | **64** | **77** | **83%** | **216,0 / 246,0h** | **29,27 / 33,21h** | **7,37 / 8,3h** | **8,74M / 9,96M** |
+| **TOTAL** | **71** | **77** | **92%** | **234,5 / 246,0h** | **31,79 / 33,21h** | **8,0 / 8,3h** | **9,49M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -2164,125 +2164,138 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 9 — C-04b · GIFs de Giphy
 
-**Estado**: borrador · **Estimado**: 18,5h · **Real**: — · **Coste est.**: 1.110 € (con margen; base 925 €) · **Tokens est.**: 749k
+**Estado**: completado · **Estimado**: 18,5h · **Real**: — · **Coste est.**: 1.110 € (con margen; base 925 €) · **Tokens est.**: 749k
 
 ### T-65 — `GiphyClient` y *proxy* (búsqueda, tendencias, caché, límite y errores)
 
 - **Descripción**: Proxy en el servidor (la clave no va al navegador) con búsqueda, tendencias, clasificación `pg-13`, caché y límite. Requisito: CA-15, D4.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La búsqueda de GIFs de Giphy pasa por el servidor (la clave no se expone), con caché, tope de llamadas por hora y mensajes claros.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/GiphyClient.php`, `app/Http/Controllers/GifController.php`, `config/services.php`, `.env.example`, `routes/web.php`, `tests/Feature/Media/GiphyProxyTest.php`
+- **Archivos**: `app/Services/Media/GiphyClient.php`, `app/Services/Media/GiphyException.php`, `app/Http/Controllers/GifController.php`, `config/services.php`, `config/social.php`, `.env.example`, `routes/web.php`, `tests/Feature/Media/GiphyProxyTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/GiphyProxyTest.php` → en verde (búsqueda, tendencias, caché, límite, error de la API; la clave no sale)
 
 **Criterios de aceptación**
-- [ ] La clave nunca aparece en respuestas ni props.
-- [ ] Un error de Giphy se traduce a un mensaje claro.
+- [x] La clave nunca aparece en respuestas ni props.
+- [x] Un error de Giphy se traduce a un mensaje claro.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Cliente y proxy
+- [x] Test RED — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
+- [x] Cliente y proxy
 
 **Notas**: Patrón: `app/Services/Media/UrlSource.php` y `AiAssistant` (límites). Clave `GIPHY_API_KEY` en `config/services.php`; 100 llamadas/hora de la clave beta (cachear). Sin clave el botón no aparece.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Media/GiphyProxyTest.php -> 11 passed (59 assertions): búsqueda con clave, rating pg-13 y solo los campos necesarios; tendencias sin texto; la clave no sale en la respuesta ni en la página del compositor; caché (2 llamadas para 3 peticiones); cupo por hora agotado -> 429 «Has hecho muchas búsquedas de GIF; prueba en unos minutos.» sin llamar a Giphy; 429/5xx de Giphy y fallo de conexión traducidos sin la clave; resultados filtrados a hosts de Giphy; sin clave 404; throttle de 20/min por usuario.
 
 ### T-66 — `GifPicker.vue`: búsqueda, cuadrícula, teclado, atribución y estados
 
 - **Descripción**: Modal con búsqueda, cuadrícula, teclado, «Powered by GIPHY» y estados vacío y de error. Requisito: CA-15.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El compositor tiene un botón GIF (solo con la clave de Giphy) que abre un buscador accesible con «Powered by GIPHY» y añade el GIF elegido como vídeo.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-65
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/GifPicker.vue`, `resources/js/Components/Composer/MediaSection.vue`, `tests/Feature/Ui/GifPickerPropsTest.php`
+- **Archivos**: `resources/js/Components/Composer/GifPicker.vue`, `resources/js/Components/Composer/MediaSection.vue`, `resources/js/Composables/useComposer.js`, `resources/js/Pages/Posts/Compose.vue`, `app/Http/Controllers/PostController.php`, `tests/Feature/Ui/GifPickerPropsTest.php`
 - **Cubre (tests)**: E2E-09, M-03, M-04
 - **Verificación**: `php artisan test --compact tests/Feature/Ui/GifPickerPropsTest.php` → en verde (prop `giphy.enabled` según la clave)
 
 **Criterios de aceptación**
-- [ ] El modal muestra «Powered by GIPHY».
-- [ ] Navegable por teclado con foco gestionado.
+- [x] El modal muestra «Powered by GIPHY».
+- [x] Navegable por teclado con foco gestionado.
 
 **Subtareas**
-- [ ] Modal
-- [ ] Cuadrícula y estados
-- [ ] Atribución
+- [x] Modal
+- [x] Cuadrícula y estados
+- [x] Atribución
 
 **Notas**: Patrón: `resources/js/Components/Composer/MediaSection.vue` y el selector de Drive (`useDrivePicker.js`). Atribución obligatoria y visible; foco atrapado y `Esc` cierra (axe).
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ui/GifPickerPropsTest.php -> 3 passed (38 assertions): `giphy.enabled` false sin clave (null o vacía) y true con ella, la página solo lleva ese booleano y no contiene la clave, y el componente declara «Powered by GIPHY» y busca por la ruta `gifs.search`. E2E en T-70 (foco gestionado, Esc, teclado, axe).
 
 ### T-67 — Importar el MP4 elegido con `ImportRemoteMedia` y lista permitida de hosts
 
 - **Descripción**: Al elegir, se importa la versión MP4 con `ImportRemoteMedia` (hosts de Giphy permitidos y `UrlGuard`) y `source = giphy`. Requisito: CA-15.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El GIF elegido se descarga en segundo plano como MP4 solo desde los servidores de Giphy, pasando por las mismas protecciones que las importaciones por URL.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-65
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/ImportRemoteMedia.php`, `app/Services/Media/UrlGuard.php`, `app/Models/MediaAsset.php`, `config/social.php`, `tests/Feature/Media/GiphyImportTest.php`
+- **Archivos**: `app/Services/Media/GiphySource.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Models/MediaAsset.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/GiphyImportTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Media/GiphyImportTest.php` → en verde (host permitido, SSRF bloqueado, `source=giphy`)
   - `php artisan test --compact tests/Feature/Media/ImportRemoteMediaTest.php` → sin regresión
 
 **Criterios de aceptación**
-- [ ] Un host fuera de la lista se rechaza.
-- [ ] La media importada queda «listo» con `source=giphy`.
+- [x] Un host fuera de la lista se rechaza.
+- [x] La media importada queda «listo» con `source=giphy`.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Lista permitida
-- [ ] Integración con el importador
+- [x] Test RED — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
+- [x] Lista permitida
+- [x] Integración con el importador
 
 **Notas**: Patrón: `app/Jobs/ImportRemoteMedia.php`, `app/Services/Media/{UrlGuard,UrlSource,RemoteMediaImporter}.php`, `tests/Feature/Media/ImportRemoteMediaTest.php` y `app/Models/MediaAsset.php` (`source`). Cola `media` y `MEDIA_DISK=local`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Media/GiphyImportTest.php -> 16 passed (77 assertions): MP4 de host de Giphy -> asset pendiente `source=giphy` en la cola `media`; 10 URLs fuera de la lista (otro dominio, subdominio/sufijo falso, IP interna, metadatos de nube, http, puerto, credenciales, no-MP4, file://) -> 422 sin crear nada ni pedir nada; redirección fuera de Giphy cortada ANTES de pedir el destino (SSRF) con el asset `invalido`; IP privada resuelta -> 422; descarga completa con ffmpeg -> `listo` (video/mp4, < 3 s); límite de 3 importaciones vivas. Suite tests/Feature/Media (incluye ImportRemoteMediaTest) sin regresión.
 
 ### T-68 — Compatibilidad por red de los GIF (duración mínima y avisos)
 
 - **Descripción**: Avisos de compatibilidad por red: los GIF de menos de 3 s no valen en Reels ni TikTok; en Bluesky entra como vídeo con `presentation: gif`; en Threads como `threads_video`. Requisito: CA-15.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los GIF de menos de 3 segundos se rechazan en Reels de Instagram y Facebook y en TikTok con el mínimo exigido; Bluesky y Threads los aceptan como vídeo.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-67, T-24
 - **Tipo**: backend
-- **Archivos**: `app/Services/MediaValidator.php`, `app/Services/MediaProbe.php`, `config/media_specs.php`, `tests/Feature/Media/GifCompatibilityTest.php`
+- **Archivos**: `tests/Feature/Media/GifCompatibilityTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/GifCompatibilityTest.php` → en verde (aviso < 3 s, Bluesky y Threads aceptan)
 
 **Criterios de aceptación**
-- [ ] Se avisa en Reels y TikTok si dura menos de 3 s.
-- [ ] En Bluesky el GIF respeta `video_max_bytes`.
+- [x] Se avisa en Reels y TikTok si dura menos de 3 s.
+- [x] En Bluesky el GIF respeta `video_max_bytes`.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Avisos por red
+- [x] Test RED — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
+- [x] Avisos por red
 
 **Notas**: Patrón: `app/Services/MediaProbe.php` y `MediaValidator`. No hay ffmpeg para alargarlos: solo se avisa. Ninguna red acepta `image/gif`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Media/GifCompatibilityTest.php -> 11 passed (18 assertions): 2 s rechazado en InstagramReel, FacebookReel y TikTokVideo con «al menos 3 s»; 3,2 s válido; aceptado en BlueskyVideo, ThreadsVideo, YouTubeShort y FacebookVideo; Bluesky respeta `video_max_bytes`; `image/gif` no vale en ninguna red. No hizo falta tocar `MediaValidator`, `MediaProbe` ni `media_specs.php`: `min_duration: 3` ya existía y el MP4 de Giphy se valida como cualquier vídeo.
 
 ### T-69 — Pest de integración CA-15
 
 - **Descripción**: Buscar «gato», elegir un GIF y que se importe como media (API simulada).
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-66, T-67, T-68
 - **Tipo**: test
@@ -2291,64 +2304,71 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Media` → todo en verde
 
 **Criterios de aceptación**
-- [ ] CA-15 cubierto.
+- [x] CA-15 cubierto.
 
 **Subtareas**
-- [ ] Escribir el test
+- [x] Escribir el test
 
 **Notas**: Patrón: `tests/Feature/Media/ImportUrlEndpointTest.php`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Media -> suite en verde (GiphyFlowTest: buscar «gato» -> elegir -> importar el MP4 -> asset `listo` con `source=giphy`; solo se habló con api.giphy.com y media2.giphy.com; la prop `giphy.enabled`; otro usuario recibe 404). Suite completa: 2416/2416.
 
 ### T-70 — E2E del buscador de GIFs con axe
 
 - **Descripción**: Escenario Playwright con Giphy simulado por el servidor de pruebas. Requisito: CA-15.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-66
 - **Tipo**: test
-- **Archivos**: `tests/e2e/gif-picker.spec.ts`, `tests/e2e/helpers.ts`
+- **Archivos**: `tests/e2e/gif-picker.spec.ts`
 - **Cubre (tests)**: E2E-09
 - **Verificación**: `npx playwright test tests/e2e/gif-picker.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
 **Criterios de aceptación**
-- [ ] Buscar, elegir e importar; atribución visible.
-- [ ] 0 violaciones axe; sin desborde.
+- [x] Buscar, elegir e importar; atribución visible.
+- [x] 0 violaciones axe; sin desborde.
 
 **Subtareas**
-- [ ] Fake de Giphy en el entorno e2e
-- [ ] Spec E2E
+- [x] Fake de Giphy en el entorno e2e
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/media-import.spec.ts`. Giphy real no se llama.
+
+**Verificación ejecutada**: E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/gif-picker.spec.ts --project=desktop --project=mobile --project=mobile-360 -> 9 passed (3 escenarios x 3 proyectos): sin clave no hay botón ni peticiones; buscar, «Powered by GIPHY» visible, elegir con teclado, importar el MP4 (POST /media/import-gif) y devolver el foco al botón; Esc cierra; estado vacío y error de cupo anunciados con role=alert; axe sin violaciones serias/críticas y sin desborde. Giphy simulado con `page.route` (la clave no se escribe en `.env`).
 
 ### T-71 — Documentación y revisión de robustez de C-04b
 
 - **Descripción**: Documentar el buscador de GIFs y revisar robustez (SSRF, cuota de la clave).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La guía y la documentación explican el buscador de GIFs, los GIF cortos en Reels y TikTok y la atribución a Giphy.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-69, T-70
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/media.md`, `docs/usuario/guia-de-usuario.md`
+- **Archivos**: `docs/modulos/media.md`, `docs/usuario/guia-de-usuario.md`, `docs/referencia/configuracion.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: `media.md` describe proxy, lista de hosts, avisos por red y atribución → coherente con T-65..T-68
 
 **Criterios de aceptación**
-- [ ] La guía de usuario explica el GIF y sus limitaciones.
+- [x] La guía de usuario explica el GIF y sus limitaciones.
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez
+- [x] Redactar los docs
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/media.md`.
 
+**Verificación ejecutada**: lectura: `docs/modulos/media.md` (sección «Buscador de GIFs de Giphy») describe proxy y cupo, lista cerrada de hosts (https, 443, `media*.giphy.com`/`i.giphy.com`, `.mp4`, comprobada en cada redirección y con `UrlGuard`), avisos por red y atribución -> coherente con T-65..T-68. Revisión de robustez: SSRF (lista cerrada + UrlGuard + redirecciones, tests de 10 URLs hostiles), cuota de la clave (caché + contador por hora + throttle por usuario, 429 traducido) y fugas de la clave (respuestas, props y errores de conexión sin ella) -> sin hallazgos abiertos.
 
 ## Fase 10 — Transversal y cierre
 

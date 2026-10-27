@@ -277,6 +277,22 @@ return [
     ],
 
     /*
+    | Buscador de GIFs de Giphy (C-04b, D4). La clave esta en `services.giphy.api_key`; el servidor hace de proxy (la clave no sale) con cache
+    | corta, un tope de llamadas reales por hora y un throttle por usuario. Se importa el MP4 por el camino de `ImportRemoteMedia`.
+    */
+    'giphy' => [
+        'rating' => env('SOCIAL_GIPHY_RATING', 'pg-13'),
+        'limit' => (int) env('SOCIAL_GIPHY_LIMIT', 24),
+        'cache_minutes' => (int) env('SOCIAL_GIPHY_CACHE_MINUTES', 10),
+        /* Llamadas reales por hora a Giphy (la clave beta da 100; el margen deja sitio a otras llamadas). Una respuesta cacheada no cuenta. */
+        'hourly_limit' => (int) env('SOCIAL_GIPHY_HOURLY_LIMIT', 90),
+        /* Busquedas por usuario y minuto (throttle de la ruta). */
+        'per_user_per_minute' => (int) env('SOCIAL_GIPHY_PER_USER_PER_MINUTE', 20),
+        /* Hosts desde los que se descarga el MP4 elegido (lista cerrada, https y 443). Cualquier otro se rechaza ANTES de pedir nada. */
+        'media_host_pattern' => '/^(?:media\d{0,2}|i)\.giphy\.com$/',
+    ],
+
+    /*
     | Competidores de Instagram (PA-08, Business Discovery). Hora UTC del snapshot diario (tras el de cuentas) y tope por marca.
     */
     'competitors' => [

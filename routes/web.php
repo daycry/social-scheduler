@@ -11,6 +11,7 @@ use App\Http\Controllers\CredentialConnectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
+use App\Http\Controllers\GifController;
 use App\Http\Controllers\HashtagController;
 use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
@@ -138,6 +139,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
     // Importacion remota (C-04a). `import-url` antes que `{asset}` para que no lo capture el comodin.
     Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:10,1')->name('media.import-url');
+    Route::get('gifs', [GifController::class, 'search'])->middleware('throttle:20,1')->name('gifs.search');
+    Route::post('media/import-gif', [GifController::class, 'import'])->middleware('throttle:10,1')->name('media.import-gif');
     Route::post('media/import-drive', [MediaController::class, 'importDrive'])->middleware('throttle:10,1')->name('media.import-drive');
     Route::get('media/{asset}', [MediaController::class, 'show'])->whereNumber('asset')->name('media.show');
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');

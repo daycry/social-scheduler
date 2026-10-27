@@ -60,6 +60,14 @@ return [
     ],
 
     /*
+    | Giphy (C-04b, D4): buscador de GIFs del compositor. La clave NUNCA va al navegador (la usa el proxy del servidor). Sin `GIPHY_API_KEY`
+    | el boton «GIF» no aparece. La clave beta da 100 llamadas por hora (`social.giphy.hourly_limit`).
+    */
+    'giphy' => [
+        'api_key' => env('GIPHY_API_KEY'),
+    ],
+
+    /*
     | Threads (C-02, D2): la app de Meta tiene DOS pares de ID y secreto; aqui van los de Threads (Configuracion > Basica > «Threads App ID»).
     | Sin `THREADS_APP_ID` la red no se ofrece. Redirect URI: ${APP_URL}/connections/threads/callback.
     */

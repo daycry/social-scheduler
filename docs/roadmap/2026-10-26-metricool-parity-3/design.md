@@ -402,7 +402,7 @@ Descartadas:
 - **C-04a** (hashtags):
   - `HashtagStats` y `Facets` deben usar **la misma** extracción de `#tags` (`App\Support\Hashtags`). Si no, una sugerencia podría no ser clicable en Bluesky.
   - El máximo por red sale de `text.max_hashtags`. El de 1 en Threads no aparece en la documentación consultada ⚠️.
-- **C-04b** (GIFs): en Bluesky, el MP4 de Giphy entra como `bluesky_video` con `presentation: gif` (verificado en el lexicon). Gasta el cupo diario de vídeo y respeta `video_max_bytes`. En Threads entra como `threads_video` (vale cualquier duración por encima de 0 s).
+- **C-04b** (GIFs): en Bluesky, el MP4 de Giphy entra como `bluesky_video` con `presentation: gif` (⚠️ sin verificar en el lexicon: se comprueba en el smoke M-01). Gasta el cupo diario de vídeo y respeta `video_max_bytes`. En Threads entra como `threads_video` (vale cualquier duración por encima de 0 s).
 - **C-04c** (lenguaje natural): la lista de redes que se envía a la IA sale de `Network::offered()` (O1), no de una lista fija.
 - **C-04d** (notas): sin impacto.
 

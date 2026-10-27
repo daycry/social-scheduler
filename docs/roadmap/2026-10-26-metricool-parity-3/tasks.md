@@ -2772,3 +2772,22 @@ Lentes A, B, C y D sobre la corrección `c48be99` (Fase 8) y sobre `a4bc94c`, `b
 Fuera de rango: `scope-check` en HEAD falla por `PublishMedia.php` y `PublishRequestFactory.php` (`d79b281`), que hay que declarar en `Archivos` de T-68.
 
 Fuera de rango: `PublishMedia.php` y `PublishRequestFactory.php` declarados en `Archivos` de T-68 (`scope-check` con exit 0). `SOCIAL_GIPHY_PER_USER_PER_MINUTE` se lee de verdad: `AppServiceProvider.php:134` (limitador `giphy`, usado en `routes/web.php:142` con `throttle:giphy`) y lo cubre el test J de `GiphyProxyTest.php`.
+
+## Revisión de dos lentes — intento 3: Fase 6-9 y Fase 8 (Threads), cierre — 0 Important, 5 Minor
+
+Lentes A+B+C+D sobre `d9d2953`. **Quedan cerrados todos los gaps corregidos** (A..L de las Fases 6-9; B-1, B-2/B-3 y A-1..A-6 de la Fase 8 y la Fase 10):
+- `redactPhrase`: 49 casos.
+- `presentation: gif` solo con `source=giphy`.
+- Importación por id: path traversal, ids especiales y rating comprobados.
+- Caché de Threads por cuenta.
+- Conteo de Threads: PHP = JS en los 22 casos y en 35 de 37 casos adversos.
+
+Tests: 917/917 + 252/252. **La revisión de la iniciativa se cierra sin gaps Critical ni Important.**
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Minor | La protección de fechas no comprueba que la fecha sea plausible ni mira si hay un prefijo `+NN`: «+49 30.12.3456» o «99-99-9999» llegan a la IA sin redactar (CWE-359). La hora sin fecha seguida de un teléfono pierde los minutos, igual que antes | T-49 | deuda aceptada (orquestador): menor y de baja probabilidad; queda anotado para una iteración posterior | `AiAssistant.php:253` |
+| 2 | Minor | Un post concreto que devuelve `(#10)` en todas las métricas se cachea como fallo de la cuenta durante 6 h | T-59 | deuda aceptada (orquestador): se comprueba en el smoke M-02 si Threads devuelve #10 para un post retirado | `ThreadsInsights.php:167-195` |
+| 3 | Minor | Diferencia previa entre PHP y JS en `trim` con NBSP/U+3000 en los extremos | T-56 | deuda aceptada (orquestador): ya existía antes de la iniciativa | `TextLength.php:33`, `textLength.js` |
+| 4 | Minor | El badge del README seguía en 2424 | T-76 | corregido (commit de cierre del orquestador: badge 2456) | `README.md:7` |
+| 5 | Minor | El ⚠️ de `presentation: gif` no se había llevado al smoke, y `design.md` decía «verificado» | T-68 | corregido (commit de cierre del orquestador: M-01, P3-M-01 y `design.md`) | — |

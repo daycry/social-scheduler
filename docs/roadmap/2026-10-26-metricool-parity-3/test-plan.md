@@ -147,8 +147,9 @@
   - [ ] Texto con enlace y hashtag clicables.
   - [ ] 4 imágenes publicadas (la grande recomprimida).
   - [ ] Vídeo publicado, o mensaje claro si el cupo o el email lo impiden.
+  - [ ] Un GIF de Giphy publicado: el PDS acepta `presentation: gif` (⚠️ de T-68) y se ve en bucle, sin controles de vídeo.
   - [ ] Seguidores y métricas por post visibles, con `views` «no disponible».
-- **Cubre tareas**: T-30
+- **Cubre tareas**: T-30, T-68
 - **Preparación (la hace el usuario; la guía de la app password es la de [Bluesky: app password](../../guias/bluesky-app-password.md), T-73 adelantada):**
   1. En Bluesky: *Configuración → Privacidad y seguridad → Contraseñas de aplicación* → crear una (sin mensajes directos) y copiarla.
   2. Tener a mano: una imagen de más de 2 MB, otras 3 imágenes pequeñas, un MP4 de menos de 50 MB (y de menos de 3 min) y una cuenta con el **email verificado** (Bluesky → Configuración → Cuenta → Email).

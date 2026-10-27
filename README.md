@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-Laravel%20Pint-f05340.svg)](https://laravel.com/docs/pint)
-[![Tests](https://img.shields.io/badge/tests-Pest%202424-22c55e.svg)](tests)
+[![Tests](https://img.shields.io/badge/tests-Pest%202456-22c55e.svg)](tests)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20·%203%20viewports-2ead33.svg)](tests/e2e)
 [![Accesibilidad](https://img.shields.io/badge/a11y-axe%20WCAG%202.1%20AA-7c3aed.svg)](tests/e2e/a11y.spec.ts)
 

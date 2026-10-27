@@ -19,6 +19,7 @@ use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
+use App\Support\TextLength;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -214,7 +215,10 @@ class PostController extends Controller
             'limits' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(function (ContentType $t) {
                 $text = $this->validator->spec($t)['text'];
 
-                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
+                // `count` solo viaja si no es el modo por defecto (chars): el cliente cuenta grafemas (Bluesky) o la regla de Threads.
+                $mode = $text['count'] ?? TextLength::CHARS;
+
+                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null] + ($mode !== TextLength::CHARS ? ['count' => $mode] : [])];
             }),
             // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
             'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()

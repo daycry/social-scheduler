@@ -2,6 +2,7 @@ import { computed, inject, onBeforeUnmount, provide, ref, shallowRef, watch } fr
 import { router, useForm } from '@inertiajs/vue3';
 import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
+import { countText } from '@/Composables/textLength';
 import { MANAGED_KEYS, switchesFor } from '@/Composables/composerOptions';
 
 const KEY = Symbol('composer');
@@ -288,7 +289,8 @@ export function useComposer(props) {
     const unlink = (target) => { target.text = form.text; }; // el texto común sirve de punto de partida
     const relink = (target) => { target.text = null; };
     const openTargetText = (accountId) => { byNetwork.value = true; activeTab.value = accountId; };
-    const charsOf = (target) => countChars(textOf(target));
+    // Cada tipo cuenta a su manera (`limits[tipo].count`): caracteres, grafemas (Bluesky) o la regla de Threads; igual que el servidor.
+    const charsOf = (target) => countText(textOf(target), limits.value?.[target.content_type]?.count);
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 

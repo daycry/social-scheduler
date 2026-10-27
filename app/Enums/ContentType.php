@@ -22,6 +22,8 @@ enum ContentType: string
     case YouTubeShort = 'youtube_short';
     case TikTokVideo = 'tiktok_video';
     case TikTokPhoto = 'tiktok_photo';
+    case BlueskyPost = 'bluesky_post';
+    case BlueskyVideo = 'bluesky_video';
 
     public function network(): Network
     {
@@ -30,6 +32,7 @@ enum ContentType: string
             self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel => Network::Facebook,
             self::YouTubeVideo, self::YouTubeShort => Network::YouTube,
             self::TikTokVideo, self::TikTokPhoto => Network::TikTok,
+            self::BlueskyPost, self::BlueskyVideo => Network::Bluesky,
         };
     }
 
@@ -48,6 +51,8 @@ enum ContentType: string
             self::YouTubeShort => 'Short',
             self::TikTokVideo => 'Video',
             self::TikTokPhoto => 'Fotos (carrusel)',
+            self::BlueskyPost => 'Publicación',
+            self::BlueskyVideo => 'Vídeo',
         };
     }
 
@@ -67,6 +72,8 @@ enum ContentType: string
             self::YouTubeShort => 'Vídeo vertical o cuadrado de hasta 3 minutos',
             self::TikTokVideo => 'Un vídeo de hasta 10 minutos',
             self::TikTokPhoto => 'Varias fotos en un carrusel',
+            self::BlueskyPost => 'Texto de hasta 300 caracteres, con hasta 4 imágenes',
+            self::BlueskyVideo => 'Un vídeo MP4 con texto opcional',
         };
     }
 
@@ -85,6 +92,8 @@ enum ContentType: string
             self::YouTubeVideo => ['La visibilidad elegida se respeta tal cual. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API (unas 6 subidas al dia).'],
             self::YouTubeShort => ['Video vertical de hasta 3 minutos; se anade #Shorts a la descripcion. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API.'],
             self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app: el usuario termina de publicarlo desde TikTok.'],
+            self::BlueskyPost => ['Hasta 300 caracteres (se cuentan grafemas: un emoji compuesto cuenta 1). Las imágenes de más de 2 MB se recomprimen en una copia; la original no se toca.'],
+            self::BlueskyVideo => ['Solo MP4 y con el tope de tamaño de esta instalación (50 MB por defecto). Bluesky exige el email verificado y limita los vídeos diarios por cuenta; se procesa tras subirlo y puede tardar unos minutos.'],
             default => [],
         };
     }

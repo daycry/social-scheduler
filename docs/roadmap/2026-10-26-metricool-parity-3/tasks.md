@@ -690,12 +690,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-21 — Tipos, reglas de media y conteo de grafemas de Bluesky
 
 - **Descripción**: `bluesky_post` y `bluesky_video` en `ContentType` y `media_specs`; `TextLength` (PHP y JS) con modos `chars`, `graphemes` y `threads`; topes de imagen (2 MB) y vídeo (50 MB) configurables con rechazo al guardar. Requisito: CA-02.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Bluesky admite publicaciones de hasta 300 caracteres (grafemas, con 4 imágenes) y vídeos MP4; un vídeo por encima del tope se rechaza al guardar.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-16, T-18
 - **Tipo**: backend
@@ -706,17 +707,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Unit/MediaValidator/BlueskyRulesTest.php` → en verde (301 grafemas rechazado, 300 con emojis aceptado, vídeo > tope rechazado)
 
 **Criterios de aceptación**
-- [ ] 301 grafemas se rechaza en compositor y `create_post` con el mismo mensaje; 300 con emojis compuestos se acepta.
-- [ ] Un vídeo mayor que `video_max_bytes` se rechaza al guardar con el mensaje claro.
-- [ ] `TextLength` PHP y JS dan lo mismo en la tabla de casos.
+- [x] 301 grafemas se rechaza en compositor y `create_post` con el mismo mensaje; 300 con emojis compuestos se acepta.
+- [x] Un vídeo mayor que `video_max_bytes` se rechaza al guardar con el mensaje claro.
+- [x] `TextLength` PHP y JS dan lo mismo en la tabla de casos.
 
 **Subtareas**
-- [ ] Test RED (CA-02)
-- [ ] Tipos y reglas
-- [ ] `TextLength` PHP y JS
-- [ ] Contadores del compositor
+- [x] Test RED (CA-02)
+- [x] Tipos y reglas
+- [x] `TextLength` PHP y JS
+- [x] Contadores del compositor
 
 **Notas**: Patrón: `app/Enums/ContentType.php`, `config/media_specs.php`, `app/Services/MediaValidator.php:118-140` (`mb_strlen`), `PostController.php:213-217` (`max_chars`), `resources/js/Composables/textCount.js` y `Composer/NetworkCounters.vue`. Espejo JS con `Intl.Segmenter`; tope de 3000 bytes del lexicon. Mensaje: «Bluesky solo admite vídeos de hasta 50 MB en esta instalación; este pesa X MB.»
+
+**Verificación ejecutada**: php artisan test --compact tests/Unit tests/Feature/Posts tests/Feature/Mcp tests/Feature/Publishing tests/Feature/Ui -> verde (Unit 290 passed; resto 548 passed); TextLengthTest (tabla de emojis compuestos, PHP y espejo JS ejecutado con node) y BlueskyRulesTest (301 grafemas rechazado, 300 con emojis aceptado, 3000 bytes, video > tope rechazado con mensaje claro); npm run build compila. Conteo de reglas 13 -> 15.
 
 ### T-22 — Recompresión de imágenes (> tope) con GD
 

@@ -136,6 +136,12 @@ Si tienes más de una marca, el botón **Todas las marcas** del Dashboard abre l
 - Los días son días UTC. Con las mismas fechas, las cifras coinciden con las del Dashboard de cada marca.
 - Pulsa el nombre de una marca de la tabla para ver su Dashboard.
 
+### Exportar a CSV
+
+- **Publicaciones.** En el **Calendario**, vista **Lista**, filtra por marca, red o estado (o abre una vista guardada) y pulsa **Exportar CSV**. Se descarga un fichero con las publicaciones que ves: fecha, marca, red, cuenta, tipo, estado, texto, enlace y las métricas del último dato (lo que no se puede medir queda vacío, nunca 0). Se exportan como máximo **5.000 filas**; si hay más, la Lista te avisa y puedes filtrar para sacar el resto.
+- **Estadísticas.** En el **Dashboard** (de una marca) y en **Todas las marcas**, **Exportar CSV** descarga las cifras del periodo elegido, con la comparación si la activaste.
+- **Excel.** El fichero es UTF-8 con BOM y separa con `;`, así que Excel en español lo abre con los acentos bien. Si un texto empieza por `=`, `+`, `-` o `@`, lleva un `'` delante para que Excel no lo ejecute como fórmula: es normal y es por seguridad.
+
 ## Informes
 
 En **Informes** elige marca, rango y formato (PDF, CSV o ambos) y, si quieres, un periodo de comparación. Se generan en segundo plano; cuando estén listos pulsa Descargar (el enlace caduca en 5 minutos, pero se genera uno nuevo cada vez). Se conservan 30 días y puedes tener hasta 5 en curso.

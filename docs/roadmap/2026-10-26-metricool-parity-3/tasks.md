@@ -49,13 +49,13 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 2 — C-03a · Vistas de calendario guardadas | 7 | 7 | 100% | 16,0 / 16,0h (estimado) | 2,17 / 2,17h (estimado) | 0,57 / 0,57h (estimado) | 648k / 648k (estimado) |
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
-| Fase 5 — C-03c · Exportar a CSV | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,45h | 0 / 0,61h | 0 / 729k |
+| Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **36** | **77** | **47%** | **112,0 / 246,0h** | **15,18 / 33,21h** | **3,84 / 8,3h** | **4,53M / 9,96M** |
+| **TOTAL** | **42** | **77** | **55%** | **130,0 / 246,0h** | **17,63 / 33,21h** | **4,45 / 8,3h** | **5,26M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1218,7 +1218,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 5 — C-03c · Exportar a CSV
 
-**Estado**: borrador · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
+**Estado**: completado · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
 
 ### T-37 — Extraer `CsvWriter` de `ReportService::csv()` sin cambiar su salida
 
@@ -1379,12 +1379,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-42 — Documentación y revisión de robustez de C-03c
 
 - **Descripción**: Documentar la exportación CSV y revisar robustez (CWE-1236, tope).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentada la exportación a CSV (columnas, tope de 5.000 filas, fórmulas neutralizadas y Excel) en los módulos y la guía de usuario.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-40, T-41
 - **Tipo**: docs
@@ -1393,14 +1394,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: los docs explican columnas, tope y neutralización → coherente con T-37..T-39
 
 **Criterios de aceptación**
-- [ ] La guía de usuario explica cómo exportar.
+- [x] La guía de usuario explica cómo exportar.
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez
+- [x] Redactar los docs
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/informes.md` y `docs/modulos/calendario.md`.
 
+**Nota de cierre**: Robustez revisada: neutralización cubierta por CsvWriterTest, CsvRegressionTest, PostsCsvTest y el E2E (incluye nombre de marca y texto); streaming con lazy(500) y consultas constantes (test de recuento); tope 5.000 con aviso previo; marca o vista ajena 404; nombre de fichero con Str::slug. Límite documentado: el CSV de publicaciones no se corta a 500 como la Lista en pantalla.
+
+**Verificación ejecutada**: lectura: informes.md (sección «Exportaciones CSV síncronas»: rutas, CsvWriter, CWE-1236, streaming, columnas, tope, aislamiento), calendario.md (Exportar CSV) y guia-de-usuario.md («Exportar a CSV») coherentes con T-37..T-39
 
 ## Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA)
 

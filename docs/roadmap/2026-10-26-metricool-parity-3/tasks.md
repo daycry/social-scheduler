@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 7 | 11 | 64% | 38 / 50,5h (estimado) | 5,14 / 6,83h (estimado) | 1,27 / 1,7h (estimado) | 1536k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 8 | 11 | 73% | 45 / 50,5h (estimado) | 6,08 / 6,83h (estimado) | 1,5 / 1,7h (estimado) | 1819k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -2006,12 +2006,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-61 — Pest de integración de Threads (CA-07..CA-09)
 
 - **Descripción**: Suite con `Http::fake`: OAuth → programar → publicar los 4 tipos → cuota → métricas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Probado de punta a punta el flujo de Threads (conectar, programar, publicar texto, imagen, vídeo y carrusel, cuota y métricas) sin tocar la red real.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 7,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,94h · real —
-- **Supervisión**: est. 0,23h (≈25 % IA) · real —
+- **Tiempo humano**: est. 7,0h · real 7,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,94h · real 0,94h (estimado)
+- **Supervisión**: est. 0,23h (≈25 % IA) · real 0,23h (estimado)
 - **Previsión IA**: 255k in / 28k out tok · ⚠️ verificar €
 - **Dependencias**: T-58, T-59
 - **Tipo**: test
@@ -2020,13 +2021,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors tests/Feature/Publishing tests/Feature/Instagram` → todo en verde (sin regresión de Instagram)
 
 **Criterios de aceptación**
-- [ ] CA-07, CA-08 y CA-09 cubiertos.
-- [ ] Instagram sin regresión.
+- [x] CA-07, CA-08 y CA-09 cubiertos.
+- [x] Instagram sin regresión.
 
 **Subtareas**
-- [ ] Escribir los flujos
+- [x] Escribir los flujos
 
 **Notas**: Patrón: `tests/Feature/Connectors/Meta/` y `tests/Feature/Instagram/`.
+
+**Test RED**: no aplica de forma pura: es una suite de integración sobre T-55..T-60 ya implementados; se escribió contra el comportamiento esperado de CA-07..CA-09 y destapó dos supuestos de los propios tests (la hora de cierre del día en el cambio de hora del Pacífico y la cola síncrona que encadena los sondeos), no del código.
+
+**Cobertura**: CA-07 (OAuth real por las rutas, token largo, renovación antes del margen), CA-08 (texto, imagen por `image_url` firmada, vídeo en proceso -> publicado, carrusel de 3 = 3 hijos + 1 padre, contenedor `ERROR` traducido), CA-09 (cuota agotada aplaza por `QuotaPolicy` sin crear contenedor; un timeout y su reintento no duplican) y métricas (cuenta con `views` nulo y visitas al perfil, publicación con vistas y compartidos). Todo con `Http::fake` y `Http::preventStrayRequests()`.
+
+**Verificación ejecutada**: `ThreadsFlowTest.php` -> 10 passed (80 assertions); `tests/Feature/Connectors tests/Feature/Publishing tests/Feature/Instagram` -> 609 passed (2927 assertions): Instagram sin regresión; pint -> passed.
 
 ### T-62 — E2E de Threads: superficies con axe (CA-10)
 

@@ -54,8 +54,8 @@ const toggle = async () => {
     root.value?.querySelector('button')?.focus();
 };
 const pick = (tag) => {
-    const text = ` #${tag.tag}`;
-    if (!insertIntoActive(text)) emit('insert', text);
+    const text = `#${tag.tag}`;
+    if (!insertIntoActive(text, { pad: true })) emit('insert', text, { pad: true });
 };
 const onKeydown = (e) => {
     if (e.key === 'Escape') {
@@ -81,7 +81,8 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
 </script>
 
 <template>
-    <div class="relative">
+    <!-- En móvil el menú se ancla a la barra del editor (ancho completo); desde `sm` cuelga del botón. -->
+    <div class="sm:relative">
         <button
             ref="button"
             type="button"
@@ -97,7 +98,7 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
             ref="root"
             role="dialog"
             aria-label="Hashtags sugeridos"
-            class="absolute left-0 top-full z-30 mt-1 w-[min(24rem,calc(100vw-1.5rem))] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
+            class="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-slate-200 bg-white p-3 shadow-lg sm:inset-x-auto sm:left-0 sm:w-96"
             data-testid="hashtags-menu"
             @keydown="onKeydown"
             @keydown.tab="onTab"

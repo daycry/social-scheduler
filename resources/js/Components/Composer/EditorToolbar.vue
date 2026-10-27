@@ -25,7 +25,7 @@ const hashtags = computed(() => countHashtags(form.text));
 </script>
 
 <template>
-    <div v-if="editable" class="mt-2 flex flex-wrap items-start gap-2" role="toolbar" aria-label="Herramientas del editor" data-testid="editor-toolbar">
+    <div v-if="editable" class="relative mt-2 flex flex-wrap items-start gap-2" role="toolbar" aria-label="Herramientas del editor" data-testid="editor-toolbar">
         <MediaUploader label="Añadir imagen o vídeo" @uploaded="onUploaded" @busy="setUploading" />
 
         <div class="relative">
@@ -55,7 +55,7 @@ const hashtags = computed(() => countHashtags(form.text));
 
         <SavedTextsMenu @insert="(t) => emit('insert', t)" />
 
-        <HashtagSuggestions @insert="(t) => emit('insert', t)" />
+        <HashtagSuggestions @insert="(t, o) => emit('insert', t, o)" />
 
         <AiSuggest :brand-id="brand.id" :network="selectedNetwork" @use="(t) => (form.text = t)" />
 

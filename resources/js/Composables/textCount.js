@@ -12,5 +12,15 @@ export const countChars = (text) => [...String(text ?? '').trim()].length;
  */
 export const countHashtags = (text) => (String(text ?? '').match(/(?<![\p{L}\p{M}\p{N}_\/])#[\p{L}\p{N}_][\p{L}\p{M}\p{N}_]*/gu) ?? []).length;
 
+/**
+ * Texto a insertar entre `start` y `end` de `value` con un espacio a cada lado si pega con una palabra (para los hashtags sugeridos:
+ * «Hola» + «#pan» -> «Hola #pan»; ya hay espacio o salto de línea -> no se añade otro).
+ */
+export const padForInsert = (value, start, end, text) => {
+    const before = start > 0 ? value[start - 1] : '';
+    const after = end < value.length ? value[end] : '';
+    return `${before !== '' && !/\s/.test(before) ? ' ' : ''}${text}${after !== '' && !/\s/.test(after) ? ' ' : ''}`;
+};
+
 /** Miles con punto, como en la especificación («2.200», «63.206»), sin depender del locale del navegador. */
 export const formatThousands = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');

@@ -50,12 +50,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
-| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 4 | 6 | 67% | 14,5 / 18,0h (estimado) | 1,96 / 2,44h (estimado) | 0,49 / 0,62h (estimado) | 586k / 729k (estimado) |
+| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 5 | 6 | 83% | 17,0 / 18,0h (estimado) | 2,30 / 2,44h (estimado) | 0,58 / 0,62h (estimado) | 687k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **46** | **77** | **60%** | **144,5 / 246,0h** | **19,59 / 33,21h** | **4,94 / 8,3h** | **5,85M / 9,96M** |
+| **TOTAL** | **47** | **77** | **61%** | **147,0 / 246,0h** | **19,93 / 33,21h** | **5,03 / 8,3h** | **5,95M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1542,28 +1542,33 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-47 — E2E de hashtags con axe
 
 - **Descripción**: Escenario Playwright: abrir sugerencias e insertar. Requisito: CA-14.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Al insertar un hashtag sugerido se coloca con un espacio a cada lado, y el menú de hashtags se ve completo en el móvil.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-44
 - **Tipo**: test
-- **Archivos**: `tests/e2e/hashtags.spec.ts`, `tests/e2e/helpers.ts`
+- **Archivos**: `tests/e2e/hashtags.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Composables/textCount.js`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/FirstCommentField.vue`, `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Components/Composer/TextSection.vue`
 - **Cubre (tests)**: E2E-06
 - **Verificación**: `npx playwright test tests/e2e/hashtags.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
 **Criterios de aceptación**
-- [ ] Los chips se insertan en el cursor.
-- [ ] 0 violaciones axe; sin desborde.
+- [x] Los chips se insertan en el cursor.
+- [x] 0 violaciones axe; sin desborde.
 
 **Subtareas**
-- [ ] Semilla de histórico
-- [ ] Spec E2E
+- [x] Semilla de histórico
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/composer.spec.ts`.
+
+**Nota de cierre**: RED no aplica: el spec se escribió con el menú ya construido (T-44). El primer intento falló en `mobile` y `mobile-360` por un defecto real: el menú colgaba del botón y en pantalla estrecha se salía por la derecha (los chips quedaban tapados por el textarea). Corregido anclándolo a la barra del editor (`inset-x-0` en móvil, `sm:w-96` desde `sm`). Además la inserción con `pad` (`padForInsert`) añade un espacio a cada lado solo si el hashtag pega con una palabra: se pasa por `insertIntoActive(text, {pad})` hasta `TextEditor` y `FirstCommentField`. Siembra `seedHashtagHistory` en helpers.ts (5 posts publicados con métricas; sin red ni worker).
+
+**Verificación ejecutada**: npm run build; E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/hashtags.spec.ts -> 9 passed (3 escenarios x desktop, mobile, mobile-360): 2 chips ordenados (#oferta, #verano; #nuevo no sale), inserción en el cursor «Hola #oferta Mundo», contador, Escape devuelve el foco, estado vacío, aviso 31 de 30, axe sin violaciones serious/critical y sin desborde
 
 ### T-48 — Documentación y revisión de robustez de C-04a
 

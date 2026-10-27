@@ -759,3 +759,23 @@ export function seedCsvPosts(email: string, brandId: number): string {
     );
     return out.match(/DATE:([\d-]+)/)![1];
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Hashtags sugeridos (C-04a, E2E-06): histórico publicado con métricas en la marca E2E.
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * Cinco publicaciones de Instagram YA publicadas con su lectura de métricas: #verano (3 usos) y #oferta (2 usos) salen; #nuevo (1 uso)
+ * no. Es solo histórico sembrado: no se publica nada ni se llama a ninguna red.
+ */
+export function seedHashtagHistory(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`foreach ([['Sol #verano #oferta', 120], ['Playa #verano', 90], ['Rebajas #verano #oferta', 150], ['Sin etiquetas', 10], ['Otro #nuevo', 400]] as $i => [$text, $n]) { ` +
+            String.raw`$p = App\Models\Post::factory()->create(['brand_id' => $b->id, 'status' => App\Enums\PostStatus::Published, 'text' => 'e2e ' . $text]); ` +
+            String.raw`$t = App\Models\PostTarget::factory()->create(['post_id' => $p->id, 'social_account_id' => $ig->id, 'network' => App\Connectors\Network::Instagram, 'status' => App\Enums\PostStatus::Published, 'published_at' => now()->subDays(5 + $i)]); ` +
+            String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'post_target_id' => $t->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now()->subDay()->toDateString(), 'metrics' => array_merge(App\Analytics\Metric::blankPost(), [App\Analytics\Metric::INTERACTIONS => $n])]); } ` +
+            String.raw`Illuminate\Support\Facades\Cache::flush();`,
+    );
+}

@@ -64,7 +64,7 @@ const confirmRelink = (row) => {
 const count = computed(() => (active.value ? charsOf(active.value.target) : countChars(form.text)));
 const summary = computed(() => (unlinkedCount.value === 1 ? '1 red con texto propio' : `${unlinkedCount.value} redes con texto propio`));
 
-defineExpose({ insertAtCursor: (text) => editor.value?.insertAtCursor(text), focus: () => editor.value?.focus() });
+defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(text, options), focus: () => editor.value?.focus() });
 </script>
 
 <template>

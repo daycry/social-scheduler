@@ -300,9 +300,9 @@ export function useComposer(props) {
     const activeField = shallowRef(null); // { insertAtCursor(text) }
     const registerField = (field) => { activeField.value = field; };
     const unregisterField = (field) => { if (activeField.value === field) activeField.value = null; };
-    const insertIntoActive = (text) => {
+    const insertIntoActive = (text, options) => {
         if (!activeField.value) return false;
-        activeField.value.insertAtCursor(text);
+        activeField.value.insertAtCursor(text, options);
         return true;
     };
 

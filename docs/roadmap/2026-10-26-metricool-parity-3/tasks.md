@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 4 | 11 | 36% | 21 / 50,5h (estimado) | 2,84 / 6,83h (estimado) | 0,7 / 1,7h (estimado) | 849k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 5 | 11 | 45% | 26 / 50,5h (estimado) | 3,52 / 6,83h (estimado) | 0,87 / 1,7h (estimado) | 1051k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1902,29 +1902,36 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-58 — Idempotencia y cuota de publicación de Threads
 
 - **Descripción**: `findPublished` sobre `/me/threads` recientes y `assertQuota()` con `threads_publishing_limit`. Requisito: CA-09.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Threads respeta su límite de 250 publicaciones al día (la publicación espera en vez de fallar) y un reintento tras un corte de red no duplica el post.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-57
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Threads/ThreadsQuotaTest.php`
+- **Archivos**: `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Threads/ThreadsQuotaTest.php`, `tests/Feature/Connectors/Threads/ThreadsPublisherTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Threads/ThreadsQuotaTest.php` → en verde (cuota agotada no llama a `threads_publish`; reintento no duplica)
 
 **Criterios de aceptación**
-- [ ] Con el límite agotado se aplica `QuotaPolicy` sin publicar.
-- [ ] Un reintento tras timeout no crea un segundo post.
+- [x] Con el límite agotado se aplica `QuotaPolicy` sin publicar.
+- [x] Un reintento tras timeout no crea un segundo post.
 
 **Subtareas**
-- [ ] Test RED (CA-09)
-- [ ] Cuota
-- [ ] `findPublished`
+- [x] Test RED (CA-09)
+- [x] Cuota
+- [x] `findPublished`
 
 **Notas**: Patrón: `InstagramPublisher::assertQuota` (`:446`, `content_publishing_limit`) y `app/Services/QuotaPolicy.php` (sin tocarla). `QuotaExceededException` aplica la política sin llamar a la API de publicación.
+
+**Test RED**: `tests/Feature/Connectors/Threads/ThreadsQuotaTest.php` antes del código -> 6 fallos de 13 (sin consulta de cuota ni búsqueda de recientes).
+
+**Decisiones**: `assertQuota()` consulta `threads_publishing_limit?fields=quota_usage,config` antes del primer contenedor (en un carrusel, solo si no hay progreso); si la consulta falla por un error pasajero se intenta publicar igual, pero una credencial inválida pide reconectar. Sin `config.quota_total` se usa `social.threads.publish_quota` (250). `findRecent` lista `/{user}/threads?fields=id,text,permalink,timestamp&limit=25` y filtra por texto y hora en servidor (no se usa `since` en la consulta: su formato no está verificado); las publicaciones sin texto no se pueden reconocer (limitación igual que en Instagram). Un contenedor `PUBLISHED` se resuelve con esa búsqueda y, si no aparece, se da por publicado con el ID del contenedor. `ThreadsPublisherTest` pasa a fingir la cuota con holgura en su `beforeEach`.
+
+**Verificación ejecutada**: `tests/Feature/Connectors/Threads` -> 56 passed (238 assertions); `ThreadsQuotaTest.php` -> 13 passed: cuota agotada no llama a `threads` ni a `threads_publish`, un reintento tras timeout recupera el post existente.
 
 ### T-59 — `ThreadsInsights`: post, cuenta y rango
 

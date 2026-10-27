@@ -9,6 +9,8 @@ use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
+use App\Connectors\Exceptions\QuotaExceededException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
@@ -32,6 +34,9 @@ class ThreadsPublisher implements Publisher, StatusPoller
 {
     /** Referencia mientras un carrusel aun crea/espera a sus hijos (el avance vive en `progress`). */
     private const BUILDING = 'carousel';
+
+    /** Cuantas publicaciones recientes se revisan al buscar un duplicado. */
+    private const RECENT_MEDIA = 25;
 
     public const CAROUSEL_MIN = 2;
 
@@ -59,8 +64,16 @@ class ThreadsPublisher implements Publisher, StatusPoller
         $budget = $request->budget();
 
         if ($request->type === ContentType::ThreadsCarousel) {
+            if ($request->progress === []) {
+                $this->assertQuota($account);
+                $budget->spent();
+            }
+
             return $this->advanceCarousel($account, $request, $budget);
         }
+
+        $this->assertQuota($account);
+        $budget->spent();
 
         $containerId = $this->createContainer($account, $this->containerParams($request));
         $request->checkpoint($containerId);
@@ -85,21 +98,34 @@ class ThreadsPublisher implements Publisher, StatusPoller
     public function findPublished(SocialAccount $account, PublishRequest $request): ?PublishResult
     {
         $container = $this->containerOf($request);
+        $budget = $request->budget();
 
         // Un contenedor ya publicado (o a punto) se resuelve por su estado, sin crear otro.
-        if ($container === null) {
-            return null; // carrusel aun en construccion o sin contenedor: `publish` retoma desde `progress`
+        if ($container !== null) {
+            $status = $this->containerStatus($account, $container);
+            $budget->spent();
+
+            if ($status['code'] === 'PUBLISHED') {
+                return $this->resolvePublished($account, $request, $container, $budget) ?? PublishResult::processing($container, ['container_status' => 'PUBLISHED']);
+            }
+
+            if ($status['code'] === 'FINISHED' || $status['code'] === 'IN_PROGRESS') {
+                // `not_published`: el contenedor existe pero nada salio aun (lo usa la reconciliacion tras una edicion).
+                return PublishResult::processing($container, ['not_published' => true]);
+            }
         }
 
-        $status = $this->containerStatus($account, $container);
-        $request->budget()->spent();
+        // Carrusel aun en construccion (sin padre): nada puede estar publicado; `publish` retoma desde `progress`.
+        if ($request->type === ContentType::ThreadsCarousel && $container === null && $request->progress !== []) {
+            return null;
+        }
 
-        return match ($status['code']) {
-            'PUBLISHED' => $this->resolvePublished($container),
-            // `not_published`: el contenedor existe pero nada salio aun (lo usa la reconciliacion tras una edicion).
-            'FINISHED', 'IN_PROGRESS' => PublishResult::processing($container, ['not_published' => true]),
-            default => null,
-        };
+        // Sin presupuesto para otra consulta: NO se publica a ciegas (duplicado); el reintento vuelve a preguntar.
+        if (! $budget->allows()) {
+            throw new TransientPublishException('Sin tiempo para comprobar si Threads ya publico el contenido; se reintenta.');
+        }
+
+        return $this->findRecent($account, $request, $budget);
     }
 
     // ------------------------------------------------------------------ flujo
@@ -128,7 +154,7 @@ class ThreadsPublisher implements Publisher, StatusPoller
         return match ($status['code']) {
             'FINISHED' => $this->publishContainer($account, $containerId, $budget),
             // PUBLISHED es concluyente: el destino se da por publicado aunque no se localice la publicacion concreta.
-            'PUBLISHED' => $this->resolvePublished($containerId),
+            'PUBLISHED' => $this->resolvePublished($account, $request, $containerId, $budget) ?? PublishResult::processing($containerId),
             'ERROR', 'EXPIRED' => throw new PermanentPublishException($this->statusMessage($status), $status['code'] === 'EXPIRED' ? 'contenedor_caducado' : 'contenedor_error'),
             default => PublishResult::processing($containerId), // IN_PROGRESS u otro estado intermedio
         };
@@ -223,12 +249,17 @@ class ThreadsPublisher implements Publisher, StatusPoller
     }
 
     /**
-     * Un contenedor `PUBLISHED` es concluyente: se da por publicado con el ID del contenedor (y una nota) y nunca por fallido, para que
-     * reprogramarlo no duplique. Localizar la publicacion concreta es cosa de `findRecent` (T-58).
+     * Un contenedor `PUBLISHED` es CONCLUYENTE: si no se puede identificar la publicacion concreta, el destino se da igualmente por
+     * publicado (con el ID del contenedor y una nota) y nunca por fallido, para que reprogramarlo no duplique. Devuelve null solo si no
+     * queda presupuesto para consultar (el siguiente sondeo lo reintenta).
      */
-    private function resolvePublished(string $containerId): PublishResult
+    private function resolvePublished(SocialAccount $account, PublishRequest $request, string $containerId, StepBudget $budget): ?PublishResult
     {
-        return PublishResult::published(
+        if (! $budget->allows()) {
+            return null;
+        }
+
+        return $this->findRecent($account, $request, $budget) ?? PublishResult::published(
             $containerId,
             null,
             ['container' => $containerId, 'external_id_kind' => 'container'],
@@ -306,6 +337,54 @@ class ThreadsPublisher implements Publisher, StatusPoller
             Log::notice('threads.permalink_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
 
             return null; // la publicacion ya existe: el enlace es accesorio
+        }
+    }
+
+    /**
+     * Busca entre las publicaciones recientes de la cuenta una con el mismo texto y posterior al inicio del intento (las publicaciones
+     * sin texto no se pueden reconocer: limitacion documentada). No usa `since` en la consulta: se filtra aqui por la hora.
+     */
+    private function findRecent(SocialAccount $account, PublishRequest $request, StepBudget $budget): ?PublishResult
+    {
+        $text = trim((string) $request->text);
+
+        if ($text === '') {
+            return null; // sin texto no hay forma fiable de reconocer la publicacion
+        }
+
+        $data = $this->client->get($account->external_id.'/threads', ['fields' => 'id,text,permalink,timestamp', 'limit' => self::RECENT_MEDIA], (string) $account->access_token);
+        $budget->spent();
+
+        foreach ($data['data'] ?? [] as $item) {
+            $when = isset($item['timestamp']) ? strtotime((string) $item['timestamp']) : false;
+
+            if (trim((string) ($item['text'] ?? '')) === $text && ($request->since === null || ($when !== false && $when >= $request->since->getTimestamp()))) {
+                return PublishResult::published((string) $item['id'], $item['permalink'] ?? null);
+            }
+        }
+
+        return null;
+    }
+
+    /** Consulta el limite de publicaciones (24 h) antes de gastar un contenedor. Si no se puede consultar, se intenta igual. */
+    private function assertQuota(SocialAccount $account): void
+    {
+        try {
+            $data = $this->client->get($account->external_id.'/threads_publishing_limit', ['fields' => 'quota_usage,config'], (string) $account->access_token, true);
+        } catch (QuotaExceededException $e) {
+            throw $e;
+        } catch (PublishException $e) {
+            Log::notice('threads.quota_check_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
+
+            return;
+        }
+
+        $row = $data['data'][0] ?? null;
+        $used = (int) ($row['quota_usage'] ?? 0);
+        $total = (int) ($row['config']['quota_total'] ?? config('social.threads.publish_quota', 250));
+
+        if ($total > 0 && $used >= $total) {
+            throw new QuotaExceededException("Threads permite $total publicaciones cada 24 h y ya se han usado $used.", now()->addHour());
         }
     }
 

@@ -21,6 +21,8 @@ beforeEach(function () {
     $this->account = ThreadsFake::account();
     $this->publisher = app(ThreadsPublisher::class);
     thCheckpoints(reset: true);
+    // Cuota con holgura para todos los tests de este fichero (la cuota se prueba en ThreadsQuotaTest).
+    Http::fake(['graph.threads.com/v1.0/'.TH_UID.'/threads_publishing_limit*' => Http::response(['data' => [['quota_usage' => 1, 'config' => ['quota_total' => 250, 'quota_duration' => 86400]]]])]);
 });
 
 /** Registro de los `checkpoint` que recibe la peticion (referencia y progreso guardados en el acto). */
@@ -144,6 +146,7 @@ test('poll: con IN_PROGRESS sigue en proceso con la misma referencia y sin publi
 test('poll: un contenedor PUBLISHED se da por publicado (sin publicar otra vez)', function () {
     Http::fake([
         'graph.threads.com/v1.0/CONT1*' => Http::response(['id' => 'CONT1', 'status' => 'PUBLISHED']),
+        'graph.threads.com/v1.0/'.TH_UID.'/threads?*' => Http::response(['data' => []]),
     ]);
 
     $r = $this->publisher->poll($this->account, thRequest(ContentType::ThreadsVideo, 'x', [thMedia(8, 'video')], 'CONT1'));

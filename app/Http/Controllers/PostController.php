@@ -15,6 +15,7 @@ use App\Models\SocialAccount;
 use App\Services\CampaignService;
 use App\Services\ComposerPresetService;
 use App\Services\Media\DriveFileSource;
+use App\Services\Media\GiphyClient;
 use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
@@ -233,6 +234,8 @@ class PostController extends Controller
                 'app_id' => config('services.google.picker_app_id'),
                 'client_id' => config('services.google.client_id'),
             ] : null,
+            // Giphy (C-04b): solo un booleano. Sin `GIPHY_API_KEY` el boton «GIF» no aparece; la clave nunca llega a la pagina.
+            'giphy' => ['enabled' => GiphyClient::configured()],
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
             'savedTexts' => $this->savedTexts->forBrand($user, $brand->id), // textos guardados de la marca + «Todas las marcas» (C-01a)
             // Campañas de la marca para el selector (C-03): las activas y, al editar, la del post aunque esté archivada.

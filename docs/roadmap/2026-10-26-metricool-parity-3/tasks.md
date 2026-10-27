@@ -1349,27 +1349,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-41 — E2E de la descarga de CSV
 
 - **Descripción**: Escenario Playwright que descarga el CSV y comprueba BOM, separador y filas. Requisito: CA-13.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Probada en el navegador la descarga del CSV de la lista: BOM, separador «;», solo las publicaciones del filtro y fórmulas neutralizadas.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-39
 - **Tipo**: test
-- **Archivos**: `tests/e2e/csv-export.spec.ts`
+- **Archivos**: `tests/e2e/csv-export.spec.ts`, `tests/e2e/helpers.ts`
 - **Cubre (tests)**: E2E-05
 - **Verificación**: `npx playwright test tests/e2e/csv-export.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
 **Criterios de aceptación**
-- [ ] El fichero descargado tiene BOM, `;` y las filas del filtro.
-- [ ] 0 violaciones axe en la vista Lista.
+- [x] El fichero descargado tiene BOM, `;` y las filas del filtro.
+- [x] 0 violaciones axe en la vista Lista.
 
 **Subtareas**
-- [ ] Spec E2E
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/flows.spec.ts` (descargas) y semillas de `seedComposerPosts`.
+
+**Nota de cierre**: RED no aplica: el spec se escribió con la exportación ya construida (T-39). La primera ejecución falló por mi parser de líneas del propio spec (dividía por «";"»), corregido con un splitCsv; no hubo fallos de entorno. Siembra seedCsvPosts en helpers.ts (declarado en Archivos).
+
+**Verificación ejecutada**: npx playwright test tests/e2e/csv-export.spec.ts --project=desktop|mobile|mobile-360 (E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test, tras npm run build) -> 1 passed en cada proyecto, axe sin violaciones serious/critical y sin desborde; sin Untrusted Host
 
 ### T-42 — Documentación y revisión de robustez de C-03c
 

@@ -738,3 +738,24 @@ export function seedAnalyticsSnapshots(brandId: number, views: number, followers
     const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
     return { from: day(10), to: day(1), days };
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Exportar CSV (C-03c): publicaciones de Facebook con texto de fórmula en la marca E2E.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const CSV_FORMULA = '=HYPERLINK("http://e2e.invalid";"x")';
+
+/** Dos publicaciones programadas de Facebook (texto de fórmula y texto normal) a 2 días vista en la marca E2E; devuelve su fecha local. */
+export function seedCsvPosts(email: string, brandId: number): string {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$fb = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'facebook')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$when = now()->addDays(2)->setTimezone('Europe/Madrid'); ` +
+            String.raw`foreach ([[${q(CSV_FORMULA)}, 10], ['e2e csv texto normal', 11]] as [$text, $hour]) { ` +
+            String.raw`$svc->create($u, $b, ['text' => $text, 'schedule' => true, 'scheduled_at' => $when->copy()->setTime($hour, 0)->format('Y-m-d H:i'), 'media' => [], 'targets' => [['account_id' => $fb->id, 'content_type' => 'facebook_text']]]); } ` +
+            String.raw`echo 'DATE:' . $when->format('Y-m-d');`,
+    );
+    return out.match(/DATE:([\d-]+)/)![1];
+}

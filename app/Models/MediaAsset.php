@@ -30,6 +30,8 @@ class MediaAsset extends Model
 
     public const SOURCE_DRIVE = 'drive';
 
+    public const SOURCE_GIPHY = 'giphy';
+
     public const KIND_IMAGE = 'image';
 
     public const KIND_VIDEO = 'video';

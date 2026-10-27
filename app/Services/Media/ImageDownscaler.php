@@ -4,12 +4,14 @@ namespace App\Services\Media;
 
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Support\StepBudget;
 use App\Models\MediaAsset;
 use App\Services\MediaStorage;
 use GdImage;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 use Throwable;
@@ -19,8 +21,9 @@ use Throwable;
  * derivada JPEG en el mismo disco, cacheada por media, tope y version de las reglas de media; la original nunca se toca.
  *
  * Motor principal: `ffmpeg` (binario `media.ffmpeg`, como `ffprobe` en MediaProbe). Descodifica y reduce fuera de PHP con poca memoria
- * (una foto de 24 MP cabe en un proceso PHP de 256 MB porque PHP solo copia ficheros por flujo) y aplica la orientacion EXIF con
- * `autorotate`. Sin ffmpeg se recurre a GD, que carga la imagen entera: ahi se comprueba la memoria libre y, si no alcanza, se falla con
+ * (una foto de 24 MP cabe en un proceso PHP de 256 MB porque PHP solo copia ficheros por flujo) y aplica la orientacion EXIF con un filtro
+ * explicito (lee la orientacion con el lector propio y llama a ffmpeg con `-noautorotate`: `autorotate` no actua sobre JPEG en varias
+ * versiones de ffmpeg). Sin ffmpeg se recurre a GD, que carga la imagen entera: ahi se comprueba la memoria libre y, si no alcanza, se falla con
  * un mensaje claro.
  *
  * Estrategia: lado largo inicial de 4096 px como mucho y calidad decreciente; si no basta, se reduce el lado largo un 20 % por pasada
@@ -60,15 +63,16 @@ class ImageDownscaler
      * @return array{disk: string, path: string, size: int, mime: string, derived: bool}|null
      *
      * @throws TransientPublishException si se agota la espera del bloqueo (otro proceso la esta reduciendo)
+     * @throws TransientPublishException tambien si se agota el presupuesto de tiempo del paso (`$budget`): la copia a medias no se guarda y el reintento la rehace
      * @throws PermanentPublishException sin ffmpeg y sin memoria para GD
      */
-    public function fit(MediaAsset $asset, int $maxBytes): ?array
+    public function fit(MediaAsset $asset, int $maxBytes, ?StepBudget $budget = null): ?array
     {
-        return $this->fitFile((string) $asset->disk, (string) $asset->path, (int) $asset->id, (int) $asset->size, (string) $asset->mime, $maxBytes);
+        return $this->fitFile((string) $asset->disk, (string) $asset->path, (int) $asset->id, (int) $asset->size, (string) $asset->mime, $maxBytes, $budget);
     }
 
     /** @return array{disk: string, path: string, size: int, mime: string, derived: bool}|null */
-    public function fitFile(string $disk, string $path, int $id, int $size, string $mime, int $maxBytes): ?array
+    public function fitFile(string $disk, string $path, int $id, int $size, string $mime, int $maxBytes, ?StepBudget $budget = null): ?array
     {
         if ($size > 0 && $size <= $maxBytes) {
             return ['disk' => $disk, 'path' => $path, 'size' => $size, 'mime' => $mime, 'derived' => false];
@@ -83,12 +87,12 @@ class ImageDownscaler
         try {
             // Un bloqueo por media y tope: dos publicaciones a la vez no recomprimen la misma imagen en paralelo (la segunda espera
             // y encuentra la copia hecha).
-            return Cache::lock('downscale:'.$id.':'.$maxBytes, 120)->block((int) config('media_specs.downscale_lock_wait', 60), function () use ($path, $target, $maxBytes, $id) {
+            return Cache::lock('downscale:'.$id.':'.$maxBytes, 120)->block((int) config('media_specs.downscale_lock_wait', 60), function () use ($path, $target, $maxBytes, $id, $budget) {
                 if (($existing = $this->existing($target, $maxBytes)) !== null) {
                     return $existing;
                 }
 
-                $size = $this->shrinkToDisk($path, $target, $maxBytes, $id);
+                $size = $this->shrinkToDisk($path, $target, $maxBytes, $id, $budget);
 
                 return $size === null
                     ? null
@@ -215,7 +219,7 @@ class ImageDownscaler
      * Genera la copia en `$target` y devuelve su tamano, o null si no se logra. El original se copia a un temporal POR FLUJO: PHP nunca
      * lo tiene entero en memoria (salvo en el respaldo GD).
      */
-    private function shrinkToDisk(string $path, string $target, int $maxBytes, int $id): ?int
+    private function shrinkToDisk(string $path, string $target, int $maxBytes, int $id, ?StepBudget $budget): ?int
     {
         $store = $this->storage->disk();
         $dir = sys_get_temp_dir();
@@ -248,7 +252,7 @@ class ImageDownscaler
             $created[0] = $named;
 
             $done = $this->ffmpegAvailable()
-                ? $this->shrinkWithFfmpeg($named, (int) $info[2], max((int) $info[0], (int) $info[1]), $tmpOut, $maxBytes)
+                ? $this->shrinkWithFfmpeg($named, (int) $info[2], max((int) $info[0], (int) $info[1]), $tmpOut, $maxBytes, $budget)
                 : $this->shrinkWithGd($named, $info, $tmpOut, $maxBytes);
 
             if (! $done) {
@@ -266,7 +270,7 @@ class ImageDownscaler
             }
 
             return $size;
-        } catch (PermanentPublishException $e) {
+        } catch (PermanentPublishException|TransientPublishException $e) {
             throw $e;
         } catch (Throwable $e) {
             Log::warning('media.downscale_failed', ['media_id' => $id, 'exception' => $e::class]);
@@ -303,17 +307,43 @@ class ImageDownscaler
         return self::$ffmpegOk = $found;
     }
 
-    /** Reduce con ffmpeg: calidades decrecientes y, si no basta, menos pixeles. La orientacion EXIF la aplica `autorotate`. */
-    private function shrinkWithFfmpeg(string $in, int $type, int $longSide, string $out, int $maxBytes): bool
+    /**
+     * Filtro de ffmpeg para una orientacion EXIF (2-8), que se aplica con `-noautorotate`; null si no hay nada que girar.
+     * Transpuestas: 5 = `transpose=0`, 7 = `transpose=3`; 6 = 90 a la derecha (`transpose=1`), 8 = 90 a la izquierda (`transpose=2`).
+     */
+    public static function ffmpegOrientFilter(int $orientation): ?string
+    {
+        return match ($orientation) {
+            2 => 'hflip',
+            3 => 'hflip,vflip',
+            4 => 'vflip',
+            5 => 'transpose=0',
+            6 => 'transpose=1',
+            7 => 'transpose=3',
+            8 => 'transpose=2',
+            default => null,
+        };
+    }
+
+    /**
+     * Reduce con ffmpeg: calidades decrecientes y, si no basta, menos pixeles. La orientacion EXIF se lee aqui y se aplica con un
+     * filtro explicito (`-noautorotate`), sin fiarse de `autorotate`. Cada ejecucion lleva `min(ffmpeg_timeout, tiempo que queda del
+     * paso)`; sin tiempo se lanza un error transitorio (el reintento rehace la copia).
+     *
+     * @throws TransientPublishException sin tiempo en el presupuesto del paso
+     */
+    private function shrinkWithFfmpeg(string $in, int $type, int $longSide, string $out, int $maxBytes, ?StepBudget $budget = null): bool
     {
         $decoder = [IMAGETYPE_JPEG => 'mjpeg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$type];
         $alpha = $type !== IMAGETYPE_JPEG;
         $limit = min($longSide, self::START_LONG_SIDE);
         $deadline = microtime(true) + (float) config('media.downscale_budget_seconds', 90);
+        $orient = $type === IMAGETYPE_JPEG ? self::ffmpegOrientFilter(self::exifOrientation((string) file_get_contents($in, false, null, 0, 262_144))) : null;
+        $prefix = $orient !== null ? $orient.',' : '';
 
         while (true) {
             // Lado largo = $limit (sea cual sea la orientacion final), sin ampliar y con medidas pares.
-            $scale = "scale='if(gt(iw,ih),min($limit,iw),-2)':'if(gt(iw,ih),-2,min($limit,ih))':flags=lanczos";
+            $scale = "{$prefix}scale='if(gt(iw,ih),min($limit,iw),-2)':'if(gt(iw,ih),-2,min($limit,ih))':flags=lanczos";
             // JPEG no tiene transparencia: la imagen se pega sobre un fondo blanco del mismo tamano.
             $filter = $alpha
                 ? "$scale,split[a][b];[a]drawbox=x=0:y=0:w=iw:h=ih:color=white:t=fill[bg];[bg][b]overlay=format=auto,format=yuvj420p"
@@ -324,13 +354,25 @@ class ImageDownscaler
                     return false;
                 }
 
+                $timeout = (float) config('media.ffmpeg_timeout', 60);
+                if ($budget !== null) {
+                    if (! $budget->allows() || $budget->remaining() < 1) {
+                        throw new TransientPublishException('Sin tiempo para reducir la imagen en este intento; se reintentara.', 'sin_tiempo');
+                    }
+                    $timeout = min($timeout, $budget->remaining());
+                }
+
                 $process = new Process([
                     (string) config('media.ffmpeg', 'ffmpeg'), '-nostdin', '-v', 'error', '-y', '-threads', '1',
-                    '-protocol_whitelist', 'file', '-f', 'image2', '-c:v', $decoder, '-i', $in,
+                    '-protocol_whitelist', 'file', '-noautorotate', '-f', 'image2', '-c:v', $decoder, '-i', $in,
                     '-frames:v', '1', '-vf', $filter, '-c:v', 'mjpeg', '-q:v', (string) $quality, '-f', 'image2', '-update', '1', $out,
                 ]);
-                $process->setTimeout((float) config('media.ffmpeg_timeout', 60));
-                $process->run();
+                $process->setTimeout($timeout);
+                try {
+                    $process->run();
+                } catch (ProcessTimedOutException) {
+                    throw new TransientPublishException('La reduccion de la imagen no cabe en el tiempo del intento; se reintentara.', 'sin_tiempo');
+                }
 
                 if (! $process->isSuccessful()) {
                     Log::warning('media.downscale_ffmpeg_failed', ['exit' => $process->getExitCode()]);

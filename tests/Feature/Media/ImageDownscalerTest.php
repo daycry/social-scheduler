@@ -2,12 +2,14 @@
 
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\ImageDownscaler;
 use App\Services\MediaValidator;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 
@@ -330,4 +332,88 @@ test('N1: un PNG con transparencia se aplana sobre blanco con ffmpeg', function 
     $px = imagecolorsforindex($copy, imagecolorat($copy, 10, 10));
 
     expect($fit['mime'])->toBe('image/jpeg')->and($px['red'])->toBeGreaterThan(240)->and($px['green'])->toBeGreaterThan(240)->and($px['blue'])->toBeGreaterThan(240);
+});
+
+/** JPEG de 800x600 con cuatro cuadrantes (arriba izq. rojo, arriba dcha. verde, abajo izq. azul, abajo dcha. blanco) y la orientacion EXIF dada. */
+function quadrantJpeg(int $orientation): string
+{
+    $im = imagecreatetruecolor(800, 600);
+    imagefilledrectangle($im, 0, 0, 399, 299, (int) imagecolorallocate($im, 255, 0, 0));
+    imagefilledrectangle($im, 400, 0, 799, 299, (int) imagecolorallocate($im, 0, 255, 0));
+    imagefilledrectangle($im, 0, 300, 399, 599, (int) imagecolorallocate($im, 0, 0, 255));
+    imagefilledrectangle($im, 400, 300, 799, 599, (int) imagecolorallocate($im, 255, 255, 255));
+    ob_start();
+    imagejpeg($im, null, 95);
+    $jpeg = (string) ob_get_clean();
+
+    $tiff = "MM\x00*\x00\x00\x00\x08".pack('n', 1).pack('nnN', 0x0112, 3, 1).pack('n', $orientation)."\x00\x00".pack('N', 0);
+    $payload = "Exif\x00\x00".$tiff;
+
+    return substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($payload) + 2).$payload.substr($jpeg, 2);
+}
+
+/** Dimensiones y color (r,g,b) de cada esquina de la copia: [ancho, alto, [tl, tr, bl, br]]. */
+function cornersOf(string $bytes): array
+{
+    $im = imagecreatefromstring($bytes);
+    [$w, $h] = [imagesx($im), imagesy($im)];
+    $at = function (int $x, int $y) use ($im): string {
+        $c = imagecolorsforindex($im, imagecolorat($im, $x, $y));
+        $q = fn (int $v): int => $v > 127 ? 1 : 0;
+
+        return $q($c['red']).$q($c['green']).$q($c['blue']);
+    };
+
+    return [$w, $h, [$at(intdiv($w, 8), intdiv($h, 8)), $at($w - intdiv($w, 8), intdiv($h, 8)), $at(intdiv($w, 8), $h - intdiv($h, 8)), $at($w - intdiv($w, 8), $h - intdiv($h, 8))]];
+}
+
+test('B-3 (T-22): las 8 orientaciones EXIF salen derechas con ffmpeg (-noautorotate + filtro explicito) y coinciden con la via GD', function () {
+    $ffmpeg = (string) config('media.ffmpeg');
+    $probe = new Process([$ffmpeg, '-version']);
+    try {
+        $probe->run();
+    } catch (Throwable) {
+        $this->markTestSkipped('ffmpeg no disponible.');
+    }
+    if (! $probe->isSuccessful()) {
+        $this->markTestSkipped('ffmpeg no disponible.');
+    }
+
+    // Esquina (arriba izq. de la original, roja = 100) segun la orientacion: 1 TL, 2 TR, 3 BR, 4 BL, 5 TL, 6 TR, 7 BR, 8 BL.
+    $redAt = [1 => 0, 2 => 1, 3 => 3, 4 => 2, 5 => 0, 6 => 1, 7 => 3, 8 => 2];
+    $gdResults = [];
+    foreach (range(1, 8) as $o) {
+        $bytes = quadrantJpeg($o);
+        config(['media.ffmpeg' => 'ffmpeg-que-no-existe']);
+        DB::table('media_assets')->delete();
+        $asset = storedImage($bytes);
+        $gd = app(ImageDownscaler::class)->fit($asset, 6_000);
+        expect($gd)->not->toBeNull()->and($gd['derived'])->toBeTrue();
+        $gdResults[$o] = cornersOf(Storage::disk('local')->get($gd['path']));
+    }
+
+    foreach (range(1, 8) as $o) {
+        config(['media.ffmpeg' => $ffmpeg]);
+        DB::table('media_assets')->delete();
+        $asset = storedImage(quadrantJpeg($o));
+        $fit = app(ImageDownscaler::class)->fit($asset, 6_000);
+        expect($fit)->not->toBeNull()->and($fit['derived'])->toBeTrue();
+        [$w, $h, $corners] = cornersOf(Storage::disk('local')->get($fit['path']));
+
+        expect(ImageDownscaler::swapsAxes($o) ? $h > $w : $w > $h)->toBeTrue("orientacion $o: dimensiones {$w}x{$h}")
+            ->and(array_search('100', $corners, true))->toBe($redAt[$o], "orientacion $o: el rojo esta en otra esquina")
+            ->and($corners)->toBe($gdResults[$o][2], "orientacion $o: ffmpeg y GD difieren")
+            ->and($w > $h)->toBe($gdResults[$o][0] > $gdResults[$o][1]);
+    }
+});
+
+test('T-22: si el presupuesto del paso se agota el reductor lanza un error transitorio y no deja copia a medias', function () {
+    config(['publishing.step_budget_seconds' => 1]);
+    $budget = StepBudget::start();
+    $budget->spent(); // ya se hizo una llamada: allows() deja de ser incondicional
+    config(['social.http_timeout' => 15]); // el peor caso de otra llamada (15 s) no cabe en 1 s
+    $asset = storedImage(noisyJpeg());
+
+    expect(fn () => app(ImageDownscaler::class)->fit($asset, 2_000_000, $budget))->toThrow(TransientPublishException::class, 'Sin tiempo')
+        ->and(Storage::disk('local')->exists(app(ImageDownscaler::class)->derivedPath($asset->id, 2_000_000)))->toBeFalse();
 });

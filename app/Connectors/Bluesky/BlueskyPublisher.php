@@ -107,7 +107,8 @@ class BlueskyPublisher implements Publisher, StatusPoller
 
         $images = [];
         foreach ($request->media as $media) {
-            $images[] = $this->uploadImage($account, $media);
+            $request->budget()->allows() || throw new TransientPublishException('Sin tiempo para subir otra imagen a Bluesky en este intento; se reintentara.', 'sin_tiempo');
+            $images[] = $this->uploadImage($account, $media, $request->budget());
             $request->budget()->spent();
         }
 
@@ -302,7 +303,7 @@ class BlueskyPublisher implements Publisher, StatusPoller
      *
      * @return array<string, mixed>
      */
-    private function uploadImage(SocialAccount $account, PublishMedia $media): array
+    private function uploadImage(SocialAccount $account, PublishMedia $media, StepBudget $budget): array
     {
         if ($media->isVideo() || $media->disk === null || $media->path === null) {
             throw new PermanentPublishException('Bluesky solo admite imagenes en este tipo de publicacion.', 'tipo_no_admitido');
@@ -314,7 +315,7 @@ class BlueskyPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('La imagen es demasiado grande para Bluesky y no se puede reducir de forma segura. Usa una imagen mas pequena.', 'archivo_grande');
         }
 
-        $fit = $this->downscaler->fitFile($media->disk, $media->path, $media->id, (int) $media->size, $media->mime, (int) config('social.bluesky.image_max_bytes'));
+        $fit = $this->downscaler->fitFile($media->disk, $media->path, $media->id, (int) $media->size, $media->mime, (int) config('social.bluesky.image_max_bytes'), $budget);
         if ($fit === null) {
             throw new PermanentPublishException('La imagen es demasiado grande para Bluesky y no se ha podido reducir.', 'archivo_grande');
         }

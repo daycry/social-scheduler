@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 6 | 11 | 55% | 33 / 50,5h (estimado) | 4,46 / 6,83h (estimado) | 1,1 / 1,7h (estimado) | 1334k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 7 | 11 | 64% | 38 / 50,5h (estimado) | 5,14 / 6,83h (estimado) | 1,27 / 1,7h (estimado) | 1536k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1970,31 +1970,38 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-60 — Superficies de Threads: icono, pestañas, MCP, IA e informe
 
 - **Descripción**: Icono y resto de superficies; el catálogo de T-16/T-17 hace el resto. Requisito: CA-10.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Threads aparece en el compositor, el calendario, el panel, los informes y el asistente MCP con su icono; si se apaga o no está configurada, desaparece de todos esos sitios.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-17, T-18, T-59
 - **Tipo**: fullstack
-- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `app/Connectors/Network.php`, `app/Services/ComposerPresetService.php`, `app/Services/ReportService.php`, `tests/Unit/Networks/NetworkCoverageTest.php`
+- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `app/Connectors/Network.php`, `app/Services/ComposerPresetService.php`, `app/Services/ReportService.php`, `tests/Unit/Networks/NetworkCoverageTest.php`, `tests/Feature/Connectors/Threads/ThreadsSurfacesTest.php`
 - **Cubre (tests)**: E2E-08
 - **Verificación**:
   - `php artisan test --compact tests/Unit/Networks/NetworkCoverageTest.php` → en verde con Threads
   - `php artisan test --compact tests/Feature/Reports` → en verde (informe PDF y CSV incluyen las dos redes)
 
 **Criterios de aceptación**
-- [ ] Threads aparece en calendario, dashboard, informes y MCP.
-- [ ] El test de superficies pasa sin excepciones.
+- [x] Threads aparece en calendario, dashboard, informes y MCP.
+- [x] El test de superficies pasa sin excepciones.
 
 **Subtareas**
-- [ ] Icono
-- [ ] Presets e informes
-- [ ] Comprobar `NetworkCoverageTest`
+- [x] Icono
+- [x] Presets e informes
+- [x] Comprobar `NetworkCoverageTest`
 
 **Notas**: Patrón: `NetworkIcon.vue`, `Network.php`, `ComposerPresetService.php:23-24`, informes PDF (`app/Services/Reports`, `ReportService`). El `NetworkCoverageTest` (T-18) es el oráculo.
+
+**Test RED**: el caso nuevo de `NetworkCoverageTest` (Threads configurada) falló con `icono en NetworkIcon.vue` antes de añadir el glifo; `ThreadsSurfacesTest.php` pasa casi entero desde el catálogo de T-16/T-17 (esa era la apuesta de la opción O1) y fija el comportamiento de cada superficie.
+
+**Decisiones**: único cambio de código de esta tarea, el icono (`NetworkIcon.vue`); `ComposerPresetService.php` no cambia (Threads no tiene interruptores recordables) y `ReportService.php` tampoco (recorre las redes conectadas y `AnalyticsService::SUPPORTED`). El informe omite `Visualizaciones` de Threads (no está en `SUPPORTED`) y el CSV agregado la deja vacía, nunca 0 ni las visitas al perfil. Cubre E2E-08 en la parte de servidor; el escenario Playwright es T-62.
+
+**Verificación ejecutada**: `NetworkCoverageTest.php` -> 5 passed (todas las superficies de Threads, icono incluido); `ThreadsSurfacesTest.php` -> 11 passed: compositor, calendario, dashboard, MCP (500 caracteres y emojis por bytes), informe PDF/CSV, Conexiones, apagado por `THREADS_ENABLED`, sin `THREADS_APP_ID` y reprogramación; `tests/Feature/Reports` -> verde (46 con `tests/Unit/Networks`); pint -> passed.
 
 ### T-61 — Pest de integración de Threads (CA-07..CA-09)
 

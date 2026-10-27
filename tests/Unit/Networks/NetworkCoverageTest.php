@@ -1,6 +1,7 @@
 <?php
 
 use App\Analytics\Metric;
+use App\Connectors\ConnectorRegistry;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Services\AnalyticsService;
@@ -67,6 +68,18 @@ test('toda red ofrecida tiene todas sus superficies', function () {
 test('las redes OAuth de siempre siguen con todas sus superficies', function () {
     foreach ([Network::Instagram, Network::Facebook, Network::YouTube, Network::TikTok] as $network) {
         expect(surfaceGaps($network->value))->toBe([]);
+    }
+});
+
+test('Threads, configurada y encendida, se ofrece y tiene todas sus superficies, icono incluido', function () {
+    config(['services.threads.client_id' => 'THAPP1', 'social.threads.enabled' => true]);
+    app()->forgetInstance(ConnectorRegistry::class);
+
+    expect(Network::offered())->toContain(Network::Threads)
+        ->and(surfaceGaps('threads'))->toBe([]);
+
+    foreach (Network::offered() as $network) {
+        expect(surfaceGaps($network->value))->toBe([], "A {$network->value} le faltan superficies");
     }
 });
 

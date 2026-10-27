@@ -43,6 +43,12 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
 | `GIPHY_API_KEY` | vacío | Clave *beta* de Giphy (100 llamadas/hora); vacía = sin botón «GIF» en el compositor. La usa solo el servidor ([medios](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b)) |
 | `SOCIAL_GIPHY_HOURLY_LIMIT` | 90 | Llamadas reales a Giphy por hora antes de pedir esperar (las respuestas en caché no cuentan; `SOCIAL_GIPHY_CACHE_MINUTES`, 10). Guía: [Giphy](../guias/giphy-api-key.md) |
+| `SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT` | 30 | Llamadas reales a Giphy por usuario y hora (uno solo no agota el tope global de `SOCIAL_GIPHY_HOURLY_LIMIT`) |
+| `SOCIAL_GIPHY_PER_USER_PER_MINUTE` | 20 | Búsquedas de GIF por usuario y minuto (limitador `giphy`; sin sesión, por IP) |
+| `SOCIAL_GIPHY_RATING` / `SOCIAL_GIPHY_LIMIT` | `pg-13` / 24 | Clasificación máxima de los GIF (`g`, `pg`, `pg-13`, `r`) y resultados por búsqueda |
+| `SOCIAL_HASHTAGS_MIN_USES` / `_LIMIT` / `_DAYS` / `_CACHE_MINUTES` | 2 / 15 / 365 / 60 | Hashtags sugeridos del histórico propio de la marca: usos mínimos, sugerencias devueltas, días de ventana y caché (minutos) |
+| `SOCIAL_EXPORT_MAX_ROWS` | 5000 | Tope de filas de la exportación CSV de la lista de publicaciones; por encima se recorta y se avisa |
+| `SOCIAL_ALL_BRANDS_CACHE_MINUTES` | 5 | Caché por usuario y periodo de «Todas las marcas» (0 = sin caché) |
 | `MEDIA_IMPORT_QUEUE` | `media` | Cola de `ImportRemoteMedia` |
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
 | `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |
@@ -154,7 +160,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `SOCIAL_ANALYTICS_DAILY_AT` | `12:00` (UTC) | Hora del snapshot diario |
 | `SOCIAL_ANALYTICS_SETTLE_DAYS` | `3` | Días de reintento de snapshots incompletos |
 | `SOCIAL_BACKFILL_ON_CONNECT` | `true` | Histórico inicial al conectar |
-| `SOCIAL_BACKFILL_DAYS_{INSTAGRAM,FACEBOOK,YOUTUBE}` | `30`, `90`, `365` | Días de histórico |
+| `SOCIAL_BACKFILL_DAYS_{INSTAGRAM,FACEBOOK,YOUTUBE,THREADS}` | `30`, `90`, `365`, `30` | Días de histórico |
 
 ## Resumen de decisiones por confirmar
 
@@ -187,3 +193,4 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |
 | `AI_ASSISTANT_MODEL` / `_MAX_TOKENS` / `_TIMEOUT` | `claude-sonnet-5-5` / `600` / `30` | Modelo y límites de la llamada a la Messages API |
+| `AI_ASSISTANT_SCHEDULE_MAX_DAYS` | `365` | «Escribe cuándo»: la fecha propuesta no puede quedar a más de estos días |

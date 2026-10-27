@@ -36,10 +36,10 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 | Código de aplicación | 307 ficheros PHP · ~30.600 líneas en `app/` |
 | Interfaz | 101 componentes Vue (Inertia) |
 | Base de datos | 47 migraciones |
-| Tests unitarios y de integración | **2.424 tests Pest** en 233 ficheros (SQLite en memoria) |
-| Tests E2E | **495 tests Playwright** en 21 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
+| Tests unitarios y de integración | **2.456 tests Pest** en 233 ficheros (SQLite en memoria) |
+| Tests E2E | **498 tests Playwright** en 21 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
 | Servidor MCP | 25 herramientas (marcas, cuentas de las 6 redes, calendario y vistas, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, hashtags, informes, comentarios y notas) |
-| Documentación | 75 documentos en `docs/` · 5 ADR · 8 iniciativas en el roadmap |
+| Documentación | 91 documentos (ficheros `.md` bajo `docs/`, incluidos roadmap y memoria técnica) · 5 ADR · 8 iniciativas en el roadmap |
 
 ## Funcionalidades
 

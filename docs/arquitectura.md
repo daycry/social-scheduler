@@ -21,7 +21,7 @@ Navegador ──PUT prefirmado──► Cloudflare R2 (media)       Workers syst
 | Servicios | `app/Services/` | Lógica única compartida por web y MCP (`PostService`, `CalendarService`, `AnalyticsService`, `ReportService`…) |
 | Conectores | `app/Connectors/{Meta,Google,TikTok}/` | OAuth, publicación, sondeo e insights por red, tras los contratos de `app/Connectors/Contracts/` |
 | Jobs | `app/Jobs/` | Publicar, sondear, refrescar tokens, snapshots, informes |
-| MCP | `app/Mcp/`, `routes/ai.php` | 14 herramientas sobre los mismos servicios |
+| MCP | `app/Mcp/`, `routes/ai.php` | 25 herramientas sobre los mismos servicios |
 | Modelos | `app/Models/` | `Brand`, `SocialAccount`, `Post`, `PostTarget`, `MediaAsset`, `PublishAttempt`, `AccountSnapshot`, `PostMetricSnapshot`, `Report`, `AuditLog` |
 
 ## Aislamiento por usuario

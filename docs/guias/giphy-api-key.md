@@ -22,7 +22,7 @@ Después `php artisan config:clear` (o `config:cache`) y reinicia los workers. L
 | Qué | Valor | Dónde |
 |---|---|---|
 | Clave *beta* de Giphy | 100 llamadas por hora ⚠️ (vigente según la documentación consultada al diseñar; confírmalo en el panel) | developers.giphy.com |
-| Tope de llamadas reales de la aplicación | 90 por hora (`SOCIAL_GIPHY_HOURLY_LIMIT`), dejando margen a la clave | `config/social.php` |
+| Tope de llamadas reales de la aplicación | 90 por hora (`SOCIAL_GIPHY_HOURLY_LIMIT`), dejando margen a la clave; y 30 por usuario y hora (`SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT`) | `config/social.php` |
 | Caché de respuestas | 10 minutos (`SOCIAL_GIPHY_CACHE_MINUTES`); una respuesta en caché no gasta cupo | `config/social.php` |
 | Búsquedas por usuario | 20 por minuto; importaciones, 10 por minuto y 3 vivas a la vez | rutas |
 | Clasificación | `pg-13` (`SOCIAL_GIPHY_RATING`) | `config/social.php` |
@@ -43,4 +43,4 @@ La aplicación **no enlaza** el GIF: descarga su MP4 y lo vuelve a publicar como
 
 ## 5. Qué hace con el GIF
 
-Se importa el **MP4** (lista cerrada de hosts `media*.giphy.com` e `i.giphy.com`, solo `https`, puerto 443, comprobada en cada redirección) por la cola `media` y se valida como cualquier vídeo. Detalle técnico en [Media → Buscador de GIFs](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b). Los GIF de menos de 3 s no valen para Reels ni TikTok.
+Se importa el **MP4** (lista cerrada de hosts `media*.giphy.com` e `i.giphy.com`, solo `https`, puerto 443; esquema, puerto y host se comprueban en cada redirección) por la cola `media` y se valida como cualquier vídeo. Detalle técnico en [Media → Buscador de GIFs](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b). Los GIF de menos de 3 s no valen para Reels ni TikTok.

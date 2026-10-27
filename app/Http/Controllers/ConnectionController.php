@@ -50,12 +50,16 @@ class ConnectionController extends Controller
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
             ])->values(),
-            'providers' => collect(Network::cases())->map(fn (Network $n) => [
-                'network' => $n->value,
-                'label' => $n->label(),
-                'provider' => $n->provider(),
-                'available' => $this->connectors->has($n->provider()),
-            ])->values(),
+            // Las redes OAuth sin configurar se listan como «no disponibles»; una de credenciales sin conector no se ofrece.
+            'providers' => collect(Network::cases())
+                ->filter(fn (Network $n) => $n->authKind() === Network::AUTH_OAUTH || $this->connectors->has($n->provider()))
+                ->map(fn (Network $n) => [
+                    'network' => $n->value,
+                    'label' => $n->label(),
+                    'provider' => $n->provider(),
+                    'auth_kind' => $n->authKind(),
+                    'available' => $this->connectors->has($n->provider()),
+                ])->values(),
             'pending' => $pending ? [
                 'provider' => $pending['provider'],
                 'candidates' => array_map(fn ($c) => $c->toPublicArray(), $pending['candidates']),

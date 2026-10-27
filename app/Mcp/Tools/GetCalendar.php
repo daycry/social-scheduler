@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Connectors\Network;
 use App\Mcp\Abilities;
 use App\Models\CalendarView;
 use App\Models\User;
@@ -35,7 +36,7 @@ class GetCalendar extends SchedulerTool
             'view' => $schema->string()->description('week (por defecto), month o list; o el id de una vista guardada (list_calendar_views)'),
             'date' => $schema->string()->description('Fecha ancla YYYY-MM-DD (por defecto hoy)'),
             ...$this->brandSchema($schema, 'Filtrar por marca'),
-            'network' => $schema->string()->description('instagram, facebook, youtube o tiktok'),
+            'network' => $schema->string()->description(Network::listing()),
             'status' => $schema->string()->description('Filtrar por estado (borrador, programada, publicada, fallida...)'),
         ];
     }

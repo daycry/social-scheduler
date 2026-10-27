@@ -535,12 +535,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-16 — Catálogo de redes en `Network` y `shell.networks`
 
 - **Descripción**: `Network` pasa a catálogo (`label`, `shortLabel`, `color`, `authKind`, `providers()` derivado y `offered()`) y las listas fijas del backend lo leen. Requisito: `design.md` §2 O1.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las redes tienen un catálogo único (nombre, color, proveedor y forma de conexión) que alimenta rutas, IA, MCP y la interfaz.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en verde antes de tocar (se conserva como regresión).
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Tiempo humano**: est. 4,0h · real 4,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0,54h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0,14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-15
 - **Tipo**: backend
@@ -551,16 +552,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/Ui/ShellTest.php` → en verde
 
 **Criterios de aceptación**
-- [ ] `shell.networks` incluye etiqueta, color, proveedor y `authKind`.
-- [ ] Las rutas usan `Network::providers()` y la IA `Rule::enum(Network::class)`.
-- [ ] Las descripciones del MCP salen de `Network::cases()`.
+- [x] `shell.networks` incluye etiqueta, color, proveedor y `authKind`.
+- [x] Las rutas usan `Network::providers()` y la IA `Rule::enum(Network::class)`.
+- [x] Las descripciones del MCP salen de `Network::cases()`.
 
 **Subtareas**
-- [ ] Test de caracterización
-- [ ] Catálogo en el enum
-- [ ] Migrar listas backend
+- [x] Test de caracterización
+- [x] Catálogo en el enum
+- [x] Migrar listas backend
 
 **Notas**: Patrón: `app/Connectors/Network.php:15-38`, `app/Http/Middleware/HandleInertiaRequests.php:106` (`shell.networks`), `routes/web.php:56,58`, `AiAssistant.php:86`, `AiAssistantController.php:30` (`Rule::enum`), descripciones de `Mcp/Tools/{GetStats,GetCalendar,GetBestTimes}.php`. `EXPECTED_FLOWS` (`app/Analytics/Metric.php:63-68`) y `SUPPORTED` (`AnalyticsService.php:58-63`) se quedan donde están. Se añade el caso `Bluesky` con `authKind=credentials`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Unit tests/Feature/Ui tests/Feature/Connections tests/Feature/Mcp -> 597 passed (2990 assertions), incluye NetworkCatalogTest y ShellTest (shell.networks con color, short_label, provider y auth_kind). Caracterización previa: suite completa 1971 verde antes de tocar.
 
 ### T-17 — Listas del frontend leen el catálogo y el icono de Bluesky
 

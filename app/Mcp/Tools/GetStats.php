@@ -33,7 +33,7 @@ class GetStats extends SchedulerTool
     {
         return [
             ...$this->brandSchema($schema, 'Marca (obligatoria)'),
-            'network' => $schema->string()->description('instagram, facebook, youtube o tiktok; sin valor = resumen de la marca'),
+            'network' => $schema->string()->description(Network::listing().'; sin valor = resumen de la marca'),
             'from' => $schema->string()->description('Inicio YYYY-MM-DD (por defecto, 30 dias hasta ayer)'),
             'to' => $schema->string()->description('Fin YYYY-MM-DD'),
             'compare' => $schema->string()->enum(Period::COMPARE_MODES)->description('none (por defecto), previous o year'),

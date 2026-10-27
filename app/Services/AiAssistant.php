@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Connectors\Network;
 use App\Exceptions\PostValidationException;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
@@ -83,7 +84,7 @@ class AiAssistant
         if ($brandName !== null && trim($brandName) !== '') {
             $lines[] = 'Marca: '.mb_substr(trim($brandName), 0, 120);
         }
-        if ($network !== null && in_array($network, ['instagram', 'facebook', 'youtube', 'tiktok'], true)) {
+        if ($network !== null && Network::tryFrom($network) !== null) {
             $lines[] = 'Red de destino: '.$network;
         }
         $lines[] = 'Idea de la publicación: '.$brief;

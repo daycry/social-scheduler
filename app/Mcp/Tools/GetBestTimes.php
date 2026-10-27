@@ -32,7 +32,7 @@ class GetBestTimes extends SchedulerTool
     {
         return [
             ...$this->brandSchema($schema, 'Marca (obligatoria)'),
-            'network' => $schema->string()->enum(array_column(Network::cases(), 'value'))->description('instagram, facebook, youtube o tiktok')->required(),
+            'network' => $schema->string()->enum(array_column(Network::cases(), 'value'))->description(Network::listing())->required(),
             'days' => $schema->integer()->description('Ventana en dias (7-365; por defecto 90)'),
         ];
     }

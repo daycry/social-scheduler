@@ -54,9 +54,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])
-        ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('brands.connections.connect');
+        ->whereIn('provider', Network::providers())->name('brands.connections.connect');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
-        ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('connections.callback');
+        ->whereIn('provider', Network::providers())->name('connections.callback');
 
     // Avisos in-app (T-25).
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

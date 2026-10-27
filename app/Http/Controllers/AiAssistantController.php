@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Connectors\Network;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Services\AiAssistant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /** Asistente IA opcional del compositor (T-14): JSON; sin configurar, `status` dice `enabled: false` y `suggest` responde 404. */
 class AiAssistantController extends Controller
@@ -27,7 +29,7 @@ class AiAssistantController extends Controller
         $data = $request->validate([
             'brief' => ['required', 'string', 'max:'.AiAssistant::MAX_BRIEF],
             'brand_id' => ['nullable', 'integer'],
-            'network' => ['nullable', 'in:instagram,facebook,youtube,tiktok'],
+            'network' => ['nullable', Rule::enum(Network::class)],
         ]);
         $brand = isset($data['brand_id']) ? Brand::query()->find((int) $data['brand_id']) : null; // UserScope: una marca ajena no se usa
 

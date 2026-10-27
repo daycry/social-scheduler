@@ -81,7 +81,7 @@ class CalendarService
             'next' => $this->shift($view, $anchor, 1)->format('Y-m-d'),
             'today' => CarbonImmutable::now($tz)->format('Y-m-d'),
             'brands' => $brands->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name, 'timezone' => $b->timezone])->values()->all(),
-            'networks' => collect(Network::cases())->map(fn (Network $n) => ['value' => $n->value, 'label' => $n->label()])->values()->all(),
+            'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
             'items' => $items->all(),
             'undated' => $undated->all(),
             'truncated' => $items->count() >= self::MAX_ITEMS,

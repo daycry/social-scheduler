@@ -377,9 +377,9 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Componente `ViewsMenu.vue`
 - [x] Estados vacío y de error
 
-**Notas**: Patrón: filtros de `resources/js/Pages/Calendar/Index.vue` (la lista de redes lee el catálogo desde T-17) y menú de `Composer/SavedTextsMenu.vue`. Móvil 375/360 sin desborde. Nota de implementación: en la web la vista se elige con `saved_view=<id>` (el parámetro `view` ya es semana/mes/lista); props `views` y `active_view`. La vista por defecto se aplica solo si la URL no trae ningún filtro. Una vista con marca borrada se abre sin esa marca.
+**Notas**: Patrón: filtros de `resources/js/Pages/Calendar/Index.vue` (la lista de redes lee el catálogo desde T-17) y menú de `Composer/SavedTextsMenu.vue`. Móvil 375/360 sin desborde. Nota de implementación: en la web la vista se elige con `saved_view=<id>` (el parámetro `view` ya es semana/mes/lista); props `views` y `active_view`. La vista por defecto se aplica cuando la URL no trae filtros elegidos: `brand_id` y `view` (los enlaces del menú) NO cuentan y mandan sobre los de la vista por defecto; red, estado, búsqueda y fecha sí (revisión P3 F1-2, B1). Una vista con marca borrada se abre sin esa marca.
 
-**Verificación ejecutada**: php artisan test --compact tests/Feature/Ui/CalendarViewsPageTest.php -> 5 passed; tests/Feature/Calendar sin regresión (33 passed); npm run build OK
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ui/CalendarViewsPageTest.php -> 5 passed; tests/Feature/Calendar sin regresión (cifra de entonces errónea, corregida tras la revisión: hoy 34 passed); npm run build OK
 
 ### T-11 — MCP: `list_calendar_views` y parámetro `view` en `get_calendar`
 
@@ -451,7 +451,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-10
 - **Tipo**: test
-- **Archivos**: `tests/e2e/calendar-views.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Components/Calendar/ViewsMenu.vue`, `app/Http/Controllers/CalendarViewController.php`, `tests/Feature/Calendar/CalendarViewCrudTest.php`
+- **Archivos**: `tests/e2e/calendar-views.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Components/Calendar/ViewsMenu.vue`, `app/Http/Controllers/CalendarViewController.php`, `tests/Feature/Calendar/CalendarViewCrudTest.php`, `tests/e2e/composer.spec.ts` (revisión P3 F1-2: `guardarBorrador` espera la respuesta del guardado; corrige el E2E-09 intermitente)
 - **Cubre (tests)**: E2E-02
 - **Verificación**: `npx playwright test tests/e2e/calendar-views.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos (axe y sin desbordes)
 
@@ -2273,12 +2273,12 @@ Lentes A+B+C+D sobre `f4a5272..5407825`. Lente C sin hallazgos de IDOR: la nota,
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| B1 | Important | La vista por defecto no se aplica nunca al entrar desde la navegación. Los enlaces del shell llevan `brand_id`/`view` y `hasAny()` los toma como filtros explícitos | T-10, T-14 | pendiente | `CalendarController.php:47`, `navigation.js:31,34`, `CurrentBrand.php:59`. El E2E solo prueba `/calendar` |
-| B2 | Minor | `get_calendar` acepta `view` = `"1.9"`, `" 1"` y `"1e0"` como id | T-11 | pendiente | `GetCalendar.php:49` |
-| B3 | Minor | Con `view=<id>`, un `brand` inválido da error aunque mande la vista | T-11 | pendiente | `GetCalendar.php:58` |
-| B4 | Minor | «Guardar vista» no muestra los errores de red, estado ni vista | T-10 | pendiente | `ViewsMenu.vue:128` |
-| B5 | Minor | Se pueden poner notas a respuestas propias (`is_own`), que luego no se ven en ningún sitio | T-02, T-04 | pendiente | `InboxNoteController.php:18`, `AddCommentNote.php:44` |
-| B6 | Minor | El contador (code points) no coincide con `maxlength` (UTF-16) cuando hay emojis | T-03 | pendiente | `CommentNotes.vue:56,58` |
-| C1 | Minor | Vistas sin throttle ni límite por usuario; borrar notas sin throttle (CWE-770, autoinfligido) | T-09, T-02 | pendiente | `routes/web.php:70-72`, `routes/parity.php:72` |
-| A1 | Minor | La fila TOTAL del resumen no suma las fases cerradas | — | pendiente | `tasks.md:58` |
-| A2 | Minor | La cifra «33 passed» de T-10 no es posible | T-10 | pendiente | `tasks.md:382` |
+| B1 | Important | La vista por defecto no se aplica nunca al entrar desde la navegación. Los enlaces del shell llevan `brand_id`/`view` y `hasAny()` los toma como filtros explícitos | T-10, T-14 | **Corregido (cccf16e)**: opción «solo cuentan los filtros elegidos»: `brand_id` y `view` ya no impiden la vista por defecto (la marca actual y la vista del enlace mandan sobre las de la vista); red, estado, búsqueda y fecha sí cuentan. Tests Pest `?brand_id=X` y `?brand_id=X&view=week` y E2E que entra por «Planificación» y «Calendario» | `CalendarController.php:47`, `navigation.js:31,34`, `CurrentBrand.php:59`. El E2E solo prueba `/calendar` |
+| B2 | Minor | `get_calendar` acepta `view` = `"1.9"`, `" 1"` y `"1e0"` como id | T-11 | **Corregido (5677598)**: `ctype_digit`; `1.9`, ` 1`, `1e0`, `+1` y `0x1` dan error | `GetCalendar.php:49` |
+| B3 | Minor | Con `view=<id>`, un `brand` inválido da error aunque mande la vista | T-11 | **Corregido (5677598)**: con `view=<id>` el `brand` suelto no se resuelve | `GetCalendar.php:58` |
+| B4 | Minor | «Guardar vista» no muestra los errores de red, estado ni vista | T-10 | **Corregido (b8aeb4b)**: se muestran los errores de red, estado y vista (y `filters`) | `ViewsMenu.vue:128` |
+| B5 | Minor | Se pueden poner notas a respuestas propias (`is_own`), que luego no se ven en ningún sitio | T-02, T-04 | **Corregido (0899367)**: `InboxNoteService::add` rechaza `is_own` (422 web, error MCP) | `InboxNoteController.php:18`, `AddCommentNote.php:44` |
+| B6 | Minor | El contador (code points) no coincide con `maxlength` (UTF-16) cuando hay emojis | T-03 | **Corregido (6b4a4f4)**: sin `maxlength`; el contador cuenta code points, se pone en rojo al pasarse y deshabilita Guardar | `CommentNotes.vue:56,58` |
+| C1 | Minor | Vistas sin throttle ni límite por usuario; borrar notas sin throttle (CWE-770, autoinfligido) | T-09, T-02 | **Corregido (63b5639)**: `throttle:60,1` en las 3 rutas de vistas y en borrar notas; tope de 50 vistas por usuario (error en `name`) | `routes/web.php:70-72`, `routes/parity.php:72` |
+| A1 | Minor | La fila TOTAL del resumen no suma las fases cerradas | — | **No se sostiene**: la fila TOTAL ya suma las fases cerradas: 30/77 (39%), 90,5h humanas, 12,27h IA, 3,11h de supervisión y 3,66M tokens = Fase 1 + 2 + 3 + 10 (14+16+59,5+1; 1,89+2,17+8,07+0,14; 0,49+0,57+2,01+0,04; 567k+648k+2,41M+40k) | `tasks.md:58` |
+| A2 | Minor | La cifra «33 passed» de T-10 no es posible | T-10 | **Anotado (T-10)**: la cifra era errónea; la suite `tests/Feature/Calendar` tiene hoy 34 tests (34 passed) y se dejó de citar la de entonces | `tasks.md:382` |

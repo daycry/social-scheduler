@@ -67,9 +67,31 @@ class BlueskyPublisher implements Publisher, StatusPoller
         }
     }
 
+    /**
+     * ¿Ya existe el registro? La `rkey` se guarda ANTES de crearlo, asi que `getRecord` responde si un intento anterior (que acabo en
+     * timeout o error) llego a crearlo. Sin `rkey` guardada no se creo nada. Un fallo de red al comprobarlo es transitorio: no se
+     * publica a ciegas (duplicado) y el reintento vuelve a preguntar.
+     */
     public function findPublished(SocialAccount $account, PublishRequest $request): ?PublishResult
     {
-        return null; // la comprobacion por rkey llega con T-25
+        $rkey = (string) ($request->progress['rkey'] ?? '');
+        if (! Tid::isValid($rkey)) {
+            return null;
+        }
+
+        try {
+            $existing = $this->client->getRecord(BlueskySession::pds($account), $this->did($account), self::COLLECTION, $rkey);
+        } catch (BlueskyException $e) {
+            throw BlueskyErrors::translate($e);
+        }
+        $request->budget()->spent();
+
+        if ($existing !== null) {
+            return $this->published($account, (string) ($existing['uri'] ?? ''), $existing);
+        }
+
+        // Video aun procesandose: el trabajo sigue vivo, el sondeo lo retoma.
+        return $request->reference !== null ? PublishResult::processing($request->reference, [], ['rkey' => $rkey, 'phase' => 'processing']) : null;
     }
 
     // ------------------------------------------------------------------ texto e imagenes
@@ -221,8 +243,19 @@ class BlueskyPublisher implements Publisher, StatusPoller
     /** @param array<string, mixed> $record */
     private function create(SocialAccount $account, PublishRequest $request, array $record, string $rkey): PublishResult
     {
-        $created = $this->session->call($account, fn (string $token, string $pds) => $this->client->createRecord($pds, $token, $this->did($account), self::COLLECTION, $record, $rkey));
-        $request->budget()->spent();
+        try {
+            $created = $this->session->call($account, fn (string $token, string $pds) => $this->client->createRecord($pds, $token, $this->did($account), self::COLLECTION, $record, $rkey));
+        } catch (BlueskyException $e) {
+            // Ante CUALQUIER error de createRecord (timeout con la respuesta perdida, 5xx, o la `rkey` ya usada: el error exacto del
+            // PDS no esta verificado) se comprueba con getRecord antes de fallar: si el registro existe, esta publicado.
+            if (($existing = $this->recordIfExists($account, $rkey)) !== null) {
+                return $this->published($account, (string) ($existing['uri'] ?? ''), $existing);
+            }
+
+            throw $e;
+        } finally {
+            $request->budget()->spent();
+        }
 
         return $this->published($account, (string) ($created['uri'] ?? ''), $created);
     }
@@ -286,6 +319,16 @@ class BlueskyPublisher implements Publisher, StatusPoller
     }
 
     // ------------------------------------------------------------------ utilidades
+
+    /** @return ?array<string, mixed> El registro si existe; null si no existe o no se pudo comprobar (se propaga el error original). */
+    private function recordIfExists(SocialAccount $account, string $rkey): ?array
+    {
+        try {
+            return $this->client->getRecord(BlueskySession::pds($account), $this->did($account), self::COLLECTION, $rkey);
+        } catch (Throwable) {
+            return null;
+        }
+    }
 
     /** DID de la cuenta (repositorio donde se escribe). */
     private function did(SocialAccount $account): string

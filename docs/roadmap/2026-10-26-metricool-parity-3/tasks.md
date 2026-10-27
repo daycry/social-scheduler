@@ -820,12 +820,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-25 — Idempotencia por `rkey` TID, `findPublished` y errores traducidos
 
 - **Descripción**: TID generada y persistida con `checkpoint()` antes de `createRecord`; reintentos reutilizan la `rkey`; `findPublished` con `getRecord`. Requisito: CA-04.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Un reintento tras un corte de red ya no duplica la publicación en Bluesky: se comprueba si el registro existe antes de volver a crearlo.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-23
 - **Tipo**: backend
@@ -836,15 +837,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyIdempotencyTest.php` → en verde (timeout en `createRecord` y reintento no duplica)
 
 **Criterios de aceptación**
-- [ ] Tras agotar el tiempo en `createRecord`, el reintento encuentra el registro y no crea un segundo post.
-- [ ] La `rkey` se persiste antes de la llamada.
+- [x] Tras agotar el tiempo en `createRecord`, el reintento encuentra el registro y no crea un segundo post.
+- [x] La `rkey` se persiste antes de la llamada.
 
 **Subtareas**
-- [ ] Test RED (CA-04)
-- [ ] TID
-- [ ] `findPublished` y errores
+- [x] Test RED (CA-04)
+- [x] TID
+- [x] `findPublished` y errores
 
 **Notas**: Patrón: `PublishRequest::checkpoint()` y `InstagramPublisher::findPublished`. ⚠️ error del PDS ante `rkey` repetida sin verificar: ante cualquier error de `createRecord` se hace `getRecord` antes de fallar.
+
+**Verificación ejecutada**: php artisan test --compact tests/Unit/Bluesky/TidTest.php tests/Feature/Connectors/Bluesky/BlueskyIdempotencyTest.php -> verde (Unit/Bluesky + Feature/Connectors/Bluesky: 62 passed, 215 assertions): TID 13 caracteres base32-sortable y monotona; rkey persistida antes de createRecord; timeout con respuesta perdida -> getRecord lo encuentra y no se crea un segundo post; findPublished en el reintento; rkey reutilizada; errores traducidos (T-23). Tid.php y el uso de rkey se adelantaron a T-24 (video).
 
 ### T-26 — `BlueskyInsights` y métricas (`POST_COUNT`)
 

@@ -501,12 +501,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-15 — Contrato segregado: `OAuthConnector`, `CredentialConnector` y `credential_secret`
 
 - **Descripción**: `Connector` conserva lo común; nacen `OAuthConnector` y `CredentialConnector`; Meta, Google y TikTok pasan a `OAuthConnector`; `OAuthController` comprueba `instanceof`; columna cifrada `credential_secret`. Requisito: `design.md` §4 (O1) y CA-01.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Preparado el contrato de conexión para redes con contraseña de aplicación: el secreto se guarda cifrado y nunca se muestra.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en verde antes de tocar (se conserva como regresión).
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
@@ -517,17 +518,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/Connectors/ConnectorContractTest.php` → en verde (secreto cifrado, oculto y borrado al desconectar)
 
 **Criterios de aceptación**
-- [ ] Los 3 conectores actuales solo cambian `implements Connector` por `implements OAuthConnector`.
-- [ ] `credential_secret` es `encrypted`, `hidden` y se borra en `disconnect`.
-- [ ] `ConnectionCandidate::toPublicArray` nunca incluye el secreto.
+- [x] Los 3 conectores actuales solo cambian `implements Connector` por `implements OAuthConnector`.
+- [x] `credential_secret` es `encrypted`, `hidden` y se borra en `disconnect`.
+- [x] `ConnectionCandidate::toPublicArray` nunca incluye el secreto.
 
 **Subtareas**
-- [ ] Caracterización en verde de OAuth y refresco
-- [ ] Interfaces y migración
-- [ ] `OAuthController` con `instanceof`
-- [ ] `SocialAccountService` guarda y borra el secreto
+- [x] Caracterización en verde de OAuth y refresco
+- [x] Interfaces y migración
+- [x] `OAuthController` con `instanceof`
+- [x] `SocialAccountService` guarda y borra el secreto
 
 **Notas**: Patrón: `app/Connectors/Contracts/Connector.php:20-54`, `app/Http/Controllers/OAuth/OAuthController.php:47,91`, `app/Models/SocialAccount.php:41-56` (cifrado y `hidden`), `app/Connectors/Data/ConnectionCandidate.php` (`?string $secret` fuera de `toPublicArray`) y `app/Services/SocialAccountService.php:92` (`disconnect` borra el secreto). **No cambia el comportamiento** de las 3 redes actuales. Migración aditiva.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors tests/Feature/Auth tests/Feature/Connections -> 478 passed (2738 assertions), incluye ConnectorContractTest (secreto cifrado, oculto y borrado al desconectar; 404 OAuth para CredentialConnector); php artisan migrate aplicada. Caracterización previa: 256 passed antes de tocar.
 
 ### T-16 — Catálogo de redes en `Network` y `shell.networks`
 

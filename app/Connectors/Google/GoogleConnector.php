@@ -2,7 +2,7 @@
 
 namespace App\Connectors\Google;
 
-use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\OAuthConnector;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ConnectorException;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Log;
  *
  * `access_type=offline` + `prompt=consent` son imprescindibles para recibir siempre un refresh token.
  */
-class GoogleConnector implements Connector
+class GoogleConnector implements OAuthConnector
 {
     private const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 

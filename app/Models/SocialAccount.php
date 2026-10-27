@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *    duracion (~60 dias, `token_expires_at`), usado para renovar; data_access_expires_at = 90 dias.
  *  - Google: access_token (1 h) + refresh_token (offline).
  *  - TikTok: access_token (24 h) + refresh_token (365 dias, `refresh_expires_at`).
+ *  - Bluesky: access_token/refresh_token = JWT de sesion; credential_secret = app password (cifrada) para recrear la sesion.
  */
 class SocialAccount extends Model
 {
@@ -33,10 +34,10 @@ class SocialAccount extends Model
     protected $fillable = [
         'network', 'external_id', 'name', 'username', 'status', 'access_token', 'refresh_token',
         'token_expires_at', 'refresh_expires_at', 'data_access_expires_at', 'scopes', 'meta',
-        'last_error', 'connected_at', 'last_refreshed_at',
+        'last_error', 'connected_at', 'last_refreshed_at', 'credential_secret',
     ];
 
-    protected $hidden = ['access_token', 'refresh_token'];
+    protected $hidden = ['access_token', 'refresh_token', 'credential_secret'];
 
     protected function casts(): array
     {
@@ -44,6 +45,7 @@ class SocialAccount extends Model
             'network' => Network::class,
             'access_token' => 'encrypted',
             'refresh_token' => 'encrypted',
+            'credential_secret' => 'encrypted',
             'token_expires_at' => 'datetime',
             'refresh_expires_at' => 'datetime',
             'data_access_expires_at' => 'datetime',

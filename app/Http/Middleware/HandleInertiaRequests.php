@@ -103,9 +103,7 @@ class HandleInertiaRequests extends Middleware
             'brands' => $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'avatar_url' => $avatars[$b->id] ?? null])->values()->all(),
             'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name, 'avatar_url' => $avatars[$current->id] ?? null] : null,
             'accounts' => (object) $accounts,
-            'networks' => collect(Network::cases())->map(fn (Network $n) => [
-                'value' => $n->value, 'label' => $n->label(), 'provider' => $n->provider(),
-            ])->values()->all(),
+            'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
         ];
     }
 }

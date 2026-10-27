@@ -45,6 +45,8 @@ class ListAccounts extends SchedulerTool
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
+                // false = red apagada en esta instalacion (BLUESKY_ENABLED=false): sin tipos de contenido y create_post la rechaza.
+                'available' => ($a->network instanceof Network ? $a->network : Network::from($a->network))->isAvailable(),
                 'content_types' => array_values(array_map(
                     fn (ContentType $t) => $t->value,
                     array_filter(ContentType::forNetwork($a->network instanceof Network ? $a->network : Network::from($a->network)), fn (ContentType $t) => $t->isOffered()),

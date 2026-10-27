@@ -11,6 +11,7 @@ Los pasos marcados **[VPS]** requieren acceso SSH/root y se ejecutan a mano una 
 - Composer 2 y Node 22: `deploy.sh` compila los assets (`npm ci && npm run build`) y no da el deploy por bueno sin `public/build/manifest.json` (sin el, todas las paginas Inertia darian 500). Con `SKIP_BUILD=1` se omite la compilacion si el build llega por otro medio, pero el manifest sigue siendo obligatorio.
 - Git y acceso de lectura al repositorio (deploy key).
 - `ffprobe` (paquete `ffmpeg`) en el PATH del usuario de PHP-FPM y de los workers: se usa para leer duracion, fps y codec de los videos subidos (`FFPROBE_BINARY` si esta en otra ruta). Sin el, los videos se rechazan al subirlos.
+- `ffmpeg` (el mismo paquete) en el PATH de los workers (`FFMPEG_BINARY` si esta en otra ruta): reduce las fotos de movil para Bluesky (2 MB) con poca memoria (~30 MB de PHP para 24 MP). Sin el se usa GD, que con `memory_limit=256M` no puede con fotos de mas de ~14 MP y la publicacion falla con un mensaje claro. No hace falta `ext-exif`.
 - Media: **disco local** (`MEDIA_DISK=local`, por defecto en `.env.production.example`; ver `docs/modulos/despliegue.md` → Almacenamiento de media) o R2. Solo con R2: CORS del bucket (subida directa del navegador, T-17): permitir `PUT` desde el dominio de la app, cabeceras `Content-Type` y exponer `ETag` (lo necesita el multipart). Sin esto la subida falla en el navegador aunque las URLs prefirmadas sean correctas.
 
 ## 2. Dominio, BD y TLS [VPS]

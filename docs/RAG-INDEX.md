@@ -26,5 +26,7 @@
 | [referencia/pendientes-manuales.md](referencia/pendientes-manuales.md) | Qué debe hacer una persona | M-01..M-05, M-F6, `/privacy`, `/terms` |
 | [guias/desarrollo-local.md](guias/desarrollo-local.md) | Puesta en marcha con Laragon | `composer`, `npm`, ngrok, tests |
 | [guias/login-social-google-meta.md](guias/login-social-google-meta.md) | Activar el login con Google y Facebook | `GOOGLE_LOGIN_*`, `META_LOGIN_*`, redirect URIs |
+| [guias/bluesky-app-password.md](guias/bluesky-app-password.md) | Crear la app password de Bluesky y conectarla | app password, email verificado, vídeo, revocar |
+| [guias/threads-app-meta.md](guias/threads-app-meta.md) | Crear la app de Meta para Threads y conectarla | THREADS_APP_ID, THREADS_APP_SECRET, tester, URI de redirección, App Review |
 | [usuario/guia-de-usuario.md](usuario/guia-de-usuario.md) | Uso de la app | marcas, conectar, programar, informes |
 | [knowledge/README.md](knowledge/README.md) | ADR del proyecto | ADR-001, ADR-002 |

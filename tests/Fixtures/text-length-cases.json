@@ -1,0 +1,156 @@
+[
+ {
+  "name": "vacio",
+  "text": "",
+  "chars": 0,
+  "graphemes": 0,
+  "threads": 0
+ },
+ {
+  "name": "ascii",
+  "text": "hola mundo",
+  "chars": 10,
+  "graphemes": 10,
+  "threads": 10
+ },
+ {
+  "name": "espacios en los extremos se recortan",
+  "text": "  hola  ",
+  "chars": 4,
+  "graphemes": 4,
+  "threads": 4
+ },
+ {
+  "name": "tilde precompuesta",
+  "text": "canción",
+  "chars": 7,
+  "graphemes": 7,
+  "threads": 7
+ },
+ {
+  "name": "e + acento combinante",
+  "text": "é",
+  "chars": 2,
+  "graphemes": 1,
+  "threads": 2
+ },
+ {
+  "name": "emoji simple",
+  "text": "😀",
+  "chars": 1,
+  "graphemes": 1,
+  "threads": 4
+ },
+ {
+  "name": "familia con ZWJ",
+  "text": "👨‍👩‍👧‍👦",
+  "chars": 7,
+  "graphemes": 1,
+  "threads": 25
+ },
+ {
+  "name": "bandera (indicadores regionales)",
+  "text": "🇪🇸",
+  "chars": 2,
+  "graphemes": 1,
+  "threads": 8
+ },
+ {
+  "name": "pulgar con tono de piel",
+  "text": "👍🏽",
+  "chars": 2,
+  "graphemes": 1,
+  "threads": 8
+ },
+ {
+  "name": "corazon con selector de variacion",
+  "text": "❤️",
+  "chars": 2,
+  "graphemes": 1,
+  "threads": 6
+ },
+ {
+  "name": "tres familias",
+  "text": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+  "chars": 21,
+  "graphemes": 3,
+  "threads": 75
+ },
+ {
+  "name": "bandera arcoiris (VS16 + ZWJ)",
+  "text": "🏳️‍🌈",
+  "chars": 4,
+  "graphemes": 1,
+  "threads": 14
+ },
+ {
+  "name": "ideogramas",
+  "text": "漢字",
+  "chars": 2,
+  "graphemes": 2,
+  "threads": 2
+ },
+ {
+  "name": "250 banderas",
+  "text": "🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸",
+  "chars": 500,
+  "graphemes": 250,
+  "threads": 2000
+ },
+ {
+  "name": "keycap",
+  "text": "1️⃣",
+  "chars": 3,
+  "graphemes": 1,
+  "threads": 7
+ },
+ {
+  "name": "devanagari kshatriya",
+  "text": "क्षत्रिय",
+  "chars": 8,
+  "graphemes": 3,
+  "threads": 8
+ },
+ {
+  "name": "devanagari namaste",
+  "text": "नमस्ते",
+  "chars": 6,
+  "graphemes": 3,
+  "threads": 6
+ },
+ {
+  "name": "e NFD con tilde combinante",
+  "text": "café niño",
+  "chars": 11,
+  "graphemes": 9,
+  "threads": 11
+ },
+ {
+  "name": "zalgo",
+  "text": "z͂̽̚a̍͊l̀́̂g̃̄̅ŏ̇",
+  "chars": 18,
+  "graphemes": 5,
+  "threads": 18
+ },
+ {
+  "name": "emoji entre texto devanagari",
+  "text": "नमस्ते 👨‍👩‍👧 क्षत्रिय 🇪🇸!",
+  "chars": 25,
+  "graphemes": 12,
+  "threads": 44
+ },
+ {
+  "name": "keycap",
+  "text": "1️⃣ #️⃣",
+  "chars": 7,
+  "graphemes": 3,
+  "threads": 15
+ },
+ {
+  "name": "emoji tras marca combinante",
+  "text": "é😀",
+  "chars": 3,
+  "graphemes": 2,
+  "threads": 6
+ }
+]

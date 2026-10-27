@@ -7,7 +7,8 @@ import { computed } from 'vue';
 import LineChart from './Partials/LineChart.vue';
 import NetworkTabs from './Partials/NetworkTabs.vue';
 import PeriodFilter from './Partials/PeriodFilter.vue';
-import { deltaClass, fmt, fmtPct, NETWORK_COLORS, UNAVAILABLE } from './Partials/format';
+import { useNetworks } from '@/Composables/useNetworks';
+import { deltaClass, fmt, fmtPct, UNAVAILABLE } from './Partials/format';
 
 /**
  * Pagina por red (T-37, inspirada en Analytics > Facebook de Metricool): Crecimiento (seguidores), Visibilidad,
@@ -23,11 +24,12 @@ const props = defineProps({
 });
 
 const networkInfo = computed(() => (usePage().props.shell?.networks ?? []).find((n) => n.value === props.detail?.network.value));
-const color = computed(() => NETWORK_COLORS[props.detail?.network.value] ?? '#4f46e5');
+const catalog = useNetworks();
+const color = computed(() => catalog.color(props.detail?.network.value));
 const metric = (key) => props.detail.metrics.find((m) => m.key === key);
 const GROUPS = [
     { title: 'Visibilidad', keys: ['views', 'reach', 'profile_views', 'watch_minutes'] },
-    { title: 'Interacciones', keys: ['interactions', 'likes', 'comments', 'shares', 'accounts_engaged'] },
+    { title: 'Interacciones', keys: ['interactions', 'likes', 'comments', 'shares', 'clicks', 'accounts_engaged'] },
     { title: 'Contenido', keys: ['video_count'] },
 ];
 const group = (g) => g.keys.map(metric).filter(Boolean);

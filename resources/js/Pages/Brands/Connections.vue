@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import CredentialsForm from '@/Components/Connections/CredentialsForm.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -99,9 +100,10 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                     class="card p-6"
                     :data-network="n.network"
                 >
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <h2 class="flex items-center gap-2.5 font-semibold text-slate-900"><NetworkIcon :network="n.network" />{{ n.label }}</h2>
-                        <SecondaryButton v-if="n.available" type="button" @click="connect(n.provider)">+ Conectar</SecondaryButton>
+                        <CredentialsForm v-if="n.available && n.auth_kind === 'credentials'" :brand-id="brand.id" :provider="n.provider" :label="n.label" :fields="n.fields" />
+                        <SecondaryButton v-else-if="n.available" type="button" @click="connect(n.provider)">+ Conectar</SecondaryButton>
                         <span v-else class="text-xs text-slate-500">No disponible</span>
                     </div>
 
@@ -123,13 +125,13 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                     </span>
                                 </label>
                                 <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
-                                    Las publicaciones programadas se conservan, pero no se enviarán hasta que reconectes.
+                                    Las publicaciones programadas se conservan, pero no se enviarán hasta que reconectes<template v-if="a.auth_kind === 'credentials'"> (pulsa «+ Conectar» con una app password nueva)</template>.
                                     <span v-if="a.last_error">({{ a.last_error }})</span>
                                 </p>
                             </div>
                             <div class="flex items-center gap-3 text-sm">
                                 <button
-                                    v-if="a.status !== 'activa'"
+                                    v-if="a.status !== 'activa' && a.auth_kind !== 'credentials'"
                                     type="button"
                                     class="link"
                                     @click="connect(a.provider, a.provider === 'meta')"

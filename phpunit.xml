@@ -20,6 +20,7 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="SOCIAL_BEST_TIMES_CACHE_MINUTES" value="0"/>
+        <env name="SOCIAL_ALL_BRANDS_CACHE_MINUTES" value="0"/>
         <env name="APP_LOCALE" value="es"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

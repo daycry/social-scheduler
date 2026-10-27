@@ -11,7 +11,7 @@ import { countChars } from '@/Composables/textCount';
  * o PERSONALIZADA con su propio texto (indicador visible y «Volver al texto común»). Se pueden mezclar; si se edita el texto común,
  * solo cambian las redes vinculadas.
  */
-const { form, accounts, editable, byNetwork, currentTab, isUnlinked, hasOwnText, unlink, relink, unlinkedCount, textOf, openTargetText } = useComposerContext();
+const { form, accounts, editable, byNetwork, currentTab, isUnlinked, hasOwnText, unlink, relink, unlinkedCount, textOf, openTargetText, charsOf } = useComposerContext();
 
 const editor = ref(null);
 const confirming = ref(null); // cuenta cuyo «Volver al texto común» espera confirmación
@@ -61,10 +61,10 @@ const confirmRelink = (row) => {
     nextTick(() => document.getElementById(`personalize-${row.key}`)?.focus());
 };
 
-const count = computed(() => (active.value ? countChars(textOf(active.value.target)) : countChars(form.text)));
+const count = computed(() => (active.value ? charsOf(active.value.target) : countChars(form.text)));
 const summary = computed(() => (unlinkedCount.value === 1 ? '1 red con texto propio' : `${unlinkedCount.value} redes con texto propio`));
 
-defineExpose({ insertAtCursor: (text) => editor.value?.insertAtCursor(text), focus: () => editor.value?.focus() });
+defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(text, options), focus: () => editor.value?.focus() });
 </script>
 
 <template>

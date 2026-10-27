@@ -1,10 +1,5 @@
-export const NETWORK_COLORS = {
-    instagram: '#db2777',
-    facebook: '#2563eb',
-    youtube: '#dc2626',
-    tiktok: '#111827',
-    total: '#4f46e5',
-};
+/** Color del total agregado. El de cada red sale del catalogo del servidor (`useNetworks().color`). */
+export const TOTAL_COLOR = '#4f46e5';
 
 export const UNAVAILABLE = 'No disponible';
 

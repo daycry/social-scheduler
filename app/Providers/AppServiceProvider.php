@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Connectors\Bluesky\BlueskyConnector;
+use App\Connectors\Bluesky\BlueskyInsights;
+use App\Connectors\Bluesky\BlueskyPublisher;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
@@ -12,6 +15,9 @@ use App\Connectors\Meta\Insights as MetaInsights;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
+use App\Connectors\Threads\ThreadsConnector;
+use App\Connectors\Threads\ThreadsInsights;
+use App\Connectors\Threads\ThreadsPublisher;
 use App\Connectors\TikTok\Display as TikTokDisplay;
 use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
@@ -50,7 +56,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Los conectores de cada proveedor se registran aqui (T-12 Meta, T-13 Google, T-14 TikTok).
         $this->app->singleton(ConnectorRegistry::class, function () {
-            return (new ConnectorRegistry)
+            $registry = (new ConnectorRegistry)
                 ->register(new MetaConnector)
                 ->register(new GoogleConnector)
                 ->register(new TikTokConnector)
@@ -64,6 +70,22 @@ class AppServiceProvider extends ServiceProvider
                 ->registerInsights(Network::Facebook, new MetaInsights(new GraphClient))
                 ->registerInsights(Network::YouTube, new YouTubeAnalytics)
                 ->registerInsights(Network::TikTok, new TikTokDisplay);
+
+            // Bluesky (C-01, D1: handle + app password). Se puede apagar con BLUESKY_ENABLED=false.
+            if (config('social.bluesky.enabled', true)) {
+                $registry->register($this->app->make(BlueskyConnector::class))
+                    ->registerPublisher(Network::Bluesky, $this->app->make(BlueskyPublisher::class))
+                    ->registerInsights(Network::Bluesky, $this->app->make(BlueskyInsights::class));
+            }
+
+            // Threads (C-02, D2: app de Meta propia). Solo con THREADS_ENABLED y THREADS_APP_ID: sin ellos la red no existe en ninguna superficie.
+            if (Network::Threads->isAvailable()) {
+                $registry->register($this->app->make(ThreadsConnector::class))
+                    ->registerPublisher(Network::Threads, $this->app->make(ThreadsPublisher::class))
+                    ->registerInsights(Network::Threads, $this->app->make(ThreadsInsights::class));
+            }
+
+            return $registry;
         });
     }
 
@@ -109,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
             ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
             : Limit::none());
+        RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
+            ->by('giphy:'.($request->user()?->id ?? $request->ip())));
+
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
         // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).

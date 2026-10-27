@@ -41,6 +41,14 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers; `media` es la de las importaciones por URL y Drive |
 | `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» (también sin `GOOGLE_PICKER_APP_ID`) ([guía](../guias/google-cloud-picker-drive.md)) |
 | `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
+| `GIPHY_API_KEY` | vacío | Clave *beta* de Giphy (100 llamadas/hora); vacía = sin botón «GIF» en el compositor. La usa solo el servidor ([medios](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b)) |
+| `SOCIAL_GIPHY_HOURLY_LIMIT` | 90 | Llamadas reales a Giphy por hora antes de pedir esperar (las respuestas en caché no cuentan; `SOCIAL_GIPHY_CACHE_MINUTES`, 10). Guía: [Giphy](../guias/giphy-api-key.md) |
+| `SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT` | 30 | Llamadas reales a Giphy por usuario y hora (uno solo no agota el tope global de `SOCIAL_GIPHY_HOURLY_LIMIT`) |
+| `SOCIAL_GIPHY_PER_USER_PER_MINUTE` | 20 | Búsquedas de GIF por usuario y minuto (limitador `giphy`; sin sesión, por IP) |
+| `SOCIAL_GIPHY_RATING` / `SOCIAL_GIPHY_LIMIT` | `pg-13` / 24 | Clasificación máxima de los GIF (`g`, `pg`, `pg-13`, `r`) y resultados por búsqueda |
+| `SOCIAL_HASHTAGS_MIN_USES` / `_LIMIT` / `_DAYS` / `_CACHE_MINUTES` | 2 / 15 / 365 / 60 | Hashtags sugeridos del histórico propio de la marca: usos mínimos, sugerencias devueltas, días de ventana y caché (minutos) |
+| `SOCIAL_EXPORT_MAX_ROWS` | 5000 | Tope de filas de la exportación CSV de la lista de publicaciones; por encima se recorta y se avisa |
+| `SOCIAL_ALL_BRANDS_CACHE_MINUTES` | 5 | Caché por usuario y periodo de «Todas las marcas» (0 = sin caché) |
 | `MEDIA_IMPORT_QUEUE` | `media` | Cola de `ImportRemoteMedia` |
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
 | `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |
@@ -60,8 +68,11 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `R2_URL` | vacío | Dominio público del bucket |
 | `R2_REGION` | `auto` | |
 | `R2_CONNECT_TIMEOUT`, `R2_TIMEOUT` | `3`, `5` | Segundos; evitan colgar el request si R2 no responde |
+| `FFPROBE_BINARY`, `FFPROBE_TIMEOUT` | `ffprobe`, `60` | Binario obligatorio para validar vídeo (duración, fps, códec) |
+| `FFMPEG_BINARY`, `FFMPEG_TIMEOUT` | `ffmpeg`, `60` | Recomendado: recomprime con poca memoria las fotos de más de 2 MB para Bluesky; sin él se usa GD (carga la imagen entera). `MEDIA_DOWNSCALE_BUDGET_SECONDS` (90) acota la pasada |
 
-Los límites de tamaño y sondeo (`MEDIA_*`, `FFPROBE_*`) no están en `.env.example`; ver [media](../modulos/media.md).
+
+Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`; ver [media](../modulos/media.md).
 
 ## Credenciales de las redes
 
@@ -74,6 +85,15 @@ Los límites de tamaño y sondeo (`MEDIA_*`, `FFPROBE_*`) no están en `.env.exa
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente web de Google Cloud. Consentimiento "En producción" para que el refresh token no caduque |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | App de TikTok (sandbox o producción) |
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
+| `BLUESKY_ENABLED` | `true`. `false` retira Bluesky de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conecta con una app password cifrada: [guía](../guias/bluesky-app-password.md) |
+| `BLUESKY_IMAGE_MAX_BYTES`, `BLUESKY_VIDEO_MAX_BYTES` | `2000000` y `52428800` bytes. Topes de media; la foto mayor se recomprime y el vídeo mayor se rechaza al guardar |
+| `BLUESKY_UPLOAD_TIMEOUT` | `80`. Segundos de la subida del vídeo (una petición dentro de los 85 s del paso del job de 110 s) |
+| `BLUESKY_ENTRYWAY`, `BLUESKY_PLC_DIRECTORY`, `BLUESKY_APPVIEW`, `BLUESKY_VIDEO_SERVICE`, `BLUESKY_ALLOWED_HOSTS`, `BLUESKY_DEFAULT_LANGS` | Ver `config/social.php`. Hosts fijos (lista cerrada contra SSRF) e idioma por defecto (`es`); no hace falta tocarlos |
+| `THREADS_APP_ID`, `THREADS_APP_SECRET` | ID y secreto **de Threads** de la app de Meta (hay dos pares; Configuración → Básica). Sin `THREADS_APP_ID` la red no se ofrece. Guía: [Threads](../guias/threads-app-meta.md) |
+| `THREADS_ENABLED` | `true`. `false` retira Threads de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan) |
+| `THREADS_AUTH_HOST`, `THREADS_GRAPH_HOST`, `THREADS_API_VERSION` | `https://threads.com`, `https://graph.threads.com` y `v1.0` (en `config/social.php`, por si Meta los cambia) |
+| `THREADS_TOKEN_HEADER` | `false`. `true` manda el token de la API en `Authorization: Bearer` en lugar del cuerpo/query documentados; activarlo solo si el smoke (M-02) confirma que Threads lo acepta |
+| `THREADS_PUBLISH_QUOTA` | `250`. Publicaciones por 24 h si la API no devuelve el total |
 
 Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
 
@@ -84,6 +104,8 @@ Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
 | `SOCIAL_REFRESH_MARGIN_META_HOURS` | `168` | Renueva 7 días antes |
 | `SOCIAL_REFRESH_MARGIN_GOOGLE_HOURS` | `1` | |
 | `SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS` | `6` | Access de 24 h |
+| `SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS` | `1` | La sesión de Bluesky dura minutos; se renueva con el refresh token |
+| `SOCIAL_REFRESH_MARGIN_THREADS_HOURS` | `168` | Token largo de 60 días; la renovación exige ≥ 24 h de antigüedad |
 | `SOCIAL_REFRESH_QUEUE` | `poll` | |
 | `SOCIAL_HTTP_TIMEOUT` | `15` | Segundos por llamada a una red |
 | `SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES` | `12` | ≈ 6 h de fallos seguidos antes de pedir reconexión |
@@ -138,7 +160,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `SOCIAL_ANALYTICS_DAILY_AT` | `12:00` (UTC) | Hora del snapshot diario |
 | `SOCIAL_ANALYTICS_SETTLE_DAYS` | `3` | Días de reintento de snapshots incompletos |
 | `SOCIAL_BACKFILL_ON_CONNECT` | `true` | Histórico inicial al conectar |
-| `SOCIAL_BACKFILL_DAYS_{INSTAGRAM,FACEBOOK,YOUTUBE}` | `30`, `90`, `365` | Días de histórico |
+| `SOCIAL_BACKFILL_DAYS_{INSTAGRAM,FACEBOOK,YOUTUBE,THREADS}` | `30`, `90`, `365`, `30` | Días de histórico |
 
 ## Resumen de decisiones por confirmar
 
@@ -171,3 +193,4 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |
 | `AI_ASSISTANT_MODEL` / `_MAX_TOKENS` / `_TIMEOUT` | `claude-sonnet-5-5` / `600` / `30` | Modelo y límites de la llamada a la Messages API |
+| `AI_ASSISTANT_SCHEDULE_MAX_DAYS` | `365` | «Escribe cuándo»: la fecha propuesta no puede quedar a más de estos días |

@@ -25,6 +25,7 @@ const props = defineProps({
     firstCommentMax: { type: Object, default: () => ({}) },
     presets: Object,
     drivePicker: { type: Object, default: null },
+    giphy: { type: Object, default: () => ({ enabled: false }) },
     savedTexts: { type: Array, default: () => [] },
     campaigns: { type: Array, default: () => [] },
     post: Object,

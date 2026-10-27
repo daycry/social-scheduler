@@ -153,7 +153,7 @@ class InboxService
     /**
      * Bandeja de comentarios de terceros del usuario, mas recientes primero.
      *
-     * @param  array{network?: ?string, unread?: bool, brand_id?: ?int, hidden?: ?bool}  $filters
+     * @param  array{network?: ?string, unread?: bool, brand_id?: ?int, hidden?: ?bool, has_notes?: bool}  $filters
      */
     public function query(User $user, array $filters = []): Builder
     {
@@ -161,6 +161,7 @@ class InboxService
             ->when(! empty($filters['network']), fn (Builder $q) => $q->where('network', $filters['network']))
             ->when(! empty($filters['brand_id']), fn (Builder $q) => $q->where('brand_id', $filters['brand_id']))
             ->when(! empty($filters['unread']), fn (Builder $q) => $q->whereNull('read_at'))
+            ->when(! empty($filters['has_notes']), fn (Builder $q) => $q->whereHas('notes'))
             ->when(isset($filters['hidden']), fn (Builder $q) => $q->where('hidden', (bool) $filters['hidden']))
             ->orderByDesc('commented_at')->orderByDesc('id');
     }

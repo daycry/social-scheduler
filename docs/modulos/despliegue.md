@@ -28,7 +28,7 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 
 - HestiaCP con Nginx + PHP-FPM 8.4/8.5 y MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED` para varios workers).
 - Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip` y, para las passkeys, `openssl` y `sodium` (ver [Seguridad de cuenta](#seguridad-de-cuenta-2fa-y-passkeys)). Composer 2 y Node 22. En el PHP de **consola**, `pcntl` sin desactivar (lo necesita `queue:work`; ver [Cron y workers](#cron-y-workers)).
-- `ffprobe` en el PATH de PHP-FPM y de los workers.
+- `ffprobe` en el PATH de PHP-FPM y de los workers (`FFPROBE_BINARY`). `ffmpeg` (`FFMPEG_BINARY`) es **recomendado**: recomprime con poca memoria las fotos de más de 2 MB para Bluesky; sin él se usa GD, que carga la imagen entera.
 - Almacenamiento de media: **disco local del servidor** (este despliegue, ver [Almacenamiento de media](#almacenamiento-de-media)) o un bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
 
 ## Pasos
@@ -143,6 +143,8 @@ Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la 
 ```bash
 sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media
 ```
+
+Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). No hace falta ningún worker nuevo: `QUEUE_NAMES` sigue siendo `publish,poll,metrics,reports,media`.
 
 Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). `--timeout` (120 s) debe ser mayor que el job más largo y menor que `retry_after` (180 s). Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`.
 

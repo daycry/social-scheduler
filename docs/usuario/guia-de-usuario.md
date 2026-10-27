@@ -1,6 +1,6 @@
 # Guía de usuario
 
-Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube y TikTok, y te muestra cómo van tus cuentas. Está pensado para uso personal.
+Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube, TikTok y Bluesky, y te muestra cómo van tus cuentas. Está pensado para uso personal.
 
 ## Primeros pasos
 
@@ -10,14 +10,46 @@ Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube y Ti
 
 Si tienes varias páginas o canales, la app te pide elegir cuál conectar.
 
+Bluesky no usa una pantalla de permisos: se conecta con tu handle y una contraseña de aplicación (ver [Conectar Bluesky](#conectar-bluesky-con-una-app-password)).
+
 Avisos al conectar:
 
 - **Google/YouTube**: puede aparecer "Google no ha verificado esta aplicación". Es esperado en uso personal: pulsa Continuar.
 - **Instagram**: necesita una cuenta profesional enlazada a una Página de Facebook.
 
+## Conectar Bluesky con una app password
+
+Bluesky no tiene el botón «Autorizar» de las otras redes: se conecta con una **app password** (contraseña de aplicación). Guía completa: [Bluesky: crear una app password](../guias/bluesky-app-password.md). Es una contraseña aparte, solo para esta app, que puedes revocar cuando quieras sin tocar tu contraseña de siempre.
+
+**Crear la app password**
+
+1. Entra en Bluesky (web `bsky.app` o la app) con tu cuenta.
+2. Abre **Configuración → Privacidad y seguridad → Contraseñas de aplicación** (en inglés, *Settings → Privacy and security → App passwords*; también en `https://bsky.app/settings/app-passwords`).
+3. Pulsa **Añadir contraseña de aplicación**, ponle un nombre (por ejemplo «Social Scheduler») y créala.
+4. Copia la contraseña (formato `xxxx-xxxx-xxxx-xxxx`). **Bluesky solo te la enseña una vez.** No actives el permiso de mensajes directos: no hace falta.
+
+**Conectarla**
+
+1. En las **Conexiones** de tu marca, ve a la tarjeta de Bluesky y pulsa **+ Conectar**.
+2. Escribe tu **handle** completo (por ejemplo `tunombre.bsky.social`, sin la `@`) y pega la app password.
+3. Pulsa **Conectar Bluesky**. Si todo es correcto, la cuenta aparece como «Conectada».
+
+La app password se guarda **cifrada** y no se vuelve a mostrar. Si te equivocas, el mensaje te lo dice sin guardar nada.
+
+**Si deja de funcionar**: si la revocas en Bluesky o cambias de handle, la cuenta pasa a «Requiere reconexión» y las publicaciones programadas se conservan. Crea una app password nueva y vuelve a pulsar **+ Conectar** (no hay botón «Reconectar»). Para dejar de usar la app, desconecta la cuenta aquí y **revoca la app password** en Bluesky.
+
+### Qué se puede publicar en Bluesky
+
+- **Publicación:** texto de hasta **300 caracteres** y hasta 4 imágenes. Un emoji compuesto (como una familia) cuenta como 1. Los enlaces, los `#hashtags` y las `@menciones` salen clicables; una mención a un handle que no existe queda como texto normal.
+- **Imágenes:** hasta 2 MB cada una. Si una pesa más, se publica una copia reducida (tu original no cambia); si no se puede reducir, la app te lo dice al guardar.
+- **Vídeo:** un MP4 de hasta **50 MB** en esta instalación (se rechaza al guardar si pesa más) y hasta 3 minutos. Bluesky pide tener el **email de la cuenta verificado** y limita los vídeos por día; si no se puede, la publicación falla con un mensaje claro. Tras subirlo, Bluesky lo procesa unos minutos y la publicación aparece como «Procesando».
+- **Estadísticas:** seguidores y publicaciones de la cuenta, y me gusta, comentarios y compartidos de cada publicación. Bluesky no da visualizaciones ni alcance: se muestran como «no disponible».
+
 ## Subir contenido
 
 En la biblioteca de **Media** sube imágenes y vídeos. El archivo va directo al almacenamiento; la app comprueba formato, tamaño, duración y proporción. Instagram solo acepta imágenes JPEG. Si algo no cumple, te dice qué cambiar.
+
+Si tu instalación tiene la clave de Giphy, en el compositor verás el botón **GIF**: busca (o mira los del momento), pulsa uno y se añade a la publicación como un **vídeo MP4**. Ten en cuenta que los GIF suelen durar **menos de 3 segundos**, y los Reels de Instagram y Facebook y los vídeos de TikTok exigen al menos 3: en esas redes te lo dirá al guardar. En Bluesky y Threads valen como un vídeo más. El buscador muestra «Powered by GIPHY»; si haces muchas búsquedas seguidas te pedirá esperar unos minutos.
 
 ## Crear y programar una publicación
 
@@ -37,6 +69,8 @@ El compositor ocupa toda la pantalla. Arriba eliges las redes con pastillas; cad
 - **Notas.** Un campo de notas internas para tu equipo o para ti. Nunca se publican. Se pueden editar también cuando la publicación ya está en curso o publicada (no tocan lo publicado). En el calendario, las publicaciones con notas llevan la insignia **Nota**, para que veas de un vistazo cuáles tienen indicaciones del equipo.
 - **UTM.** El botón de enlaces abre un generador: escribes la dirección y los parámetros `utm_` (origen, medio y campaña son obligatorios) y **Añadir** inserta el enlace ya montado en el texto.
 - **Emojis y asistente de texto** desde la barra del editor.
+- **Escribe cuándo (con IA).** Si el asistente de IA está activado, debajo de la fecha aparece **Escribe cuándo**: escribe, por ejemplo, «el viernes a las 18 en Instagram y Bluesky» y pulsa **Proponer fecha**. Verás la propuesta (la fecha y hora en la zona de tu marca y las redes) y **no se aplica nada hasta que pulses Aplicar**; **Descartar** la quita. Solo propone **una fecha** por publicación, y las redes que la marca no tenga conectadas se avisan y se ignoran. Qué se envía a Anthropic: únicamente tu frase (sin correos, teléfonos ni enlaces), la fecha de hoy, la zona horaria y la lista de redes; nunca el texto de tu publicación, tus cuentas ni tu media. Cada propuesta cuenta en tu límite diario de usos de IA, el mismo que «Sugerir texto».
+- **Hashtags sugeridos.** El botón **Hashtags** de la barra del editor te propone etiquetas a partir de **tu propio historial**: las que ya has usado **al menos 2 veces** en publicaciones de esa marca, ordenadas de mejor a peor según las interacciones que lograron (junto a cada una ves cuántas veces la usaste y cuánto mejoró o empeoró sobre tu media). **No usa inteligencia artificial** ni envía nada a terceros: todo sale de tus datos. Pulsa una etiqueta y se inserta en la posición del cursor, con un espacio a cada lado si hace falta. Si el texto supera el máximo de hashtags de una red (por ejemplo 30 en Instagram) se avisa. Si aún no hay datos suficientes, el menú lo explica: publica con hashtags y espera a tener métricas.
 - **Textos guardados.** Guarda firmas, llamadas a la acción o grupos de hashtags y reutilízalos. Créalos en **Textos guardados** (menú de tu usuario, arriba a la derecha): elige el tipo (**Fragmento** o **Grupo de hashtags**), un título, el texto y, si quieres, una marca; sin marca valen para **Todas las marcas**. Puedes buscarlos, filtrarlos por marca, editarlos y borrarlos. En el compositor, el botón **Textos guardados** de la barra muestra los de la marca actual y los de Todas las marcas; al elegir uno se inserta **en la posición del cursor** del campo en el que estabas escribiendo (el texto común o el texto propio de una red) y el contador de hashtags se actualiza. Solo tú ves tus textos.
 - **Primer comentario.** En Instagram, Facebook y YouTube puedes escribir un comentario que la cuenta deja justo después de publicar (por ejemplo, el enlace o los hashtags). Aparece en las opciones de cada red, con un contador que respeta el máximo de la red (Instagram 2.200, Facebook 8.000, YouTube 10.000); en TikTok y en las Historias no existe. Tras publicar, el estado se ve en **Estado por red**: **Pendiente**, **Comentando**, **Comentado**, **Fallido** (con el motivo) o **No admitido** (comentarios cerrados o vídeo privado o «para niños»). Si falla, recibes un aviso en la app; pulsa **Editar** para corregir el texto y **Reintentar**. Si el comentario falló porque la app no pudo comprobar si ya estaba en la red (la búsqueda quedó inconclusa) y podría existir ya, **Reintentar** no lo vuelve a crear a ciegas y el aviso ofrece dos salidas: **Ya está publicado** (lo has visto tú en la red; lo cierra como publicado sin tocar la red, así que un «publicado» marcado a mano no queda enlazado al comentario real) y **Publicar igualmente** (lo crea de todos modos, con el riesgo de que quede **duplicado** si ya estaba; solo se envía una vez por clic). La publicación sigue como **Publicada** aunque el comentario falle. El primer comentario no se guarda en la biblioteca. **YouTube:** hay que **reconectar el canal** una vez para dar el permiso de comentarios; hasta entonces el campo sale desactivado con el aviso «Reconecta el canal para comentar». Desde un asistente de IA (MCP) puedes indicarlo al crear o editar, pero no corregir un comentario fallido: eso se hace en la web.
 - **Programar, borrador y Publicar ahora.** El botón principal programa; el menú que lo acompaña (**Más acciones de publicación**) guarda como borrador, guarda en la biblioteca o **publica ahora**. Publicar ahora no espera a la fecha: pide confirmación y envía la publicación enseguida. Durante unos segundos el estado se ve «Programada» hasta que se empieza a publicar. También lo ofrecen el calendario y la lista. Si sales con cambios sin guardar, la app te avisa.
@@ -60,9 +94,17 @@ Cada subida gasta unas 1.600 de las 10.000 unidades diarias: unas 6 subidas al d
 
 Por ahora el vídeo se envía como **borrador a tu bandeja de TikTok**: recibirás la notificación y terminas de publicarlo en la app. La publicación directa se activará cuando TikTok apruebe la auditoría. En la app aparece como "Publicada" con la nota "revisa tus borradores".
 
+### Bluesky
+
+Texto de hasta 300 caracteres con hasta 4 imágenes, o un vídeo MP4 de hasta 50 MB. Los contadores del compositor cuentan como Bluesky (un emoji compuesto es 1 carácter). Más detalle y cómo conectar la cuenta: [Conectar Bluesky](#conectar-bluesky-con-una-app-password).
+
 ## Calendario
 
 Vista de semana o mes (y lista) con el estado por red. Puedes filtrar por red y reprogramar una publicación pendiente moviéndola.
+
+### Vistas guardadas
+
+Si usas siempre los mismos filtros, guárdalos: filtra el calendario por marca, red y estado (y elige Semana, Mes o Lista), abre **Vistas**, escribe un nombre (por ejemplo «Pendientes IG») y pulsa **Guardar vista**. Más tarde, desde cualquier otro filtro, abre **Vistas** y elige esa vista: se vuelven a aplicar la marca, la red, el estado y la vista. Desde el mismo menú puedes **Renombrar**, **Borrar** o **Poner por defecto** una vista: la de por defecto se aplica sola al abrir el calendario sin filtros. Un asistente de IA (MCP) las lee con `list_calendar_views` y las usa con `get_calendar` y `view`.
 
 ### Cuadrícula de Instagram
 
@@ -72,6 +114,10 @@ En **Planificación > Cuadrícula** ves cómo quedará el perfil de una cuenta d
 - Los posts **fijados** en el perfil no se reflejan: aquí se ordena por fecha.
 - Las miniaturas se recortan en vertical, así que pueden no coincidir exactamente con el recorte de Instagram. Un carrusel muestra su primera pieza y un vídeo sin miniatura muestra su primer fotograma.
 - Lo publicado se lee de Instagram y se **actualiza cada 10 minutos**; una publicación recién hecha puede tardar en salir. Si Instagram no responde o la cuenta necesita reconectarse, verás un aviso y lo programado se sigue mostrando.
+
+## Inbox de comentarios
+
+En **Inbox** ves los comentarios de tus publicaciones de Instagram y Facebook. Además de responder u ocultar, puedes dejar **notas internas** en cada comentario: pulsa **Añadir nota interna**, escribe (hasta 2.000 caracteres) y **Guardar nota**. Las notas solo las ve tu equipo, **no se envían ni se publican en ninguna red**, salen en orden cronológico bajo el comentario y se pueden borrar con **Borrar**. Los comentarios con notas llevan la insignia **con nota** y el filtro **Solo con nota** deja únicamente esos. Las notas no se pierden cuando el inbox se actualiza. Un asistente de IA (MCP) las lee en `list_comments` y añade otra con `add_comment_note`.
 
 ## Campañas
 
@@ -84,6 +130,21 @@ Al abrir una campaña ves publicaciones, visualizaciones, **alcance acumulado**,
 ## Estadísticas
 
 El **Dashboard** muestra por marca seguidores, alcance, visualizaciones e interacciones, con total y desglose por red. Elige el periodo y compara con otro. Las métricas que una red no ofrece se muestran como "no disponible", nunca como 0. Los datos se actualizan una vez al día (sobre las 12:00 UTC); los de las publicaciones recientes, cada 6 horas.
+
+### Todas las marcas
+
+Si tienes más de una marca, el botón **Todas las marcas** del Dashboard abre la suma de todas ellas: seguidores (acumulado), visualizaciones, alcance e interacciones con su desglose por red, una gráfica y una tabla con una fila por marca. Puedes cambiar el periodo y comparar igual que en una marca.
+
+- Cada cifra suma las marcas que la tienen. Si ninguna la ofrece sale **No disponible**, nunca 0.
+- «Acumulado» suma el último dato de cada cuenta: no cuenta personas únicas.
+- Los días son días UTC. Con las mismas fechas, las cifras coinciden con las del Dashboard de cada marca.
+- Pulsa el nombre de una marca de la tabla para ver su Dashboard.
+
+### Exportar a CSV
+
+- **Publicaciones.** En el **Calendario**, vista **Lista**, filtra por marca, red o estado (o abre una vista guardada) y pulsa **Exportar CSV**. Se descarga un fichero con las publicaciones que ves: fecha, marca, red, cuenta, tipo, estado, texto, enlace y las métricas del último dato (lo que no se puede medir queda vacío, nunca 0). Se exportan como máximo **5.000 filas**; si hay más, la Lista te avisa y puedes filtrar para sacar el resto.
+- **Estadísticas.** En el **Dashboard** (de una marca) y en **Todas las marcas**, **Exportar CSV** descarga las cifras del periodo elegido, con la comparación si la activaste.
+- **Excel.** El fichero es UTF-8 con BOM y separa con `;`, así que Excel en español lo abre con los acentos bien. Si un texto empieza por `=`, `+`, `-` o `@`, lleva un `'` delante para que Excel no lo ejecute como fórmula: es normal y es por seguridad.
 
 ## Informes
 

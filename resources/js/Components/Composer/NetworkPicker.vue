@@ -23,7 +23,7 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
                     type="button"
                     :aria-pressed="!!targetFor(account.id)"
                     :aria-label="`${account.network_label}: ${account.name}${account.status !== 'activa' ? '. Requiere reconexión' : ''}`"
-                    :disabled="!editable"
+                    :disabled="!editable || account.available === false"
                     class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
                     :class="targetFor(account.id) ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
                     @click="toggleAccount(account, !targetFor(account.id))"
@@ -31,7 +31,8 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
                     <NetworkIcon :network="account.network" size="sm" />
                     <span class="truncate">{{ account.name }}</span>
                     <span v-if="targetFor(account.id)" aria-hidden="true">✓</span>
-                    <span v-if="account.status !== 'activa'" class="rounded bg-amber-100 px-1.5 text-xs text-amber-800">Requiere reconexión</span>
+                    <span v-if="account.available === false" class="rounded bg-slate-100 px-1.5 text-xs text-slate-600">No disponible</span>
+                    <span v-else-if="account.status !== 'activa'" class="rounded bg-amber-100 px-1.5 text-xs text-amber-800">Requiere reconexión</span>
                 </button>
                 <ContentTypeSelect
                     v-if="targetFor(account.id)"

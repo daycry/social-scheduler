@@ -452,12 +452,45 @@ export function seedExtraFacebook(brandId: number, name: string) {
 }
 
 /** Cuenta extra en la marca E2E (YouTube o TikTok); `directPost` activa la publicación directa de TikTok. */
-export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok', name: string, directPost = false) {
-    const meta = directPost ? "['direct_post' => true]" : 'null';
+export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' | 'bluesky' | 'threads', name: string, directPost = false) {
+    // Bluesky (C-01): cuenta sembrada con credenciales falsas y un PDS inexistente; la API real nunca se llama.
+    const meta = network === 'bluesky'
+        ? "['did' => 'did:plc:e2ebluesky00000000000000', 'pds' => 'https://pds.e2e.invalid', 'handle' => 'e2e.bsky.invalid', 'email_confirmed' => true]"
+        : directPost ? "['direct_post' => true]" : 'null';
     artisan(
         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
             String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from(${q(network)}), 'name' => ${q(name)}, 'meta' => ${meta}]);`,
     );
+}
+
+/**
+ * Escenario de Threads y Bluesky (C-02, E2E-08) en la marca E2E: una cuenta de cada red, una publicación programada por red (a 2 días
+ * vista, en el calendario), una de Threads ya publicada con sus métricas y snapshots de cuenta. Todo sembrado con factorías/servicios:
+ * nada llega a Threads ni a Bluesky. Requiere `THREADS_APP_ID` en el entorno del servidor (la red solo se ofrece con ella).
+ * Devuelve la fecha local de las programadas.
+ */
+export function seedThreadsScenario(email: string, brandId: number): string {
+    seedExtraAccount(brandId, 'threads', 'e2e Threads');
+    seedExtraAccount(brandId, 'bluesky', 'e2e Bluesky');
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$th = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'threads')->firstOrFail(); ` +
+            String.raw`$bs = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'bluesky')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$when = now()->addDays(2)->setTimezone('Europe/Madrid'); ` +
+            String.raw`$mk = fn ($text, $acc, $type, $h) => $svc->create($u, $b, ['text' => $text, 'schedule' => true, 'scheduled_at' => $when->copy()->setTime($h, 0)->format('Y-m-d H:i'), 'media' => [], 'targets' => [['account_id' => $acc->id, 'content_type' => $type]]]); ` +
+            String.raw`$mk('e2e programada en Threads', $th, 'threads_text', 10); ` +
+            String.raw`$mk('e2e programada en Bluesky', $bs, 'bluesky_post', 11); ` +
+            String.raw`$pub = $svc->create($u, $b, ['text' => 'e2e publicada en Threads', 'schedule' => false, 'media' => [], 'targets' => [['account_id' => $th->id, 'content_type' => 'threads_text']]]); ` +
+            String.raw`$t = $pub->targets->first(); $t->forceFill(['status' => 'publicada', 'published_at' => now()->subDays(3), 'external_id' => 'e2e-threads-1'])->save(); $pub->syncStatus(); ` +
+            String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'post_target_id' => $t->id, 'social_account_id' => $th->id, 'network' => 'threads', 'date' => now('UTC')->subDays(2)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankPost(), ['views' => 100, 'likes' => 10, 'comments' => 4, 'shares' => 6, 'interactions' => 20])]); ` +
+            String.raw`for ($i = 2; $i < 5; $i++) { $d = now('UTC')->subDays($i)->format('Y-m-d'); ` +
+            String.raw`App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'brand_id' => $b->id, 'social_account_id' => $th->id, 'network' => 'threads', 'date' => $d, 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['profile_views' => 40, 'likes' => 12, 'comments' => 3, 'shares' => 3, 'clicks' => 11, 'interactions' => 18, 'followers' => 321])]); ` +
+            String.raw`App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'brand_id' => $b->id, 'social_account_id' => $bs->id, 'network' => 'bluesky', 'date' => $d, 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['followers' => 55, 'post_count' => 9])]); } ` +
+            String.raw`echo 'DATE:' . $when->format('Y-m-d');`,
+    );
+    return out.match(/DATE:([\d-]+)/)![1];
 }
 
 /** Borrador de YouTube con un vídeo de prueba (factoría) en la marca E2E: evita subir un vídeo real por la interfaz. */
@@ -687,4 +720,92 @@ export function seedCampaignPanel(email: string, brandId: number): CampaignSeed 
             String.raw`$p->syncStatus(); echo 'CAMP:' . $c->id;`,
     );
     return { campaignId: Number(out.match(/CAMP:(\d+)/)![1]) };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Notas internas del inbox (C-04d): comentarios sembrados en la marca `e2e-composer-*` (se van con ella, cascade). Nada llega a una red.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Siembra comentarios de terceros en la cuenta de Instagram de la marca E2E (con permiso de lectura, sin banner de «no disponible»). */
+export function seedInboxComment(brandId: number, ...texts: string[]) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$ig->forceFill(['scopes' => ['instagram_manage_comments']])->save(); ` +
+            String.raw`foreach ([${texts.map(q).join(', ')}] as $i => $t) { App\Models\InboxComment::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'text' => $t, 'author_name' => 'e2e-autor-' . $i, 'commented_at' => now()->subMinutes($i + 1)]); }`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Vistas guardadas del calendario (C-03a): se borran las del usuario E2E (no cuelgan de la marca).
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Borra todas las vistas guardadas del calendario del usuario `e2e-sec-*`. */
+export function cleanCalendarViews(email: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); ` +
+            String.raw`if ($u) { App\Models\CalendarView::withoutUserScope()->where('user_id', $u->id)->delete(); }`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Analítica entre marcas (C-03b): snapshots de cuenta sembrados en marcas `e2e-composer-*` (se van con la marca).
+// ---------------------------------------------------------------------------------------------------------------
+
+export type AnalyticsSeed = { from: string; to: string; days: number };
+
+/**
+ * Siembra `days` snapshots diarios (los días 2..days+1 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
+ * `views` visualizaciones y `followers` seguidores por día. Facebook no recibe ninguno: sus métricas son «no disponible».
+ * Devuelve el periodo (10 días cerrados) que lo contiene.
+ */
+export function seedAnalyticsSnapshots(brandId: number, views: number, followers: number, days = 3): AnalyticsSeed {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`for ($i = 2; $i < ${days} + 2; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now('UTC')->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); }`,
+    );
+    const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
+    return { from: day(10), to: day(1), days };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Exportar CSV (C-03c): publicaciones de Facebook con texto de fórmula en la marca E2E.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const CSV_FORMULA = '=HYPERLINK("http://e2e.invalid";"x")';
+
+/** Dos publicaciones programadas de Facebook (texto de fórmula y texto normal) a 2 días vista en la marca E2E; devuelve su fecha local. */
+export function seedCsvPosts(email: string, brandId: number): string {
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$fb = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'facebook')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$when = now()->addDays(2)->setTimezone('Europe/Madrid'); ` +
+            String.raw`foreach ([[${q(CSV_FORMULA)}, 10], ['e2e csv texto normal', 11]] as [$text, $hour]) { ` +
+            String.raw`$svc->create($u, $b, ['text' => $text, 'schedule' => true, 'scheduled_at' => $when->copy()->setTime($hour, 0)->format('Y-m-d H:i'), 'media' => [], 'targets' => [['account_id' => $fb->id, 'content_type' => 'facebook_text']]]); } ` +
+            String.raw`echo 'DATE:' . $when->format('Y-m-d');`,
+    );
+    return out.match(/DATE:([\d-]+)/)![1];
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Hashtags sugeridos (C-04a, E2E-06): histórico publicado con métricas en la marca E2E.
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * Cinco publicaciones de Instagram YA publicadas con su lectura de métricas: #verano (3 usos) y #oferta (2 usos) salen; #nuevo (1 uso)
+ * no. Es solo histórico sembrado: no se publica nada ni se llama a ninguna red.
+ */
+export function seedHashtagHistory(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`foreach ([['Sol #verano #oferta', 120], ['Playa #verano', 90], ['Rebajas #verano #oferta', 150], ['Sin etiquetas', 10], ['Otro #nuevo', 400]] as $i => [$text, $n]) { ` +
+            String.raw`$p = App\Models\Post::factory()->create(['brand_id' => $b->id, 'status' => App\Enums\PostStatus::Published, 'text' => 'e2e ' . $text]); ` +
+            String.raw`$t = App\Models\PostTarget::factory()->create(['post_id' => $p->id, 'social_account_id' => $ig->id, 'network' => App\Connectors\Network::Instagram, 'status' => App\Enums\PostStatus::Published, 'published_at' => now()->subDays(5 + $i)]); ` +
+            String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'post_target_id' => $t->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now()->subDay()->toDateString(), 'metrics' => array_merge(App\Analytics\Metric::blankPost(), [App\Analytics\Metric::INTERACTIONS => $n])]); } ` +
+            String.raw`Illuminate\Support\Facades\Cache::flush();`,
+    );
 }

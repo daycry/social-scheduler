@@ -6,7 +6,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import LineChart from './Partials/LineChart.vue';
 import NetworkTabs from './Partials/NetworkTabs.vue';
 import PeriodFilter from './Partials/PeriodFilter.vue';
-import { NETWORK_COLORS } from './Partials/format';
+import { useNetworks } from '@/Composables/useNetworks';
 
 /**
  * Resumen de marca: una tarjeta por métrica con el total grande, el desglose por red en chips de color y la
@@ -19,12 +19,14 @@ const props = defineProps({
     summary: Object,
 });
 
+const networkCatalog = useNetworks();
+
 const seriesFor = (card) =>
     (props.summary.networks ?? [])
         .filter((n) => card.by_network.find((b) => b.network === n.value)?.available)
         .map((n) => ({
             name: n.label,
-            color: NETWORK_COLORS[n.value],
+            color: networkCatalog.color(n.value),
             points: card.series.map((p) => ({ date: p.date, value: p.values[n.value] ?? null })),
         }));
 
@@ -59,6 +61,10 @@ const connectCards = [
             </FeatureEmpty>
 
             <template v-else>
+                <div class="flex flex-wrap justify-end gap-2">
+                    <Link v-if="brands.length > 1" :href="route('dashboard.all', { from: filters.from, to: filters.to, compare: filters.compare })" class="btn-secondary" data-testid="all-brands-link">Todas las marcas</Link>
+                    <a :href="route('exports.analytics', { brand_id: brand.id, from: filters.from, to: filters.to, compare: filters.compare })" class="btn-secondary" data-testid="export-analytics">Exportar CSV</a>
+                </div>
                 <PeriodFilter route-name="dashboard" :brands="brands" :filters="filters" />
                 <NetworkTabs :networks="summary.networks" active="summary" :filters="filters" />
 

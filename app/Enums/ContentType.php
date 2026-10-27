@@ -22,6 +22,12 @@ enum ContentType: string
     case YouTubeShort = 'youtube_short';
     case TikTokVideo = 'tiktok_video';
     case TikTokPhoto = 'tiktok_photo';
+    case BlueskyPost = 'bluesky_post';
+    case BlueskyVideo = 'bluesky_video';
+    case ThreadsText = 'threads_text';
+    case ThreadsImage = 'threads_image';
+    case ThreadsVideo = 'threads_video';
+    case ThreadsCarousel = 'threads_carousel';
 
     public function network(): Network
     {
@@ -30,6 +36,8 @@ enum ContentType: string
             self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel => Network::Facebook,
             self::YouTubeVideo, self::YouTubeShort => Network::YouTube,
             self::TikTokVideo, self::TikTokPhoto => Network::TikTok,
+            self::BlueskyPost, self::BlueskyVideo => Network::Bluesky,
+            self::ThreadsText, self::ThreadsImage, self::ThreadsVideo, self::ThreadsCarousel => Network::Threads,
         };
     }
 
@@ -48,6 +56,12 @@ enum ContentType: string
             self::YouTubeShort => 'Short',
             self::TikTokVideo => 'Video',
             self::TikTokPhoto => 'Fotos (carrusel)',
+            self::BlueskyPost => 'Publicación',
+            self::BlueskyVideo => 'Vídeo',
+            self::ThreadsText => 'Texto',
+            self::ThreadsImage => 'Imagen',
+            self::ThreadsVideo => 'Vídeo',
+            self::ThreadsCarousel => 'Carrusel',
         };
     }
 
@@ -67,6 +81,12 @@ enum ContentType: string
             self::YouTubeShort => 'Vídeo vertical o cuadrado de hasta 3 minutos',
             self::TikTokVideo => 'Un vídeo de hasta 10 minutos',
             self::TikTokPhoto => 'Varias fotos en un carrusel',
+            self::BlueskyPost => 'Texto de hasta 300 caracteres, con hasta 4 imágenes',
+            self::BlueskyVideo => 'Un vídeo MP4 con texto opcional',
+            self::ThreadsText => 'Solo texto, de hasta 500 caracteres',
+            self::ThreadsImage => 'Una sola imagen con texto opcional',
+            self::ThreadsVideo => 'Un vídeo de hasta 5 minutos con texto opcional',
+            self::ThreadsCarousel => 'De 2 a 20 imágenes o vídeos',
         };
     }
 
@@ -85,6 +105,12 @@ enum ContentType: string
             self::YouTubeVideo => ['La visibilidad elegida se respeta tal cual. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API (unas 6 subidas al dia).'],
             self::YouTubeShort => ['Video vertical de hasta 3 minutos; se anade #Shorts a la descripcion. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API.'],
             self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app: el usuario termina de publicarlo desde TikTok.'],
+            self::BlueskyPost => ['Hasta 300 caracteres (se cuentan grafemas: un emoji compuesto cuenta 1). Las imágenes de más de 2 MB se recomprimen en una copia; la original no se toca.'],
+            self::BlueskyVideo => ['Solo MP4 y con el tope de tamaño de esta instalación (50 MB por defecto). Bluesky exige el email verificado y limita los vídeos diarios por cuenta; se procesa tras subirlo y puede tardar unos minutos.'],
+            self::ThreadsText => ['Hasta 500 caracteres: cada emoji cuenta por sus bytes UTF-8 (un cohete cuenta 4). Los enlaces del texto (hasta 5) salen como vista previa.'],
+            self::ThreadsImage => ['Imagen JPEG o PNG de hasta 8 MB. Threads la descarga de una URL temporal de esta app.'],
+            self::ThreadsVideo => ['MP4 o MOV con H.264 o HEVC, de 23 a 60 fps, de hasta 5 minutos y 1 GB. Se procesa tras enviarlo y puede tardar unos minutos.'],
+            self::ThreadsCarousel => ['De 2 a 20 elementos, imágenes (JPEG o PNG) o vídeos mezclados. Cuenta como una sola publicación en el límite de 250 al día.'],
             default => [],
         };
     }
@@ -105,11 +131,12 @@ enum ContentType: string
 
     /**
      * ¿Se ofrece en el compositor? Las fotos de TikTok solo existen por PULL_FROM_URL, que exige un dominio
-     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta.
+     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta. Los de Bluesky y Threads desaparecen
+     * con `BLUESKY_ENABLED=false` o `THREADS_ENABLED=false` (Threads, ademas, sin `THREADS_APP_ID`).
      */
     public function isOffered(): bool
     {
-        return $this !== self::TikTokPhoto || (string) config('social.tiktok.verified_domain') !== '';
+        return $this->network()->isAvailable() && ($this !== self::TikTokPhoto || (string) config('social.tiktok.verified_domain') !== '');
     }
 
     /** @return list<self> */

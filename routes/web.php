@@ -4,10 +4,15 @@ use App\Connectors\Network;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CalendarViewController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
+use App\Http\Controllers\CredentialConnectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
+use App\Http\Controllers\GifController;
+use App\Http\Controllers\HashtagController;
 use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
@@ -29,12 +34,14 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'networks' => array_map(fn (Network $n) => $n->toArray(), Network::offered()),
     ]);
 });
 
 // Dashboards de analitica por marca (T-37): Summary y pagina por red.
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/todas-las-marcas', [DashboardController::class, 'allBrands'])->name('dashboard.all');
     Route::get('/dashboard/{network}', [DashboardController::class, 'network'])
         ->whereIn('network', array_column(Network::cases(), 'value'))->name('dashboard.network');
 });
@@ -53,9 +60,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])
-        ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('brands.connections.connect');
+        ->whereIn('provider', Network::providers())->name('brands.connections.connect');
+    // Conexion con credenciales (Bluesky: handle + app password). Throttle propio: es un formulario con secretos.
+    Route::post('brands/{brand}/connections/{provider}/credentials', [CredentialConnectionController::class, 'store'])
+        ->whereIn('provider', Network::providers())->middleware('throttle:10,1')->name('brands.connections.credentials');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
-        ->whereIn('provider', ['meta', 'google', 'tiktok'])->name('connections.callback');
+        ->whereIn('provider', Network::providers())->name('connections.callback');
 
     // Avisos in-app (T-25).
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -65,6 +75,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Calendario (T-24).
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::patch('posts/{post}/reschedule', [CalendarController::class, 'reschedule'])->name('posts.reschedule');
+    // Vistas guardadas del calendario (C-03a).
+    Route::post('calendar/views', [CalendarViewController::class, 'store'])->middleware('throttle:60,1')->name('calendar-views.store');
+    Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->middleware('throttle:60,1')->whereNumber('view')->name('calendar-views.update');
+    Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('view')->name('calendar-views.destroy');
     // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
     Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
 
@@ -72,6 +86,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
     Route::post('brands/{brand}/posts', [PostController::class, 'store'])->middleware('throttle:publish-now')->name('brands.posts.store');
     Route::post('brands/{brand}/posts/validate', [PostController::class, 'validatePost'])->name('brands.posts.validate');
+    Route::get('brands/{brand}/hashtags', [HashtagController::class, 'index'])->middleware('throttle:60,1')->name('brands.hashtags');
     // «Guardar en biblioteca» con el contenido actual del compositor (sin post guardado, CA-26).
     Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
@@ -88,6 +103,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Informes PDF/CSV (T-40). `link` genera un enlace firmado nuevo al pulsar Descargar (no caduca en pantalla);
     // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.
+    // Exportaciones CSV sincronas (C-03c): analitica de una marca o de todas.
+    Route::get('export/analytics.csv', [ExportController::class, 'analytics'])->middleware('throttle:30,1')->name('exports.analytics');
+    Route::get('export/posts.csv', [ExportController::class, 'posts'])->middleware('throttle:30,1')->name('exports.posts');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
     Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');
@@ -121,6 +139,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
     // Importacion remota (C-04a). `import-url` antes que `{asset}` para que no lo capture el comodin.
     Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:10,1')->name('media.import-url');
+    Route::get('gifs', [GifController::class, 'search'])->middleware('throttle:giphy')->name('gifs.search');
+    Route::post('media/import-gif', [GifController::class, 'import'])->middleware('throttle:10,1')->name('media.import-gif');
     Route::post('media/import-drive', [MediaController::class, 'importDrive'])->middleware('throttle:10,1')->name('media.import-drive');
     Route::get('media/{asset}', [MediaController::class, 'show'])->whereNumber('asset')->name('media.show');
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');

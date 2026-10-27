@@ -23,6 +23,8 @@ const rows = computed(() => form.targets.map((t) => {
         hashtags,
         maxHashtags: limit.max_hashtags ?? null,
         overHashtags: limit.max_hashtags != null && hashtags > limit.max_hashtags,
+        adviseHashtags: limit.advise_hashtags ?? null,
+        adviseOver: limit.advise_hashtags != null && hashtags > limit.advise_hashtags,
     };
 }));
 </script>
@@ -44,6 +46,11 @@ const rows = computed(() => form.targets.map((t) => {
                 class="rounded px-1.5 py-0.5 font-medium"
                 :class="r.overHashtags ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
             >{{ r.hashtags }} / {{ r.maxHashtags }} #<template v-if="r.overHashtags"> · supera el máximo</template></span>
+            <span
+                v-if="r.adviseOver"
+                data-testid="counter-hashtags-advice" role="status"
+                class="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900"
+            >Threads solo admite {{ r.adviseHashtags }} etiqueta de tema por publicación: se usa la primera.</span>
         </li>
     </ul>
 </template>

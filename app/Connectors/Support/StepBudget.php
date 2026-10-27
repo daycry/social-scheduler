@@ -28,6 +28,12 @@ class StepBudget
         return $this->calls === 0 || (microtime(true) - $this->startedAt) + $this->perCall * (1 + max(0, $after)) <= $this->budget;
     }
 
+    /** Segundos que quedan del presupuesto (0 si se agoto). Sirve para acotar el timeout de una llamada larga que cierra el paso. */
+    public function remaining(): float
+    {
+        return max(0.0, $this->budget - (microtime(true) - $this->startedAt));
+    }
+
     /** Registra una llamada hecha. */
     public function spent(): void
     {

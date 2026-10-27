@@ -2,7 +2,7 @@
 
 namespace App\Connectors\Meta;
 
-use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\OAuthConnector;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ConnectorException;
@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Log;
  *  - IG solo si la Pagina tiene `instagram_business_account`.
  *  - `data_access_expires_at` (90 dias) -> al caducar hay que reconectar.
  */
-class MetaConnector implements Connector
+class MetaConnector implements OAuthConnector
 {
     private const PAGE_FIELDS = 'id,name,access_token,instagram_business_account{id,username}';
 

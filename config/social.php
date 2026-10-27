@@ -10,6 +10,10 @@ return [
         'meta' => (int) env('SOCIAL_REFRESH_MARGIN_META_HOURS', 168),
         'google' => (int) env('SOCIAL_REFRESH_MARGIN_GOOGLE_HOURS', 1),
         'tiktok' => (int) env('SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS', 6),
+        // El accessJwt de Bluesky dura horas; se renueva con margen de 1 h (RefreshTokens corre cada 30 min).
+        'bluesky' => (int) env('SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS', 1),
+        // El token largo de Threads dura 60 dias y solo se renueva con >= 24 h de antiguedad: 7 dias de margen, como Meta.
+        'threads' => (int) env('SOCIAL_REFRESH_MARGIN_THREADS_HOURS', 168),
     ],
 
     /* Cola donde corre el refresco de tokens (ver config/queue.php names). */
@@ -103,6 +107,47 @@ return [
         'lookup_max_pages' => (int) env('YOUTUBE_LOOKUP_MAX_PAGES', 3),
     ],
 
+    /*
+    | Bluesky (D1: app password cifrada). `entryway`: resolucion de handles; el PDS de cada cuenta sale de su documento DID
+    | (`plc_directory`). Topes de media: imagen 2 MB (lexicon vigente; bajar a 1.000.000 si un PDS antiguo lo exige) y video
+    | unos 50 MB (decision del usuario 2026-10-27; el lexicon admite 300 MB, pero la subida es UNA peticion dentro de los 85 s
+    | del paso). Un video mayor se rechaza al guardar.
+    */
+    'bluesky' => [
+        /* Apagar Bluesky sin tocar codigo: la red desaparece de Conexiones, el compositor y los filtros. */
+        'enabled' => (bool) env('BLUESKY_ENABLED', true),
+        'entryway' => env('BLUESKY_ENTRYWAY', 'https://bsky.social'),
+        'plc_directory' => env('BLUESKY_PLC_DIRECTORY', 'https://plc.directory'),
+        'appview' => env('BLUESKY_APPVIEW', 'https://public.api.bsky.app'),
+        'video_service' => env('BLUESKY_VIDEO_SERVICE', 'https://video.bsky.app'),
+        /* Hosts FIJOS permitidos (entryway, PLC, AppView, video): un .env equivocado no puede apuntar el trafico a otro sitio (SSRF). */
+        'allowed_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('BLUESKY_ALLOWED_HOSTS', 'bsky.social,plc.directory,public.api.bsky.app,api.bsky.app,video.bsky.app'))))),
+        'default_langs' => array_values(array_filter(array_map('trim', explode(',', (string) env('BLUESKY_DEFAULT_LANGS', 'es'))))),
+        'image_max_bytes' => (int) env('BLUESKY_IMAGE_MAX_BYTES', 2_000_000),
+        'video_max_bytes' => (int) env('BLUESKY_VIDEO_MAX_BYTES', 52_428_800),
+        /* Timeout (s) de la subida del video: UNA peticion dentro de los 85 s del paso (job de 110 s). */
+        'upload_timeout' => (int) env('BLUESKY_UPLOAD_TIMEOUT', 80),
+    ],
+
+    /*
+    | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
+    | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
+    */
+    'threads' => [
+        /* Apagar Threads sin tocar codigo: la red desaparece de Conexiones, el compositor, los filtros, el MCP y la reprogramacion. */
+        'enabled' => (bool) env('THREADS_ENABLED', true),
+        'auth_host' => env('THREADS_AUTH_HOST', 'https://threads.com'),
+        'graph_host' => env('THREADS_GRAPH_HOST', 'https://graph.threads.com'),
+        /* Version de la API en las rutas (`/v1.0/...`); el canje de tokens va sin version. */
+        'api_version' => env('THREADS_API_VERSION', 'v1.0'),
+        'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights'],
+        /* El token de las llamadas a la API va como documenta Meta (cuerpo en los POST, query en los GET). `true` lo manda en `Authorization: Bearer`
+           (no documentado para Threads: probarlo en el smoke, T-64, y activarlo si funciona para sacar el token de la URL). */
+        'token_in_header' => (bool) env('THREADS_TOKEN_HEADER', false),
+        /* Cuota de publicacion por 24 h si la API no devuelve `config.quota_total` (se lee en `threads_publishing_limit`). */
+        'publish_quota' => (int) env('THREADS_PUBLISH_QUOTA', 250),
+    ],
+
     'tiktok' => [
         // video.publish solo es util tras la auditoria de TikTok (decision G1: borrador por defecto).
         'scopes' => ['user.info.basic', 'video.upload', 'video.publish'],
@@ -143,8 +188,17 @@ return [
     /*
     | Analitica (fase 7, T-31..T-37). Cola `metrics`; los jobs tienen $timeout < 120 (timeout del worker).
     */
+    /*
+    | Exportacion CSV de publicaciones (C-03c): tope de filas por descarga. Por encima se recorta y se avisa (cabecera y aviso en la lista).
+    */
+    'export' => [
+        'max_rows' => (int) env('SOCIAL_EXPORT_MAX_ROWS', 5000),
+    ],
+
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
+        /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */
+        'all_brands_cache_minutes' => (int) env('SOCIAL_ALL_BRANDS_CACHE_MINUTES', 5),
         /* Al conectar una cuenta se encola el historico inicial (T-36). */
         'backfill_on_connect' => (bool) env('SOCIAL_BACKFILL_ON_CONNECT', true),
         /*
@@ -160,6 +214,9 @@ return [
             'facebook' => 'America/Los_Angeles',
             'youtube' => 'America/Los_Angeles',
             'tiktok' => 'UTC',
+            'bluesky' => 'UTC',
+            // Los valores de la serie diaria de Threads acaban a las 08:00 UTC (medianoche del Pacifico) ⚠️ a confirmar en el smoke.
+            'threads' => 'America/Los_Angeles',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -188,6 +245,10 @@ return [
             'facebook' => (int) env('SOCIAL_BACKFILL_DAYS_FACEBOOK', 90),
             'youtube' => (int) env('SOCIAL_BACKFILL_DAYS_YOUTUBE', 365),
             'tiktok' => 0,
+            // Bluesky no ofrece historico de cuenta: solo el stock de hoy.
+            'bluesky' => 0,
+            // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
+            'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),
@@ -201,6 +262,36 @@ return [
         'min_posts' => (int) env('SOCIAL_BEST_TIMES_MIN_POSTS', 10),
         /* Cache corta (min) del mapa de calor por usuario/marca/red; 0 = sin cache. */
         'cache_minutes' => (int) env('SOCIAL_BEST_TIMES_CACHE_MINUTES', 10),
+    ],
+
+    /*
+    | Sugerencias de hashtags (C-04a, D5: SIN IA). Salen del historico propio de la marca: hashtags de lo publicado, cruzados con la
+    | ultima lectura de metricas de cada destino. Solo se ofrecen los usados al menos `min_uses` veces; `limit` sugerencias;
+    | `days` de ventana y cache corta (minutos).
+    */
+    'hashtags' => [
+        'min_uses' => (int) env('SOCIAL_HASHTAGS_MIN_USES', 2),
+        'limit' => (int) env('SOCIAL_HASHTAGS_LIMIT', 15),
+        'days' => (int) env('SOCIAL_HASHTAGS_DAYS', 365),
+        'cache_minutes' => (int) env('SOCIAL_HASHTAGS_CACHE_MINUTES', 60),
+    ],
+
+    /*
+    | Buscador de GIFs de Giphy (C-04b, D4). La clave esta en `services.giphy.api_key`; el servidor hace de proxy (la clave no sale) con cache
+    | corta, un tope de llamadas reales por hora y un throttle por usuario. Se importa el MP4 por el camino de `ImportRemoteMedia`.
+    */
+    'giphy' => [
+        'rating' => env('SOCIAL_GIPHY_RATING', 'pg-13'),
+        'limit' => (int) env('SOCIAL_GIPHY_LIMIT', 24),
+        'cache_minutes' => (int) env('SOCIAL_GIPHY_CACHE_MINUTES', 10),
+        /* Llamadas reales por hora a Giphy (la clave beta da 100; el margen deja sitio a otras llamadas). Una respuesta cacheada no cuenta. */
+        'hourly_limit' => (int) env('SOCIAL_GIPHY_HOURLY_LIMIT', 90),
+        /* Llamadas reales por usuario y hora: uno solo no agota el tope global de todos (CWE-770). */
+        'per_user_hourly_limit' => (int) env('SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT', 30),
+        /* Busquedas por usuario y minuto (limitador con nombre `giphy`, en AppServiceProvider). */
+        'per_user_per_minute' => (int) env('SOCIAL_GIPHY_PER_USER_PER_MINUTE', 20),
+        /* Hosts desde los que se descarga el MP4 elegido (lista cerrada, https y 443). Cualquier otro se rechaza ANTES de pedir nada. */
+        'media_host_pattern' => '/^(?:media\d{0,2}|i)\.giphy\.com$/',
     ],
 
     /*
@@ -275,5 +366,7 @@ return [
         'daily_limit' => (int) env('AI_ASSISTANT_DAILY_LIMIT', 20),
         /* Tope diario GLOBAL (todos los usuarios) de sugerencias; 0 = sin tope. Protege el gasto de la clave compartida. */
         'global_daily_limit' => (int) env('AI_ASSISTANT_GLOBAL_DAILY_LIMIT', 200),
+        /* «Escribe cuando» (C-04c): la fecha propuesta no puede quedar a mas de estos dias. */
+        'schedule_max_days' => (int) env('AI_ASSISTANT_SCHEDULE_MAX_DAYS', 365),
     ],
 ];

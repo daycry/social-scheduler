@@ -26,6 +26,20 @@ Pruebas con cuentas, datos y servicios reales de la iniciativa [metricool-parity
 
 Importación por URL real (no figura en el test-plan, que la cubre con loopback): importar con «Desde URL» una imagen y un vídeo públicos reales y una URL que redirija; una IP interna se rechaza con el mensaje en español. **Por diseño**, un vídeo sin `Accept-Ranges` solo queda `listo` si cabe en una sola pasada (80 s de presupuesto); si no, acaba `invalido` con «El servidor no permite descargas por partes».
 
+## metricool-parity-3
+
+Pruebas con cuentas, claves y juicio del usuario de la iniciativa [metricool-parity-3](../roadmap/2026-10-26-metricool-parity-3/tasks.md) (pasos completos en su [test-plan](../roadmap/2026-10-26-metricool-parity-3/test-plan.md)). Ningún agente puede hacerlas: exigen la app password de Bluesky, la app de Meta con la cuenta como *tester*, la clave de Giphy o la clave de Anthropic.
+
+| Id | Qué hacer | Criterio de aceptación | Tareas |
+|---|---|---|---|
+| P3-M-01 | **Smoke real de Bluesky** (test-plan M-01; guía: [app password](../guias/bluesky-app-password.md)). Conectar con una app password; publicar texto con enlace, hashtag y mención, 4 imágenes (una de más de 2 MB), un vídeo (con email verificado), un GIF de Giphy (comprobar que el PDS acepta `presentation: gif` y se ve en bucle) y leer métricas. Resolver los ⚠️ de `aud` del vídeo, `rkey` repetida y AppView público | Texto con enlace y hashtag clicables; 4 imágenes (la grande recomprimida); vídeo publicado o mensaje claro por cupo/email; seguidores y métricas por post con «visualizaciones» no disponibles | T-30 |
+| P3-M-02 | **Smoke real de Threads** (test-plan M-02; guía: [app de Meta](../guias/threads-app-meta.md)). Con la cuenta como *tester*: OAuth, texto con emojis al límite (anotar cuánto cuenta Threads frente a `TextLength`), imagen, vídeo, carrusel, cuota y métricas. Una cuenta que no sea *tester* debe ver el mensaje de Ajustes → Permisos del sitio web | Los 4 tipos se publican; el conteo conservador de emojis nunca deja pasar un texto que Threads rechace (si no coincide, ajustar `TextLength.php`, `textLength.js` y el fichero de casos); límites y métricas reales anotados; confirmado que no hace falta App Review | T-64 |
+| P3-M-03 | **Giphy: términos y atribución** (test-plan M-03; guía: [Giphy](../guias/giphy-api-key.md)). Leer los términos de Giphy sobre descargar y republicar el MP4 (⚠️ no verificados en la guía) y comprobar «Powered by GIPHY» en móvil | Los términos permiten republicar (si no, dejar `GIPHY_API_KEY` vacío); la atribución es visible y legible a 360 px | T-66, T-75 |
+| P3-M-04 | **Revisión visual de la UI nueva** (test-plan M-04), en móvil y escritorio: inbox con notas, vistas del calendario, «Todas las marcas», hashtags, «Escribe cuándo», GIF, formulario de Bluesky y aviso de etiqueta de Threads | Español correcto, sin textos cortados; estados vacío y de error comprensibles; foco visible y orden de tabulación lógico | T-03, T-10, T-17, T-32, T-44, T-50, T-66 |
+| P3-M-05 | **Lenguaje natural con la IA real** (test-plan M-05). Probar «mañana a las 9» o «el próximo lunes por la tarde» con la clave de Anthropic y revisar el coste por llamada | Las propuestas son razonables y en la zona de la marca; el límite diario se respeta | T-49, T-50 |
+
+Despliegue de esta iniciativa: rellenar en el `.env` de producción `THREADS_APP_ID`/`THREADS_APP_SECRET` y `GIPHY_API_KEY` (opcionales: sin ellos la red o el botón no aparecen), comprobar `ffprobe` y `ffmpeg` en el PATH de PHP-FPM y de los workers, y ejecutar `php artisan migrate`.
+
 ## Pendientes del servidor MCP
 
 | Id | Qué hacer |

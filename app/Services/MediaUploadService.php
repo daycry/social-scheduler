@@ -6,6 +6,7 @@ use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\DriveFileSource;
+use App\Services\Media\GiphySource;
 use App\Services\Media\UnsafeUrlException;
 use App\Services\Media\UrlGuard;
 use App\Services\Media\UrlSource;
@@ -117,6 +118,25 @@ class MediaUploadService
     }
 
     /**
+     * Importa el MP4 de un GIF de Giphy (C-04b, D4): solo hosts de Giphy (lista cerrada, antes de cualquier peticion), `UrlGuard` en cada salto
+     * y el mismo limite de importaciones vivas que la URL. `source = giphy`.
+     *
+     * @throws InvalidArgumentException si la URL no es de Giphy o hay demasiadas importaciones en curso.
+     * @throws UnsafeUrlException si la URL no es segura.
+     */
+    public function importFromGiphy(User $user, string $url): MediaAsset
+    {
+        $source = new GiphySource(app(UrlGuard::class), $url); // lanza InvalidArgumentException fuera de la lista
+        app(UrlGuard::class)->validate($url);
+
+        $asset = $this->beginLimited($user, MediaAsset::SOURCE_GIPHY, $source->reference(), $source->name());
+
+        ImportRemoteMedia::dispatch($asset->id, $url);
+
+        return $asset;
+    }
+
+    /**
      * Importa un fichero de Google Drive (C-04b). El token se verifica (`tokeninfo`: `aud` y `drive.file`), se piden los metadatos y
      * se validan tipo y tamano ANTES de crear el asset. El token solo viaja cifrado en el job: no se guarda ni se registra.
      *
@@ -151,7 +171,7 @@ class MediaUploadService
             User::query()->whereKey($user->id)->lockForUpdate()->value('id');
 
             $live = MediaAsset::withoutUserScope()->where('user_id', $user->id)
-                ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE])
+                ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE, MediaAsset::SOURCE_GIPHY])
                 ->where('created_at', '>', now()->subHours(6))->count();
 
             if ($live >= self::MAX_LIVE_IMPORTS) {
@@ -166,7 +186,7 @@ class MediaUploadService
      * Registra un asset `pendiente` que `ImportRemoteMedia` rellenara descargando de una URL o de Drive. El parcial vive en
      * `media/{user}/{ulid}.part` (el tipo real aun no se conoce) y el importador lo renombra al terminar. Necesita disco local.
      *
-     * @param  'url'|'drive'  $source
+     * @param  'url'|'drive'|'giphy'  $source
      */
     public function beginImport(User $user, string $source, string $reference, string $name): MediaAsset
     {

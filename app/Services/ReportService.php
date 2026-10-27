@@ -15,6 +15,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\Reports\PdfRenderer;
 use App\Services\Reports\TooManyActiveReports;
+use App\Support\CsvWriter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -296,7 +297,7 @@ class ReportService
      */
     public function csv(array $data): string
     {
-        [$delimiter, $decimal] = $this->csvFormat();
+        $writer = CsvWriter::forConfiguredLocale();
         $cmp = $data['comparison'] !== null;
         $prev = fn (int|float|null $v) => $cmp ? $this->num($v) : '';
 
@@ -337,51 +338,19 @@ class ReportService
             $rows[] = ['nota', $note['network'], 'La API de la red no ofrece esta metrica', $note['metric'], '', self::UNAVAILABLE, '', ''];
         }
 
-        $csv = "\xEF\xBB\xBF";
+        $csv = CsvWriter::BOM;
 
         foreach ($rows as $row) {
-            $csv .= implode($delimiter, array_map(fn ($v) => $this->field($v, $decimal), $row))."\n";
+            $csv .= $writer->line($row);
         }
 
         return $csv;
     }
 
-    /**
-     * Neutraliza celdas que Excel/Sheets interpretarian como formula: un `'` delante si el texto (o cualquier tramo
-     * tras `;`, `,`, TAB o salto de linea, por si el programa abre el CSV con otro separador) empieza por = + - @ TAB CR.
-     * Los numeros no se tocan.
-     */
+    /** Neutraliza una celda contra inyeccion de formulas (CWE-1236); ver `CsvWriter::cell()`. */
     public static function cell(mixed $value): int|float|string
     {
-        if (is_int($value) || is_float($value)) {
-            return $value;
-        }
-
-        return (string) preg_replace('/(^|[;,\t\r\n])( *)(?=[=+\-@\t\r])/', "$1$2'", (string) $value);
-    }
-
-    /** @return array{0: string, 1: string} [separador, decimal] */
-    private function csvFormat(): array
-    {
-        return config('reports.csv_locale', 'es') === 'en' ? [',', '.'] : [';', ','];
-    }
-
-    /** Numeros sin comillas (decimal del locale); todo lo demas es texto: siempre entre comillas, con `"` duplicadas y sin saltos de linea. */
-    private function field(mixed $value, string $decimal): string
-    {
-        if (is_int($value)) {
-            return (string) $value;
-        }
-
-        if (is_float($value)) {
-            $text = rtrim(rtrim(number_format($value, 4, $decimal, ''), '0'), $decimal);
-
-            return $text === '' || $text === '-' ? '0' : $text;
-        }
-
-        $text = (string) preg_replace('/\R/u', ' ', (string) self::cell($value));
-
-        return '"'.str_replace('"', '""', $text).'"';
+        return CsvWriter::cell($value);
     }
 
     private function num(int|float|null $value): int|float|string

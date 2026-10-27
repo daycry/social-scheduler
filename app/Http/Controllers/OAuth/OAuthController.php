@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\OAuth;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\OAuthConnector;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Exceptions\ConnectorException;
+use App\Connectors\Threads\ThreadsClient;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Services\BrandService;
@@ -39,12 +41,12 @@ class OAuthController extends Controller
     public function redirect(Request $request, Brand $brand, string $provider): Response
     {
         $this->authorize('update', $brand);
-        abort_unless($this->connectors->has($provider), 404);
+        $connector = $this->oauthConnector($provider);
 
         $state = Str::random(40);
         $request->session()->put("oauth.$provider", ['state' => $state, 'brand_id' => $brand->id]);
 
-        $url = $this->connectors->forProvider($provider)->authorizationUrl(
+        $url = $connector->authorizationUrl(
             $state,
             route('connections.callback', $provider),
             $request->boolean('rerequest'),
@@ -57,7 +59,7 @@ class OAuthController extends Controller
 
     public function callback(Request $request, string $provider): RedirectResponse
     {
-        abort_unless($this->connectors->has($provider), 404);
+        $connector = $this->oauthConnector($provider);
 
         $stored = $request->session()->pull("oauth.$provider");
         $state = (string) $request->query('state', '');
@@ -79,6 +81,10 @@ class OAuthController extends Controller
         if ($request->query('error')) {
             Log::info('oauth.denied', ['provider' => $provider, 'error' => $request->query('error')]);
 
+            if ($provider === 'threads' && ThreadsClient::looksLikeNotTester($request->query('error_description').' '.$request->query('error_reason'))) {
+                return $back('error', ThreadsClient::NOT_TESTER_MESSAGE);
+            }
+
             return $back('error', 'La autorizacion fue cancelada o rechazada en la red social. No se ha conectado nada.');
         }
 
@@ -88,7 +94,7 @@ class OAuthController extends Controller
         }
 
         try {
-            $candidates = $this->connectors->forProvider($provider)->exchangeCode($code, route('connections.callback', $provider));
+            $candidates = $connector->exchangeCode($code, route('connections.callback', $provider));
         } catch (ConnectorException $e) {
             return $back('error', $e->getMessage());
         }
@@ -109,6 +115,16 @@ class OAuthController extends Controller
 
         // Sin aviso verde: aun no se ha conectado nada. La tarjeta de eleccion (y el aviso global) piden el paso que falta.
         return redirect()->route('brands.connections.index', $brand);
+    }
+
+    /** Solo los proveedores OAuth tienen redireccion y callback; los de credenciales (Bluesky) responden 404. */
+    private function oauthConnector(string $provider): OAuthConnector
+    {
+        abort_unless($this->connectors->has($provider), 404);
+        $connector = $this->connectors->forProvider($provider);
+        abort_unless($connector instanceof OAuthConnector, 404);
+
+        return $connector;
     }
 
     /**

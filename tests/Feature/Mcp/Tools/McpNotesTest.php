@@ -93,7 +93,7 @@ test('McpNotes: create_post admite notes y las 22 herramientas caben en la prime
     $r = $this->rpc($this->key, 'tools/list')->assertOk();
     $names = collect($r->json('result.tools'))->pluck('name');
 
-    expect($names)->toHaveCount(22)->and($names)->toContain('update_post_notes', 'publish_post_now')
+    expect($names)->toHaveCount(25)->and($names)->toContain('update_post_notes', 'publish_post_now')
         ->and($r->json('result.nextCursor'))->toBeNull();
 });
 

@@ -2,6 +2,7 @@ import { computed, inject, onBeforeUnmount, provide, ref, shallowRef, watch } fr
 import { router, useForm } from '@inertiajs/vue3';
 import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
+import { countText } from '@/Composables/textLength';
 import { MANAGED_KEYS, switchesFor } from '@/Composables/composerOptions';
 
 const KEY = Symbol('composer');
@@ -13,6 +14,7 @@ export function useComposer(props) {
     const accounts = computed(() => props.accounts);
     const contentTypes = computed(() => props.contentTypes);
     const limits = computed(() => props.limits ?? {});
+    const giphyEnabled = computed(() => !!props.giphy?.enabled); // buscador de GIFs (C-04b): solo con GIPHY_API_KEY en el servidor
     const drivePicker = computed(() => props.drivePicker ?? null); // configuración del Picker de Google (null = sin Drive)
     // Máximo del primer comentario por tipo (C-01b); los tipos sin entrada (TikTok, Stories) no lo admiten.
     const firstCommentMax = computed(() => props.firstCommentMax ?? {});
@@ -288,7 +290,8 @@ export function useComposer(props) {
     const unlink = (target) => { target.text = form.text; }; // el texto común sirve de punto de partida
     const relink = (target) => { target.text = null; };
     const openTargetText = (accountId) => { byNetwork.value = true; activeTab.value = accountId; };
-    const charsOf = (target) => countChars(textOf(target));
+    // Cada tipo cuenta a su manera (`limits[tipo].count`): caracteres, grafemas (Bluesky) o la regla de Threads; igual que el servidor.
+    const charsOf = (target) => countText(textOf(target), limits.value?.[target.content_type]?.count);
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 
@@ -298,9 +301,9 @@ export function useComposer(props) {
     const activeField = shallowRef(null); // { insertAtCursor(text) }
     const registerField = (field) => { activeField.value = field; };
     const unregisterField = (field) => { if (activeField.value === field) activeField.value = null; };
-    const insertIntoActive = (text) => {
+    const insertIntoActive = (text, options) => {
         if (!activeField.value) return false;
-        activeField.value.insertAtCursor(text);
+        activeField.value.insertAtCursor(text, options);
         return true;
     };
 
@@ -345,7 +348,7 @@ export function useComposer(props) {
 
     const api = {
         campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
-        post, brand, accounts, contentTypes, limits, drivePicker, firstCommentMax, editable, form,
+        post, brand, accounts, contentTypes, limits, drivePicker, giphyEnabled, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,

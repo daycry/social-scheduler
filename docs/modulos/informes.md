@@ -38,3 +38,21 @@ CSV en formato largo con cabecera `seccion,red,elemento,metrica,fecha,valor,ante
 ## Descarga
 
 La interfaz pide un enlace nuevo con `GET reports/{report}/link`. La descarga `reports/{report}/download/{owner}` va solo con firma, sin sesión, para que la use también un agente MCP. La firma cubre informe y dueño; el controlador comprueba que coinciden y que el informe está `ready`, y audita el acceso.
+
+## Exportaciones CSV síncronas (C-03c)
+
+Además del informe en segundo plano, hay dos descargas CSV inmediatas (`ExportController`, `app/Http/Controllers/ExportController.php`, throttle 30/min, solo con sesión):
+
+| Ruta | Qué descarga |
+|---|---|
+| `GET export/analytics.csv` (`exports.analytics`) | Analítica de una marca (`brand_id`) o de todas (sin marca). Query: `from`, `to`, `compare`. |
+| `GET export/posts.csv` (`exports.posts`) | Publicaciones de la vista Lista. Query: los filtros del calendario (`brand_id`, `network`, `status`, `q`, `date`) o `saved_view`. |
+
+- **Escritor compartido.** `App\Support\CsvWriter` (extraído de `ReportService::csv()` sin cambiar su salida, lo fija `CsvRegressionTest`): UTF-8 con BOM, separador y decimal según `REPORTS_CSV_LOCALE` (`es`: `;` y coma), texto siempre entre comillas, números sin ellas y `null` como celda vacía. En las exportaciones nuevas lo que no hay es una celda vacía, nunca 0 (el informe en segundo plano sigue escribiendo «no disponible»).
+- **Neutralización (CWE-1236).** Una celda de texto que empieza por `=`, `+`, `-`, `@`, TAB o CR (o cualquier tramo tras `;`, `,`, TAB o salto de línea) lleva un `'` delante. Los números no se tocan. Aplica también al nombre de la marca y al texto de las publicaciones.
+- **Streaming.** Se escribe fila a fila con `response()->streamDownload`; el CSV de publicaciones recorre la consulta con `lazy(500)` y no lo carga entero en memoria.
+- **Analítica.** Cabecera `marca;red;metrica;tipo;valor;anterior;variacion_pct`. `tipo` es `flujo` o `acumulado` (seguidores, vídeos, publicaciones: stocks). Una fila por métrica y red, más una por marca y métrica cuando se exporta «Todas las marcas». `anterior` y `variacion_pct` solo llevan valor si se pidió comparación.
+- **Publicaciones.** Cabecera `fecha;marca;red;cuenta;tipo;estado;texto;enlace;visualizaciones;alcance;me_gusta;comentarios;compartidos;guardados;interacciones`. Una fila por destino (red) de las publicaciones que lista el calendario con ese filtro (mismo rango de la Lista, marca, red, estado y búsqueda, más los borradores sin fecha), con las métricas de su último snapshot (`AnalyticsService::withLatestSnapshot`, la misma pieza acotada que usa el dashboard: sin N+1). La fecha va en la zona horaria de la marca.
+- **Tope.** `social.export.max_rows` (`SOCIAL_EXPORT_MAX_ROWS`, 5.000 filas). Por encima el CSV se corta en el tope; la Lista avisa antes de descargar (propiedad `export` con `total`, `max`, `truncated`) y la respuesta lleva `X-Export-Total` y `X-Export-Truncated`. A diferencia de la Lista en pantalla (500 publicaciones), el CSV no tiene ese límite.
+- **Aislamiento.** Solo datos del usuario: una marca o una vista guardada ajena responde 404.
+- **Alcance.** El CSV no tiene herramienta MCP (`generate_report` ya devuelve CSV).

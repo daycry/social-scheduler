@@ -2,7 +2,7 @@
 
 /*
 |--------------------------------------------------------------------------
-| Reglas de media por red y tipo de contenido (13)
+| Reglas de media por red y tipo de contenido (19)
 |--------------------------------------------------------------------------
 |
 | Versionadas aqui: cuando una red cambia un limite se edita este fichero (y `version`).
@@ -14,7 +14,8 @@
 | Por tipo:
 |   label        nombre legible en los mensajes
 |   media        count (min/max de elementos) y kinds permitidos (image|video)
-|   text         max (caracteres), required y max_hashtags (opcional; Instagram 30, el resto sin tope)
+|   text         max (caracteres), required y max_hashtags (opcional; Instagram 30, el resto sin tope), advise_hashtags (opcional; solo avisa en el compositor, no bloquea: Threads 1); count (chars|graphemes|threads,
+|                por defecto chars), max_bytes (opcional) y required_without_media (texto obligatorio si no hay media)
 |   first_comment max (caracteres) del primer comentario; ausente = el tipo no lo admite (TikTok y Stories)
 |   recommended  recomendaciones por clase de media (mismas claves min/max_*): solo avisos, nunca bloquean
 |   image|video  reglas por clase de media: mimes, max_bytes, min/max_width, min/max_height,
@@ -26,7 +27,7 @@ $mb = 1024 * 1024;
 
 return [
 
-    'version' => '2026-10-19',
+    'version' => '2026-10-27',
 
     'types' => [
 
@@ -135,6 +136,66 @@ return [
             'text' => ['max' => 4000, 'required' => false],
             // Solo JPEG/WebP (no PNG), hasta 20 MB por foto.
             'image' => ['mimes' => ['image/jpeg', 'image/webp'], 'max_bytes' => 20 * $mb, 'max_width' => 1080 * 4, 'max_height' => 1920 * 4],
+        ],
+
+        // ---------------------------------------------------------------- Bluesky
+        // Texto: 300 GRAFEMAS (`count` => graphemes) y 3000 bytes UTF-8 (lexicon app.bsky.feed.post). Un post necesita texto o media.
+        // El tope de bytes de imagen y video es de esta instalacion (`social.bluesky.*_max_bytes`, ver config/social.php) y se lee en
+        // tiempo de validacion: una imagen mayor se recomprime en una copia (T-22) y un video mayor se rechaza al guardar.
+        'bluesky_post' => [
+            'label' => 'una publicacion de Bluesky',
+            'media' => ['min' => 0, 'max' => 4, 'kinds' => ['image']],
+            'text' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes', 'required' => false, 'required_without_media' => true],
+            'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp'], 'recompress_to_config' => 'social.bluesky.image_max_bytes'],
+        ],
+        'bluesky_video' => [
+            'label' => 'un video de Bluesky',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
+            'text' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes', 'required' => false],
+            // MP4; hasta 3 min (limite de Bluesky; getUploadLimits puede ser menor y se comprueba al publicar).
+            'video' => [
+                'mimes' => ['video/mp4'],
+                'max_bytes_config' => 'social.bluesky.video_max_bytes',
+                'too_big_message' => 'Bluesky solo admite videos de hasta :max en esta instalacion; este pesa :size.',
+                'min_duration' => 1, 'max_duration' => 180,
+            ],
+        ],
+
+        // ---------------------------------------------------------------- Threads
+        // Verificado en la documentacion de Meta el 2026-10-27 (T-54, docs/referencia/decisiones-por-red.md): 500 caracteres y cada emoji
+        // cuenta sus bytes UTF-8 (`count` => threads). El carrusel admite de 2 a 20 elementos, imagenes y videos mezclados. Sin
+        // `first_comment` (responder exige `threads_manage_replies`, que no se pide) ni `max_hashtags` (Threads solo admite UNA etiqueta
+        // de tema por post, la primera valida; no bloquea).
+        'threads_text' => [
+            'label' => 'una publicacion de texto de Threads',
+            'media' => ['min' => 0, 'max' => 0, 'kinds' => []],
+            'text' => ['max' => 500, 'count' => 'threads', 'required' => true, 'advise_hashtags' => 1],
+        ],
+        'threads_image' => [
+            'label' => 'una imagen de Threads',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
+            'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
+            // JPEG y PNG, 8 MB, relacion hasta 10:1; de 320 a 1440 px de ancho (la red reescala).
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'aspect' => ['min' => 0.1, 'max' => 10]],
+        ],
+        'threads_video' => [
+            'label' => 'un video de Threads',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
+            'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
+            'video' => [
+                'mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 0.1, 'max_duration' => 300,
+                'min_fps' => 23, 'max_fps' => 60, 'max_width' => 1920, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'],
+            ],
+        ],
+        'threads_carousel' => [
+            'label' => 'un carrusel de Threads',
+            'media' => ['min' => 2, 'max' => 20, 'kinds' => ['image', 'video']],
+            'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'aspect' => ['min' => 0.1, 'max' => 10]],
+            'video' => [
+                'mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 0.1, 'max_duration' => 300,
+                'min_fps' => 23, 'max_fps' => 60, 'max_width' => 1920, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'],
+            ],
         ],
     ],
 ];

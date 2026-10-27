@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\CredentialConnector;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokPublisher;
@@ -41,6 +42,7 @@ class ConnectionController extends Controller
                 'network' => $a->network->value,
                 'network_label' => $a->network->label(),
                 'provider' => $a->network->provider(),
+                'auth_kind' => $a->network->authKind(),
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
@@ -50,12 +52,20 @@ class ConnectionController extends Controller
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
             ])->values(),
-            'providers' => collect(Network::cases())->map(fn (Network $n) => [
-                'network' => $n->value,
-                'label' => $n->label(),
-                'provider' => $n->provider(),
-                'available' => $this->connectors->has($n->provider()),
-            ])->values(),
+            // Las redes OAuth sin configurar se listan como «no disponibles»; una de credenciales sin conector no se ofrece. Una red apagada
+            // o sin configurar a proposito (Threads: THREADS_ENABLED / THREADS_APP_ID) no se lista en absoluto.
+            'providers' => collect(Network::cases())
+                ->filter(fn (Network $n) => $n->isAvailable())
+                ->filter(fn (Network $n) => $n->authKind() === Network::AUTH_OAUTH || $this->connectors->has($n->provider()))
+                ->map(fn (Network $n) => [
+                    'network' => $n->value,
+                    'label' => $n->label(),
+                    'provider' => $n->provider(),
+                    'auth_kind' => $n->authKind(),
+                    'available' => $this->connectors->has($n->provider()),
+                    // Campos del formulario de las redes que se conectan con credenciales (nunca valores guardados).
+                    'fields' => $this->credentialFields($n),
+                ])->values(),
             'pending' => $pending ? [
                 'provider' => $pending['provider'],
                 'candidates' => array_map(fn ($c) => $c->toPublicArray(), $pending['candidates']),
@@ -65,6 +75,17 @@ class ConnectionController extends Controller
                 'error' => $request->session()->get('error'),
             ],
         ]);
+    }
+
+    /** @return list<array{name: string, label: string, type: string, help?: string}> */
+    private function credentialFields(Network $network): array
+    {
+        if ($network->authKind() !== Network::AUTH_CREDENTIALS || ! $this->connectors->has($network->provider())) {
+            return [];
+        }
+        $connector = $this->connectors->forProvider($network->provider());
+
+        return $connector instanceof CredentialConnector ? $connector->credentialFields() : [];
     }
 
     /** Conecta las cuentas elegidas entre las candidatas pendientes del ultimo OAuth. */

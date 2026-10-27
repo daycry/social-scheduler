@@ -229,12 +229,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-06 — E2E del inbox con notas y axe
 
 - **Descripción**: Escenario Playwright de notas del inbox con axe y sin desbordes. Requisito: CA-17.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cobertura E2E del flujo de notas del inbox (alta, insignia, filtro y borrado) con accesibilidad y móvil.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-03
 - **Tipo**: test
@@ -245,14 +246,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `npx playwright test tests/e2e/inbox-notes.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos (axe y sin desbordes)
 
 **Criterios de aceptación**
-- [ ] Alta, borrado, insignia y filtro cubiertos.
-- [ ] 0 violaciones axe serious/critical y `expectNoOverflow` en 375 y 360 px.
+- [x] Alta, borrado, insignia y filtro cubiertos.
+- [x] 0 violaciones axe serious/critical y `expectNoOverflow` en 375 y 360 px.
 
 **Subtareas**
-- [ ] Helper de semilla
-- [ ] Spec E2E
+- [x] Helper de semilla
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/composer.spec.ts` y helpers `loginAs`, `axeSeriousCritical`, `expectNoOverflow` (`tests/e2e/helpers.ts:538`); usuarios `e2e-sec-<proyecto>@example.test`, marcas `e2e-`. Nunca el usuario 28. Semilla `seedInboxComment` (nueva en `helpers.ts`).
+
+**Verificación ejecutada**: npm run build; E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/inbox-notes.spec.ts --project=desktop --project=mobile --project=mobile-360 -> 3 passed (axe y sin desbordes)
 
 ### T-07 — Documentación y revisión de robustez de C-04d
 

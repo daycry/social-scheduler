@@ -688,3 +688,17 @@ export function seedCampaignPanel(email: string, brandId: number): CampaignSeed 
     );
     return { campaignId: Number(out.match(/CAMP:(\d+)/)![1]) };
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Notas internas del inbox (C-04d): comentarios sembrados en la marca `e2e-composer-*` (se van con ella, cascade). Nada llega a una red.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Siembra comentarios de terceros en la cuenta de Instagram de la marca E2E (con permiso de lectura, sin banner de «no disponible»). */
+export function seedInboxComment(brandId: number, ...texts: string[]) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`$ig->forceFill(['scopes' => ['instagram_manage_comments']])->save(); ` +
+            String.raw`foreach ([${texts.map(q).join(', ')}] as $i => $t) { App\Models\InboxComment::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'text' => $t, 'author_name' => 'e2e-autor-' . $i, 'commented_at' => now()->subMinutes($i + 1)]); }`,
+    );
+}

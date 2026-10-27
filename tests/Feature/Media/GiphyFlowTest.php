@@ -32,6 +32,8 @@ test('CA-15: buscar «gato», elegir un GIF e importar su MP4 como media «lista
     Http::swap(new Factory);
     Http::preventStrayRequests();
     Http::fake([
+        'api.giphy.com/v1/gifs/gato1*' => Http::response(['data' => ['id' => 'gato1', 'title' => 'Gato', 'rating' => 'g',
+            'images' => ['fixed_width_small' => ['url' => 'https://media2.giphy.com/media/gato1/100w.gif', 'width' => '100', 'height' => '100'], 'original_mp4' => ['mp4' => 'https://media2.giphy.com/media/gato1/giphy.mp4']]]]),
         'api.giphy.com/*' => Http::response(['data' => [[
             'id' => 'gato1', 'title' => 'Gato',
             'images' => ['fixed_width_small' => ['url' => 'https://media2.giphy.com/media/gato1/100w.gif', 'width' => '100', 'height' => '100'], 'original_mp4' => ['mp4' => 'https://media2.giphy.com/media/gato1/giphy.mp4']],

@@ -29,7 +29,7 @@ class GifController extends Controller
         $offset = (int) ($data['offset'] ?? 0);
 
         try {
-            $page = $q === '' ? $this->giphy->trending($offset) : $this->giphy->search($q, $offset);
+            $page = $q === '' ? $this->giphy->trending($offset, $request->user()->id) : $this->giphy->search($q, $offset, $request->user()->id);
         } catch (GiphyException $e) {
             return response()->json(['message' => $e->getMessage()], $e->status === 429 ? 429 : 502);
         }
@@ -44,8 +44,16 @@ class GifController extends Controller
 
         $data = $request->validate(['url' => ['required', 'string', 'max:2048']]);
 
+        // Lista cerrada ANTES de pedir nada; luego la URL se RECONSTRUYE pidiendo el GIF a Giphy por su id (con su rating): no se usa la del cliente.
+        if (! GiphyClient::allowedMediaUrl($data['url']) || ! preg_match('#^/media/(?:v1\.[^/]+/)?([A-Za-z0-9]+)/#', (string) parse_url($data['url'], PHP_URL_PATH), $m)) {
+            return response()->json(['message' => 'Solo se pueden importar GIFs de Giphy.'], 422);
+        }
+
         try {
-            $asset = $this->uploads->importFromGiphy($request->user(), $data['url']);
+            $url = $this->giphy->mp4ById($m[1], $request->user()->id);
+            $asset = $this->uploads->importFromGiphy($request->user(), $url);
+        } catch (GiphyException $e) {
+            return response()->json(['message' => $e->getMessage()], in_array($e->status, [422, 429], true) ? $e->status : 502);
         } catch (UnsafeUrlException|InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

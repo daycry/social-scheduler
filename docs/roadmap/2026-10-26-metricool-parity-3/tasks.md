@@ -50,12 +50,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
-| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
+| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 1 | 6 | 17% | 5,0 / 18,0h (estimado) | 0,68 / 2,44h (estimado) | 0,17 / 0,62h (estimado) | 202k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **42** | **77** | **55%** | **130,0 / 246,0h** | **17,63 / 33,21h** | **4,45 / 8,3h** | **5,26M / 9,96M** |
+| **TOTAL** | **43** | **77** | **56%** | **135,0 / 246,0h** | **18,31 / 33,21h** | **4,62 / 8,3h** | **5,47M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -650,7 +650,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Un test de regresión demuestra que `RefreshSocialAccount` no marca reconexión con `refresh_expires_at` nulo.
 
 **Subtareas**
-- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo)
+- [x] Test RED — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] Cliente XRPC
 - [x] Sesión con bloqueo y recuperación
 
@@ -687,7 +687,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] El secreto no aparece en props, logs ni auditoría.
 
 **Subtareas**
-- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo)
+- [x] Test RED — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] Controlador y ruta
 - [x] Formulario
 
@@ -746,7 +746,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-21
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/ImageDownscaler.php`, `app/Services/MediaValidator.php`, `tests/Feature/Media/ImageDownscalerTest.php`
+- **Archivos**: `app/Services/Media/ImageDownscaler.php`, `app/Services/MediaValidator.php`, `tests/Feature/Media/ImageDownscalerTest.php`, `config/media.php`, `deploy/hestia/README.md`, `docs/stack.md`, `tests/Support/downscale_probe.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImageDownscalerTest.php` → en verde (3 MB → ≤ tope, copia cacheada, imposible → error al validar)
 
@@ -863,7 +863,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] La `rkey` se persiste antes de la llamada.
 
 **Subtareas**
-- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo) (CA-04)
+- [x] Test RED (CA-04) — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] TID
 - [x] `findPublished` y errores
 
@@ -896,7 +896,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `NetworkCoverageTest` (T-18) sigue en verde.
 
 **Subtareas**
-- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo) (CA-06)
+- [x] Test RED (CA-06) — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] Lector de insights
 - [x] Entradas de `Metric` y `SUPPORTED`
 
@@ -1408,34 +1408,40 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA)
 
-**Estado**: borrador · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
+**Estado**: en-progreso · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
 
 ### T-43 — `HashtagStats`: extracción, cruce con *snapshots*, ranking y caché
 
 - **Descripción**: Extrae los `#tags` de los destinos publicados de la marca (por red), los cruza con el último *snapshot* y ordena por mejora de interacciones sobre la media, con mínimo de 2 usos y caché de 1h. Requisito: CA-14, D5 (sin IA).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nuevo servicio que sugiere hashtags a partir de tu propio historial: solo los usados al menos 2 veces, ordenados por cuánto mejoran las interacciones sobre tu media, sin usar IA.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
+- **RED**: `php artisan test --compact tests/Feature/Hashtags/HashtagStatsTest.php` antes del servicio -> 9 errores (clase `App\Services\HashtagStats` inexistente) · 2026-10-27
 - **Dependencias**: T-23
 - **Tipo**: backend
-- **Archivos**: `app/Services/HashtagStats.php`, `app/Support/Hashtags.php`, `tests/Feature/Hashtags/HashtagStatsTest.php`
+- **Archivos**: `app/Services/HashtagStats.php`, `app/Support/Hashtags.php`, `tests/Feature/Hashtags/HashtagStatsTest.php`, `config/social.php`, `app/Services/BestTimesService.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Hashtags/HashtagStatsTest.php` → en verde (Unicode, mínimo 2 usos, ranking, marca sin histórico)
 
 **Criterios de aceptación**
-- [ ] Solo salen hashtags con ≥ 2 usos, ordenados por rendimiento.
-- [ ] Una marca sin histórico devuelve un estado vacío explícito.
-- [ ] Nunca se llama a la IA.
+- [x] Solo salen hashtags con ≥ 2 usos, ordenados por rendimiento.
+- [x] Una marca sin histórico devuelve un estado vacío explícito.
+- [x] Nunca se llama a la IA.
 
 **Subtareas**
-- [ ] Test RED (CA-14)
-- [ ] Servicio y caché
+- [x] Test RED (CA-14)
+- [x] Servicio y caché
 
 **Notas**: Patrón: `App\Support\Hashtags` (creado en T-23, **la misma extracción que `Facets`**), `app/Services/AnalyticsService.php` y `app/Models/PostMetricSnapshot.php`. El histórico se congela a los 30 días (`recent_post_days`). Sin datos: «aún no hay datos suficientes».
+
+**Nota de cierre**: Ranking por interacciones medias del hashtag (equivale a ordenar por mejora sobre la media de la marca, que es el mismo divisor). Solo cuentan destinos publicados con una lectura de métricas; el texto propio del destino manda sobre el del post; ventana `social.hashtags.days` (365); caché `social.hashtags.cache_minutes` (60). `BestTimesService::engagement()` pasa a público para reutilizar la misma definición de interacciones. Claves nuevas en `config/social.php` (`social.hashtags.*`), declaradas en el spec. Sin Http: el test usa `Http::preventStrayRequests()` y `assertNothingSent()`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Hashtags/HashtagStatsTest.php -> 9 passed (33 assertions): mínimo 2 usos, ranking, mejora +81,8 %, Unicode (Ñandú, devanagari), texto del destino, marca sin histórico, aislamiento por marca/usuario/ventana, red y caché, límite
 
 ### T-44 — Endpoint y chips de hashtags en el compositor
 
@@ -2411,10 +2417,10 @@ Lentes A+B+C+D sobre las correcciones `8df0324..3408763`. **C-1 (SSRF) está cer
 | N3 | Minor | Si se agota la espera del lock de recompresión, se lanza `PermanentPublishException` cuando debería ser transitoria | T-22 | corregido (0afacd3) | `ImageDownscaler.php:86-88` |
 | N4 | Minor | No se verifica el handle que devuelve el PDS: una marca propia podría mostrar el handle de otra persona (CWE-345) | T-19 | corregido (6d0a9bc) | `BlueskySession.php:46` |
 | N5 | Minor | La orientación EXIF depende de `ext-exif`, que no se declara en `composer.json` ni en `deploy/hestia/README.md` | T-22 | corregido (0afacd3) | `ImageDownscaler.php:133` |
-| N6 | Minor | T-19..T-26 siguen con `[x] Test RED` aunque la nota dice «RED no registrado» | T-19..T-26 | corregido (T-19, T-20, T-25 y T-26 sin casilla; ver nota) | ledger |
+| N6 | Minor | T-19..T-26 siguen con `[x] Test RED` aunque la nota dice «RED no registrado» | T-19..T-26 | corregido (T-19, T-20, T-25 y T-26 marcadas «RED NO REGISTRADO»; ver nota) | ledger |
 
 **Correcciones del intento 2 (Fase 3).**
 - N1 (0afacd3): `ImageDownscaler` reduce con `ffmpeg` (`media.ffmpeg`, `FFMPEG_BINARY`; descodifica fuera de PHP y aplica la orientación EXIF con `autorotate`), copiando el original a un temporal por flujo. Sin ffmpeg recurre a GD con la comprobación de memoria, ahora en el worker y con el mensaje «instala ffmpeg o usa una imagen más pequeña». La validación web ya no mira `memory_get_usage()`: solo el tope de 50 MP (`exceedsPixelCap`). Cifras con `memory_limit=256M` real (proceso hijo, foto de 24 MP y 16,3 MB): copia de 1,93 MB a 4096×2730 y pico de memoria de PHP de 26 MB (GD pedía ~384 MB). El test del `memory_limit=4G` se quitó.
 - N3: agotar la espera del lock lanza `TransientPublishException` (`media_ocupada`). N5: lector propio de la orientación EXIF en `ImageDownscaler::exifOrientation`, sin `ext-exif`; `deploy/hestia/README.md` y `docs/stack.md` declaran `ffmpeg`.
 - N2 (e612cfe): `PostService::reschedule` rechaza los destinos de una red no disponible. N4 (6d0a9bc): `BlueskySession::open` solo muestra el handle del PDS si resuelve al mismo DID por el entryway fijo; si no, usa el DID.
-- N6: T-19, T-20, T-25 y T-26 pierden la casilla `[x] Test RED` (su nota dice «RED no registrado») y quedan como línea «Test RED: NO REGISTRADO»; una casilla `[ ]` en una tarea completada la rechaza `ledger-lint`.
+- N6: T-19, T-20, T-25 y T-26 conservan el texto del criterio «Test RED» (lo exige `scope-check`: un criterio aprobado no se reescribe) y la casilla (la exige `ledger-lint`: una `[ ]` en una tarea completada es incoherencia dura), pero la línea declara «⚠️ RED NO REGISTRADO: sin salida roja». La nota de cada tarea ya lo decía; ahora también la propia línea.

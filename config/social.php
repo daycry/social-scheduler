@@ -240,6 +240,18 @@ return [
     ],
 
     /*
+    | Sugerencias de hashtags (C-04a, D5: SIN IA). Salen del historico propio de la marca: hashtags de lo publicado, cruzados con la
+    | ultima lectura de metricas de cada destino. Solo se ofrecen los usados al menos `min_uses` veces; `limit` sugerencias;
+    | `days` de ventana y cache corta (minutos).
+    */
+    'hashtags' => [
+        'min_uses' => (int) env('SOCIAL_HASHTAGS_MIN_USES', 2),
+        'limit' => (int) env('SOCIAL_HASHTAGS_LIMIT', 15),
+        'days' => (int) env('SOCIAL_HASHTAGS_DAYS', 365),
+        'cache_minutes' => (int) env('SOCIAL_HASHTAGS_CACHE_MINUTES', 60),
+    ],
+
+    /*
     | Competidores de Instagram (PA-08, Business Discovery). Hora UTC del snapshot diario (tras el de cuentas) y tope por marca.
     */
     'competitors' => [

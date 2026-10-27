@@ -72,7 +72,7 @@ const summary = (v) =>
 </script>
 
 <template>
-    <div class="relative">
+    <div class="sm:relative">
         <button ref="button" type="button" class="btn btn-secondary py-1.5 text-sm" aria-haspopup="dialog" :aria-expanded="open" data-testid="views-open" @click="toggle">
             Vistas<span v-if="activeView" class="sr-only"> (hay una vista aplicada)</span><span v-if="activeView" aria-hidden="true"> ●</span>
         </button>
@@ -82,7 +82,7 @@ const summary = (v) =>
             ref="panel"
             role="dialog"
             aria-label="Vistas guardadas"
-            class="absolute right-0 top-full z-30 mt-1 w-[min(24rem,calc(100vw-1.5rem))] rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-lg"
+            class="absolute inset-x-3 z-30 mt-1 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-lg sm:inset-x-auto sm:right-0 sm:top-full sm:w-96"
             data-testid="views-menu"
             @keydown="onKeydown"
         >

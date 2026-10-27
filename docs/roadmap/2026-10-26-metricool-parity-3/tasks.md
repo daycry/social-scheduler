@@ -441,27 +441,30 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-13 — E2E de vistas guardadas con axe
 
 - **Descripción**: Escenario Playwright: guardar, aplicar, renombrar y borrar una vista. Requisito: CA-11.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cobertura E2E del flujo de vistas guardadas del calendario (guardar, aplicar, renombrar, borrar y por defecto) con accesibilidad y móvil.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-10
 - **Tipo**: test
-- **Archivos**: `tests/e2e/calendar-views.spec.ts`, `tests/e2e/helpers.ts`
+- **Archivos**: `tests/e2e/calendar-views.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Components/Calendar/ViewsMenu.vue`, `app/Http/Controllers/CalendarViewController.php`, `tests/Feature/Calendar/CalendarViewCrudTest.php`
 - **Cubre (tests)**: E2E-02
 - **Verificación**: `npx playwright test tests/e2e/calendar-views.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos (axe y sin desbordes)
 
 **Criterios de aceptación**
-- [ ] Flujo completo cubierto.
-- [ ] 0 violaciones axe serious/critical y sin desborde.
+- [x] Flujo completo cubierto.
+- [x] 0 violaciones axe serious/critical y sin desborde.
 
 **Subtareas**
-- [ ] Spec E2E
+- [x] Spec E2E
 
-**Notas**: Patrón: `tests/e2e/composer.spec.ts` y `seedComposerPosts` (`helpers.ts:519`).
+**Notas**: Patrón: `tests/e2e/composer.spec.ts` y `seedComposerPosts` (`helpers.ts:519`). Nota de implementación: el E2E destapó dos fallos que se corrigen aquí: el panel de vistas desbordaba en móvil (ahora ocupa el ancho) y borrar la vista abierta redirigía a `saved_view=<id>` inexistente (404); ahora vuelve al calendario sin ella.
+
+**Verificación ejecutada**: npm run build; E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/calendar-views.spec.ts --project=desktop --project=mobile --project=mobile-360 -> 6 passed (axe y sin desbordes); tests/Feature/Calendar 32 passed
 
 ### T-14 — Documentación y revisión de robustez de C-03a
 

@@ -109,3 +109,12 @@ it('solo una vista por defecto por usuario', function () {
 it('exige sesión', function () {
     $this->post(route('calendar-views.store'), viewPayload())->assertRedirect(route('login'));
 });
+
+it('borrar la vista abierta vuelve al calendario sin ella (no a un 404)', function () {
+    $v = CalendarView::factory()->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)->from(route('calendar.index', ['saved_view' => $v->id]))->delete(route('calendar-views.destroy', $v->id))
+        ->assertRedirect(route('calendar.index'));
+
+    $this->actingAs($this->user)->get(route('calendar.index'))->assertOk();
+});

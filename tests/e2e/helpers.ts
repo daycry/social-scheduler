@@ -702,3 +702,15 @@ export function seedInboxComment(brandId: number, ...texts: string[]) {
             String.raw`foreach ([${texts.map(q).join(', ')}] as $i => $t) { App\Models\InboxComment::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'text' => $t, 'author_name' => 'e2e-autor-' . $i, 'commented_at' => now()->subMinutes($i + 1)]); }`,
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Vistas guardadas del calendario (C-03a): se borran las del usuario E2E (no cuelgan de la marca).
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Borra todas las vistas guardadas del calendario del usuario `e2e-sec-*`. */
+export function cleanCalendarViews(email: string) {
+    artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); ` +
+            String.raw`if ($u) { App\Models\CalendarView::withoutUserScope()->where('user_id', $u->id)->delete(); }`,
+    );
+}

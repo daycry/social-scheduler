@@ -4,6 +4,7 @@ namespace App\Connectors\Bluesky;
 
 use App\Analytics\Days;
 use App\Analytics\Metric;
+use App\Connectors\Contracts\BatchPostInsights;
 use App\Connectors\Contracts\InsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\TransientPublishException;
@@ -21,7 +22,7 @@ use Carbon\CarbonInterface;
  *  - Post (`app.bsky.feed.getPosts`, 25 URIs como maximo): `likeCount` -> LIKES, `replyCount` -> COMMENTS, `repostCount + quoteCount`
  *    -> SHARES y la suma -> INTERACTIONS. VIEWS, REACH y SAVED son `null` («no disponible», nunca 0): Bluesky no los ofrece.
  */
-class BlueskyInsights implements InsightsReader
+class BlueskyInsights implements BatchPostInsights, InsightsReader
 {
     /** URIs por consulta de `getPosts`. */
     public const BATCH = 25;

@@ -1,11 +1,16 @@
 <?php
 
 use App\Analytics\Metric;
+use App\Analytics\SnapshotCollector;
 use App\Connectors\Bluesky\BlueskyInsights;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Network;
+use App\Enums\ContentType;
+use App\Enums\PostStatus;
+use App\Models\Post;
+use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Services\AnalyticsService;
 use Illuminate\Http\Client\ConnectionException;
@@ -122,4 +127,25 @@ test('Bluesky solo ofrece stocks de cuenta y se registra con publicador y lector
         ->and($registry->has('bluesky'))->toBeTrue()
         ->and($registry->publisherFor(Network::Bluesky))->not->toBeNull()
         ->and($registry->insightsFor(Network::Bluesky))->toBeInstanceOf(BlueskyInsights::class);
+});
+
+test('D-1: el colector de publicaciones pide un bloque de 25 con UN getPosts, no uno por publicacion', function () {
+    foreach (range(1, 30) as $i) {
+        PostTarget::factory()->create([
+            'post_id' => Post::factory()->for($this->account->user)->create(['brand_id' => $this->account->brand_id])->id, 'social_account_id' => $this->account->id, 'network' => Network::Bluesky, 'content_type' => ContentType::BlueskyPost,
+            'status' => PostStatus::Published, 'external_id' => bskyUri('3k'.str_pad((string) $i, 11, 'a')), 'published_at' => now()->subHours($i),
+        ]);
+    }
+    Http::fake(['public.api.bsky.app/xrpc/app.bsky.feed.getPosts*' => function ($request) {
+        preg_match_all('/uris=([^&]+)/', $request->url(), $m);
+
+        return Http::response(['posts' => array_map(fn ($u) => ['uri' => urldecode($u), 'likeCount' => 3, 'replyCount' => 1, 'repostCount' => 0, 'quoteCount' => 0], $m[1])]);
+    }]);
+
+    $result = app(SnapshotCollector::class)->collectPostsBatch($this->account->fresh(), 48, 0, 60.0);
+
+    expect($result['saved'])->toBe(25)->and($result['next'])->toBe(25)
+        ->and(Http::recorded()->map(fn ($p) => substr_count($p[0]->url(), 'uris='))->all())->toBe([25])
+        ->and(PostMetricSnapshot::withoutUserScope()->count())->toBe(25)
+        ->and(PostMetricSnapshot::withoutUserScope()->first()->metrics[Metric::LIKES])->toBe(3);
 });

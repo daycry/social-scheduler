@@ -3,6 +3,7 @@
 namespace App\Analytics;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\BatchPostInsights;
 use App\Connectors\Contracts\RangeInsightsReader;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Enums\PostStatus;
@@ -12,6 +13,7 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -187,6 +189,7 @@ class SnapshotCollector
         $started = microtime(true);
         $slowest = 0.0;
         $today = now()->utc()->format('Y-m-d');
+        $batched = $this->prefetchBatch($reader, $targets);
 
         foreach ($targets as $target) {
             // Siempre se lee al menos una por pasada; despues solo si cabe otra de la duracion de la mas lenta.
@@ -202,7 +205,8 @@ class SnapshotCollector
             }
 
             try {
-                $fresh = Metric::clean($reader->postInsights($account, (string) $target->external_id), Metric::POST);
+                // Lectores con lectura por lotes (Bluesky): una sola llamada por bloque de 25, no una por publicacion.
+                $fresh = Metric::clean($batched[(string) $target->external_id] ?? $reader->postInsights($account, (string) $target->external_id), Metric::POST);
             } catch (PermanentPublishException $e) {
                 Log::notice('analytics.post_unavailable', ['target_id' => $target->id, 'code' => $e->errorCode]);
                 $fresh = Metric::blankPost();
@@ -228,6 +232,34 @@ class SnapshotCollector
         $more = $targets->count() === $size && $offset + $size < $max;
 
         return ['saved' => $saved, 'next' => $more ? $offset + $size : null];
+    }
+
+    /**
+     * Metricas de todo el bloque en UNA llamada si el lector sabe leer por lotes. Un rechazo permanente deja el bloque en blanco
+     * (como cuando se pedia una a una); un fallo transitorio se propaga y el job reintenta.
+     *
+     * @param  Collection<int, PostTarget>  $targets
+     * @return array<string, array<string, int|float|null>> id externo => metricas
+     */
+    private function prefetchBatch(object $reader, $targets): array
+    {
+        if (! $reader instanceof BatchPostInsights) {
+            return [];
+        }
+
+        $ids = $targets->filter(fn (PostTarget $t) => $reader->canReadPost($t))->map(fn (PostTarget $t) => (string) $t->external_id)->unique()->values()->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        try {
+            return $reader->postsInsights($ids);
+        } catch (PermanentPublishException $e) {
+            Log::notice('analytics.post_unavailable', ['target_id' => null, 'code' => $e->errorCode]);
+
+            return array_fill_keys($ids, Metric::blankPost());
+        }
     }
 
     /**

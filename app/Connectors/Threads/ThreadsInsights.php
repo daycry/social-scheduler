@@ -62,7 +62,7 @@ class ThreadsInsights implements RangeInsightsReader
         $id = $account->external_id;
         $range = ['since' => $start->getTimestamp(), 'until' => $start->addDay()->getTimestamp()];
 
-        $rows = $this->rows($id.'/threads_insights', self::USER_METRICS, $range, $token);
+        $rows = $this->rows($account, $id.'/threads_insights', self::USER_METRICS, $range, $token);
         $byName = [];
         foreach ($rows as $row) {
             $byName[(string) ($row['name'] ?? '')] = $row;
@@ -77,7 +77,7 @@ class ThreadsInsights implements RangeInsightsReader
 
         // `followers_count` no admite since/until: es el valor de HOY, solo valido para el ultimo dia cerrado.
         if ($label->gte(Days::closed(Network::Threads))) {
-            $followers = $this->rows($id.'/threads_insights', ['followers_count'], [], $token);
+            $followers = $this->rows($account, $id.'/threads_insights', ['followers_count'], [], $token);
             $out[Metric::FOLLOWERS] = $this->totalValue($followers[0] ?? null);
         }
 
@@ -110,7 +110,7 @@ class ThreadsInsights implements RangeInsightsReader
         $out = Metric::blankPost();
         $by = [];
 
-        foreach ($this->rows($externalId.'/insights', self::POST_METRICS, [], (string) $account->access_token) as $row) {
+        foreach ($this->rows($account, $externalId.'/insights', self::POST_METRICS, [], (string) $account->access_token) as $row) {
             $by[(string) ($row['name'] ?? '')] = $this->lifetime($row);
         }
 
@@ -127,17 +127,20 @@ class ThreadsInsights implements RangeInsightsReader
 
     /**
      * Pide las metricas juntas; si Threads rechaza el conjunto de forma permanente (una metrica en desarrollo o sin permiso) las pide
-     * una a una y deja `null` las rechazadas, que recuerda en cache (`REJECTED_TTL_HOURS`) para no repetir el intento en cada lectura.
+     * una a una y deja `null` las rechazadas. Solo recuerda en cache (`REJECTED_TTL_HOURS`, con clave de CUENTA + tipo de lectura + conjunto)
+     * el rechazo que indica que la metrica no existe o que falta un permiso de la cuenta; el error de un post concreto (borrado,
+     * inexistente: todas las metricas fallan igual y ninguna avisa de la metrica) se salta sin cachear, para no apagar las de otros posts.
      *
      * @param  list<string>  $metrics
      * @param  array<string, int|string>  $range
      * @return list<array<string, mixed>>
      */
-    private function rows(string $path, array $metrics, array $range, string $token): array
+    private function rows(SocialAccount $account, string $path, array $metrics, array $range, string $token): array
     {
-        // Recuerda (por tipo de lectura y conjunto de metricas, TTL) cuales rechazo Threads: la siguiente lectura pide solo las demas, en UNA
-        // peticion, en vez de repetir el conjunto fallido y las N individuales en cada post.
-        $key = 'threads:insights:rejected:'.(str_contains($path, 'threads_insights') ? 'account' : 'post').':'.md5(implode(',', $metrics));
+        // Recuerda (por CUENTA, tipo de lectura y conjunto de metricas, TTL) cuales rechazo Threads: la siguiente lectura pide solo las demas,
+        // en UNA peticion, en vez de repetir el conjunto fallido y las N individuales en cada post.
+        $key = 'threads:insights:rejected:'.sha1((string) ($account->external_id ?? $account->getKey())).':'
+            .(str_contains($path, 'threads_insights') ? 'account' : 'post').':'.md5(implode(',', $metrics));
         $known = (array) Cache::get($key, []);
         $ask = array_values(array_diff($metrics, $known));
 
@@ -153,23 +156,42 @@ class ThreadsInsights implements RangeInsightsReader
 
         $rows = [];
         $rejected = [];
+        $explicit = [];
         foreach ($ask as $metric) {
             try {
                 $one = $this->client->get($path, ['metric' => $metric] + $range, $token, true);
             } catch (PermanentPublishException $e) {
                 Log::notice('threads.insight_unavailable', ['metric' => $metric, 'code' => $e->errorCode]);
                 $rejected[] = $metric;
+                if ($this->namesMetricOrPermission($e)) {
+                    $explicit[] = $metric;
+                }
 
                 continue;
             }
             array_push($rows, ...(array) ($one['data'] ?? []));
         }
 
+        // Si alguna otra metrica de la misma peticion SI respondio, el fallo es de la metrica; si fallaron todas igual y ninguna error
+        // habla de metricas o permisos, el fallo es del post (borrado, inexistente): se salta sin recordar nada.
+        $rejected = $rows !== [] ? $rejected : $explicit;
+
         if ($rejected !== []) {
             Cache::put($key, array_values(array_unique([...$known, ...$rejected])), now()->addHours(self::REJECTED_TTL_HOURS));
         }
 
         return $rows;
+    }
+
+    /** El error dice que la metrica no existe o que falta un permiso de la cuenta (no un problema del post consultado). */
+    private function namesMetricOrPermission(PermanentPublishException $e): bool
+    {
+        // «Object with ID … does not exist, cannot be loaded due to missing permissions» es el error de un post: no cuenta como permiso.
+        if (preg_match('/does not exist|not exist|no existe/i', $e->getMessage()) === 1) {
+            return false;
+        }
+
+        return $e->errorCode === 'permisos' || preg_match('/metric|metrica/i', $e->getMessage()) === 1;
     }
 
     /** Valor del dia de una serie `period=day`: el cuyo `end_time` cierra ese dia en la zona de la red; con un unico valor sin hora, ese. */

@@ -263,3 +263,46 @@ test('se recuerda que metrica rechazo Threads: la siguiente lectura la omite y p
 
     expect($first)->toBeGreaterThan(2)->and($second)->toBe(1)->and($m[Metric::LIKES])->toBe(4)->and($m[Metric::CLICKS])->toBeNull();
 });
+
+test('un post borrado no apaga las metricas de otros posts ni de otras cuentas: el rechazo de un post no se cachea', function () {
+    Http::fake([
+        'graph.threads.com/v1.0/DELETED/insights*' => Http::response(['error' => ['message' => 'Unsupported get request. Object with ID DELETED does not exist, cannot be loaded due to missing permissions', 'code' => 100]], 400),
+        'graph.threads.com/v1.0/*/insights*' => function (Request $r) {
+            $names = explode(',', thiQuery($r)['metric']);
+
+            return Http::response(['data' => array_map(fn ($n) => ['name' => $n, 'period' => 'lifetime', 'values' => [['value' => 7]]], $names)]);
+        },
+    ]);
+    $other = ThreadsFake::account(['external_id' => '999000111']);
+
+    $deleted = $this->reader->postInsights($this->account, 'DELETED');
+    $same = $this->reader->postInsights($this->account, 'GOOD1');
+    $otherAccount = $this->reader->postInsights($other, 'GOOD2');
+
+    expect(Metric::isEmpty($deleted))->toBeTrue()
+        ->and($same[Metric::LIKES])->toBe(7)->and($same[Metric::VIEWS])->toBe(7)
+        ->and($otherAccount[Metric::LIKES])->toBe(7)->and($otherAccount[Metric::VIEWS])->toBe(7);
+});
+
+test('la metrica rechazada se recuerda por cuenta: otra cuenta sigue pidiendo el conjunto completo', function () {
+    Http::fake([
+        'graph.threads.com/v1.0/*/insights*' => function (Request $r) {
+            $names = explode(',', thiQuery($r)['metric']);
+            if (in_array('views', $names, true)) {
+                return Http::response(['error' => ['message' => 'The metric views is not supported', 'code' => 100]], 400);
+            }
+
+            return Http::response(['data' => array_map(fn ($n) => ['name' => $n, 'period' => 'lifetime', 'values' => [['value' => 3]]], $names)]);
+        },
+    ]);
+    $other = ThreadsFake::account(['external_id' => '999000111']);
+
+    $this->reader->postInsights($this->account, 'P1');
+    $before = count(thiSent('/insights'));
+    $this->reader->postInsights($this->account, 'P2');
+    $sameAccount = count(thiSent('/insights')) - $before;
+    $this->reader->postInsights($other, 'P3');
+    $otherAccount = count(thiSent('/insights')) - $before - $sameAccount;
+
+    expect($sameAccount)->toBe(1)->and($otherAccount)->toBeGreaterThan(1);
+});

@@ -73,3 +73,22 @@ test('get_stats y get_best_times aceptan Bluesky y Threads', function () {
         expect($err)->toBeFalse($network);
     }
 });
+
+test('create_post con 301 grafemas en Bluesky falla con EXACTAMENTE el mismo mensaje que el compositor', function () {
+    $text = str_repeat('a', 301);
+
+    [$err, $mcp] = $this->callTool($this->key, 'create_post', [
+        'brand_id' => $this->brand->id, 'text' => $text, 'scheduled_at' => '2026-11-02 10:00', 'schedule' => true,
+        'targets' => [['account_id' => $this->bsky->id, 'content_type' => 'bluesky_post']],
+    ]);
+    $web = $this->actingAs($this->user)->postJson(route('brands.posts.validate', $this->brand), [
+        'text' => $text, 'schedule' => false, 'media' => [],
+        'targets' => [['account_id' => $this->bsky->id, 'content_type' => 'bluesky_post']],
+    ])->json('errors');
+
+    $messages = collect($web)->flatten()->filter(fn ($m) => is_string($m) && str_contains($m, '301'))->values();
+
+    expect($err)->toBeTrue()->and($messages)->toHaveCount(1)
+        ->and($mcp)->toBe('Datos no validos: targets.0: '.$messages[0]) // el MCP solo antepone el prefijo y la ruta; el texto es el de la web
+        ->and($mcp)->toContain('Bluesky admite como maximo 300');
+});

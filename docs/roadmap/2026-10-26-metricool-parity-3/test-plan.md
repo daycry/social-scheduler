@@ -149,6 +149,27 @@
   - [ ] Vídeo publicado, o mensaje claro si el cupo o el email lo impiden.
   - [ ] Seguidores y métricas por post visibles, con `views` «no disponible».
 - **Cubre tareas**: T-30
+- **Preparación (la hace el usuario; la guía de la app password es la de [Bluesky: app password](../../guias/bluesky-app-password.md), T-73 adelantada):**
+  1. En Bluesky: *Configuración → Privacidad y seguridad → Contraseñas de aplicación* → crear una (sin mensajes directos) y copiarla.
+  2. Tener a mano: una imagen de más de 2 MB, otras 3 imágenes pequeñas, un MP4 de menos de 50 MB (y de menos de 3 min) y una cuenta con el **email verificado** (Bluesky → Configuración → Cuenta → Email).
+  3. Usar una marca propia de pruebas (no el usuario 28 ni datos de clientes). `php artisan migrate` aplicada y `npm run build` hecho; con la cola corriendo en tu entorno (`queue:work`) y el scheduler, o lanzar `php artisan schedule:run` a mano.
+- **Pasos:**
+  1. **Conectar.** Conexiones → Bluesky → «+ Conectar» → handle + app password. Esperado: «Conectada». Probar antes con una app password incorrecta: error claro y nada guardado.
+  2. **Texto.** Programar (o «Publicar ahora») `Prueba https://example.com #pruebas @tu.handle` con un emoji compuesto. Esperado: enlace, hashtag y mención clicables en bsky.app; el contador del compositor coincide con Bluesky. Anotar el enlace del post.
+  3. **4 imágenes.** Una de más de 2 MB (se recomprime: avisa en el compositor) y tres pequeñas. Esperado: 4 imágenes en el post y la original intacta en la biblioteca.
+  4. **Vídeo.** Un MP4 < 50 MB. Esperado: destino «Procesando» y luego «Publicada» con enlace. Probar también uno > 50 MB (rechazo al guardar) y, si se puede, con el email sin verificar (mensaje claro).
+  5. **Idempotencia.** Cortar la red un instante durante «Publicar ahora» (o detener la cola a mitad) y reintentar: no debe haber dos posts iguales.
+  6. **Métricas.** Esperar al job de snapshots (o `php artisan tinker`: `app(App\Analytics\SnapshotCollector::class)->collectAccount($cuenta, App\Analytics\Days::closed($cuenta->network))` y `collectPosts($cuenta, 48)`). Esperado: seguidores y posts de la cuenta, y me gusta/comentarios/compartidos por post; «No disponible» en visualizaciones.
+  7. **Renovación de sesión.** Con la cuenta conectada, ejecutar `php artisan tinker` → `app(App\Connectors\Bluesky\BlueskySession::class)->refresh($cuenta)`; esperado: nuevos tokens y la cuenta sigue «Conectada». Revocar la app password en Bluesky y repetir: la cuenta debe pasar a «Requiere reconexión».
+- **Hallazgos a resolver (⚠️ del diseño):**
+  | ⚠️ | Qué comprobar | Resultado (rellenar) |
+  |---|---|---|
+  | `aud` de `getServiceAuth` | El vídeo se sube con `aud = did:web:<host del PDS>` y `lxm = com.atproto.repo.uploadBlob`. ¿Lo acepta `video.bsky.app`? Si no, ajustar `BlueskyPublisher::publishVideo()` | |
+  | `rkey` repetida | Error real del PDS al crear con una `rkey` ya usada (el código ya confirma con `getRecord` ante cualquier error) | |
+  | AppView público | ¿`public.api.bsky.app` devuelve perfil y `getPosts` sin sesión? Si no, ajustar `BLUESKY_APPVIEW` | |
+  | Límites reales | `getUploadLimits` (vídeos/día y bytes/día) y duración máxima real | |
+  | Cupo y `JOB_STATE_*` | Estados reales de `getJobStatus` y mensaje de error de un trabajo fallido | |
+- **Resultado (rellenar por el usuario):** fecha · cuenta · cada paso OK/KO · enlaces de los posts · hallazgos.
 
 ### M-02 — Smoke real de Threads
 - **Qué revisar**: Con la app de Meta del usuario y su cuenta como *tester*: OAuth, texto (con emojis al límite), imagen, vídeo y carrusel; cuota y métricas. Confirma que no hace falta App Review.

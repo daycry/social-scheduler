@@ -2325,11 +2325,11 @@ Lentes A+B+C+D sobre `8630c77..68c8d67`. Se respeta O1: los tres conectores solo
 | D-2 | Important | Además, esa recompresión es síncrona y sin lock: varias ejecuciones de GD en paralelo por usuario mientras no existe la copia | T-22 | corregido (9354498) | idem |
 | B-3 | Important | La copia recomprimida pierde la orientación EXIF y una foto vertical sale girada 90° | T-22, T-23 | corregido (9354498) | `ImageDownscaler.php:218-261`; probe `p7.php` |
 | B-4 | Important | `BLUESKY_ENABLED=false` no retira Bluesky del compositor ni del MCP: se puede programar y luego falla con `red_no_soportada` | T-26, T-27 | corregido (090e0ef) | `ContentType.php:119-122`, `PostController.php:191-210`, `ListAccounts.php:48-51` |
-| A-5 | Important | Falta el oráculo RED que exige la Clase: T-19 y T-23 declaran que no lo ejecutaron, y T-20..T-27 marcan «Test RED» sin pegar la salida | T-19..T-27 | corregido (LEDGER) | ledger |
+| A-5 | Important | Falta el oráculo RED que exige la Clase: T-19 y T-23 declaran que no lo ejecutaron, y T-20..T-27 marcan «Test RED» sin pegar la salida | T-19..T-27 | corregido (de4c1ff) | ledger |
 | A-6 | Important | El criterio de T-21 (301 grafemas rechazados en `create_post`) no tiene evidencia en el MCP | T-21 | corregido (090e0ef) | `tasks.md:710,722` |
 | B-7 | Minor | En los hashtags con marcas combinantes (NFD, índicos), la regex no incluye `\p{M}` y los corta | T-23 | corregido (0abe244) | `Hashtags.php:14` |
 | B-8 | Minor | `applyRefresh` corre fuera del lock y genera sesiones de más | T-19 | corregido (5553242) | `BlueskySession.php:72-83,104-105` |
 | B-9 | Minor | Vídeo: el timeout fijo de 80 s más 3 llamadas de 15 s puede superar los 110 s del job; no usa `StepBudget` | T-24 | corregido (3a500f1) | `BlueskyPublisher.php:129-145,231` |
 | C-10 | Minor | No se comprueba que el DID de la sesión coincida con el DID resuelto: un PDS propio podría suplantar un handle en la marca del atacante (CWE-345) | T-19 | corregido (5553242) | `BlueskySession.php:41` |
 | D-1 | Minor | Las métricas hacen un `getPosts` por post en lugar de lotes de 25 | T-26 | corregido (4837ac6) | `SnapshotCollector.php:205` |
-| A-11 | Minor | `Archivos` declara ficheros que no se tocaron | T-17, T-21, T-22 | corregido (LEDGER) | — |
+| A-11 | Minor | `Archivos` declara ficheros que no se tocaron | T-17, T-21, T-22 | corregido (de4c1ff) | — |

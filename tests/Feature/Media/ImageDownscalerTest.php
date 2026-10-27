@@ -118,6 +118,9 @@ test('si no puede bajar del tope, la copia no se crea (lo ve el publicador, no l
 });
 
 test('B-2: una foto de 24 MP no se carga en la peticion: la validacion no recomprime ni da error de memoria', function () {
+    // Una peticion web real arranca con la memoria casi libre; en la suite completa el proceso ya acumula mucha, asi que se fija un tope holgado.
+    $limit = ini_set('memory_limit', '4G');
+    $this->beforeApplicationDestroyed(fn () => ini_set('memory_limit', (string) $limit));
     // El fichero ni existe en el disco: si la validacion intentara abrirlo o recomprimirlo, el resultado seria otro.
     $asset = MediaAsset::factory()->for(User::factory()->create())->create([
         'disk' => 'local', 'path' => 'media/test/24mp.jpg', 'mime' => 'image/jpeg', 'size' => 9_000_000, 'declared_size' => 9_000_000, 'width' => 6000, 'height' => 4000,

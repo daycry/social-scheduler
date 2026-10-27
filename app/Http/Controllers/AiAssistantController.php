@@ -10,7 +10,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Asistente IA opcional del compositor (T-14): JSON; sin configurar, `status` dice `enabled: false` y `suggest` responde 404. */
+/**
+ * Asistente IA opcional del compositor (T-14): JSON; sin configurar, `status` dice `enabled: false` y `suggest` y `schedule` responden 404.
+ * `schedule` (C-04c) solo PROPONE una fecha y unas redes a partir de una frase: el compositor las aplica cuando el usuario confirma.
+ */
 class AiAssistantController extends Controller
 {
     public function __construct(private readonly AiAssistant $ai) {}
@@ -40,5 +43,24 @@ class AiAssistantController extends Controller
         }
 
         return response()->json(['text' => $text, 'remaining' => $this->ai->remaining($request->user())]);
+    }
+
+    public function schedule(Request $request): JsonResponse
+    {
+        abort_unless($this->ai->enabled(), 404);
+
+        $data = $request->validate([
+            'phrase' => ['required', 'string', 'max:'.AiAssistant::MAX_PHRASE],
+            'brand_id' => ['required', 'integer'],
+        ]);
+        $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena responde 404 y no se llama a la IA
+
+        try {
+            $proposal = $this->ai->proposeSchedule($request->user(), $brand, $data['phrase']);
+        } catch (PostValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first(), 'remaining' => $this->ai->remaining($request->user())], 422);
+        }
+
+        return response()->json(['proposal' => $proposal, 'remaining' => $this->ai->remaining($request->user())]);
     }
 }

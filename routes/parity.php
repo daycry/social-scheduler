@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Asistente IA opcional del compositor (T-14): JSON; solo existe con AI_ASSISTANT_ENABLED y ANTHROPIC_API_KEY.
     Route::get('ai/status', [AiAssistantController::class, 'status'])->name('ai.status');
     Route::post('ai/suggest', [AiAssistantController::class, 'suggest'])->middleware('throttle:10,1')->name('ai.suggest');
+    Route::post('ai/schedule', [AiAssistantController::class, 'schedule'])->middleware('throttle:10,1')->name('ai.schedule');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

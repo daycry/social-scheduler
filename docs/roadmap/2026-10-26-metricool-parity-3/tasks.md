@@ -51,11 +51,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
-| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 1 | 5 | 20% | 5,0 / 18,0h (estimado) | 0,68 / 2,44h (estimado) | 0,17 / 0,62h (estimado) | 202k / 729k (estimado) |
+| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 2 | 5 | 40% | 10,0 / 18,0h (estimado) | 1,36 / 2,44h (estimado) | 0,34 / 0,62h (estimado) | 404k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **49** | **77** | **64%** | **153,0 / 246,0h** | **20,75 / 33,21h** | **5,24 / 8,3h** | **6,19M / 9,96M** |
+| **TOTAL** | **50** | **77** | **65%** | **158,0 / 246,0h** | **21,43 / 33,21h** | **5,41 / 8,3h** | **6,40M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1640,28 +1640,34 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-50 — Endpoint y UI de «Escribe cuándo» en `ScheduleSection`
 
 - **Descripción**: El campo muestra la propuesta y solo la aplica al confirmar; permite descartar. Requisito: CA-16.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: En el compositor, «Escribe cuándo» entiende frases como «el viernes a las 18 en Instagram y Bluesky», muestra la propuesta y solo la aplica cuando pulsas Aplicar.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
+- **RED**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleEndpointTest.php` antes del endpoint -> 8 errores (ruta `ai.schedule` inexistente) · 2026-10-27
 - **Dependencias**: T-49
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/AiAssistantController.php`, `routes/web.php`, `resources/js/Components/Composer/ScheduleSection.vue`, `tests/Feature/Ai/ProposeScheduleEndpointTest.php`
+- **Archivos**: `app/Http/Controllers/AiAssistantController.php`, `routes/web.php`, `resources/js/Components/Composer/ScheduleSection.vue`, `tests/Feature/Ai/ProposeScheduleEndpointTest.php`, `routes/parity.php`
 - **Cubre (tests)**: E2E-07, M-04
 - **Verificación**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleEndpointTest.php` → en verde (límite diario, IA desactivada, validación)
 
 **Criterios de aceptación**
-- [ ] La propuesta no se aplica sin confirmar.
-- [ ] Con la IA desactivada el campo no aparece.
+- [x] La propuesta no se aplica sin confirmar.
+- [x] Con la IA desactivada el campo no aparece.
 
 **Subtareas**
-- [ ] Endpoint
-- [ ] UI de propuesta, aplicar y descartar
+- [x] Endpoint
+- [x] UI de propuesta, aplicar y descartar
 
 **Notas**: Patrón: `resources/js/Components/Composer/ScheduleSection.vue`, `DateTimePicker.vue` y `app/Http/Controllers/AiAssistantController.php`. Oculto si la IA está desactivada.
+
+**Nota de cierre**: Ruta `POST ai/schedule` (throttle 10/min, como `ai/suggest`; el cupo diario es el mismo) en `routes/parity.php`, junto a las demás del asistente. La marca se resuelve con el UserScope (ajena = 404 y la IA no se llama); IA desactivada = 404; una propuesta no válida = 422 con el mensaje y el cupo restante. El servidor no crea nada: la UI (`ScheduleSection.vue`) pinta la propuesta (fecha con la zona de la marca y redes) y solo al pulsar «Aplicar» rellena `form.scheduled_at` y marca las cuentas ACTIVAS de esas redes con `toggleAccount`; «Descartar» la tira. El campo no se pinta si `ai.status` dice `enabled: false`. Enter propone sin enviar el formulario.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ai tests/Feature/Parity/AiAssistantTest.php -> 52 passed (150 assertions): ProposeScheduleEndpointTest (8): propone y no crea posts, 404 con IA desactivada y con marca ajena, validación 422, 401, límite diario compartido, respuesta inválida, 429 a la 11.ª; npm run build -> built
 
 ### T-51 — Pest con respuestas simuladas (CA-16): tabla de frases y zonas
 

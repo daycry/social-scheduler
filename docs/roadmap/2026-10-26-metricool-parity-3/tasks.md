@@ -413,12 +413,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-12 — Pest de integración CA-11 (vistas guardadas)
 
 - **Descripción**: Prueba que guardar «Pendientes IG» y elegirla desde otro filtro aplica los tres filtros, en web y MCP.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cobertura de extremo a extremo de las vistas guardadas del calendario en web y MCP.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-10, T-11
 - **Tipo**: test
@@ -427,13 +428,15 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Calendar/CalendarViewsFlowTest.php` → en verde
 
 **Criterios de aceptación**
-- [ ] Los tres filtros se aplican al elegir la vista.
-- [ ] La regresión de `tests/Feature/Calendar/CalendarTest.php` sigue en verde.
+- [x] Los tres filtros se aplican al elegir la vista.
+- [x] La regresión de `tests/Feature/Calendar/CalendarTest.php` sigue en verde.
 
 **Subtareas**
-- [ ] Escribir el test de flujo
+- [x] Escribir el test de flujo
 
 **Notas**: Patrón: `tests/Feature/Calendar/CalendarTest.php`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Calendar -> 31 passed (CalendarViewsFlowTest 3; CalendarTest sin regresión)
 
 ### T-13 — E2E de vistas guardadas con axe
 

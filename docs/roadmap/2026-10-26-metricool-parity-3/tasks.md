@@ -1130,12 +1130,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-34 — Pest de integración CA-12
 
 - **Descripción**: Dos marcas con *snapshots*: suma, `null` y fila por marca en web y MCP.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cubierta de extremo a extremo la analítica «Todas las marcas»: misma suma en la web y en el MCP.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-32, T-33
 - **Tipo**: test
@@ -1144,12 +1145,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Analytics tests/Feature/Dashboard` → todo en verde
 
 **Criterios de aceptación**
-- [ ] CA-12 cubierto de extremo a extremo.
+- [x] CA-12 cubierto de extremo a extremo.
 
 **Subtareas**
-- [ ] Escribir el test
+- [x] Escribir el test
 
 **Notas**: Patrón: `tests/Feature/Dashboard/DashboardTest.php`.
+
+**Nota de cierre**: Incluye una prueba de que las consultas no crecen con los snapshots ni las cuentas (sin N+1). RED no aplica: T-34 solo añade cobertura sobre T-31..T-33 ya hechas.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Analytics tests/Feature/Dashboard -> 38 passed (355 assertions)
 
 ### T-35 — E2E de «Todas las marcas» con axe
 

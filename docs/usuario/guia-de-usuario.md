@@ -49,6 +49,8 @@ La app password se guarda **cifrada** y no se vuelve a mostrar. Si te equivocas,
 
 En la biblioteca de **Media** sube imágenes y vídeos. El archivo va directo al almacenamiento; la app comprueba formato, tamaño, duración y proporción. Instagram solo acepta imágenes JPEG. Si algo no cumple, te dice qué cambiar.
 
+Si tu instalación tiene la clave de Giphy, en el compositor verás el botón **GIF**: busca (o mira los del momento), pulsa uno y se añade a la publicación como un **vídeo MP4**. Ten en cuenta que los GIF suelen durar **menos de 3 segundos**, y los Reels de Instagram y Facebook y los vídeos de TikTok exigen al menos 3: en esas redes te lo dirá al guardar. En Bluesky y Threads valen como un vídeo más. El buscador muestra «Powered by GIPHY»; si haces muchas búsquedas seguidas te pedirá esperar unos minutos.
+
 ## Crear y programar una publicación
 
 1. Pulsa **Crear publicación** y elige marca y cuentas de destino.

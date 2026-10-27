@@ -32,6 +32,22 @@ El compositor (sección «Desde URL») y la herramienta MCP `import_media_from_u
 - **Operación**: cola `media` (`MEDIA_IMPORT_QUEUE`) con su worker en el cron `ss-media` ([despliegue](despliegue.md#cron-y-workers)). `QUEUE_NAMES` debe incluir `media` si se define en `.env`. `app:media-prune` borra los `.part` de más de 24 h que ningún asset `pendiente` use. `app:queue-probe` sondea también `media`. El límite de 3 importaciones vivas se comprueba dentro de una transacción con la fila del usuario bloqueada.
 - **Interfaz**: el sondeo no se solapa (candado) y se espacia de 2 a 15 s mientras no avanza; tolera 2 errores seguidos de consulta; «Cancelar» borra el asset de una importación en curso. Si sigue `pendiente` sin un byte tras 3 minutos, avisa de que «la cola de importación no está procesando», pasa a un sondeo lento cada 20 s (no abandona: si el worker vuelve, la importación se completa y el aviso se retira en cuanto llega un latido o un byte) y «Descartar» borra el asset (libera el cupo).
 
+## Buscador de GIFs de Giphy (C-04b)
+
+El botón **GIF** de «Imágenes y vídeos» abre un buscador de Giphy. Solo aparece con `GIPHY_API_KEY` (sin clave no hay botón y `GET /gifs` y `POST /media/import-gif` responden 404). Ninguna red del proyecto acepta `image/gif`: el GIF elegido se importa como su **MP4** y se valida como cualquier vídeo.
+
+| Paso | Código |
+|---|---|
+| `GET gifs?q=&offset=` (`throttle:20,1` por usuario; sin `q` devuelve las tendencias) | `GifController::search` → `GiphyClient::search()/trending()` (el servidor hace de *proxy*: la clave no sale al navegador ni a las props de Inertia, que solo llevan `giphy.enabled`) |
+| `POST media/import-gif` (`throttle:10,1`; 422 si la URL no es de Giphy o ya hay 3 importaciones vivas) | `GifController::import` → `MediaUploadService::importFromGiphy()` (`source = giphy`) |
+| Descarga en la cola `media` | `ImportRemoteMedia` → `GiphySource` (extiende `UrlSource`) → `RemoteMediaImporter::run()` |
+
+- **Proxy y cupo**: respuestas en caché `SOCIAL_GIPHY_CACHE_MINUTES` (10); las llamadas **reales** a Giphy se cuentan por hora (`SOCIAL_GIPHY_HOURLY_LIMIT`, 90 de las 100 de la clave *beta*) y, agotadas, el usuario ve «Has hecho muchas búsquedas de GIF; prueba en unos minutos.» (también si Giphy responde 429). Una respuesta en caché no gasta cupo. Clasificación `SOCIAL_GIPHY_RATING` (`pg-13`). Ningún mensaje de error lleva la clave ni la URL de Giphy.
+- **Sin SSRF nuevo**: no se descarga la URL que mande el navegador sin más. `GiphyClient::allowedMediaUrl()` exige `https`, puerto 443, sin credenciales, un host `media*.giphy.com` / `i.giphy.com` (`social.giphy.media_host_pattern`) y ruta `.mp4`; el resto se rechaza antes de pedir nada. `GiphySource` repite la comprobación en **cada redirección** y la descarga pasa por `UrlGuard` (IP pública validada y fijada). Los resultados del buscador ya vienen filtrados con la misma regla.
+- **Atribución**: el modal muestra siempre «Powered by GIPHY» (obligatorio en las condiciones de Giphy).
+- **Compatibilidad por red**: los GIF suelen durar menos de 3 s; `config/media_specs.php` ya exige 3 s como mínimo en Reels de Instagram y Facebook y en TikTok, y el validador los rechaza con el mínimo. Bluesky y Threads lo aceptan como vídeo normal (Bluesky con `BLUESKY_VIDEO_MAX_BYTES`). No hay ffmpeg que los alargue: solo se avisa.
+- **Pruebas**: Pest con `Http::fake` (`GiphyProxyTest`, `GiphyImportTest`, `GifCompatibilityTest`, `GiphyFlowTest`, `GifPickerPropsTest`) y E2E `tests/e2e/gif-picker.spec.ts`; nada llega a Giphy.
+
 ## Reglas por red y tipo
 
 `config/media_specs.php` (versión `2026-10-19`) define las 13 reglas: número de elementos, texto máximo, MIME, tamaño, resolución, proporción, duración, fps y códecs. `MediaValidator` las aplica; `recommended` solo avisa. Ejemplo (`instagram_image`): solo JPEG, 8 MB, proporción 0,8–1,91, texto de 2.200 caracteres.

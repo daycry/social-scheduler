@@ -41,6 +41,8 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers; `media` es la de las importaciones por URL y Drive |
 | `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» (también sin `GOOGLE_PICKER_APP_ID`) ([guía](../guias/google-cloud-picker-drive.md)) |
 | `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
+| `GIPHY_API_KEY` | vacío | Clave *beta* de Giphy (100 llamadas/hora); vacía = sin botón «GIF» en el compositor. La usa solo el servidor ([medios](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b)) |
+| `SOCIAL_GIPHY_HOURLY_LIMIT` | 90 | Llamadas reales a Giphy por hora antes de pedir esperar (las respuestas en caché no cuentan; `SOCIAL_GIPHY_CACHE_MINUTES`, 10) |
 | `MEDIA_IMPORT_QUEUE` | `media` | Cola de `ImportRemoteMedia` |
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
 | `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |

@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 1 | 11 | 9% | 2 / 50,5h (estimado) | 0,27 / 6,83h (estimado) | 0,07 / 1,7h (estimado) | 81k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 2 | 11 | 18% | 9 / 50,5h (estimado) | 1,21 / 6,83h (estimado) | 0,3 / 1,7h (estimado) | 364k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1794,33 +1794,40 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-55 — `ThreadsConnector`, `ThreadsClient` y `GraphErrors`
 
 - **Descripción**: OAuth en `threads.com`, token corto → largo (60 días) y refresco; cliente propio con host `graph.threads.com`; tablas de errores extraídas de `GraphClient`. Requisito: CA-07, D2.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Se puede conectar una cuenta de Threads por OAuth: el token dura 60 días y se renueva solo antes de caducar. Si falta THREADS_APP_ID o THREADS_ENABLED=false, la red no aparece.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 7,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,94h · real —
-- **Supervisión**: est. 0,23h (≈25 % IA) · real —
+- **Tiempo humano**: est. 7,0h · real 7,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,94h · real 0,94h (estimado)
+- **Supervisión**: est. 0,23h (≈25 % IA) · real 0,23h (estimado)
 - **Previsión IA**: 255k in / 28k out tok · ⚠️ verificar €
 - **Dependencias**: T-15, T-54
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Threads/ThreadsConnector.php`, `app/Connectors/Threads/ThreadsClient.php`, `app/Connectors/Meta/GraphErrors.php`, `app/Connectors/Meta/GraphClient.php`, `config/services.php`, `config/social.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php`
+- **Archivos**: `app/Connectors/Threads/ThreadsConnector.php`, `app/Connectors/Threads/ThreadsClient.php`, `app/Connectors/Meta/GraphErrors.php`, `app/Connectors/Meta/GraphClient.php`, `config/services.php`, `config/social.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php`, `app/Connectors/Network.php`, `app/Http/Controllers/ConnectionController.php`, `config/services.php`, `tests/Support/ThreadsFake.php`, `tests/Unit/Networks/NetworkCatalogTest.php`, `tests/Feature/Publishing/BlueskyPublishingTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Connectors/Meta` → regresión de Meta en verde (caracterización previa)
   - `php artisan test --compact tests/Feature/Connectors/Threads/ThreadsConnectorTest.php` → en verde (OAuth simulado, token largo con caducidad, refresco antes del margen)
 
 **Criterios de aceptación**
-- [ ] La cuenta se guarda con token de larga duración y su caducidad; `RefreshTokens` la renueva antes del margen.
-- [ ] Sin `THREADS_APP_ID` la red no se ofrece (`offered()`).
-- [ ] `GraphClient` se comporta igual tras extraer `GraphErrors`.
+- [x] La cuenta se guarda con token de larga duración y su caducidad; `RefreshTokens` la renueva antes del margen.
+- [x] Sin `THREADS_APP_ID` la red no se ofrece (`offered()`).
+- [x] `GraphClient` se comporta igual tras extraer `GraphErrors`.
 
 **Subtareas**
-- [ ] Caracterización de `GraphClient`
-- [ ] Extraer `GraphErrors`
-- [ ] Conector y cliente
-- [ ] Registro condicional
+- [x] Caracterización de `GraphClient`
+- [x] Extraer `GraphErrors`
+- [x] Conector y cliente
+- [x] Registro condicional
 
 **Notas**: Patrón: `app/Connectors/Meta/GraphClient.php:159` (se extrae solo `REAUTH_CODES` y `RATE_LIMIT_CODES` a `Meta/GraphErrors`, sin cambiar comportamiento) y `MetaConnector`. `refresh_token = null`; `refresh()` con `th_refresh_token`; hosts en `config/social.php`; ID/secreto propios en `config/services.php` (`THREADS_APP_ID`, `THREADS_APP_SECRET`). Registro condicional en `AppServiceProvider.php:52-66`.
+
+**Test RED**: `php artisan test --compact tests/Feature/Connectors/Threads` antes del código -> 12 errores (`Target class [App\Connectors\Threads\ThreadsConnector] does not exist`). Caracterización previa de GraphClient: `tests/Feature/Connectors/Meta` -> 90 en verde antes y después de extraer `GraphErrors`.
+
+**Alcance ampliado en la implementación**: `Network.php` (caso `Threads`, `isAvailable()` por `THREADS_ENABLED` y `THREADS_APP_ID`, `listing()` solo con redes disponibles), `ConnectionController.php` (no lista una red no disponible), `config/services.php` (`threads.client_id/secret`), `tests/Support/ThreadsFake.php` y los tests de catálogo y registro de Bluesky que cuentan proveedores. Decisiones: el token viaja como documenta Meta (cuerpo en POST, query en GET; la cabecera Bearer no está documentada para Threads); el plazo de procesado es el global de `publishing.poll_max_minutes` (no se añade clave propia); zona de día de las métricas `America/Los_Angeles` ⚠️ a confirmar en el smoke.
+
+**Verificación ejecutada**: `tests/Feature/Connectors/Meta` -> 90 passed (602 assertions); `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php` -> 12 passed (82 assertions); `tests/Feature/Connectors tests/Feature/Connections tests/Feature/Publishing tests/Feature/Mcp tests/Unit` -> verde tras ajustar 2 tests de conteo; pint -> passed.
 
 ### T-56 — Tipos, reglas de media y conteo de Threads
 

@@ -52,8 +52,10 @@ class ConnectionController extends Controller
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
             ])->values(),
-            // Las redes OAuth sin configurar se listan como «no disponibles»; una de credenciales sin conector no se ofrece.
+            // Las redes OAuth sin configurar se listan como «no disponibles»; una de credenciales sin conector no se ofrece. Una red apagada
+            // o sin configurar a proposito (Threads: THREADS_ENABLED / THREADS_APP_ID) no se lista en absoluto.
             'providers' => collect(Network::cases())
+                ->filter(fn (Network $n) => $n->isAvailable())
                 ->filter(fn (Network $n) => $n->authKind() === Network::AUTH_OAUTH || $this->connectors->has($n->provider()))
                 ->map(fn (Network $n) => [
                     'network' => $n->value,

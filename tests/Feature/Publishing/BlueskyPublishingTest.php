@@ -106,6 +106,9 @@ test('regresion: el registro mantiene los publicadores y lectores de las otras r
     $registry = app(ConnectorRegistry::class);
 
     foreach (Network::cases() as $network) {
+        if ($network === Network::Threads) {
+            continue; // Threads solo se registra con su app configurada (ThreadsConnectorTest)
+        }
         expect($registry->publisherFor($network))->not->toBeNull($network->value)
             ->and($registry->insightsFor($network))->not->toBeNull($network->value)
             ->and($registry->has($network->provider()))->toBeTrue($network->value);

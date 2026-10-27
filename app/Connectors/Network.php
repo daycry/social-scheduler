@@ -16,6 +16,7 @@ enum Network: string
     case YouTube = 'youtube';
     case TikTok = 'tiktok';
     case Bluesky = 'bluesky';
+    case Threads = 'threads';
 
     /** Conexion por redireccion OAuth. */
     public const AUTH_OAUTH = 'oauth';
@@ -30,6 +31,7 @@ enum Network: string
             self::YouTube => 'google',
             self::TikTok => 'tiktok',
             self::Bluesky => 'bluesky',
+            self::Threads => 'threads',
         };
     }
 
@@ -41,6 +43,7 @@ enum Network: string
             self::YouTube => 'YouTube',
             self::TikTok => 'TikTok',
             self::Bluesky => 'Bluesky',
+            self::Threads => 'Threads',
         };
     }
 
@@ -53,6 +56,7 @@ enum Network: string
             self::YouTube => 'YT',
             self::TikTok => 'TT',
             self::Bluesky => 'BS',
+            self::Threads => 'TH',
         };
     }
 
@@ -65,6 +69,7 @@ enum Network: string
             self::YouTube => '#dc2626',
             self::TikTok => '#111827',
             self::Bluesky => '#0a7aff',
+            self::Threads => '#000000',
         };
     }
 
@@ -97,18 +102,23 @@ enum Network: string
     }
 
     /**
-     * ¿Se puede usar esta red en esta instalacion? Bluesky se apaga con `BLUESKY_ENABLED=false`: sus cuentas siguen conectadas, pero
-     * no se pueden elegir en el compositor ni usar desde el MCP.
+     * ¿Se puede usar esta red en esta instalacion? Bluesky se apaga con `BLUESKY_ENABLED=false` y Threads con `THREADS_ENABLED=false` o
+     * sin `THREADS_APP_ID` (red no configurada): sus cuentas siguen conectadas, pero no se pueden elegir en el compositor, ni reprogramar,
+     * ni usar desde el MCP, y la red no sale en Conexiones ni en los filtros.
      */
     public function isAvailable(): bool
     {
-        return $this !== self::Bluesky || (bool) config('social.bluesky.enabled', true);
+        return match ($this) {
+            self::Bluesky => (bool) config('social.bluesky.enabled', true),
+            self::Threads => (bool) config('social.threads.enabled', true) && (string) config('services.threads.client_id') !== '',
+            default => true,
+        };
     }
 
-    /** Descripcion para el MCP y la IA: «instagram, facebook, youtube o tiktok». */
+    /** Descripcion para el MCP y la IA: «instagram, facebook, youtube o tiktok» (solo las redes disponibles en esta instalacion). */
     public static function listing(): string
     {
-        $values = array_map(fn (self $n) => $n->value, self::cases());
+        $values = array_map(fn (self $n) => $n->value, array_values(array_filter(self::cases(), fn (self $n) => $n->isAvailable())));
         $last = array_pop($values);
 
         return $values ? implode(', ', $values).' o '.$last : $last;

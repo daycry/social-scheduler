@@ -12,6 +12,8 @@ return [
         'tiktok' => (int) env('SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS', 6),
         // El accessJwt de Bluesky dura horas; se renueva con margen de 1 h (RefreshTokens corre cada 30 min).
         'bluesky' => (int) env('SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS', 1),
+        // El token largo de Threads dura 60 dias y solo se renueva con >= 24 h de antiguedad: 7 dias de margen, como Meta.
+        'threads' => (int) env('SOCIAL_REFRESH_MARGIN_THREADS_HOURS', 168),
     ],
 
     /* Cola donde corre el refresco de tokens (ver config/queue.php names). */
@@ -127,6 +129,22 @@ return [
         'upload_timeout' => (int) env('BLUESKY_UPLOAD_TIMEOUT', 80),
     ],
 
+    /*
+    | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
+    | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
+    */
+    'threads' => [
+        /* Apagar Threads sin tocar codigo: la red desaparece de Conexiones, el compositor, los filtros, el MCP y la reprogramacion. */
+        'enabled' => (bool) env('THREADS_ENABLED', true),
+        'auth_host' => env('THREADS_AUTH_HOST', 'https://threads.com'),
+        'graph_host' => env('THREADS_GRAPH_HOST', 'https://graph.threads.com'),
+        /* Version de la API en las rutas (`/v1.0/...`); el canje de tokens va sin version. */
+        'api_version' => env('THREADS_API_VERSION', 'v1.0'),
+        'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights'],
+        /* Cuota de publicacion por 24 h si la API no devuelve `config.quota_total` (se lee en `threads_publishing_limit`). */
+        'publish_quota' => (int) env('THREADS_PUBLISH_QUOTA', 250),
+    ],
+
     'tiktok' => [
         // video.publish solo es util tras la auditoria de TikTok (decision G1: borrador por defecto).
         'scopes' => ['user.info.basic', 'video.upload', 'video.publish'],
@@ -194,6 +212,8 @@ return [
             'youtube' => 'America/Los_Angeles',
             'tiktok' => 'UTC',
             'bluesky' => 'UTC',
+            // Los valores de la serie diaria de Threads acaban a las 08:00 UTC (medianoche del Pacifico) ⚠️ a confirmar en el smoke.
+            'threads' => 'America/Los_Angeles',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -224,6 +244,8 @@ return [
             'tiktok' => 0,
             // Bluesky no ofrece historico de cuenta: solo el stock de hoy.
             'bluesky' => 0,
+            // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
+            'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),

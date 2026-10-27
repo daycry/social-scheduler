@@ -59,6 +59,15 @@ return [
         'picker_app_id' => env('GOOGLE_PICKER_APP_ID'),
     ],
 
+    /*
+    | Threads (C-02, D2): la app de Meta tiene DOS pares de ID y secreto; aqui van los de Threads (Configuracion > Basica > «Threads App ID»).
+    | Sin `THREADS_APP_ID` la red no se ofrece. Redirect URI: ${APP_URL}/connections/threads/callback.
+    */
+    'threads' => [
+        'client_id' => env('THREADS_APP_ID'),
+        'client_secret' => env('THREADS_APP_SECRET'),
+    ],
+
     'tiktok' => [
         'client_key' => env('TIKTOK_CLIENT_KEY'),
         'client_secret' => env('TIKTOK_CLIENT_SECRET'),

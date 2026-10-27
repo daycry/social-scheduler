@@ -770,6 +770,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - B-3: la orientación EXIF (1–8) se lee y se aplica (`imageflip`/`imagerotate`) ANTES de reescalar; el `aspectRatio` sale de la copia ya girada y, para una original ≤ tope con EXIF 5–8, con los ejes intercambiados. Tests con Orientation=6 (copia vertical, mitad roja arriba, sin EXIF) en `ImageDownscalerTest` y `BlueskyPublisherTest`.
 - RED real: `ImageDownscalerTest` + `BlueskyPublisherTest` contra el código anterior → 32 tests: 24 verdes, 5 failed y 3 errores (validación que recomprimía y daba error, lock, EXIF 6 sin giro, aspectRatio sin intercambiar, 12000×9000 aceptado). Tras el arreglo 14/14 y 18/18; el de 24 MP fija `memory_limit` holgado (9776417) para no depender de la memoria que acumule la suite. A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. A-11 — `Archivos` limpiado: se quita `app/Services/MediaStorage.php`, que no se tocó. Estado: `en-progreso` → `completado`.
 
+**Corrección revisión P3 F6-9 (intento 3)**: C: el reductor llama a `allows(after: 2)` (reserva uploadBlob y createRecord), resta esas dos llamadas al timeout de ffmpeg y la espera del lock se limita al tiempo que queda del presupuesto; test nuevo en `ImageDownscalerTest`. Verificación: 21 passed.
+
 ### T-23 — `BlueskyPublisher`: texto, `Facets` e imágenes
 
 - **Descripción**: Publicar texto y de 0 a 4 imágenes (`uploadBlob`, `aspectRatio`, `langs`) con *facets* en bytes UTF-8. Requisito: CA-03.
@@ -1583,7 +1585,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-46, T-47
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/publicacion.md`, `docs/modulos/mcp.md`, `docs/usuario/guia-de-usuario.md`
+- **Archivos**: `docs/modulos/publicacion.md`, `docs/modulos/mcp.md`, `docs/usuario/guia-de-usuario.md`, `README.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: los docs explican fuente (histórico propio), mínimo y máximo por red → coherente con T-43..T-45
 
@@ -1602,6 +1604,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ## Fase 7 — C-04c · Programar en lenguaje natural (IA existente)
 
 **Estado**: completado · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
+
+**Corrección revisión P3 F6-9 (intento 3)**: I: `README.md` añadido a `Archivos` (lo tocó el commit `6a43873`).
 
 ### T-49 — `AiAssistant::proposeSchedule()`: prompt, salida JSON, redacción y validación
 
@@ -1636,6 +1640,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Nota de cierre**: Una sola fecha en la zona de la marca; nunca programa. `suggest()` y `proposeSchedule()` comparten ahora `send()` (clave, modelo, cabeceras, reembolso del cupo) y `consume()` (límite diario por usuario y global). Defensa de inyección de prompt: la frase redactada viaja como VALOR de un JSON (`ahora`, `zona_horaria`, `redes`, `frase`), el sistema la declara dato y la respuesta pasa un esquema estricto (solo `datetime` y `networks`, `YYYY-MM-DDTHH:MM[:SS]` sin zona, redes del enum, futura y como mucho a `social.ai.schedule_max_days`=365 días, hora existente en la zona; un bloque ```json es lo único tolerado alrededor). Hallazgo propio: `redact()` tomaba «15-11-2026» por un teléfono; la frase usa `redactPhrase()`, que conserva fechas. Redes: solo las ofrecidas por la instalación y con cuenta ACTIVA en la marca; el resto sale en `ignored_networks`. Cambio de hora: una hora inexistente (2027-03-28 02:30 Madrid) se rechaza; una repetida (2027-10-31 02:30) se resuelve a un único instante. Una respuesta ininteligible sí gasta cupo (la llamada se hizo); un fallo de conexión o HTTP lo devuelve; 529 cuenta como saturado.
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Ai tests/Feature/Parity/AiAssistantTest.php -> 44 passed (109 assertions): CA-16 (viernes 18:00 Madrid = 17:00Z), carga útil sin datos personales, inyección de prompt, 15 respuestas inválidas, fechas pasadas/>1 año/límite, cambio de hora, redes conectadas y apagadas, cupo compartido y reembolso; vendor/bin/pint -> passed
+
+**Corrección revisión P3 F6-9 (intento 3)**: A: `redactPhrase` protege solo fechas «token completo» (sin dígito ni separador+dígito antes/después) y redacta todo lo demás con el patrón de teléfono de `redact()`; tabla de 13 casos (600-12-34-56, +34 600.12.34.56, 91-123-45-67, 912.345.678 → `[teléfono]`; 15-11-2026 18:30, 2026-11-15 18:00 en Instagram y fechas sueltas se conservan; más los de `6337d5d^`). H: `isRepeatedHour` usa `DateTimeZone::getTransitions` (test Lord_Howe, 30 min). Verificación: `php artisan test --compact tests/Feature/Ai/ProposeScheduleTest.php` -> 50 passed.
 
 ### T-50 — Endpoint y UI de «Escribe cuándo» en `ScheduleSection`
 
@@ -2179,7 +2185,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/GiphyClient.php`, `app/Services/Media/GiphyException.php`, `app/Http/Controllers/GifController.php`, `config/services.php`, `config/social.php`, `.env.example`, `routes/web.php`, `tests/Feature/Media/GiphyProxyTest.php`
+- **Archivos**: `app/Services/Media/GiphyClient.php`, `app/Services/Media/GiphyException.php`, `app/Http/Controllers/GifController.php`, `config/services.php`, `config/social.php`, `.env.example`, `routes/web.php`, `tests/Feature/Media/GiphyProxyTest.php`, `app/Providers/AppServiceProvider.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/GiphyProxyTest.php` → en verde (búsqueda, tendencias, caché, límite, error de la API; la clave no sale)
 
@@ -2194,6 +2200,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `app/Services/Media/UrlSource.php` y `AiAssistant` (límites). Clave `GIPHY_API_KEY` en `config/services.php`; 100 llamadas/hora de la clave beta (cachear). Sin clave el botón no aparece.
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Media/GiphyProxyTest.php -> 11 passed (59 assertions): búsqueda con clave, rating pg-13 y solo los campos necesarios; tendencias sin texto; la clave no sale en la respuesta ni en la página del compositor; caché (2 llamadas para 3 peticiones); cupo por hora agotado -> 429 «Has hecho muchas búsquedas de GIF; prueba en unos minutos.» sin llamar a Giphy; 429/5xx de Giphy y fallo de conexión traducidos sin la clave; resultados filtrados a hosts de Giphy; sin clave 404; throttle de 20/min por usuario.
+
+**Corrección revisión P3 F6-9 (intento 3)**: D: tope por usuario y hora (`SOCIAL_GIPHY_PER_USER_HOURLY_LIMIT`, 30) además del global; F: 401/403 -> «La clave de Giphy no es válida…», `Log::warning` sin clave y cupo devuelto; G: `allowedMediaUrl` rechaza usuario O contraseña; J: limitador con nombre `giphy` con `SOCIAL_GIPHY_PER_USER_PER_MINUTE`; K: consulta normalizada (minúsculas, trim, espacios). Tests en `GiphyProxyTest`. Verificación: `php artisan test --compact tests/Feature/Media/Giphy*` -> 40 passed.
 
 ### T-66 — `GifPicker.vue`: búsqueda, cuadrícula, teclado, atribución y estados
 
@@ -2225,6 +2233,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Ui/GifPickerPropsTest.php -> 3 passed (38 assertions): `giphy.enabled` false sin clave (null o vacía) y true con ella, la página solo lleva ese booleano y no contiene la clave, y el componente declara «Powered by GIPHY» y busca por la ruta `gifs.search`. E2E en T-70 (foco gestionado, Esc, teclado, axe).
 
+**Corrección revisión P3 F6-9 (intento 3)**: L: ⚠️ RED NO REGISTRADO — no se anotó la evidencia `RED: <test> falló con <error>` antes del código de `GifPicker.vue`; no se reconstruye a posteriori (declarado, no inventado).
+
 ### T-67 — Importar el MP4 elegido con `ImportRemoteMedia` y lista permitida de hosts
 
 - **Descripción**: Al elegir, se importa la versión MP4 con `ImportRemoteMedia` (hosts de Giphy permitidos y `UrlGuard`) y `source = giphy`. Requisito: CA-15.
@@ -2238,7 +2248,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-65
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/GiphySource.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Models/MediaAsset.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/GiphyImportTest.php`
+- **Archivos**: `app/Services/Media/GiphySource.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Models/MediaAsset.php`, `app/Services/MediaUploadService.php`, `tests/Feature/Media/GiphyImportTest.php`, `app/Http/Controllers/GifController.php`, `app/Services/Media/GiphyClient.php`, `tests/Feature/Media/GiphyFlowTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Media/GiphyImportTest.php` → en verde (host permitido, SSRF bloqueado, `source=giphy`)
@@ -2257,6 +2267,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Media/GiphyImportTest.php -> 16 passed (77 assertions): MP4 de host de Giphy -> asset pendiente `source=giphy` en la cola `media`; 10 URLs fuera de la lista (otro dominio, subdominio/sufijo falso, IP interna, metadatos de nube, http, puerto, credenciales, no-MP4, file://) -> 422 sin crear nada ni pedir nada; redirección fuera de Giphy cortada ANTES de pedir el destino (SSRF) con el asset `invalido`; IP privada resuelta -> 422; descarga completa con ffmpeg -> `listo` (video/mp4, < 3 s); límite de 3 importaciones vivas. Suite tests/Feature/Media (incluye ImportRemoteMediaTest) sin regresión.
 
+**Corrección revisión P3 F6-9 (intento 3)**: E: la importación extrae el id, pide el GIF a Giphy (`GiphyClient::mp4ById`, con comprobación de `rating` y cupo) y descarga la URL que Giphy devuelve, no la del cliente; G: tests de usuario/contraseña. Verificación: `GiphyImportTest` y `GiphyFlowTest` en verde.
+
 ### T-68 — Compatibilidad por red de los GIF (duración mínima y avisos)
 
 - **Descripción**: Avisos de compatibilidad por red: los GIF de menos de 3 s no valen en Reels ni TikTok; en Bluesky entra como vídeo con `presentation: gif`; en Threads como `threads_video`. Requisito: CA-15.
@@ -2270,7 +2282,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-67, T-24
 - **Tipo**: backend
-- **Archivos**: `tests/Feature/Media/GifCompatibilityTest.php`
+- **Archivos**: `tests/Feature/Media/GifCompatibilityTest.php`, `app/Connectors/Data/PublishMedia.php`, `app/Services/PublishRequestFactory.php`, `app/Connectors/Bluesky/BlueskyPublisher.php`, `tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/GifCompatibilityTest.php` → en verde (aviso < 3 s, Bluesky y Threads aceptan)
 
@@ -2285,6 +2297,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `app/Services/MediaProbe.php` y `MediaValidator`. No hay ffmpeg para alargarlos: solo se avisa. Ninguna red acepta `image/gif`.
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Media/GifCompatibilityTest.php -> 11 passed (18 assertions): 2 s rechazado en InstagramReel, FacebookReel y TikTokVideo con «al menos 3 s»; 3,2 s válido; aceptado en BlueskyVideo, ThreadsVideo, YouTubeShort y FacebookVideo; Bluesky respeta `video_max_bytes`; `image/gif` no vale en ninguna red. No hizo falta tocar `MediaValidator`, `MediaProbe` ni `media_specs.php`: `min_duration: 3` ya existía y el MP4 de Giphy se valida como cualquier vídeo.
+
+**Corrección revisión P3 F6-9 (intento 3)**: B: `PublishMedia` lleva `source`; el vídeo de Bluesky con `source=giphy` va con `presentation: gif` en `app.bsky.embed.video` (test con giphy/upload/null). ⚠️ El campo `presentation` del lexicon NO se ha podido verificar sin red (design.md:405 lo daba por verificado): comprobar en el smoke contra un PDS real. Verificación: `php artisan test --compact tests/Feature/Connectors/Bluesky` -> 108 passed.
 
 ### T-69 — Pest de integración CA-15
 
@@ -2355,7 +2369,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-69, T-70
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/media.md`, `docs/usuario/guia-de-usuario.md`, `docs/referencia/configuracion.md`
+- **Archivos**: `docs/modulos/media.md`, `docs/usuario/guia-de-usuario.md`, `docs/referencia/configuracion.md`, `docs/guias/giphy-api-key.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: `media.md` describe proxy, lista de hosts, avisos por red y atribución → coherente con T-65..T-68
 
@@ -2373,6 +2387,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ## Fase 10 — Transversal y cierre
 
 **Estado**: en-progreso · **Estimado**: 10,0h · **Real**: 4,5h (estimado) · **Coste est.**: 600 € (con margen; base 500 €) · **Tokens est.**: 405k
+
+**Corrección revisión P3 F6-9 (intento 3)**: J: `media.md` y la guía describen los topes por usuario, la reconstrucción por id y que la ruta `.mp4` solo se exige a la URL inicial (en las redirecciones se comprueban esquema, puerto y host). Verificación: lectura -> coherente con el código.
 
 ### T-72 — Paridad MCP: Bluesky y Threads en `list_accounts` y `create_post`
 
@@ -2698,15 +2714,15 @@ Tests: 317/317 y 43/43.
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| A | Important | Regresión del arreglo del gap 5: los teléfonos con guiones o puntos («600-12-34-56», «+34 600.12.34.56») ya no se redactan y se envían a la IA (CWE-359) | T-49 | pendiente | `AiAssistant.php:251-256`; comparación con `6337d5d^` |
-| B | Important | El MP4 de Giphy no se publica en Bluesky con `presentation: gif`, aunque lo piden T-68 y el diseño, y la desviación no está declarada | T-68 | pendiente | `BlueskyPublisher.php:203-206`, `design.md:405` |
-| C | Minor | Resto del gap 2 de la Fase 3: el reductor no reserva tiempo para `uploadBlob`/`createRecord` y la espera del lock (60 s) no se ata al presupuesto | T-22 | pendiente | `ImageDownscaler.php:90,358-362` |
-| D | Minor | El tope de 90 llamadas/h a Giphy es global: un usuario puede agotárselo a todos (CWE-770) | T-65 | pendiente | `GiphyClient.php:130-138` |
-| E | Minor | La importación se fía de la URL del cliente y no la reconstruye por id, así que el filtro `pg-13` se puede saltar (CWE-602) | T-67 | pendiente | `GifController.php:45-48` |
-| F | Minor | Con una clave inválida (401/403) se muestra «Giphy no responde», no se registra y se gasta cupo | T-65 | pendiente | `GiphyClient.php:107-109` |
-| G | Minor | `allowedMediaUrl` usa `!isset(user, pass)`: solo rechaza si vienen los dos. Hoy no es explotable porque `UrlGuard` lo corta (CWE-20) | T-67 | pendiente | `GiphyClient.php:43` |
-| H | Minor | La detección de la hora repetida mira ±1 h y no detecta cambios de hora de 30 min (Lord_Howe) | T-49 | pendiente | `AiAssistant.php:270-275` |
-| I | Minor | `Archivos` de T-48 no incluye `README.md` | T-48 | pendiente | `git show --stat 6a43873` |
-| J | Minor | `SOCIAL_GIPHY_PER_USER_PER_MINUTE` no se usa; `media.md` dice que `.mp4` se comprueba en cada redirección y no es así | T-65, T-71 | pendiente | `routes/web.php:142`, `GiphySource.php:23-28` |
-| K | Minor | La caché de Giphy no normaliza mayúsculas: cada variante gasta una llamada real | T-65 | pendiente | `GiphyClient.php:81` |
-| L | Minor | T-66 no tiene RED registrado ni el aviso | T-66 | pendiente | ledger |
+| A | Important | Regresión del arreglo del gap 5: los teléfonos con guiones o puntos («600-12-34-56», «+34 600.12.34.56») ya no se redactan y se envían a la IA (CWE-359) | T-49 | `b1a6826` T-49: fix revisión P3 F6-9 — A | `AiAssistant.php:251-256`; comparación con `6337d5d^` |
+| B | Important | El MP4 de Giphy no se publica en Bluesky con `presentation: gif`, aunque lo piden T-68 y el diseño, y la desviación no está declarada | T-68 | `d79b281` T-68: fix revisión P3 F6-9 — B (⚠️ `presentation` sin verificar en el lexicon, smoke) | `BlueskyPublisher.php:203-206`, `design.md:405` |
+| C | Minor | Resto del gap 2 de la Fase 3: el reductor no reserva tiempo para `uploadBlob`/`createRecord` y la espera del lock (60 s) no se ata al presupuesto | T-22 | `55ad925` T-22: fix revisión P3 F6-9 — C | `ImageDownscaler.php:90,358-362` |
+| D | Minor | El tope de 90 llamadas/h a Giphy es global: un usuario puede agotárselo a todos (CWE-770) | T-65 | `a1f8b36` T-65: fix revisión P3 F6-9 — D | `GiphyClient.php:130-138` |
+| E | Minor | La importación se fía de la URL del cliente y no la reconstruye por id, así que el filtro `pg-13` se puede saltar (CWE-602) | T-67 | `f790dd2` T-67: fix revisión P3 F6-9 — E | `GifController.php:45-48` |
+| F | Minor | Con una clave inválida (401/403) se muestra «Giphy no responde», no se registra y se gasta cupo | T-65 | `a1f8b36` T-65: fix revisión P3 F6-9 — F | `GiphyClient.php:107-109` |
+| G | Minor | `allowedMediaUrl` usa `!isset(user, pass)`: solo rechaza si vienen los dos. Hoy no es explotable porque `UrlGuard` lo corta (CWE-20) | T-67 | `a1f8b36` / `f790dd2` T-65/T-67: fix revisión P3 F6-9 — G | `GiphyClient.php:43` |
+| H | Minor | La detección de la hora repetida mira ±1 h y no detecta cambios de hora de 30 min (Lord_Howe) | T-49 | `b1a6826` T-49: fix revisión P3 F6-9 — H | `AiAssistant.php:270-275` |
+| I | Minor | `Archivos` de T-48 no incluye `README.md` | T-48 | ledger: T-48 `Archivos` + `README.md` | `git show --stat 6a43873` |
+| J | Minor | `SOCIAL_GIPHY_PER_USER_PER_MINUTE` no se usa; `media.md` dice que `.mp4` se comprueba en cada redirección y no es así | T-65, T-71 | `a1f8b36` / `7b975ee` T-65/T-71: fix revisión P3 F6-9 — J | `routes/web.php:142`, `GiphySource.php:23-28` |
+| K | Minor | La caché de Giphy no normaliza mayúsculas: cada variante gasta una llamada real | T-65 | `a1f8b36` T-65: fix revisión P3 F6-9 — K | `GiphyClient.php:81` |
+| L | Minor | T-66 no tiene RED registrado ni el aviso | T-66 | ledger: T-66 «⚠️ RED NO REGISTRADO» | ledger |

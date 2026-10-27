@@ -47,19 +47,20 @@ class GetCalendar extends SchedulerTool
         $view = $filters['view'] ?? null;
         $saved = null;
 
-        if (is_numeric($view)) {
+        if (is_int($view) || (is_string($view) && ctype_digit($view))) {
             /** @var CalendarView $saved */
-            $saved = $this->owned(CalendarView::class, $user, $view, 'Vista');
+            $saved = $this->owned(CalendarView::class, $user, (int) $view, 'Vista');
             $filters['view'] = null;
         } elseif ($view !== null && $view !== '' && ! in_array($view, CalendarService::VIEWS, true)) {
             throw new InvalidArgumentException('view debe ser week, month, list o el id de una vista guardada (list_calendar_views).');
         }
 
-        // El servicio solo conoce las marcas del usuario: una ajena responde como inexistente.
-        $filters['brand_id'] = $this->brandFrom($request, $user, required: false)?->id;
+        // El servicio solo conoce las marcas del usuario: una ajena responde como inexistente. Con `view=<id>` la marca la pone la
+        // vista guardada, así que un `brand` suelto no se resuelve (ni falla) antes que ella.
+        $filters['brand_id'] = $saved ? null : $this->brandFrom($request, $user, required: false)?->id;
 
         if ($saved) {
-            $filters = array_merge(array_diff_key($filters, array_flip(['network', 'status', 'view'])), ['brand_id' => null], app(CalendarViewService::class)->filtersFor($user, $saved));
+            $filters = array_merge(array_diff_key($filters, array_flip(['network', 'status', 'view'])), [], app(CalendarViewService::class)->filtersFor($user, $saved));
         }
 
         return app(CalendarService::class)->build($user, $filters);

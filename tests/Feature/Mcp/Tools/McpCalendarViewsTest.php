@@ -78,3 +78,22 @@ test('tools/list ofrece 24 herramientas en una sola página', function () {
 
     expect($names)->toHaveCount(24)->toContain('list_calendar_views')->and($response->json('result.nextCursor'))->toBeNull();
 });
+
+test('view solo acepta un id entero estricto: "1.9", " 1" y "1e0" no son ids', function () {
+    $v = CalendarView::factory()->create(['user_id' => $this->user->id, 'id' => 1]);
+
+    foreach (['1.9', ' 1', '1e0', '+1', '0x1'] as $bad) {
+        [$err, $msg] = $this->callTool($this->key, 'get_calendar', ['view' => $bad]);
+        expect($err)->toBeTrue($bad)->and($msg)->toContain('view debe ser');
+    }
+    [$ok] = $this->callTool($this->key, 'get_calendar', ['view' => (string) $v->id, 'date' => '2026-11-03']);
+    expect($ok)->toBeFalse();
+});
+
+test('con view=<id> un brand suelto no se resuelve antes que la vista (ni falla)', function () {
+    $v = CalendarView::factory()->create(['user_id' => $this->user->id, 'filters' => ['brand_id' => $this->brand->id, 'network' => 'instagram', 'view' => 'week']]);
+
+    [$err, $res] = $this->callTool($this->key, 'get_calendar', ['view' => (string) $v->id, 'date' => '2026-11-03', 'brand' => 'no-existe-999']);
+
+    expect($err)->toBeFalse()->and($res['items'])->toHaveCount(1)->and($res['items'][0]['text'])->toBe('IG');
+});

@@ -2373,27 +2373,32 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-74 — Guía para el usuario: app de Meta para Threads (ID, secreto y tester)
 
 - **Descripción**: Guía: añadir el caso de uso Threads en developers.facebook.com, anotar el ID y el secreto propios de Threads, registrar la URI de redirección e invitar a la cuenta como *tester*. Requisito: D2.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva guía para crear la app de Meta de Threads: caso de uso, ID y secreto propios de Threads, URI de redirección, tester y qué hacer si Meta pidiera revisión.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-55
 - **Tipo**: docs
-- **Archivos**: `docs/guias/threads-app-meta.md`, `docs/README.md`
+- **Archivos**: `docs/guias/threads-app-meta.md`, `docs/README.md`, `docs/RAG-INDEX.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: la guía lista permisos, URI de redirección, *tester* y las variables `THREADS_APP_ID`/`THREADS_APP_SECRET` → completa; enlazada desde `docs/README.md`
 
 **Criterios de aceptación**
-- [ ] La guía indica qué hacer si Meta exigiera App Review.
+- [x] La guía indica qué hacer si Meta exigiera App Review.
 
 **Subtareas**
-- [ ] Redactar la guía
-- [ ] Enlazar desde el índice
+- [x] Redactar la guía
+- [x] Enlazar desde el índice
 
 **Notas**: Patrón: `docs/guias/login-social-google-meta.md`. Se ejecuta **antes** del smoke T-64. ⚠️ si la app puede combinarse con la actual: según T-54.
+
+**Decisiones**: la guía responde a «¿puedo reutilizar la app de Meta actual?» con lo documentado: se puede añadir el caso de uso Threads a la misma app, pero Threads lleva su propio ID y secreto, su propio host (`threads.com`) y su propio canje, y mezclar permisos arriesga el «Invalid Scopes» de todo el login de Meta; si hay duda, una app aparte (el código no cambia). El `THREADS_ENABLED=false` y el ID vacío retiran la red sin tocar Facebook ni Instagram. Alcance ampliado: `docs/RAG-INDEX.md` (índice de la documentación enlaza la guía), como en T-73. Adelantada a esta fase porque el smoke M-02 (T-64) la necesita.
+
+**Verificación ejecutada**: lectura: docs/guias/threads-app-meta.md lista los tres permisos (`threads_basic`, `threads_content_publish`, `threads_manage_insights`), la URI `<APP_URL>/connections/threads/callback`, la invitación de tester (con dónde se acepta), `THREADS_APP_ID`/`THREADS_APP_SECRET`/`THREADS_ENABLED`, los límites verificados en T-54 y la sección «¿Y si Meta exigiera App Review?»; enlazada desde docs/README.md y docs/RAG-INDEX.md; coincide con `config/social.php`, `config/services.php` y `.env.example`.
 
 ### T-75 — Guía para el usuario: clave de Giphy y atribución
 

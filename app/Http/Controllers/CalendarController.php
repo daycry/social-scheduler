@@ -38,17 +38,27 @@ class CalendarController extends Controller
             'saved_view' => ['nullable', 'integer'],
         ]);
 
-        // Vista guardada (C-03a): `saved_view=<id>` aplica sus filtros (mandan sobre los de la URL; la fecha se conserva). Sin ningún
-        // parámetro de filtro se abre la vista por defecto. La de otro usuario responde 404.
+        // Vista guardada (C-03a): `saved_view=<id>` aplica sus filtros (mandan sobre los de la URL; la fecha se conserva). La vista
+        // por defecto se abre cuando el usuario no ha elegido nada: `brand_id` y `view` NO cuentan (los enlaces del menú los llevan
+        // siempre); sí cuentan red, estado, búsqueda y fecha (los pone quien filtra o navega por el calendario). La de otro usuario da 404.
         $user = $request->user();
         $active = null;
+        $isDefault = false;
         if (! empty($filters['saved_view'])) {
             $active = CalendarView::query()->findOrFail((int) $filters['saved_view']);
-        } elseif (! $request->hasAny(['view', 'date', 'brand_id', 'network', 'status', 'q', 'saved_view'])) {
+        } elseif (! $request->hasAny(['date', 'network', 'status', 'q', 'saved_view'])) {
             $active = $this->views->default($user);
+            $isDefault = $active !== null;
         }
         if ($active) {
-            $filters = array_merge(array_diff_key($filters, array_flip(['brand_id', 'network', 'status', 'view'])), $this->views->filtersFor($user, $active));
+            $applied = $this->views->filtersFor($user, $active);
+            if ($isDefault) {
+                // Entrando desde el menú, la marca actual y la vista (semana/lista) que pide el enlace mandan sobre las de la vista por defecto.
+                $applied = array_diff_key($applied, array_filter(['brand_id' => ! empty($filters['brand_id']), 'view' => ! empty($filters['view'])]));
+                $filters = array_merge(array_diff_key($filters, array_flip(['network', 'status'])), $applied);
+            } else {
+                $filters = array_merge(array_diff_key($filters, array_flip(['brand_id', 'network', 'status', 'view'])), $applied);
+            }
         }
 
         try {

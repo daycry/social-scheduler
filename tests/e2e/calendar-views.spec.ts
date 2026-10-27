@@ -105,11 +105,43 @@ test('E2E-02 · la vista por defecto se aplica al abrir el calendario', async ({
     await settle(page);
     await page.getByTestId('view-default').click();
     await settle(page);
-    await expect(rows(page).first()).toContainText('por defecto');
+    // Causa raíz del intermitente: `toContainText('por defecto')` casaba con el NOMBRE de la vista («e2e Por defecto»), no con la
+    // marca de «por defecto», así que el test navegaba antes de que el PUT se hubiera confirmado (el servidor lo procesaba en
+    // paralelo al GET de /calendar y este leía aún sin vista por defecto). Se espera al estado real del botón (aria-pressed).
+    await expect(page.getByTestId('view-default')).toHaveAttribute('aria-pressed', 'true');
 
     await page.goto('/calendar');
     await settle(page);
     await expect(select(page, 'Red')).toHaveValue('facebook');
     await expect(page.getByRole('tab', { name: 'Lista' })).toHaveAttribute('aria-selected', 'true');
     await expectNoOverflow(page);
+});
+
+test('E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)', async ({ page }) => {
+    await page.goto('/calendar?view=list');
+    await settle(page);
+    await select(page, 'Red').selectOption('facebook');
+    await page.waitForURL(/network=facebook/);
+    await settle(page);
+    await openMenu(page);
+    await page.getByTestId('view-name').fill('e2e Menú');
+    await page.getByTestId('view-save').click();
+    await settle(page);
+    await page.getByTestId('view-default').click();
+    await expect(page.getByTestId('view-default')).toHaveAttribute('aria-pressed', 'true');
+
+    // Desde otra página, por el menú: Planificación (enlace a /calendar con brand_id) y luego «Calendario» (brand_id + view=week).
+    await page.goto('/dashboard');
+    await settle(page);
+    await page.getByRole('link', { name: 'Planificación' }).first().click();
+    await page.waitForURL(/\/calendar/);
+    await settle(page);
+    await expect(select(page, 'Red')).toHaveValue('facebook');
+    await expect(page.getByRole('tab', { name: 'Lista' })).toHaveAttribute('aria-selected', 'true');
+
+    await page.getByRole('link', { name: 'Calendario', exact: true }).first().click();
+    await page.waitForURL(/view=week/);
+    await settle(page);
+    await expect(select(page, 'Red')).toHaveValue('facebook');
+    await expect(page.getByRole('tab', { name: 'Semana' })).toHaveAttribute('aria-selected', 'true');
 });

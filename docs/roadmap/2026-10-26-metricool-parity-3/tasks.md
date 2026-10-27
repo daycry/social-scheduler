@@ -50,12 +50,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
-| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 3 | 6 | 50% | 12,0 / 18,0h (estimado) | 1,62 / 2,44h (estimado) | 0,40 / 0,62h (estimado) | 485k / 729k (estimado) |
+| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 4 | 6 | 67% | 14,5 / 18,0h (estimado) | 1,96 / 2,44h (estimado) | 0,49 / 0,62h (estimado) | 586k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **45** | **77** | **58%** | **142,0 / 246,0h** | **19,25 / 33,21h** | **4,85 / 8,3h** | **5,75M / 9,96M** |
+| **TOTAL** | **46** | **77** | **60%** | **144,5 / 246,0h** | **19,59 / 33,21h** | **4,94 / 8,3h** | **5,85M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1513,12 +1513,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-46 — Pest de integración CA-14
 
 - **Descripción**: Posts publicados con hashtags y métricas → sugerencias ordenadas y límites por red.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cubierto con pruebas de integración que las sugerencias de hashtags salen igual en la web, el compositor y el MCP, ordenadas por rendimiento.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-44, T-45
 - **Tipo**: test
@@ -1527,12 +1528,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Hashtags` → todo en verde
 
 **Criterios de aceptación**
-- [ ] CA-14 cubierto.
+- [x] CA-14 cubierto.
 
 **Subtareas**
-- [ ] Escribir el test
+- [x] Escribir el test
 
 **Notas**: Patrón: `tests/Feature/SavedTexts/SavedTextsComposerPropsTest.php`.
+
+**Nota de cierre**: RED no aplica: es un test de integración sobre T-43..T-45 ya construidos (clase *capacidad nueva* heredada del plan); se escribió después y pasó a la primera. Histórico sembrado: #verano 3 usos, #oferta 2, #nuevo 1 (no sale), con una media de 154 que da +/- por debajo (ordenado por rendimiento, no por usos).
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Hashtags -> 18 passed (98 assertions): HashtagStatsTest 9, HashtagEndpointTest 6, HashtagsFlowTest 3 (web = MCP, máximo 30 en Instagram, estado vacío por red y aislamiento por marca); Http::assertNothingSent()
 
 ### T-47 — E2E de hashtags con axe
 

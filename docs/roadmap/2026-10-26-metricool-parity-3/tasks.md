@@ -2282,3 +2282,23 @@ Lentes A+B+C+D sobre `f4a5272..5407825`. Lente C sin hallazgos de IDOR: la nota,
 | C1 | Minor | Vistas sin throttle ni límite por usuario; borrar notas sin throttle (CWE-770, autoinfligido) | T-09, T-02 | **Corregido (63b5639)**: `throttle:60,1` en las 3 rutas de vistas y en borrar notas; tope de 50 vistas por usuario (error en `name`) | `routes/web.php:70-72`, `routes/parity.php:72` |
 | A1 | Minor | La fila TOTAL del resumen no suma las fases cerradas | — | **No se sostiene**: la fila TOTAL ya suma las fases cerradas: 30/77 (39%), 90,5h humanas, 12,27h IA, 3,11h de supervisión y 3,66M tokens = Fase 1 + 2 + 3 + 10 (14+16+59,5+1; 1,89+2,17+8,07+0,14; 0,49+0,57+2,01+0,04; 567k+648k+2,41M+40k) | `tasks.md:58` |
 | A2 | Minor | La cifra «33 passed» de T-10 no es posible | T-10 | **Anotado (T-10)**: la cifra era errónea; la suite `tests/Feature/Calendar` tiene hoy 34 tests (34 passed) y se dejó de citar la de entonces | `tasks.md:382` |
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-15..T-30, T-73) — 1 Critical, 6 Important, 6 Minor
+
+Lentes A+B+C+D sobre `8630c77..68c8d67`. Se respeta O1: los tres conectores solo cambian de interfaz y hay catálogo y test de superficies. La app password va cifrada, se valida contra el PDS y nunca aparece en props, MCP, logs ni jobs. Los JWT van cifrados. No hay IDOR ni inyección en los facets. Los facets son correctos con emoji, ZWJ y URL. Los límites de 300 grafemas y 3000 bytes se cumplen, `views` vale null y el `rkey` es idempotente. Tests: 827/827.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| C-1 | Critical | El host del PDS no pasa por `UrlGuard`. (a) Un `did:web:` escrito como handle provoca un GET a cualquier host, puerto y ruta. (b) `assertPds` solo mira el nombre: sin DNS, con cualquier puerto y sin fijar la IP. (c) Se siguen las redirecciones, también a http. Ese PDS recibe después `uploadBlob` y `createRecord` desde el job (CWE-918) | T-19, T-29 | pendiente | `BlueskyClient.php:34-38,192-204,213`, `BlueskySession.php:37`; probes: `did:web:169.254.169.254%2F…`, `localhost%3A6379`, `127.0.0.1.nip.io`, 302 a la metadata |
+| B-2 | Important | La recompresión con GD se ejecuta dentro de la petición web (validación en vivo, guardado y MCP). Una foto de 24 MP necesita 384 MB y 11 s: con `memory_limit=256M` da un error fatal que se traduce en 500 y el post no se puede guardar (CWE-400) | T-22 | pendiente | `MediaValidator.php:188-192`, `ImageDownscaler.php:24,211-252`; medido |
+| D-2 | Important | Además, esa recompresión es síncrona y sin lock: varias ejecuciones de GD en paralelo por usuario mientras no existe la copia | T-22 | pendiente | idem |
+| B-3 | Important | La copia recomprimida pierde la orientación EXIF y una foto vertical sale girada 90° | T-22, T-23 | pendiente | `ImageDownscaler.php:218-261`; probe `p7.php` |
+| B-4 | Important | `BLUESKY_ENABLED=false` no retira Bluesky del compositor ni del MCP: se puede programar y luego falla con `red_no_soportada` | T-26, T-27 | pendiente | `ContentType.php:119-122`, `PostController.php:191-210`, `ListAccounts.php:48-51` |
+| A-5 | Important | Falta el oráculo RED que exige la Clase: T-19 y T-23 declaran que no lo ejecutaron, y T-20..T-27 marcan «Test RED» sin pegar la salida | T-19..T-27 | pendiente | ledger |
+| A-6 | Important | El criterio de T-21 (301 grafemas rechazados en `create_post`) no tiene evidencia en el MCP | T-21 | pendiente | `tasks.md:710,722` |
+| B-7 | Minor | En los hashtags con marcas combinantes (NFD, índicos), la regex no incluye `\p{M}` y los corta | T-23 | pendiente | `Hashtags.php:14` |
+| B-8 | Minor | `applyRefresh` corre fuera del lock y genera sesiones de más | T-19 | pendiente | `BlueskySession.php:72-83,104-105` |
+| B-9 | Minor | Vídeo: el timeout fijo de 80 s más 3 llamadas de 15 s puede superar los 110 s del job; no usa `StepBudget` | T-24 | pendiente | `BlueskyPublisher.php:129-145,231` |
+| C-10 | Minor | No se comprueba que el DID de la sesión coincida con el DID resuelto: un PDS propio podría suplantar un handle en la marca del atacante (CWE-345) | T-19 | pendiente | `BlueskySession.php:41` |
+| D-1 | Minor | Las métricas hacen un `getPosts` por post en lugar de lotes de 25 | T-26 | pendiente | `SnapshotCollector.php:205` |
+| A-11 | Minor | `Archivos` declara ficheros que no se tocaron | T-17, T-21, T-22 | pendiente | — |

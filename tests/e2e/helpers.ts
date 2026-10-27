@@ -452,8 +452,11 @@ export function seedExtraFacebook(brandId: number, name: string) {
 }
 
 /** Cuenta extra en la marca E2E (YouTube o TikTok); `directPost` activa la publicación directa de TikTok. */
-export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok', name: string, directPost = false) {
-    const meta = directPost ? "['direct_post' => true]" : 'null';
+export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' | 'bluesky', name: string, directPost = false) {
+    // Bluesky (C-01): cuenta sembrada con credenciales falsas y un PDS inexistente; la API real nunca se llama.
+    const meta = network === 'bluesky'
+        ? "['did' => 'did:plc:e2ebluesky00000000000000', 'pds' => 'https://pds.e2e.invalid', 'handle' => 'e2e.bsky.invalid', 'email_confirmed' => true]"
+        : directPost ? "['direct_post' => true]" : 'null';
     artisan(
         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
             String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from(${q(network)}), 'name' => ${q(name)}, 'meta' => ${meta}]);`,

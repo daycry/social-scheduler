@@ -912,12 +912,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-28 — E2E de Bluesky: conexión y superficies con axe
 
 - **Descripción**: Escenario Playwright: conectar Bluesky (API simulada vía semilla), ver su icono y filtros en calendario y dashboard. Requisito: CA-01 y parte de CA-10.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Comprobado en el navegador que Bluesky se puede conectar, y que aparece en calendario, panel y compositor de forma accesible y sin desbordes.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-17
 - **Tipo**: test
@@ -926,14 +927,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `npx playwright test tests/e2e/bluesky.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos (axe y sin desbordes)
 
 **Criterios de aceptación**
-- [ ] Formulario de credenciales accesible y sin desborde.
-- [ ] Icono y filtros de Bluesky en calendario y dashboard.
+- [x] Formulario de credenciales accesible y sin desborde.
+- [x] Icono y filtros de Bluesky en calendario y dashboard.
 
 **Subtareas**
-- [ ] Semillas
-- [ ] Spec E2E
+- [x] Semillas
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/oauth.spec.ts`, `seedExtraAccount` (`helpers.ts:455`, ampliar a `bluesky`). La API real nunca se llama.
+
+**Verificación ejecutada**: E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/bluesky.spec.ts --project=desktop|mobile|mobile-360 -> 4 passed en cada proyecto (12/12): formulario de credenciales (labels, password, required, cancelar), cuenta sembrada sin credenciales en la pagina, filtro y pagina de red en calendario y dashboard, contador de grafemas (6 / 300 con familia ZWJ) en el compositor; axe serio/critico y expectNoOverflow en cada pantalla. Regresion composer/pages/calendar-views en los 3 proyectos: 94 passed, con fallos intermitentes preexistentes (calendar-views E2E-02 por defecto, composer E2E-07 y E2E-09) que tambien fallan sobre el codigo de 5407825 (comprobado).
 
 ### T-29 — Documentación y revisión de robustez de Bluesky
 

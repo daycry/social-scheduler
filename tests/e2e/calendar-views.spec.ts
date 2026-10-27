@@ -33,6 +33,16 @@ async function openMenu(page: Page) {
     await expect(menu(page)).toBeVisible();
 }
 
+/** Clic en un enlace del menú principal: en móvil vive en el drawer (se abre solo si hace falta), en escritorio está en la barra. */
+async function clickNav(page: Page, name: string, exact = false) {
+    const toggle = page.getByRole('button', { name: 'Abrir menú' });
+    if (await toggle.isVisible()) {
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    }
+    await page.getByRole('link', { name, exact }).filter({ visible: true }).first().click();
+}
+
 test('E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar', async ({ page }) => {
     const w = watch(page);
     await page.goto('/calendar?view=list');
@@ -133,13 +143,13 @@ test('E2E-02 · la vista por defecto también se aplica al entrar por el menú (
     // Desde otra página, por el menú: Planificación (enlace a /calendar con brand_id) y luego «Calendario» (brand_id + view=week).
     await page.goto('/dashboard');
     await settle(page);
-    await page.getByRole('link', { name: 'Planificación' }).first().click();
+    await clickNav(page, 'Planificación');
     await page.waitForURL(/\/calendar/);
     await settle(page);
     await expect(select(page, 'Red')).toHaveValue('facebook');
     await expect(page.getByRole('tab', { name: 'Lista' })).toHaveAttribute('aria-selected', 'true');
 
-    await page.getByRole('link', { name: 'Calendario', exact: true }).first().click();
+    await clickNav(page, 'Calendario', true);
     await page.waitForURL(/view=week/);
     await settle(page);
     await expect(select(page, 'Red')).toHaveValue('facebook');

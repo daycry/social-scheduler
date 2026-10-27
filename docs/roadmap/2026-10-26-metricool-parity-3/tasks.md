@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 3 | 11 | 27% | 12 / 50,5h (estimado) | 1,62 / 6,83h (estimado) | 0,4 / 1,7h (estimado) | 485k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 4 | 11 | 36% | 21 / 50,5h (estimado) | 2,84 / 6,83h (estimado) | 0,7 / 1,7h (estimado) | 849k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1866,31 +1866,38 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-57 — `ThreadsPublisher`: contenedores, carrusel, sondeo y publicación
 
 - **Descripción**: Máquina de estados de contenedor (`TEXT`/`IMAGE`/`VIDEO`/`CAROUSEL`) con `StatusPoller` y `threads_publish`; errores traducidos. Requisito: CA-08.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las publicaciones de Threads (texto, imagen, vídeo y carrusel de hasta 20) se crean, se esperan hasta que Threads las procesa y se publican; si falla, el motivo sale en español.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 9,0h · real —
-- **Tiempo IA (ejec.)**: est. 1,22h · real —
-- **Supervisión**: est. 0,30h (≈25 % IA) · real —
+- **Tiempo humano**: est. 9,0h · real 9,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 1,22h · real 1,22h (estimado)
+- **Supervisión**: est. 0,30h (≈25 % IA) · real 0,30h (estimado)
 - **Previsión IA**: 328k in / 36k out tok · ⚠️ verificar €
 - **Dependencias**: T-55, T-56
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Threads/ThreadsPublisherTest.php`
+- **Archivos**: `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Threads/ThreadsPublisherTest.php`, `app/Providers/AppServiceProvider.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Threads/ThreadsPublisherTest.php` → en verde (carrusel de 3 = 3 hijos + 1 padre, estados `FINISHED`/`ERROR`/`EXPIRED`)
 
 **Criterios de aceptación**
-- [ ] Un carrusel de 3 imágenes crea 3 hijos y 1 padre, publica el padre y queda `publicada`.
-- [ ] `ERROR`/`EXPIRED` dan un error permanente traducido.
-- [ ] `InstagramPublisher` no tiene ningún cambio en `git diff`.
+- [x] Un carrusel de 3 imágenes crea 3 hijos y 1 padre, publica el padre y queda `publicada`.
+- [x] `ERROR`/`EXPIRED` dan un error permanente traducido.
+- [x] `InstagramPublisher` no tiene ningún cambio en `git diff`.
 
 **Subtareas**
-- [ ] Test RED (CA-08)
-- [ ] Texto, imagen y vídeo
-- [ ] Carrusel con `checkpoint()`
-- [ ] Sondeo y publicación
+- [x] Test RED (CA-08)
+- [x] Texto, imagen y vídeo
+- [x] Carrusel con `checkpoint()`
+- [x] Sondeo y publicación
 
 **Notas**: Patrón: `app/Connectors/Meta/Instagram/InstagramPublisher.php` (contenedores, carrusel con `progress`, `advanceCarousel`) **copiado, sin heredar ni modificar** (T1). `PollPublishStatus`/`StepBudget` sin cambios; media por URL pública firmada (`PublishRequestFactory`). ⚠️ *permalink* sin verificar.
+
+**Test RED**: `tests/Feature/Connectors/Threads/ThreadsPublisherTest.php` antes del código -> 24 errores (la clase `ThreadsPublisher` no existe).
+
+**Decisiones**: copia (sin heredar ni tocar) la máquina de estados de `InstagramPublisher`; `ERROR`/`EXPIRED` lanzan `PermanentPublishException` con el `error_message` traducido (`contenedor_error` / `contenedor_caducado`); un contenedor `PUBLISHED` se da por publicado con el ID del contenedor (`external_id_kind = container`) hasta que T-58 lo localice entre las publicaciones recientes. El token va en el cuerpo del POST, nunca en la URL. Alcance ampliado: `app/Providers/AppServiceProvider.php` registra el publicador junto al conector. El *permalink* se pide con `GET /{id}?fields=permalink` (verificado en T-54); si falta se omite, la publicación ya existe.
+
+**Verificación ejecutada**: `ThreadsPublisherTest.php` -> 31 passed (118 assertions): carrusel de 3 = 3 hijos + 1 padre, FINISHED/ERROR/EXPIRED/IN_PROGRESS, reanudación sin recrear hijos, errores 190/4/429/5xx/permisos; `tests/Feature/Connectors tests/Feature/Publishing` -> 540 passed; `git diff cb869bd -- app/Connectors/Meta/Instagram` -> vacío (InstagramPublisher sin cambios); pint -> passed.
 
 ### T-58 — Idempotencia y cuota de publicación de Threads
 

@@ -16,6 +16,7 @@ use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\Threads\ThreadsConnector;
+use App\Connectors\Threads\ThreadsPublisher;
 use App\Connectors\TikTok\Display as TikTokDisplay;
 use App\Connectors\TikTok\TikTokConnector;
 use App\Connectors\TikTok\TikTokPublisher;
@@ -78,7 +79,8 @@ class AppServiceProvider extends ServiceProvider
 
             // Threads (C-02, D2: app de Meta propia). Solo con THREADS_ENABLED y THREADS_APP_ID: sin ellos la red no existe en ninguna superficie.
             if (Network::Threads->isAvailable()) {
-                $registry->register($this->app->make(ThreadsConnector::class));
+                $registry->register($this->app->make(ThreadsConnector::class))
+                    ->registerPublisher(Network::Threads, $this->app->make(ThreadsPublisher::class));
             }
 
             return $registry;

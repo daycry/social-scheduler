@@ -199,6 +199,8 @@ class PostController extends Controller
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
                 'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),
+                // Red apagada en esta instalacion (p. ej. BLUESKY_ENABLED=false): la cuenta sigue conectada pero no se puede elegir.
+                'available' => $a->network->isAvailable(),
             ])->values(),
             // Tipos por red con sus limitaciones (T-21): el formulario las avisa al elegir el tipo.
             'contentTypes' => collect(Network::cases())->mapWithKeys(fn (Network $n) => [

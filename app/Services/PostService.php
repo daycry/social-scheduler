@@ -588,7 +588,9 @@ class PostService
                 continue;
             }
             if (! $type->isOffered()) {
-                $errors[$key][] = "{$type->label()} de {$account->network->label()} no esta disponible: necesita un dominio verificado en TikTok.";
+                $errors[$key][] = ! $account->network->isAvailable()
+                    ? "{$account->network->label()} no esta disponible en esta instalacion."
+                    : "{$type->label()} de {$account->network->label()} no esta disponible: necesita un dominio verificado en TikTok.";
 
                 continue;
             }

@@ -96,6 +96,15 @@ enum Network: string
         return array_values(array_filter(self::cases(), fn (self $n) => $registry->has($n->provider())));
     }
 
+    /**
+     * ¿Se puede usar esta red en esta instalacion? Bluesky se apaga con `BLUESKY_ENABLED=false`: sus cuentas siguen conectadas, pero
+     * no se pueden elegir en el compositor ni usar desde el MCP.
+     */
+    public function isAvailable(): bool
+    {
+        return $this !== self::Bluesky || (bool) config('social.bluesky.enabled', true);
+    }
+
     /** Descripcion para el MCP y la IA: «instagram, facebook, youtube o tiktok». */
     public static function listing(): string
     {

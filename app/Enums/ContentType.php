@@ -114,11 +114,12 @@ enum ContentType: string
 
     /**
      * ¿Se ofrece en el compositor? Las fotos de TikTok solo existen por PULL_FROM_URL, que exige un dominio
-     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta.
+     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta. Los de Bluesky desaparecen
+     * con `BLUESKY_ENABLED=false`.
      */
     public function isOffered(): bool
     {
-        return $this !== self::TikTokPhoto || (string) config('social.tiktok.verified_domain') !== '';
+        return $this->network()->isAvailable() && ($this !== self::TikTokPhoto || (string) config('social.tiktok.verified_domain') !== '');
     }
 
     /** @return list<self> */

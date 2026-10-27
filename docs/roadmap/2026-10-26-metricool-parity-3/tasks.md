@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 2 | 11 | 18% | 9 / 50,5h (estimado) | 1,21 / 6,83h (estimado) | 0,3 / 1,7h (estimado) | 364k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 3 | 11 | 27% | 12 / 50,5h (estimado) | 1,62 / 6,83h (estimado) | 0,4 / 1,7h (estimado) | 485k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -1832,12 +1832,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-56 — Tipos, reglas de media y conteo de Threads
 
 - **Descripción**: `threads_text`, `threads_image`, `threads_video` y `threads_carousel` en `ContentType` y `media_specs`; modo de conteo `threads`. Requisito: CA-08.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Threads tiene sus cuatro tipos (texto, imagen, vídeo y carrusel) con sus límites: 500 caracteres contando los emojis por bytes, imagen de 8 MB, vídeo de 5 minutos y carrusel de 2 a 20.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-54, T-21
 - **Tipo**: backend
@@ -1846,15 +1847,21 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Unit/MediaValidator` → en verde (conteo de reglas actualizado y reglas de Threads)
 
 **Criterios de aceptación**
-- [ ] Las reglas de Threads validan igual en compositor y `create_post`.
-- [ ] El conteo de reglas del test sube con Threads.
+- [x] Las reglas de Threads validan igual en compositor y `create_post`.
+- [x] El conteo de reglas del test sube con Threads.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Tipos y reglas
-- [ ] Modo `threads`
+- [x] Test RED
+- [x] Tipos y reglas
+- [x] Modo `threads`
 
 **Notas**: Patrón: lo hecho en T-21 (`TextLength`). Imagen JPEG/PNG de 8 MB; vídeo MP4/MOV, H.264/HEVC, 23-60 fps, hasta 300 s y 1 GB; carrusel de 2 a 20 (valores de T-54).
+
+**Test RED**: `tests/Unit/MediaValidator/ThreadsRulesTest.php` antes del código -> 8 de 9 fallan (sin tipos `Threads*` en `ContentType` ni reglas). Los valores salen de la tabla de T-54. El modo de conteo `threads` (`TextLength` y `textLength.js`) ya existía desde T-21 con su tabla de casos compartida (`tests/Fixtures/text-length-cases.json`); aquí solo se actualiza su comentario con lo verificado.
+
+**Decisiones**: sin `max_hashtags` (Threads solo admite una etiqueta de tema por post: no hay tope por texto) y sin `first_comment` (responder exige `threads_manage_replies`, que no se pide). Mínimo de duración de vídeo 0,1 s («más de 0 s»). Versión de `media_specs` 2026-10-27; el test de conteo pasa de 15 a 19 reglas.
+
+**Verificación ejecutada**: `php artisan test --compact tests/Unit` -> 319 passed (861 assertions), incluidos `ThreadsRulesTest` (9) y `MediaValidatorTest` con 19 reglas; pint -> passed.
 
 ### T-57 — `ThreadsPublisher`: contenedores, carrusel, sondeo y publicación
 

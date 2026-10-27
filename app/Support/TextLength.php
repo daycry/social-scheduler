@@ -8,7 +8,8 @@ namespace App\Support;
  *
  *  - chars:     puntos de codigo Unicode (`mb_strlen`), como Instagram, Facebook, YouTube y TikTok.
  *  - graphemes: grafemas (clusters de usuario): un emoji compuesto o una bandera cuentan 1 (Bluesky).
- *  - threads:   puntos de codigo, pero cada emoji cuenta sus bytes UTF-8 (Threads) ⚠️ regla por confirmar en T-54.
+ *  - threads:   puntos de codigo, pero cada emoji cuenta sus bytes UTF-8 (Threads). La documentacion (T-54) dice «los emojis cuentan el
+ *               numero de bytes UTF-8»; la interpretacion para secuencias (ZWJ, banderas) se comprueba en el smoke (T-64, M-02).
  *
  * Se cuenta sobre el texto recortado, como hace `TrimStrings` en el servidor.
  */

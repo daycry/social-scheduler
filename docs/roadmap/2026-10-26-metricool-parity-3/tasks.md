@@ -2646,3 +2646,21 @@ Tests: 676/676.
 | 11 | Minor | `config/social.php` tiene bytes Windows-1252 en los comentarios | T-49 | corregido (`6337d5d`, T-49: fix revisión P3 #11 — comentarios de `config/social.php` en UTF-8) | `config/social.php:326` |
 
 > **Decisión del usuario (2026-10-27):** para el gap 1, corrección acotada y cierre de la Fase 3 sin otra ronda completa.
+
+## Revisión de dos lentes — intento 1: Fase 8 (Threads, T-54..T-64, T-74) — 1 Important, 4 Minor
+
+Lentes A+B+C+D sobre `cb869bd..a40fe3f`. Se respeta T1: `InstagramPublisher` no tiene diff y `GraphErrors` mueve las tablas tal cual. La Lente C no tiene hallazgos:
+- `state`/CSRF, `redirect_uri` fija y token cifrado y oculto;
+- el token que va en la query no se filtra en excepciones (sin mensaje ni `previous`);
+- sin IDOR;
+- `THREADS_ENABLED=false` también afecta a `reschedule`.
+
+Contenedores, cuota de 250/24 h y métricas null/0 correctos; sin `sleep` (con `StepBudget`). Tests: 114/114 de Threads y 955/956 en total; el fallo restante es el intermitente de TikTok `MediaChunkReader`, ajeno a este cambio.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B1 | Important | El conteo de Threads solo suma los bytes de `Extended_Pictographic`. Los indicadores regionales, ZWJ, VS16 y tonos de piel cuentan 1, de modo que se aceptan textos que Threads podría rechazar: 250 banderas cuentan 500/500 pero ocupan 2.000 bytes | T-56 | pendiente (conservador: contar los bytes del grafema entero que contiene un emoji, en PHP y en JS) | `TextLength.php:50-60`, `textLength.js` |
+| D1 | Minor | Si Threads rechaza el conjunto de métricas, se piden una a una en cada lectura y no se recuerda cuál falló (7 peticiones por post en vez de 1) | T-59 | pendiente | `ThreadsInsights.php:132-153` |
+| A1 | Minor | CA-14 pide avisar del máximo de 1 etiqueta de tema en Threads; no hay `max_hashtags` ni aviso, y la spec no se actualizó | T-56 | pendiente | `media_specs.php:164-199` |
+| A2 | Minor | No hay mensaje específico para una cuenta que no es *tester* (caso límite de la spec) | T-55 | pendiente | `OAuthController.php:80-84` |
+| A3 | Minor | Con Threads apagada, los esquemas de `get_best_times`/`suggest_hashtags` siguen enumerando `threads` | T-60 | pendiente | `GetBestTimes.php:35`, `SuggestHashtags.php:35` |

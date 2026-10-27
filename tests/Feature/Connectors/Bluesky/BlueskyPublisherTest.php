@@ -201,3 +201,57 @@ test('un video en un post de imagenes se rechaza', function () {
 
     expect(fn () => $this->publisher->publish($this->account, bskyRequest('Hola', [$video])))->toThrow(PermanentPublishException::class);
 });
+
+/** JPEG apaisado (rojo | azul) con la orientacion EXIF indicada. */
+function bskyExifMedia(int $id, int $w, int $h, int $orientation): PublishMedia
+{
+    $im = imagecreatetruecolor($w, $h);
+    imagefilledrectangle($im, 0, 0, intdiv($w, 2) - 1, $h - 1, (int) imagecolorallocate($im, 255, 0, 0));
+    imagefilledrectangle($im, intdiv($w, 2), 0, $w - 1, $h - 1, (int) imagecolorallocate($im, 0, 0, 255));
+    ob_start();
+    imagejpeg($im, null, 95);
+    $jpeg = (string) ob_get_clean();
+    $payload = "Exif\x00\x00"."MM\x00\x2A\x00\x00\x00\x08".pack('n', 1).pack('nnN', 0x0112, 3, 1).pack('n', $orientation)."\x00\x00".pack('N', 0);
+    $bytes = substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($payload) + 2).$payload.substr($jpeg, 2);
+    $path = "media/test/exif-$id.jpg";
+    Storage::disk('local')->put($path, $bytes);
+
+    return new PublishMedia(id: $id, kind: 'image', mime: 'image/jpeg', url: 'https://signed.example/'.$id, width: $w, height: $h, size: strlen($bytes), disk: 'local', path: $path);
+}
+
+test('B-3: el aspectRatio de una original con EXIF 6 va con los ejes intercambiados', function () {
+    fakeBskyPublish();
+
+    $this->publisher->publish($this->account, bskyRequest('Vertical', [bskyExifMedia(21, 300, 200, 6)]));
+
+    [$create] = sentTo('createRecord');
+    expect($create['record']['embed']['images'][0]['aspectRatio'])->toBe(['width' => 200, 'height' => 300]);
+});
+
+test('B-3: la copia recomprimida de una foto con EXIF 6 sale derecha y con el aspectRatio vertical', function () {
+    fakeBskyPublish();
+    $media = bskyExifMedia(22, 800, 600, 6);
+    config(['social.bluesky.image_max_bytes' => intdiv($media->size, 2)]);
+
+    $this->publisher->publish($this->account, bskyRequest('Vertical', [$media]));
+
+    [$create] = sentTo('createRecord');
+    $ratio = $create['record']['embed']['images'][0]['aspectRatio'];
+    [$upload] = sentTo('uploadBlob');
+    $copy = getimagesizefromstring($upload->body());
+    expect($ratio['height'])->toBeGreaterThan($ratio['width'])->and($copy[1])->toBeGreaterThan($copy[0])
+        ->and([$ratio['width'], $ratio['height']])->toBe([$copy[0], $copy[1]]);
+});
+
+test('B-2: una imagen demasiado grande para decodificarla se rechaza en el job, sin cargarla ni subir nada', function () {
+    fakeBskyPublish();
+    $media = new PublishMedia(id: 23, kind: 'image', mime: 'image/jpeg', url: 'https://signed.example/23', width: 12000, height: 9000, size: 9_000_000, disk: 'local', path: 'media/test/huge.jpg');
+
+    try {
+        $this->publisher->publish($this->account, bskyRequest('Enorme', [$media]));
+        $this->fail('Debia rechazar la imagen');
+    } catch (PermanentPublishException $e) {
+        expect($e->getMessage())->toContain('demasiado grande');
+    }
+    expect(sentTo('uploadBlob'))->toBe([]);
+});

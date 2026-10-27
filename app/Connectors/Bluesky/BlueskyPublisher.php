@@ -289,6 +289,12 @@ class BlueskyPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('Bluesky solo admite imagenes en este tipo de publicacion.', 'tipo_no_admitido');
         }
 
+        // La recompresion corre aqui, en el job (nunca en la peticion web): si la imagen es demasiado grande para decodificarla sin
+        // riesgo para la memoria, se rechaza con un mensaje en lugar de arriesgar un error fatal.
+        if ((int) $media->size > (int) config('social.bluesky.image_max_bytes') && ImageDownscaler::tooLargeToShrink($media->width, $media->height)) {
+            throw new PermanentPublishException('La imagen es demasiado grande para Bluesky y no se puede reducir de forma segura. Usa una imagen mas pequena.', 'archivo_grande');
+        }
+
         $fit = $this->downscaler->fitFile($media->disk, $media->path, $media->id, (int) $media->size, $media->mime, (int) config('social.bluesky.image_max_bytes'));
         if ($fit === null) {
             throw new PermanentPublishException('La imagen es demasiado grande para Bluesky y no se ha podido reducir.', 'archivo_grande');
@@ -307,9 +313,13 @@ class BlueskyPublisher implements Publisher, StatusPoller
         $blob = $this->session->call($account, fn (string $token, string $pds) => $this->client->uploadBlob($pds, $token, $bytes, $fit['mime']));
 
         // Proporcion de lo que realmente se sube (la copia puede tener otro tamano que la original).
+        // Si es la original (no la copia) y lleva orientacion EXIF 5-8, los clientes la muestran girada: ancho y alto se intercambian.
         $size = @getimagesizefromstring($bytes);
         $width = $size !== false ? $size[0] : $media->width;
         $height = $size !== false ? $size[1] : $media->height;
+        if ($size !== false && ! $fit['derived'] && $size[2] === IMAGETYPE_JPEG && ImageDownscaler::swapsAxes(ImageDownscaler::exifOrientation($bytes))) {
+            [$width, $height] = [$height, $width];
+        }
 
         return array_filter([
             'alt' => '',

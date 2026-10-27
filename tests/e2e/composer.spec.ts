@@ -47,8 +47,13 @@ async function abrirMenu(page: Page) {
     await expect(page.getByRole('menu')).toBeVisible();
 }
 async function guardarBorrador(page: Page) {
+    // Causa raíz de E2E-09 intermitente: al editar, el encabezado «Editar publicación» ya estaba en pantalla ANTES de guardar, así que
+    // esperarlo no esperaba al guardado; el test seguía con `open()` y la navegación abortaba el PUT (el interruptor «recordado» no
+    // llegaba a persistirse). Se espera la respuesta real del guardado (alta POST o edición PUT).
+    const guardado = page.waitForResponse((r) => ['POST', 'PUT'].includes(r.request().method()) && /\/(posts\/\d+|brands\/\d+\/posts)$/.test(new URL(r.url()).pathname));
     await abrirMenu(page);
     await menuItem(page, 'Guardar borrador').click();
+    await guardado;
 }
 
 test('E2E-01 · compositor a pantalla completa con pastillas de red', async ({ page }) => {

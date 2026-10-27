@@ -323,12 +323,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-09 — `CalendarViewService`, request, controlador y rutas CRUD
 
 - **Descripción**: Alta, renombrado, borrado y vista por defecto; valida que marca y red sean del usuario. Requisito: CA-11.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Se pueden guardar, renombrar, borrar y fijar por defecto vistas del calendario con marca, red, estado y vista.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-08
 - **Tipo**: backend
@@ -337,15 +338,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Calendar/CalendarViewCrudTest.php` → en verde (CRUD, marca ajena rechazada, única por defecto)
 
 **Criterios de aceptación**
-- [ ] CRUD funciona solo para el dueño.
-- [ ] Una marca o red que no es del usuario se rechaza.
-- [ ] Solo una vista por defecto por usuario.
+- [x] CRUD funciona solo para el dueño.
+- [x] Una marca o red que no es del usuario se rechaza.
+- [x] Solo una vista por defecto por usuario.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Servicio, request, controlador y rutas
+- [x] Test RED
+- [x] Servicio, request, controlador y rutas
 
 **Notas**: Patrón: `app/Services/SavedTextService.php`, `app/Http/Controllers/SavedTextController.php` y `CalendarController.php`; `app/Services/CalendarService.php` interpreta los filtros.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Calendar/CalendarViewCrudTest.php -> 10 passed (46 assertions)
 
 ### T-10 — UI del calendario: selector de vistas, guardar, renombrar, borrar y vista por defecto
 

@@ -36,12 +36,24 @@ final class Hashtags
         return $found;
     }
 
-    /** @return list<string> Tags (sin `#`) en orden de aparicion, sin repetir (sin distinguir mayusculas). */
+    /** Forma canonica de un tag: NFC (la «é» precompuesta y la «e» + acento combinante son el mismo hashtag). */
+    public static function normalize(string $tag): string
+    {
+        $nfc = class_exists(\Normalizer::class) ? \Normalizer::normalize($tag, \Normalizer::FORM_C) : false;
+
+        return $nfc === false ? $tag : $nfc;
+    }
+
+    /**
+     * @return list<string> Tags (sin `#`) normalizados a NFC, en orden de aparicion, sin repetir (sin distinguir mayusculas). En JS la
+     *                      misma clave es `tag.normalize('NFC').toLowerCase()`.
+     */
     public static function tags(string $text, bool $numeric = true): array
     {
         $seen = [];
         foreach (self::find($text, $numeric) as $hit) {
-            $seen[mb_strtolower($hit['tag'])] ??= $hit['tag'];
+            $tag = self::normalize($hit['tag']);
+            $seen[mb_strtolower($tag)] ??= $tag;
         }
 
         return array_values($seen);

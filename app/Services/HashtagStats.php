@@ -10,6 +10,7 @@ use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Models\User;
 use App\Support\Hashtags;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -44,18 +45,18 @@ class HashtagStats
         $limit = max(1, (int) config('social.hashtags.limit', 15));
         $days = max(1, (int) config('social.hashtags.days', 365));
 
-        $targets = PostTarget::withoutUserScope()
+        $base = PostTarget::withoutUserScope()
             ->where('user_id', $user->id)
             ->where('status', PostStatus::Published->value)
             ->whereNotNull('published_at')
             ->where('published_at', '>=', now()->subDays($days))
             ->whereIn('post_id', Post::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->select('id'))
-            ->when($network, fn ($q) => $q->where('network', $network->value))
-            ->orderBy('id')
-            ->get(['id', 'post_id', 'text']);
+            ->when($network, fn ($q) => $q->where('network', $network->value));
+
+        $targets = (clone $base)->orderBy('id')->get(['id', 'post_id', 'text']);
 
         $texts = Post::withoutUserScope()->whereIn('id', $targets->pluck('post_id')->unique())->pluck('text', 'id');
-        $latest = $this->latestMetrics($user, $targets->pluck('id')->all());
+        $latest = $this->latestMetrics($user, (clone $base)->select('id'));
 
         $sums = [];   // clave en minusculas => [etiqueta, usos, suma]
         $total = 0.0;
@@ -106,26 +107,24 @@ class HashtagStats
     }
 
     /**
-     * Ultima lectura (fecha mas alta) de cada destino, resuelta en SQL: los acumulados crecen con el tiempo.
+     * Ultima lectura (fecha mas alta) de cada destino, resuelta en UNA sola consulta: el maximo por destino se calcula en SQL sobre la
+     * propia subconsulta de destinos (sin trocear los ids en lotes ni lanzar una subconsulta por lote). Los acumulados crecen con el tiempo.
      *
-     * @param  list<int>  $targetIds
      * @return array<int, array<string, mixed>>
      */
-    private function latestMetrics(User $user, array $targetIds): array
+    private function latestMetrics(User $user, Builder $targetIds): array
     {
-        $latest = [];
-        foreach (array_chunk($targetIds, 500) as $ids) {
-            $newest = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $ids)
-                ->groupBy('post_target_id')->selectRaw('post_target_id, MAX(date) as max_date');
+        $newest = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $targetIds)
+            ->groupBy('post_target_id')->selectRaw('post_target_id, MAX(date) as max_date');
 
-            PostMetricSnapshot::withoutUserScope()->from('post_metric_snapshots as s')
-                ->joinSub($newest, 'n', fn ($j) => $j->on('n.post_target_id', '=', 's.post_target_id')->on('n.max_date', '=', 's.date'))
-                ->where('s.user_id', $user->id)
-                ->get(['s.post_target_id', 's.metrics'])
-                ->each(function ($s) use (&$latest) {
-                    $latest[$s->post_target_id] = (array) (is_string($s->metrics) ? json_decode($s->metrics, true) : $s->metrics);
-                });
-        }
+        $latest = [];
+        PostMetricSnapshot::withoutUserScope()->from('post_metric_snapshots as s')
+            ->joinSub($newest, 'n', fn ($j) => $j->on('n.post_target_id', '=', 's.post_target_id')->on('n.max_date', '=', 's.date'))
+            ->where('s.user_id', $user->id)
+            ->get(['s.post_target_id', 's.metrics'])
+            ->each(function ($s) use (&$latest) {
+                $latest[$s->post_target_id] = (array) (is_string($s->metrics) ? json_decode($s->metrics, true) : $s->metrics);
+            });
 
         return $latest;
     }

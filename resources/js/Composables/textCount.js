@@ -10,6 +10,9 @@ export const countChars = (text) => [...String(text ?? '').trim()].length;
  * Hashtags: `#` seguido de letras, números o guion bajo (Unicode) y NO precedido de letra, número, guion bajo o `/`
  * (como Instagram: `a#b` y `#` dentro de una URL no cuentan). Misma regla que `MediaValidator::countHashtags()`.
  */
+/** Clave de un hashtag (sin `#`): NFC y minúsculas; la misma que `Hashtags::tags()` en PHP (`Normalizer` NFC + `mb_strtolower`). */
+export const hashtagKey = (tag) => String(tag ?? '').normalize('NFC').toLowerCase();
+
 export const countHashtags = (text) => (String(text ?? '').match(/(?<![\p{L}\p{M}\p{N}_\/])#[\p{L}\p{N}_][\p{L}\p{M}\p{N}_]*/gu) ?? []).length;
 
 /**

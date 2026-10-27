@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\HashtagStats;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 // C-04a / CA-14 / D5: sugerencias de hashtags desde el historico propio. SIN IA: cualquier peticion externa falla el test.
@@ -143,4 +144,24 @@ test('el limite de sugerencias es configurable', function () {
     }
 
     expect(app(HashtagStats::class)->suggest($this->user, $this->brand)['tags'])->toHaveCount(2);
+});
+
+test('T-43: #café en NFC y en NFD cuenta como un solo hashtag (la clave se normaliza a NFC)', function () {
+    tagged($this->brand, "Hola #caf\u{00E9}", 10);   // NFC
+    tagged($this->brand, "Hola #cafe\u{0301}", 20);  // NFD
+
+    $tags = array_column(app(HashtagStats::class)->suggest($this->user, $this->brand)['tags'], 'uses', 'tag');
+
+    expect($tags)->toBe(["caf\u{00E9}" => 2]);
+});
+
+test('T-43: las lecturas de metricas se resuelven con una sola consulta a post_metric_snapshots, aunque haya muchos destinos', function () {
+    foreach (range(1, 12) as $i) {
+        tagged($this->brand, 'Hola #uno', $i);
+    }
+    DB::enableQueryLog();
+    app(HashtagStats::class)->suggest($this->user, $this->brand);
+    $snapshotQueries = collect(DB::getQueryLog())->filter(fn ($q) => str_contains($q['query'], 'post_metric_snapshots'))->count();
+
+    expect($snapshotQueries)->toBe(1);
 });

@@ -161,7 +161,7 @@ class MediaValidator
      */
     public static function countHashtags(string $text): int
     {
-        return (int) preg_match_all('/(?<![\p{L}\p{N}_\/])#[\p{L}\p{N}_]+/u', $text);
+        return (int) preg_match_all('/(?<![\p{L}\p{M}\p{N}_\/])#[\p{L}\p{N}_][\p{L}\p{M}\p{N}_]*/u', $text);
     }
 
     /** @return list<string> */

@@ -10,7 +10,7 @@ export const countChars = (text) => [...String(text ?? '').trim()].length;
  * Hashtags: `#` seguido de letras, números o guion bajo (Unicode) y NO precedido de letra, número, guion bajo o `/`
  * (como Instagram: `a#b` y `#` dentro de una URL no cuentan). Misma regla que `MediaValidator::countHashtags()`.
  */
-export const countHashtags = (text) => (String(text ?? '').match(/(?<![\p{L}\p{N}_\/])#[\p{L}\p{N}_]+/gu) ?? []).length;
+export const countHashtags = (text) => (String(text ?? '').match(/(?<![\p{L}\p{M}\p{N}_\/])#[\p{L}\p{N}_][\p{L}\p{M}\p{N}_]*/gu) ?? []).length;
 
 /** Miles con punto, como en la especificación («2.200», «63.206»), sin depender del locale del navegador. */
 export const formatThousands = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');

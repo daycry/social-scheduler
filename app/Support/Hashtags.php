@@ -5,13 +5,13 @@ namespace App\Support;
 /**
  * Extraccion de hashtags, compartida por los *facets* de Bluesky y las sugerencias de hashtags (C-04a). Es la MISMA regla que
  * `MediaValidator::countHashtags()` y `resources/js/Composables/textCount.js`: un `#` seguido de letras, numeros o guion bajo
- * (Unicode) y NO precedido de letra, numero, guion bajo o `/` (`a#b` y los `#` de una URL no cuentan).
+ * (Unicode, con sus marcas combinantes: NFD, indicos) y NO precedido de letra, marca, numero, guion bajo o `/` (`a#b` y los `#` de una URL no cuentan).
  *
  * Las posiciones son BYTES UTF-8 (lo que exigen los *facets* de atproto: `byteStart`/`byteEnd`).
  */
 final class Hashtags
 {
-    private const PATTERN = '/(?<![\p{L}\p{N}_\/])#([\p{L}\p{N}_]+)/u';
+    private const PATTERN = '/(?<![\p{L}\p{M}\p{N}_\/])#([\p{L}\p{N}_][\p{L}\p{M}\p{N}_]*)/u';
 
     /**
      * @param  bool  $numeric  false = descarta los hashtags formados solo por digitos (`#2024`), como hacen Bluesky y Threads.

@@ -1,6 +1,8 @@
 <?php
 
 use App\Connectors\Bluesky\Facets;
+use App\Services\MediaValidator;
+use App\Support\Hashtags;
 
 const FACET_DID = 'did:plc:mentionedaccount0123456';
 
@@ -109,4 +111,20 @@ test('los facets salen ordenados por posicion y sin solapes', function () {
 
 test('un texto sin enlaces ni etiquetas no produce facets', function () {
     expect(facetsOf('Solo texto, sin nada especial.'))->toBe([])->and(facetsOf(''))->toBe([]);
+});
+
+test('B-7: los hashtags con marcas combinantes (NFD e indicos) no se cortan', function () {
+    $nfd = "Hola #cafe\u{0301} y #ni\u{0303}o";
+    $hindi = "Mira #\u{092D}\u{093E}\u{0930}\u{0924} ahora";
+
+    foreach ([$nfd, $hindi] as $text) {
+        $tags = array_values(array_filter(facetsOf($text), fn ($f) => $f['features'][0]['$type'] === 'app.bsky.richtext.facet#tag'));
+        expect(array_map(fn ($f) => sliceOf($text, $f), $tags))->toBe($text === $nfd ? ["#cafe\u{0301}", "#ni\u{0303}o"] : ["#\u{092D}\u{093E}\u{0930}\u{0924}"]);
+    }
+
+    expect(Hashtags::find($hindi)[0]['tag'])->toBe("\u{092D}\u{093E}\u{0930}\u{0924}")
+        ->and(MediaValidator::countHashtags($nfd))->toBe(2)
+        ->and(MediaValidator::countHashtags($hindi))->toBe(1)
+        // Pegado a una letra con marca (no es un hashtag), como con una letra sin ella.
+        ->and(MediaValidator::countHashtags("cafe\u{0301}#x"))->toBe(0);
 });

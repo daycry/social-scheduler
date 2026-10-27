@@ -74,6 +74,11 @@ Los límites de tamaño y sondeo (`MEDIA_*`, `FFPROBE_*`) no están en `.env.exa
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente web de Google Cloud. Consentimiento "En producción" para que el refresh token no caduque |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | App de TikTok (sandbox o producción) |
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
+| `THREADS_APP_ID`, `THREADS_APP_SECRET` | ID y secreto **de Threads** de la app de Meta (hay dos pares; Configuración → Básica). Sin `THREADS_APP_ID` la red no se ofrece. Guía: [Threads](../guias/threads-app-meta.md) |
+| `THREADS_ENABLED` | `true`. `false` retira Threads de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan) |
+| `THREADS_AUTH_HOST`, `THREADS_GRAPH_HOST`, `THREADS_API_VERSION` | `https://threads.com`, `https://graph.threads.com` y `v1.0` (en `config/social.php`, por si Meta los cambia) |
+| `THREADS_TOKEN_HEADER` | `false`. `true` manda el token de la API en `Authorization: Bearer` en lugar del cuerpo/query documentados; activarlo solo si el smoke (M-02) confirma que Threads lo acepta |
+| `THREADS_PUBLISH_QUOTA` | `250`. Publicaciones por 24 h si la API no devuelve el total |
 
 Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
 
@@ -84,6 +89,7 @@ Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
 | `SOCIAL_REFRESH_MARGIN_META_HOURS` | `168` | Renueva 7 días antes |
 | `SOCIAL_REFRESH_MARGIN_GOOGLE_HOURS` | `1` | |
 | `SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS` | `6` | Access de 24 h |
+| `SOCIAL_REFRESH_MARGIN_THREADS_HOURS` | `168` | Token largo de 60 días; la renovación exige ≥ 24 h de antigüedad |
 | `SOCIAL_REFRESH_QUEUE` | `poll` | |
 | `SOCIAL_HTTP_TIMEOUT` | `15` | Segundos por llamada a una red |
 | `SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES` | `12` | ≈ 6 h de fallos seguidos antes de pedir reconexión |

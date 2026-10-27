@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\Log;
  * Cliente HTTP de la Threads API (host `social.threads.graph_host`, `graph.threads.com`; versionado `social.threads.api_version`).
  * Propio y separado de `GraphClient` (T1): comparte con el solo la tabla de codigos de credencial y de limite (`GraphErrors`).
  *
- * El token viaja como documenta Meta: en el CUERPO en los POST y en la query en los GET (nunca se registra). Los intercambios de
- * token (`oauth/access_token`, `access_token`, `refresh_access_token`) van sin version.
+ * El token viaja como documenta Meta: en el CUERPO en los POST y en la query en los GET (nunca se registra). Con `THREADS_TOKEN_HEADER=true`
+ * va en `Authorization: Bearer` (fuera de la URL y de los registros de proxy); la documentacion no lo describe, asi que es opt-in hasta
+ * confirmarlo en el smoke (T-64). Los intercambios de token (`oauth/access_token`, `access_token`, `refresh_access_token`) van sin version.
  *
  * Traduce los errores a las excepciones de la cola: credencial -> reconectar; limite de uso, 429, 5xx y red -> transitorio; permisos o
  * contenido -> permanente con mensaje legible. Los errores de Threads llegan con dos formas: `{error: {message, code, error_subcode}}`
@@ -35,13 +36,17 @@ class ThreadsClient
      */
     public function get(string $path, array $query, string $token, bool $read = false): array
     {
-        return $this->send(fn (PendingRequest $http) => $http->get($this->url($path), $query + ['access_token' => $token]), $read);
+        return $this->send(fn (PendingRequest $http) => $this->tokenInHeader()
+            ? $http->withToken($token)->get($this->url($path), $query)
+            : $http->get($this->url($path), $query + ['access_token' => $token]), $read);
     }
 
     /** @return array<string, mixed> */
     public function post(string $path, array $params, string $token): array
     {
-        return $this->send(fn (PendingRequest $http) => $http->asForm()->post($this->url($path), $params + ['access_token' => $token]));
+        return $this->send(fn (PendingRequest $http) => $this->tokenInHeader()
+            ? $http->withToken($token)->asForm()->post($this->url($path), $params)
+            : $http->asForm()->post($this->url($path), $params + ['access_token' => $token]));
     }
 
     /**
@@ -138,6 +143,11 @@ class ThreadsClient
         $message = (string) ($error['error_user_msg'] ?? $error['message'] ?? $json['error_message'] ?? 'respuesta inesperada');
 
         return [$code, $sub, mb_substr($message, 0, 300)];
+    }
+
+    private function tokenInHeader(): bool
+    {
+        return (bool) config('social.threads.token_in_header', false);
     }
 
     private function http(): PendingRequest

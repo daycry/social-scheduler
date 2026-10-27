@@ -288,3 +288,16 @@ test('un corte de red al crear el contenedor es transitorio', function () {
 test('sin referencia, poll falla de forma permanente', function () {
     expect(fn () => $this->publisher->poll($this->account, thRequest(ContentType::ThreadsText, 'x')))->toThrow(PermanentPublishException::class);
 });
+
+test('con THREADS_TOKEN_HEADER el token va en Authorization: Bearer y no en la URL ni en el cuerpo', function () {
+    config(['social.threads.token_in_header' => true]);
+    thFakeText();
+
+    $this->publisher->publish($this->account, thRequest(ContentType::ThreadsText, 'Hola'));
+
+    $create = thSent('POST', '/threads')[0];
+    expect($create->header('Authorization'))->toBe(['Bearer TH-LONG-TOKEN'])->and($create->data())->not->toHaveKey('access_token');
+    foreach (Http::recorded() as [$request]) {
+        expect($request->url())->not->toContain('TH-LONG-TOKEN');
+    }
+});

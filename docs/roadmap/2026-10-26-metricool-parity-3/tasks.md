@@ -52,10 +52,10 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 9 | 11 | 82% | 47,5 / 50,5h (estimado) | 6,42 / 6,83h (estimado) | 1,59 / 1,7h (estimado) | 1920k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 10 | 11 | 91% | 48,5 / 50,5h (estimado) | 6,56 / 6,83h (estimado) | 1,63 / 1,7h (estimado) | 1,96M / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
-| Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
+| Fase 10 — Transversal y cierre | 2 | 6 | 33% | 2,5 / 10,0h (estimado) | 0,34 / 1,36h (estimado) | 0,09 / 0,35h (estimado) | 101k / 405k (estimado) |
+| **TOTAL** | **64** | **77** | **83%** | **216,0 / 246,0h** | **29,27 / 33,21h** | **7,37 / 8,3h** | **8,74M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -2073,27 +2073,34 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-63 — Documentación y revisión de robustez de Threads
 
 - **Descripción**: Documentar el conector y revisar robustez (tokens de 60 días, cuota).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentado cómo funciona Threads: conexión y renovación del token de 60 días, tipos y límites verificados, cuota de 250 al día, idempotencia, métricas y el interruptor para apagarlo.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-61, T-62
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/conexiones.md`, `docs/modulos/publicacion.md`, `docs/modulos/analitica.md`, `docs/referencia/decisiones-por-red.md`
+- **Archivos**: `docs/modulos/conexiones.md`, `docs/modulos/publicacion.md`, `docs/modulos/analitica.md`, `docs/referencia/decisiones-por-red.md`, `docs/referencia/configuracion.md`, `app/Connectors/Threads/ThreadsClient.php`, `config/social.php`, `.env.example`, `tests/Feature/Connectors/Threads/ThreadsPublisherTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: los docs listan tipos, límites verificados en T-54, hosts configurables y métricas de Threads → coherente con T-55..T-59
 
 **Criterios de aceptación**
-- [ ] Los valores coinciden con la config.
+- [x] Los valores coinciden con la config.
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez
+- [x] Redactar los docs
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/conexiones.md`, `publicacion.md`, `analitica.md` y `docs/referencia/decisiones-por-red.md`.
+
+**Nota de cierre**: Robustez revisada: tokens (token largo cifrado, sin `refresh_token`, renovación 7 días antes con el requisito de ≥ 24 h cumplido, 401/190 = reconexión y 5xx/429/red = transitorio, sin `requiere_reconexion` por un fallo pasajero); el token nunca se registra (los logs solo llevan estado y códigos y un corte de red se relanza sin el mensaje de cURL, que trae la URL); cuota (se consulta antes de gastar contenedor, agotada aplaza por `QuotaPolicy`, un carrusel retomado no la vuelve a gastar); idempotencia (contenedor guardado con `checkpoint`, búsqueda por texto y hora antes de reintentar, sin presupuesto no se publica a ciegas); `InstagramPublisher` y `GraphClient` sin cambios de comportamiento (`git diff` vacío en Instagram y 90 tests de Meta en verde). Hallazgo mitigado: Meta documenta el token en la query de los GET (queda en registros de proxy), a diferencia del resto de conectores; se añade `THREADS_TOKEN_HEADER` (por defecto `false`, `Authorization: Bearer`, con test) para pasarlo a la cabecera en cuanto el smoke (T-64) confirme que Threads lo acepta. Límites conocidos (documentados): una publicación sin texto no se puede reconocer al reintentar; la interpretación de los emojis compuestos en los 500 caracteres, los códigos de error propios, el modo desarrollo y la zona del día de las métricas quedan para el smoke.
+
+**Alcance ampliado en la implementación**: `docs/referencia/configuracion.md` (variables nuevas), `ThreadsClient.php`, `config/social.php` y `.env.example` (el interruptor del token) y `ThreadsPublisherTest.php` (su test).
+
+**Verificación ejecutada**: lectura: conexiones.md (sección Threads, piezas, scopes, margen 168 h), publicacion.md (tipos y límites 500/8 MB/300 s/1 GB/2-20, estados, carrusel, cuota 250, idempotencia, errores, interruptor), analitica.md (mapa de métricas con `profile_views` y `clicks`, `null`, histórico de 30 días) y decisiones-por-red.md (tabla de T-54, cómo funciona y pendientes del smoke) -> coherentes con T-55..T-59; los valores coinciden con `config/media_specs.php`, `config/social.php` y `.env.example`. `tests/Feature/Connectors/Threads` -> 94 passed (543 assertions).
 
 ### T-64 — Smoke real de Threads con el usuario
 

@@ -14,7 +14,7 @@ La app guarda un snapshot diario por cuenta y métricas por publicación recient
 | Cálculos (crecimiento, engagement) | `app/Analytics/Calculator.php`, `Metric.php`, `Period.php` |
 | Servicio | `app/Services/AnalyticsService.php` (`withLatestSnapshot`: el último snapshot de cada destino, compartido con las campañas) |
 | Campañas | `app/Services/CampaignAnalytics.php`, `resources/js/Pages/Campaigns/{Index,Show}.vue` |
-| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php` |
+| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php`, `Threads/ThreadsInsights.php` |
 | UI | `resources/js/Pages/Dashboard/{Index,Network}.vue`, `LineChart.vue` |
 | Tablas | `account_snapshots` (con `settled_at`), `post_metric_snapshots` |
 
@@ -35,6 +35,7 @@ Las publicaciones se refrescan cada 6 h (`15 */6 * * *`) durante las primeras 72
 | YouTube | 365 | un informe `dimensions=day` por tramo de 90 días |
 | TikTok | 0 | la Display API no da serie histórica |
 | Bluesky | 0 | solo hay stocks (seguidores y posts): no existe el valor de un día pasado |
+| Threads | 30 (`SOCIAL_BACKFILL_DAYS_THREADS`) | la serie de cuenta admite `since`/`until` (desde el 2024-04-13), pero los totales del día se piden día a día (`maxRangeDays` = 0) |
 
 ## Métricas: lo medido en el spike
 
@@ -67,6 +68,15 @@ El panel (`/campaigns/{id}`) lee de las mismas tablas que el dashboard y reutili
 - El engagement usa solo los destinos con visualizaciones e interacciones.
 - La serie diaria del panel de campaña se agrega en SQL: cada día suma los snapshots leídos ese día, sin arrastrar el último valor de los destinos que no se leyeron (su último punto puede no coincidir con los KPIs, que usan el último snapshot de cada destino; la UI lo avisa). La lista de posts se recorta a 100 (con el total y un aviso).
 - **Límite de 30 días:** las métricas de una publicación solo se refrescan durante `SOCIAL_ANALYTICS_RECENT_POST_DAYS` (30) días; pasado ese plazo quedan congeladas con el último dato leído. El panel lo avisa.
+
+## Threads
+
+`ThreadsInsights` (`RangeInsightsReader`) lee la Threads API con el token de la cuenta (`threads_manage_insights`). Todo lo que no llega queda `null` («no disponible», nunca 0).
+
+- **Cuenta** (`GET /{user}/threads_insights`, día en `America/Los_Angeles` con `since`/`until` Unix; ⚠️ zona y formato a confirmar en el smoke): `views` son las **visitas al perfil** (serie diaria) → **`profile_views`**, no `views` (Threads no da visualizaciones de cuenta: `views` queda `null` y fuera de `SUPPORTED`); `likes` → `likes`; `replies` → `comments`; `reposts + quotes` → `shares`; `clicks` (llega por enlace) se suma en **`clicks`** («Clics en enlaces», métrica de flujo nueva en `Metric::ACCOUNT`); `interactions` = likes + comentarios + compartidos. `followers_count` → `followers` (STOCK, **sin** `since`/`until`: solo el último día cerrado). Antes del 2024-04-13 la API rechaza la fecha: todo `null` y ninguna llamada.
+- **Post** (`GET /{id}/insights`, `lifetime`): `views` → `views`, `likes`, `replies` → `comments`, `reposts + quotes + shares` → `shares` e `interactions` = la suma. **`views` y `shares` figuran «en desarrollo»**: si la API rechaza el conjunto se piden una a una y lo rechazado queda `null`. Una publicación de otra persona (`REPOST_FACADE`) da una lista vacía: todo `null`. El ID de un contenedor sin localizar (`external_id_kind = container`) no se lee.
+- **Expectativas** (`Metric::EXPECTED_FLOWS['threads']`): `profile_views`, `likes`, `comments`, `shares` e `interactions` (sin `clicks`: sin enlaces pulsados no hay dato). `AnalyticsService::SUPPORTED['threads']` = seguidores, visitas al perfil, interacciones, me gusta, comentarios, compartidos y clics.
+- **Agregado y CSV:** el total de «Visualizaciones» de una marca ignora a Threads (es `null` y se respeta el `null`); sus visitas al perfil salen en la página de la red y en el informe de red.
 
 ## Todas las marcas (C-03b)
 

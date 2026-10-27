@@ -14,7 +14,7 @@ Un `Post` tiene uno o varios `PostTarget` (uno por cuenta/red). Cada destino se 
 | Resultados y avisos | `app/Services/PublishOutcomes.php`, `app/Notifications/PublishFailed.php` |
 | Política de cuota | `app/Services/QuotaPolicy.php` |
 | Historial | `app/Models/PublishAttempt.php` (tabla `publish_attempts`) |
-| Publicadores | `Meta/Instagram/`, `Meta/Facebook/`, `Google/YouTubePublisher.php`, `TikTok/TikTokPublisher.php`, `Bluesky/BlueskyPublisher.php` |
+| Publicadores | `Meta/Instagram/`, `Meta/Facebook/`, `Google/YouTubePublisher.php`, `TikTok/TikTokPublisher.php`, `Bluesky/BlueskyPublisher.php`, `Threads/ThreadsPublisher.php` |
 
 ## Garantías (CA-06 / CA-07)
 
@@ -102,6 +102,26 @@ Se ejecuta al inicio de cada pasada del despachador:
 - **Idempotencia.** La `rkey` es una TID (`Tid::generate()`, 13 caracteres base32-sortable, monótona) generada y guardada con `checkpoint()` en `progress.rkey` **antes** de `createRecord`. Un reintento la reutiliza y `findPublished()` hace `getRecord` (`RecordNotFound` → no existe). Además, ante cualquier error de `createRecord` (timeout con la respuesta perdida, 5xx o `rkey` repetida: el error exacto del PDS no está verificado) se comprueba con `getRecord` antes de fallar. Un fallo de red al comprobar es transitorio: nunca se publica a ciegas.
 - **Errores** (`BlueskyErrors`): sesión inválida tras renovar → reconexión; 429/5xx/red → transitorio; cuenta suspendida o rechazo del contenido → permanente con mensaje.
 - ⚠️ Sin verificar hasta el smoke real (T-30): el `aud` de `getServiceAuth` para subir vídeo (se usa `did:web:` + host del PDS), el error del PDS ante una `rkey` repetida y el host de lectura pública de métricas.
+
+## Threads
+
+`ThreadsPublisher` (`Publisher` + `StatusPoller`) reproduce la máquina de estados de contenedor de Instagram **sin heredar de ella ni tocar `InstagramPublisher`** (opción T1). No cambia `PublishPostTarget` ni `PollPublishStatus`. La media la **descarga Threads** de una URL pública firmada (`MediaAsset::publicUrl()` vía `PublishRequestFactory`), igual que en Instagram, así que el worker de 120 s no sube nada.
+
+| Tipo | Contenido | Límites verificados el 2026-10-27 (`config/media_specs.php`, valores de T-54) |
+|---|---|---|
+| `threads_text` | solo texto (obligatorio) | **500 caracteres**; cada emoji cuenta sus **bytes UTF-8** (`count = threads`) |
+| `threads_image` | 1 imagen, texto opcional | JPEG o PNG de **8 MB**, relación hasta 10:1 |
+| `threads_video` | 1 vídeo, texto opcional | MP4 o MOV, H.264 o HEVC, 23–60 fps, ancho ≤ 1920, de más de 0 s a **300 s**, **1 GB** |
+| `threads_carousel` | de **2 a 20** imágenes o vídeos mezclados, texto opcional | las reglas de imagen y vídeo; cuenta como **1** publicación en la cuota |
+
+- **Contenedor y estado.** `POST /{user}/threads` crea el contenedor (`TEXT`, `IMAGE` o `VIDEO`; `image_url`/`video_url`); `GET /{container}?fields=status,error_message` devuelve `IN_PROGRESS`, `FINISHED`, `ERROR`, `EXPIRED` (24 h) o `PUBLISHED`; con `FINISHED` se publica con `POST /{user}/threads_publish` (`creation_id`) y se pide el *permalink* (`GET /{id}?fields=permalink`, accesorio). `ERROR` y `EXPIRED` lanzan `PermanentPublishException` con el `error_message` traducido (`FAILED_DOWNLOADING_VIDEO`, `INVALID_FRAME_RATE`, `INVALID_DURATION`…). Un contenedor `PUBLISHED` se da por publicado. Las llamadas se reservan con `StepBudget` (85 s de un job de 110 s). El plazo de procesado es el global (`PUBLISH_POLL_MAX_MINUTES`); la documentación recomienda sondear 1 vez por minuto durante 5 minutos como máximo.
+- **Carrusel.** Pasos reanudables con `checkpoint()` y `progress` (`children`, `ready`, `parent`), como el de Instagram: crea los hijos (`is_carousel_item=true`), espera a que todos estén `FINISHED`, crea el padre (`media_type=CAROUSEL`, `children` separados por comas) y lo publica. Un hijo en `ERROR` falla el destino. Un carrusel de 3 imágenes hace 3 + 1 contenedores y 1 publicación.
+- **Cuota** (`assertQuota`, CA-09). Antes de gastar un contenedor consulta `GET /{user}/threads_publishing_limit?fields=quota_usage,config` (250 publicaciones por 24 h móviles; `THREADS_PUBLISH_QUOTA` si no llega el total). Agotada → `QuotaExceededException` y `QuotaPolicy` (aplazar o fallar con `cuota`) **sin crear contenedor**. Si la consulta falla por un error pasajero se publica igual; una credencial inválida pide reconectar. Un carrusel retomado no vuelve a consultarla.
+- **Idempotencia.** El contenedor creado se guarda con `checkpoint()` y es la referencia del reintento. Si el timeout ocurrió al crearlo, `findPublished()` lista `GET /{user}/threads?fields=id,text,permalink,timestamp&limit=25` y reconoce la publicación por **texto idéntico y hora posterior a `since`** (filtra en servidor: no usa `since` en la consulta). Una publicación **sin texto** no se puede reconocer (limitación igual que en Instagram). Sin presupuesto para otra consulta no se publica a ciegas: es un fallo transitorio.
+- **Errores** (`ThreadsClient`): credencial inválida (códigos de `GraphErrors`, 401) → reconexión; límite de uso (códigos de `GraphErrors`, 429), 5xx y red → transitorio; permisos o contenido rechazado → permanente con mensaje. El token viaja en el **cuerpo** de los POST y en la query de los GET (como documenta Meta) y nunca se registra. Con `THREADS_TOKEN_HEADER=true` va en `Authorization: Bearer` (fuera de la URL), opción no documentada por Meta que se prueba en el smoke.
+- **Enlaces.** Un texto admite hasta 5 enlaces distintos (el primero sale como vista previa); más fallan con `THREADS_API__LINK_LIMIT_EXCEEDED`. Los *hashtags*: Threads solo admite **una** etiqueta de tema por publicación, así que no hay `max_hashtags`.
+- **Interruptor.** `THREADS_ENABLED=false` o sin `THREADS_APP_ID`: los tipos no se ofrecen ni se aceptan (compositor, MCP, `create_post`, reprogramación), como Bluesky con `BLUESKY_ENABLED`.
+- ⚠️ Sin verificar hasta el smoke real (T-64, M-02): la interpretación de los emojis compuestos en el límite de 500, los códigos de error propios de Threads (cuota, permisos, enlaces), el ID que queda en un contenedor `PUBLISHED` sin localizar y que el modo desarrollo baste con *testers*.
 
 ## Estado final del borrador de TikTok
 

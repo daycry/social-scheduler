@@ -141,6 +141,9 @@ return [
         /* Version de la API en las rutas (`/v1.0/...`); el canje de tokens va sin version. */
         'api_version' => env('THREADS_API_VERSION', 'v1.0'),
         'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights'],
+        /* El token de las llamadas a la API va como documenta Meta (cuerpo en los POST, query en los GET). `true` lo manda en `Authorization: Bearer`
+           (no documentado para Threads: probarlo en el smoke, T-64, y activarlo si funciona para sacar el token de la URL). */
+        'token_in_header' => (bool) env('THREADS_TOKEN_HEADER', false),
         /* Cuota de publicacion por 24 h si la API no devuelve `config.quota_total` (se lee en `threads_publishing_limit`). */
         'publish_quota' => (int) env('THREADS_PUBLISH_QUOTA', 250),
     ],

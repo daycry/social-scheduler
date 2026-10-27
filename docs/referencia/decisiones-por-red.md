@@ -109,4 +109,8 @@ Decisiones de la tercera ola (opción T1 del diseño: conector `threads` propio,
 
 - **Conexión:** OAuth en `threads.com` (red `threads`, proveedor `threads`, con `THREADS_APP_ID`/`THREADS_APP_SECRET` propios). Token corto (1 h) → largo (60 días) guardado en `access_token` con `token_expires_at`; `refresh_token` es `null` y `RefreshTokens` renueva con `th_refresh_token` antes del margen (168 h).
 - **Interruptor:** `THREADS_ENABLED=false` o sin `THREADS_APP_ID` retira la red de Conexiones, compositor, filtros, MCP y reprogramación (como `BLUESKY_ENABLED`).
-- **Pendiente del smoke (T-64, M-02):** modo desarrollo con *testers*, regla de emojis en secuencias, códigos de error propios y `shares`/`views` de post.
+- **Publicación:** texto, imagen, vídeo y carrusel (2 a 20) con contenedores y estado (`ThreadsPublisher`, sin heredar de Instagram), cuota de 250 por 24 h consultada antes de gastar contenedor y búsqueda de lo ya publicado por texto y hora (`findPublished`). Detalle en [publicación](../modulos/publicacion.md#threads).
+- **Métricas:** `views` de cuenta son visitas al perfil (`profile_views`), no visualizaciones; clics en la nueva métrica `clicks`; `views` y `shares` del post «en desarrollo» (`null` si no llegan). Detalle en [analítica](../modulos/analitica.md#threads).
+- **Hosts configurables:** `THREADS_AUTH_HOST` (`https://threads.com`), `THREADS_GRAPH_HOST` (`https://graph.threads.com`) y `THREADS_API_VERSION` (`v1.0`).
+- **Límites en la configuración:** `config/media_specs.php` (`threads_text`, `threads_image`, `threads_video`, `threads_carousel`, versión 2026-10-27) y `config/social.php` (`threads`: `publish_quota` 250, margen de renovación 168 h, histórico de 30 días).
+- **Pendiente del smoke (T-64, M-02):** modo desarrollo con *testers*, regla de emojis en secuencias, códigos de error propios, `shares`/`views` de post, zona del día de las métricas y si Threads acepta `Authorization: Bearer`.

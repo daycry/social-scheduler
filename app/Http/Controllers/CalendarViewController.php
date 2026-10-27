@@ -15,6 +15,10 @@ class CalendarViewController extends Controller
 
     public function store(CalendarViewRequest $request): RedirectResponse
     {
+        if ($this->views->list($request->user())->count() >= CalendarViewService::MAX_PER_USER) {
+            return back()->withErrors(['name' => 'Has llegado al máximo de '.CalendarViewService::MAX_PER_USER.' vistas guardadas. Borra alguna para crear otra.']);
+        }
+
         $this->views->create($request->user(), $request->validated());
 
         return back()->with('success', 'Vista guardada.');

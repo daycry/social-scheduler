@@ -72,9 +72,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::patch('posts/{post}/reschedule', [CalendarController::class, 'reschedule'])->name('posts.reschedule');
     // Vistas guardadas del calendario (C-03a).
-    Route::post('calendar/views', [CalendarViewController::class, 'store'])->name('calendar-views.store');
-    Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->whereNumber('view')->name('calendar-views.update');
-    Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->whereNumber('view')->name('calendar-views.destroy');
+    Route::post('calendar/views', [CalendarViewController::class, 'store'])->middleware('throttle:60,1')->name('calendar-views.store');
+    Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->middleware('throttle:60,1')->whereNumber('view')->name('calendar-views.update');
+    Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('view')->name('calendar-views.destroy');
     // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
     Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
 

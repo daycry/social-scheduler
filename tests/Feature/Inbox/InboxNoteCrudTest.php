@@ -62,3 +62,15 @@ it('la auditoría y el log no guardan el cuerpo de la nota', function () {
 
     expect(AuditLog::query()->get()->toJson())->not->toContain('CUERPO-SECRETO');
 });
+
+it('no admite notas en respuestas propias (is_own)', function () {
+    $own = InboxComment::factory()->create(['user_id' => $this->user->id, 'is_own' => true]);
+
+    $this->actingAs($this->user)->post(route('inbox.notes.store', $own->id), ['body' => 'nota'])->assertSessionHasErrors('body');
+
+    expect(InboxCommentNote::withoutUserScope()->count())->toBe(0);
+});
+
+it('borrar notas lleva throttle', function () {
+    expect(app('router')->getRoutes()->getByName('inbox.notes.destroy')->gatherMiddleware())->toContain('throttle:60,1');
+});

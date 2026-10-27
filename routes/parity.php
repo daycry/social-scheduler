@@ -69,7 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
     // Notas internas de los comentarios (C-04d).
     Route::post('inbox/{comment}/notes', [InboxNoteController::class, 'store'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.notes.store');
-    Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->whereNumber('note')->name('inbox.notes.destroy');
+    Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('note')->name('inbox.notes.destroy');
 
     // Analytics · Meta Ads, solo lectura (PA-11).
     Route::get('ads', [AdsController::class, 'index'])->middleware('throttle:30,1')->name('ads.index');

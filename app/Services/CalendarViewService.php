@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\DB;
  */
 class CalendarViewService
 {
+    /** Tope de vistas guardadas por usuario (C1: sin él, un cliente podría crearlas sin límite). */
+    public const MAX_PER_USER = 50;
+
     /** Vistas del usuario por nombre. */
     public function list(User $user): Collection
     {

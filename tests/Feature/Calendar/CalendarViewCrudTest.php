@@ -3,6 +3,7 @@
 use App\Models\Brand;
 use App\Models\CalendarView;
 use App\Models\User;
+use App\Services\CalendarViewService;
 
 // C-03a · CA-11: alta, renombrado, borrado y vista por defecto; solo del dueño; marca y red validadas.
 
@@ -117,4 +118,18 @@ it('borrar la vista abierta vuelve al calendario sin ella (no a un 404)', functi
         ->assertRedirect(route('calendar.index'));
 
     $this->actingAs($this->user)->get(route('calendar.index'))->assertOk();
+});
+
+it('no deja crear más vistas del tope por usuario', function () {
+    CalendarView::factory()->count(CalendarViewService::MAX_PER_USER)->create(['user_id' => $this->user->id]);
+
+    $this->actingAs($this->user)->post(route('calendar-views.store'), viewPayload(['name' => 'una de más']))->assertSessionHasErrors('name');
+
+    expect(CalendarView::withoutUserScope()->where('user_id', $this->user->id)->count())->toBe(CalendarViewService::MAX_PER_USER);
+});
+
+it('las rutas de vistas llevan throttle', function () {
+    foreach (['calendar-views.store', 'calendar-views.update', 'calendar-views.destroy'] as $name) {
+        expect(app('router')->getRoutes()->getByName($name)->gatherMiddleware())->toContain('throttle:60,1');
+    }
 });

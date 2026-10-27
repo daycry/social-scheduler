@@ -746,7 +746,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-21
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/ImageDownscaler.php`, `app/Services/MediaValidator.php`, `tests/Feature/Media/ImageDownscalerTest.php`, `config/media.php`, `deploy/hestia/README.md`, `docs/stack.md`, `tests/Support/downscale_probe.php`
+- **Archivos**: `app/Services/Media/ImageDownscaler.php`, `app/Services/MediaValidator.php`, `tests/Feature/Media/ImageDownscalerTest.php`, `config/media.php`, `deploy/hestia/README.md`, `docs/stack.md`, `tests/Support/downscale_probe.php`, `app/Connectors/Bluesky/BlueskyPublisher.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImageDownscalerTest.php` → en verde (3 MB → ≤ tope, copia cacheada, imposible → error al validar)
 
@@ -1424,7 +1424,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **RED**: `php artisan test --compact tests/Feature/Hashtags/HashtagStatsTest.php` antes del servicio -> 9 errores (clase `App\Services\HashtagStats` inexistente) · 2026-10-27
 - **Dependencias**: T-23
 - **Tipo**: backend
-- **Archivos**: `app/Services/HashtagStats.php`, `app/Support/Hashtags.php`, `tests/Feature/Hashtags/HashtagStatsTest.php`, `config/social.php`, `app/Services/BestTimesService.php`
+- **Archivos**: `app/Services/HashtagStats.php`, `app/Support/Hashtags.php`, `tests/Feature/Hashtags/HashtagStatsTest.php`, `config/social.php`, `app/Services/BestTimesService.php`, `resources/js/Composables/textCount.js`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Hashtags/HashtagStatsTest.php` → en verde (Unicode, mínimo 2 usos, ranking, marca sin histórico)
 
@@ -1457,7 +1457,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **RED**: `php artisan test --compact tests/Feature/Hashtags/HashtagEndpointTest.php` antes del controlador -> 5 errores (ruta `brands.hashtags` inexistente) y 1 fallo · 2026-10-27
 - **Dependencias**: T-43
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/HashtagController.php`, `routes/web.php`, `resources/js/Components/Composer/HashtagSuggestions.vue`, `resources/js/Components/Composer/EditorToolbar.vue`, `config/media_specs.php`, `tests/Feature/Hashtags/HashtagEndpointTest.php`
+- **Archivos**: `app/Http/Controllers/HashtagController.php`, `routes/web.php`, `resources/js/Components/Composer/HashtagSuggestions.vue`, `resources/js/Components/Composer/EditorToolbar.vue`, `tests/Feature/Hashtags/HashtagEndpointTest.php`
 - **Cubre (tests)**: E2E-06, M-04
 - **Verificación**: `php artisan test --compact tests/Feature/Hashtags/HashtagEndpointTest.php` → en verde (aislamiento por marca y por red)
 
@@ -1552,7 +1552,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-44
 - **Tipo**: test
-- **Archivos**: `tests/e2e/hashtags.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Composables/textCount.js`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/FirstCommentField.vue`, `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Components/Composer/TextSection.vue`
+- **Archivos**: `tests/e2e/hashtags.spec.ts`, `tests/e2e/helpers.ts`, `resources/js/Composables/textCount.js`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/TextEditor.vue`, `resources/js/Components/Composer/FirstCommentField.vue`, `resources/js/Components/Composer/NetworkTabs.vue`, `resources/js/Components/Composer/TextSection.vue`, `resources/js/Components/Composer/HashtagSuggestions.vue`, `resources/js/Components/Composer/EditorToolbar.vue`
 - **Cubre (tests)**: E2E-06
 - **Verificación**: `npx playwright test tests/e2e/hashtags.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
@@ -1651,7 +1651,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **RED**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleEndpointTest.php` antes del endpoint -> 8 errores (ruta `ai.schedule` inexistente) · 2026-10-27
 - **Dependencias**: T-49
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/AiAssistantController.php`, `routes/web.php`, `resources/js/Components/Composer/ScheduleSection.vue`, `tests/Feature/Ai/ProposeScheduleEndpointTest.php`, `routes/parity.php`
+- **Archivos**: `app/Http/Controllers/AiAssistantController.php`, `routes/parity.php`, `resources/js/Components/Composer/ScheduleSection.vue`, `tests/Feature/Ai/ProposeScheduleEndpointTest.php`
 - **Cubre (tests)**: E2E-07, M-04
 - **Verificación**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleEndpointTest.php` → en verde (límite diario, IA desactivada, validación)
 
@@ -2613,16 +2613,16 @@ Tests: 676/676.
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| 1 | Important | Con ffmpeg, la orientación EXIF solo se aplica mediante `autorotate`. Las versiones de las distros de Hestia (4.x–7.x) no la aplican a JPEG, así que la foto vertical sale girada (regresión de B-3) | T-22 | pendiente (3.er intento de la Fase 3: el usuario decide corrección acotada) | `ImageDownscaler.php:306-331` |
-| 2 | Minor | El presupuesto del reductor no está atado a `StepBudget` ni al job (hasta 4 imágenes × 150 s, frente a 110 s) | T-22 | pendiente | `ImageDownscaler.php:86,312,323,332` |
-| 3 | Minor | N6 incompleto: T-21 sigue con `[x] Test RED` sin el aviso | T-21..T-24 | pendiente | ledger |
-| 4 | Minor | Los hashtags no se normalizan a NFC: `#café` en NFC y en NFD cuentan como dos | T-43 | pendiente | `HashtagStats.php:72` |
-| 5 | Minor | `redactPhrase` toma «fecha + hora» por un teléfono | T-49 | pendiente | `AiAssistant.php:242-245` |
-| 6 | Minor | `HashtagStats::latestMetrics` agrega en PHP con subconsulta por lote (10 s con 32k destinos en SQLite) | T-43 | pendiente | `HashtagStats.php:114-125` |
-| 7 | Minor | El prompt no incluye el día de la semana de «ahora» | T-49 | pendiente | `AiAssistant.php:94` |
-| 8 | Minor | Se acepta la hora repetida del cambio de hora (02:30 del 31-10) sin avisar, en contra de la spec | T-49 | pendiente | `AiAssistant.php:192-198`, `spec.md:206` |
-| 9 | Minor | `Archivos` desalineado en T-43, T-44, T-47 y T-50 | — | pendiente | `git show --stat` |
-| 10 | Minor | El README dice 22 herramientas MCP; son 25 | T-48 | pendiente | `README.md:41` |
-| 11 | Minor | `config/social.php` tiene bytes Windows-1252 en los comentarios | T-49 | pendiente | `config/social.php:326` |
+| 1 | Important | Con ffmpeg, la orientación EXIF solo se aplica mediante `autorotate`. Las versiones de las distros de Hestia (4.x–7.x) no la aplican a JPEG, así que la foto vertical sale girada (regresión de B-3) | T-22 | corregido (`a44b054`, T-22: fix revisión P3 #1 — orientación EXIF leída con el lector propio, `-noautorotate` y filtro `transpose`/`hflip`/`vflip` por valor 2-8; test de las 8 orientaciones con ffmpeg local, mismas esquinas y ejes que la vía GD) | `ImageDownscaler.php:306-331` |
+| 2 | Minor | El presupuesto del reductor no está atado a `StepBudget` ni al job (hasta 4 imágenes × 150 s, frente a 110 s) | T-22 | corregido (`a44b054`, T-22: fix revisión P3 #2 — `fit()` recibe el `StepBudget`: `allows()` entre imágenes, error transitorio `sin_tiempo` y timeout de cada ffmpeg `min(60, remaining)`) | `ImageDownscaler.php:86,312,323,332` |
+| 3 | Minor | N6 incompleto: T-21 sigue con `[x] Test RED` sin el aviso | T-21..T-24 | corregido (`cbb874a`, T-21: fix revisión P3 #3 — las 4 líneas «Test RED» declaran «⚠️ RED NO REGISTRADO») | ledger |
+| 4 | Minor | Los hashtags no se normalizan a NFC: `#café` en NFC y en NFD cuentan como dos | T-43 | corregido (`af0ba6a`, T-43: fix revisión P3 #4 — `Hashtags::tags()` normaliza a NFC con `Normalizer`; JS: `hashtagKey` con `normalize('NFC')`) | `HashtagStats.php:72` |
+| 5 | Minor | `redactPhrase` toma «fecha + hora» por un teléfono | T-49 | corregido (`6337d5d`, T-49: fix revisión P3 #5 — «fecha + hora» se protege antes de redactar teléfonos; tests con «el 15-11-2026 18:30» y «2026-11-15 18:00») | `AiAssistant.php:242-245` |
+| 6 | Minor | `HashtagStats::latestMetrics` agrega en PHP con subconsulta por lote (10 s con 32k destinos en SQLite) | T-43 | corregido (`af0ba6a`, T-43: fix revisión P3 #6 — una sola consulta con `MAX(date)` por destino en SQL sobre la subconsulta de destinos; test: 1 consulta a `post_metric_snapshots`) | `HashtagStats.php:114-125` |
+| 7 | Minor | El prompt no incluye el día de la semana de «ahora» | T-49 | corregido (`6337d5d`, T-49: fix revisión P3 #7 — el JSON del prompt lleva `dia_semana` de «ahora» y el sistema lo declara) | `AiAssistant.php:94` |
+| 8 | Minor | Se acepta la hora repetida del cambio de hora (02:30 del 31-10) sin avisar, en contra de la spec | T-49 | corregido (`6337d5d`, T-49: fix revisión P3 #8 — decisión: la hora repetida del cambio de hora se RECHAZA con «Esa hora se repite en tu zona horaria… Elige otra hora»; no se adivina la vuelta; test actualizado) | `AiAssistant.php:192-198`, `spec.md:206` |
+| 9 | Minor | `Archivos` desalineado en T-43, T-44, T-47 y T-50 | T-22, T-43, T-44, T-47, T-50 | corregido (este commit, T-43: fix revisión P3 #9 — `Archivos` alineado con `git show --stat`: T-43 +`textCount.js`; T-44 −`config/media_specs.php`; T-47 +`HashtagSuggestions.vue`/`EditorToolbar.vue`; T-50 −`routes/web.php` y T-22 +`BlueskyPublisher.php`) | `git show --stat` |
+| 10 | Minor | El README dice 22 herramientas MCP; son 25 | T-48 | corregido (`6a43873`, T-48: fix revisión P3 #10 — 25 herramientas) | `README.md:41` |
+| 11 | Minor | `config/social.php` tiene bytes Windows-1252 en los comentarios | T-49 | corregido (`6337d5d`, T-49: fix revisión P3 #11 — comentarios de `config/social.php` en UTF-8) | `config/social.php:326` |
 
 > **Decisión del usuario (2026-10-27):** para el gap 1, corrección acotada y cierre de la Fase 3 sin otra ronda completa.

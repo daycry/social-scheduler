@@ -45,7 +45,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — C-04d · Notas internas del inbox | 0 | 7 | 0% | 0 / 14,0h | 0 / 1,89h | 0 / 0,49h | 0 / 567k |
+| Fase 1 — C-04d · Notas internas del inbox | 7 | 7 | 100% | 14,0 / 14,0h (estimado) | 1,89 / 1,89h (estimado) | 0,49 / 0,49h (estimado) | 567k / 567k (estimado) |
 | Fase 2 — C-03a · Vistas de calendario guardadas | 0 | 7 | 0% | 0 / 16,0h | 0 / 2,17h | 0 / 0,57h | 0 / 648k |
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 0 | 16 | 0% | 0 / 61,5h | 0 / 8,34h | 0 / 2,08h | 0 / 2,49M |
 | Fase 4 — C-03b · Analítica entre marcas | 0 | 6 | 0% | 0 / 21,5h | 0 / 2,91h | 0 / 0,73h | 0 / 871k |
@@ -55,7 +55,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 0 | 6 | 0% | 0 / 10,0h | 0 / 1,36h | 0 / 0,35h | 0 / 405k |
-| **TOTAL** | **0** | **77** | **0%** | **0 / 246,0h** | **0 / 33,21h** | **0 / 8,3h** | **0 / 9,96M** |
+| **TOTAL** | **7** | **77** | **9%** | **14,0 / 246,0h** | **0 / 33,21h** | **0 / 8,3h** | **0 / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -74,7 +74,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 1 — C-04d · Notas internas del inbox
 
-**Estado**: borrador · **Estimado**: 14,0h · **Real**: — · **Coste est.**: 840 € (con margen; base 700 €) · **Tokens est.**: 567k
+**Estado**: completado · **Estimado**: 14,0h · **Real**: — · **Coste est.**: 840 € (con margen; base 700 €) · **Tokens est.**: 567k
 
 ### T-01 — Migración, modelo y factoría de `InboxCommentNote`
 
@@ -260,12 +260,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-07 — Documentación y revisión de robustez de C-04d
 
 - **Descripción**: Documentar las notas del inbox y revisar robustez (aislamiento, límites, auditoría).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentadas las notas internas del inbox para usuarios y para asistentes MCP.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-05, T-06
 - **Tipo**: docs
@@ -274,15 +275,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: `docs/modulos/inbox.md` y `mcp.md` describen notas, insignia, filtro y `add_comment_note` → coherente con T-01..T-04
 
 **Criterios de aceptación**
-- [ ] La guía de usuario explica las notas.
-- [ ] El módulo MCP lista `add_comment_note` con su ability.
+- [x] La guía de usuario explica las notas.
+- [x] El módulo MCP lista `add_comment_note` con su ability.
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez (aislamiento y límites)
+- [x] Redactar los docs
+- [x] Revisión de robustez (aislamiento y límites)
 
 **Notas**: Patrón: `docs/modulos/inbox.md` y `docs/modulos/mcp.md:116`. La cifra global de herramientas MCP se actualiza en T-76.
 
+**Verificación ejecutada**: lectura: docs/modulos/inbox.md (notas, insignia, filtro, add_comment_note) y mcp.md (23 herramientas, add_comment_note con inbox:write) coherentes con T-01..T-04; guía de usuario con sección «Inbox de comentarios». Robustez revisada: UserScope (404 ajeno, tests T-02/T-04), tope 2.000 y vacío rechazados en web y MCP, cuerpo ausente de auditoría (tests), cascade al borrar el comentario.
 
 ## Fase 2 — C-03a · Vistas de calendario guardadas
 

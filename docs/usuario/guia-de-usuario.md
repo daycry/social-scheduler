@@ -73,6 +73,10 @@ En **Planificación > Cuadrícula** ves cómo quedará el perfil de una cuenta d
 - Las miniaturas se recortan en vertical, así que pueden no coincidir exactamente con el recorte de Instagram. Un carrusel muestra su primera pieza y un vídeo sin miniatura muestra su primer fotograma.
 - Lo publicado se lee de Instagram y se **actualiza cada 10 minutos**; una publicación recién hecha puede tardar en salir. Si Instagram no responde o la cuenta necesita reconectarse, verás un aviso y lo programado se sigue mostrando.
 
+## Inbox de comentarios
+
+En **Inbox** ves los comentarios de tus publicaciones de Instagram y Facebook. Además de responder u ocultar, puedes dejar **notas internas** en cada comentario: pulsa **Añadir nota interna**, escribe (hasta 2.000 caracteres) y **Guardar nota**. Las notas solo las ve tu equipo, **no se envían ni se publican en ninguna red**, salen en orden cronológico bajo el comentario y se pueden borrar con **Borrar**. Los comentarios con notas llevan la insignia **con nota** y el filtro **Solo con nota** deja únicamente esos. Las notas no se pierden cuando el inbox se actualiza. Un asistente de IA (MCP) las lee en `list_comments` y añade otra con `add_comment_note`.
+
 ## Campañas
 
 En **Planificación > Campañas** agrupas las publicaciones de una marca para medirlas juntas. Crea una campaña con nombre, color y fechas (el fin no puede ser anterior al inicio), edítala, **archívala** para que deje de ofrecerse, o bórrala: sus publicaciones se conservan, sin campaña.

@@ -9,6 +9,7 @@ use App\Services\Media\ImageDownscaler;
 use App\Services\MediaValidator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -246,7 +247,7 @@ test('una imagen grande que se puede reducir pasa la validacion y avisa de la re
 /** Ejecuta `tests/Support/downscale_probe.php` en un proceso PHP HIJO con memory_limit=256M (el de produccion). */
 function downscaleChild(string $input, array $env = []): array
 {
-    $process = new Symfony\Component\Process\Process([PHP_BINARY, '-d', 'memory_limit=256M', base_path('tests/Support/downscale_probe.php'), $input], base_path(), $env + ['APP_ENV' => 'testing']);
+    $process = new Process([PHP_BINARY, '-d', 'memory_limit=256M', base_path('tests/Support/downscale_probe.php'), $input], base_path(), $env + ['APP_ENV' => 'testing']);
     $process->setTimeout(240);
     $process->run();
     $json = json_decode(trim($process->getOutput()), true);
@@ -258,7 +259,7 @@ function downscaleChild(string $input, array $env = []): array
 function bigPhoto(string $name): ?string
 {
     $file = sys_get_temp_dir().DIRECTORY_SEPARATOR.$name;
-    $process = new Symfony\Component\Process\Process([
+    $process = new Process([
         (string) config('media.ffmpeg'), '-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=s=6000x4000:d=1', '-vf', 'noise=alls=30:allf=t', '-frames:v', '1', '-q:v', '2', $file,
     ]);
     $process->setTimeout(120);

@@ -200,12 +200,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-05 — Pest de integración CA-17: la nota sobrevive al resync del inbox
 
 - **Descripción**: Prueba de extremo a extremo de CA-17: alta de nota, resincronización con `SyncInboxComments` y comprobación de que la nota sigue ahí, también por MCP.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La nota interna de un comentario del inbox no se pierde ni se duplica al resincronizar.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-02, T-04
 - **Tipo**: test
@@ -214,14 +215,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Inbox/InboxNotesResyncTest.php` → en verde (nota intacta tras 2 sincronizaciones)
 
 **Criterios de aceptación**
-- [ ] Dos resyncs seguidos no pierden ni duplican notas.
-- [ ] `list_comments` devuelve la nota tras el resync.
+- [x] Dos resyncs seguidos no pierden ni duplican notas.
+- [x] `list_comments` devuelve la nota tras el resync.
 
 **Subtareas**
-- [ ] Escribir el test de integración
-- [ ] Ajustar el *upsert* si el test revela una pérdida
+- [x] Escribir el test de integración
+- [x] Ajustar el *upsert* si el test revela una pérdida
 
 **Notas**: Patrón: `tests/Feature/Jobs/` para `app/Jobs/SyncInboxComments.php` y `Http::fake` de Graph; sin redes reales.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Inbox/InboxNotesResyncTest.php -> 2 passed (nota intacta tras 2 sincronizaciones; list_comments y add_comment_note)
 
 ### T-06 — E2E del inbox con notas y axe
 

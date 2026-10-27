@@ -2600,3 +2600,29 @@ Lentes A+B+C+D sobre `3408763..050d2fc`. **La revisión se cierra sin gaps Criti
 | B2 | Minor | Los borradores sin fecha salen en la Lista pero no en el CSV, en contra de CA-13 | T-39 | pendiente | `CalendarService.php:571-579` |
 | C1 | Minor | Los caracteres VT, FF, NEL, U+2028 y U+2029 se aplanan después de neutralizar, así que `\x0B=1+1` queda como ` =1+1` sin el apóstrofo (CWE-1236) | T-37 | pendiente | `CsvWriter.php:741,760` |
 | D1 | Minor | `exportSummary()` corre en cada carga de la Lista con un join a snapshots que no necesita | T-39 | pendiente | `CalendarService.php:600` |
+
+## Revisión de dos lentes — intento 3: Fase 3 (Bluesky) y intento 1: Fase 6-7 (T-43..T-53) — 1 Important, 10 Minor
+
+Lentes A+B+C+D. Correcciones de la Fase 3: `0afacd3 6d0a9bc e612cfe 384dc15`. Rango de las Fases 6-7: `384dc15..7371665`. Resultados:
+- **N1 (memoria):** cerrado. Una imagen de 48 MP con 256 MB se procesa con un pico de 27 MB.
+- **ffmpeg:** sin inyección (`Process` con array, `tempnam`, decodificador forzado, `-protocol_whitelist file`).
+- **Lector EXIF:** robusto. Fuzz de 30.000 mutaciones sin excepciones.
+- **Fases 6-7:** sin IDOR. La inyección de prompt queda acotada por el esquema y por la confirmación. Solo se envía la frase redactada, con cupo y throttle.
+
+Tests: 676/676.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | Con ffmpeg, la orientación EXIF solo se aplica mediante `autorotate`. Las versiones de las distros de Hestia (4.x–7.x) no la aplican a JPEG, así que la foto vertical sale girada (regresión de B-3) | T-22 | pendiente (3.er intento de la Fase 3: el usuario decide corrección acotada) | `ImageDownscaler.php:306-331` |
+| 2 | Minor | El presupuesto del reductor no está atado a `StepBudget` ni al job (hasta 4 imágenes × 150 s, frente a 110 s) | T-22 | pendiente | `ImageDownscaler.php:86,312,323,332` |
+| 3 | Minor | N6 incompleto: T-21 sigue con `[x] Test RED` sin el aviso | T-21..T-24 | pendiente | ledger |
+| 4 | Minor | Los hashtags no se normalizan a NFC: `#café` en NFC y en NFD cuentan como dos | T-43 | pendiente | `HashtagStats.php:72` |
+| 5 | Minor | `redactPhrase` toma «fecha + hora» por un teléfono | T-49 | pendiente | `AiAssistant.php:242-245` |
+| 6 | Minor | `HashtagStats::latestMetrics` agrega en PHP con subconsulta por lote (10 s con 32k destinos en SQLite) | T-43 | pendiente | `HashtagStats.php:114-125` |
+| 7 | Minor | El prompt no incluye el día de la semana de «ahora» | T-49 | pendiente | `AiAssistant.php:94` |
+| 8 | Minor | Se acepta la hora repetida del cambio de hora (02:30 del 31-10) sin avisar, en contra de la spec | T-49 | pendiente | `AiAssistant.php:192-198`, `spec.md:206` |
+| 9 | Minor | `Archivos` desalineado en T-43, T-44, T-47 y T-50 | — | pendiente | `git show --stat` |
+| 10 | Minor | El README dice 22 herramientas MCP; son 25 | T-48 | pendiente | `README.md:41` |
+| 11 | Minor | `config/social.php` tiene bytes Windows-1252 en los comentarios | T-49 | pendiente | `config/social.php:326` |
+
+> **Decisión del usuario (2026-10-27):** para el gap 1, corrección acotada y cierre de la Fase 3 sin otra ronda completa.

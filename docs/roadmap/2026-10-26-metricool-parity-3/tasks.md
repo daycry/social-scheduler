@@ -578,7 +578,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-16
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `resources/js/Pages/Dashboard/Partials/NetworkTabs.vue`, `resources/js/Pages/Dashboard/Partials/format.js`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Composables/composerOptions.js`, `resources/js/Pages/Welcome.vue`, `tests/Feature/Ui/ShellTest.php`, `resources/js/Composables/useNetworks.js`, `resources/js/Components/KpiCard.vue`, `resources/js/Pages/Dashboard/Network.vue`, `resources/js/Pages/Campaigns/Show.vue`
+- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `resources/js/Pages/Dashboard/Partials/NetworkTabs.vue`, `resources/js/Pages/Dashboard/Partials/format.js`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Pages/Welcome.vue`, `tests/Feature/Ui/ShellTest.php`, `resources/js/Composables/useNetworks.js`, `resources/js/Components/KpiCard.vue`, `resources/js/Pages/Dashboard/Network.vue`, `resources/js/Pages/Campaigns/Show.vue`
 - **Cubre (tests)**: M-04
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/ShellTest.php` → en verde
@@ -595,6 +595,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `resources/js/Components/NetworkIcon.vue:28`, `Pages/Dashboard/Partials/{NetworkTabs.vue:20,format.js:5}`, `Pages/Calendar/Index.vue:36`, `Composables/composerOptions.js:43`; `NetworkChip.vue:13` ya lee `shell.networks`. `Welcome.vue` es pública: recibe la lista por prop. Alcance ampliado en la implementación: `resources/js/Composables/useNetworks.js` (composable que lee `shell.networks`); `resources/js/Components/KpiCard.vue` (color de red desde el catálogo); `resources/js/Pages/Dashboard/Network.vue` (color de red desde el catálogo); `resources/js/Pages/Campaigns/Show.vue` (sustituye `NETWORK_COLORS.total` por `TOTAL_COLOR`).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Ui tests/Unit/Networks -> 57 passed (719 assertions); npm run build -> compila sin errores; Playwright desktop calendar-views + pages (dashboards por red, consola limpia) -> 33 passed; E2E-02 (vista por defecto) falla solo en paralelo y pasa aislado (2 passed). Caracterización: pages.spec en verde antes de tocar.
+
+**Corrección de la revisión P3 F3 (intento 1)**: A-11 — `Archivos` limpiado: se quita `resources/js/Composables/composerOptions.js`, que no se tocó (la lista de redes ya salía del catálogo). Estado: `en-progreso` → `completado`.
 
 ### T-18 — Test de superficies de red y conteo de reglas de media
 
@@ -638,7 +640,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-15
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyClient.php`, `app/Connectors/Bluesky/BlueskySession.php`, `app/Connectors/Bluesky/BlueskyConnector.php`, `config/social.php`, `tests/Feature/Connectors/Bluesky/BlueskySessionTest.php`, `app/Connectors/Bluesky/BlueskyException.php`, `tests/Support/BlueskyFake.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyClient.php`, `app/Connectors/Bluesky/BlueskySession.php`, `app/Connectors/Bluesky/BlueskyConnector.php`, `config/social.php`, `tests/Feature/Connectors/Bluesky/BlueskySessionTest.php`, `app/Connectors/Bluesky/BlueskyException.php`, `tests/Support/BlueskyFake.php`, `app/Connectors/Bluesky/BlueskyHosts.php`, `tests/Feature/Connectors/Bluesky/BlueskySsrfTest.php`, `tests/Feature/Connections/CredentialConnectionTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskySessionTest.php` → en verde con `Http::fake` (sesión, `ExpiredToken` → recreación, `ReconnectRequiredException`)
 
@@ -655,6 +657,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `app/Connectors/Meta/GraphClient.php:159` (cliente y traducción de errores) y `app/Jobs/RefreshSocialAccount.php:70,120`. `refresh_expires_at = null` para que `permanentReason()` (`:76-87`) no marque reconexión; `Cache::lock("bsky-session:{id}")`; `exp` del JWT leído sin verificar firma. Entryway en `config/social.php`. Alcance ampliado en la implementación: `app/Connectors/Bluesky/BlueskyException.php` (excepción XRPC con código y estado); `tests/Support/BlueskyFake.php` (ayudas compartidas de los tests de Bluesky (JWT, cuentas, respuestas simuladas)).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskySessionTest.php -> 12 passed (44 assertions) con Http::fake: alta con external_id=DID y secretos cifrados, ExpiredToken -> createSession, app password revocada -> ReconnectRequiredException, 5xx transitorio, bloqueo por cuenta, regresion de RefreshSocialAccount con refresh_expires_at nulo. Nota: codigo y tests se escribieron juntos (no se ejecuto un RED previo).
+
+**Corrección de la revisión P3 F3 (intento 1)** (commit 5553242, `completado` de nuevo): C-1, C-10 y B-8.
+- C-1 (CWE-918): `BlueskyHosts` + `UrlGuard` en TODA petición del cliente (`BlueskyClient::send`): https y 443, DNS validado, IP fijada con `CURLOPT_RESOLVE`, sin redirecciones (una 3xx es el error `RedirectBlocked`), revalidación en cada uso (también `meta.pds` en los jobs: `createSession`, `refreshSession`, `uploadBlob`, `createRecord`, `getRecord`, `getServiceAuth`). `did:web:` solo admite `did:web:<dominio>` (rechaza `%2F`, `%3A`, puertos y rutas); el documento DID debe traer el `id` pedido; entryway, PLC, AppView y video son hosts fijos con lista `social.bluesky.allowed_hosts` (`BLUESKY_ALLOWED_HOSTS`). El mensaje de error del servidor se sanea (sin control, 200 caracteres, el código solo si es un identificador) y un cuerpo no JSON nunca se refleja. La resolución del handle usa solo el entryway fijo: no hay `/.well-known/atproto-did` ni DNS TXT que proteger.
+- RED real (C-1): `BlueskySsrfTest` contra el código anterior → 30 tests: 4 verdes, 25 failed y 1 error (probes `did:web:169.254.169.254%2Flatest%2Fmeta-data%3F`, `did:web:localhost%3A6379`, `127.0.0.1.nip.io`, 302 a `http://169.254.169.254/`, PDS con puerto, http, IP, DNS privado y mixto, rebinding del PDS guardado, sesión de otro DID). Tras el arreglo: 30/30. Incluye el test con el manejador cURL REAL contra 127.0.0.1 (patrón de `UrlSourceRealHandlerTest`, `BskyLoopbackGuard` solo en el test): la IP fijada llega y el 302 no se sigue (el servidor solo registra la petición inicial).
+- C-10 (CWE-345): `open()` exige que el DID de la sesión sea el resuelto (`DidMismatch`) y al renovar una sesión de otro DID pide reconectar. B-8: `applyRefresh` corre dentro del mismo bloqueo; RED: `B-8: las credenciales renovadas se guardan DENTRO del bloqueo` fallaba antes (`false` no es `true`) y pasa.
+- Tests existentes ajustados: `BlueskyFake::dns()` (DNS simulado, sin red) y el `id` del documento PLC en los fakes. **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. Archivos añadidos: `BlueskyHosts.php`, `BlueskySsrfTest.php`, `CredentialConnectionTest.php`.
 
 ### T-20 — Ruta, controlador y formulario de credenciales en Conexiones
 
@@ -687,6 +695,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connections tests/Feature/Connectors tests/Feature/Ui -> 332 passed (2190 assertions); CredentialConnectionTest (alta, contrasena invalida, throttle 429, secreto fuera de props/sesion/BD/logs, 404 ajena/OAuth, sin conector no se ofrece); npm run build compila. El registro del conector en AppServiceProvider se difiere a T-26 (cuando Bluesky tiene todas sus superficies y NetworkCoverageTest lo exige); los tests lo registran en el contenedor.
 
+**Corrección de la revisión P3 F3 (intento 1)**: A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo.
+
 ### T-21 — Tipos, reglas de media y conteo de grafemas de Bluesky
 
 - **Descripción**: `bluesky_post` y `bluesky_video` en `ContentType` y `media_specs`; `TextLength` (PHP y JS) con modos `chars`, `graphemes` y `threads`; topes de imagen (2 MB) y vídeo (50 MB) configurables con rechazo al guardar. Requisito: CA-02.
@@ -700,7 +710,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-16, T-18
 - **Tipo**: backend
-- **Archivos**: `app/Enums/ContentType.php`, `config/media_specs.php`, `config/social.php`, `app/Support/TextLength.php`, `resources/js/Composables/textLength.js`, `app/Services/MediaValidator.php`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/NetworkCounters.vue`, `tests/Unit/MediaValidator/BlueskyRulesTest.php`, `tests/Unit/TextLengthTest.php`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/NetworkTabs.vue`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/Fixtures/text-length-cases.json`
+- **Archivos**: `app/Enums/ContentType.php`, `config/media_specs.php`, `config/social.php`, `app/Support/TextLength.php`, `resources/js/Composables/textLength.js`, `app/Services/MediaValidator.php`, `app/Http/Controllers/PostController.php`, `tests/Unit/MediaValidator/BlueskyRulesTest.php`, `tests/Unit/TextLengthTest.php`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/NetworkTabs.vue`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/Fixtures/text-length-cases.json`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/TextLengthTest.php` → en verde (tabla de emojis compuestos)
@@ -721,6 +731,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Unit tests/Feature/Posts tests/Feature/Mcp tests/Feature/Publishing tests/Feature/Ui -> verde (Unit 290 passed; resto 548 passed); TextLengthTest (tabla de emojis compuestos, PHP y espejo JS ejecutado con node) y BlueskyRulesTest (301 grafemas rechazado, 300 con emojis aceptado, 3000 bytes, video > tope rechazado con mensaje claro); npm run build compila. Conteo de reglas 13 -> 15.
 
+**Corrección de la revisión P3 F3 (intento 1)** (commit 090e0ef): A-6 — evidencia MCP del criterio de 301 grafemas. `tests/Feature/Mcp/Tools/McpBlueskyTest.php`, «A-6: create_post rechaza 301 grafemas en Bluesky y acepta 300 (cuentan grafemas, no code points)»: `create_post` con 301 `a` → error con «admite como maximo 300»; 300 × `e` + U+0301 (600 code points, 900 bytes) y 300 `b` → aceptados. Salida ejecutada: `{"tool":"pest","result":"passed","tests":1,"passed":1,"assertions":9}`. Es una prueba de evidencia sobre comportamiento que ya existía (no hay RED). A-11 — `Archivos` limpiado: se quita `NetworkCounters.vue`, que no se tocó. A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. Estado: `en-progreso` → `completado`.
+
 ### T-22 — Recompresión de imágenes (> tope) con GD
 
 - **Descripción**: `ImageDownscaler` crea una copia derivada y cacheada cuando la imagen supera `image_max_bytes`; si no baja, falla el guardado. Requisito: CA-03.
@@ -734,7 +746,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-21
 - **Tipo**: backend
-- **Archivos**: `app/Services/Media/ImageDownscaler.php`, `app/Services/MediaStorage.php`, `app/Services/MediaValidator.php`, `tests/Feature/Media/ImageDownscalerTest.php`
+- **Archivos**: `app/Services/Media/ImageDownscaler.php`, `app/Services/MediaValidator.php`, `tests/Feature/Media/ImageDownscalerTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImageDownscalerTest.php` → en verde (3 MB → ≤ tope, copia cacheada, imposible → error al validar)
 
@@ -752,6 +764,12 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Media/ImageDownscalerTest.php -> 8 passed (30 assertions): JPEG de >3 MB -> copia <= 2.000.000 bytes, copia reutilizada por media y version de regla, PNG aplanado a JPEG, tope imposible -> error claro en MediaValidator, fichero invalido sin romper, aviso de recompresion. Suites Media, Unit y Posts en verde.
 
+**Corrección de la revisión P3 F3 (intento 1)** (commits 9354498 y 9776417): B-2, D-2 y B-3.
+- B-2: la recompresión sale de la petición web. `MediaValidator` (validación en vivo, guardado y MCP) ya NO llama a `ImageDownscaler::fit()`: solo mira tamaño y dimensiones con `tooLargeToShrink()` (tope de 50 MP y estimación `píxeles × 16 B` frente a la memoria libre) y avisa de la recompresión; lo que no se puede decodificar sin riesgo se rechaza con un mensaje. La copia la genera el job de publicación (`BlueskyPublisher::uploadImage`), que repite la comprobación de píxeles/memoria ANTES de cargar (`getimagesize` + estimación; ya no hay error fatal). Tests: una foto de 24 MP (6000×4000, fichero inexistente) da `[]` de errores y un aviso, sin cargar nada y con menos de 20 MB de pico; 12000×9000 → error «demasiado grande»; el publicador la rechaza con `archivo_grande` sin subir nada.
+- D-2: `fitFile` genera la copia bajo `Cache::lock("downscale:{media}:{tope}")` (espera `media_specs.downscale_lock_wait`, 60 s) y reutiliza la copia que otra ejecución dejó hecha; con el lock tomado por otro proceso no compite con GD.
+- B-3: la orientación EXIF (1–8) se lee y se aplica (`imageflip`/`imagerotate`) ANTES de reescalar; el `aspectRatio` sale de la copia ya girada y, para una original ≤ tope con EXIF 5–8, con los ejes intercambiados. Tests con Orientation=6 (copia vertical, mitad roja arriba, sin EXIF) en `ImageDownscalerTest` y `BlueskyPublisherTest`.
+- RED real: `ImageDownscalerTest` + `BlueskyPublisherTest` contra el código anterior → 32 tests: 24 verdes, 5 failed y 3 errores (validación que recomprimía y daba error, lock, EXIF 6 sin giro, aspectRatio sin intercambiar, 12000×9000 aceptado). Tras el arreglo 14/14 y 18/18; el de 24 MP fija `memory_limit` holgado (9776417) para no depender de la memoria que acumule la suite. A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. A-11 — `Archivos` limpiado: se quita `app/Services/MediaStorage.php`, que no se tocó. Estado: `en-progreso` → `completado`.
+
 ### T-23 — `BlueskyPublisher`: texto, `Facets` e imágenes
 
 - **Descripción**: Publicar texto y de 0 a 4 imágenes (`uploadBlob`, `aspectRatio`, `langs`) con *facets* en bytes UTF-8. Requisito: CA-03.
@@ -765,7 +783,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-21, T-22
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Bluesky/Facets.php`, `app/Support/Hashtags.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php`, `tests/Unit/Bluesky/FacetsTest.php`, `app/Connectors/Bluesky/BlueskyErrors.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Bluesky/Facets.php`, `app/Support/Hashtags.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php`, `tests/Unit/Bluesky/FacetsTest.php`, `app/Connectors/Bluesky/BlueskyErrors.php`, `resources/js/Composables/textCount.js`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/Bluesky/FacetsTest.php` → en verde (índices en bytes, emojis, tags de 64 grafemas)
@@ -785,6 +803,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Unit/Bluesky/FacetsTest.php -> 11 passed (indices en bytes, emojis compuestos, tags de 64 grafemas, menciones); php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php -> 15 passed: 4 blobs <= tope y registro con facets de enlace y tag, mencion no resoluble en texto plano, copia recomprimida, renovacion de token, errores traducidos. Tests y codigo escritos juntos (sin RED previo ejecutado).
 
+**Corrección de la revisión P3 F3 (intento 1)** (commits 9354498 y 0abe244): B-3 en el publicador (`aspectRatio` con ejes intercambiados, ver T-22) y B-7 — la regex de hashtags admite `\p{M}` (marcas combinantes: NFD, índicos) en `Hashtags`, `MediaValidator::countHashtags` y `textCount.js` (la misma regla en los tres). Test «B-7» (NFD `#cafe` + U+0301, `#niño` descompuesto y `#भारत`): RED real, falla contra la regex anterior (1 failed) y pasa ahora; `Archivos` añade `textCount.js`. A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. Estado: `en-progreso` → `completado`.
+
 ### T-24 — Vídeo de Bluesky: `uploadVideo`, `getJobStatus` y límites
 
 - **Descripción**: Publicador con `StatusPoller`: comprobación de `getUploadLimits` y del email verificado, `getServiceAuth`, subida en streaming y sondeo hasta el *blob*. Requisito: CA-05, D3.
@@ -798,7 +818,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-23
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Bluesky/BlueskyClient.php`, `tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Bluesky/BlueskyClient.php`, `tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php`, `app/Connectors/Support/StepBudget.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php` → en verde (procesando → publicada con enlace `bsky.app`; `canUpload` falso y email sin verificar → error permanente)
 
@@ -816,6 +836,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `app/Jobs/PollPublishStatus.php:86-128`, `app/Connectors/Support/{StepBudget,MediaChunkReader}.php` (85 s por paso; job 110 s) y `Contracts/StatusPoller.php`. ⚠️ `aud` de `getServiceAuth` sin verificar: se comprueba en el smoke (T-30). Con `presentation: gif` para los GIF de C-04b.
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php -> 10 passed: procesando -> publicada con enlace bsky.app, rkey persistida con checkpoint antes de subir, subida en streaming con token de servicio (aud del PDS), FAILED traducido con su codigo, email sin verificar y canUpload falso -> permanente, cupo diario -> QuotaExceeded, already_exists reutiliza el trabajo. Suite Bluesky 37 passed. aud del service auth sigue sin verificar (T-30).
+
+**Corrección de la revisión P3 F3 (intento 1)** (commit 3a500f1): B-9 — la subida del video respeta `StepBudget` y el timeout del job. El timeout de `uploadVideo` es `min(upload_timeout, presupuesto restante)` (mínimo 20 s) y, si `allows()` es falso o no quedan 20 s, el paso termina con `TransientPublishException` («Sin tiempo…») en lugar de agotar los 110 s del job. `StepBudget::remaining()` es nuevo. RED real: 2 tests en rojo contra el código anterior (timeout 80 con presupuesto de 30 s; no se lanzaba la excepción con 10 s) y 13/13 en verde ahora. A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. Estado: `en-progreso` → `completado`.
 
 ### T-25 — Idempotencia por `rkey` TID, `findPublished` y errores traducidos
 
@@ -849,6 +871,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Verificación ejecutada**: php artisan test --compact tests/Unit/Bluesky/TidTest.php tests/Feature/Connectors/Bluesky/BlueskyIdempotencyTest.php -> verde (Unit/Bluesky + Feature/Connectors/Bluesky: 62 passed, 215 assertions): TID 13 caracteres base32-sortable y monotona; rkey persistida antes de createRecord; timeout con respuesta perdida -> getRecord lo encuentra y no se crea un segundo post; findPublished en el reintento; rkey reutilizada; errores traducidos (T-23). Tid.php y el uso de rkey se adelantaron a T-24 (video).
 
+**Corrección de la revisión P3 F3 (intento 1)**: A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo.
+
 ### T-26 — `BlueskyInsights` y métricas (`POST_COUNT`)
 
 - **Descripción**: Métricas de cuenta (seguidores y posts) y de post (me gusta, comentarios, compartidos) con `views` = `null`. Requisito: CA-06.
@@ -862,7 +886,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-16
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php`, `tests/Feature/ProfileTest.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php`, `tests/Feature/ProfileTest.php`, `app/Analytics/SnapshotCollector.php`, `app/Connectors/Contracts/BatchPostInsights.php`, `app/Services/PostService.php`, `resources/js/Components/Composer/NetworkPicker.vue`, `tests/Feature/Mcp/Tools/McpBlueskyTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php` → en verde (seguidores, posts, por post y `views` nulo)
 
@@ -879,6 +903,11 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `app/Connectors/Contracts/InsightsReader.php`, `app/Analytics/Metric.php:63-68` (`EXPECTED_FLOWS['bluesky'] = []`, como TikTok), `AnalyticsService.php:58-63`, `app/Analytics/SnapshotCollector.php`. `POST_COUNT` es un *stock* nuevo. Lectura por AppView público ⚠️ (`public.api.bsky.app`, sin verificar). `null` = no disponible, nunca 0. Alcance ampliado en la implementación: `tests/Feature/ProfileTest.php` (la aserción «sin credential» pasa a las props de passkeys: el catálogo comparte `auth_kind: credentials`).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php -> 12 passed (46 assertions): seguidores y posts, por post likes/comentarios/compartidos(reposts+citas), views null, lotes de 25 con uris repetido, errores. Bluesky registrado en AppServiceProvider (BLUESKY_ENABLED) y NetworkCoverageTest lo recorre via offered(): suite completa php artisan test --compact -> 2080 passed (12418 assertions).
+
+**Corrección de la revisión P3 F3 (intento 1)** (commits 090e0ef y 4837ac6): B-4 y D-1.
+- B-4: con `BLUESKY_ENABLED=false`, `Network::isAvailable()` apaga los tipos de Bluesky (`ContentType::isOffered()`): el compositor no ofrece tipos ni límites de Bluesky y deshabilita su cuenta (`available: false`, etiqueta «No disponible»), `list_accounts` devuelve `available: false` sin `content_types`, y `create_post` y la validación web rechazan el destino («Bluesky no esta disponible en esta instalacion.»). Las cuentas siguen conectadas. RED real: 3 de los 4 tests nuevos de `McpBlueskyTest` fallaban contra el código anterior (clave `available` inexistente, `contentTypes.bluesky` no vacío).
+- D-1: `SnapshotCollector::collectPostsBatch` lee el bloque de 25 con UN `getPosts` (contrato nuevo `BatchPostInsights`, implementado por `BlueskyInsights`); un rechazo permanente deja el bloque en blanco y uno transitorio se propaga. RED real: el test de 25 publicaciones contaba 25 llamadas y ahora 1.
+- A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo. Archivos añadidos: `SnapshotCollector.php`, `BatchPostInsights.php`, `PostService.php`, `NetworkPicker.vue`, `McpBlueskyTest.php`. Estado: `en-progreso` → `completado`.
 
 ### T-27 — Pest de integración de Bluesky (CA-01..CA-06) y regresión de las otras redes
 
@@ -908,6 +937,8 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 **Notas**: Patrón: `tests/Feature/Connectors/`, `tests/Feature/Publishing/` y `tests/Feature/Snapshots/`. Sin redes reales.
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors tests/Feature/Publishing tests/Feature/Snapshots -> 479 passed (2286 assertions), incluye BlueskyFlowTest (CA-01..CA-06, 7 tests) y BlueskyPublishingTest (reintento con la misma rkey, reconexion, cupo diario de video, registro de las otras redes, BLUESKY_ENABLED=false). Sin redes reales: todo con Http::fake.
+
+**Corrección de la revisión P3 F3 (intento 1)**: A-5 — **RED no registrado** (A-5): el test original de esta tarea se escribió junto al código y no se ejecutó en rojo antes; no se reconstruye un RED retrospectivo.
 
 ### T-28 — E2E de Bluesky: conexión y superficies con axe
 
@@ -2289,16 +2320,16 @@ Lentes A+B+C+D sobre `8630c77..68c8d67`. Se respeta O1: los tres conectores solo
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| C-1 | Critical | El host del PDS no pasa por `UrlGuard`. (a) Un `did:web:` escrito como handle provoca un GET a cualquier host, puerto y ruta. (b) `assertPds` solo mira el nombre: sin DNS, con cualquier puerto y sin fijar la IP. (c) Se siguen las redirecciones, también a http. Ese PDS recibe después `uploadBlob` y `createRecord` desde el job (CWE-918) | T-19, T-29 | pendiente | `BlueskyClient.php:34-38,192-204,213`, `BlueskySession.php:37`; probes: `did:web:169.254.169.254%2F…`, `localhost%3A6379`, `127.0.0.1.nip.io`, 302 a la metadata |
-| B-2 | Important | La recompresión con GD se ejecuta dentro de la petición web (validación en vivo, guardado y MCP). Una foto de 24 MP necesita 384 MB y 11 s: con `memory_limit=256M` da un error fatal que se traduce en 500 y el post no se puede guardar (CWE-400) | T-22 | pendiente | `MediaValidator.php:188-192`, `ImageDownscaler.php:24,211-252`; medido |
-| D-2 | Important | Además, esa recompresión es síncrona y sin lock: varias ejecuciones de GD en paralelo por usuario mientras no existe la copia | T-22 | pendiente | idem |
-| B-3 | Important | La copia recomprimida pierde la orientación EXIF y una foto vertical sale girada 90° | T-22, T-23 | pendiente | `ImageDownscaler.php:218-261`; probe `p7.php` |
-| B-4 | Important | `BLUESKY_ENABLED=false` no retira Bluesky del compositor ni del MCP: se puede programar y luego falla con `red_no_soportada` | T-26, T-27 | pendiente | `ContentType.php:119-122`, `PostController.php:191-210`, `ListAccounts.php:48-51` |
-| A-5 | Important | Falta el oráculo RED que exige la Clase: T-19 y T-23 declaran que no lo ejecutaron, y T-20..T-27 marcan «Test RED» sin pegar la salida | T-19..T-27 | pendiente | ledger |
-| A-6 | Important | El criterio de T-21 (301 grafemas rechazados en `create_post`) no tiene evidencia en el MCP | T-21 | pendiente | `tasks.md:710,722` |
-| B-7 | Minor | En los hashtags con marcas combinantes (NFD, índicos), la regex no incluye `\p{M}` y los corta | T-23 | pendiente | `Hashtags.php:14` |
-| B-8 | Minor | `applyRefresh` corre fuera del lock y genera sesiones de más | T-19 | pendiente | `BlueskySession.php:72-83,104-105` |
-| B-9 | Minor | Vídeo: el timeout fijo de 80 s más 3 llamadas de 15 s puede superar los 110 s del job; no usa `StepBudget` | T-24 | pendiente | `BlueskyPublisher.php:129-145,231` |
-| C-10 | Minor | No se comprueba que el DID de la sesión coincida con el DID resuelto: un PDS propio podría suplantar un handle en la marca del atacante (CWE-345) | T-19 | pendiente | `BlueskySession.php:41` |
-| D-1 | Minor | Las métricas hacen un `getPosts` por post en lugar de lotes de 25 | T-26 | pendiente | `SnapshotCollector.php:205` |
-| A-11 | Minor | `Archivos` declara ficheros que no se tocaron | T-17, T-21, T-22 | pendiente | — |
+| C-1 | Critical | El host del PDS no pasa por `UrlGuard`. (a) Un `did:web:` escrito como handle provoca un GET a cualquier host, puerto y ruta. (b) `assertPds` solo mira el nombre: sin DNS, con cualquier puerto y sin fijar la IP. (c) Se siguen las redirecciones, también a http. Ese PDS recibe después `uploadBlob` y `createRecord` desde el job (CWE-918) | T-19, T-29 | corregido (5553242) | `BlueskyClient.php:34-38,192-204,213`, `BlueskySession.php:37`; probes: `did:web:169.254.169.254%2F…`, `localhost%3A6379`, `127.0.0.1.nip.io`, 302 a la metadata |
+| B-2 | Important | La recompresión con GD se ejecuta dentro de la petición web (validación en vivo, guardado y MCP). Una foto de 24 MP necesita 384 MB y 11 s: con `memory_limit=256M` da un error fatal que se traduce en 500 y el post no se puede guardar (CWE-400) | T-22 | corregido (9354498, 9776417) | `MediaValidator.php:188-192`, `ImageDownscaler.php:24,211-252`; medido |
+| D-2 | Important | Además, esa recompresión es síncrona y sin lock: varias ejecuciones de GD en paralelo por usuario mientras no existe la copia | T-22 | corregido (9354498) | idem |
+| B-3 | Important | La copia recomprimida pierde la orientación EXIF y una foto vertical sale girada 90° | T-22, T-23 | corregido (9354498) | `ImageDownscaler.php:218-261`; probe `p7.php` |
+| B-4 | Important | `BLUESKY_ENABLED=false` no retira Bluesky del compositor ni del MCP: se puede programar y luego falla con `red_no_soportada` | T-26, T-27 | corregido (090e0ef) | `ContentType.php:119-122`, `PostController.php:191-210`, `ListAccounts.php:48-51` |
+| A-5 | Important | Falta el oráculo RED que exige la Clase: T-19 y T-23 declaran que no lo ejecutaron, y T-20..T-27 marcan «Test RED» sin pegar la salida | T-19..T-27 | corregido (LEDGER) | ledger |
+| A-6 | Important | El criterio de T-21 (301 grafemas rechazados en `create_post`) no tiene evidencia en el MCP | T-21 | corregido (090e0ef) | `tasks.md:710,722` |
+| B-7 | Minor | En los hashtags con marcas combinantes (NFD, índicos), la regex no incluye `\p{M}` y los corta | T-23 | corregido (0abe244) | `Hashtags.php:14` |
+| B-8 | Minor | `applyRefresh` corre fuera del lock y genera sesiones de más | T-19 | corregido (5553242) | `BlueskySession.php:72-83,104-105` |
+| B-9 | Minor | Vídeo: el timeout fijo de 80 s más 3 llamadas de 15 s puede superar los 110 s del job; no usa `StepBudget` | T-24 | corregido (3a500f1) | `BlueskyPublisher.php:129-145,231` |
+| C-10 | Minor | No se comprueba que el DID de la sesión coincida con el DID resuelto: un PDS propio podría suplantar un handle en la marca del atacante (CWE-345) | T-19 | corregido (5553242) | `BlueskySession.php:41` |
+| D-1 | Minor | Las métricas hacen un `getPosts` por post en lugar de lotes de 25 | T-26 | corregido (4837ac6) | `SnapshotCollector.php:205` |
+| A-11 | Minor | `Archivos` declara ficheros que no se tocaron | T-17, T-21, T-22 | corregido (LEDGER) | — |

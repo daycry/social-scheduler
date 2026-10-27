@@ -327,6 +327,12 @@ class PostService
             $targets = $this->lockEditableTargets($post);
             $oldScheduledAt = $post->scheduled_at;
 
+            // Un destino de una red apagada en esta instalacion (p. ej. BLUESKY_ENABLED=false) no se reprograma: volveria a fallar.
+            $off = $targets->first(fn (PostTarget $t) => ! $t->content_type->network()->isAvailable());
+            if ($off !== null) {
+                throw new PostValidationException(['post' => [$off->content_type->network()->label().' no esta disponible en esta instalacion: quita ese destino antes de reprogramar.']]);
+            }
+
             $post->forceFill(['scheduled_at' => $at])->save();
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {

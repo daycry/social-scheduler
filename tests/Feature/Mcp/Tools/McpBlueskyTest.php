@@ -83,3 +83,17 @@ test('B-4: con BLUESKY_ENABLED=false el compositor no ofrece los tipos de Bluesk
         'text' => 'Hola', 'schedule' => false, 'media' => [], 'targets' => [['account_id' => $this->bsky->id, 'content_type' => 'bluesky_post']],
     ])->assertOk()->assertExactJson(['errors' => ['targets.0' => ['Bluesky no esta disponible en esta instalacion.']]]);
 });
+
+test('N2: reschedule rechaza un destino de una red apagada y no mueve la fecha', function () {
+    $post = app(App\Services\PostService::class)->create($this->user, $this->brand, [
+        'text' => 'Hola', 'targets' => [['account_id' => $this->bsky->id, 'content_type' => 'bluesky_post']],
+    ]);
+    config(['social.bluesky.enabled' => false]);
+
+    expect(fn () => app(App\Services\PostService::class)->reschedule($this->user, $post, '2026-11-05 18:30'))
+        ->toThrow(App\Exceptions\PostValidationException::class, 'Bluesky no esta disponible');
+    expect($post->fresh()->scheduled_at)->toBeNull();
+
+    config(['social.bluesky.enabled' => true]);
+    expect(app(App\Services\PostService::class)->reschedule($this->user, $post, '2026-11-05 18:30')->scheduled_at)->not->toBeNull();
+});

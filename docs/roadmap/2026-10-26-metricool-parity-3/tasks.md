@@ -2106,7 +2106,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 - **Descripción**: El usuario conecta su cuenta (app de Meta para Threads, *tester*) y publica los 4 tipos. Resuelve los ⚠️ restantes y confirma que no hace falta App Review.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
 - **Tiempo humano**: est. 2,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,27h · real —
@@ -2128,6 +2128,39 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Notas**: Orden: la guía T-74 se ejecuta antes. Manual (M-02). Si Meta exigiera revisión, el código queda tras `THREADS_APP_ID` vacío.
 
+**Estado del smoke (preparado, pendiente del usuario)**: la guía T-74 ya está escrita (`docs/guias/threads-app-meta.md`, enlazada desde `docs/README.md` y `docs/RAG-INDEX.md`) y todo el código de Threads (T-55..T-62) está en verde con `Http::fake`. **No se marca completada**: el smoke es manual con la app de Meta y la cuenta reales del usuario (M-02 del `test-plan.md`, que el implementer no puede editar: este bloque es la preparación y la tabla de ⚠️ de M-02, para volcarla en el plan).
+
+**Preparación (la hace el usuario)**:
+1. Seguir la guía T-74: caso de uso Threads, los **dos** pares de ID/secreto (usar el de **Threads**), `THREADS_APP_ID`/`THREADS_APP_SECRET` en `.env`, URI `<APP_URL>/connections/threads/callback` y la invitación de *tester* **aceptada** en Threads (Ajustes → Cuenta → Permisos del sitio web).
+2. Tener a mano 4 imágenes JPEG o PNG (una de unos 7 MB), un MP4 H.264 de menos de 5 min y de 23 a 60 fps (y un MOV o HEVC si hay) y textos con emojis (paso 2).
+3. La media debe ser **descargable desde internet** (`MEDIA_DISK` con URL firmada pública: ngrok o el almacenamiento real). Usar una marca propia de pruebas (no el usuario 28 ni datos de clientes). `php artisan migrate` aplicada y `npm run build` hecho; cola corriendo en su entorno (`queue:work`) y scheduler, o `php artisan schedule:run` a mano.
+
+**Pasos de M-02**:
+1. **Conectar.** Conexiones → Threads → «+ Conectar» → `threads.com` → aceptar los tres permisos. Esperado: «Conectada» y el nombre de usuario; `token_expires_at` a unos 60 días y `refresh_token` nulo (`php artisan tinker` → `App\Models\SocialAccount::latest('id')->first()`). Probar antes **cancelar** en `threads.com`: mensaje claro y nada guardado.
+2. **Texto con emojis al límite.** Un texto que el contador marque `500 / 500` con emojis sueltos (cohete, corazón) y otro con secuencias compuestas (familia con unión de ancho cero, bandera, emoji con tono de piel); publicarlos. Esperado: Threads acepta 500 y rechaza 501. **Anotar para cada secuencia** cuántos caracteres cuenta Threads frente a nuestro contador (⚠️ de la regla de emojis).
+3. **Imagen.** JPEG con texto y luego una PNG. Esperado: «Publicada» con enlace; Threads descarga la imagen de la URL firmada.
+4. **Vídeo.** MP4 de menos de 5 min. Esperado: «Procesando» y luego «Publicada» (anotar cuánto tarda en `FINISHED`). Probar uno fuera de reglas que el validador deje pasar (por ejemplo de más de 60 fps) para ver el `error_message` real del contenedor.
+5. **Carrusel.** 3 imágenes (y, si se puede, 2 imágenes + 1 vídeo). Esperado: **un** post con todas y un solo gasto de cuota.
+6. **Cuota.** `app(App\Connectors\Threads\ThreadsClient::class)->get($cuenta->external_id.'/threads_publishing_limit', ['fields' => 'quota_usage,config'], $cuenta->access_token)`. Anotar `quota_usage`, `quota_total` y `quota_duration` (¿250 y 86400?).
+7. **Métricas** (pasadas unas horas): `app(App\Analytics\SnapshotCollector::class)->collectAccount($cuenta, App\Analytics\Days::closed(App\Connectors\Network::Threads))` y `collectPosts($cuenta, 48)`. Esperado en el dashboard de Threads: visitas al perfil, me gusta, respuestas, compartidos, clics y seguidores; por publicación vistas e interacciones. Anotar qué llega y qué queda «No disponible».
+8. **Renovación.** Con el token de más de 24 h: `app(App\Connectors\Threads\ThreadsConnector::class)->refresh($cuenta)`. Esperado: token nuevo de unos 60 días.
+9. **App Review.** Con todo lo anterior hecho solo con tu cuenta como *tester*, confirmar que **no** hizo falta enviar la app a revisión. Si Meta la exigiera, dejar `THREADS_APP_ID` vacío (la red desaparece sin tocar Facebook ni Instagram) y anotarlo.
+
+**⚠️ a resolver y anotar** (T-54 y diseño §7):
+
+| ⚠️ | Qué comprobar | Resultado (rellenar) |
+|---|---|---|
+| Modo desarrollo | ¿Publicar y leer métricas funciona sin App Review con la cuenta como *tester*? | |
+| Regla de emojis | Cuántos caracteres cuenta Threads por emoji suelto y por secuencia compuesta (ZWJ, banderas, tonos). Si no coincide con `TextLength::threads` y `textLength.js`, ajustar ambos y `tests/Fixtures/text-length-cases.json` | |
+| Token en la petición | Los POST llevan `access_token` en el cuerpo y los GET en la query (como documenta Meta). ¿Acepta también `Authorization: Bearer`? Solo para decidir si se saca el token de la URL en los GET | |
+| Códigos de error propios | Código y mensaje reales de cuota agotada, permiso no concedido, texto demasiado largo y más de 5 enlaces (`THREADS_API__LINK_LIMIT_EXCEEDED`); hoy se reutilizan los de Graph (`GraphErrors`) | |
+| Permisos concedidos | `scopes` guardados (los pedidos) frente a los realmente concedidos | |
+| IDs y *permalink* | ¿`threads_publish` devuelve el ID de la publicación y `GET /{id}?fields=permalink` el enlace? ¿Qué ID queda en un contenedor `PUBLISHED` sin localizar? | |
+| Búsqueda de lo ya publicado | `GET /{user}/threads` devuelve el texto idéntico al enviado (con enlaces, saltos de línea y emojis) | |
+| Día de las métricas | Zona real de `end_time` de las series diarias (`America/Los_Angeles`: 08:00 UTC en invierno) y el rango desde 2024-04-13 con `since`/`until` Unix | |
+| Métricas «en desarrollo» | `views` y `shares` del post: ¿llegan con valores o error? | |
+
+**Resultado (rellenar por el usuario)**: fecha · cuenta · cada paso OK/KO · enlaces de los posts · hallazgos.
 
 ## Fase 9 — C-04b · GIFs de Giphy
 

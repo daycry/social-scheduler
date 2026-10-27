@@ -755,12 +755,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-23 — `BlueskyPublisher`: texto, `Facets` e imágenes
 
 - **Descripción**: Publicar texto y de 0 a 4 imágenes (`uploadBlob`, `aspectRatio`, `langs`) con *facets* en bytes UTF-8. Requisito: CA-03.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Se puede publicar en Bluesky texto con enlaces, hashtags y menciones, y hasta 4 imágenes (las grandes se recomprimen).
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
-- **Supervisión**: est. 0,20h (≈25 % IA) · real —
+- **Tiempo humano**: est. 6,0h · real 6,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0,81h (estimado)
+- **Supervisión**: est. 0,20h (≈25 % IA) · real 0,20h (estimado)
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-21, T-22
 - **Tipo**: backend
@@ -771,16 +772,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
   - `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php` → en verde (4 *blobs* ≤ tope y registro con *facets*)
 
 **Criterios de aceptación**
-- [ ] Se suben 4 *blobs* ≤ tope y el registro lleva los *facets* de enlaces y hashtags.
-- [ ] Los índices coinciden en bytes con emojis compuestos.
-- [ ] Una mención no resoluble queda como texto plano.
+- [x] Se suben 4 *blobs* ≤ tope y el registro lleva los *facets* de enlaces y hashtags.
+- [x] Los índices coinciden en bytes con emojis compuestos.
+- [x] Una mención no resoluble queda como texto plano.
 
 **Subtareas**
-- [ ] Test RED (CA-03)
-- [ ] `Facets` y `Hashtags`
-- [ ] Publicador de texto e imágenes
+- [x] Test RED (CA-03)
+- [x] `Facets` y `Hashtags`
+- [x] Publicador de texto e imágenes
 
 **Notas**: Patrón: `app/Connectors/Contracts/Publisher.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php` (errores y `PublishResult`) y `app/Connectors/Data/PublishRequest.php`. `App\Support\Hashtags` (extracción compartida con C-04a/T-43) alimenta `Facets`; `@menciones` solo si `resolveHandle` resuelve. Tests de tabla con emojis compuestos.
+
+**Verificación ejecutada**: php artisan test --compact tests/Unit/Bluesky/FacetsTest.php -> 11 passed (indices en bytes, emojis compuestos, tags de 64 grafemas, menciones); php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php -> 15 passed: 4 blobs <= tope y registro con facets de enlace y tag, mencion no resoluble en texto plano, copia recomprimida, renovacion de token, errores traducidos. Tests y codigo escritos juntos (sin RED previo ejecutado).
 
 ### T-24 — Vídeo de Bluesky: `uploadVideo`, `getJobStatus` y límites
 

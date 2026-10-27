@@ -90,6 +90,32 @@ class BlueskyClient
         });
     }
 
+    /**
+     * Sube un blob (imagen o video) al PDS: cuerpo binario con su Content-Type. Devuelve el objeto `blob` (ref, mimeType, size).
+     *
+     * @return array<string, mixed>
+     */
+    public function uploadBlob(string $pds, string $token, string $bytes, string $mime): array
+    {
+        $data = $this->send(fn (PendingRequest $http) => $http->withToken($token)->withBody($bytes, $mime)->post(rtrim($pds, '/').'/xrpc/com.atproto.repo.uploadBlob'));
+        $blob = $data['blob'] ?? null;
+
+        return is_array($blob) ? $blob : throw new BlueskyException('Bluesky no devolvio el blob subido.', 'InvalidBlob', 502);
+    }
+
+    /**
+     * Crea un registro en el repositorio de la cuenta. `$rkey` null = lo asigna el PDS.
+     *
+     * @param  array<string, mixed>  $record
+     * @return array<string, mixed> uri, cid
+     */
+    public function createRecord(string $pds, string $token, string $repo, string $collection, array $record, ?string $rkey = null): array
+    {
+        return $this->post($pds, 'com.atproto.repo.createRecord', array_filter([
+            'repo' => $repo, 'collection' => $collection, 'rkey' => $rkey, 'record' => $record,
+        ], fn ($v) => $v !== null), $token);
+    }
+
     public function entryway(): string
     {
         return rtrim((string) config('social.bluesky.entryway'), '/');

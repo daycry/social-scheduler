@@ -29,10 +29,12 @@ function checkMedia(ContentType $type, array $media, ?string $text = 'hola'): ar
     return app(MediaValidator::class)->validate($type, $media, $text);
 }
 
-test('MediaValidator: hay reglas versionadas para los 13 tipos de contenido', function () {
+test('MediaValidator: hay reglas versionadas para todos los tipos de contenido', function () {
     $types = config('media_specs.types');
+    // El conteo se deriva de los tipos (no se edita al anadir una red): una regla por tipo y variante, sin reglas huerfanas.
+    $expected = collect(ContentType::cases())->flatMap(fn (ContentType $t) => [$t->specKey(), $t->specKey('video')])->unique()->count();
 
-    expect(config('media_specs.version'))->not->toBeEmpty()->and($types)->toHaveCount(13);
+    expect(config('media_specs.version'))->not->toBeEmpty()->and($types)->toHaveCount($expected)->and($expected)->toBe(13);
     foreach (ContentType::cases() as $type) {
         expect($types)->toHaveKey($type->specKey())->and($types)->toHaveKey($type->specKey('video'));
     }

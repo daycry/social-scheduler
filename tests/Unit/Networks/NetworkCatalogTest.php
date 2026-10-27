@@ -41,7 +41,7 @@ test('listing() enumera las redes del catalogo para el MCP y la IA', function ()
 
 test('toArray() expone solo datos publicos', function () {
     expect(Network::Bluesky->toArray())->toBe([
-        'value' => 'bluesky', 'label' => 'Bluesky', 'short_label' => 'Bluesky',
+        'value' => 'bluesky', 'label' => 'Bluesky', 'short_label' => 'BS',
         'color' => '#0a7aff', 'provider' => 'bluesky', 'auth_kind' => 'credentials',
     ]);
 });

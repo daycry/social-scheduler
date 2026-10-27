@@ -599,12 +599,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-18 — Test de superficies de red y conteo de reglas de media
 
 - **Descripción**: `NetworkCoverageTest` recorre `Network::cases()` y exige tipos de contenido, `EXPECTED_FLOWS`, `SUPPORTED`, icono, color y etiqueta; actualiza el conteo de reglas. Requisito: `design.md` §2 (red a medias = fallo de CI).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Una red nueva ya no puede salir a medias: un test de integridad exige tipos, métricas, zona, icono, color y etiqueta.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-16, T-17
 - **Tipo**: test
@@ -613,14 +614,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Unit/Networks/NetworkCoverageTest.php` → en verde para las redes registradas (el RED falla con Bluesky sin tipos)
 
 **Criterios de aceptación**
-- [ ] Una red añadida sin una superficie hace fallar el test.
-- [ ] El conteo de reglas se actualiza al añadir Bluesky (T-21) y Threads (T-56).
+- [x] Una red añadida sin una superficie hace fallar el test.
+- [x] El conteo de reglas se actualiza al añadir Bluesky (T-21) y Threads (T-56).
 
 **Subtareas**
-- [ ] Escribir el test
-- [ ] Ajustar el conteo de reglas con cada red
+- [x] Escribir el test
+- [x] Ajustar el conteo de reglas con cada red
 
 **Notas**: Patrón: `tests/Unit/MediaValidator/MediaValidatorTest.php:35` (hoy espera 13 reglas). El test hace *grep* de literales de red en `resources/js` fuera de `NetworkIcon.vue`.
+
+**Verificación ejecutada**: php artisan test --compact tests/Unit/Networks tests/Unit -> 278 passed (653 assertions). RED comprobado: ContentType::forNetwork(Bluesky) = [] y sin EXPECTED_FLOWS, por lo que surfaceGaps(bluesky) devolvería huecos; el test recorre Network::offered() (Bluesky entra al registrarse, T-26). Conteo de reglas de media derivado de ContentType::cases() (13 hoy).
 
 ### T-19 — `BlueskyClient` y `BlueskySession` (sesión, refresco y bloqueo)
 

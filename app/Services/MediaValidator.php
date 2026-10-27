@@ -184,12 +184,12 @@ class MediaValidator
         }
 
         // Imagen por encima del tope de la red: se publica una copia recomprimida (la hace la cola al publicar, NUNCA esta peticion).
-        // Aqui solo se mira el tamano y las dimensiones: si es demasiado grande para decodificarla sin riesgo para la memoria, se
-        // rechaza con un mensaje. Que baje del tope se comprueba al publicar.
+        // Aqui solo se mira el tamano y el tope de pixeles (no la memoria de esta peticion: la memoria se mira en el worker). Que
+        // baje del tope se comprueba al publicar.
         if (isset($rules['recompress_to_config']) && ! $asset->isVideo()) {
             $cap = (int) config($rules['recompress_to_config']);
             $size = (int) ($asset->size ?? $asset->declared_size);
-            if ($size > $cap && ImageDownscaler::tooLargeToShrink($asset->width, $asset->height)) {
+            if ($size > $cap && ImageDownscaler::exceedsPixelCap($asset->width, $asset->height)) {
                 $e[] = "$noun pesa ".$this->mb($size)." y mide {$asset->width} x {$asset->height} px: es demasiado grande para reducirla hasta los ".$this->mb($cap)." que admite $label. Usa una imagen mas pequena.";
             }
         }

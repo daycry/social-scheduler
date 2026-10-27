@@ -308,9 +308,9 @@ class BlueskyPublisher implements Publisher, StatusPoller
             throw new PermanentPublishException('Bluesky solo admite imagenes en este tipo de publicacion.', 'tipo_no_admitido');
         }
 
-        // La recompresion corre aqui, en el job (nunca en la peticion web): si la imagen es demasiado grande para decodificarla sin
-        // riesgo para la memoria, se rechaza con un mensaje en lugar de arriesgar un error fatal.
-        if ((int) $media->size > (int) config('social.bluesky.image_max_bytes') && ImageDownscaler::tooLargeToShrink($media->width, $media->height)) {
+        // La recompresion corre aqui, en el job (nunca en la peticion web): si la imagen supera el tope de pixeles se rechaza con un
+        // mensaje. La memoria se comprueba dentro del reductor, solo en el respaldo sin ffmpeg.
+        if ((int) $media->size > (int) config('social.bluesky.image_max_bytes') && ImageDownscaler::exceedsPixelCap($media->width, $media->height)) {
             throw new PermanentPublishException('La imagen es demasiado grande para Bluesky y no se puede reducir de forma segura. Usa una imagen mas pequena.', 'archivo_grande');
         }
 

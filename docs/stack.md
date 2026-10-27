@@ -17,6 +17,7 @@ Fuente: `composer.json`, `package.json` y [ADR-001](knowledge/adr/ADR-001-stack-
 | HTTP a las redes | Cliente `Http` de Laravel (sin Socialite ni `google/apiclient`) | `app/Connectors/` |
 | Gráficos | SVG propio (`LineChart.vue`), sin Chart.js/ECharts | tasks.md T-37 |
 | Vídeo | `ffprobe` (paquete `ffmpeg`) | `config/media.php` |
+| Imágenes grandes (Bluesky) | `ffmpeg` (respaldo: GD) | `config/media.php` |
 | Tests | Pest 4 sobre SQLite en memoria; estilo con Pint | `composer.json`, `pint.json` |
 
 Pruebas: `composer test` y `vendor/bin/pint --test`. CI en `.github/workflows/ci.yml` (según README del repo).

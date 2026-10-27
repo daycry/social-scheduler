@@ -1,5 +1,7 @@
 <?php
 
+use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Enums\ContentType;
 use App\Models\MediaAsset;
 use App\Models\User;
@@ -118,9 +120,7 @@ test('si no puede bajar del tope, la copia no se crea (lo ve el publicador, no l
 });
 
 test('B-2: una foto de 24 MP no se carga en la peticion: la validacion no recomprime ni da error de memoria', function () {
-    // Una peticion web real arranca con la memoria casi libre; en la suite completa el proceso ya acumula mucha, asi que se fija un tope holgado.
-    $limit = ini_set('memory_limit', '4G');
-    $this->beforeApplicationDestroyed(fn () => ini_set('memory_limit', (string) $limit));
+    // N1: la validacion no mira la memoria del proceso web (la del worker es otra): solo el tope de pixeles.
     // El fichero ni existe en el disco: si la validacion intentara abrirlo o recomprimirlo, el resultado seria otro.
     $asset = MediaAsset::factory()->for(User::factory()->create())->create([
         'disk' => 'local', 'path' => 'media/test/24mp.jpg', 'mime' => 'image/jpeg', 'size' => 9_000_000, 'declared_size' => 9_000_000, 'width' => 6000, 'height' => 4000,
@@ -135,7 +135,7 @@ test('B-2: una foto de 24 MP no se carga en la peticion: la validacion no recomp
         ->and(Storage::disk('local')->exists('derived'))->toBeFalse();
 });
 
-test('B-2: una imagen por encima del tope de pixeles o de la memoria se rechaza con un mensaje, sin cargarla', function () {
+test('B-2: una imagen por encima del tope de pixeles se rechaza con un mensaje, sin cargarla', function () {
     $asset = MediaAsset::factory()->for(User::factory()->create())->create([
         'disk' => 'local', 'path' => 'media/test/huge.jpg', 'mime' => 'image/jpeg', 'size' => 9_000_000, 'declared_size' => 9_000_000, 'width' => 12000, 'height' => 9000,
     ]);
@@ -143,10 +143,14 @@ test('B-2: una imagen por encima del tope de pixeles o de la memoria se rechaza 
     $errors = app(MediaValidator::class)->validate(ContentType::BlueskyPost, [$asset], 'hola');
 
     expect($errors)->toHaveCount(1)->and($errors[0])->toContain('demasiado grande')->toContain('12000 x 9000');
-    // Memoria: 24 MP necesitan ~384 MB; con 256 MB libres no se carga, con 1 GB si.
-    expect(ImageDownscaler::tooLargeToShrink(6000, 4000, 256 * 1024 * 1024))->toBeTrue()
-        ->and(ImageDownscaler::tooLargeToShrink(6000, 4000, 1024 * 1024 * 1024))->toBeFalse()
-        ->and(ImageDownscaler::tooLargeToShrink(null, null))->toBeFalse();
+    // Solo el tope de pixeles (50 MP), nunca la memoria libre del proceso que pregunta.
+    expect(ImageDownscaler::exceedsPixelCap(6000, 4000))->toBeFalse()
+        ->and(ImageDownscaler::exceedsPixelCap(8000, 6250))->toBeFalse()
+        ->and(ImageDownscaler::exceedsPixelCap(8001, 6250))->toBeTrue()
+        ->and(ImageDownscaler::exceedsPixelCap(null, null))->toBeFalse();
+    // El respaldo GD (sin ffmpeg) si necesita memoria: 24 MP piden ~384 MB.
+    expect(ImageDownscaler::fitsInMemory(6000, 4000, 256 * 1024 * 1024))->toBeFalse()
+        ->and(ImageDownscaler::fitsInMemory(6000, 4000, 1024 * 1024 * 1024))->toBeTrue();
 });
 
 test('B-2: fit no carga una imagen que no cabe en memoria (null, sin error fatal)', function () {
@@ -207,7 +211,7 @@ test('B-3: la orientacion EXIF se lee y los giros de 90 grados intercambian ejes
     expect(ImageDownscaler::exifOrientation('no es un jpeg'))->toBe(1);
 });
 
-test('D-2: la copia se genera bajo un bloqueo por media: si otro proceso la esta haciendo, no se compite con GD', function () {
+test('D-2/N3: si otro proceso esta reduciendo la imagen se espera el bloqueo y, agotada la espera, el error es transitorio', function () {
     config(['media_specs.downscale_lock_wait' => 1]);
     $asset = storedImage(noisyJpeg(600, 100));
     $cap = 400_000;
@@ -215,8 +219,8 @@ test('D-2: la copia se genera bajo un bloqueo por media: si otro proceso la esta
     expect($lock->get())->toBeTrue();
 
     $started = microtime(true);
-    expect(app(ImageDownscaler::class)->fit($asset, $cap))->toBeNull()
-        ->and(microtime(true) - $started)->toBeLessThan(10)
+    expect(fn () => app(ImageDownscaler::class)->fit($asset, $cap))->toThrow(TransientPublishException::class, 'reduciendo');
+    expect(microtime(true) - $started)->toBeLessThan(10)
         ->and(Storage::disk('local')->exists(app(ImageDownscaler::class)->derivedPath($asset->id, $cap)))->toBeFalse();
 
     $lock->release();
@@ -237,4 +241,92 @@ test('una imagen grande que se puede reducir pasa la validacion y avisa de la re
 
     $warnings = $validator->warnings(ContentType::BlueskyPost, [$asset]);
     expect($warnings)->toHaveCount(1)->and($warnings[0])->toContain('copia recomprimida')->toContain('la original no se modifica');
+});
+
+/** Ejecuta `tests/Support/downscale_probe.php` en un proceso PHP HIJO con memory_limit=256M (el de produccion). */
+function downscaleChild(string $input, array $env = []): array
+{
+    $process = new Symfony\Component\Process\Process([PHP_BINARY, '-d', 'memory_limit=256M', base_path('tests/Support/downscale_probe.php'), $input], base_path(), $env + ['APP_ENV' => 'testing']);
+    $process->setTimeout(240);
+    $process->run();
+    $json = json_decode(trim($process->getOutput()), true);
+
+    return is_array($json) ? $json : ['error' => 'sin salida: '.$process->getOutput().$process->getErrorOutput()];
+}
+
+/** JPEG de 24 MP (6000 x 4000) con ruido, hecho con ffmpeg (GD no podria crearlo en 256 MB). Null si no hay ffmpeg. */
+function bigPhoto(string $name): ?string
+{
+    $file = sys_get_temp_dir().DIRECTORY_SEPARATOR.$name;
+    $process = new Symfony\Component\Process\Process([
+        (string) config('media.ffmpeg'), '-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=s=6000x4000:d=1', '-vf', 'noise=alls=30:allf=t', '-frames:v', '1', '-q:v', '2', $file,
+    ]);
+    $process->setTimeout(120);
+
+    try {
+        $process->run();
+    } catch (Throwable) {
+        return null;
+    }
+
+    return $process->isSuccessful() && is_file($file) ? $file : null;
+}
+
+test('N1: con memory_limit=256M real una foto de 24 MP (>2 MB) se reduce dentro del tope y la memoria de PHP queda baja', function () {
+    $photo = bigPhoto('photo24.jpg');
+    if ($photo === null) {
+        $this->markTestSkipped('ffmpeg no disponible para crear la foto de prueba.');
+    }
+    expect(filesize($photo))->toBeGreaterThan(2_000_000);
+
+    $result = downscaleChild($photo);
+    @unlink($photo);
+
+    expect($result)->not->toHaveKey('error')->not->toHaveKey('exception')
+        ->and($result['memory_limit'])->toBe('256M')
+        ->and($result['derived'])->toBeTrue()->and($result['size'])->toBeLessThanOrEqual(2_000_000)
+        ->and($result['width'] * $result['height'])->toBeLessThan(6000 * 4000)
+        ->and($result['peak_bytes'])->toBeLessThan(64 * 1024 * 1024); // GD habria pedido ~384 MB
+});
+
+test('N1: sin ffmpeg la foto de 24 MP falla con un mensaje claro (GD no cabe en 256 MB) y no con un error fatal', function () {
+    $photo = bigPhoto('photo24b.jpg');
+    if ($photo === null) {
+        $this->markTestSkipped('ffmpeg no disponible para crear la foto de prueba.');
+    }
+
+    $result = downscaleChild($photo, ['FFMPEG_BINARY' => 'ffmpeg-que-no-existe']);
+    @unlink($photo);
+
+    expect($result['exception'] ?? null)->toBe(PermanentPublishException::class)
+        ->and($result['message'])->toContain('instala ffmpeg');
+});
+
+test('N1: sin ffmpeg una imagen que cabe en memoria se reduce con GD', function () {
+    config(['media.ffmpeg' => 'ffmpeg-que-no-existe']);
+    $asset = storedImage(noisyJpeg());
+
+    $fit = app(ImageDownscaler::class)->fit($asset, 2_000_000);
+
+    expect($fit['derived'])->toBeTrue()->and($fit['size'])->toBeLessThanOrEqual(2_000_000);
+});
+
+test('N1: un PNG con transparencia se aplana sobre blanco con ffmpeg', function () {
+    $im = imagecreatetruecolor(1200, 900);
+    imagealphablending($im, false);
+    imagesavealpha($im, true);
+    imagefill($im, 0, 0, (int) imagecolorallocatealpha($im, 0, 0, 0, 127));
+    mt_srand(5);
+    for ($i = 0; $i < 600_000; $i++) {
+        imagesetpixel($im, mt_rand(600, 1199), mt_rand(0, 899), imagecolorallocatealpha($im, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), 0));
+    }
+    ob_start();
+    imagepng($im, null, 1);
+    $asset = storedImage((string) ob_get_clean(), 'image/png');
+
+    $fit = app(ImageDownscaler::class)->fit($asset, 400_000);
+    $copy = imagecreatefromstring(Storage::disk('local')->get($fit['path']));
+    $px = imagecolorsforindex($copy, imagecolorat($copy, 10, 10));
+
+    expect($fit['mime'])->toBe('image/jpeg')->and($px['red'])->toBeGreaterThan(240)->and($px['green'])->toBeGreaterThan(240)->and($px['blue'])->toBeGreaterThan(240);
 });

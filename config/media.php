@@ -37,6 +37,11 @@ return [
     'ffprobe' => env('FFPROBE_BINARY', 'ffprobe'),
     'ffprobe_timeout' => (int) env('FFPROBE_TIMEOUT', 60),
 
+    /* Binario de ffmpeg (recomendado): reduce las fotos grandes para Bluesky con poca memoria. Sin el se usa GD, que carga la imagen entera. */
+    'ffmpeg' => env('FFMPEG_BINARY', 'ffmpeg'),
+    'ffmpeg_timeout' => (int) env('FFMPEG_TIMEOUT', 60),
+    'downscale_budget_seconds' => (int) env('MEDIA_DOWNSCALE_BUDGET_SECONDS', 90),
+
     /* En R2 se sondea bajando solo los primeros y ultimos N bytes (donde vive el atom `moov`), no el video entero. */
     'probe_edge_bytes' => (int) env('MEDIA_PROBE_EDGE_BYTES', 16 * 1024 * 1024),
 

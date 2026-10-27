@@ -21,7 +21,11 @@ final class TextLength
 
     public const THREADS = 'threads';
 
-    private const EMOJI_PATTERN = '/[\p{Extended_Pictographic}\x{1F1E6}-\x{1F1FF}\x{200D}\x{FE0F}\x{1F3FB}-\x{1F3FF}\x{20E3}]/u';
+    /**
+     * Secuencia de emoji (mismo patron, con la sintaxis de cada lenguaje, en `textLength.js`): indicadores regionales (bandera), keycap,
+     * pictograma con VS16, tono de piel o etiquetas unido por ZWJ, y los modificadores sueltos. No usa `\X` ni `Intl.Segmenter`.
+     */
+    private const EMOJI_SEQUENCE = '/[\x{1F1E6}-\x{1F1FF}]{1,2}|[0-9#*]\x{FE0F}?\x{20E3}|\p{Extended_Pictographic}[\x{FE0F}\x{1F3FB}-\x{1F3FF}\x{E0020}-\x{E007F}]*(?:\x{200D}\p{Extended_Pictographic}[\x{FE0F}\x{1F3FB}-\x{1F3FF}\x{E0020}-\x{E007F}]*)*|[\x{200D}\x{FE0F}\x{1F3FB}-\x{1F3FF}\x{20E3}]/u';
 
     public const MODES = [self::CHARS, self::GRAPHEMES, self::THREADS];
 
@@ -50,18 +54,20 @@ final class TextLength
     }
 
     /**
-     * Conservador: cada grafema que contiene un emoji (pictograma, indicadores regionales, ZWJ, VS16, tono de piel o keycap)
-     * cuenta los bytes UTF-8 del grafema completo; el resto cuenta 1 por grafema.
+     * Conservador: cada secuencia de emoji (ver `EMOJI_SEQUENCE`) cuenta los bytes UTF-8 de la secuencia completa; fuera de los emojis
+     * se cuentan code points (una marca combinante cuenta 1, como si fuera un caracter mas).
      */
     private static function threads(string $text): int
     {
-        if ($text === '' || ! preg_match_all('/\X/u', $text, $m)) {
+        if ($text === '') {
             return 0;
         }
 
-        $total = 0;
-        foreach ($m[0] as $cluster) {
-            $total += preg_match(self::EMOJI_PATTERN, $cluster) === 1 ? strlen($cluster) : 1;
+        $total = mb_strlen($text);
+        if (preg_match_all(self::EMOJI_SEQUENCE, $text, $m)) {
+            foreach ($m[0] as $sequence) {
+                $total += strlen($sequence) - mb_strlen($sequence);
+            }
         }
 
         return $total;

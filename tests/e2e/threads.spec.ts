@@ -129,3 +129,29 @@ test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus
     await axeSeriousCritical(page, 'Compositor con Threads');
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
+
+test('E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)', async ({ page }) => {
+    const w = watch(page);
+    await page.goto(`/brands/${brand.id}/posts/create`);
+    await settle(page);
+
+    const threads = page.getByRole('button', { name: /^Threads: e2e Threads/ });
+    await threads.click();
+    await expect(threads).toHaveAttribute('aria-pressed', 'true');
+
+    const contador = page.getByTestId('network-counters').getByRole('listitem').filter({ hasText: 'Threads' });
+
+    // Con 1 etiqueta, sin aviso.
+    await page.locator('#text').fill('Hola #uno');
+    await expect(contador.getByTestId('counter-hashtags-advice')).toHaveCount(0);
+
+    // Con 2, el aviso nombra el límite de Threads (1 etiqueta de tema por publicación).
+    await page.locator('#text').fill('Hola #uno y #dos');
+    const aviso = contador.getByTestId('counter-hashtags-advice');
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText('Threads solo admite 1 etiqueta de tema por publicación: se usa la primera.');
+
+    await expectNoOverflow(page);
+    await axeSeriousCritical(page, 'Compositor con Threads y aviso de etiquetas');
+    expect(w.errors, w.errors.join('\n')).toEqual([]);
+});

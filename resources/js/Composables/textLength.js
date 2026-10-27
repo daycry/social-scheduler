@@ -4,7 +4,7 @@
  *
  *  - chars:     puntos de codigo Unicode (`[...text]`; NO `text.length`, que cuenta unidades UTF-16).
  *  - graphemes: grafemas con `Intl.Segmenter` (un emoji compuesto cuenta 1).
- *  - threads:   1 por grafema, salvo los que contienen un emoji, que cuentan los bytes UTF-8 del grafema entero.
+ *  - threads:   cada secuencia de emoji cuenta los bytes UTF-8 enteros; el resto, 1 por code point (no por grafema).
  */
 const segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const encoder = new TextEncoder();
@@ -16,14 +16,22 @@ export const countGraphemes = (text) => {
     return segmenter ? [...segmenter.segment(t)].length : (t.match(/\P{M}\p{M}*/gu) ?? []).length;
 };
 
-const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{20E3}]/u;
-const clusters = (t) => (segmenter ? [...segmenter.segment(t)].map((s) => s.segment) : (t.match(/\P{M}\p{M}*/gu) ?? []));
+// Secuencia de emoji: MISMO patron que `EMOJI_SEQUENCE` de `App\Support\TextLength` (sin `Intl.Segmenter` ni `\X`).
+const EMOJI_SEQUENCE =
+    /[\u{1F1E6}-\u{1F1FF}]{1,2}|[0-9#*]\u{FE0F}?\u{20E3}|\p{Extended_Pictographic}[\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}]*(?:\u{200D}\p{Extended_Pictographic}[\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}]*)*|[\u{200D}\u{FE0F}\u{1F3FB}-\u{1F3FF}\u{20E3}]/gu;
 
-// Conservador (espejo de PHP): el grafema que contiene un emoji cuenta sus bytes UTF-8 completos; el resto, 1.
+// Conservador (espejo de PHP): cada secuencia de emoji cuenta los bytes UTF-8 de la secuencia completa; fuera de los emojis, 1 por code point
+// (no por grafema: marcas combinantes cuentan 1, y asi PHP y JS coinciden aunque segmenten distinto el devanagari, NFD o zalgo).
 export const countThreads = (text) => {
     const t = String(text ?? '').trim();
+    if (t === '') return 0;
 
-    return t === '' ? 0 : clusters(t).reduce((n, g) => n + (EMOJI.test(g) ? encoder.encode(g).length : 1), 0);
+    let total = [...t].length;
+    for (const [sequence] of t.matchAll(EMOJI_SEQUENCE)) {
+        total += encoder.encode(sequence).length - [...sequence].length;
+    }
+
+    return total;
 };
 
 export const countChars = (text) => [...String(text ?? '').trim()].length;

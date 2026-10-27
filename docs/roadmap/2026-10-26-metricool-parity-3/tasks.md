@@ -52,7 +52,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
-| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 8 | 11 | 73% | 45 / 50,5h (estimado) | 6,08 / 6,83h (estimado) | 1,5 / 1,7h (estimado) | 1819k / 2,05M (estimado) |
+| Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 9 | 11 | 82% | 47,5 / 50,5h (estimado) | 6,42 / 6,83h (estimado) | 1,59 / 1,7h (estimado) | 1920k / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
 | **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
@@ -2038,12 +2038,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-62 — E2E de Threads: superficies con axe (CA-10)
 
 - **Descripción**: Escenario Playwright con posts de Bluesky y Threads: iconos, filtros y métricas en calendario y dashboard. Requisito: CA-10.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Comprobado en el navegador (escritorio y móvil) que Threads se ve bien junto a Bluesky: Conexiones, calendario con su filtro, panel con visitas al perfil y compositor con el límite de 500.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,34h · real —
-- **Supervisión**: est. 0,09h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,5h · real 2,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,34h · real 0,34h (estimado)
+- **Supervisión**: est. 0,09h (≈25 % IA) · real 0,09h (estimado)
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-60
 - **Tipo**: test
@@ -2052,14 +2053,22 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `npx playwright test tests/e2e/threads.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
 **Criterios de aceptación**
-- [ ] Iconos, filtros y métricas de las dos redes visibles.
-- [ ] 0 violaciones axe; sin desborde.
+- [x] Iconos, filtros y métricas de las dos redes visibles.
+- [x] 0 violaciones axe; sin desborde.
 
 **Subtareas**
-- [ ] Semillas
-- [ ] Spec E2E
+- [x] Semillas
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/bluesky.spec.ts` (T-28).
+
+**Primer oráculo**: el propio escenario Playwright (el código que cubre ya estaba en T-55..T-60); lo que destapó fue de la prueba, no del producto (el campo «Texto» choca con el desplegable del tipo, que también se llama «Texto»: se usa `#text`).
+
+**Cobertura (E2E-08, 4 casos × 3 proyectos)**: Conexiones (tarjeta de Threads y su cuenta sembrada; el botón «Conectar» no se pulsa para no salir a threads.com), calendario (chip de cada red y filtro «Red» por Threads que oculta la de Bluesky), dashboard de Threads (120 visitas al perfil sumadas de 3 días, clics 33, me gusta 36; `views` y `reach` ni se listan; la publicación con sus 100 vistas) y resumen con ambas redes en la navegación, y compositor (`Hola` + cohete = 9/500; 126 cohetes = 504/500 y aviso; 500 letras = 500/500). Cada página con axe (serio/crítico) y `expectNoOverflow`; sin errores de consola.
+
+**Entorno**: la red solo existe con `THREADS_APP_ID`: para la ejecución se añadió temporalmente un ID de mentira al `.env` local (sin commit; restaurado después). Los datos se siembran con factorías/servicios en marcas `e2e-composer-*` de los usuarios `e2e-sec-*`; el usuario 28 y las redes reales no se tocan.
+
+**Verificación ejecutada**: `npm run build` y `E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test npx playwright test tests/e2e/threads.spec.ts --project=desktop --project=mobile --project=mobile-360` -> 4 passed en cada proyecto (12 en total).
 
 ### T-63 — Documentación y revisión de robustez de Threads
 

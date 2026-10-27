@@ -452,7 +452,7 @@ export function seedExtraFacebook(brandId: number, name: string) {
 }
 
 /** Cuenta extra en la marca E2E (YouTube o TikTok); `directPost` activa la publicación directa de TikTok. */
-export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' | 'bluesky', name: string, directPost = false) {
+export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' | 'bluesky' | 'threads', name: string, directPost = false) {
     // Bluesky (C-01): cuenta sembrada con credenciales falsas y un PDS inexistente; la API real nunca se llama.
     const meta = network === 'bluesky'
         ? "['did' => 'did:plc:e2ebluesky00000000000000', 'pds' => 'https://pds.e2e.invalid', 'handle' => 'e2e.bsky.invalid', 'email_confirmed' => true]"
@@ -461,6 +461,36 @@ export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' 
         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
             String.raw`App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from(${q(network)}), 'name' => ${q(name)}, 'meta' => ${meta}]);`,
     );
+}
+
+/**
+ * Escenario de Threads y Bluesky (C-02, E2E-08) en la marca E2E: una cuenta de cada red, una publicación programada por red (a 2 días
+ * vista, en el calendario), una de Threads ya publicada con sus métricas y snapshots de cuenta. Todo sembrado con factorías/servicios:
+ * nada llega a Threads ni a Bluesky. Requiere `THREADS_APP_ID` en el entorno del servidor (la red solo se ofrece con ella).
+ * Devuelve la fecha local de las programadas.
+ */
+export function seedThreadsScenario(email: string, brandId: number): string {
+    seedExtraAccount(brandId, 'threads', 'e2e Threads');
+    seedExtraAccount(brandId, 'bluesky', 'e2e Bluesky');
+    const out = artisan(
+        String.raw`$u = App\Models\User::where('email', ${q(email)})->firstOrFail(); ` +
+            String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$th = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'threads')->firstOrFail(); ` +
+            String.raw`$bs = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'bluesky')->firstOrFail(); ` +
+            String.raw`$svc = app(App\Services\PostService::class); ` +
+            String.raw`$when = now()->addDays(2)->setTimezone('Europe/Madrid'); ` +
+            String.raw`$mk = fn ($text, $acc, $type, $h) => $svc->create($u, $b, ['text' => $text, 'schedule' => true, 'scheduled_at' => $when->copy()->setTime($h, 0)->format('Y-m-d H:i'), 'media' => [], 'targets' => [['account_id' => $acc->id, 'content_type' => $type]]]); ` +
+            String.raw`$mk('e2e programada en Threads', $th, 'threads_text', 10); ` +
+            String.raw`$mk('e2e programada en Bluesky', $bs, 'bluesky_post', 11); ` +
+            String.raw`$pub = $svc->create($u, $b, ['text' => 'e2e publicada en Threads', 'schedule' => false, 'media' => [], 'targets' => [['account_id' => $th->id, 'content_type' => 'threads_text']]]); ` +
+            String.raw`$t = $pub->targets->first(); $t->forceFill(['status' => 'publicada', 'published_at' => now()->subDays(3), 'external_id' => 'e2e-threads-1'])->save(); $pub->syncStatus(); ` +
+            String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'post_target_id' => $t->id, 'social_account_id' => $th->id, 'network' => 'threads', 'date' => now('UTC')->subDays(2)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankPost(), ['views' => 100, 'likes' => 10, 'comments' => 4, 'shares' => 6, 'interactions' => 20])]); ` +
+            String.raw`for ($i = 2; $i < 5; $i++) { $d = now('UTC')->subDays($i)->format('Y-m-d'); ` +
+            String.raw`App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'brand_id' => $b->id, 'social_account_id' => $th->id, 'network' => 'threads', 'date' => $d, 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['profile_views' => 40, 'likes' => 12, 'comments' => 3, 'shares' => 3, 'clicks' => 11, 'interactions' => 18, 'followers' => 321])]); ` +
+            String.raw`App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $u->id, 'brand_id' => $b->id, 'social_account_id' => $bs->id, 'network' => 'bluesky', 'date' => $d, 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['followers' => 55, 'post_count' => 9])]); } ` +
+            String.raw`echo 'DATE:' . $when->format('Y-m-d');`,
+    );
+    return out.match(/DATE:([\d-]+)/)![1];
 }
 
 /** Borrador de YouTube con un vídeo de prueba (factoría) en la marca E2E: evita subir un vídeo real por la interfaz. */

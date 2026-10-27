@@ -51,11 +51,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
-| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 4 | 5 | 80% | 16,5 / 18,0h (estimado) | 2,24 / 2,44h (estimado) | 0,57 / 0,62h (estimado) | 667k / 729k (estimado) |
+| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **52** | **77** | **68%** | **164,5 / 246,0h** | **22,31 / 33,21h** | **5,64 / 8,3h** | **6,66M / 9,96M** |
+| **TOTAL** | **53** | **77** | **69%** | **166,0 / 246,0h** | **22,51 / 33,21h** | **5,69 / 8,3h** | **6,72M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1601,7 +1601,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 7 — C-04c · Programar en lenguaje natural (IA existente)
 
-**Estado**: en-progreso · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
+**Estado**: completado · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
 
 ### T-49 — `AiAssistant::proposeSchedule()`: prompt, salida JSON, redacción y validación
 
@@ -1732,12 +1732,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-53 — Documentación y revisión de robustez de C-04c
 
 - **Descripción**: Documentar el lenguaje natural, su coste y privacidad (la frase va a Anthropic, redactada).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentado «Escribe cuándo»: qué se envía a Anthropic, que solo propone una fecha, el límite diario compartido y la defensa frente a instrucciones escondidas en la frase.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-51, T-52
 - **Tipo**: docs
@@ -1746,14 +1747,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: el doc explica límite diario compartido, privacidad y que solo hay una fecha → coherente con T-49..T-50
 
 **Criterios de aceptación**
-- [ ] Queda documentado qué se envía a Anthropic.
+- [x] Queda documentado qué se envía a Anthropic.
 
 **Subtareas**
-- [ ] Redactar el doc
-- [ ] Revisión de robustez
+- [x] Redactar el doc
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/asistente-ia.md`.
 
+**Nota de cierre**: Robustez revisada: la frase va como valor JSON y la respuesta pasa un esquema estricto (probado con 15 respuestas inválidas, inyección y respuesta con claves de más); fecha futura y a ≤ 1 año en la zona de la marca, con cambio de hora; redes solo ofrecidas y conectadas; marca ajena = 404 sin llamar a la IA; IA desactivada = 404; throttle 10/min; cupo compartido y reembolsado en fallos; la IA nunca se llama en los tests (Http::preventStrayRequests y page.route). Hallazgo corregido: la redacción de teléfonos tomaba fechas como «15-11-2026» por un teléfono (`redactPhrase`). Límite conocido: la propuesta se interpreta con la hora del servidor al pedirla; si el usuario tarda mucho en confirmar, la fecha podría quedar en el pasado y el compositor ya la bloquea con su validación de fecha futura.
+
+**Verificación ejecutada**: lectura: asistente-ia.md (sección «Programar en lenguaje natural»: qué se envía, esquema estricto, rango, redes, límite diario compartido, seguridad, sin MCP) y guia-de-usuario.md («Escribe cuándo (con IA)») coherentes con T-49..T-52
 
 ## Fase 8 — C-02 · Threads (al final, sin bloquear lo demás)
 

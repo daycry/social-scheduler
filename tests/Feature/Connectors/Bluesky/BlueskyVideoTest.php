@@ -1,11 +1,13 @@
 <?php
 
+use App\Connectors\Bluesky\BlueskyClient;
 use App\Connectors\Bluesky\BlueskyPublisher;
 use App\Connectors\Bluesky\Tid;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Enums\ContentType;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -157,4 +159,47 @@ test('sondear sin referencia es un error permanente', function () {
     Http::fake();
 
     expect(fn () => $this->publisher->poll($this->account, bskyVideoRequest()))->toThrow(PermanentPublishException::class);
+});
+
+/** Publicador con un cliente que captura el timeout con el que se sube el video (sin red). */
+function bskyVideoTimeoutSpy(?int &$timeout): BlueskyPublisher
+{
+    $client = Mockery::mock(BlueskyClient::class)->makePartial();
+    $client->shouldReceive('uploadVideo')->andReturnUsing(function ($service, $did, $name, $body, $seconds) use (&$timeout) {
+        $timeout = $seconds;
+
+        return ['jobId' => 'job-1'];
+    });
+    app()->instance(BlueskyClient::class, $client);
+
+    return app()->make(BlueskyPublisher::class);
+}
+
+test('B-9: el timeout de la subida del video nunca pasa de lo que queda del presupuesto del paso', function () {
+    fakeBskyVideoServices();
+    config(['publishing.step_budget_seconds' => 30]);
+    $timeout = null;
+
+    $result = bskyVideoTimeoutSpy($timeout)->publish($this->account, bskyVideoRequest());
+
+    expect($result->isProcessing())->toBeTrue()->and($timeout)->toBeLessThanOrEqual(30)->toBeGreaterThanOrEqual(20);
+});
+
+test('B-9: con el presupuesto por defecto la subida conserva sus 80 s', function () {
+    fakeBskyVideoServices();
+    $timeout = null;
+
+    bskyVideoTimeoutSpy($timeout)->publish($this->account, bskyVideoRequest());
+
+    expect($timeout)->toBe(80);
+});
+
+test('B-9: sin tiempo en el presupuesto no se empieza la subida: error transitorio, sin tocar video.bsky.app para subir', function () {
+    fakeBskyVideoServices();
+    config(['publishing.step_budget_seconds' => 10]);
+    $timeout = null;
+
+    expect(fn () => bskyVideoTimeoutSpy($timeout)->publish($this->account, bskyVideoRequest()))
+        ->toThrow(TransientPublishException::class, 'Sin tiempo');
+    expect($timeout)->toBeNull();
 });

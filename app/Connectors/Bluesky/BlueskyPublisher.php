@@ -9,7 +9,9 @@ use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Support\MediaChunkReader;
+use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use App\Services\Media\ImageDownscaler;
@@ -34,6 +36,9 @@ class BlueskyPublisher implements Publisher, StatusPoller
 
     /** DID de servicio del video de Bluesky (aud del token de `getUploadLimits`). */
     private const VIDEO_AUD = 'did:web:video.bsky.app';
+
+    /** Segundos minimos que tiene que quedar del presupuesto para intentar subir el video. */
+    private const MIN_UPLOAD_SECONDS = 20;
 
     public function __construct(
         private readonly BlueskyClient $client,
@@ -125,23 +130,29 @@ class BlueskyPublisher implements Publisher, StatusPoller
         $did = $this->did($account);
         $pds = BlueskySession::pds($account);
 
+        $budget = $request->budget();
+
         // 1. Cupo y email verificado: getUploadLimits con un token de servicio para el servicio de video.
         $limits = $this->session->call($account, function (string $token, string $pds) {
             $service = $this->client->serviceAuth($pds, $token, self::VIDEO_AUD, 'app.bsky.video.getUploadLimits');
 
             return $this->client->uploadLimits($service);
         });
-        $request->budget()->spent();
+        $budget->spent();
         $this->assertCanUpload($limits, $reader->size);
 
         // 2. Token de servicio para subir (aud = DID web del PDS de la cuenta; el valor exacto se confirma en el smoke, T-30).
+        $this->assertTime($budget);
         $upload = $this->session->call($account, fn (string $token, string $pds) => $this->client->serviceAuth($pds, $token, 'did:web:'.parse_url($pds, PHP_URL_HOST), 'com.atproto.repo.uploadBlob'));
-        $request->budget()->spent();
+        $budget->spent();
 
-        // 3. Subida en streaming: nunca se carga el video en memoria.
+        // 3. Subida en streaming: nunca se carga el video en memoria. Su timeout nunca pasa de lo que queda del presupuesto del paso
+        // (las 3 llamadas de 15 s + los 80 s fijos pasarian de los 110 s del job).
+        $this->assertTime($budget, self::MIN_UPLOAD_SECONDS);
+        $timeout = (int) max(self::MIN_UPLOAD_SECONDS, min((int) config('social.bluesky.upload_timeout', 80), floor($budget->remaining())));
         $body = $reader->stream(0, $reader->size);
         try {
-            $job = $this->client->uploadVideo($upload, $did, 'video.mp4', $body, (int) config('social.bluesky.upload_timeout', 80));
+            $job = $this->client->uploadVideo($upload, $did, 'video.mp4', $body, $timeout);
         } catch (BlueskyException $e) {
             // Mismo contenido ya subido antes (un reintento tras un timeout): el servicio devuelve el trabajo existente.
             if ($e->errorCode !== 'already_exists' || ! is_string($e->data['jobId'] ?? null)) {
@@ -151,7 +162,7 @@ class BlueskyPublisher implements Publisher, StatusPoller
         } finally {
             $body->close();
         }
-        $request->budget()->spent();
+        $budget->spent();
 
         $jobId = (string) ($job['jobId'] ?? ($job['jobStatus']['jobId'] ?? ''));
         if ($jobId === '') {
@@ -159,6 +170,14 @@ class BlueskyPublisher implements Publisher, StatusPoller
         }
 
         return PublishResult::processing($jobId, ['pds' => $pds], ['rkey' => $rkey, 'phase' => 'processing']);
+    }
+
+    /** Sin tiempo para otra llamada dentro del presupuesto del paso: se reintenta en lugar de morir por el timeout del job. */
+    private function assertTime(StepBudget $budget, int $minSeconds = 0): void
+    {
+        if (! $budget->allows() || $budget->remaining() < $minSeconds) {
+            throw new TransientPublishException('Sin tiempo para subir el video a Bluesky en este intento; se reintentara.', 'sin_tiempo');
+        }
     }
 
     private function pollVideo(SocialAccount $account, PublishRequest $request, string $jobId): PublishResult

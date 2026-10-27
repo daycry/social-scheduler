@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ContentType;
 use App\Models\MediaAsset;
+use App\Services\Media\ImageDownscaler;
 use App\Support\TextLength;
 use InvalidArgumentException;
 
@@ -80,6 +81,13 @@ class MediaValidator
         foreach ($media as $asset) {
             $rules = $spec['recommended'][$asset->kind] ?? [];
             $noun = $asset->isVideo() ? 'El video' : 'La imagen';
+
+            // Imagen por encima del tope de la red: se publica una copia recomprimida (aviso, no error).
+            $capKey = $spec[$asset->kind]['recompress_to_config'] ?? null;
+            $size = (int) ($asset->size ?? $asset->declared_size);
+            if ($capKey !== null && ! $asset->isVideo() && $size > (int) config($capKey)) {
+                $out[] = 'La imagen pesa '.$this->mb($size).' y '.$spec['label'].' admite '.$this->mb((int) config($capKey)).': se publicara una copia recomprimida (la original no se modifica).';
+            }
 
             foreach ([['width', 'ancho'], ['height', 'alto']] as [$field, $word]) {
                 $min = $rules["min_$field"] ?? null;
@@ -173,6 +181,15 @@ class MediaValidator
             $e[] = isset($rules['too_big_message'])
                 ? strtr($rules['too_big_message'], [':max' => $this->mb($maxBytes), ':size' => $this->mb($asset->size ?? $asset->declared_size)])
                 : "$noun pesa ".$this->mb($asset->size ?? $asset->declared_size)." y $label admite como maximo ".$this->mb($maxBytes).'.';
+        }
+
+        // Imagen por encima del tope de la red: se intenta una copia recomprimida (la original no se toca); si no baja, falla el guardado.
+        if (isset($rules['recompress_to_config']) && ! $asset->isVideo()) {
+            $cap = (int) config($rules['recompress_to_config']);
+            $size = (int) ($asset->size ?? $asset->declared_size);
+            if ($size > $cap && app(ImageDownscaler::class)->fit($asset, $cap) === null) {
+                $e[] = "$noun pesa ".$this->mb($size)." y $label admite como maximo ".$this->mb($cap).'; no se ha podido reducirla hasta ese tamano sin perder demasiada calidad. Usa una imagen mas pequena.';
+            }
         }
 
         if (isset($rules['min_duration']) || isset($rules['max_duration'])) {

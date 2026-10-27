@@ -724,12 +724,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-22 — Recompresión de imágenes (> tope) con GD
 
 - **Descripción**: `ImageDownscaler` crea una copia derivada y cacheada cuando la imagen supera `image_max_bytes`; si no baja, falla el guardado. Requisito: CA-03.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las imágenes de más de 2 MB se recomprimen en una copia para Bluesky (la original no se toca) y, si no se pueden reducir, se avisa al guardar.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-21
 - **Tipo**: backend
@@ -738,16 +739,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Media/ImageDownscalerTest.php` → en verde (3 MB → ≤ tope, copia cacheada, imposible → error al validar)
 
 **Criterios de aceptación**
-- [ ] Una imagen de 3 MB produce una copia derivada ≤ 2.000.000 bytes.
-- [ ] La copia se reutiliza por media y versión de regla.
-- [ ] Si no puede bajar del tope, el guardado falla con mensaje claro.
+- [x] Una imagen de 3 MB produce una copia derivada ≤ 2.000.000 bytes.
+- [x] La copia se reutiliza por media y versión de regla.
+- [x] Si no puede bajar del tope, el guardado falla con mensaje claro.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] `ImageDownscaler` con GD
-- [ ] Integración con la validación
+- [x] Test RED
+- [x] `ImageDownscaler` con GD
+- [x] Integración con la validación
 
 **Notas**: Patrón: `app/Services/MediaStorage.php` (copias y disco) y `app/Services/MediaProbe.php`. Tope por defecto 2.000.000 bytes (decisión del usuario 2026-10-27), configurable; bajar a 1.000.000 si un PDS lo exige. La original no se toca; se avisa de la recompresión.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Media/ImageDownscalerTest.php -> 8 passed (30 assertions): JPEG de >3 MB -> copia <= 2.000.000 bytes, copia reutilizada por media y version de regla, PNG aplanado a JPEG, tope imposible -> error claro en MediaValidator, fichero invalido sin romper, aviso de recompresion. Suites Media, Unit y Posts en verde.
 
 ### T-23 — `BlueskyPublisher`: texto, `Facets` e imágenes
 

@@ -54,8 +54,8 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 5 | 5 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 728k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 10 | 11 | 91% | 48,5 / 50,5h (estimado) | 6,56 / 6,83h (estimado) | 1,63 / 1,7h (estimado) | 1,96M / 2,05M (estimado) |
 | Fase 9 — C-04b · GIFs de Giphy | 7 | 7 | 100% | 18,5 / 18,5h (estimado) | 2,52 / 2,52h (estimado) | 0,63 / 0,63h (estimado) | 749k / 749k (estimado) |
-| Fase 10 — Transversal y cierre | 2 | 6 | 33% | 2,5 / 10,0h (estimado) | 0,34 / 1,36h (estimado) | 0,09 / 0,35h (estimado) | 101k / 405k (estimado) |
-| **TOTAL** | **71** | **77** | **92%** | **234,5 / 246,0h** | **31,79 / 33,21h** | **8,0 / 8,3h** | **9,49M / 9,96M** |
+| Fase 10 — Transversal y cierre | 5 | 6 | 83% | 7,0 / 10,0h (estimado) | 0,95 / 1,36h (estimado) | 0,25 / 0,35h (estimado) | 283k / 405k (estimado) |
+| **TOTAL** | **74** | **77** | **96%** | **239,0 / 246,0h** | **32,4 / 33,21h** | **8,16 / 8,3h** | **9,67M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1804,7 +1804,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 255k in / 28k out tok · ⚠️ verificar €
 - **Dependencias**: T-15, T-54
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Threads/ThreadsConnector.php`, `app/Connectors/Threads/ThreadsClient.php`, `app/Connectors/Meta/GraphErrors.php`, `app/Connectors/Meta/GraphClient.php`, `config/services.php`, `config/social.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php`, `app/Connectors/Network.php`, `app/Http/Controllers/ConnectionController.php`, `config/services.php`, `tests/Support/ThreadsFake.php`, `tests/Unit/Networks/NetworkCatalogTest.php`, `tests/Feature/Publishing/BlueskyPublishingTest.php`
+- **Archivos**: `app/Connectors/Threads/ThreadsConnector.php`, `app/Connectors/Threads/ThreadsClient.php`, `app/Connectors/Meta/GraphErrors.php`, `app/Connectors/Meta/GraphClient.php`, `config/services.php`, `config/social.php`, `app/Providers/AppServiceProvider.php`, `.env.example`, `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php`, `app/Connectors/Network.php`, `app/Http/Controllers/ConnectionController.php`, `config/services.php`, `tests/Support/ThreadsFake.php`, `tests/Unit/Networks/NetworkCatalogTest.php`, `tests/Feature/Publishing/BlueskyPublishingTest.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `tests/Feature/Connectors/Threads/ThreadsConnectorTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Connectors/Meta` → regresión de Meta en verde (caracterización previa)
@@ -1842,7 +1842,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-54, T-21
 - **Tipo**: backend
-- **Archivos**: `app/Enums/ContentType.php`, `config/media_specs.php`, `app/Support/TextLength.php`, `resources/js/Composables/textLength.js`, `tests/Unit/MediaValidator/ThreadsRulesTest.php`, `tests/Unit/MediaValidator/MediaValidatorTest.php`
+- **Archivos**: `app/Enums/ContentType.php`, `config/media_specs.php`, `app/Support/TextLength.php`, `resources/js/Composables/textLength.js`, `tests/Unit/MediaValidator/ThreadsRulesTest.php`, `tests/Unit/MediaValidator/MediaValidatorTest.php`, `resources/js/Components/Composer/NetworkCounters.vue`, `app/Http/Controllers/PostController.php`, `tests/Fixtures/text-length-cases.json`, `tests/Unit/TextLengthTest.php`, `tests/Feature/Connectors/Threads/ThreadsSurfacesTest.php`, `docs/roadmap/2026-10-26-metricool-parity-3/spec.md`, `docs/referencia/decisiones-por-red.md`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Unit/MediaValidator` → en verde (conteo de reglas actualizado y reglas de Threads)
 
@@ -1980,7 +1980,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-17, T-18, T-59
 - **Tipo**: fullstack
-- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `app/Connectors/Network.php`, `app/Services/ComposerPresetService.php`, `app/Services/ReportService.php`, `tests/Unit/Networks/NetworkCoverageTest.php`, `tests/Feature/Connectors/Threads/ThreadsSurfacesTest.php`
+- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `app/Connectors/Network.php`, `app/Services/ComposerPresetService.php`, `app/Services/ReportService.php`, `tests/Unit/Networks/NetworkCoverageTest.php`, `tests/Feature/Connectors/Threads/ThreadsSurfacesTest.php`, `app/Mcp/Tools/GetBestTimes.php`, `app/Mcp/Tools/SuggestHashtags.php`
 - **Cubre (tests)**: E2E-08
 - **Verificación**:
   - `php artisan test --compact tests/Unit/Networks/NetworkCoverageTest.php` → en verde con Threads
@@ -2289,7 +2289,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-69 — Pest de integración CA-15
 
 - **Descripción**: Buscar «gato», elegir un GIF y que se importe como media (API simulada).
-- **Changelog**:
+- **Changelog**: Probado de punta a punta que buscar «gato» en el buscador de GIFs y elegir uno importa su MP4 como media de la publicación.
 - **Estado**: completado
 - **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
@@ -2316,7 +2316,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-70 — E2E del buscador de GIFs con axe
 
 - **Descripción**: Escenario Playwright con Giphy simulado por el servidor de pruebas. Requisito: CA-15.
-- **Changelog**:
+- **Changelog**: El buscador de GIFs queda probado en escritorio y móvil, con accesibilidad (axe) y Giphy simulado.
 - **Estado**: completado
 - **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
@@ -2372,35 +2372,41 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 10 — Transversal y cierre
 
-**Estado**: en-progreso · **Estimado**: 10,0h · **Real**: 1,0h (estimado) · **Coste est.**: 600 € (con margen; base 500 €) · **Tokens est.**: 405k
+**Estado**: en-progreso · **Estimado**: 10,0h · **Real**: 4,5h (estimado) · **Coste est.**: 600 € (con margen; base 500 €) · **Tokens est.**: 405k
 
 ### T-72 — Paridad MCP: Bluesky y Threads en `list_accounts` y `create_post`
 
 - **Descripción**: `list_accounts` ofrece cuentas y tipos de Bluesky y Threads, y `create_post` los valida con el mismo `MediaValidator`. Verifica además que las vistas (T-11) y `get_stats` sin marca (T-33) tratan las dos redes. El CSV no tiene herramienta MCP (`generate_report` ya da CSV). Requisito: paridad web y MCP.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El servidor MCP describe las seis redes (Instagram, Facebook, YouTube, TikTok, Bluesky y Threads) y valida Bluesky y Threads con las mismas reglas que el compositor; sigue en 25 herramientas.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-27, T-61
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/ListAccounts.php`, `app/Mcp/Tools/CreatePost.php`, `app/Mcp/Tools/PostPayload.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpBlueskyThreadsTest.php`, `tests/Feature/Mcp/McpAuthTest.php`
+- **Archivos**: `app/Mcp/Tools/ListAccounts.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/GetBestTimes.php`, `app/Mcp/Tools/SuggestHashtags.php`, `app/Connectors/Network.php`, `tests/Feature/Mcp/Tools/McpBlueskyThreadsTest.php`, `docs/modulos/mcp.md`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp` → todo en verde (cuentas y tipos, mismos mensajes de error que la web, 25 herramientas)
 
 **Criterios de aceptación**
-- [ ] `create_post` con 301 grafemas en Bluesky falla con el mismo mensaje que el compositor.
-- [ ] `tools/list` ofrece exactamente 25 herramientas.
-- [ ] El `#[Instructions]` del servidor menciona Bluesky y Threads.
+- [x] `create_post` con 301 grafemas en Bluesky falla con el mismo mensaje que el compositor.
+- [x] `tools/list` ofrece exactamente 25 herramientas.
+- [x] El `#[Instructions]` del servidor menciona Bluesky y Threads.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Ajustes de descripción y de `PostPayload`
-- [ ] Actualizar instrucciones
+- [x] Test RED
+- [x] Ajustes de descripción y de `PostPayload`
+- [x] Actualizar instrucciones
 
 **Notas**: Patrón: `app/Mcp/Tools/{ListAccounts,CreatePost,PostPayload}.php` y `tests/Feature/Mcp/Tools/McpToolsTest.php`. El servidor queda en **25 herramientas** (22 + `add_comment_note`, `list_calendar_views`, `suggest_hashtags`), justo en el tope de `defaultPaginationLength = 25` de `SchedulerServer.php`: una 26.ª obligaría a subirlo. Actualizar el `#[Instructions]` del servidor.
+
+**Decisiones**: sin código nuevo en `CreatePost`/`PostPayload` (declarados por el plan, sin tocar; `ListAccounts` ya lo cambiaron T-27/T-61) ni en `McpAuthTest`; el recuento y las instrucciones se prueban en el test nuevo. Alcance ampliado: `docs/modulos/mcp.md`, y la revisión P3 F8 (A3) hace que los `enum` de red solo listen las disponibles.
+
+**Verificación ejecutada**: `php artisan test --compact tests/Feature/Mcp` -> 281/281 verdes (cuentas y tipos de las dos redes, mensaje de 250 banderas igual en MCP y web, `tools/list` = 25, instrucciones con las 6 redes). `ListAccounts`, `CreatePost` y `PostPayload` no cambian: ya trataban Bluesky y Threads por el catálogo `Network` (T-27, T-61), y el test lo demuestra.
+
 
 ### T-73 — Guía para el usuario: app password de Bluesky
 
@@ -2463,12 +2469,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-75 — Guía para el usuario: clave de Giphy y atribución
 
 - **Descripción**: Guía: crear la clave beta en developers.giphy.com, límites (100/h), cómo configurar `GIPHY_API_KEY` y la atribución «Powered by GIPHY»; revisar los ToS sobre republicar. Requisito: D4.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva guía para activar el buscador de GIFs: crear la clave de Giphy, límites, atribución «Powered by GIPHY» obligatoria y advertencias sobre los términos de uso.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-65
 - **Tipo**: docs
@@ -2477,40 +2484,49 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: la guía cubre clave, límites, atribución y la advertencia sobre ToS → completa; enlazada desde `docs/README.md`
 
 **Criterios de aceptación**
-- [ ] Queda claro que la atribución es obligatoria.
+- [x] Queda claro que la atribución es obligatoria.
 
 **Subtareas**
-- [ ] Redactar la guía
-- [ ] Enlazar desde el índice
+- [x] Redactar la guía
+- [x] Enlazar desde el índice
 
 **Notas**: Patrón: `docs/guias/google-cloud-picker-drive.md`. ⚠️ los términos sobre descargar y republicar el MP4 los confirma el usuario.
+
+**Verificación ejecutada**: lectura: docs/guias/giphy-api-key.md cubre clave (⚠️ pasos del panel sin verificar), límites (100/h de la clave y 90/h del tope), atribución obligatoria y advertencia sobre ToS (⚠️ no verificados, los confirma el usuario en M-03); enlazada desde docs/README.md. Sin red: los datos externos van marcados con ⚠️.
+
 
 ### T-76 — Documentación y despliegue: variables de `.env`, colas y recuento de herramientas
 
 - **Descripción**: Documentar las variables nuevas y el despliegue: `THREADS_APP_ID`, `THREADS_APP_SECRET`, `GIPHY_API_KEY`, topes `social.bluesky.*` y tiempos de sondeo; colas (`media` para el GIF; vídeo de Bluesky en el worker de 120 s); recuento de herramientas del MCP.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentadas las variables nuevas de despliegue (Bluesky, Threads, Giphy, ffmpeg), las colas y las cifras reales del README (25 herramientas, tests y documentos).
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
 - **Dependencias**: T-72, T-71, T-63
 - **Tipo**: devops
-- **Archivos**: `.env.example`, `docs/referencia/configuracion.md`, `docs/modulos/despliegue.md`, `docs/modulos/mcp.md`, `README.md`, `docs/README.md`
+- **Archivos**: `.env.example`, `.env.production.example`, `docs/referencia/configuracion.md`, `docs/modulos/despliegue.md`, `docs/modulos/mcp.md`, `README.md`, `docs/README.md`, `docs/referencia/pendientes-manuales.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: `grep -rn "22 herramientas" README.md docs` → sin resultados; cada variable de `.env.example` documentada en `configuracion.md`
 
 **Criterios de aceptación**
-- [ ] Cada variable nueva está en `.env.example` y documentada.
-- [ ] Ninguna cifra de herramientas obsoleta.
+- [x] Cada variable nueva está en `.env.example` y documentada.
+- [x] Ninguna cifra de herramientas obsoleta.
 
 **Subtareas**
-- [ ] Variables
-- [ ] Colas y despliegue
-- [ ] Recuento de herramientas
+- [x] Variables
+- [x] Colas y despliegue
+- [x] Recuento de herramientas
 
 **Notas**: Patrón: `.env.example`, `docs/referencia/configuracion.md`, `docs/modulos/despliegue.md:113,147` (workers de 120 s) y `README.md:41` / `docs/modulos/mcp.md:116,136` (hoy dicen 22 herramientas → 25). `MEDIA_DISK=local`.
+
+**Decisiones**: alcance ampliado con `.env.production.example` y `pendientes-manuales.md` (petición del usuario). Las colas no cambian: Bluesky y Threads usan `publish`/`poll`/`metrics`; el GIF, `media`.
+
+**Verificación ejecutada**: `grep -rn "22 herramientas" README.md docs` (sin `roadmap/`) -> sin resultados; cada variable de Bluesky, Threads, Giphy, FFMPEG/FFPROBE de `.env.example` aparece en `configuracion.md` (comprobado con un bucle: 15/15). Cifras del README contadas: 307 ficheros PHP y ~30.600 líneas en `app/`, 101 componentes Vue, 47 migraciones, 233 ficheros de test (2.424 tests Pest en el pase completo), 495 tests Playwright en 21 specs, 75 documentos en `docs/`, 8 iniciativas. P3-M-01..M-05 añadidos a `pendientes-manuales.md`.
+
 
 ### T-77 — Regresión final: Pest completo, Playwright en los 3 proyectos y Pint
 

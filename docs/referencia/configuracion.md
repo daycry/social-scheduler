@@ -42,7 +42,7 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» (también sin `GOOGLE_PICKER_APP_ID`) ([guía](../guias/google-cloud-picker-drive.md)) |
 | `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
 | `GIPHY_API_KEY` | vacío | Clave *beta* de Giphy (100 llamadas/hora); vacía = sin botón «GIF» en el compositor. La usa solo el servidor ([medios](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b)) |
-| `SOCIAL_GIPHY_HOURLY_LIMIT` | 90 | Llamadas reales a Giphy por hora antes de pedir esperar (las respuestas en caché no cuentan; `SOCIAL_GIPHY_CACHE_MINUTES`, 10) |
+| `SOCIAL_GIPHY_HOURLY_LIMIT` | 90 | Llamadas reales a Giphy por hora antes de pedir esperar (las respuestas en caché no cuentan; `SOCIAL_GIPHY_CACHE_MINUTES`, 10). Guía: [Giphy](../guias/giphy-api-key.md) |
 | `MEDIA_IMPORT_QUEUE` | `media` | Cola de `ImportRemoteMedia` |
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 | Segundos de descarga por pasada |
 | `MEDIA_IMPORT_FINALIZE_RESERVE_SECONDS` | 10 | Reserva para validar al final de la pasada |
@@ -62,8 +62,11 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `R2_URL` | vacío | Dominio público del bucket |
 | `R2_REGION` | `auto` | |
 | `R2_CONNECT_TIMEOUT`, `R2_TIMEOUT` | `3`, `5` | Segundos; evitan colgar el request si R2 no responde |
+| `FFPROBE_BINARY`, `FFPROBE_TIMEOUT` | `ffprobe`, `60` | Binario obligatorio para validar vídeo (duración, fps, códec) |
+| `FFMPEG_BINARY`, `FFMPEG_TIMEOUT` | `ffmpeg`, `60` | Recomendado: recomprime con poca memoria las fotos de más de 2 MB para Bluesky; sin él se usa GD (carga la imagen entera). `MEDIA_DOWNSCALE_BUDGET_SECONDS` (90) acota la pasada |
 
-Los límites de tamaño y sondeo (`MEDIA_*`, `FFPROBE_*`) no están en `.env.example`; ver [media](../modulos/media.md).
+
+Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`; ver [media](../modulos/media.md).
 
 ## Credenciales de las redes
 
@@ -76,6 +79,10 @@ Los límites de tamaño y sondeo (`MEDIA_*`, `FFPROBE_*`) no están en `.env.exa
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente web de Google Cloud. Consentimiento "En producción" para que el refresh token no caduque |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | App de TikTok (sandbox o producción) |
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
+| `BLUESKY_ENABLED` | `true`. `false` retira Bluesky de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conecta con una app password cifrada: [guía](../guias/bluesky-app-password.md) |
+| `BLUESKY_IMAGE_MAX_BYTES`, `BLUESKY_VIDEO_MAX_BYTES` | `2000000` y `52428800` bytes. Topes de media; la foto mayor se recomprime y el vídeo mayor se rechaza al guardar |
+| `BLUESKY_UPLOAD_TIMEOUT` | `80`. Segundos de la subida del vídeo (una petición dentro de los 85 s del paso del job de 110 s) |
+| `BLUESKY_ENTRYWAY`, `BLUESKY_PLC_DIRECTORY`, `BLUESKY_APPVIEW`, `BLUESKY_VIDEO_SERVICE`, `BLUESKY_ALLOWED_HOSTS`, `BLUESKY_DEFAULT_LANGS` | Ver `config/social.php`. Hosts fijos (lista cerrada contra SSRF) e idioma por defecto (`es`); no hace falta tocarlos |
 | `THREADS_APP_ID`, `THREADS_APP_SECRET` | ID y secreto **de Threads** de la app de Meta (hay dos pares; Configuración → Básica). Sin `THREADS_APP_ID` la red no se ofrece. Guía: [Threads](../guias/threads-app-meta.md) |
 | `THREADS_ENABLED` | `true`. `false` retira Threads de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan) |
 | `THREADS_AUTH_HOST`, `THREADS_GRAPH_HOST`, `THREADS_API_VERSION` | `https://threads.com`, `https://graph.threads.com` y `v1.0` (en `config/social.php`, por si Meta los cambia) |
@@ -91,6 +98,7 @@ Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
 | `SOCIAL_REFRESH_MARGIN_META_HOURS` | `168` | Renueva 7 días antes |
 | `SOCIAL_REFRESH_MARGIN_GOOGLE_HOURS` | `1` | |
 | `SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS` | `6` | Access de 24 h |
+| `SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS` | `1` | La sesión de Bluesky dura minutos; se renueva con el refresh token |
 | `SOCIAL_REFRESH_MARGIN_THREADS_HOURS` | `168` | Token largo de 60 días; la renovación exige ≥ 24 h de antigüedad |
 | `SOCIAL_REFRESH_QUEUE` | `poll` | |
 | `SOCIAL_HTTP_TIMEOUT` | `15` | Segundos por llamada a una red |

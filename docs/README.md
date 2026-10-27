@@ -1,8 +1,8 @@
 # Social Scheduler — documentación
 
-Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube y TikTok. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
+Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-10-26
+Última actualización: 2026-10-27
 
 ## Por dónde empezar
 
@@ -19,6 +19,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Activar «Google Drive» en el compositor y reconectar YouTube para el primer comentario | [Guía de Google Cloud](guias/google-cloud-picker-drive.md) |
 | Conectar Bluesky con una app password (alta, email verificado para vídeo, revocación) | [Guía de Bluesky](guias/bluesky-app-password.md) |
 | Conectar Threads con una app de Meta (ID y secreto de Threads, URI de redirección, tester y App Review) | [Guía de Threads](guias/threads-app-meta.md) |
+| Activar el buscador de GIFs (clave de Giphy, límites, atribución «Powered by GIPHY» y términos) | [Guía de Giphy](guias/giphy-api-key.md) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)

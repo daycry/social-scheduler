@@ -43,7 +43,30 @@ class BlueskySession
             throw new BlueskyException('Bluesky devolvio una sesion que no corresponde a esa cuenta.', 'DidMismatch', 400);
         }
 
-        return ['did' => $did, 'handle' => (string) ($session['handle'] ?? $identifier), 'pds' => $pds, 'session' => $session];
+        return ['did' => $did, 'handle' => $this->verifiedHandle($did, $identifier, (string) ($session['handle'] ?? '')), 'pds' => $pds, 'session' => $session];
+    }
+
+    /**
+     * CWE-345: el handle que declara el PDS no se da por bueno. Solo se muestra si resuelve (por el entryway fijo) al mismo DID;
+     * si no, o no se puede comprobar, se usa el DID.
+     */
+    private function verifiedHandle(string $did, string $identifier, string $claimed): string
+    {
+        $claimed = strtolower(trim($claimed));
+        if ($claimed === '') {
+            return str_starts_with($identifier, 'did:') ? $did : strtolower($identifier);
+        }
+
+        // El handle escrito por el usuario ya se resolvio a este DID al abrir la sesion: no hace falta repetirlo.
+        if (! str_starts_with($identifier, 'did:') && $claimed === strtolower($identifier)) {
+            return $claimed;
+        }
+
+        try {
+            return $this->client->resolveHandle($claimed) === $did ? $claimed : $did;
+        } catch (\Throwable) {
+            return $did;
+        }
     }
 
     /** Fecha de caducidad (`exp`) de un JWT. Se lee SIN verificar la firma: solo sirve para planificar la renovacion. */

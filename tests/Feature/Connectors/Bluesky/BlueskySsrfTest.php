@@ -247,3 +247,25 @@ test('manejador real: la peticion llega por la IP fijada (CURLOPT_RESOLVE) y un 
     // Se hizo la peticion inicial, pero NO la del `Location`.
     expect(bskyLoopbackHits())->toBe(['/xrpc/com.atproto.server.createSession', '/xrpc/com.atproto.repo.getRecord']);
 });
+
+test('N4: un handle que el PDS declara y no resuelve al mismo DID se sustituye por el DID', function () {
+    BlueskyFake::dns();
+    Http::fake([
+        'bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=ana.example.com' => Http::response(['did' => BlueskyFake::DID]),
+        'bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=victima.example.com' => Http::response(['did' => 'did:plc:zzzzzzzzzzzzzzzzzzzzzzzz']),
+        'plc.directory/'.BlueskyFake::DID => Http::response(['id' => BlueskyFake::DID, 'service' => [['id' => '#atproto_pds', 'serviceEndpoint' => BlueskyFake::PDS]]]),
+        'pds.example.com/xrpc/com.atproto.server.createSession' => Http::response(['accessJwt' => BlueskyFake::jwt(), 'refreshJwt' => 'R', 'did' => BlueskyFake::DID, 'handle' => 'victima.example.com']),
+    ]);
+
+    $opened = app(BlueskySession::class)->open('ana.example.com', 'app-pass');
+
+    expect($opened['did'])->toBe(BlueskyFake::DID)->and($opened['handle'])->toBe(BlueskyFake::DID);
+});
+
+test('N4: un handle que resuelve al mismo DID se conserva', function () {
+    BlueskyFake::connect();
+
+    $opened = app(BlueskySession::class)->open(BlueskyFake::DID, 'app-pass');
+
+    expect($opened['handle'])->toBe('ana.example.com');
+});

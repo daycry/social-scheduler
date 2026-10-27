@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\PostValidationException;
+use App\Models\CalendarView;
 use App\Models\Post;
 use App\Services\CalendarService;
+use App\Services\CalendarViewService;
 use App\Services\PostService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +23,7 @@ class CalendarController extends Controller
     public function __construct(
         private readonly CalendarService $calendar,
         private readonly PostService $posts,
+        private readonly CalendarViewService $views,
     ) {}
 
     public function index(Request $request): Response
@@ -32,10 +35,24 @@ class CalendarController extends Controller
             'network' => ['nullable', 'string', 'max:20'],
             'status' => ['nullable', 'string', 'max:20'],
             'q' => ['nullable', 'string', 'max:100'],
+            'saved_view' => ['nullable', 'integer'],
         ]);
 
+        // Vista guardada (C-03a): `saved_view=<id>` aplica sus filtros (mandan sobre los de la URL; la fecha se conserva). Sin ningún
+        // parámetro de filtro se abre la vista por defecto. La de otro usuario responde 404.
+        $user = $request->user();
+        $active = null;
+        if (! empty($filters['saved_view'])) {
+            $active = CalendarView::query()->findOrFail((int) $filters['saved_view']);
+        } elseif (! $request->hasAny(['view', 'date', 'brand_id', 'network', 'status', 'q', 'saved_view'])) {
+            $active = $this->views->default($user);
+        }
+        if ($active) {
+            $filters = array_merge(array_diff_key($filters, array_flip(['brand_id', 'network', 'status', 'view'])), $this->views->filtersFor($user, $active));
+        }
+
         try {
-            $data = $this->calendar->build($request->user(), $filters);
+            $data = $this->calendar->build($user, $filters);
         } catch (InvalidArgumentException $e) {
             abort(404, $e->getMessage());
         }
@@ -47,6 +64,8 @@ class CalendarController extends Controller
                 'status' => $filters['status'] ?? null,
                 'q' => $filters['q'] ?? null,
             ],
+            'views' => $this->views->list($user)->map(fn (CalendarView $v) => $this->views->toArray($v))->values(),
+            'active_view' => $active?->id,
             'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error'), 'publishing_post_id' => $request->session()->get('publishing_post_id')],
         ]);
     }

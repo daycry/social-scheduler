@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
+import ViewsMenu from '@/Components/Calendar/ViewsMenu.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -26,6 +27,8 @@ const props = defineProps({
     undated: Array,
     truncated: Boolean,
     filters: Object,
+    views: { type: Array, default: () => [] },
+    active_view: { type: Number, default: null },
     flash: Object,
 });
 
@@ -189,6 +192,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <span class="text-xs text-slate-500">Zona horaria: {{ timezone }}</span>
 
                     <div class="ml-auto flex flex-wrap items-center gap-2 text-sm">
+                        <ViewsMenu :views="views" :active-view="active_view" :filters="filters" :view="view" :date="date" />
                         <select :value="filters.brand_id ?? ''" class="field w-auto py-1.5" aria-label="Marca" @change="setFilter('brand_id', $event.target.value)">
                             <option value="">Todas las marcas</option>
                             <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>

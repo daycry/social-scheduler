@@ -353,12 +353,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-10 — UI del calendario: selector de vistas, guardar, renombrar, borrar y vista por defecto
 
 - **Descripción**: Selector de vistas en `Calendar/Index.vue` con «Guardar vista», renombrar, borrar y por defecto. Requisito: CA-11.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El calendario tiene un menú «Vistas»: guarda los filtros actuales, aplica una vista, la renombra, la borra o la fija por defecto.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 4,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,54h · real —
-- **Supervisión**: est. 0,14h (≈25 % IA) · real —
+- **Tiempo humano**: est. 4,0h · real 4,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,54h · real 0,54h (estimado)
+- **Supervisión**: est. 0,14h (≈25 % IA) · real 0,14h (estimado)
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-09
 - **Tipo**: frontend
@@ -367,16 +368,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Ui/CalendarViewsPageTest.php` → props con `views` y aplicación de `view` en verde
 
 **Criterios de aceptación**
-- [ ] Elegir una vista aplica marca, red, estado y vista.
-- [ ] Guardar, renombrar y borrar desde el menú.
-- [ ] La vista por defecto se aplica al abrir el calendario.
+- [x] Elegir una vista aplica marca, red, estado y vista.
+- [x] Guardar, renombrar y borrar desde el menú.
+- [x] La vista por defecto se aplica al abrir el calendario.
 
 **Subtareas**
-- [ ] Props `views` y `view` en el controlador
-- [ ] Componente `ViewsMenu.vue`
-- [ ] Estados vacío y de error
+- [x] Props `views` y `view` en el controlador
+- [x] Componente `ViewsMenu.vue`
+- [x] Estados vacío y de error
 
-**Notas**: Patrón: filtros de `resources/js/Pages/Calendar/Index.vue` (la lista de redes lee el catálogo desde T-17) y menú de `Composer/SavedTextsMenu.vue`. Móvil 375/360 sin desborde.
+**Notas**: Patrón: filtros de `resources/js/Pages/Calendar/Index.vue` (la lista de redes lee el catálogo desde T-17) y menú de `Composer/SavedTextsMenu.vue`. Móvil 375/360 sin desborde. Nota de implementación: en la web la vista se elige con `saved_view=<id>` (el parámetro `view` ya es semana/mes/lista); props `views` y `active_view`. La vista por defecto se aplica solo si la URL no trae ningún filtro. Una vista con marca borrada se abre sin esa marca.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ui/CalendarViewsPageTest.php -> 5 passed; tests/Feature/Calendar sin regresión (33 passed); npm run build OK
 
 ### T-11 — MCP: `list_calendar_views` y parámetro `view` en `get_calendar`
 

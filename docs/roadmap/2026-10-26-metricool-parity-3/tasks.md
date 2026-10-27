@@ -293,12 +293,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-08 — Migración, modelo y factoría de `CalendarView`
 
 - **Descripción**: Tabla `calendar_views` (`user_id`, `name`, `filters` JSON con marca, red, estado y vista, `is_default`). Requisito: CA-11.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Base de datos de las vistas guardadas del calendario: nombre, filtros y vista por defecto.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 1,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,14h · real —
-- **Supervisión**: est. 0,04h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,0h · real 1,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,14h · real 0,14h (estimado)
+- **Supervisión**: est. 0,04h (≈25 % IA) · real 0,04h (estimado)
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: db
@@ -307,15 +308,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Calendar/CalendarViewModelTest.php` → en verde (aislamiento y casting de `filters`)
 
 **Criterios de aceptación**
-- [ ] Migración aditiva y reversible.
-- [ ] `UserScope` aísla por usuario.
-- [ ] `filters` se castea a array.
+- [x] Migración aditiva y reversible.
+- [x] `UserScope` aísla por usuario.
+- [x] `filters` se castea a array.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Migración, modelo y factoría
+- [x] Test RED
+- [x] Migración, modelo y factoría
 
 **Notas**: Patrón: `app/Models/SavedText.php` y `Concerns/BelongsToUser.php`. Filtros de un solo valor (supuesto de la evaluación; varios valores serían +4h). Migración aditiva.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Calendar/CalendarViewModelTest.php -> 4 passed (7 assertions); php artisan migrate aplicada
 
 ### T-09 — `CalendarViewService`, request, controlador y rutas CRUD
 

@@ -203,6 +203,9 @@ class BlueskyPublisher implements Publisher, StatusPoller
             '$type' => 'app.bsky.embed.video',
             'video' => $blob,
             'aspectRatio' => $media?->width && $media->height ? ['width' => (int) $media->width, 'height' => (int) $media->height] : null,
+            // Un MP4 que viene de un GIF de Giphy se marca como GIF (sin controles, en bucle). ⚠️ Campo del lexicon `app.bsky.embed.video` NO
+            // verificado sin red (design.md:405 lo da por verificado): comprobar en el smoke contra un PDS real.
+            'presentation' => $media?->source === 'giphy' ? 'gif' : null,
         ], fn ($v) => $v !== null);
 
         return $this->create($account, $request, $this->record($request, $embed), $rkey);

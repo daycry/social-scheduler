@@ -100,6 +100,17 @@ test('el sondeo pasa de procesando a publicada con el enlace de bsky.app', funct
         ->and($sent['record']['text'])->toBe('Mi video #bluesky')->and($sent['record']['facets'])->toHaveCount(1);
 });
 
+test('B: el MP4 de un GIF de Giphy se publica con presentation gif y uno normal no lo lleva', function (?string $source, ?string $expected) {
+    fakeBskyVideoServices();
+    $media = new PublishMedia(id: 12, kind: 'video', mime: 'video/mp4', url: 'x', width: 480, height: 270, duration: 3.0, size: 300_000, disk: 'local', path: 'media/test/v.mp4', source: $source);
+    $request = new PublishRequest(targetId: 1, type: ContentType::BlueskyVideo, text: 'GIF', media: [$media], progress: ['rkey' => Tid::generate(), 'phase' => 'processing'], reference: 'job-123');
+
+    $this->publisher->poll($this->account, $request);
+
+    $sent = Http::recorded()->first(fn ($pair) => str_contains($pair[0]->url(), 'createRecord'))[0];
+    expect($sent['record']['embed']['presentation'] ?? null)->toBe($expected);
+})->with(['giphy' => ['giphy', 'gif'], 'subida' => ['upload', null], 'sin origen' => [null, null]]);
+
 test('un trabajo FAILED se traduce con su codigo', function () {
     fakeBskyVideoServices(['video.bsky.app/xrpc/app.bsky.video.getJobStatus*' => Http::response(['jobStatus' => ['jobId' => 'job-123', 'state' => 'JOB_STATE_FAILED', 'error' => 'VideoTooLong', 'message' => 'Video is too long']])]);
 

@@ -650,7 +650,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Un test de regresión demuestra que `RefreshSocialAccount` no marca reconexión con `refresh_expires_at` nulo.
 
 **Subtareas**
-- [x] Test RED
+- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo)
 - [x] Cliente XRPC
 - [x] Sesión con bloqueo y recuperación
 
@@ -687,7 +687,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] El secreto no aparece en props, logs ni auditoría.
 
 **Subtareas**
-- [x] Test RED
+- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo)
 - [x] Controlador y ruta
 - [x] Formulario
 
@@ -863,7 +863,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] La `rkey` se persiste antes de la llamada.
 
 **Subtareas**
-- [x] Test RED (CA-04)
+- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo) (CA-04)
 - [x] TID
 - [x] `findPublished` y errores
 
@@ -896,7 +896,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `NetworkCoverageTest` (T-18) sigue en verde.
 
 **Subtareas**
-- [x] Test RED (CA-06)
+- Test RED: NO REGISTRADO (sin casilla marcada: no se reconstruye un RED retrospectivo) (CA-06)
 - [x] Lector de insights
 - [x] Entradas de `Metric` y `SUPPORTED`
 
@@ -2406,9 +2406,15 @@ Lentes A+B+C+D sobre las correcciones `8df0324..3408763`. **C-1 (SSRF) está cer
 
 | # | Grado | Gap | Tarea | Corrección | Evidencia |
 |---|---|---|---|---|---|
-| N1 (B-2) | Important | Con los 256 MB de producción, la validación rechaza las fotos de más de unos 14 MP y más de 2 MB («demasiado grande para reducirla»): una foto normal de móvil no se puede guardar para Bluesky. El test lo esconde con `memory_limit=4G`, y la decisión usa la memoria del proceso web, no la del worker | T-22 | pendiente | `MediaValidator.php:192`, `ImageDownscaler.php:109`, `ImageDownscalerTest.php:122`; sonda `p_mem.php` |
-| N2 | Minor | `reschedule` no comprueba `isAvailable()`: con Bluesky desactivado, un destino se puede reprogramar y vuelve a fallar | T-26 | pendiente | `PostService.php:315-339` |
-| N3 | Minor | Si se agota la espera del lock de recompresión, se lanza `PermanentPublishException` cuando debería ser transitoria | T-22 | pendiente | `ImageDownscaler.php:86-88` |
-| N4 | Minor | No se verifica el handle que devuelve el PDS: una marca propia podría mostrar el handle de otra persona (CWE-345) | T-19 | pendiente | `BlueskySession.php:46` |
-| N5 | Minor | La orientación EXIF depende de `ext-exif`, que no se declara en `composer.json` ni en `deploy/hestia/README.md` | T-22 | pendiente | `ImageDownscaler.php:133` |
-| N6 | Minor | T-19..T-26 siguen con `[x] Test RED` aunque la nota dice «RED no registrado» | T-19..T-26 | pendiente | ledger |
+| N1 (B-2) | Important | Con los 256 MB de producción, la validación rechaza las fotos de más de unos 14 MP y más de 2 MB («demasiado grande para reducirla»): una foto normal de móvil no se puede guardar para Bluesky. El test lo esconde con `memory_limit=4G`, y la decisión usa la memoria del proceso web, no la del worker | T-22 | corregido (0afacd3) | `MediaValidator.php:192`, `ImageDownscaler.php:109`, `ImageDownscalerTest.php:122`; sonda `p_mem.php` |
+| N2 | Minor | `reschedule` no comprueba `isAvailable()`: con Bluesky desactivado, un destino se puede reprogramar y vuelve a fallar | T-26 | corregido (e612cfe) | `PostService.php:315-339` |
+| N3 | Minor | Si se agota la espera del lock de recompresión, se lanza `PermanentPublishException` cuando debería ser transitoria | T-22 | corregido (0afacd3) | `ImageDownscaler.php:86-88` |
+| N4 | Minor | No se verifica el handle que devuelve el PDS: una marca propia podría mostrar el handle de otra persona (CWE-345) | T-19 | corregido (6d0a9bc) | `BlueskySession.php:46` |
+| N5 | Minor | La orientación EXIF depende de `ext-exif`, que no se declara en `composer.json` ni en `deploy/hestia/README.md` | T-22 | corregido (0afacd3) | `ImageDownscaler.php:133` |
+| N6 | Minor | T-19..T-26 siguen con `[x] Test RED` aunque la nota dice «RED no registrado» | T-19..T-26 | corregido (T-19, T-20, T-25 y T-26 sin casilla; ver nota) | ledger |
+
+**Correcciones del intento 2 (Fase 3).**
+- N1 (0afacd3): `ImageDownscaler` reduce con `ffmpeg` (`media.ffmpeg`, `FFMPEG_BINARY`; descodifica fuera de PHP y aplica la orientación EXIF con `autorotate`), copiando el original a un temporal por flujo. Sin ffmpeg recurre a GD con la comprobación de memoria, ahora en el worker y con el mensaje «instala ffmpeg o usa una imagen más pequeña». La validación web ya no mira `memory_get_usage()`: solo el tope de 50 MP (`exceedsPixelCap`). Cifras con `memory_limit=256M` real (proceso hijo, foto de 24 MP y 16,3 MB): copia de 1,93 MB a 4096×2730 y pico de memoria de PHP de 26 MB (GD pedía ~384 MB). El test del `memory_limit=4G` se quitó.
+- N3: agotar la espera del lock lanza `TransientPublishException` (`media_ocupada`). N5: lector propio de la orientación EXIF en `ImageDownscaler::exifOrientation`, sin `ext-exif`; `deploy/hestia/README.md` y `docs/stack.md` declaran `ffmpeg`.
+- N2 (e612cfe): `PostService::reschedule` rechaza los destinos de una red no disponible. N4 (6d0a9bc): `BlueskySession::open` solo muestra el handle del PDS si resuelve al mismo DID por el entryway fijo; si no, usa el DID.
+- N6: T-19, T-20, T-25 y T-26 pierden la casilla `[x] Test RED` (su nota dice «RED no registrado») y quedan como línea «Test RED: NO REGISTRADO»; una casilla `[ ]` en una tarea completada la rechaza `ledger-lint`.

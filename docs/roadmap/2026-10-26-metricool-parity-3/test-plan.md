@@ -179,6 +179,32 @@
   - [ ] Los 4 tipos se publican.
   - [ ] El conteo de emojis coincide con el de Threads.
   - [ ] Límites y métricas reales anotados.
+- **Pasos (preparados en T-64; se ejecutan con la app de Meta y la cuenta reales)**:
+
+  1. **Conectar.** Conexiones → Threads → «+ Conectar» → `threads.com` → aceptar los tres permisos. Esperado: «Conectada» y el nombre de usuario; `token_expires_at` a unos 60 días y `refresh_token` nulo (`php artisan tinker` → `App\Models\SocialAccount::latest('id')->first()`). Probar antes **cancelar** en `threads.com`: mensaje claro y nada guardado.
+  2. **Texto con emojis al límite.** Un texto que el contador marque `500 / 500` con emojis sueltos (cohete, corazón) y otro con secuencias compuestas (familia con unión de ancho cero, bandera, emoji con tono de piel); publicarlos. Esperado: Threads acepta 500 y rechaza 501. **Anotar para cada secuencia** cuántos caracteres cuenta Threads frente a nuestro contador (⚠️ de la regla de emojis).
+  3. **Imagen.** JPEG con texto y luego una PNG. Esperado: «Publicada» con enlace; Threads descarga la imagen de la URL firmada.
+  4. **Vídeo.** MP4 de menos de 5 min. Esperado: «Procesando» y luego «Publicada» (anotar cuánto tarda en `FINISHED`). Probar uno fuera de reglas que el validador deje pasar (por ejemplo de más de 60 fps) para ver el `error_message` real del contenedor.
+  5. **Carrusel.** 3 imágenes (y, si se puede, 2 imágenes + 1 vídeo). Esperado: **un** post con todas y un solo gasto de cuota.
+  6. **Cuota.** `app(App\Connectors\Threads\ThreadsClient::class)->get($cuenta->external_id.'/threads_publishing_limit', ['fields' => 'quota_usage,config'], $cuenta->access_token)`. Anotar `quota_usage`, `quota_total` y `quota_duration` (¿250 y 86400?).
+  7. **Métricas** (pasadas unas horas): `app(App\Analytics\SnapshotCollector::class)->collectAccount($cuenta, App\Analytics\Days::closed(App\Connectors\Network::Threads))` y `collectPosts($cuenta, 48)`. Esperado en el dashboard de Threads: visitas al perfil, me gusta, respuestas, compartidos, clics y seguidores; por publicación vistas e interacciones. Anotar qué llega y qué queda «No disponible».
+  8. **Renovación.** Con el token de más de 24 h: `app(App\Connectors\Threads\ThreadsConnector::class)->refresh($cuenta)`. Esperado: token nuevo de unos 60 días.
+  9. **App Review.** Con todo lo anterior hecho solo con tu cuenta como *tester*, confirmar que **no** hizo falta enviar la app a revisión. Si Meta la exigiera, dejar `THREADS_APP_ID` vacío (la red desaparece sin tocar Facebook ni Instagram) y anotarlo.
+
+  **⚠️ a resolver y anotar** (T-54 y diseño §7):
+
+  | ⚠️ | Qué comprobar | Resultado (rellenar) |
+  |---|---|---|
+  | Modo desarrollo | ¿Publicar y leer métricas funciona sin App Review con la cuenta como *tester*? | |
+  | Regla de emojis | Cuántos caracteres cuenta Threads por emoji suelto y por secuencia compuesta (ZWJ, banderas, tonos). Si no coincide con `TextLength::threads` y `textLength.js`, ajustar ambos y `tests/Fixtures/text-length-cases.json` | |
+  | Token en la petición | Los POST llevan `access_token` en el cuerpo y los GET en la query (como documenta Meta). ¿Acepta también `Authorization: Bearer`? Solo para decidir si se saca el token de la URL en los GET | |
+  | Códigos de error propios | Código y mensaje reales de cuota agotada, permiso no concedido, texto demasiado largo y más de 5 enlaces (`THREADS_API__LINK_LIMIT_EXCEEDED`); hoy se reutilizan los de Graph (`GraphErrors`) | |
+  | Permisos concedidos | `scopes` guardados (los pedidos) frente a los realmente concedidos | |
+  | IDs y *permalink* | ¿`threads_publish` devuelve el ID de la publicación y `GET /{id}?fields=permalink` el enlace? ¿Qué ID queda en un contenedor `PUBLISHED` sin localizar? | |
+  | Búsqueda de lo ya publicado | `GET /{user}/threads` devuelve el texto idéntico al enviado (con enlaces, saltos de línea y emojis) | |
+  | Día de las métricas | Zona real de `end_time` de las series diarias (`America/Los_Angeles`: 08:00 UTC en invierno) y el rango desde 2024-04-13 con `since`/`until` Unix | |
+  | Métricas «en desarrollo» | `views` y `shares` del post: ¿llegan con valores o error? | |
+- **Resultado (rellenar por el usuario):** fecha · cuenta · cada paso OK/KO · enlaces de los posts · hallazgos.
 - **Cubre tareas**: T-64
 
 ### M-03 — Giphy: términos y atribución

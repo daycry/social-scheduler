@@ -2476,3 +2476,21 @@ Lentes A+B+C+D sobre las correcciones `8df0324..3408763`. **C-1 (SSRF) está cer
 - N3: agotar la espera del lock lanza `TransientPublishException` (`media_ocupada`). N5: lector propio de la orientación EXIF en `ImageDownscaler::exifOrientation`, sin `ext-exif`; `deploy/hestia/README.md` y `docs/stack.md` declaran `ffmpeg`.
 - N2 (e612cfe): `PostService::reschedule` rechaza los destinos de una red no disponible. N4 (6d0a9bc): `BlueskySession::open` solo muestra el handle del PDS si resuelve al mismo DID por el entryway fijo; si no, usa el DID.
 - N6: T-19, T-20, T-25 y T-26 conservan el texto del criterio «Test RED» (lo exige `scope-check`: un criterio aprobado no se reescribe) y la casilla (la exige `ledger-lint`: una `[ ]` en una tarea completada es incoherencia dura), pero la línea declara «⚠️ RED NO REGISTRADO: sin salida roja». La nota de cada tarea ya lo decía; ahora también la propia línea.
+
+## Revisión de dos lentes — intento 1: Fase 4-5 (T-31..T-42) — 0 Important, 7 Minor
+
+Lentes A+B+C+D sobre `3408763..050d2fc`. **La revisión se cierra sin gaps Critical ni Important.**
+
+- Lente C (seguridad): sin IDOR, sin fuga de caché entre usuarios (la clave incluye `user_id`) y sin inyección de cabeceras (`Str::slug`). Hay throttle de 30/min.
+- Lente D (rendimiento): 20 marcas = 61 consultas y 399 ms en frío. El CSV de 6.000 destinos tarda 682 ms con +6,9 MB.
+- Tests: 384/384.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Minor | La spec pide un aviso en la última fila del CSV cuando se supera el tope. Lo implementado avisa por cabeceras y en la Lista, pero el fichero no lo indica y no hay ninguna decisión registrada | T-39 | pendiente | `ExportController.php:208-211`, `spec.md:208` |
+| A2 | Minor | T-32 no tiene línea RED | T-32 | pendiente (anotar) | ledger |
+| A3 | Minor | El commit de T-36 (0e2805a) incluye `docs/knowledge/journal/**` y `.curation-lock`, que no deben commitearse nunca (norma del usuario) | T-36 | pendiente (commit correctivo que los saca del índice; recomendar *squash merge*) | `git show --stat 0e2805a` |
+| B1 | Minor | La caché de 5 min no se invalida al crear o borrar una marca ni al llegar un snapshot | T-31 | pendiente | `AggregateAnalytics.php:370-372` |
+| B2 | Minor | Los borradores sin fecha salen en la Lista pero no en el CSV, en contra de CA-13 | T-39 | pendiente | `CalendarService.php:571-579` |
+| C1 | Minor | Los caracteres VT, FF, NEL, U+2028 y U+2029 se aplanan después de neutralizar, así que `\x0B=1+1` queda como ` =1+1` sin el apóstrofo (CWE-1236) | T-37 | pendiente | `CsvWriter.php:741,760` |
+| D1 | Minor | `exportSummary()` corre en cada carga de la Lista con un join a snapshots que no necesita | T-39 | pendiente | `CalendarService.php:600` |

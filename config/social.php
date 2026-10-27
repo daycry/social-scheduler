@@ -197,7 +197,7 @@ return [
 
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
-        /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */
+        /* Minutos que se cachea Â«Todas las marcasÂ» por usuario y periodo (0 = sin cache). */
         'all_brands_cache_minutes' => (int) env('SOCIAL_ALL_BRANDS_CACHE_MINUTES', 5),
         /* Al conectar una cuenta se encola el historico inicial (T-36). */
         'backfill_on_connect' => (bool) env('SOCIAL_BACKFILL_ON_CONNECT', true),
@@ -348,7 +348,7 @@ return [
         'daily_limit' => (int) env('AI_ASSISTANT_DAILY_LIMIT', 20),
         /* Tope diario GLOBAL (todos los usuarios) de sugerencias; 0 = sin tope. Protege el gasto de la clave compartida. */
         'global_daily_limit' => (int) env('AI_ASSISTANT_GLOBAL_DAILY_LIMIT', 200),
-        /* «Escribe cuando» (C-04c): la fecha propuesta no puede quedar a mas de estos dias. */
+        /* Â«Escribe cuandoÂ» (C-04c): la fecha propuesta no puede quedar a mas de estos dias. */
         'schedule_max_days' => (int) env('AI_ASSISTANT_SCHEDULE_MAX_DAYS', 365),
     ],
 ];

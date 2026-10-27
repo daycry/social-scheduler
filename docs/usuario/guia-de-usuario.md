@@ -64,6 +64,10 @@ Por ahora el vídeo se envía como **borrador a tu bandeja de TikTok**: recibir�
 
 Vista de semana o mes (y lista) con el estado por red. Puedes filtrar por red y reprogramar una publicación pendiente moviéndola.
 
+### Vistas guardadas
+
+Si usas siempre los mismos filtros, guárdalos: filtra el calendario por marca, red y estado (y elige Semana, Mes o Lista), abre **Vistas**, escribe un nombre (por ejemplo «Pendientes IG») y pulsa **Guardar vista**. Más tarde, desde cualquier otro filtro, abre **Vistas** y elige esa vista: se vuelven a aplicar la marca, la red, el estado y la vista. Desde el mismo menú puedes **Renombrar**, **Borrar** o **Poner por defecto** una vista: la de por defecto se aplica sola al abrir el calendario sin filtros. Un asistente de IA (MCP) las lee con `list_calendar_views` y las usa con `get_calendar` y `view`.
+
 ### Cuadrícula de Instagram
 
 En **Planificación > Cuadrícula** ves cómo quedará el perfil de una cuenta de Instagram de la marca (si hay varias, las eliges arriba). Son tres columnas, como en Instagram: primero lo **programado** (con su fecha; la más tardía primero y un clic abre el compositor) y debajo lo **ya publicado** (un clic abre la publicación en Instagram). Es de solo lectura.

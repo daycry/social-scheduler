@@ -46,7 +46,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — C-04d · Notas internas del inbox | 7 | 7 | 100% | 14,0 / 14,0h (estimado) | 1,89 / 1,89h (estimado) | 0,49 / 0,49h (estimado) | 567k / 567k (estimado) |
-| Fase 2 — C-03a · Vistas de calendario guardadas | 0 | 7 | 0% | 0 / 16,0h | 0 / 2,17h | 0 / 0,57h | 0 / 648k |
+| Fase 2 — C-03a · Vistas de calendario guardadas | 7 | 7 | 100% | 16,0 / 16,0h (estimado) | 2,17 / 2,17h (estimado) | 0,57 / 0,57h (estimado) | 648k / 648k (estimado) |
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 0 | 16 | 0% | 0 / 61,5h | 0 / 8,34h | 0 / 2,08h | 0 / 2,49M |
 | Fase 4 — C-03b · Analítica entre marcas | 0 | 6 | 0% | 0 / 21,5h | 0 / 2,91h | 0 / 0,73h | 0 / 871k |
 | Fase 5 — C-03c · Exportar a CSV | 0 | 6 | 0% | 0 / 18,0h | 0 / 2,45h | 0 / 0,61h | 0 / 729k |
@@ -55,7 +55,7 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 0 | 6 | 0% | 0 / 10,0h | 0 / 1,36h | 0 / 0,35h | 0 / 405k |
-| **TOTAL** | **7** | **77** | **9%** | **14,0 / 246,0h** | **0 / 33,21h** | **0 / 8,3h** | **0 / 9,96M** |
+| **TOTAL** | **14** | **77** | **18%** | **30,0 / 246,0h** | **0 / 33,21h** | **0 / 8,3h** | **0 / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -288,7 +288,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 2 — C-03a · Vistas de calendario guardadas
 
-**Estado**: borrador · **Estimado**: 16,0h · **Real**: — · **Coste est.**: 960 € (con margen; base 800 €) · **Tokens est.**: 648k
+**Estado**: completado · **Estimado**: 16,0h · **Real**: — · **Coste est.**: 960 € (con margen; base 800 €) · **Tokens est.**: 648k
 
 ### T-08 — Migración, modelo y factoría de `CalendarView`
 
@@ -469,12 +469,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-14 — Documentación y revisión de robustez de C-03a
 
 - **Descripción**: Documentar las vistas guardadas y revisar robustez.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Documentadas las vistas guardadas del calendario para usuarios y para asistentes MCP.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
 - **Dependencias**: T-12, T-13
 - **Tipo**: docs
@@ -483,14 +484,15 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: lectura: `calendario.md` y `mcp.md` describen vistas, `list_calendar_views` y `view` → coherente con T-08..T-11
 
 **Criterios de aceptación**
-- [ ] La guía de usuario explica cómo guardar y aplicar una vista.
+- [x] La guía de usuario explica cómo guardar y aplicar una vista.
 
 **Subtareas**
-- [ ] Redactar los docs
-- [ ] Revisión de robustez
+- [x] Redactar los docs
+- [x] Revisión de robustez
 
 **Notas**: Patrón: `docs/modulos/calendario.md`, `docs/modulos/mcp.md`.
 
+**Verificación ejecutada**: lectura: calendario.md y mcp.md describen vistas, list_calendar_views y view=<id> (24 herramientas), coherentes con T-08..T-11; guía de usuario con «Vistas guardadas». Robustez: UserScope (404 ajeno), filtros validados, vista con marca borrada degrada sin romper, única por defecto, borrado de la vista abierta sin 404 (tests y E2E).
 
 ## Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes)
 

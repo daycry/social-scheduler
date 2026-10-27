@@ -11,7 +11,8 @@ use App\Connectors\Exceptions\ConnectorException;
  */
 class BlueskyException extends ConnectorException
 {
-    public function __construct(string $message, public readonly string $errorCode = '', public readonly int $status = 0)
+    /** @param array<string, mixed> $data Cuerpo de la respuesta de error (p. ej. `jobId` en un video repetido). */
+    public function __construct(string $message, public readonly string $errorCode = '', public readonly int $status = 0, public readonly array $data = [])
     {
         parent::__construct($message);
     }

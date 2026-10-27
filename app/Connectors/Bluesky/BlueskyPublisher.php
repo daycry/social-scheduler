@@ -3,10 +3,13 @@
 namespace App\Connectors\Bluesky;
 
 use App\Connectors\Contracts\Publisher;
+use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Exceptions\QuotaExceededException;
+use App\Connectors\Support\MediaChunkReader;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use App\Services\Media\ImageDownscaler;
@@ -14,13 +17,23 @@ use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
- * Publicacion en Bluesky (`app.bsky.feed.post`). Texto con *facets* (enlaces, hashtags, menciones en bytes UTF-8) y de 0 a 4
- * imagenes (`uploadBlob` + `aspectRatio`); las que superan `social.bluesky.image_max_bytes` se suben como la copia recomprimida
- * de `ImageDownscaler`. Toda llamada autenticada pasa por `BlueskySession::call`, que renueva la sesion si caduca.
+ * Publicacion en Bluesky (`app.bsky.feed.post`).
+ *
+ *  - Texto con *facets* (enlaces, hashtags, menciones en bytes UTF-8) y de 0 a 4 imagenes (`uploadBlob` + `aspectRatio`); las que
+ *    superan `social.bluesky.image_max_bytes` se suben como la copia recomprimida de `ImageDownscaler`.
+ *  - Video (`StatusPoller`): comprueba `getUploadLimits` (cupo y email verificado), pide un token de servicio, sube el MP4 en UNA
+ *    peticion en streaming a `video.bsky.app` y devuelve `procesando(jobId)`; `poll` consulta `getJobStatus` y, con el *blob*
+ *    listo, crea el registro.
+ *
+ * Toda llamada autenticada al PDS pasa por `BlueskySession::call`, que renueva la sesion si caduca. La `rkey` (una TID) se genera
+ * y se persiste con `checkpoint()` ANTES de crear el registro: un reintento tras un timeout la reutiliza.
  */
-class BlueskyPublisher implements Publisher
+class BlueskyPublisher implements Publisher, StatusPoller
 {
     public const COLLECTION = 'app.bsky.feed.post';
+
+    /** DID de servicio del video de Bluesky (aud del token de `getUploadLimits`). */
+    private const VIDEO_AUD = 'did:web:video.bsky.app';
 
     public function __construct(
         private readonly BlueskyClient $client,
@@ -33,6 +46,7 @@ class BlueskyPublisher implements Publisher
         try {
             return match ($request->type) {
                 ContentType::BlueskyPost => $this->publishPost($account, $request),
+                ContentType::BlueskyVideo => $this->publishVideo($account, $request),
                 default => throw new PermanentPublishException('Bluesky no admite este tipo de contenido.', 'tipo_no_admitido'),
             };
         } catch (BlueskyException $e) {
@@ -40,28 +54,148 @@ class BlueskyPublisher implements Publisher
         }
     }
 
+    public function poll(SocialAccount $account, PublishRequest $request): PublishResult
+    {
+        if ($request->reference === null) {
+            throw new PermanentPublishException('Falta la referencia del video de Bluesky.', 'sin_referencia');
+        }
+
+        try {
+            return $this->pollVideo($account, $request, $request->reference);
+        } catch (BlueskyException $e) {
+            throw BlueskyErrors::translate($e);
+        }
+    }
+
     public function findPublished(SocialAccount $account, PublishRequest $request): ?PublishResult
     {
-        return null; // la idempotencia por rkey llega con T-25
+        return null; // la comprobacion por rkey llega con T-25
     }
 
     // ------------------------------------------------------------------ texto e imagenes
 
     private function publishPost(SocialAccount $account, PublishRequest $request): PublishResult
     {
+        $rkey = $this->rkey($request);
+
         $images = [];
         foreach ($request->media as $media) {
             $images[] = $this->uploadImage($account, $media);
             $request->budget()->spent();
         }
 
-        $record = $this->record($account, $request, $images === [] ? null : ['$type' => 'app.bsky.embed.images', 'images' => $images]);
+        $record = $this->record($request, $images === [] ? null : ['$type' => 'app.bsky.embed.images', 'images' => $images]);
 
-        $created = $this->session->call($account, fn (string $token, string $pds) => $this->client->createRecord($pds, $token, $this->did($account), self::COLLECTION, $record));
+        return $this->create($account, $request, $record, $rkey);
+    }
+
+    // ------------------------------------------------------------------ video
+
+    private function publishVideo(SocialAccount $account, PublishRequest $request): PublishResult
+    {
+        $media = $request->firstMedia();
+        if ($media === null || ! $media->isVideo()) {
+            throw new PermanentPublishException('Falta el video que publicar en Bluesky.', 'media_invalida');
+        }
+
+        $rkey = $this->rkey($request, ['phase' => 'uploading']);
+        $reader = MediaChunkReader::for($media);
+        $did = $this->did($account);
+        $pds = BlueskySession::pds($account);
+
+        // 1. Cupo y email verificado: getUploadLimits con un token de servicio para el servicio de video.
+        $limits = $this->session->call($account, function (string $token, string $pds) {
+            $service = $this->client->serviceAuth($pds, $token, self::VIDEO_AUD, 'app.bsky.video.getUploadLimits');
+
+            return $this->client->uploadLimits($service);
+        });
+        $request->budget()->spent();
+        $this->assertCanUpload($limits, $reader->size);
+
+        // 2. Token de servicio para subir (aud = DID web del PDS de la cuenta; el valor exacto se confirma en el smoke, T-30).
+        $upload = $this->session->call($account, fn (string $token, string $pds) => $this->client->serviceAuth($pds, $token, 'did:web:'.parse_url($pds, PHP_URL_HOST), 'com.atproto.repo.uploadBlob'));
         $request->budget()->spent();
 
-        return $this->published($account, (string) ($created['uri'] ?? ''), $created);
+        // 3. Subida en streaming: nunca se carga el video en memoria.
+        $body = $reader->stream(0, $reader->size);
+        try {
+            $job = $this->client->uploadVideo($upload, $did, 'video.mp4', $body, (int) config('social.bluesky.upload_timeout', 80));
+        } catch (BlueskyException $e) {
+            // Mismo contenido ya subido antes (un reintento tras un timeout): el servicio devuelve el trabajo existente.
+            if ($e->errorCode !== 'already_exists' || ! is_string($e->data['jobId'] ?? null)) {
+                throw $e;
+            }
+            $job = $e->data;
+        } finally {
+            $body->close();
+        }
+        $request->budget()->spent();
+
+        $jobId = (string) ($job['jobId'] ?? ($job['jobStatus']['jobId'] ?? ''));
+        if ($jobId === '') {
+            throw new PermanentPublishException('Bluesky no devolvio el trabajo de procesado del video.', 'sin_referencia');
+        }
+
+        return PublishResult::processing($jobId, ['pds' => $pds], ['rkey' => $rkey, 'phase' => 'processing']);
     }
+
+    private function pollVideo(SocialAccount $account, PublishRequest $request, string $jobId): PublishResult
+    {
+        $rkey = $this->rkey($request);
+        $status = $this->client->jobStatus($jobId);
+        $request->budget()->spent();
+        $state = (string) ($status['state'] ?? '');
+        $progress = ['rkey' => $rkey, 'phase' => 'processing'];
+
+        if ($state === 'JOB_STATE_FAILED') {
+            return PublishResult::failed($this->jobFailure($status), ['state' => $state]);
+        }
+
+        $blob = $status['blob'] ?? null;
+        if ($state !== 'JOB_STATE_COMPLETED' || ! is_array($blob)) {
+            return PublishResult::processing($jobId, ['state' => $state, 'progress' => $status['progress'] ?? null], $progress);
+        }
+
+        $media = $request->firstMedia();
+        $embed = array_filter([
+            '$type' => 'app.bsky.embed.video',
+            'video' => $blob,
+            'aspectRatio' => $media?->width && $media->height ? ['width' => (int) $media->width, 'height' => (int) $media->height] : null,
+        ], fn ($v) => $v !== null);
+
+        return $this->create($account, $request, $this->record($request, $embed), $rkey);
+    }
+
+    /** @param array<string, mixed> $limits */
+    private function assertCanUpload(array $limits, int $size): void
+    {
+        if (($limits['canUpload'] ?? false) !== true) {
+            $code = (string) ($limits['error'] ?? '');
+            $message = (string) ($limits['message'] ?? '');
+
+            throw new PermanentPublishException(match (true) {
+                $code === 'unconfirmed_email' || str_contains(strtolower($message), 'email') => 'Bluesky solo permite subir videos con el email de la cuenta verificado: verificalo en los ajustes de Bluesky y reprograma la publicacion.',
+                default => 'Bluesky no permite subir videos con esta cuenta ahora'.($message !== '' ? ': '.mb_substr($message, 0, 200) : '.'),
+            }, 'video_no_permitido');
+        }
+
+        $videos = $limits['remainingDailyVideos'] ?? null;
+        $bytes = $limits['remainingDailyBytes'] ?? null;
+        if ((is_int($videos) && $videos <= 0) || (is_int($bytes) && $bytes < $size)) {
+            throw new QuotaExceededException('Has alcanzado el limite diario de videos de Bluesky para esta cuenta.');
+        }
+    }
+
+    /** @param array<string, mixed> $status */
+    private function jobFailure(array $status): string
+    {
+        $code = (string) ($status['error'] ?? $status['failureCode'] ?? '');
+        $message = trim((string) ($status['message'] ?? ''));
+
+        return 'Bluesky no pudo procesar el video'.($code !== '' ? " ($code)" : '').($message !== '' ? ': '.mb_substr($message, 0, 200) : '.');
+    }
+
+    // ------------------------------------------------------------------ registro
 
     /**
      * Registro `app.bsky.feed.post`.
@@ -69,9 +203,9 @@ class BlueskyPublisher implements Publisher
      * @param  ?array<string, mixed>  $embed
      * @return array<string, mixed>
      */
-    private function record(SocialAccount $account, PublishRequest $request, ?array $embed, ?string $text = null): array
+    private function record(PublishRequest $request, ?array $embed): array
     {
-        $text = trim((string) ($text ?? $request->text));
+        $text = trim((string) $request->text);
         $facets = Facets::build($text, fn (string $handle) => $this->resolveMention($handle));
 
         return array_filter([
@@ -82,6 +216,33 @@ class BlueskyPublisher implements Publisher
             'facets' => $facets ?: null,
             'embed' => $embed,
         ], fn ($v) => $v !== null);
+    }
+
+    /** @param array<string, mixed> $record */
+    private function create(SocialAccount $account, PublishRequest $request, array $record, string $rkey): PublishResult
+    {
+        $created = $this->session->call($account, fn (string $token, string $pds) => $this->client->createRecord($pds, $token, $this->did($account), self::COLLECTION, $record, $rkey));
+        $request->budget()->spent();
+
+        return $this->published($account, (string) ($created['uri'] ?? ''), $created);
+    }
+
+    /**
+     * `rkey` del destino: la guardada en el progreso o una TID nueva, persistida YA (antes de cualquier paso irreversible).
+     *
+     * @param  array<string, mixed>  $extra  Claves de progreso adicionales.
+     */
+    private function rkey(PublishRequest $request, array $extra = []): string
+    {
+        $rkey = (string) ($request->progress['rkey'] ?? '');
+        if (Tid::isValid($rkey)) {
+            return $rkey;
+        }
+
+        $rkey = Tid::generate();
+        $request->checkpoint(null, ['rkey' => $rkey] + $extra);
+
+        return $rkey;
     }
 
     /**

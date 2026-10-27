@@ -119,6 +119,8 @@ return [
         'default_langs' => array_values(array_filter(array_map('trim', explode(',', (string) env('BLUESKY_DEFAULT_LANGS', 'es'))))),
         'image_max_bytes' => (int) env('BLUESKY_IMAGE_MAX_BYTES', 2_000_000),
         'video_max_bytes' => (int) env('BLUESKY_VIDEO_MAX_BYTES', 52_428_800),
+        /* Timeout (s) de la subida del video: UNA peticion dentro de los 85 s del paso (job de 110 s). */
+        'upload_timeout' => (int) env('BLUESKY_UPLOAD_TIMEOUT', 80),
     ],
 
     'tiktok' => [

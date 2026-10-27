@@ -6,6 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Psr\Http\Message\StreamInterface;
 
 /**
  * Cliente XRPC de atproto. Resuelve handle -> DID -> PDS y habla con el PDS de la cuenta. No guarda estado ni
@@ -116,6 +117,59 @@ class BlueskyClient
         ], fn ($v) => $v !== null), $token);
     }
 
+    /**
+     * Registro de un repositorio, o null si no existe (`RecordNotFound`). Lectura publica: no necesita sesion.
+     *
+     * @return ?array<string, mixed> uri, cid, value
+     */
+    public function getRecord(string $pds, string $repo, string $collection, string $rkey): ?array
+    {
+        try {
+            return $this->get($pds, 'com.atproto.repo.getRecord', ['repo' => $repo, 'collection' => $collection, 'rkey' => $rkey]);
+        } catch (BlueskyException $e) {
+            if ($e->errorCode === 'RecordNotFound') {
+                return null;
+            }
+
+            throw $e;
+        }
+    }
+
+    /** Token de servicio (`com.atproto.server.getServiceAuth`) para que otro servicio actue en nombre de la cuenta. */
+    public function serviceAuth(string $pds, string $token, string $aud, string $lxm, int $expiresIn = 1800): string
+    {
+        $data = $this->get($pds, 'com.atproto.server.getServiceAuth', ['aud' => $aud, 'lxm' => $lxm, 'exp' => time() + $expiresIn], $token);
+        $service = (string) ($data['token'] ?? '');
+
+        return $service !== '' ? $service : throw new BlueskyException('Bluesky no devolvio el token de servicio.', 'InvalidServiceAuth', 502);
+    }
+
+    /** @return array<string, mixed> canUpload, remainingDailyVideos, remainingDailyBytes, message, error */
+    public function uploadLimits(string $serviceToken): array
+    {
+        return $this->get((string) config('social.bluesky.video_service'), 'app.bsky.video.getUploadLimits', [], $serviceToken);
+    }
+
+    /**
+     * Sube el video en UNA peticion (cuerpo en streaming, sin cargarlo en memoria). Devuelve el `jobStatus`.
+     *
+     * @return array<string, mixed>
+     */
+    public function uploadVideo(string $serviceToken, string $did, string $name, StreamInterface $body, int $timeout): array
+    {
+        $url = rtrim((string) config('social.bluesky.video_service'), '/').'/xrpc/app.bsky.video.uploadVideo?'.http_build_query(['did' => $did, 'name' => $name]);
+
+        return $this->send(fn (PendingRequest $http) => $http->withToken($serviceToken)->timeout($timeout)->withBody($body, 'video/mp4')->post($url));
+    }
+
+    /** @return array<string, mixed> `jobStatus`: jobId, state, progress, blob, error, message */
+    public function jobStatus(string $jobId): array
+    {
+        $data = $this->get((string) config('social.bluesky.video_service'), 'app.bsky.video.getJobStatus', ['jobId' => $jobId]);
+
+        return (array) ($data['jobStatus'] ?? $data);
+    }
+
     public function entryway(): string
     {
         return rtrim((string) config('social.bluesky.entryway'), '/');
@@ -155,7 +209,7 @@ class BlueskyClient
             $code = (string) ($json['error'] ?? 'UpstreamFailure');
             $message = (string) ($json['message'] ?? 'Bluesky respondio con un error.');
 
-            throw new BlueskyException(mb_substr($message, 0, 300), $code, $response->status());
+            throw new BlueskyException(mb_substr($message, 0, 300), $code, $response->status(), $json);
         }
 
         return $json;

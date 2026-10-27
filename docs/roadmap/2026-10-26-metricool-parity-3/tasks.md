@@ -788,12 +788,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-24 — Vídeo de Bluesky: `uploadVideo`, `getJobStatus` y límites
 
 - **Descripción**: Publicador con `StatusPoller`: comprobación de `getUploadLimits` y del email verificado, `getServiceAuth`, subida en streaming y sondeo hasta el *blob*. Requisito: CA-05, D3.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Bluesky publica vídeos: comprueba el email verificado y el cupo diario, sube el MP4 y espera a que Bluesky lo procese.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
-- **Supervisión**: est. 0,20h (≈25 % IA) · real —
+- **Tiempo humano**: est. 6,0h · real 6,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0,81h (estimado)
+- **Supervisión**: est. 0,20h (≈25 % IA) · real 0,20h (estimado)
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-23
 - **Tipo**: backend
@@ -802,17 +803,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php` → en verde (procesando → publicada con enlace `bsky.app`; `canUpload` falso y email sin verificar → error permanente)
 
 **Criterios de aceptación**
-- [ ] El destino pasa a `procesando` y, al devolver `getJobStatus` el *blob*, a `publicada` con su enlace.
-- [ ] `FAILED` se traduce con su `failureCode`.
-- [ ] Email sin verificar o cupo agotado dan un mensaje claro.
+- [x] El destino pasa a `procesando` y, al devolver `getJobStatus` el *blob*, a `publicada` con su enlace.
+- [x] `FAILED` se traduce con su `failureCode`.
+- [x] Email sin verificar o cupo agotado dan un mensaje claro.
 
 **Subtareas**
-- [ ] Test RED (CA-05)
-- [ ] Límites y *service auth*
-- [ ] Subida en streaming
-- [ ] `poll` y `createRecord`
+- [x] Test RED (CA-05)
+- [x] Límites y *service auth*
+- [x] Subida en streaming
+- [x] `poll` y `createRecord`
 
 **Notas**: Patrón: `app/Jobs/PollPublishStatus.php:86-128`, `app/Connectors/Support/{StepBudget,MediaChunkReader}.php` (85 s por paso; job 110 s) y `Contracts/StatusPoller.php`. ⚠️ `aud` de `getServiceAuth` sin verificar: se comprueba en el smoke (T-30). Con `presentation: gif` para los GIF de C-04b.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyVideoTest.php -> 10 passed: procesando -> publicada con enlace bsky.app, rkey persistida con checkpoint antes de subir, subida en streaming con token de servicio (aud del PDS), FAILED traducido con su codigo, email sin verificar y canUpload falso -> permanente, cupo diario -> QuotaExceeded, already_exists reutiliza el trabajo. Suite Bluesky 37 passed. aud del service auth sigue sin verificar (T-30).
 
 ### T-25 — Idempotencia por `rkey` TID, `findPublished` y errores traducidos
 

@@ -883,12 +883,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-27 — Pest de integración de Bluesky (CA-01..CA-06) y regresión de las otras redes
 
 - **Descripción**: Suite de extremo a extremo con `Http::fake`: conexión → programar → publicar (texto, imágenes, vídeo) → métricas. Más la regresión de Meta, Google y TikTok.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Pruebas de extremo a extremo de Bluesky (conexión, texto, imágenes, vídeo, reintentos y métricas) sin romper Meta, Google ni TikTok.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 8,0h · real —
-- **Tiempo IA (ejec.)**: est. 1,08h · real —
-- **Supervisión**: est. 0,27h (≈25 % IA) · real —
+- **Tiempo humano**: est. 8,0h · real 8,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 1,08h · real 1,08h (estimado)
+- **Supervisión**: est. 0,27h (≈25 % IA) · real 0,27h (estimado)
 - **Previsión IA**: 292k in / 32k out tok · ⚠️ verificar €
 - **Dependencias**: T-20, T-24, T-25, T-26
 - **Tipo**: test
@@ -897,14 +898,16 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors tests/Feature/Publishing tests/Feature/Snapshots` → todo en verde
 
 **Criterios de aceptación**
-- [ ] CA-01..CA-06 cubiertos de extremo a extremo.
-- [ ] Sin regresión en los 3 conectores existentes.
+- [x] CA-01..CA-06 cubiertos de extremo a extremo.
+- [x] Sin regresión en los 3 conectores existentes.
 
 **Subtareas**
-- [ ] Escribir los flujos
-- [ ] Cerrar huecos que revele la suite
+- [x] Escribir los flujos
+- [x] Cerrar huecos que revele la suite
 
 **Notas**: Patrón: `tests/Feature/Connectors/`, `tests/Feature/Publishing/` y `tests/Feature/Snapshots/`. Sin redes reales.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors tests/Feature/Publishing tests/Feature/Snapshots -> 479 passed (2286 assertions), incluye BlueskyFlowTest (CA-01..CA-06, 7 tests) y BlueskyPublishingTest (reintento con la misma rkey, reconexion, cupo diario de video, registro de las otras redes, BLUESKY_ENABLED=false). Sin redes reales: todo con Http::fake.
 
 ### T-28 — E2E de Bluesky: conexión y superficies con axe
 

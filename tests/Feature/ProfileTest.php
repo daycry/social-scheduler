@@ -169,9 +169,10 @@ test('Passkeys: Profile/Edit expone id, nombre y fechas de sus passkeys, sin mat
     expect(array_keys($items[0]))->toBe(['id', 'name', 'created_at', 'last_used_at']);
 
     // Ni el credential_id ni la clave publica ni la passkey ajena viajan al navegador.
+    // (El catalogo de redes comparte `auth_kind: credentials` en toda la app: la palabra se busca solo en lo que son las passkeys.)
     $content = $res->getContent();
     expect($content)->not->toContain($mine->credential_id)->not->toContain($theirs->credential_id)->not->toContain('De otro')
-        ->not->toContain('credential');
+        ->and(json_encode($res->viewData('page')['props']['passkeys']))->not->toContain('credential');
 });
 
 test('Passkeys: confirmed refleja la confirmacion reciente de la contrasena', function () {

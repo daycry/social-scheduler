@@ -135,6 +135,19 @@ class BlueskyClient
         }
     }
 
+    /**
+     * Posts por URI (`app.bsky.feed.getPosts`). El parametro `uris` va REPETIDO (`uris=a&uris=b`), no como `uris[0]=a`.
+     *
+     * @param  list<string>  $uris  25 como maximo.
+     * @return array<string, mixed>
+     */
+    public function getPosts(string $host, array $uris): array
+    {
+        $query = implode('&', array_map(fn (string $uri) => 'uris='.rawurlencode($uri), $uris));
+
+        return $this->send(fn (PendingRequest $http) => $http->get(rtrim($host, '/').'/xrpc/app.bsky.feed.getPosts?'.$query));
+    }
+
     /** Token de servicio (`com.atproto.server.getServiceAuth`) para que otro servicio actue en nombre de la cuenta. */
     public function serviceAuth(string $pds, string $token, string $aud, string $lxm, int $expiresIn = 1800): string
     {

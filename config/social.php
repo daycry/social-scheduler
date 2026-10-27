@@ -112,6 +112,8 @@ return [
     | del paso). Un video mayor se rechaza al guardar.
     */
     'bluesky' => [
+        /* Apagar Bluesky sin tocar codigo: la red desaparece de Conexiones, el compositor y los filtros. */
+        'enabled' => (bool) env('BLUESKY_ENABLED', true),
         'entryway' => env('BLUESKY_ENTRYWAY', 'https://bsky.social'),
         'plc_directory' => env('BLUESKY_PLC_DIRECTORY', 'https://plc.directory'),
         'appview' => env('BLUESKY_APPVIEW', 'https://public.api.bsky.app'),
@@ -180,6 +182,7 @@ return [
             'facebook' => 'America/Los_Angeles',
             'youtube' => 'America/Los_Angeles',
             'tiktok' => 'UTC',
+            'bluesky' => 'UTC',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -208,6 +211,8 @@ return [
             'facebook' => (int) env('SOCIAL_BACKFILL_DAYS_FACEBOOK', 90),
             'youtube' => (int) env('SOCIAL_BACKFILL_DAYS_YOUTUBE', 365),
             'tiktok' => 0,
+            // Bluesky no ofrece historico de cuenta: solo el stock de hoy.
+            'bluesky' => 0,
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),

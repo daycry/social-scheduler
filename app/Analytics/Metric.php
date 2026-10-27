@@ -39,11 +39,14 @@ final class Metric
 
     public const VIDEO_COUNT = 'video_count';
 
+    /** Publicaciones de la cuenta (STOCK). `VIDEO_COUNT` significa «videos»; esta es la cifra de posts de Bluesky. */
+    public const POST_COUNT = 'post_count';
+
     /** @var list<string> Metricas de cuenta (orden estable en BD y UI). */
     public const ACCOUNT = [
         self::FOLLOWERS, self::FOLLOWERS_GAINED, self::FOLLOWERS_LOST, self::VIEWS, self::REACH, self::PROFILE_VIEWS,
         self::ACCOUNTS_ENGAGED, self::INTERACTIONS, self::LIKES, self::COMMENTS, self::SHARES, self::WATCH_MINUTES,
-        self::VIDEO_COUNT,
+        self::VIDEO_COUNT, self::POST_COUNT,
     ];
 
     /** @var list<string> Metricas de publicacion. */
@@ -52,7 +55,7 @@ final class Metric
     ];
 
     /** @var list<string> Valores en un instante (no se suman en un periodo: se toma el primero/ultimo). */
-    public const STOCKS = [self::FOLLOWERS, self::VIDEO_COUNT];
+    public const STOCKS = [self::FOLLOWERS, self::VIDEO_COUNT, self::POST_COUNT];
 
     /**
      * FLUJOS diarios que cada red PUEDE dar para un dia cerrado. Sirven para decidir si el snapshot de un dia esta
@@ -65,6 +68,8 @@ final class Metric
         'facebook' => [self::VIEWS, self::INTERACTIONS],
         'youtube' => [self::VIEWS, self::WATCH_MINUTES, self::LIKES, self::COMMENTS, self::SHARES, self::INTERACTIONS, self::FOLLOWERS_GAINED, self::FOLLOWERS_LOST],
         'tiktok' => [],
+        // Bluesky solo ofrece STOCKS de cuenta (seguidores y posts), como TikTok: ningun flujo diario.
+        'bluesky' => [],
     ];
 
     /**

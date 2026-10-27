@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Connectors\Bluesky\BlueskyConnector;
+use App\Connectors\Bluesky\BlueskyInsights;
+use App\Connectors\Bluesky\BlueskyPublisher;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
@@ -50,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Los conectores de cada proveedor se registran aqui (T-12 Meta, T-13 Google, T-14 TikTok).
         $this->app->singleton(ConnectorRegistry::class, function () {
-            return (new ConnectorRegistry)
+            $registry = (new ConnectorRegistry)
                 ->register(new MetaConnector)
                 ->register(new GoogleConnector)
                 ->register(new TikTokConnector)
@@ -64,6 +67,15 @@ class AppServiceProvider extends ServiceProvider
                 ->registerInsights(Network::Facebook, new MetaInsights(new GraphClient))
                 ->registerInsights(Network::YouTube, new YouTubeAnalytics)
                 ->registerInsights(Network::TikTok, new TikTokDisplay);
+
+            // Bluesky (C-01, D1: handle + app password). Se puede apagar con BLUESKY_ENABLED=false.
+            if (config('social.bluesky.enabled', true)) {
+                $registry->register($this->app->make(BlueskyConnector::class))
+                    ->registerPublisher(Network::Bluesky, $this->app->make(BlueskyPublisher::class))
+                    ->registerInsights(Network::Bluesky, $this->app->make(BlueskyInsights::class));
+            }
+
+            return $registry;
         });
     }
 

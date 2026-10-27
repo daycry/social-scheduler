@@ -852,12 +852,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-26 — `BlueskyInsights` y métricas (`POST_COUNT`)
 
 - **Descripción**: Métricas de cuenta (seguidores y posts) y de post (me gusta, comentarios, compartidos) con `views` = `null`. Requisito: CA-06.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las cuentas de Bluesky muestran seguidores y publicaciones, y cada post sus me gusta, comentarios y compartidos; las visualizaciones figuran como no disponibles.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-16
 - **Tipo**: backend
@@ -866,16 +867,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php` → en verde (seguidores, posts, por post y `views` nulo)
 
 **Criterios de aceptación**
-- [ ] Se guardan seguidores y, por post, likes, compartidos (reposts + citas) y comentarios.
-- [ ] `views` queda `null`, nunca 0.
-- [ ] `NetworkCoverageTest` (T-18) sigue en verde.
+- [x] Se guardan seguidores y, por post, likes, compartidos (reposts + citas) y comentarios.
+- [x] `views` queda `null`, nunca 0.
+- [x] `NetworkCoverageTest` (T-18) sigue en verde.
 
 **Subtareas**
-- [ ] Test RED (CA-06)
-- [ ] Lector de insights
-- [ ] Entradas de `Metric` y `SUPPORTED`
+- [x] Test RED (CA-06)
+- [x] Lector de insights
+- [x] Entradas de `Metric` y `SUPPORTED`
 
 **Notas**: Patrón: `app/Connectors/Contracts/InsightsReader.php`, `app/Analytics/Metric.php:63-68` (`EXPECTED_FLOWS['bluesky'] = []`, como TikTok), `AnalyticsService.php:58-63`, `app/Analytics/SnapshotCollector.php`. `POST_COUNT` es un *stock* nuevo. Lectura por AppView público ⚠️ (`public.api.bsky.app`, sin verificar). `null` = no disponible, nunca 0.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php -> 12 passed (46 assertions): seguidores y posts, por post likes/comentarios/compartidos(reposts+citas), views null, lotes de 25 con uris repetido, errores. Bluesky registrado en AppServiceProvider (BLUESKY_ENABLED) y NetworkCoverageTest lo recorre via offered(): suite completa php artisan test --compact -> 2080 passed (12418 assertions).
 
 ### T-27 — Pest de integración de Bluesky (CA-01..CA-06) y regresión de las otras redes
 

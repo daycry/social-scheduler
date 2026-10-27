@@ -51,11 +51,11 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
 | Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,44 / 2,44h (estimado) | 0,62 / 0,62h (estimado) | 727k / 729k (estimado) |
-| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
+| Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 1 | 5 | 20% | 5,0 / 18,0h (estimado) | 0,68 / 2,44h (estimado) | 0,17 / 0,62h (estimado) | 202k / 729k (estimado) |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **48** | **77** | **62%** | **148,0 / 246,0h** | **20,07 / 33,21h** | **5,07 / 8,3h** | **5,99M / 9,96M** |
+| **TOTAL** | **49** | **77** | **64%** | **153,0 / 246,0h** | **20,75 / 33,21h** | **5,24 / 8,3h** | **6,19M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1601,35 +1601,41 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 ## Fase 7 — C-04c · Programar en lenguaje natural (IA existente)
 
-**Estado**: borrador · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
+**Estado**: en-progreso · **Estimado**: 18,0h · **Real**: — · **Coste est.**: 1.080 € (con margen; base 900 €) · **Tokens est.**: 729k
 
 ### T-49 — `AiAssistant::proposeSchedule()`: prompt, salida JSON, redacción y validación
 
 - **Descripción**: Envía solo la frase redactada, la fecha actual, la zona de la marca y las redes de `Network::offered()`; valida fecha futura, dentro de 1 año, cambio de hora y redes conectadas. Requisito: CA-16, D6.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El asistente de IA puede traducir una frase como «el viernes a las 18 en Instagram y Bluesky» a una fecha y unas redes, que tú confirmas antes de aplicarlas.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 5,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,68h · real —
-- **Supervisión**: est. 0,17h (≈25 % IA) · real —
+- **Tiempo humano**: est. 5,0h · real 5,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,68h · real 0,68h (estimado)
+- **Supervisión**: est. 0,17h (≈25 % IA) · real 0,17h (estimado)
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
+- **RED**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleTest.php` contra el `AiAssistant` anterior -> 34 tests, 0 verdes (26 fallos y 8 errores: `proposeSchedule()` inexistente) · 2026-10-27
 - **Dependencias**: T-16
 - **Tipo**: backend
-- **Archivos**: `app/Services/AiAssistant.php`, `tests/Feature/Ai/ProposeScheduleTest.php`
+- **Archivos**: `app/Services/AiAssistant.php`, `tests/Feature/Ai/ProposeScheduleTest.php`, `config/social.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleTest.php` → en verde (tabla de frases, zonas, cambio de hora, fechas pasadas)
 
 **Criterios de aceptación**
-- [ ] «el viernes a las 18» da el viernes siguiente a las 18:00 en la zona de la marca.
-- [ ] Una fecha pasada o a más de 1 año se rechaza en el servidor.
-- [ ] La frase se redacta antes de enviarla.
+- [x] «el viernes a las 18» da el viernes siguiente a las 18:00 en la zona de la marca.
+- [x] Una fecha pasada o a más de 1 año se rechaza en el servidor.
+- [x] La frase se redacta antes de enviarla.
 
 **Subtareas**
-- [ ] Test RED (CA-16)
-- [ ] `proposeSchedule()`
-- [ ] Validación en servidor
+- [x] Test RED (CA-16)
+- [x] `proposeSchedule()`
+- [x] Validación en servidor
 
 **Notas**: Patrón: `app/Services/AiAssistant.php:86` (límites diarios y redacción de datos del *brief*) y `AiAssistantController.php:30`. Comparte el límite diario. Respeta `AI_ASSISTANT_ENABLED`. Una sola fecha (varias fechas quedan fuera).
+
+**Nota de cierre**: Una sola fecha en la zona de la marca; nunca programa. `suggest()` y `proposeSchedule()` comparten ahora `send()` (clave, modelo, cabeceras, reembolso del cupo) y `consume()` (límite diario por usuario y global). Defensa de inyección de prompt: la frase redactada viaja como VALOR de un JSON (`ahora`, `zona_horaria`, `redes`, `frase`), el sistema la declara dato y la respuesta pasa un esquema estricto (solo `datetime` y `networks`, `YYYY-MM-DDTHH:MM[:SS]` sin zona, redes del enum, futura y como mucho a `social.ai.schedule_max_days`=365 días, hora existente en la zona; un bloque ```json es lo único tolerado alrededor). Hallazgo propio: `redact()` tomaba «15-11-2026» por un teléfono; la frase usa `redactPhrase()`, que conserva fechas. Redes: solo las ofrecidas por la instalación y con cuenta ACTIVA en la marca; el resto sale en `ignored_networks`. Cambio de hora: una hora inexistente (2027-03-28 02:30 Madrid) se rechaza; una repetida (2027-10-31 02:30) se resuelve a un único instante. Una respuesta ininteligible sí gasta cupo (la llamada se hizo); un fallo de conexión o HTTP lo devuelve; 529 cuenta como saturado.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Ai tests/Feature/Parity/AiAssistantTest.php -> 44 passed (109 assertions): CA-16 (viernes 18:00 Madrid = 17:00Z), carga útil sin datos personales, inyección de prompt, 15 respuestas inválidas, fechas pasadas/>1 año/límite, cambio de hora, redes conectadas y apagadas, cupo compartido y reembolso; vendor/bin/pint -> passed
 
 ### T-50 — Endpoint y UI de «Escribe cuándo» en `ScheduleSection`
 

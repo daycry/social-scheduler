@@ -1223,12 +1223,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-37 — Extraer `CsvWriter` de `ReportService::csv()` sin cambiar su salida
 
 - **Descripción**: `App\Support\CsvWriter` (BOM, separador por *locale* y neutralización CWE-1236) extraído de `ReportService::csv()`. Requisito: CA-13.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Sin cambios visibles: el CSV de los informes sale igual, ahora con un escritor compartido que neutraliza fórmulas (=, +, -, @).
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: cambio de comportamiento. Primer oráculo: test de caracterización en verde antes de tocar (se conserva como regresión).
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
@@ -1237,15 +1238,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Reports tests/Unit/CsvWriterTest.php` → en verde (salida idéntica byte a byte; `=`, `+`, `-`, `@` neutralizados)
 
 **Criterios de aceptación**
-- [ ] El CSV de informes es idéntico antes y después.
-- [ ] Un texto que empieza por `=` sale neutralizado.
+- [x] El CSV de informes es idéntico antes y después.
+- [x] Un texto que empieza por `=` sale neutralizado.
 
 **Subtareas**
-- [ ] Caracterización del CSV actual
-- [ ] Extraer `CsvWriter`
-- [ ] Migrar `ReportService`
+- [x] Caracterización del CSV actual
+- [x] Extraer `CsvWriter`
+- [x] Migrar `ReportService`
 
 **Notas**: Patrón: `app/Services/ReportService.php:297-366` (`csv()` y `csvFormat()`; `reports.csv_locale`). Caracterización byte a byte del CSV de informes **antes** de tocar.
+
+**Nota de cierre**: ReportService::cell() se conserva como delegado de CsvWriter::cell() (lo usan los tests existentes). CsvWriter expone BOM, line() y field() para escribir fila a fila (streaming en T-38/T-39); null sale como campo vacío, el texto siempre entre comillas.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Reports tests/Unit/CsvWriterTest.php -> 35 passed (1407 assertions); CsvRegressionTest (caracterización byte a byte) escrito y en verde ANTES de extraer CsvWriter
 
 ### T-38 — CSV de la analítica (marca y todas)
 

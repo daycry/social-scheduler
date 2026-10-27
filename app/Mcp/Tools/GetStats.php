@@ -6,6 +6,7 @@ use App\Analytics\Period;
 use App\Connectors\Network;
 use App\Mcp\Abilities;
 use App\Models\User;
+use App\Services\AggregateAnalytics;
 use App\Services\AnalyticsService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use InvalidArgumentException;
@@ -15,7 +16,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get_stats')]
-#[Description('Estadisticas de una marca (resumen por red) o de una red concreta en un periodo, con comparacion opcional. null = no disponible (nunca 0).')]
+#[Description('Estadisticas de una marca (resumen por red) o de una red concreta en un periodo, con comparacion opcional. Sin marca devuelve los totales de TODAS tus marcas (con una fila por marca). null = no disponible (nunca 0).')]
 #[IsReadOnly]
 class GetStats extends SchedulerTool
 {
@@ -32,7 +33,7 @@ class GetStats extends SchedulerTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            ...$this->brandSchema($schema, 'Marca (obligatoria)'),
+            ...$this->brandSchema($schema, 'Marca (opcional: sin ella, totales de todas las marcas)'),
             'network' => $schema->string()->description(Network::listing().'; sin valor = resumen de la marca'),
             'from' => $schema->string()->description('Inicio YYYY-MM-DD (por defecto, 30 dias hasta ayer)'),
             'to' => $schema->string()->description('Fin YYYY-MM-DD'),
@@ -43,7 +44,12 @@ class GetStats extends SchedulerTool
 
     protected function run(Request $request, User $user): array
     {
-        $brand = $this->brandFrom($request, $user);
+        $brand = $this->brandFrom($request, $user, required: false);
+
+        if ($brand === null) {
+            return $this->allBrands($request, $user);
+        }
+
         $period = Period::make($request->get('from'), $request->get('to'), $brand->timezone);
         $mode = (string) ($request->get('compare') ?: 'none');
 
@@ -67,5 +73,26 @@ class GetStats extends SchedulerTool
         $data['cards'] = array_map(fn (array $c) => $withSeries ? $c : array_diff_key($c, ['series' => 1]), $data['cards']);
 
         return ['brand_id' => $brand->id, 'brand_name' => $brand->name] + $data;
+    }
+
+    /** Sin marca: los mismos totales que la pagina «Todas las marcas» (dias UTC, sin zona de marca). */
+    private function allBrands(Request $request, User $user): array
+    {
+        if ($request->get('network')) {
+            throw new InvalidArgumentException('Para una red concreta indica la marca: brand (su nombre) o brand_id. Sin marca solo hay totales de todas las marcas.');
+        }
+
+        $period = Period::make($request->get('from'), $request->get('to'));
+        $mode = (string) ($request->get('compare') ?: 'none');
+
+        if (! in_array($mode, Period::COMPARE_MODES, true)) {
+            throw new InvalidArgumentException('Modo de comparacion no valido.');
+        }
+
+        $data = app(AggregateAnalytics::class)->summary($user, $period, $period->comparison($mode));
+        $withSeries = (bool) $request->get('include_series');
+        $data['cards'] = array_map(fn (array $c) => $withSeries ? $c : array_diff_key($c, ['series' => 1]), $data['cards']);
+
+        return ['scope' => 'all_brands'] + $data;
     }
 }

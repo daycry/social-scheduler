@@ -1,6 +1,7 @@
 <?php
 
 use App\Analytics\Metric;
+use App\Analytics\Period;
 use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Jobs\GenerateReport;
@@ -14,6 +15,7 @@ use App\Models\PostTarget;
 use App\Models\Report;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\AggregateAnalytics;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -173,4 +175,37 @@ test('McpStats: las llamadas OK quedan auditadas sin volcar datos', function () 
     $this->callTool($this->key, 'generate_report', ['brand_id' => $this->brand->id, 'format' => 'pdf']);
 
     expect(AuditLog::where('outcome', 'ok')->pluck('action')->all())->toContain('get_stats', 'generate_report');
+});
+
+test('McpStats: get_stats sin marca devuelve los totales de AggregateAnalytics y solo de las marcas del usuario (CA-12)', function () {
+    $second = Brand::factory()->for($this->user)->create(['name' => 'Segunda']);
+    $fb = SocialAccount::factory()->for($this->user)->create(['brand_id' => $second->id, 'network' => Network::Facebook]);
+    mcpSnap($this->ig, '2026-10-05', [Metric::FOLLOWERS => 200, Metric::VIEWS => 100]);
+    mcpSnap($fb, '2026-10-05', [Metric::FOLLOWERS => 30, Metric::VIEWS => 7]);
+
+    [$err, $d] = $this->callTool($this->key, 'get_stats', ['from' => '2026-10-01', 'to' => '2026-10-10']);
+    $cards = collect($d['cards'])->keyBy('key');
+
+    expect($err)->toBeFalse()
+        ->and($d['scope'])->toBe('all_brands')->and($d)->not->toHaveKey('brand_id')
+        ->and($cards['views']['total'])->toBe(107)->and($cards['followers']['total'])->toBe(230)
+        ->and($cards['reach']['total'])->toBeNull()->and($cards['reach']['available'])->toBeFalse()
+        ->and($cards['views'])->not->toHaveKey('series')
+        ->and(collect($d['brands'])->pluck('name')->sort()->values()->all())->toBe(collect([$this->brand->name, 'Segunda'])->sort()->values()->all())
+        ->and(json_encode($d))->not->toContain('99999')->and(json_encode($d))->not->toContain('Marca secreta B');
+
+    // Los mismos totales que la UI (misma clase y mismo periodo).
+    $ui = app(AggregateAnalytics::class)->summary($this->user, Period::make('2026-10-01', '2026-10-10'));
+    expect(collect($ui['cards'])->pluck('total', 'key')->all())->toBe($cards->pluck('total', 'key')->all());
+
+    [, $withSeries] = $this->callTool($this->key, 'get_stats', ['from' => '2026-10-01', 'to' => '2026-10-10', 'include_series' => true]);
+    expect($withSeries['cards'][0])->toHaveKey('series');
+});
+
+test('McpStats: get_stats sin marca pero con red es un error claro y con marca nada cambia', function () {
+    [$err, $msg] = $this->callTool($this->key, 'get_stats', ['network' => 'instagram']);
+    expect($err)->toBeTrue()->and($msg)->toContain('marca');
+
+    [$err, $d] = $this->callTool($this->key, 'get_stats', ['brand_id' => $this->brand->id]);
+    expect($err)->toBeFalse()->and($d['brand_id'])->toBe($this->brand->id)->and($d)->not->toHaveKey('scope');
 });

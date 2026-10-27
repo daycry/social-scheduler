@@ -1098,13 +1098,15 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-33 — MCP: `get_stats` sin marca
 
 - **Descripción**: `get_stats` admite no recibir marca y devuelve los mismos totales que la UI. Requisito: CA-12.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La herramienta MCP get_stats, sin indicar marca, devuelve los totales de todas tus marcas con una fila por marca, igual que la web.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 2,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,27h · real —
-- **Supervisión**: est. 0,07h (≈25 % IA) · real —
+- **Tiempo humano**: est. 2,0h · real 2,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,27h · real 0,27h (estimado)
+- **Supervisión**: est. 0,07h (≈25 % IA) · real 0,07h (estimado)
 - **Previsión IA**: 73k in / 8k out tok · ⚠️ verificar €
+- **RED**: McpStatsTest «get_stats sin marca» falló con «Cannot access offset of type string on string» (la herramienta pedía marca y devolvía error) · 2026-10-27
 - **Dependencias**: T-31
 - **Tipo**: backend
 - **Archivos**: `app/Mcp/Tools/GetStats.php`, `tests/Feature/Mcp/Tools/McpStatsTest.php`
@@ -1112,14 +1114,18 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Mcp/Tools/McpStatsTest.php` → en verde (con y sin marca)
 
 **Criterios de aceptación**
-- [ ] Sin marca devuelve los totales de `AggregateAnalytics`.
-- [ ] Con marca, el comportamiento anterior no cambia.
+- [x] Sin marca devuelve los totales de `AggregateAnalytics`.
+- [x] Con marca, el comportamiento anterior no cambia.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Parámetro opcional
+- [x] Test RED
+- [x] Parámetro opcional
 
 **Notas**: Patrón: `app/Mcp/Tools/GetStats.php` (descripción desde `Network::cases()`, T-16) y `tests/Feature/Mcp/Tools/McpStatsTest.php`.
+
+**Nota de cierre**: Sin marca y con red concreta responde un error claro (una red exige marca). La respuesta sin marca lleva scope=all_brands y no brand_id.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Mcp -> 267 passed (1643 assertions); McpStatsTest con y sin marca. Herramientas MCP: siguen 24 (tope de 25 respetado)
 
 ### T-34 — Pest de integración CA-12
 

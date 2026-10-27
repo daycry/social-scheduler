@@ -32,7 +32,7 @@
   "text": "é",
   "chars": 2,
   "graphemes": 1,
-  "threads": 2
+  "threads": 1
  },
  {
   "name": "emoji simple",
@@ -46,34 +46,62 @@
   "text": "👨‍👩‍👧‍👦",
   "chars": 7,
   "graphemes": 1,
-  "threads": 19
+  "threads": 25
  },
  {
   "name": "bandera (indicadores regionales)",
   "text": "🇪🇸",
   "chars": 2,
   "graphemes": 1,
-  "threads": 2
+  "threads": 8
  },
  {
   "name": "pulgar con tono de piel",
   "text": "👍🏽",
   "chars": 2,
   "graphemes": 1,
-  "threads": 5
+  "threads": 8
  },
  {
   "name": "corazon con selector de variacion",
   "text": "❤️",
   "chars": 2,
   "graphemes": 1,
-  "threads": 4
+  "threads": 6
  },
  {
   "name": "tres familias",
   "text": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
   "chars": 21,
   "graphemes": 3,
-  "threads": 57
+  "threads": 75
+ },
+ {
+  "name": "bandera arcoiris (VS16 + ZWJ)",
+  "text": "🏳️‍🌈",
+  "chars": 4,
+  "graphemes": 1,
+  "threads": 14
+ },
+ {
+  "name": "ideogramas",
+  "text": "漢字",
+  "chars": 2,
+  "graphemes": 2,
+  "threads": 2
+ },
+ {
+  "name": "250 banderas",
+  "text": "🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸🇪🇸",
+  "chars": 500,
+  "graphemes": 250,
+  "threads": 2000
+ },
+ {
+  "name": "keycap",
+  "text": "1️⃣",
+  "chars": 3,
+  "graphemes": 1,
+  "threads": 7
  }
 ]

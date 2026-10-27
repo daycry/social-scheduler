@@ -32,7 +32,7 @@ class SuggestHashtags extends SchedulerTool
     {
         return [
             ...$this->brandSchema($schema, 'Marca (obligatoria)'),
-            'network' => $schema->string()->enum(array_column(Network::cases(), 'value'))->description('Solo hashtags de esa red (omitida = todas). '.Network::listing()),
+            'network' => $schema->string()->enum(Network::availableValues())->description('Solo hashtags de esa red (omitida = todas). '.Network::listing()),
         ];
     }
 

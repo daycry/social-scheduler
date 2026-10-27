@@ -27,6 +27,15 @@ use Illuminate\Support\Facades\Log;
  */
 class ThreadsClient
 {
+    /** Mensaje para una cuenta que no es tester de la app (la app esta en modo desarrollo). */
+    public const NOT_TESTER_MESSAGE = 'Esta cuenta de Threads no es tester de la app. En developers.facebook.com, Ajustes de la app > Roles > Roles (o Permisos del sitio web de Threads) invita la cuenta como «Tester de Threads» y acepta la invitacion en Threads (Ajustes > Cuenta > Permisos del sitio web); despues vuelve a conectar.';
+
+    /** Detecta, en el texto de un error de la API o del callback, el caso de una cuenta sin rol de tester. */
+    public static function looksLikeNotTester(?string $text): bool
+    {
+        return (bool) preg_match('/tester|developer role|insufficient developer|rol de desarrollador|not (been )?(invited|authorized)|no (ha sido )?invitad/i', (string) $text);
+    }
+
     /**
      * GET de la API versionada (perfil, contenedores, insights, publicaciones).
      *
@@ -81,6 +90,10 @@ class ThreadsClient
 
         if ($response->serverError() || $response->status() === 429 || GraphErrors::isRateLimit($code)) {
             throw new ConnectorException('Threads no esta disponible temporalmente ('.$message.').');
+        }
+
+        if (self::looksLikeNotTester($message)) {
+            throw new ConnectorException(self::NOT_TESTER_MESSAGE);
         }
 
         throw new ConnectorException('Threads rechazo la conexion: '.$message);

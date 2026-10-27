@@ -221,7 +221,9 @@ class PostController extends Controller
                 // `count` solo viaja si no es el modo por defecto (chars): el cliente cuenta grafemas (Bluesky) o la regla de Threads.
                 $mode = $text['count'] ?? TextLength::CHARS;
 
-                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null] + ($mode !== TextLength::CHARS ? ['count' => $mode] : [])];
+                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]
+                    + ($mode !== TextLength::CHARS ? ['count' => $mode] : [])
+                    + (isset($text['advise_hashtags']) ? ['advise_hashtags' => $text['advise_hashtags']] : [])];
             }),
             // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
             'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()

@@ -54,7 +54,7 @@ test('el compositor ofrece los cuatro tipos de Threads con su limite de 500 y el
         ->assertInertia(fn (Assert $page) => $page
             ->has('contentTypes.threads', 4)
             ->where('contentTypes.threads.0.value', 'threads_text')
-            ->where('limits.threads_text', ['max_chars' => 500, 'max_hashtags' => null, 'count' => 'threads'])
+            ->where('limits.threads_text', ['max_chars' => 500, 'max_hashtags' => null, 'count' => 'threads', 'advise_hashtags' => 1])
             ->where('limits.threads_carousel.max_chars', 500)
             ->where('accounts', fn ($accounts) => collect($accounts)->firstWhere('network', 'threads')['available'] === true));
 });

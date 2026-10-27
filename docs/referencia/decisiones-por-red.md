@@ -86,7 +86,7 @@ Decisiones de la tercera ola (opción T1 del diseño: conector `threads` propio,
 | Punto (⚠️ del diseño) | Resultado | Valor fijado | Fuente (actualizada) |
 |---|---|---|---|
 | Texto máximo | Verificado | 500 caracteres | «Threads Posts» (13 oct 2026) |
-| Regla de emojis | Verificado la frase; la interpretación para secuencias (ZWJ, banderas) **no** | «los emojis cuentan el número de bytes UTF-8». `TextLength` suma los bytes de cada símbolo pictográfico y 1 por el resto; una familia compuesta cuenta cada pictograma con sus bytes más 1 por cada unión | «Threads Posts»; comprobar con texto al límite en el smoke (M-02) |
+| Regla de emojis | Verificado la frase; la interpretación para secuencias (ZWJ, banderas) **no** | «los emojis cuentan el número de bytes UTF-8». `TextLength` es conservador: el grafema que contiene un emoji (pictograma, bandera, ZWJ, VS16, tono de piel, keycap) cuenta los bytes UTF-8 del grafema entero y el resto cuenta 1 por grafema (🇪🇸 = 8, 👨‍👩‍👧‍👦 = 25, 👍🏽 = 8, ❤️ = 6) | «Threads Posts»; comprobar con texto al límite en el smoke (M-02) |
 | Carrusel | Verificado | de 2 a 20 elementos (imagen, vídeo o mezcla); cuenta 1 contra la cuota | «Threads Posts» |
 | Cuota de publicación | Verificado | 250 publicaciones por 24 h móviles; se lee en `GET /{user}/threads_publishing_limit?fields=quota_usage,config` (`config.quota_total`, `quota_duration`) | «Threads API overview» (22 dic 2025) |
 | Campos de `/me` | Verificado | `id`, `username`, `name`, `threads_profile_picture_url` (además `threads_biography`, `is_verified`) | «Threads Profiles» (13 abr 2026) |

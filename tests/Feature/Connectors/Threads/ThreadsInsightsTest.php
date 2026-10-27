@@ -242,3 +242,24 @@ test('Threads declara sus metricas, flujos esperados, zona del dia e historico',
         ->and(config('social.analytics.timezones'))->toHaveKey('threads')
         ->and(AnalyticsService::LABELS)->toHaveKey(Metric::CLICKS);
 });
+
+test('se recuerda que metrica rechazo Threads: la siguiente lectura la omite y pide el resto en una sola peticion', function () {
+    Http::fake([
+        'graph.threads.com/v1.0/'.THI_UID.'/threads_insights*' => function (Request $r) {
+            $q = thiQuery($r);
+            if (str_contains($q['metric'], 'clicks')) {
+                return Http::response(['error' => ['message' => 'no permitido', 'code' => 100]], 400);
+            }
+            $data = array_map(fn ($n) => ['name' => $n, 'period' => 'day', 'total_value' => ['value' => 4]], explode(',', $q['metric']));
+
+            return Http::response(['data' => $data]);
+        },
+    ]);
+
+    $this->reader->accountInsights($this->account, CarbonImmutable::parse('2026-11-01'));
+    $first = count(thiSent('/threads_insights'));
+    $m = $this->reader->accountInsights($this->account, CarbonImmutable::parse('2026-11-02'));
+    $second = count(thiSent('/threads_insights')) - $first;
+
+    expect($first)->toBeGreaterThan(2)->and($second)->toBe(1)->and($m[Metric::LIKES])->toBe(4)->and($m[Metric::CLICKS])->toBeNull();
+});

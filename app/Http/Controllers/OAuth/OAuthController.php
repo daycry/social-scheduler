@@ -6,6 +6,7 @@ use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\OAuthConnector;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Exceptions\ConnectorException;
+use App\Connectors\Threads\ThreadsClient;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Services\BrandService;
@@ -79,6 +80,10 @@ class OAuthController extends Controller
 
         if ($request->query('error')) {
             Log::info('oauth.denied', ['provider' => $provider, 'error' => $request->query('error')]);
+
+            if ($provider === 'threads' && ThreadsClient::looksLikeNotTester($request->query('error_description').' '.$request->query('error_reason'))) {
+                return $back('error', ThreadsClient::NOT_TESTER_MESSAGE);
+            }
 
             return $back('error', 'La autorizacion fue cancelada o rechazada en la red social. No se ha conectado nada.');
         }

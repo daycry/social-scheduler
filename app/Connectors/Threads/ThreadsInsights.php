@@ -11,6 +11,7 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -31,6 +32,9 @@ class ThreadsInsights implements RangeInsightsReader
 {
     /** Primer dia con datos de cuenta (Unix 1712991600 = 2024-04-13). */
     private const FIRST_DAY = '2024-04-13';
+
+    /** Horas que se recuerda que Threads rechazo una metrica (una metrica «en desarrollo» puede activarse mas tarde). */
+    private const REJECTED_TTL_HOURS = 6;
 
     private const USER_METRICS = ['views', 'likes', 'replies', 'reposts', 'quotes', 'clicks'];
 
@@ -123,7 +127,7 @@ class ThreadsInsights implements RangeInsightsReader
 
     /**
      * Pide las metricas juntas; si Threads rechaza el conjunto de forma permanente (una metrica en desarrollo o sin permiso) las pide
-     * una a una y deja `null` las rechazadas.
+     * una a una y deja `null` las rechazadas, que recuerda en cache (`REJECTED_TTL_HOURS`) para no repetir el intento en cada lectura.
      *
      * @param  list<string>  $metrics
      * @param  array<string, int|string>  $range
@@ -131,22 +135,38 @@ class ThreadsInsights implements RangeInsightsReader
      */
     private function rows(string $path, array $metrics, array $range, string $token): array
     {
+        // Recuerda (por tipo de lectura y conjunto de metricas, TTL) cuales rechazo Threads: la siguiente lectura pide solo las demas, en UNA
+        // peticion, en vez de repetir el conjunto fallido y las N individuales en cada post.
+        $key = 'threads:insights:rejected:'.(str_contains($path, 'threads_insights') ? 'account' : 'post').':'.md5(implode(',', $metrics));
+        $known = (array) Cache::get($key, []);
+        $ask = array_values(array_diff($metrics, $known));
+
+        if ($ask === []) {
+            return [];
+        }
+
         try {
-            return (array) ($this->client->get($path, ['metric' => implode(',', $metrics)] + $range, $token, true)['data'] ?? []);
+            return (array) ($this->client->get($path, ['metric' => implode(',', $ask)] + $range, $token, true)['data'] ?? []);
         } catch (PermanentPublishException $e) {
             Log::debug('threads.insights_set_rejected', ['code' => $e->errorCode]);
         }
 
         $rows = [];
-        foreach ($metrics as $metric) {
+        $rejected = [];
+        foreach ($ask as $metric) {
             try {
                 $one = $this->client->get($path, ['metric' => $metric] + $range, $token, true);
             } catch (PermanentPublishException $e) {
                 Log::notice('threads.insight_unavailable', ['metric' => $metric, 'code' => $e->errorCode]);
+                $rejected[] = $metric;
 
                 continue;
             }
             array_push($rows, ...(array) ($one['data'] ?? []));
+        }
+
+        if ($rejected !== []) {
+            Cache::put($key, array_values(array_unique([...$known, ...$rejected])), now()->addHours(self::REJECTED_TTL_HOURS));
         }
 
         return $rows;

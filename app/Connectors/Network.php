@@ -115,6 +115,12 @@ enum Network: string
         };
     }
 
+    /** @return list<string> Valores de las redes disponibles en esta instalacion (para los esquemas MCP). */
+    public static function availableValues(): array
+    {
+        return array_values(array_map(fn (self $n) => $n->value, array_filter(self::cases(), fn (self $n) => $n->isAvailable())));
+    }
+
     /** Descripcion para el MCP y la IA: «instagram, facebook, youtube o tiktok» (solo las redes disponibles en esta instalacion). */
     public static function listing(): string
     {

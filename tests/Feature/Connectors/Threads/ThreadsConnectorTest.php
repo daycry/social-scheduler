@@ -160,3 +160,28 @@ test('regresion: GraphErrors conserva la clasificacion de codigos que tenia Grap
     }
     expect(GraphErrors::needsReconnect(100))->toBeFalse()->and(GraphErrors::isRateLimit(190))->toBeFalse();
 });
+
+test('una cuenta que no es tester da un mensaje especifico, tanto en el canje como en el callback', function () {
+    Http::fake(['graph.threads.com/oauth/access_token*' => Http::response(['error_type' => 'OAuthException', 'code' => 400, 'error_message' => 'The user is not a Threads tester of this app'], 400)]);
+
+    expect(fn () => $this->connector->exchangeCode('X', 'https://app.test/cb'))
+        ->toThrow(ConnectorException::class, 'Permisos del sitio web');
+
+    ThreadsFake::connect();
+    app()->forgetInstance(ConnectorRegistry::class);
+    $this->actingAs($this->user)->post(route('brands.connections.connect', [$this->brand, 'threads']));
+    $state = session('oauth.threads.state');
+
+    $this->actingAs($this->user)->get(route('connections.callback', [
+        'provider' => 'threads', 'state' => $state, 'error' => 'access_denied', 'error_description' => 'Insufficient developer role: user is not a tester',
+    ]))->assertRedirect(route('brands.connections.index', $this->brand))
+        ->assertSessionHas('error', fn ($m) => str_contains($m, 'Permisos del sitio web'));
+});
+
+test('con Threads apagada, los valores de red de los esquemas MCP no la enumeran', function () {
+    expect(Network::availableValues())->toContain('threads');
+
+    config(['social.threads.enabled' => false]);
+
+    expect(Network::availableValues())->not->toContain('threads')->and(Network::availableValues())->toContain('bluesky');
+});

@@ -2726,3 +2726,21 @@ Tests: 317/317 y 43/43.
 | J | Minor | `SOCIAL_GIPHY_PER_USER_PER_MINUTE` no se usa; `media.md` dice que `.mp4` se comprueba en cada redirección y no es así | T-65, T-71 | `a1f8b36` / `7b975ee` T-65/T-71: fix revisión P3 F6-9 — J | `routes/web.php:142`, `GiphySource.php:23-28` |
 | K | Minor | La caché de Giphy no normaliza mayúsculas: cada variante gasta una llamada real | T-65 | `a1f8b36` T-65: fix revisión P3 F6-9 — K | `GiphyClient.php:81` |
 | L | Minor | T-66 no tiene RED registrado ni el aviso | T-66 | ledger: T-66 «⚠️ RED NO REGISTRADO» | ledger |
+
+## Revisión de dos lentes — intento 2: Fase 8 (Threads) e intento 1: Fase 10 — 2 Important, 7 Minor
+
+Lentes A, B, C y D sobre la corrección `c48be99` (Fase 8) y sobre `a4bc94c`, `b1a9e2d` y `285b9d5` (Fase 10). En B1, PHP y JS coinciden en los 15 casos del fixture. Quedan corregidos A1, A2 y A3. La Fase 10 no tiene defectos de código, y los `.env` de ejemplo son coherentes con la config y no contienen secretos. La Lente C no tiene hallazgos. Tests: 695/695.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B-1 | Important | La caché de métricas rechazadas es global (sin cuenta ni post): un post borrado deja en `null` las métricas de Threads de todos los posts y cuentas durante 6 h | T-59 | pendiente | `ThreadsInsights.php:140,168-170`; reproducido con `d1.php` |
+| A-6 | Important | Las correcciones de la Fase 8 no tienen salida ejecutada en el ledger (T-55, T-56, T-59 y T-60) | T-55..T-60 | pendiente | `tasks.md` |
+| B-2 | Minor | Fuera de los emojis, la regla nueva cuenta 1 por grafema; con marcas combinantes (devanagari, NFD) es menos conservadora | T-56 | pendiente (decisión: code points fuera de los emojis) | `TextLength.php:64` |
+| B-3 | Minor | PHP (`\X`, Unicode 15) y JS (`Intl.Segmenter`) segmentan distinto el devanagari | T-56 | pendiente (se resuelve con B-2) | `TextLength.php:58`, `textLength.js:20` |
+| A-1 | Minor | Quedan recuentos de herramientas obsoletos: `mcp.md:112` dice 24 y `arquitectura.md:24` dice 14 | T-76 | pendiente | — |
+| A-2 | Minor | Variables nuevas sin documentar en `configuracion.md` (`SOCIAL_GIPHY_*`, `SOCIAL_HASHTAGS_*`, `SOCIAL_EXPORT_MAX_ROWS`, etc.) | T-76 | pendiente | `config/social.php` |
+| A-3 | Minor | El aviso de 1 etiqueta de Threads no tiene ningún test de UI | T-56 | pendiente | `NetworkCounters.vue:48-53` |
+| A-4 | Minor | La cifra «75 documentos» del README no se puede reproducir con la definición anterior | T-76 | pendiente | `README.md:42` |
+| A-5 | Minor | El `Archivos` de T-72 declara ficheros que no tocó, y la evidencia de Bluesky 301 frente a la web no compara por igualdad | T-72 | pendiente | `tasks.md` |
+
+Fuera de rango: `scope-check` en HEAD falla por `PublishMedia.php` y `PublishRequestFactory.php` (`d79b281`), que hay que declarar en `Archivos` de T-68.

@@ -717,3 +717,24 @@ export function cleanCalendarViews(email: string) {
             String.raw`if ($u) { App\Models\CalendarView::withoutUserScope()->where('user_id', $u->id)->delete(); }`,
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Analítica entre marcas (C-03b): snapshots de cuenta sembrados en marcas `e2e-composer-*` (se van con la marca).
+// ---------------------------------------------------------------------------------------------------------------
+
+export type AnalyticsSeed = { from: string; to: string; days: number };
+
+/**
+ * Siembra `days` snapshots diarios (los días 2..days+1 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
+ * `views` visualizaciones y `followers` seguidores por día. Facebook no recibe ninguno: sus métricas son «no disponible».
+ * Devuelve el periodo (10 días cerrados) que lo contiene.
+ */
+export function seedAnalyticsSnapshots(brandId: number, views: number, followers: number, days = 3): AnalyticsSeed {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+            String.raw`for ($i = 2; $i < ${days} + 2; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now('UTC')->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); }`,
+    );
+    const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
+    return { from: day(10), to: day(1), days };
+}

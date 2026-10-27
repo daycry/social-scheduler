@@ -1159,12 +1159,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-35 — E2E de «Todas las marcas» con axe
 
 - **Descripción**: Escenario Playwright de la página agregada. Requisito: CA-12.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Probada en el navegador la página «Todas las marcas» (totales, tabla, gráfica, periodo y accesibilidad) en escritorio y móvil.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 3,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,41h · real —
-- **Supervisión**: est. 0,10h (≈25 % IA) · real —
+- **Tiempo humano**: est. 3,0h · real 3,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,41h · real 0,41h (estimado)
+- **Supervisión**: est. 0,10h (≈25 % IA) · real 0,10h (estimado)
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-32
 - **Tipo**: test
@@ -1173,13 +1174,17 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `npx playwright test tests/e2e/all-brands.spec.ts --project=desktop --project=mobile --project=mobile-360` → verde en los 3 proyectos
 
 **Criterios de aceptación**
-- [ ] Totales, tabla y gráfica visibles; 0 violaciones axe; sin desborde.
+- [x] Totales, tabla y gráfica visibles; 0 violaciones axe; sin desborde.
 
 **Subtareas**
-- [ ] Semilla
-- [ ] Spec E2E
+- [x] Semilla
+- [x] Spec E2E
 
 **Notas**: Patrón: `tests/e2e/pages.spec.ts` y helpers de semillas (`seedAnalyticsSnapshots`, nuevo).
+
+**Nota de cierre**: RED no aplica: el spec se escribió con la página ya construida (T-32). Sembrado con seedAnalyticsSnapshots en helpers.ts.
+
+**Verificación ejecutada**: npx playwright test tests/e2e/all-brands.spec.ts --project=desktop|mobile|mobile-360 (E2E_NO_SERVER=1 E2E_BASE_URL=https://metricool.test, tras npm run build) -> 1 passed en cada proyecto, axe sin violaciones serious/critical y sin desborde; sin Untrusted Host
 
 ### T-36 — Documentación y revisión de robustez de C-03b
 

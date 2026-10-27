@@ -1066,12 +1066,13 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-32 — Página «Todas las marcas» y selector en el dashboard
 
 - **Descripción**: Entrada «Todas las marcas» con tarjetas, tabla por marca y gráfica. Requisito: CA-12.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva página «Todas las marcas» con totales, gráfica por red y tabla por marca, accesible desde el resumen cuando hay más de una marca.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
-- **Supervisión**: est. 0,20h (≈25 % IA) · real —
+- **Tiempo humano**: est. 6,0h · real 6,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0,81h (estimado)
+- **Supervisión**: est. 0,20h (≈25 % IA) · real 0,20h (estimado)
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-31
 - **Tipo**: frontend
@@ -1080,15 +1081,19 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Verificación**: `php artisan test --compact tests/Feature/Dashboard/AllBrandsPageTest.php` → en verde (props y regresión del dashboard por marca)
 
 **Criterios de aceptación**
-- [ ] La página muestra totales, tabla por marca y gráfica.
-- [ ] El dashboard por marca no cambia (regresión).
+- [x] La página muestra totales, tabla por marca y gráfica.
+- [x] El dashboard por marca no cambia (regresión).
 
 **Subtareas**
-- [ ] Ruta y controlador
-- [ ] Página y gráfica
-- [ ] Estados vacío y de error
+- [x] Ruta y controlador
+- [x] Página y gráfica
+- [x] Estados vacío y de error
 
 **Notas**: Patrón: `resources/js/Pages/Dashboard/{Index,Network}.vue`, `Partials/{LineChart,PeriodFilter}.vue` y `app/Http/Controllers/DashboardController.php`. Rotular «acumulado» y «días UTC».
+
+**Nota de cierre**: RED no registrado: el test de props se escribió junto al controlador, no antes. La ruta es /dashboard/todas-las-marcas (nombre dashboard.all), declarada antes de /dashboard/{network}. La entrada en el dashboard es un enlace «Todas las marcas» visible con más de una marca. Rotulado «días UTC» y «acumulado».
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Dashboard tests/Feature/Analytics -> 35 passed (319 assertions); AllBrandsPageTest incluido
 
 ### T-33 — MCP: `get_stats` sin marca
 

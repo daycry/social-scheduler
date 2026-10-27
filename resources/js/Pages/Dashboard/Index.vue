@@ -61,6 +61,9 @@ const connectCards = [
             </FeatureEmpty>
 
             <template v-else>
+                <div v-if="brands.length > 1" class="flex justify-end">
+                    <Link :href="route('dashboard.all', { from: filters.from, to: filters.to, compare: filters.compare })" class="btn-secondary" data-testid="all-brands-link">Todas las marcas</Link>
+                </div>
                 <PeriodFilter route-name="dashboard" :brands="brands" :filters="filters" />
                 <NetworkTabs :networks="summary.networks" active="summary" :filters="filters" />
 

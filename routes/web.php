@@ -38,6 +38,7 @@ Route::get('/', function () {
 // Dashboards de analitica por marca (T-37): Summary y pagina por red.
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/todas-las-marcas', [DashboardController::class, 'allBrands'])->name('dashboard.all');
     Route::get('/dashboard/{network}', [DashboardController::class, 'network'])
         ->whereIn('network', array_column(Network::cases(), 'value'))->name('dashboard.network');
 });

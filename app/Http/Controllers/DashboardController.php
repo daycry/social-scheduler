@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Analytics\Period;
 use App\Connectors\Network;
 use App\Models\Brand;
+use App\Services\AggregateAnalytics;
 use App\Services\AnalyticsService;
 use App\Support\CurrentBrand;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ use InvalidArgumentException;
  */
 class DashboardController extends Controller
 {
-    public function __construct(private readonly AnalyticsService $analytics) {}
+    public function __construct(private readonly AnalyticsService $analytics, private readonly AggregateAnalytics $aggregate) {}
 
     public function index(Request $request): Response
     {
@@ -30,6 +31,32 @@ class DashboardController extends Controller
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
             'filters' => $filters,
             'summary' => $brand ? $this->analytics->summary($request->user(), $brand, $period, $compare) : null,
+        ]);
+    }
+
+    /** «Todas las marcas» (C-03b): la analitica de todas las marcas del usuario sumada, con una fila por marca. */
+    public function allBrands(Request $request): Response
+    {
+        $data = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+            'compare' => ['nullable', 'in:'.implode(',', Period::COMPARE_MODES)],
+        ]);
+
+        try {
+            // Sin marca no hay zona: los dias son dias UTC, como los snapshots.
+            $period = Period::make($data['from'] ?? null, $data['to'] ?? null);
+        } catch (InvalidArgumentException $e) {
+            abort(422, $e->getMessage());
+        }
+
+        $mode = $data['compare'] ?? 'none';
+        $brands = CurrentBrand::brands($request);
+
+        return Inertia::render('Dashboard/AllBrands', [
+            'brands' => $brands->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name])->all(),
+            'filters' => ['brand_id' => null, 'from' => $period->toArray()['from'], 'to' => $period->toArray()['to'], 'compare' => $mode],
+            'summary' => $brands->isEmpty() ? null : $this->aggregate->summary($request->user(), $period, $period->comparison($mode)),
         ]);
     }
 

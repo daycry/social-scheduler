@@ -73,11 +73,11 @@ test('la auditoría registra la llamada pero nunca el cuerpo de la nota', functi
     expect($rows)->toHaveCount(1)->and($rows->toJson())->not->toContain('CUERPO-SECRETO');
 });
 
-test('tools/list ofrece 24 herramientas en una sola página', function () {
+test('tools/list ofrece 25 herramientas en una sola página', function () {
     $response = $this->rpc($this->key, 'tools/list');
     $names = collect($response->json('result.tools'))->pluck('name');
 
-    expect($names)->toHaveCount(24)->toContain('add_comment_note', 'list_comments')->and($response->json('result.nextCursor'))->toBeNull();
+    expect($names)->toHaveCount(25)->toContain('add_comment_note', 'list_comments')->and($response->json('result.nextCursor'))->toBeNull();
 });
 
 test('add_comment_note rechaza un comentario propio (is_own)', function () {

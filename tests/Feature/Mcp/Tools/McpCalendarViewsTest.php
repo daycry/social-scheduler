@@ -72,11 +72,11 @@ test('list_calendar_views exige posts:read', function () {
     expect($err)->toBeTrue()->and($msg)->toContain('posts:read');
 });
 
-test('tools/list ofrece 24 herramientas en una sola página', function () {
+test('tools/list ofrece 25 herramientas en una sola página', function () {
     $response = $this->rpc($this->key, 'tools/list');
     $names = collect($response->json('result.tools'))->pluck('name');
 
-    expect($names)->toHaveCount(24)->toContain('list_calendar_views')->and($response->json('result.nextCursor'))->toBeNull();
+    expect($names)->toHaveCount(25)->toContain('list_calendar_views')->and($response->json('result.nextCursor'))->toBeNull();
 });
 
 test('view solo acepta un id entero estricto: "1.9", " 1" y "1e0" no son ids', function () {

@@ -50,12 +50,12 @@ verificacion: obligatoria   # cada T-XX lleva `- **Verificación**:`; lo exige l
 | Fase 3 — C-01 · Bluesky (contrato segregado y catálogo de redes) | 15 | 16 | 94% | 59,5 / 61,5h (estimado) | 8,07 / 8,34h (estimado) | 2,01 / 2,08h (estimado) | 2,41M / 2,49M (estimado) |
 | Fase 4 — C-03b · Analítica entre marcas | 6 | 6 | 100% | 21,5 / 21,5h (estimado) | 2,91 / 2,91h (estimado) | 0,73 / 0,73h (estimado) | 871k / 871k (estimado) |
 | Fase 5 — C-03c · Exportar a CSV | 6 | 6 | 100% | 18,0 / 18,0h (estimado) | 2,45 / 2,45h (estimado) | 0,61 / 0,61h (estimado) | 729k / 729k (estimado) |
-| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 2 | 6 | 33% | 10,5 / 18,0h (estimado) | 1,42 / 2,44h (estimado) | 0,35 / 0,62h (estimado) | 424k / 729k (estimado) |
+| Fase 6 — C-04a · Sugerencias de hashtags (histórico propio, sin IA) | 3 | 6 | 50% | 12,0 / 18,0h (estimado) | 1,62 / 2,44h (estimado) | 0,40 / 0,62h (estimado) | 485k / 729k (estimado) |
 | Fase 7 — C-04c · Programar en lenguaje natural (IA existente) | 0 | 5 | 0% | 0 / 18,0h | 0 / 2,44h | 0 / 0,62h | 0 / 729k |
 | Fase 8 — C-02 · Threads (al final, sin bloquear lo demás) | 0 | 11 | 0% | 0 / 50,5h | 0 / 6,83h | 0 / 1,7h | 0 / 2,05M |
 | Fase 9 — C-04b · GIFs de Giphy | 0 | 7 | 0% | 0 / 18,5h | 0 / 2,52h | 0 / 0,63h | 0 / 749k |
 | Fase 10 — Transversal y cierre | 1 | 6 | 17% | 1,0 / 10,0h (estimado) | 0,14 / 1,36h (estimado) | 0,04 / 0,35h (estimado) | 40k / 405k (estimado) |
-| **TOTAL** | **44** | **77** | **57%** | **140,5 / 246,0h** | **19,05 / 33,21h** | **4,80 / 8,3h** | **5,69M / 9,96M** |
+| **TOTAL** | **45** | **77** | **58%** | **142,0 / 246,0h** | **19,25 / 33,21h** | **4,85 / 8,3h** | **5,75M / 9,96M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real). No hay `.claude/jira.json`: no aplica.
 
@@ -1479,30 +1479,36 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-45 — MCP: `suggest_hashtags`
 
 - **Descripción**: Herramienta MCP `suggest_hashtags`. Requisito: C-04a de la evaluación.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nueva herramienta MCP suggest_hashtags: devuelve los hashtags de tu histórico con más rendimiento para una marca (y red opcional), sin usar IA.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 1,5h · real —
-- **Tiempo IA (ejec.)**: est. 0,20h · real —
-- **Supervisión**: est. 0,05h (≈25 % IA) · real —
+- **Tiempo humano**: est. 1,5h · real 1,5h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,20h · real 0,20h (estimado)
+- **Supervisión**: est. 0,05h (≈25 % IA) · real 0,05h (estimado)
 - **Previsión IA**: 55k in / 6k out tok · ⚠️ verificar €
+- **RED**: `php artisan test --compact tests/Feature/Mcp/Tools/McpHashtagsTest.php` antes de la herramienta -> 5 fallos (herramienta desconocida y `tools/list` con 24) · 2026-10-27
 - **Dependencias**: T-43
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/SuggestHashtags.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpHashtagsTest.php`
+- **Archivos**: `app/Mcp/Tools/SuggestHashtags.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Mcp/Tools/McpHashtagsTest.php`, `tests/Feature/Mcp/Tools/McpCalendarViewsTest.php`, `tests/Feature/Mcp/Tools/McpCommentNotesTest.php`, `tests/Feature/Mcp/Tools/McpImportMediaTest.php`, `tests/Feature/Mcp/Tools/McpNotesTest.php`, `tests/Feature/Mcp/Tools/McpToolsTest.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Mcp/Tools/McpHashtagsTest.php` → en verde
   - `php artisan test --compact tests/Feature/Mcp/McpAuthTest.php` → `tools/list` ofrece 25 herramientas
 
 **Criterios de aceptación**
-- [ ] Marca ajena responde como inexistente.
-- [ ] `tools/list` sigue completo en una página.
+- [x] Marca ajena responde como inexistente.
+- [x] `tools/list` sigue completo en una página.
 
 **Subtareas**
-- [ ] Test RED
-- [ ] Herramienta
+- [x] Test RED
+- [x] Herramienta
 
 **Notas**: Patrón: `app/Mcp/Tools/GetBestTimes.php`; registro en `SchedulerServer.php` (pasa a **25**, el tope de página).
+
+**Nota de cierre**: Ability `stats:read` (como `get_best_times`); marca por `brand`/`brand_id` con el mismo aislamiento (ajena = inexistente, sin filtrar). El servidor pasa a 25 herramientas, el tope de `defaultPaginationLength`; los cinco tests que contaban 24 pasan a 25. Instrucciones del servidor actualizadas. La documentación va en T-48.
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Mcp tests/Feature/Parity/BestTimesTest.php tests/Feature/Isolation -> 313 passed (1.913 assertions), incluido McpHashtagsTest (5) y los cinco tools/list con 25 herramientas en una sola página (nextCursor null)
 
 ### T-46 — Pest de integración CA-14
 

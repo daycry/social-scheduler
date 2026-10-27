@@ -169,6 +169,8 @@ return [
     */
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
+        /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */
+        'all_brands_cache_minutes' => (int) env('SOCIAL_ALL_BRANDS_CACHE_MINUTES', 5),
         /* Al conectar una cuenta se encola el historico inicial (T-36). */
         'backfill_on_connect' => (bool) env('SOCIAL_BACKFILL_ON_CONNECT', true),
         /*

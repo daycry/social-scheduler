@@ -1032,30 +1032,36 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 ### T-31 — `AggregateAnalytics`: suma por métrica con `null`, tabla por marca y por red
 
 - **Descripción**: Servicio que llama a `AnalyticsService::summary()` por marca y suma con las reglas de `null`, *stocks* frente a flujos, tabla por marca, desglose por red y serie. Requisito: CA-12.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: «Todas las marcas» suma la analítica de las marcas del usuario por métrica, con «no disponible» si ninguna tiene dato.
+- **Estado**: completado
+- **Cerrada**: 2026-10-27
 - **Clase**: capacidad nueva. Primer oráculo: test Pest que FALLA (RED) escrito antes del código, a partir del CA citado en la descripción.
-- **Tiempo humano**: est. 6,0h · real —
-- **Tiempo IA (ejec.)**: est. 0,81h · real —
-- **Supervisión**: est. 0,20h (≈25 % IA) · real —
+- **Tiempo humano**: est. 6,0h · real 6,0h (estimado)
+- **Tiempo IA (ejec.)**: est. 0,81h · real 0,81h (estimado)
+- **Supervisión**: est. 0,20h (≈25 % IA) · real 0,20h (estimado)
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
+- **RED**: AggregateAnalyticsTest falló con «Target class [App\Services\AggregateAnalytics] does not exist» · 2026-10-27
 - **Dependencias**: T-26
 - **Tipo**: backend
-- **Archivos**: `app/Services/AggregateAnalytics.php`, `tests/Feature/Analytics/AggregateAnalyticsTest.php`
+- **Archivos**: `app/Services/AggregateAnalytics.php`, `tests/Feature/Analytics/AggregateAnalyticsTest.php`, `config/social.php`, `phpunit.xml`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Analytics/AggregateAnalyticsTest.php` → en verde (suma, `null`, *stocks*, una fila por marca)
 
 **Criterios de aceptación**
-- [ ] Cada métrica es la suma de las marcas con dato y `null` si ninguna lo tiene.
-- [ ] Hay una fila por marca y el desglose por red.
-- [ ] Solo se agregan marcas del usuario.
+- [x] Cada métrica es la suma de las marcas con dato y `null` si ninguna lo tiene.
+- [x] Hay una fila por marca y el desglose por red.
+- [x] Solo se agregan marcas del usuario.
 
 **Subtareas**
-- [ ] Test RED (CA-12)
-- [ ] Servicio
-- [ ] Caché por periodo
+- [x] Test RED (CA-12)
+- [x] Servicio
+- [x] Caché por periodo
 
 **Notas**: Patrón: `app/Services/AnalyticsService.php` (`summary()`, `SUPPORTED`), `app/Analytics/{Calculator,Metric,Period,Days}.php`. Días UTC como los *snapshots* (rotulado); caché por periodo. «Acumulado» no es usuarios únicos. `null` si ninguna marca tiene dato; `POST_COUNT` como *stock*.
+
+**Nota de cierre**: Declarados en Archivos config/social.php (clave all_brands_cache_minutes, caché por periodo) y phpunit.xml (0 en tests). Usa AnalyticsService::summary() por marca (consultas acotadas de la paridad 2; sin hidratar publicaciones).
+
+**Verificación ejecutada**: php artisan test --compact tests/Feature/Analytics/AggregateAnalyticsTest.php -> 5 passed (26 assertions)
 
 ### T-32 — Página «Todas las marcas» y selector en el dashboard
 

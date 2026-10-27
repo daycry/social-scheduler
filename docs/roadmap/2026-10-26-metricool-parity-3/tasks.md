@@ -722,7 +722,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `TextLength` PHP y JS dan lo mismo en la tabla de casos.
 
 **Subtareas**
-- [x] Test RED (CA-02)
+- [x] Test RED (CA-02) — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] Tipos y reglas
 - [x] `TextLength` PHP y JS
 - [x] Contadores del compositor
@@ -756,7 +756,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Si no puede bajar del tope, el guardado falla con mensaje claro.
 
 **Subtareas**
-- [x] Test RED
+- [x] Test RED — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] `ImageDownscaler` con GD
 - [x] Integración con la validación
 
@@ -795,7 +795,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Una mención no resoluble queda como texto plano.
 
 **Subtareas**
-- [x] Test RED (CA-03)
+- [x] Test RED (CA-03) — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] `Facets` y `Hashtags`
 - [x] Publicador de texto e imágenes
 
@@ -828,7 +828,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Email sin verificar o cupo agotado dan un mensaje claro.
 
 **Subtareas**
-- [x] Test RED (CA-05)
+- [x] Test RED (CA-05) — ⚠️ RED NO REGISTRADO: sin salida roja (no se reconstruye un RED retrospectivo)
 - [x] Límites y *service auth*
 - [x] Subida en streaming
 - [x] `poll` y `createRecord`

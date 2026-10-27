@@ -5,11 +5,12 @@ import MediaUploader from '@/Components/MediaUploader.vue';
 import EmojiPicker from '@/Components/Composer/EmojiPicker.vue';
 import UtmModal from '@/Components/Composer/UtmModal.vue';
 import SavedTextsMenu from '@/Components/Composer/SavedTextsMenu.vue';
+import HashtagSuggestions from '@/Components/Composer/HashtagSuggestions.vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { countHashtags } from '@/Composables/textCount';
 
 /**
- * Barra de iconos del editor: media, emoji, textos guardados, enlace con UTM, IA y recuento de hashtags. El emoji se inserta con `@emoji`
+ * Barra de iconos del editor: media, emoji, textos guardados, hashtags sugeridos del histórico, enlace con UTM, IA y recuento de hashtags. El emoji se inserta con `@emoji`
  * (lo recoge `TextSection` y lo pasa al cursor del `TextEditor`); la IA y la media usan los controles que ya existían.
  */
 const emit = defineEmits(['emoji', 'insert']);
@@ -53,6 +54,8 @@ const hashtags = computed(() => countHashtags(form.text));
         </div>
 
         <SavedTextsMenu @insert="(t) => emit('insert', t)" />
+
+        <HashtagSuggestions @insert="(t) => emit('insert', t)" />
 
         <AiSuggest :brand-id="brand.id" :network="selectedNetwork" @use="(t) => (form.text = t)" />
 

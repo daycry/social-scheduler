@@ -7,6 +7,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 // T-65 · C-04b / D4: el proxy de Giphy. Nunca hay red: `Http::fake`. La clave de prueba es inventada.
 
@@ -167,12 +168,12 @@ test('D: un usuario no puede agotar el tope global: tiene el suyo por hora y otr
 test('F: una clave invalida (401/403) da un mensaje claro, se registra sin la clave y no gasta cupo', function (int $status) {
     config(['social.giphy.per_user_hourly_limit' => 5]);
     fakeGiphy(status: $status);
-    Illuminate\Support\Facades\Log::spy();
+    Log::spy();
 
     $res = $this->actingAs($this->user)->getJson(route('gifs.search', ['q' => 'x']))->assertStatus(502);
 
     expect($res->json('message'))->toBe(GiphyClient::INVALID_KEY)->and($res->getContent())->not->toContain(GIPHY_TEST_KEY);
-    Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->withArgs(fn ($m, $ctx = []) => $m === 'giphy.invalid_key' && ! str_contains(json_encode($ctx), GIPHY_TEST_KEY))->once();
+    Log::shouldHaveReceived('warning')->withArgs(fn ($m, $ctx = []) => $m === 'giphy.invalid_key' && ! str_contains(json_encode($ctx), GIPHY_TEST_KEY))->once();
     expect((int) Cache::get('giphy:calls:'.now('UTC')->format('YmdH')))->toBe(0)
         ->and((int) Cache::get('giphy:calls:u'.$this->user->id.':'.now('UTC')->format('YmdH')))->toBe(0);
 })->with([401, 403]);

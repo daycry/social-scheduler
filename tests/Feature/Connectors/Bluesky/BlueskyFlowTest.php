@@ -67,7 +67,7 @@ function flowSchedule(SocialAccount $account, string $type, string $text, array 
     return $post->targets->first()->id;
 }
 
-function flowTarget(int $id): PostTarget
+function bskyFlowTarget(int $id): PostTarget
 {
     return PostTarget::withoutUserScope()->find($id);
 }
@@ -94,7 +94,7 @@ test('CA-02/CA-03: texto con facets e imagenes, programado y publicado por el jo
     Carbon::setTestNow('2026-11-01 13:01:00');
     app(DispatchDuePosts::class)();
 
-    $target = flowTarget($targetId);
+    $target = bskyFlowTarget($targetId);
     expect($target->status)->toBe(PostStatus::Published)->and($target->external_id)->toStartWith(FLOW_URI)
         ->and($target->external_url)->toStartWith('https://bsky.app/profile/ana.example.com/post/');
 
@@ -132,7 +132,7 @@ test('CA-04: timeout en createRecord y reintento sin duplicar el post', function
     Carbon::setTestNow('2026-11-01 13:01:00');
     app(DispatchDuePosts::class)();
 
-    $target = flowTarget($targetId);
+    $target = bskyFlowTarget($targetId);
     expect($target->status)->toBe(PostStatus::Published)->and($createCalls)->toBe(1)->and($target->external_id)->toBe(FLOW_URI.$created);
 });
 
@@ -156,12 +156,12 @@ test('CA-05: el video queda procesando y se publica cuando el trabajo termina', 
     app(DispatchDuePosts::class)();
 
     // La cola es `sync`: el primer sondeo (ENCODING) deja el destino procesando; el siguiente publica.
-    $target = flowTarget($targetId);
+    $target = bskyFlowTarget($targetId);
     expect($target->status)->toBe(PostStatus::Processing)->and($target->external_reference)->toBe('job-1');
 
     dispatch_sync(new PollPublishStatus($targetId));
 
-    $target = flowTarget($targetId);
+    $target = bskyFlowTarget($targetId);
     expect($target->status)->toBe(PostStatus::Published)->and($target->external_url)->toContain('https://bsky.app/profile/ana.example.com/post/');
     $record = Http::recorded()->first(fn ($pair) => str_ends_with($pair[0]->url(), 'createRecord'))[0];
     expect($record['record']['embed']['$type'])->toBe('app.bsky.embed.video');
@@ -180,7 +180,7 @@ test('CA-05: video con el email sin verificar falla con un mensaje claro', funct
     Carbon::setTestNow('2026-11-01 13:01:00');
     app(DispatchDuePosts::class)();
 
-    $target = flowTarget($targetId);
+    $target = bskyFlowTarget($targetId);
     expect($target->status)->toBe(PostStatus::Failed)->and($target->error_message)->toContain('email')->and($target->error_code)->toBe('video_no_permitido');
 });
 
@@ -192,7 +192,7 @@ test('CA-06: metricas de cuenta y de post, con views nulo', function () {
     $targetId = flowSchedule($account, 'bluesky_post', 'Hola');
     Carbon::setTestNow('2026-11-01 13:01:00');
     app(DispatchDuePosts::class)();
-    $uri = flowTarget($targetId)->external_id;
+    $uri = bskyFlowTarget($targetId)->external_id;
 
     Http::fake([
         'public.api.bsky.app/xrpc/app.bsky.actor.getProfile*' => Http::response(['followersCount' => 321, 'postsCount' => 45]),

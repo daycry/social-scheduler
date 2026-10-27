@@ -511,7 +511,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: ninguna
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Contracts/Connector.php`, `app/Connectors/Contracts/OAuthConnector.php`, `app/Connectors/Contracts/CredentialConnector.php`, `app/Connectors/Meta/MetaConnector.php`, `app/Connectors/Google/GoogleConnector.php`, `app/Connectors/TikTok/TikTokConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Connectors/Data/ConnectionCandidate.php`, `app/Models/SocialAccount.php`, `app/Services/SocialAccountService.php`, `database/migrations/*_add_credential_secret_to_social_accounts.php`, `tests/Feature/Connectors/ConnectorContractTest.php`
+- **Archivos**: `app/Connectors/Contracts/Connector.php`, `app/Connectors/Contracts/OAuthConnector.php`, `app/Connectors/Contracts/CredentialConnector.php`, `app/Connectors/Meta/MetaConnector.php`, `app/Connectors/Google/GoogleConnector.php`, `app/Connectors/TikTok/TikTokConnector.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `app/Connectors/Data/ConnectionCandidate.php`, `app/Models/SocialAccount.php`, `app/Services/SocialAccountService.php`, `database/migrations/*_add_credential_secret_to_social_accounts.php`, `tests/Feature/Connectors/ConnectorContractTest.php`, `tests/Support/FakeConnector.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Connectors tests/Feature/Auth` → regresión de Meta, Google y TikTok en verde (caracterización previa)
@@ -528,7 +528,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `OAuthController` con `instanceof`
 - [x] `SocialAccountService` guarda y borra el secreto
 
-**Notas**: Patrón: `app/Connectors/Contracts/Connector.php:20-54`, `app/Http/Controllers/OAuth/OAuthController.php:47,91`, `app/Models/SocialAccount.php:41-56` (cifrado y `hidden`), `app/Connectors/Data/ConnectionCandidate.php` (`?string $secret` fuera de `toPublicArray`) y `app/Services/SocialAccountService.php:92` (`disconnect` borra el secreto). **No cambia el comportamiento** de las 3 redes actuales. Migración aditiva.
+**Notas**: Patrón: `app/Connectors/Contracts/Connector.php:20-54`, `app/Http/Controllers/OAuth/OAuthController.php:47,91`, `app/Models/SocialAccount.php:41-56` (cifrado y `hidden`), `app/Connectors/Data/ConnectionCandidate.php` (`?string $secret` fuera de `toPublicArray`) y `app/Services/SocialAccountService.php:92` (`disconnect` borra el secreto). **No cambia el comportamiento** de las 3 redes actuales. Migración aditiva. Alcance ampliado en la implementación: `tests/Support/FakeConnector.php` (el doble de test pasa a `OAuthConnector`).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors tests/Feature/Auth tests/Feature/Connections -> 478 passed (2738 assertions), incluye ConnectorContractTest (secreto cifrado, oculto y borrado al desconectar; 404 OAuth para CredentialConnector); php artisan migrate aplicada. Caracterización previa: 256 passed antes de tocar.
 
@@ -545,7 +545,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 146k in / 16k out tok · ⚠️ verificar €
 - **Dependencias**: T-15
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Network.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `routes/web.php`, `app/Services/AiAssistant.php`, `app/Http/Controllers/AiAssistantController.php`, `app/Mcp/Tools/GetStats.php`, `app/Mcp/Tools/GetCalendar.php`, `app/Mcp/Tools/GetBestTimes.php`, `tests/Unit/Networks/NetworkCatalogTest.php`
+- **Archivos**: `app/Connectors/Network.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `routes/web.php`, `app/Services/AiAssistant.php`, `app/Http/Controllers/AiAssistantController.php`, `app/Mcp/Tools/GetStats.php`, `app/Mcp/Tools/GetCalendar.php`, `app/Mcp/Tools/GetBestTimes.php`, `tests/Unit/Networks/NetworkCatalogTest.php`, `app/Http/Controllers/BestTimesController.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/Networks/NetworkCatalogTest.php` → en verde (catálogo completo y `offered()` filtra por registro)
@@ -561,7 +561,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Catálogo en el enum
 - [x] Migrar listas backend
 
-**Notas**: Patrón: `app/Connectors/Network.php:15-38`, `app/Http/Middleware/HandleInertiaRequests.php:106` (`shell.networks`), `routes/web.php:56,58`, `AiAssistant.php:86`, `AiAssistantController.php:30` (`Rule::enum`), descripciones de `Mcp/Tools/{GetStats,GetCalendar,GetBestTimes}.php`. `EXPECTED_FLOWS` (`app/Analytics/Metric.php:63-68`) y `SUPPORTED` (`AnalyticsService.php:58-63`) se quedan donde están. Se añade el caso `Bluesky` con `authKind=credentials`.
+**Notas**: Patrón: `app/Connectors/Network.php:15-38`, `app/Http/Middleware/HandleInertiaRequests.php:106` (`shell.networks`), `routes/web.php:56,58`, `AiAssistant.php:86`, `AiAssistantController.php:30` (`Rule::enum`), descripciones de `Mcp/Tools/{GetStats,GetCalendar,GetBestTimes}.php`. `EXPECTED_FLOWS` (`app/Analytics/Metric.php:63-68`) y `SUPPORTED` (`AnalyticsService.php:58-63`) se quedan donde están. Se añade el caso `Bluesky` con `authKind=credentials`. Alcance ampliado en la implementación: `app/Http/Controllers/BestTimesController.php` (la lista de redes de «mejores horas» sale del catálogo).
 
 **Verificación ejecutada**: php artisan test --compact tests/Unit tests/Feature/Ui tests/Feature/Connections tests/Feature/Mcp -> 597 passed (2990 assertions), incluye NetworkCatalogTest y ShellTest (shell.networks con color, short_label, provider y auth_kind). Caracterización previa: suite completa 1971 verde antes de tocar.
 
@@ -578,7 +578,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-16
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `resources/js/Pages/Dashboard/Partials/NetworkTabs.vue`, `resources/js/Pages/Dashboard/Partials/format.js`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Composables/composerOptions.js`, `resources/js/Pages/Welcome.vue`, `tests/Feature/Ui/ShellTest.php`
+- **Archivos**: `resources/js/Components/NetworkIcon.vue`, `resources/js/Pages/Dashboard/Partials/NetworkTabs.vue`, `resources/js/Pages/Dashboard/Partials/format.js`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Composables/composerOptions.js`, `resources/js/Pages/Welcome.vue`, `tests/Feature/Ui/ShellTest.php`, `resources/js/Composables/useNetworks.js`, `resources/js/Components/KpiCard.vue`, `resources/js/Pages/Dashboard/Network.vue`, `resources/js/Pages/Campaigns/Show.vue`
 - **Cubre (tests)**: M-04
 - **Verificación**:
   - `php artisan test --compact tests/Feature/Ui/ShellTest.php` → en verde
@@ -592,7 +592,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Migrar cada lista
 - [x] Icono de Bluesky
 
-**Notas**: Patrón: `resources/js/Components/NetworkIcon.vue:28`, `Pages/Dashboard/Partials/{NetworkTabs.vue:20,format.js:5}`, `Pages/Calendar/Index.vue:36`, `Composables/composerOptions.js:43`; `NetworkChip.vue:13` ya lee `shell.networks`. `Welcome.vue` es pública: recibe la lista por prop.
+**Notas**: Patrón: `resources/js/Components/NetworkIcon.vue:28`, `Pages/Dashboard/Partials/{NetworkTabs.vue:20,format.js:5}`, `Pages/Calendar/Index.vue:36`, `Composables/composerOptions.js:43`; `NetworkChip.vue:13` ya lee `shell.networks`. `Welcome.vue` es pública: recibe la lista por prop. Alcance ampliado en la implementación: `resources/js/Composables/useNetworks.js` (composable que lee `shell.networks`); `resources/js/Components/KpiCard.vue` (color de red desde el catálogo); `resources/js/Pages/Dashboard/Network.vue` (color de red desde el catálogo); `resources/js/Pages/Campaigns/Show.vue` (sustituye `NETWORK_COLORS.total` por `TOTAL_COLOR`).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Ui tests/Unit/Networks -> 57 passed (719 assertions); npm run build -> compila sin errores; Playwright desktop calendar-views + pages (dashboards por red, consola limpia) -> 33 passed; E2E-02 (vista por defecto) falla solo en paralelo y pasa aislado (2 passed). Caracterización: pages.spec en verde antes de tocar.
 
@@ -638,7 +638,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 128k in / 14k out tok · ⚠️ verificar €
 - **Dependencias**: T-15
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyClient.php`, `app/Connectors/Bluesky/BlueskySession.php`, `app/Connectors/Bluesky/BlueskyConnector.php`, `config/social.php`, `tests/Feature/Connectors/Bluesky/BlueskySessionTest.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyClient.php`, `app/Connectors/Bluesky/BlueskySession.php`, `app/Connectors/Bluesky/BlueskyConnector.php`, `config/social.php`, `tests/Feature/Connectors/Bluesky/BlueskySessionTest.php`, `app/Connectors/Bluesky/BlueskyException.php`, `tests/Support/BlueskyFake.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskySessionTest.php` → en verde con `Http::fake` (sesión, `ExpiredToken` → recreación, `ReconnectRequiredException`)
 
@@ -652,7 +652,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Cliente XRPC
 - [x] Sesión con bloqueo y recuperación
 
-**Notas**: Patrón: `app/Connectors/Meta/GraphClient.php:159` (cliente y traducción de errores) y `app/Jobs/RefreshSocialAccount.php:70,120`. `refresh_expires_at = null` para que `permanentReason()` (`:76-87`) no marque reconexión; `Cache::lock("bsky-session:{id}")`; `exp` del JWT leído sin verificar firma. Entryway en `config/social.php`.
+**Notas**: Patrón: `app/Connectors/Meta/GraphClient.php:159` (cliente y traducción de errores) y `app/Jobs/RefreshSocialAccount.php:70,120`. `refresh_expires_at = null` para que `permanentReason()` (`:76-87`) no marque reconexión; `Cache::lock("bsky-session:{id}")`; `exp` del JWT leído sin verificar firma. Entryway en `config/social.php`. Alcance ampliado en la implementación: `app/Connectors/Bluesky/BlueskyException.php` (excepción XRPC con código y estado); `tests/Support/BlueskyFake.php` (ayudas compartidas de los tests de Bluesky (JWT, cuentas, respuestas simuladas)).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskySessionTest.php -> 12 passed (44 assertions) con Http::fake: alta con external_id=DID y secretos cifrados, ExpiredToken -> createSession, app password revocada -> ReconnectRequiredException, 5xx transitorio, bloqueo por cuenta, regresion de RefreshSocialAccount con refresh_expires_at nulo. Nota: codigo y tests se escribieron juntos (no se ejecuto un RED previo).
 
@@ -669,7 +669,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 91k in / 10k out tok · ⚠️ verificar €
 - **Dependencias**: T-15, T-16, T-19
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/CredentialConnectionController.php`, `routes/web.php`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connections/CredentialConnectionTest.php`
+- **Archivos**: `app/Http/Controllers/CredentialConnectionController.php`, `routes/web.php`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/Connections.vue`, `tests/Feature/Connections/CredentialConnectionTest.php`, `app/Http/Controllers/ConnectionController.php`, `resources/js/Components/Connections/CredentialsForm.vue`
 - **Cubre (tests)**: E2E-03
 - **Verificación**: `php artisan test --compact tests/Feature/Connections/CredentialConnectionTest.php` → en verde (alta, *throttle*, credenciales inválidas, no filtra el secreto)
 
@@ -683,7 +683,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Controlador y ruta
 - [x] Formulario
 
-**Notas**: Patrón: `app/Http/Controllers/ConnectionController.php:53`, `OAuthController` y `resources/js/Pages/Brands/Connections.vue`. `POST brands/{brand}/connections/{provider}/credentials` con *throttle* y CSRF; nunca se devuelve ni se registra la contraseña. Registro condicional de Bluesky en `AppServiceProvider.php:52-66`.
+**Notas**: Patrón: `app/Http/Controllers/ConnectionController.php:53`, `OAuthController` y `resources/js/Pages/Brands/Connections.vue`. `POST brands/{brand}/connections/{provider}/credentials` con *throttle* y CSRF; nunca se devuelve ni se registra la contraseña. Registro condicional de Bluesky en `AppServiceProvider.php:52-66`. Alcance ampliado en la implementación: `app/Http/Controllers/ConnectionController.php` (expone `auth_kind` y los campos del formulario de credenciales); `resources/js/Components/Connections/CredentialsForm.vue` (componente del formulario handle + app password).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connections tests/Feature/Connectors tests/Feature/Ui -> 332 passed (2190 assertions); CredentialConnectionTest (alta, contrasena invalida, throttle 429, secreto fuera de props/sesion/BD/logs, 404 ajena/OAuth, sin conector no se ofrece); npm run build compila. El registro del conector en AppServiceProvider se difiere a T-26 (cuando Bluesky tiene todas sus superficies y NetworkCoverageTest lo exige); los tests lo registran en el contenedor.
 
@@ -700,7 +700,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-16, T-18
 - **Tipo**: backend
-- **Archivos**: `app/Enums/ContentType.php`, `config/media_specs.php`, `config/social.php`, `app/Support/TextLength.php`, `resources/js/Composables/textLength.js`, `app/Services/MediaValidator.php`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/NetworkCounters.vue`, `tests/Unit/MediaValidator/BlueskyRulesTest.php`, `tests/Unit/TextLengthTest.php`
+- **Archivos**: `app/Enums/ContentType.php`, `config/media_specs.php`, `config/social.php`, `app/Support/TextLength.php`, `resources/js/Composables/textLength.js`, `app/Services/MediaValidator.php`, `app/Http/Controllers/PostController.php`, `resources/js/Components/Composer/NetworkCounters.vue`, `tests/Unit/MediaValidator/BlueskyRulesTest.php`, `tests/Unit/TextLengthTest.php`, `resources/js/Composables/useComposer.js`, `resources/js/Components/Composer/NetworkTabs.vue`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/Fixtures/text-length-cases.json`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/TextLengthTest.php` → en verde (tabla de emojis compuestos)
@@ -717,7 +717,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `TextLength` PHP y JS
 - [x] Contadores del compositor
 
-**Notas**: Patrón: `app/Enums/ContentType.php`, `config/media_specs.php`, `app/Services/MediaValidator.php:118-140` (`mb_strlen`), `PostController.php:213-217` (`max_chars`), `resources/js/Composables/textCount.js` y `Composer/NetworkCounters.vue`. Espejo JS con `Intl.Segmenter`; tope de 3000 bytes del lexicon. Mensaje: «Bluesky solo admite vídeos de hasta 50 MB en esta instalación; este pesa X MB.»
+**Notas**: Patrón: `app/Enums/ContentType.php`, `config/media_specs.php`, `app/Services/MediaValidator.php:118-140` (`mb_strlen`), `PostController.php:213-217` (`max_chars`), `resources/js/Composables/textCount.js` y `Composer/NetworkCounters.vue`. Espejo JS con `Intl.Segmenter`; tope de 3000 bytes del lexicon. Mensaje: «Bluesky solo admite vídeos de hasta 50 MB en esta instalación; este pesa X MB.» Alcance ampliado en la implementación: `resources/js/Composables/useComposer.js` (el contador por destino usa el modo de conteo del tipo); `resources/js/Components/Composer/NetworkTabs.vue` (el contador de la pestaña usa el modo del tipo); `tests/Feature/Posts/Compose/ComposeTest.php` (cubre el modo `count` en `limits`); `tests/Fixtures/text-length-cases.json` (tabla de casos compartida entre el test PHP y el espejo JS).
 
 **Verificación ejecutada**: php artisan test --compact tests/Unit tests/Feature/Posts tests/Feature/Mcp tests/Feature/Publishing tests/Feature/Ui -> verde (Unit 290 passed; resto 548 passed); TextLengthTest (tabla de emojis compuestos, PHP y espejo JS ejecutado con node) y BlueskyRulesTest (301 grafemas rechazado, 300 con emojis aceptado, 3000 bytes, video > tope rechazado con mensaje claro); npm run build compila. Conteo de reglas 13 -> 15.
 
@@ -765,7 +765,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 219k in / 24k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-21, T-22
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Bluesky/Facets.php`, `app/Support/Hashtags.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php`, `tests/Unit/Bluesky/FacetsTest.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Bluesky/Facets.php`, `app/Support/Hashtags.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php`, `tests/Unit/Bluesky/FacetsTest.php`, `app/Connectors/Bluesky/BlueskyErrors.php`
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact tests/Unit/Bluesky/FacetsTest.php` → en verde (índices en bytes, emojis, tags de 64 grafemas)
@@ -781,7 +781,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] `Facets` y `Hashtags`
 - [x] Publicador de texto e imágenes
 
-**Notas**: Patrón: `app/Connectors/Contracts/Publisher.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php` (errores y `PublishResult`) y `app/Connectors/Data/PublishRequest.php`. `App\Support\Hashtags` (extracción compartida con C-04a/T-43) alimenta `Facets`; `@menciones` solo si `resolveHandle` resuelve. Tests de tabla con emojis compuestos.
+**Notas**: Patrón: `app/Connectors/Contracts/Publisher.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php` (errores y `PublishResult`) y `app/Connectors/Data/PublishRequest.php`. `App\Support\Hashtags` (extracción compartida con C-04a/T-43) alimenta `Facets`; `@menciones` solo si `resolveHandle` resuelve. Tests de tabla con emojis compuestos. Alcance ampliado en la implementación: `app/Connectors/Bluesky/BlueskyErrors.php` (traducción de errores XRPC a excepciones de la cola).
 
 **Verificación ejecutada**: php artisan test --compact tests/Unit/Bluesky/FacetsTest.php -> 11 passed (indices en bytes, emojis compuestos, tags de 64 grafemas, menciones); php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php -> 15 passed: 4 blobs <= tope y registro con facets de enlace y tag, mencion no resoluble en texto plano, copia recomprimida, renovacion de token, errores traducidos. Tests y codigo escritos juntos (sin RED previo ejecutado).
 
@@ -862,7 +862,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 182k in / 20k out tok · ⚠️ verificar €
 - **Dependencias**: T-19, T-16
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Bluesky/BlueskyInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php`
+- **Archivos**: `app/Connectors/Bluesky/BlueskyInsights.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php`, `tests/Feature/ProfileTest.php`
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php` → en verde (seguidores, posts, por post y `views` nulo)
 
@@ -876,7 +876,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Lector de insights
 - [x] Entradas de `Metric` y `SUPPORTED`
 
-**Notas**: Patrón: `app/Connectors/Contracts/InsightsReader.php`, `app/Analytics/Metric.php:63-68` (`EXPECTED_FLOWS['bluesky'] = []`, como TikTok), `AnalyticsService.php:58-63`, `app/Analytics/SnapshotCollector.php`. `POST_COUNT` es un *stock* nuevo. Lectura por AppView público ⚠️ (`public.api.bsky.app`, sin verificar). `null` = no disponible, nunca 0.
+**Notas**: Patrón: `app/Connectors/Contracts/InsightsReader.php`, `app/Analytics/Metric.php:63-68` (`EXPECTED_FLOWS['bluesky'] = []`, como TikTok), `AnalyticsService.php:58-63`, `app/Analytics/SnapshotCollector.php`. `POST_COUNT` es un *stock* nuevo. Lectura por AppView público ⚠️ (`public.api.bsky.app`, sin verificar). `null` = no disponible, nunca 0. Alcance ampliado en la implementación: `tests/Feature/ProfileTest.php` (la aserción «sin credential» pasa a las props de passkeys: el catálogo comparte `auth_kind: credentials`).
 
 **Verificación ejecutada**: php artisan test --compact tests/Feature/Connectors/Bluesky/BlueskyInsightsTest.php -> 12 passed (46 assertions): seguidores y posts, por post likes/comentarios/compartidos(reposts+citas), views null, lotes de 25 con uris repetido, errores. Bluesky registrado en AppServiceProvider (BLUESKY_ENABLED) y NetworkCoverageTest lo recorre via offered(): suite completa php artisan test --compact -> 2080 passed (12418 assertions).
 
@@ -2143,7 +2143,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Previsión IA**: 36k in / 4k out tok · ⚠️ verificar €
 - **Dependencias**: T-20
 - **Tipo**: docs
-- **Archivos**: `docs/guias/bluesky-app-password.md`, `docs/README.md`
+- **Archivos**: `docs/guias/bluesky-app-password.md`, `docs/README.md`, `docs/RAG-INDEX.md`
 - **Cubre (tests)**: —
 - **Verificación**: lectura: la guía cubre alta de la app password, email verificado, límite diario de vídeo y revocación → completa; enlazada desde `docs/README.md`
 
@@ -2154,7 +2154,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - [x] Redactar la guía
 - [x] Enlazar desde el índice
 
-**Notas**: Patrón: `docs/guias/google-cloud-picker-drive.md` y `docs/guias/tiktok-auditoria.md`. Se ejecuta **antes** del smoke T-30.
+**Notas**: Patrón: `docs/guias/google-cloud-picker-drive.md` y `docs/guias/tiktok-auditoria.md`. Se ejecuta **antes** del smoke T-30. Alcance ampliado en la implementación: `docs/RAG-INDEX.md` (índice de la documentación enlaza la guía).
 
 **Verificación ejecutada**: lectura: docs/guias/bluesky-app-password.md cubre alta de la app password, conexión, errores, qué se guarda, email verificado, límite diario y revocación; enlazada desde docs/README.md, docs/RAG-INDEX.md, la guía de usuario y conexiones.md. Adelantada (Fase 10) porque el smoke M-01 la necesita.
 

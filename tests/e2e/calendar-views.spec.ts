@@ -40,7 +40,7 @@ async function clickNav(page: Page, name: string, exact = false) {
         await toggle.click();
         await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     }
-    await page.getByRole('link', { name, exact }).filter({ visible: true }).first().click();
+    await page.getByRole('link', { name, exact }).and(page.locator(':visible')).first().click();
 }
 
 test('E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar', async ({ page }) => {

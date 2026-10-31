@@ -5,12 +5,10 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const DEMO = {
-    email: process.env.DEMO_USER_EMAIL || 'demo@social-scheduler.test',
-    password: process.env.DEMO_USER_PASSWORD || '',
-};
+import { authFile, usersFile, startFile, fakeSocialFile, environment } from './isolated/runtime';
 
-export const AUTH_FILE = 'tests/e2e/.auth/demo.json';
+export const READONLY = { email: 'e2e-sec-readonly@example.test', password: 'E2e-Readonly-Disposable-Aa1!' };
+export const AUTH_FILE = authFile;
 
 /** Páginas públicas (sin sesión). */
 export const PUBLIC_PAGES: Array<[string, string]> = [
@@ -70,7 +68,7 @@ export async function expectNoOverflow(page: Page) {
     expect(await overflowX(page), 'desbordamiento horizontal (px)').toBeLessThanOrEqual(0);
 }
 
-export async function login(page: Page, email = DEMO.email, password = DEMO.password) {
+export async function login(page: Page, email = READONLY.email, password = READONLY.password) {
     await page.goto('/login');
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña').fill(password);
@@ -102,8 +100,8 @@ export async function borrarMarcasE2e(page: Page, prefix = 'e2e-') {
 // proyectos. Se crean en global-setup y se borran en global-teardown; todos llevan el prefijo `e2e-`.
 // ---------------------------------------------------------------------------------------------------------------
 
-export const E2E_USERS_FILE = 'tests/e2e/.auth/e2e-users.json';
-export const E2E_START_FILE = 'tests/e2e/.auth/e2e-start.txt';
+export const E2E_USERS_FILE = usersFile;
+export const E2E_START_FILE = startFile;
 export const E2E_PROJECTS = ['desktop', 'mobile', 'mobile-360'] as const;
 
 export type E2eUser = { email: string; password: string; name: string };
@@ -112,7 +110,13 @@ export const e2eEmail = (project: string) => `e2e-sec-${project}@example.test`;
 
 /** Ejecuta PHP en el contexto de la app (tinker) y devuelve su salida. Solo para preparar/limpiar datos `e2e-`. */
 export function artisan(code: string): string {
-    const out = execFileSync('php', ['artisan', 'tinker', '--execute', code], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    let out: string;
+    try {
+        out = execFileSync('php', ['tests/e2e/isolated/cli.php', 'tinker', code], { env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    } catch (error) {
+        const failure = error as { stdout?: string; stderr?: string };
+        throw new Error(`Disposable E2E PHP failed: ${failure.stdout ?? ''}\n${failure.stderr ?? ''}`);
+    }
     // tinker devuelve exit 0 aunque el código falle: se detecta por el nombre de la excepción en la salida.
     if (/^([A-Za-z]+[\\])*[A-Za-z]*(Error|Exception)\b/m.test(out)) throw new Error(`artisan tinker falló: ${out.slice(0, 300)}`);
     return out;
@@ -129,7 +133,7 @@ const cleanUserPhp = (email: string) =>
     `$u->socialIdentities()->delete(); $u->tokens()->delete(); ` +
     `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(Illuminate\\Support\\Str::lower(${q(email)}) . '|' . $ip); }`;
 
-/** Crea (o deja limpios) los usuarios E2E y guarda sus credenciales en `.auth` (ignorado por git). */
+/** Crea los usuarios de seguridad y guarda sus credenciales en el directorio auth del run desechable. */
 export function createE2eUsers(): Record<string, E2eUser> {
     const users: Record<string, E2eUser> = {};
     for (const project of E2E_PROJECTS) {
@@ -152,7 +156,7 @@ export function createE2eUsers(): Record<string, E2eUser> {
 export function deleteE2eUsers() {
     // La auditoria pone user_id a NULL al borrar el usuario: sus filas se borran antes para no dejar huerfanas.
     artisan(
-        `$ids = App\\Models\\User::where('email', 'like', 'e2e-sec-%@example.test')->pluck('id'); ` +
+        `$ids = App\\Models\\User::whereIn('email', [${[...E2E_PROJECTS.map(e2eEmail), READONLY.email].map(q).join(', ')}])->pluck('id'); ` +
             `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereIn('user_id', $ids)->delete(); ` +
             // Los tokens de Sanctum no tienen FK al usuario: se borran a mano (keys manuales y tokens OAuth de los tests).
             `Illuminate\\Support\\Facades\\DB::table('personal_access_tokens')->where('tokenable_type', App\\Models\\User::class)->whereIn('tokenable_id', $ids)->delete(); ` +
@@ -317,7 +321,7 @@ export async function loginUntilChallenge(page: Page, user: E2eUser, remember = 
 // fichero; el driver real de Google/Facebook nunca se invoca. Solo existe con APP_ENV=e2e (FakeSocialiteProvider).
 // ---------------------------------------------------------------------------------------------------------------
 
-export const FAKE_SOCIAL_FILE = 'storage/framework/cache/e2e-social.json';
+export const FAKE_SOCIAL_FILE = fakeSocialFile;
 
 export type FakeIdentity = {
     id: string;
@@ -367,7 +371,7 @@ export function socialRows(email: string): SocialRow[] {
     return JSON.parse(out.slice(out.indexOf('[')));
 }
 
-/** Crea un usuario E2E extra (para identidades "ajenas"); `deleteE2eUsers` lo borra por su patrón `e2e-sec-%@example.test`. */
+/** Usuario extra para identidades ajenas; queda sólo en la SQLite desechable para inspección al cerrar el run. */
 export function createExtraE2eUser(label: string): string {
     const email = `e2e-sec-${label}@example.test`;
     artisan(
@@ -391,8 +395,7 @@ export function deleteE2eOAuthClients() {
 /**
  * DCR (10/h por IP) y los límites de /oauth/*: se liberan SOLO las claves de 127.0.0.1 y ::1 (claves hash de los limitadores).
  * El tope GLOBAL de DCR no se reinicia: el servidor E2E lo sube con MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR (playwright.config.ts).
- * Reiniciar las claves de loopback también afecta a tráfico real por ngrok que entre desde ahí: no corras la batería mientras
- * pruebas a mano (docs/guias/desarrollo-local.md).
+ * La caché del run es privada: estos reinicios no afectan al servidor normal ni a otras ejecuciones.
  */
 export function clearOAuthThrottle() {
     artisan(

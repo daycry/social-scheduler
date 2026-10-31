@@ -92,3 +92,26 @@ test('create_post con 301 grafemas en Bluesky falla con EXACTAMENTE el mismo men
         ->and($mcp)->toBe('Datos no validos: targets.0: '.$messages[0]) // el MCP solo antepone el prefijo y la ruta; el texto es el de la web
         ->and($mcp)->toContain('Bluesky admite como maximo 300');
 });
+
+test('CA-02 literal: web y MCP aceptan 300 grafemas con emoji compuesto y rechazan 301 con el mismo mensaje', function () {
+    $text = str_repeat('a', 299)."\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466}";
+    $args = fn (string $value) => [
+        'brand_id' => $this->brand->id, 'text' => $value, 'scheduled_at' => '2026-11-02 10:00', 'schedule' => true, 'media' => [],
+        'targets' => [['account_id' => $this->bsky->id, 'content_type' => 'bluesky_post']],
+    ];
+
+    $this->actingAs($this->user)->postJson(route('brands.posts.validate', $this->brand), $args($text))->assertOk()->assertJsonPath('errors', []);
+    $this->post(route('brands.posts.store', $this->brand), $args($text))->assertRedirect()->assertSessionHasNoErrors();
+    expect(Post::withoutUserScope()->where('text', $text)->count())->toBe(1);
+    [$error] = $this->callTool($this->key, 'create_post', $args($text));
+    expect($error)->toBeFalse()->and(Post::withoutUserScope()->where('text', $text)->count())->toBe(2);
+
+    $invalid = $text.'a';
+    $web = $this->actingAs($this->user)->postJson(route('brands.posts.validate', $this->brand), $args($invalid))->assertOk()->json('errors');
+    $this->post(route('brands.posts.store', $this->brand), $args($invalid))->assertSessionHasErrors('targets.0');
+    [$error, $message] = $this->callTool($this->key, 'create_post', $args($invalid));
+    $webMessage = $web['targets.0'][0];
+    expect($error)->toBeTrue()->and($webMessage)->toContain('301 caracteres')
+        ->and($message)->toBe('Datos no validos: targets.0: '.$webMessage)
+        ->and(Post::withoutUserScope()->count())->toBe(2);
+});

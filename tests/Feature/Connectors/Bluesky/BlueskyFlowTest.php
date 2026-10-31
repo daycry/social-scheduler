@@ -13,6 +13,7 @@ use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
+use App\Models\PublishAttempt;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
@@ -112,6 +113,42 @@ test('CA-02: 301 grafemas se rechaza al validar y al programar, con el mismo men
     $this->post(route('brands.posts.store', $this->brand), $body)->assertSessionHasErrors(['targets.0' => $message]);
 });
 
+test('CA-03 literal: cuatro imagenes con una JPEG de 3 MB se publican reducidas sin alterar originales', function () {
+    $account = flowConnect();
+    $images = [flowImage(), flowImage(), flowImage(), flowImage()];
+    // El JPEG sigue siendo decodificable; el relleno posterior a EOI da exactamente el tamano del criterio.
+    $largeBytes = str_pad(Storage::disk('local')->get($images[0]->path), 3_000_000, "\0");
+    expect(getimagesizefromstring($largeBytes))->not->toBeFalse();
+    Storage::disk('local')->put($images[0]->path, $largeBytes);
+    $images[0]->forceFill(['size' => strlen($largeBytes), 'declared_size' => strlen($largeBytes)])->save();
+    $originalHashes = array_map(fn ($image) => hash('sha256', Storage::disk('local')->get($image->path)), $images);
+    $uploadedSizes = [];
+    Http::fake([
+        'pds.example.com/xrpc/com.atproto.repo.uploadBlob' => function ($request) use (&$uploadedSizes) {
+            $size = strlen($request->body());
+            $uploadedSizes[] = $size;
+
+            return Http::response(['blob' => ['$type' => 'blob', 'ref' => ['$link' => 'blob-'.count($uploadedSizes)], 'mimeType' => 'image/jpeg', 'size' => $size]]);
+        },
+        'pds.example.com/xrpc/com.atproto.repo.createRecord' => fn ($request) => Http::response(['uri' => FLOW_URI.$request['rkey'], 'cid' => 'four-images']),
+    ]);
+
+    $targetId = flowSchedule($account, 'bluesky_post', 'Cuatro fotos https://example.com #literal', array_map(fn ($image) => $image->id, $images));
+    Carbon::setTestNow('2026-11-01 13:01:00');
+    expect(app(DispatchDuePosts::class)())->toBe(1);
+
+    expect(bskyFlowTarget($targetId)->status)->toBe(PostStatus::Published)->and($uploadedSizes)->toHaveCount(4);
+    foreach ($uploadedSizes as $size) {
+        expect($size)->toBeGreaterThan(0)->toBeLessThanOrEqual(2_000_000);
+    }
+    $record = Http::recorded()->first(fn ($pair) => str_ends_with($pair[0]->url(), 'createRecord'))[0]['record'];
+    expect($record['embed']['images'])->toHaveCount(4)
+        ->and(array_column(array_column($record['embed']['images'], 'image'), 'size'))->toBe($uploadedSizes)
+        ->and(array_map(fn ($facet) => $facet['features'][0]['$type'], $record['facets']))->toBe(['app.bsky.richtext.facet#link', 'app.bsky.richtext.facet#tag'])
+        ->and(Storage::disk('local')->size($images[0]->path))->toBe(3_000_000)
+        ->and(array_map(fn ($image) => hash('sha256', Storage::disk('local')->get($image->path)), $images))->toBe($originalHashes);
+});
+
 test('CA-04: timeout en createRecord y reintento sin duplicar el post', function () {
     $account = flowConnect();
     $createCalls = 0;
@@ -134,6 +171,48 @@ test('CA-04: timeout en createRecord y reintento sin duplicar el post', function
 
     $target = bskyFlowTarget($targetId);
     expect($target->status)->toBe(PostStatus::Published)->and($createCalls)->toBe(1)->and($target->external_id)->toBe(FLOW_URI.$created);
+});
+
+test('CA-04 literal: el segundo job recupera la rkey persistida tras timeout y una comprobacion temporalmente inaccesible', function () {
+    $account = flowConnect();
+    $createCalls = 0;
+    $lookupCalls = 0;
+    $externals = [];
+    Http::fake([
+        'pds.example.com/xrpc/com.atproto.repo.createRecord' => function ($request) use (&$createCalls, &$externals) {
+            $createCalls++;
+            $externals[$request['rkey']] = ['uri' => FLOW_URI.$request['rkey'], 'cid' => 'created-before-timeout', 'value' => $request['record']];
+            throw new ConnectionException('Respuesta perdida despues de crear el registro.');
+        },
+        'pds.example.com/xrpc/com.atproto.repo.getRecord*' => function ($request) use (&$lookupCalls, &$externals) {
+            $lookupCalls++;
+            if ($lookupCalls === 1) {
+                throw new ConnectionException('El PDS no permite confirmar temporalmente.');
+            }
+
+            return Http::response($externals[$request['rkey']]);
+        },
+    ]);
+    $targetId = flowSchedule($account, 'bluesky_post', 'Una sola publicacion entre dos jobs');
+    Carbon::setTestNow('2026-11-01 13:01:00');
+    expect(app(DispatchDuePosts::class)())->toBe(1);
+
+    $first = bskyFlowTarget($targetId);
+    $savedRkey = $first->progress['rkey'];
+    expect($first->status)->toBe(PostStatus::Scheduled)->and($first->attempts)->toBe(1)
+        ->and($first->next_attempt_at->isFuture())->toBeTrue()->and($first->external_id)->toBeNull()
+        ->and($first->attemptLog()->count())->toBe(1)
+        ->and($first->attemptLog()->first()->outcome)->toBe(PublishAttempt::OUTCOME_TRANSIENT)
+        ->and(array_keys($externals))->toBe([$savedRkey])->and($createCalls)->toBe(1)->and($lookupCalls)->toBe(1);
+
+    Carbon::setTestNow($first->next_attempt_at->copy()->addSecond());
+    expect(app(DispatchDuePosts::class)())->toBe(1);
+    $second = bskyFlowTarget($targetId);
+    expect($second->status)->toBe(PostStatus::Published)->and($second->attempts)->toBe(2)
+        ->and($second->progress['rkey'])->toBe($savedRkey)->and($second->external_id)->toBe(FLOW_URI.$savedRkey)
+        ->and($second->attemptLog()->count())->toBe(2)
+        ->and($second->attemptLog()->pluck('outcome')->all())->toBe([PublishAttempt::OUTCOME_TRANSIENT, PublishAttempt::OUTCOME_PUBLISHED])
+        ->and($createCalls)->toBe(1)->and($lookupCalls)->toBe(2)->and($externals)->toHaveCount(1);
 });
 
 test('CA-05: el video queda procesando y se publica cuando el trabajo termina', function () {
@@ -205,5 +284,5 @@ test('CA-06: metricas de cuenta y de post, con views nulo', function () {
     $snapshot = AccountSnapshot::withoutUserScope()->where('social_account_id', $account->id)->first();
     expect($snapshot->metrics[Metric::FOLLOWERS])->toBe(321)->and($snapshot->metrics[Metric::POST_COUNT])->toBe(45)->and($snapshot->metrics[Metric::VIEWS])->toBeNull();
     $post = PostMetricSnapshot::withoutUserScope()->where('post_target_id', $targetId)->first();
-    expect($post->metrics[Metric::LIKES])->toBe(7)->and($post->metrics[Metric::SHARES])->toBe(2)->and($post->metrics[Metric::INTERACTIONS])->toBe(10)->and($post->metrics[Metric::VIEWS])->toBeNull();
+    expect($post->metrics[Metric::LIKES])->toBe(7)->and($post->metrics[Metric::COMMENTS])->toBe(1)->and($post->metrics[Metric::SHARES])->toBe(2)->and($post->metrics[Metric::INTERACTIONS])->toBe(10)->and($post->metrics[Metric::VIEWS])->toBeNull();
 });

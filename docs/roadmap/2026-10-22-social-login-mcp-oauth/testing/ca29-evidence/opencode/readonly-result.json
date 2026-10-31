@@ -1,0 +1,26 @@
+{
+  "client": "OpenCode",
+  "server": "roadmap_ca29_opencode",
+  "started_utc": "2026-10-31T20:06:12.875339+00:00",
+  "api_key_supplied": false,
+  "standalone": false,
+  "agent": "ca29_readonly",
+  "tool_calls": [
+    {
+      "tool": "roadmap_ca29_opencode_list_brands",
+      "status": "completed"
+    }
+  ],
+  "unexpected_tools": [],
+  "diagnostics": [],
+  "final": {
+    "success": true,
+    "tool": "list_brands",
+    "brand_count": 1,
+    "failure_kind": "none"
+  },
+  "model_override": "openai/gpt-6.1-sol",
+  "exit_code": 0,
+  "ended_utc": "2026-10-31T20:06:20.826905+00:00",
+  "verified_success": true
+}

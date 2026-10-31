@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-Laravel%20Pint-f05340.svg)](https://laravel.com/docs/pint)
-[![Tests](https://img.shields.io/badge/tests-Pest%202456-22c55e.svg)](tests)
+[![Tests](https://img.shields.io/badge/tests-Pest%202461-22c55e.svg)](tests)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20·%203%20viewports-2ead33.svg)](tests/e2e)
 [![Accesibilidad](https://img.shields.io/badge/a11y-axe%20WCAG%202.1%20AA-7c3aed.svg)](tests/e2e/a11y.spec.ts)
 
@@ -25,7 +25,7 @@
 
 Programación y analítica de redes sociales para uso personal, con identidad propia: planifica publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads, mide su rendimiento, genera informes y se maneja también desde agentes de IA por MCP.
 
-Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudflare R2, desplegado en HestiaCP.
+Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudflare R2, preparado para el despliegue en HestiaCP.
 
 ---
 
@@ -36,10 +36,10 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 | Código de aplicación | 307 ficheros PHP · ~30.600 líneas en `app/` |
 | Interfaz | 101 componentes Vue (Inertia) |
 | Base de datos | 47 migraciones |
-| Tests unitarios y de integración | **2.456 tests Pest** en 233 ficheros (SQLite en memoria) |
-| Tests E2E | **498 tests Playwright** en 21 specs × 3 tamaños (escritorio, móvil 375 px y 360 px), con axe |
+| Tests unitarios y de integración | **2.461 tests Pest** en 233 ficheros (SQLite en memoria; ejecución local final del 2026-10-31) |
+| Tests E2E | T-43: **57 tests pasados**; batería general: **502 pasados y 2 omitidos previstos** de 504, en 3 tamaños con SQLite aislada (2026-10-31). Ver [QA de T-43](docs/roadmap/2026-10-19-social-scheduler/testing/report.md), [evidencia general](docs/roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/raw/results.json) y [guía](docs/guias/pruebas-t43.md). |
 | Servidor MCP | 25 herramientas (marcas, cuentas de las 6 redes, calendario y vistas, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, hashtags, informes, comentarios y notas) |
-| Documentación | 91 documentos (ficheros `.md` bajo `docs/`, incluidos roadmap y memoria técnica) · 5 ADR · 8 iniciativas en el roadmap |
+| Documentación | [Índice general](docs/README.md) y [RAG](docs/RAG-INDEX.md) · 5 ADR · 8 iniciativas en el roadmap |
 
 ## Funcionalidades
 
@@ -80,10 +80,12 @@ El host virtual de Laragon debe apuntar a `public/`. Para OAuth de las redes y p
 composer test            # Pest (SQLite en memoria)
 vendor/bin/pint --test   # estilo
 npx tsc --noEmit -p .    # tipos de los tests E2E
-npm run test:e2e         # Playwright: levanta su propio servidor en localhost:8080
+npx playwright test -c playwright.roadmap.config.ts # T-43: SQLite desechable en localhost:8081
 ```
 
 CI (`.github/workflows/ci.yml`) ejecuta Pint y la suite Pest en cada push y PR.
+
+La batería general (`npm run test:e2e`) usa un servidor propio en `localhost:8080`, SQLite y almacenamiento desechables y cuatro usuarios de prueba. La QA de T-77 del 2026-10-31 pasa 502 casos y omite los dos previstos del shell de escritorio en móvil, sin fallos ni flaky. La [guía de T-43](docs/guias/pruebas-t43.md) explica qué configuración elegir y dónde quedan las evidencias.
 
 ## Documentación
 
@@ -96,6 +98,7 @@ CI (`.github/workflows/ci.yml`) ejecuta Pint y la suite Pest en cada push y PR.
 | Conectar agentes de IA (MCP) | [`docs/modulos/mcp.md`](docs/modulos/mcp.md) |
 | Login con Google y Facebook | [`docs/guias/login-social-google-meta.md`](docs/guias/login-social-google-meta.md) |
 | Variables de entorno | [`docs/referencia/configuracion.md`](docs/referencia/configuracion.md) |
+| Pruebas aisladas del roadmap | [`docs/guias/pruebas-t43.md`](docs/guias/pruebas-t43.md) |
 | Decisiones de arquitectura (ADR) | [`docs/knowledge/adr/`](docs/knowledge/adr) |
 | Roadmap y ledgers | [`docs/roadmap/`](docs/roadmap/README.md) |
 | Cambios | [`CHANGELOG.md`](CHANGELOG.md) · [`CHANGELOG.es.md`](CHANGELOG.es.md) |

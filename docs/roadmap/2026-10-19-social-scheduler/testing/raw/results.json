@@ -1,0 +1,2393 @@
+{
+  "config": {
+    "configFile": "C:\\laragon\\www\\metricool\\playwright.roadmap.config.ts",
+    "rootDir": "C:/laragon/www/metricool/tests/e2e/roadmap",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 15000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-qa-host-20261031-1793438874302/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "C:/laragon/www/metricool/tests/e2e/roadmap",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-qa-host-20261031-1793438874302/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/laragon/www/metricool/tests/e2e/roadmap",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-qa-host-20261031-1793438874302/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-360",
+        "name": "mobile-360",
+        "testDir": "C:/laragon/www/metricool/tests/e2e/roadmap",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "version": "1.49.1",
+    "workers": 1,
+    "webServer": {
+      "command": "php tests/e2e/roadmap/cli.php init && php -S localhost:8081 -t public tests/e2e/roadmap/server.php",
+      "url": "http://localhost:8081/up",
+      "reuseExistingServer": false,
+      "timeout": 90000,
+      "stdout": "ignore",
+      "stderr": "ignore",
+      "env": {
+        "ALLUSERSPROFILE": "C:\\ProgramData",
+        "APPDATA": "C:\\Users\\daycr\\AppData\\Roaming",
+        "APP_CONFIG_CACHE": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\config.php",
+        "APP_ENV": "e2e",
+        "APP_FALLBACK_LOCALE": "es",
+        "APP_KEY": "base64:KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKys=",
+        "APP_LOCALE": "es",
+        "APP_NAME": "Social Scheduler T43",
+        "APP_URL": "http://localhost:8081",
+        "CACHE_LIMITER_STORE": "file",
+        "CACHE_STORE": "file",
+        "CODEX_APPLY_PATCH_PRESERVE_LINE_ENDINGS": "1",
+        "CODEX_CI": "1",
+        "CODEX_DAEMON_SHUTDOWN_FILE": "C:\\Users\\daycr\\.codex\\app-server-daemon\\daemon-updater.shutdown",
+        "CODEX_DAEMON_SHUTDOWN_SOCKET": "1",
+        "CODEX_PERMISSION_PROFILE": ":workspace",
+        "CODEX_SANDBOX_NETWORK_DISABLED": "1",
+        "CODEX_SESSION_ID": "01a190ff-308b-7aa1-9d78-ed58a036f11c",
+        "CODEX_THREAD_ID": "01a19123-16df-7461-b61e-62be05a19412",
+        "CODEX_TOOL_CALL_ID": "exec-45bcf450-fd2e-4cf1-96a5-4d41610e3426",
+        "CODEX_VERSION": "0.166.0",
+        "COLOR": "0",
+        "COLORTERM": "",
+        "CommonProgramFiles": "C:\\Program Files\\Common Files",
+        "CommonProgramFiles(x86)": "C:\\Program Files (x86)\\Common Files",
+        "CommonProgramW6432": "C:\\Program Files\\Common Files",
+        "COMPUTERNAME": "LOCAL-AI",
+        "ComSpec": "C:\\Windows\\system32\\cmd.exe",
+        "DB_CONNECTION": "sqlite",
+        "DB_DATABASE": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\db.sqlite",
+        "DB_QUEUE_CONNECTION": "sqlite",
+        "DB_URL": "",
+        "DriverData": "C:\\Windows\\System32\\Drivers\\DriverData",
+        "EDITOR": "C:\\Windows\\notepad.exe",
+        "GH_PAGER": "cat",
+        "GIT_PAGER": "cat",
+        "GOOGLE_CLIENT_ID": "t43-google",
+        "GOOGLE_CLIENT_SECRET": "t43-not-a-secret",
+        "HOME": "C:\\Users\\daycr",
+        "HOMEDRIVE": "C:",
+        "HOMEPATH": "\\Users\\daycr",
+        "INIT_CWD": "C:\\laragon\\www\\metricool",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "LC_CTYPE": "C.UTF-8",
+        "LOCALAPPDATA": "C:\\Users\\daycr\\AppData\\Local",
+        "LOGONSERVER": "\\\\LOCAL-AI",
+        "MAIL_MAILER": "array",
+        "MEDIA_DISK": "local",
+        "META_APP_ID": "t43-meta",
+        "META_APP_SECRET": "t43-not-a-secret",
+        "NODE": "C:\\laragon\\bin\\nodejs\\node-v22\\node.exe",
+        "NO_COLOR": "1",
+        "npm_command": "exec",
+        "npm_config_allow_scripts": "",
+        "npm_config_cache": "C:\\Users\\daycr\\AppData\\Local\\npm-cache",
+        "npm_config_globalconfig": "C:\\laragon\\bin\\nodejs\\node-v22\\etc\\npmrc",
+        "npm_config_global_ignore_file": "C:\\laragon\\bin\\nodejs\\node-v22\\etc\\npmignore",
+        "npm_config_global_prefix": "C:\\laragon\\bin\\nodejs\\node-v22",
+        "npm_config_ignore_scripts": "true",
+        "npm_config_init_module": "C:\\Users\\daycr\\.npm-init.js",
+        "npm_config_local_prefix": "C:\\laragon\\www\\metricool",
+        "npm_config_node_gyp": "C:\\laragon\\bin\\nodejs\\node-v22\\node_modules\\npm\\node_modules\\node-gyp\\bin\\node-gyp.js",
+        "npm_config_noproxy": "",
+        "npm_config_npm_version": "12.0.2",
+        "npm_config_prefix": "C:\\laragon\\bin\\nodejs\\node-v22",
+        "npm_config_userconfig": "C:\\Users\\daycr\\.npmrc",
+        "npm_config_user_agent": "npm/12.0.2 node/v22.23.2 win32 x64 workspaces/false",
+        "npm_execpath": "C:\\laragon\\bin\\nodejs\\node-v22\\node_modules\\npm\\bin\\npm-cli.js",
+        "npm_lifecycle_event": "npx",
+        "npm_lifecycle_script": "playwright",
+        "npm_node_execpath": "C:\\laragon\\bin\\nodejs\\node-v22\\node.exe",
+        "npm_package_json": "C:\\laragon\\www\\metricool\\package.json",
+        "NUMBER_OF_PROCESSORS": "16",
+        "OneDrive": "C:\\Users\\daycr\\OneDrive",
+        "OneDriveConsumer": "C:\\Users\\daycr\\OneDrive",
+        "OS": "Windows_NT",
+        "PAGER": "cat",
+        "Path": "C:\\laragon\\www\\metricool\\node_modules\\.bin;C:\\laragon\\www\\metricool\\node_modules\\.bin;C:\\laragon\\www\\node_modules\\.bin;C:\\laragon\\node_modules\\.bin;C:\\node_modules\\.bin;C:\\laragon\\bin\\nodejs\\node-v22\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin;C:\\laragon\\bin\\git\\mingw64\\bin;C:\\Users\\daycr\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-9.0.2-full_build\\bin;C:\\Users\\daycr\\.codex\\tmp\\arg0-windows\\codex-arg0ZkshAZ;C:\\Users\\daycr\\.codex\\packages\\app-server-daemon\\releases\\0.166.0-x86_64-pc-windows-msvc\\codex-path;C:\\Users\\daycr\\.codex\\tmp\\arg0\\codex-arg0VtpSVb;C:\\Users\\daycr\\.codex\\packages\\app-server-daemon\\releases\\0.162.1-x86_64-pc-windows-msvc\\codex-path;C:\\Users\\daycr\\.codex\\tmp\\arg0\\codex-arg0ricLRi;C:\\Users\\daycr\\.codex\\packages\\standalone\\releases\\0.162.1-x86_64-pc-windows-msvc\\codex-path;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\GitHub CLI\\;C:\\Users\\daycr\\AppData\\Local\\pnpm\\bin;C:\\Users\\daycr\\.local\\bin;C:\\laragon\\bin\\composer;C:\\laragon\\bin\\git\\bin;C:\\laragon\\bin\\git\\cmd;C:\\laragon\\bin\\git\\mingw64\\bin;C:\\laragon\\bin\\git\\usr\\bin;C:\\laragon\\bin\\mysql\\mysql-8.4.3-winx64\\bin;C:\\laragon\\bin\\ngrok;C:\\laragon\\bin\\nodejs\\node-v22;C:\\laragon\\bin\\php\\php-8.3.33-Win32-vs16-x64;C:\\laragon\\bin\\python\\python-3.13;C:\\laragon\\bin\\python\\python-3.13\\Scripts;C:\\laragon\\usr\\bin;C:\\Users\\daycr\\AppData\\Local\\Yarn\\config\\global\\node_modules\\.bin;C:\\Users\\daycr\\AppData\\Roaming\\Composer\\vendor\\bin;C:\\Users\\daycr\\AppData\\Roaming\\npm;C:\\Users\\daycr\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin;C:\\Users\\daycr\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\daycr\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\daycr\\AppData\\Local\\GitHubDesktop\\bin;C:\\ProgramData\\daycr\\GitHubDesktop\\bin;C:\\Users\\daycr\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-9.0.2-full_build\\bin;;C:\\Users\\daycr\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;C:\\Users\\daycr\\AppData\\Local\\Programs\\Microsoft VS Code\\bin\\copilot-shim",
+        "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JSE;.WSF;.WSH;.MSC;.CPL ",
+        "PNPM_HOME": "C:\\Users\\daycr\\AppData\\Local\\pnpm",
+        "PROCESSOR_ARCHITECTURE": "AMD64",
+        "PROCESSOR_IDENTIFIER": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+        "PROCESSOR_LEVEL": "26",
+        "PROCESSOR_REVISION": "4400",
+        "ProgramData": "C:\\ProgramData",
+        "ProgramFiles": "C:\\Program Files",
+        "ProgramFiles(x86)": "C:\\Program Files (x86)",
+        "ProgramW6432": "C:\\Program Files",
+        "PROMPT": "$P$G",
+        "PSModulePath": "C:\\Users\\daycr\\OneDrive\\documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules",
+        "PUBLIC": "C:\\Users\\Public",
+        "QUEUE_CONNECTION": "database",
+        "SESSIONNAME": "Console",
+        "SESSION_CONNECTION": "sqlite",
+        "SESSION_DRIVER": "database",
+        "SESSION_SECURE_COOKIE": "false",
+        "SOCIAL_BACKFILL_ON_CONNECT": "false",
+        "SystemDrive": "C:",
+        "SystemRoot": "C:\\Windows",
+        "T43_RUN_ROOT": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302",
+        "TEMP": "C:\\Users\\daycr\\AppData\\Local\\Temp",
+        "TERM": "dumb",
+        "TIKTOK_CLIENT_KEY": "t43-tiktok",
+        "TIKTOK_CLIENT_SECRET": "t43-not-a-secret",
+        "TMP": "C:\\Users\\daycr\\AppData\\Local\\Temp",
+        "TRUSTED_PROXIES": "",
+        "USERDOMAIN": "LOCAL-AI",
+        "USERDOMAIN_ROAMINGPROFILE": "LOCAL-AI",
+        "USERNAME": "daycr",
+        "USERPROFILE": "C:\\Users\\daycr",
+        "VIEW_COMPILED_PATH": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\views",
+        "windir": "C:\\Windows",
+        "WSLENV": "WT_SESSION:WT_PROFILE_ID:",
+        "WT_PROFILE_ID": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+        "WT_SESSION": "70020d8a-d205-47ff-8aab-e7a5055f4b95"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "harness.spec.ts",
+      "file": "harness.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "T43 harness rejects production environment before touching a database",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 44,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:03.048Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-c962c2f64e9e8f600427",
+          "file": "harness.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "T43 harness rejects a database outside its disposable run",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 39,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:03.097Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-ada0e7ea5c3bad80ec5c",
+          "file": "harness.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "T43 harness creates only dedicated disposable users and begins without real accounts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 942,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:03.138Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-722065a228ed3a98fc40",
+          "file": "harness.spec.ts",
+          "line": 22,
+          "column": 1
+        },
+        {
+          "title": "T43 cache stores and unique locks remain independent across two disposable runs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 1894,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "text": "Disposable T43 SQLite migrations applied.\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:04.083Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-81d95fba966afdc3cb8f",
+          "file": "harness.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "T43 harness rejects production environment before touching a database",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 55,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:29.340Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-8665948c406dcfebfb0e",
+          "file": "harness.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "T43 harness rejects a database outside its disposable run",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 45,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:29.400Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-3abfa9c1e9740cee9cd8",
+          "file": "harness.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "T43 harness creates only dedicated disposable users and begins without real accounts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 917,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:29.449Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-9fde4a11e0e5db1cf696",
+          "file": "harness.spec.ts",
+          "line": 22,
+          "column": 1
+        },
+        {
+          "title": "T43 cache stores and unique locks remain independent across two disposable runs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 1689,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "text": "Disposable T43 SQLite migrations applied.\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:30.368Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-fb2e7d7df35b29d900bd",
+          "file": "harness.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "T43 harness rejects production environment before touching a database",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 45,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:50.258Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-7dc14a909858ea9d22ac",
+          "file": "harness.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "T43 harness rejects a database outside its disposable run",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 39,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:50.309Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-f4c2fb2380b1d1eafe18",
+          "file": "harness.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "T43 harness creates only dedicated disposable users and begins without real accounts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 937,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:50.350Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-008f46ddfe6ba271ed9c",
+          "file": "harness.spec.ts",
+          "line": 22,
+          "column": 1
+        },
+        {
+          "title": "T43 cache stores and unique locks remain independent across two disposable runs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 1612,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "text": "Disposable T43 SQLite migrations applied.\n"
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:51.289Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2726d9e30a893a88bbed-84a2cc30693c04b3596d",
+          "file": "harness.spec.ts",
+          "line": 29,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "roadmap.spec.ts",
+      "file": "roadmap.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-01 · registro, verificación, panel vacío, login y recuperación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 9340,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:06.062Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-01-registro",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-desktop\\attachments\\e2e-01-registro-bf3e76aeab1b57ffa0af9bf8401676e7b4d23320.png"
+                    },
+                    {
+                      "name": "e2e-01-panel-vacio",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-desktop\\attachments\\e2e-01-panel-vacio-ea0e19ef4956c626f8923afbc38fa5a19c599ca7.png"
+                    },
+                    {
+                      "name": "e2e-01-recuperacion",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-desktop\\attachments\\e2e-01-recuperacion-1e25fcf7c623383ce02a74a614fcc555b49e906e.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-8b2784a64f0a26d73735",
+          "file": "roadmap.spec.ts",
+          "line": 90,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · aislamiento de una marca entre dos sesiones reales",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4784,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:15.458Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-02-marca-ajena",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-02-·-aislamien-cdd1c-a-entre-dos-sesiones-reales-desktop\\attachments\\e2e-02-marca-ajena-d524d075fdcae9fdb7a6381e80e3a5c649b48a05.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-c3a603751b5763ba2fed",
+          "file": "roadmap.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7518,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:20.246Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-03-cuentas-conectadas",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-03-·-OAuth-loc-573b9-Tube-y-TikTok-y-desconexión-desktop\\attachments\\e2e-03-cuentas-conectadas-6b635603f1967ae040a69a9b332e94e9c2e1a916.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-a6ac4cc92f24c09a6415",
+          "file": "roadmap.spec.ts",
+          "line": 143,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 3985,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:27.769Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-04-requiere-reconexion",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-04-·-job-de-re-abb87-as-publicaciones-pendientes-desktop\\attachments\\e2e-04-requiere-reconexion-86787666b68f5550917bdcfac8454ddc9c896c74.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-8f26a7c63a5d38d87106",
+          "file": "roadmap.spec.ts",
+          "line": 165,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · reel demasiado largo rechazado sin guardar publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6495,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:31.757Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-05-duracion-rechazada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-05-·-reel-dema-49d03-ado-sin-guardar-publicación-desktop\\attachments\\e2e-05-duracion-rechazada-7f5305163d53cf0f7ebc14713d232ac349b39c86.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-9f1515e71b7fa457e159",
+          "file": "roadmap.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "E2E-06 · compositor programa, dispatcher y worker publican con enlace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6404,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:38.256Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-06-programada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-06-·-composito-a0fac--worker-publican-con-enlace-desktop\\attachments\\e2e-06-programada-1229eb508935400226231665a7027816c58501cc.png"
+                    },
+                    {
+                      "name": "e2e-06-publicada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-06-·-composito-a0fac--worker-publican-con-enlace-desktop\\attachments\\e2e-06-publicada-6f478e00064de699fd25c69d185ddcff5363ec33.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-5534fc968918d980e7a3",
+          "file": "roadmap.spec.ts",
+          "line": 207,
+          "column": 1
+        },
+        {
+          "title": "E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4581,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:44.664Z",
+                  "attachments": [
+                    {
+                      "name": "reintentos-y-red-externa-simulada",
+                      "contentType": "application/json",
+                      "body": "ewogICJ0YXJnZXRzIjogWwogICAgewogICAgICAiaWQiOiAzLAogICAgICAicG9zdElkIjogMywKICAgICAgInN0YXR1cyI6ICJwdWJsaWNhZGEiLAogICAgICAiYXR0ZW1wdHMiOiAyLAogICAgICAiZXh0ZXJuYWxJZCI6ICJ0NDMtZXh0ZXJuYWwtMyIsCiAgICAgICJleHRlcm5hbFVybCI6ICJodHRwczovL2V4YW1wbGUudGVzdC90NDMvMyIKICAgIH0sCiAgICB7CiAgICAgICJpZCI6IDQsCiAgICAgICJwb3N0SWQiOiA0LAogICAgICAic3RhdHVzIjogInB1YmxpY2FkYSIsCiAgICAgICJhdHRlbXB0cyI6IDIsCiAgICAgICJleHRlcm5hbElkIjogInQ0My1leHRlcm5hbC00IiwKICAgICAgImV4dGVybmFsVXJsIjogImh0dHBzOi8vZXhhbXBsZS50ZXN0L3Q0My80IgogICAgfQogIF0sCiAgImV4dGVybmFscyI6IHsKICAgICJjYWxscyI6IHsKICAgICAgIjIiOiAxLAogICAgICAiMyI6IDIsCiAgICAgICI0IjogMQogICAgfSwKICAgICJyZWNvcmRzIjogewogICAgICAiMiI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTIiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mzg6NDMrMDA6MDAiCiAgICAgIH0sCiAgICAgICIzIjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtMyIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTo1ODo0NiswMDowMCIKICAgICAgfSwKICAgICAgIjQiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC00IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjQ2KzAwOjAwIgogICAgICB9CiAgICB9CiAgfQp9"
+                    },
+                    {
+                      "name": "e2e-07-idempotencia",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-07-·-reintento-cda9c--no-duplican-la-publicación-desktop\\attachments\\e2e-07-idempotencia-92c92a35abf39f2dd413ff7f08a0c7e813b2b3f3.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-bec4f5b5a2816ce6224a",
+          "file": "roadmap.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 5047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:49.248Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-08-calendario",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-08-·-calendari-1fba0-ntes-bloquea-las-publicadas-desktop\\attachments\\e2e-08-calendario-43c9a1898c984f61ff3b3b2e5a669a8a92499240.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-7195fbeab86cedd5b887",
+          "file": "roadmap.spec.ts",
+          "line": 250,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · snapshots reales por job son idempotentes y conservan null",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4528,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:54.298Z",
+                  "attachments": [
+                    {
+                      "name": "snapshots-primera-y-segunda-ejecucion",
+                      "contentType": "application/json",
+                      "body": "ewogICJmaXJzdCI6IHsKICAgICJhY2NvdW50cyI6IFsKICAgICAgewogICAgICAgICJpZCI6IDEsCiAgICAgICAgInVzZXJfaWQiOiAyMCwKICAgICAgICAiYnJhbmRfaWQiOiA5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDI5LAogICAgICAgICJuZXR3b3JrIjogImluc3RhZ3JhbSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDIsCiAgICAgICAgInVzZXJfaWQiOiAyMCwKICAgICAgICAiYnJhbmRfaWQiOiA5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDMwLAogICAgICAgICJuZXR3b3JrIjogImZhY2Vib29rIiwKICAgICAgICAiZGF0ZSI6ICIyMDI2LTEwLTMwIiwKICAgICAgICAibWV0cmljcyI6IHsKICAgICAgICAgICJmb2xsb3dlcnMiOiAxMDAsCiAgICAgICAgICAiZm9sbG93ZXJzX2dhaW5lZCI6IDIsCiAgICAgICAgICAiZm9sbG93ZXJzX2xvc3QiOiBudWxsLAogICAgICAgICAgInZpZXdzIjogbnVsbCwKICAgICAgICAgICJyZWFjaCI6IDMwLAogICAgICAgICAgInByb2ZpbGVfdmlld3MiOiA0LAogICAgICAgICAgImFjY291bnRzX2VuZ2FnZWQiOiA5LAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDUsCiAgICAgICAgICAibGlrZXMiOiBudWxsLAogICAgICAgICAgImNvbW1lbnRzIjogbnVsbCwKICAgICAgICAgICJzaGFyZXMiOiBudWxsLAogICAgICAgICAgIndhdGNoX21pbnV0ZXMiOiBudWxsLAogICAgICAgICAgInZpZGVvX2NvdW50IjogbnVsbCwKICAgICAgICAgICJwb3N0X2NvdW50IjogbnVsbCwKICAgICAgICAgICJjbGlja3MiOiBudWxsCiAgICAgICAgfSwKICAgICAgICAiY29sbGVjdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAidXBkYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJzZXR0bGVkX2F0IjogbnVsbAogICAgICB9LAogICAgICB7CiAgICAgICAgImlkIjogMywKICAgICAgICAidXNlcl9pZCI6IDIwLAogICAgICAgICJicmFuZF9pZCI6IDksCiAgICAgICAgInNvY2lhbF9hY2NvdW50X2lkIjogMzEsCiAgICAgICAgIm5ldHdvcmsiOiAieW91dHViZSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDQsCiAgICAgICAgInVzZXJfaWQiOiAyMCwKICAgICAgICAiYnJhbmRfaWQiOiA5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDMyLAogICAgICAgICJuZXR3b3JrIjogInRpa3RvayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiCiAgICAgIH0KICAgIF0sCiAgICAicG9zdHMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAxLAogICAgICAgICJ1c2VyX2lkIjogMjAsCiAgICAgICAgInBvc3RfdGFyZ2V0X2lkIjogOCwKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiAzMCwKICAgICAgICAibmV0d29yayI6ICJmYWNlYm9vayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMSIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogbnVsbCwKICAgICAgICAgICJsaWtlcyI6IDIsCiAgICAgICAgICAiY29tbWVudHMiOiAxLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAic2F2ZWQiOiBudWxsLAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDMsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIKICAgICAgfQogICAgXQogIH0sCiAgInNlY29uZCI6IHsKICAgICJhY2NvdW50cyI6IFsKICAgICAgewogICAgICAgICJpZCI6IDEsCiAgICAgICAgInVzZXJfaWQiOiAyMCwKICAgICAgICAiYnJhbmRfaWQiOiA5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDI5LAogICAgICAgICJuZXR3b3JrIjogImluc3RhZ3JhbSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDIsCiAgICAgICAgInVzZXJfaWQiOiAyMCwKICAgICAgICAiYnJhbmRfaWQiOiA5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDMwLAogICAgICAgICJuZXR3b3JrIjogImZhY2Vib29rIiwKICAgICAgICAiZGF0ZSI6ICIyMDI2LTEwLTMwIiwKICAgICAgICAibWV0cmljcyI6IHsKICAgICAgICAgICJmb2xsb3dlcnMiOiAxMDAsCiAgICAgICAgICAiZm9sbG93ZXJzX2dhaW5lZCI6IDIsCiAgICAgICAgICAiZm9sbG93ZXJzX2xvc3QiOiBudWxsLAogICAgICAgICAgInZpZXdzIjogbnVsbCwKICAgICAgICAgICJyZWFjaCI6IDMwLAogICAgICAgICAgInByb2ZpbGVfdmlld3MiOiA0LAogICAgICAgICAgImFjY291bnRzX2VuZ2FnZWQiOiA5LAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDUsCiAgICAgICAgICAibGlrZXMiOiBudWxsLAogICAgICAgICAgImNvbW1lbnRzIjogbnVsbCwKICAgICAgICAgICJzaGFyZXMiOiBudWxsLAogICAgICAgICAgIndhdGNoX21pbnV0ZXMiOiBudWxsLAogICAgICAgICAgInZpZGVvX2NvdW50IjogbnVsbCwKICAgICAgICAgICJwb3N0X2NvdW50IjogbnVsbCwKICAgICAgICAgICJjbGlja3MiOiBudWxsCiAgICAgICAgfSwKICAgICAgICAiY29sbGVjdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAidXBkYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJzZXR0bGVkX2F0IjogbnVsbAogICAgICB9LAogICAgICB7CiAgICAgICAgImlkIjogMywKICAgICAgICAidXNlcl9pZCI6IDIwLAogICAgICAgICJicmFuZF9pZCI6IDksCiAgICAgICAgInNvY2lhbF9hY2NvdW50X2lkIjogMzEsCiAgICAgICAgIm5ldHdvcmsiOiAieW91dHViZSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDQsCiAgICAgICAgInVzZXJfaWQiOiAyMCwKICAgICAgICAiYnJhbmRfaWQiOiA5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDMyLAogICAgICAgICJuZXR3b3JrIjogInRpa3RvayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiCiAgICAgIH0KICAgIF0sCiAgICAicG9zdHMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAxLAogICAgICAgICJ1c2VyX2lkIjogMjAsCiAgICAgICAgInBvc3RfdGFyZ2V0X2lkIjogOCwKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiAzMCwKICAgICAgICAibmV0d29yayI6ICJmYWNlYm9vayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMSIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogbnVsbCwKICAgICAgICAgICJsaWtlcyI6IDIsCiAgICAgICAgICAiY29tbWVudHMiOiAxLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAic2F2ZWQiOiBudWxsLAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDMsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOToyODo1Ni4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjI4OjU2LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6Mjg6NTYuMDAwMDAwWiIKICAgICAgfQogICAgXQogIH0KfQ=="
+                    },
+                    {
+                      "name": "e2e-09-snapshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-09-·-snapshots-95ff3-empotentes-y-conservan-null-desktop\\attachments\\e2e-09-snapshot-5e1426cfebf6c9ef86ca582b4d4cc2f0c99d444c.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-b677edd9653c54c546cf",
+          "file": "roadmap.spec.ts",
+          "line": 276,
+          "column": 1
+        },
+        {
+          "title": "E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7198,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:28:58.829Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-10-dashboard",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-10-·-dashboard-f9ee0-on-gráficos-y-no-disponible-desktop\\attachments\\e2e-10-dashboard-f3676f45376febebfc9f10fb2fbc7600e65c031e.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-1569e5f2b70f75d88031",
+          "file": "roadmap.spec.ts",
+          "line": 297,
+          "column": 1
+        },
+        {
+          "title": "E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7024,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:06.033Z",
+                  "attachments": [
+                    {
+                      "name": "informe-pdf",
+                      "contentType": "application/pdf",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-desktop\\attachments\\informe-pdf-7cfe72d27101751f35eb7edec05d5737f2a5d8a5.pdf"
+                    },
+                    {
+                      "name": "informe-csv",
+                      "contentType": "text/csv",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-desktop\\attachments\\informe-csv-64ce7a10c0e60af314cf5d5171dc966030b7ee90.csv"
+                    },
+                    {
+                      "name": "e2e-11-informes-listos",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-desktop\\attachments\\e2e-11-informes-listos-611e24c72e8ca14a68dd46ad24f62d98be161bc6.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-9a507bebaf7f7dfea410",
+          "file": "roadmap.spec.ts",
+          "line": 320,
+          "column": 1
+        },
+        {
+          "title": "E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4749,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:13.063Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-12-key-revocada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-12-·-API-key-v-588e2-a-en-UI-y-rechazada-por-MCP-desktop\\attachments\\e2e-12-key-revocada-b2bfa755e05c8bf138f7172a27ed992e6e85ec64.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-53fd51be413e8aeac89b",
+          "file": "roadmap.spec.ts",
+          "line": 368,
+          "column": 1
+        },
+        {
+          "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6448,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:17.815Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-f633c5bb180d25890cab",
+          "file": "roadmap.spec.ts",
+          "line": 384,
+          "column": 1
+        },
+        {
+          "title": "API-02 · key inválida no devuelve herramientas ni datos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 977,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:24.266Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-fa6ed51c0b0eb248db49",
+          "file": "roadmap.spec.ts",
+          "line": 427,
+          "column": 1
+        },
+        {
+          "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 3447,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:25.246Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-341f63efec4cd502d1c3",
+          "file": "roadmap.spec.ts",
+          "line": 434,
+          "column": 1
+        },
+        {
+          "title": "E2E-01 · registro, verificación, panel vacío, login y recuperación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6430,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:32.149Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-01-registro",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-mobile\\attachments\\e2e-01-registro-6509a64389b7ea04035f2724bd0e384ca22f43ea.png"
+                    },
+                    {
+                      "name": "e2e-01-panel-vacio",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-mobile\\attachments\\e2e-01-panel-vacio-20a59db75f668e221b2efc8c60509515eae406ed.png"
+                    },
+                    {
+                      "name": "e2e-01-recuperacion",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-mobile\\attachments\\e2e-01-recuperacion-988fa6da47cb41bd7035fbe58053d4a0455949de.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-96fc1214999cd052517e",
+          "file": "roadmap.spec.ts",
+          "line": 90,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · aislamiento de una marca entre dos sesiones reales",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4583,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:38.646Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-02-marca-ajena",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-02-·-aislamien-cdd1c-a-entre-dos-sesiones-reales-mobile\\attachments\\e2e-02-marca-ajena-6f6cff423466e6d9f66b0f618333af65897e40f1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-a23c343b8e2848d2608c",
+          "file": "roadmap.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6671,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:43.233Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-03-cuentas-conectadas",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-03-·-OAuth-loc-573b9-Tube-y-TikTok-y-desconexión-mobile\\attachments\\e2e-03-cuentas-conectadas-e79d89301a9305e0c1f9c2fe9ce0041d9875d11a.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-d00b0f00ec320318897a",
+          "file": "roadmap.spec.ts",
+          "line": 143,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 3964,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:49.911Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-04-requiere-reconexion",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-04-·-job-de-re-abb87-as-publicaciones-pendientes-mobile\\attachments\\e2e-04-requiere-reconexion-995c436f7c0ff44b8c95668ee870cf203aced394.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-e6dfe55279e744204967",
+          "file": "roadmap.spec.ts",
+          "line": 165,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · reel demasiado largo rechazado sin guardar publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 5863,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:53.878Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-05-duracion-rechazada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-05-·-reel-dema-49d03-ado-sin-guardar-publicación-mobile\\attachments\\e2e-05-duracion-rechazada-9e633c3312295650f4ca03b3ec3246f11af295a1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-6d9b328eb13deaa79db8",
+          "file": "roadmap.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "E2E-06 · compositor programa, dispatcher y worker publican con enlace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6190,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:29:59.744Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-06-programada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-06-·-composito-a0fac--worker-publican-con-enlace-mobile\\attachments\\e2e-06-programada-93fa3c980ee50b2fb0560e98d3552d09e454fb51.png"
+                    },
+                    {
+                      "name": "e2e-06-publicada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-06-·-composito-a0fac--worker-publican-con-enlace-mobile\\attachments\\e2e-06-publicada-e2e55ebc98d7748d78b7f0e3cd0577c98b164a80.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-8c3d7843bbc31b669026",
+          "file": "roadmap.spec.ts",
+          "line": 207,
+          "column": 1
+        },
+        {
+          "title": "E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4550,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:05.938Z",
+                  "attachments": [
+                    {
+                      "name": "reintentos-y-red-externa-simulada",
+                      "contentType": "application/json",
+                      "body": "ewogICJ0YXJnZXRzIjogWwogICAgewogICAgICAiaWQiOiAxNCwKICAgICAgInBvc3RJZCI6IDE0LAogICAgICAic3RhdHVzIjogInB1YmxpY2FkYSIsCiAgICAgICJhdHRlbXB0cyI6IDIsCiAgICAgICJleHRlcm5hbElkIjogInQ0My1leHRlcm5hbC0xNCIsCiAgICAgICJleHRlcm5hbFVybCI6ICJodHRwczovL2V4YW1wbGUudGVzdC90NDMvMTQiCiAgICB9LAogICAgewogICAgICAiaWQiOiAxNSwKICAgICAgInBvc3RJZCI6IDE1LAogICAgICAic3RhdHVzIjogInB1YmxpY2FkYSIsCiAgICAgICJhdHRlbXB0cyI6IDIsCiAgICAgICJleHRlcm5hbElkIjogInQ0My1leHRlcm5hbC0xNSIsCiAgICAgICJleHRlcm5hbFVybCI6ICJodHRwczovL2V4YW1wbGUudGVzdC90NDMvMTUiCiAgICB9CiAgXSwKICAiZXh0ZXJuYWxzIjogewogICAgImNhbGxzIjogewogICAgICAiMiI6IDEsCiAgICAgICIzIjogMiwKICAgICAgIjQiOiAxLAogICAgICAiNSI6IDEsCiAgICAgICI2IjogMSwKICAgICAgIjciOiAxLAogICAgICAiOCI6IDEsCiAgICAgICIxMCI6IDEsCiAgICAgICIxMyI6IDEsCiAgICAgICIxNCI6IDIsCiAgICAgICIxNSI6IDEKICAgIH0sCiAgICAicmVjb3JkcyI6IHsKICAgICAgIjIiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0yIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjM4OjQzKzAwOjAwIgogICAgICB9LAogICAgICAiMyI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTMiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6NTg6NDYrMDA6MDAiCiAgICAgIH0sCiAgICAgICI0IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtNCIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDo0NiswMDowMCIKICAgICAgfSwKICAgICAgIjUiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC01IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDEwOjM4OjUzKzAwOjAwIgogICAgICB9LAogICAgICAiNiI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTYiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMTA6Mzg6NTMrMDA6MDAiCiAgICAgIH0sCiAgICAgICI3IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtNyIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQxMDozODo1MyswMDowMCIKICAgICAgfSwKICAgICAgIjgiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC04IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjU1KzAwOjAwIgogICAgICB9LAogICAgICAiMTAiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0xMCIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTowOCswMDowMCIKICAgICAgfSwKICAgICAgIjEzIjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtMTMiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6NDA6MDQrMDA6MDAiCiAgICAgIH0sCiAgICAgICIxNCI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTE0IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDEwOjAwOjA4KzAwOjAwIgogICAgICB9LAogICAgICAiMTUiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0xNSIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMjowNyswMDowMCIKICAgICAgfQogICAgfQogIH0KfQ=="
+                    },
+                    {
+                      "name": "e2e-07-idempotencia",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-07-·-reintento-cda9c--no-duplican-la-publicación-mobile\\attachments\\e2e-07-idempotencia-127a436e3bff54041314a6e601449ccd2f1288ce.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-a31bcdeadb8988114232",
+          "file": "roadmap.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4862,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:10.494Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-08-calendario",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-08-·-calendari-1fba0-ntes-bloquea-las-publicadas-mobile\\attachments\\e2e-08-calendario-c356d3dc6cfa8e49fc69b240cfac862bf4e15bbe.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-e087421173399b516245",
+          "file": "roadmap.spec.ts",
+          "line": 250,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · snapshots reales por job son idempotentes y conservan null",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4398,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:15.360Z",
+                  "attachments": [
+                    {
+                      "name": "snapshots-primera-y-segunda-ejecucion",
+                      "contentType": "application/json",
+                      "body": "ewogICJmaXJzdCI6IHsKICAgICJhY2NvdW50cyI6IFsKICAgICAgewogICAgICAgICJpZCI6IDM2NiwKICAgICAgICAidXNlcl9pZCI6IDUzLAogICAgICAgICJicmFuZF9pZCI6IDIzLAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDc4LAogICAgICAgICJuZXR3b3JrIjogImluc3RhZ3JhbSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDM2NywKICAgICAgICAidXNlcl9pZCI6IDUzLAogICAgICAgICJicmFuZF9pZCI6IDIzLAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDc5LAogICAgICAgICJuZXR3b3JrIjogImZhY2Vib29rIiwKICAgICAgICAiZGF0ZSI6ICIyMDI2LTEwLTMwIiwKICAgICAgICAibWV0cmljcyI6IHsKICAgICAgICAgICJmb2xsb3dlcnMiOiAxMDAsCiAgICAgICAgICAiZm9sbG93ZXJzX2dhaW5lZCI6IDIsCiAgICAgICAgICAiZm9sbG93ZXJzX2xvc3QiOiBudWxsLAogICAgICAgICAgInZpZXdzIjogbnVsbCwKICAgICAgICAgICJyZWFjaCI6IDMwLAogICAgICAgICAgInByb2ZpbGVfdmlld3MiOiA0LAogICAgICAgICAgImFjY291bnRzX2VuZ2FnZWQiOiA5LAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDUsCiAgICAgICAgICAibGlrZXMiOiBudWxsLAogICAgICAgICAgImNvbW1lbnRzIjogbnVsbCwKICAgICAgICAgICJzaGFyZXMiOiBudWxsLAogICAgICAgICAgIndhdGNoX21pbnV0ZXMiOiBudWxsLAogICAgICAgICAgInZpZGVvX2NvdW50IjogbnVsbCwKICAgICAgICAgICJwb3N0X2NvdW50IjogbnVsbCwKICAgICAgICAgICJjbGlja3MiOiBudWxsCiAgICAgICAgfSwKICAgICAgICAiY29sbGVjdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAidXBkYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJzZXR0bGVkX2F0IjogbnVsbAogICAgICB9LAogICAgICB7CiAgICAgICAgImlkIjogMzY4LAogICAgICAgICJ1c2VyX2lkIjogNTMsCiAgICAgICAgImJyYW5kX2lkIjogMjMsCiAgICAgICAgInNvY2lhbF9hY2NvdW50X2lkIjogODAsCiAgICAgICAgIm5ldHdvcmsiOiAieW91dHViZSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDM2OSwKICAgICAgICAidXNlcl9pZCI6IDUzLAogICAgICAgICJicmFuZF9pZCI6IDIzLAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDgxLAogICAgICAgICJuZXR3b3JrIjogInRpa3RvayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiCiAgICAgIH0KICAgIF0sCiAgICAicG9zdHMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiA0LAogICAgICAgICJ1c2VyX2lkIjogNTMsCiAgICAgICAgInBvc3RfdGFyZ2V0X2lkIjogMTksCiAgICAgICAgInNvY2lhbF9hY2NvdW50X2lkIjogNzksCiAgICAgICAgIm5ldHdvcmsiOiAiZmFjZWJvb2siLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzEiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgInZpZXdzIjogbnVsbCwKICAgICAgICAgICJyZWFjaCI6IG51bGwsCiAgICAgICAgICAibGlrZXMiOiAyLAogICAgICAgICAgImNvbW1lbnRzIjogMSwKICAgICAgICAgICJzaGFyZXMiOiBudWxsLAogICAgICAgICAgInNhdmVkIjogbnVsbCwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiAzLAogICAgICAgICAgIndhdGNoX21pbnV0ZXMiOiBudWxsCiAgICAgICAgfSwKICAgICAgICAiY29sbGVjdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAidXBkYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiCiAgICAgIH0KICAgIF0KICB9LAogICJzZWNvbmQiOiB7CiAgICAiYWNjb3VudHMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAzNjYsCiAgICAgICAgInVzZXJfaWQiOiA1MywKICAgICAgICAiYnJhbmRfaWQiOiAyMywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiA3OCwKICAgICAgICAibmV0d29yayI6ICJpbnN0YWdyYW0iLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiBudWxsCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAzNjcsCiAgICAgICAgInVzZXJfaWQiOiA1MywKICAgICAgICAiYnJhbmRfaWQiOiAyMywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiA3OSwKICAgICAgICAibmV0d29yayI6ICJmYWNlYm9vayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDM2OCwKICAgICAgICAidXNlcl9pZCI6IDUzLAogICAgICAgICJicmFuZF9pZCI6IDIzLAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDgwLAogICAgICAgICJuZXR3b3JrIjogInlvdXR1YmUiLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiBudWxsCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAzNjksCiAgICAgICAgInVzZXJfaWQiOiA1MywKICAgICAgICAiYnJhbmRfaWQiOiAyMywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiA4MSwKICAgICAgICAibmV0d29yayI6ICJ0aWt0b2siLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIgogICAgICB9CiAgICBdLAogICAgInBvc3RzIjogWwogICAgICB7CiAgICAgICAgImlkIjogNCwKICAgICAgICAidXNlcl9pZCI6IDUzLAogICAgICAgICJwb3N0X3RhcmdldF9pZCI6IDE5LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDc5LAogICAgICAgICJuZXR3b3JrIjogImZhY2Vib29rIiwKICAgICAgICAiZGF0ZSI6ICIyMDI2LTEwLTMxIiwKICAgICAgICAibWV0cmljcyI6IHsKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiBudWxsLAogICAgICAgICAgImxpa2VzIjogMiwKICAgICAgICAgICJjb21tZW50cyI6IDEsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJzYXZlZCI6IG51bGwsCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogMywKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjE3LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzA6MTcuMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDoxNy4wMDAwMDBaIgogICAgICB9CiAgICBdCiAgfQp9"
+                    },
+                    {
+                      "name": "e2e-09-snapshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-09-·-snapshots-95ff3-empotentes-y-conservan-null-mobile\\attachments\\e2e-09-snapshot-6e6e6ed5cc532347d51164df2bc9271e9729e8fc.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-ae3d475f570d027113b1",
+          "file": "roadmap.spec.ts",
+          "line": 276,
+          "column": 1
+        },
+        {
+          "title": "E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 7127,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:19.761Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-10-dashboard",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-10-·-dashboard-f9ee0-on-gráficos-y-no-disponible-mobile\\attachments\\e2e-10-dashboard-b943a9097f617f2d5a4f977e0ba5ed6e528495ad.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-2ba96446f38cf1a952e1",
+          "file": "roadmap.spec.ts",
+          "line": 297,
+          "column": 1
+        },
+        {
+          "title": "E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6713,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:26.893Z",
+                  "attachments": [
+                    {
+                      "name": "informe-pdf",
+                      "contentType": "application/pdf",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-mobile\\attachments\\informe-pdf-9c6c399c666add08e6b21aab5e79e8d15a6e6a39.pdf"
+                    },
+                    {
+                      "name": "informe-csv",
+                      "contentType": "text/csv",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-mobile\\attachments\\informe-csv-4bed775b9e1d337f46595986ee74d652d8dd659a.csv"
+                    },
+                    {
+                      "name": "e2e-11-informes-listos",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-mobile\\attachments\\e2e-11-informes-listos-cd0d43004c218fb0a9b78a256d58bda22f9b463d.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-ecaa0518c64846f871f2",
+          "file": "roadmap.spec.ts",
+          "line": 320,
+          "column": 1
+        },
+        {
+          "title": "E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4698,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:33.610Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-12-key-revocada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-12-·-API-key-v-588e2-a-en-UI-y-rechazada-por-MCP-mobile\\attachments\\e2e-12-key-revocada-ed70715b98665e35721243184fd532b8f42cb951.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-08d8f72a250838975681",
+          "file": "roadmap.spec.ts",
+          "line": 368,
+          "column": 1
+        },
+        {
+          "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6393,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:38.311Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-c12d13efbd3b12dc389a",
+          "file": "roadmap.spec.ts",
+          "line": 384,
+          "column": 1
+        },
+        {
+          "title": "API-02 · key inválida no devuelve herramientas ni datos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 1030,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:44.708Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-269ded58762e202e037f",
+          "file": "roadmap.spec.ts",
+          "line": 427,
+          "column": 1
+        },
+        {
+          "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 3851,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:45.741Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-7cb3826d7e64fc08d25a",
+          "file": "roadmap.spec.ts",
+          "line": 434,
+          "column": 1
+        },
+        {
+          "title": "E2E-01 · registro, verificación, panel vacío, login y recuperación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:52.986Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-01-registro",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-mobile-360\\attachments\\e2e-01-registro-ed7fff0dfec0fd69cce4e6737f30ad64d09fd00d.png"
+                    },
+                    {
+                      "name": "e2e-01-panel-vacio",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-mobile-360\\attachments\\e2e-01-panel-vacio-c9f128cb6f0549354d6179a39a7ee49f709e364e.png"
+                    },
+                    {
+                      "name": "e2e-01-recuperacion",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-01-·-registro--30fd2--vacío-login-y-recuperación-mobile-360\\attachments\\e2e-01-recuperacion-ced87d060b1dd8afebe63a84cc9a9f6a41e1d468.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-2c2a5392c9efc0750fc7",
+          "file": "roadmap.spec.ts",
+          "line": 90,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · aislamiento de una marca entre dos sesiones reales",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4530,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:30:59.362Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-02-marca-ajena",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-02-·-aislamien-cdd1c-a-entre-dos-sesiones-reales-mobile-360\\attachments\\e2e-02-marca-ajena-a74ee85bb02e9af92fe67e0d69d8aa341431a101.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-fb5d14fb32e18f633418",
+          "file": "roadmap.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 7350,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:03.902Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-03-cuentas-conectadas",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-03-·-OAuth-loc-573b9-Tube-y-TikTok-y-desconexión-mobile-360\\attachments\\e2e-03-cuentas-conectadas-f1591ef7698203372186f39a40f605e66fcb6310.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-529af291fc8dcb32d3d7",
+          "file": "roadmap.spec.ts",
+          "line": 143,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 3901,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:11.258Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-04-requiere-reconexion",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-04-·-job-de-re-abb87-as-publicaciones-pendientes-mobile-360\\attachments\\e2e-04-requiere-reconexion-d7ceb637c43d4788bdc9dd5a874fab1c73338f30.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-93c811bf727b7019f0d4",
+          "file": "roadmap.spec.ts",
+          "line": 165,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · reel demasiado largo rechazado sin guardar publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5692,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:15.163Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-05-duracion-rechazada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-05-·-reel-dema-49d03-ado-sin-guardar-publicación-mobile-360\\attachments\\e2e-05-duracion-rechazada-24c7ceaa6bedbfc0349ada222177f79ecb3d6a5a.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-374b77709514c5d3d6a0",
+          "file": "roadmap.spec.ts",
+          "line": 179,
+          "column": 1
+        },
+        {
+          "title": "E2E-06 · compositor programa, dispatcher y worker publican con enlace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5980,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:20.858Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-06-programada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-06-·-composito-a0fac--worker-publican-con-enlace-mobile-360\\attachments\\e2e-06-programada-5f17569d8c77cbf6f4f0d8d9dc6554b25870c121.png"
+                    },
+                    {
+                      "name": "e2e-06-publicada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-06-·-composito-a0fac--worker-publican-con-enlace-mobile-360\\attachments\\e2e-06-publicada-af4a3efa084bdd9b96ffc602e6aa09d7e611740a.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-36c1a56986fc27e7b4fa",
+          "file": "roadmap.spec.ts",
+          "line": 207,
+          "column": 1
+        },
+        {
+          "title": "E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4497,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:26.841Z",
+                  "attachments": [
+                    {
+                      "name": "reintentos-y-red-externa-simulada",
+                      "contentType": "application/json",
+                      "body": "ewogICJ0YXJnZXRzIjogWwogICAgewogICAgICAiaWQiOiAyNSwKICAgICAgInBvc3RJZCI6IDI1LAogICAgICAic3RhdHVzIjogInB1YmxpY2FkYSIsCiAgICAgICJhdHRlbXB0cyI6IDIsCiAgICAgICJleHRlcm5hbElkIjogInQ0My1leHRlcm5hbC0yNSIsCiAgICAgICJleHRlcm5hbFVybCI6ICJodHRwczovL2V4YW1wbGUudGVzdC90NDMvMjUiCiAgICB9LAogICAgewogICAgICAiaWQiOiAyNiwKICAgICAgInBvc3RJZCI6IDI2LAogICAgICAic3RhdHVzIjogInB1YmxpY2FkYSIsCiAgICAgICJhdHRlbXB0cyI6IDIsCiAgICAgICJleHRlcm5hbElkIjogInQ0My1leHRlcm5hbC0yNiIsCiAgICAgICJleHRlcm5hbFVybCI6ICJodHRwczovL2V4YW1wbGUudGVzdC90NDMvMjYiCiAgICB9CiAgXSwKICAiZXh0ZXJuYWxzIjogewogICAgImNhbGxzIjogewogICAgICAiMiI6IDEsCiAgICAgICIzIjogMiwKICAgICAgIjQiOiAxLAogICAgICAiNSI6IDEsCiAgICAgICI2IjogMSwKICAgICAgIjciOiAxLAogICAgICAiOCI6IDEsCiAgICAgICIxMCI6IDEsCiAgICAgICIxMyI6IDEsCiAgICAgICIxNCI6IDIsCiAgICAgICIxNSI6IDEsCiAgICAgICIxNiI6IDEsCiAgICAgICIxNyI6IDEsCiAgICAgICIxOCI6IDEsCiAgICAgICIxOSI6IDEsCiAgICAgICIyMSI6IDEsCiAgICAgICIyNCI6IDEsCiAgICAgICIyNSI6IDIsCiAgICAgICIyNiI6IDEKICAgIH0sCiAgICAicmVjb3JkcyI6IHsKICAgICAgIjIiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0yIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjM4OjQzKzAwOjAwIgogICAgICB9LAogICAgICAiMyI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTMiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6NTg6NDYrMDA6MDAiCiAgICAgIH0sCiAgICAgICI0IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtNCIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMDo0NiswMDowMCIKICAgICAgfSwKICAgICAgIjUiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC01IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDEwOjM4OjUzKzAwOjAwIgogICAgICB9LAogICAgICAiNiI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTYiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMTA6Mzg6NTMrMDA6MDAiCiAgICAgIH0sCiAgICAgICI3IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtNyIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQxMDozODo1MyswMDowMCIKICAgICAgfSwKICAgICAgIjgiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC04IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMwOjU1KzAwOjAwIgogICAgICB9LAogICAgICAiMTAiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0xMCIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTowOCswMDowMCIKICAgICAgfSwKICAgICAgIjEzIjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtMTMiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6NDA6MDQrMDA6MDAiCiAgICAgIH0sCiAgICAgICIxNCI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTE0IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDEwOjAwOjA4KzAwOjAwIgogICAgICB9LAogICAgICAiMTUiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0xNSIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMjowNyswMDowMCIKICAgICAgfSwKICAgICAgIjE2IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtMTYiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMTA6NDA6MTQrMDA6MDAiCiAgICAgIH0sCiAgICAgICIxNyI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTE3IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDEwOjQwOjE0KzAwOjAwIgogICAgICB9LAogICAgICAiMTgiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0xOCIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQxMDo0MDoxNCswMDowMCIKICAgICAgfSwKICAgICAgIjE5IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtMTkiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzI6MTYrMDA6MDAiCiAgICAgIH0sCiAgICAgICIyMSI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTIxIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMyOjI5KzAwOjAwIgogICAgICB9LAogICAgICAiMjQiOiB7CiAgICAgICAgImlkIjogInQ0My1leHRlcm5hbC0yNCIsCiAgICAgICAgImNyZWF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTo0MToyNSswMDowMCIKICAgICAgfSwKICAgICAgIjI1IjogewogICAgICAgICJpZCI6ICJ0NDMtZXh0ZXJuYWwtMjUiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMTA6MDE6MjkrMDA6MDAiCiAgICAgIH0sCiAgICAgICIyNiI6IHsKICAgICAgICAiaWQiOiAidDQzLWV4dGVybmFsLTI2IiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMzOjI4KzAwOjAwIgogICAgICB9CiAgICB9CiAgfQp9"
+                    },
+                    {
+                      "name": "e2e-07-idempotencia",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-07-·-reintento-cda9c--no-duplican-la-publicación-mobile-360\\attachments\\e2e-07-idempotencia-3e02bfd0bd4b3301f56f93fd32732a866c4503ab.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-199c9564b115d5472022",
+          "file": "roadmap.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5030,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:31.341Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-08-calendario",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-08-·-calendari-1fba0-ntes-bloquea-las-publicadas-mobile-360\\attachments\\e2e-08-calendario-d880610f22476178704e68ef495443a545aee5cb.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-6971dcd5e775470111bc",
+          "file": "roadmap.spec.ts",
+          "line": 250,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · snapshots reales por job son idempotentes y conservan null",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4379,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:36.375Z",
+                  "attachments": [
+                    {
+                      "name": "snapshots-primera-y-segunda-ejecucion",
+                      "contentType": "application/json",
+                      "body": "ewogICJmaXJzdCI6IHsKICAgICJhY2NvdW50cyI6IFsKICAgICAgewogICAgICAgICJpZCI6IDczMSwKICAgICAgICAidXNlcl9pZCI6IDg2LAogICAgICAgICJicmFuZF9pZCI6IDM3LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDEyNywKICAgICAgICAibmV0d29yayI6ICJpbnN0YWdyYW0iLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiBudWxsCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiA3MzIsCiAgICAgICAgInVzZXJfaWQiOiA4NiwKICAgICAgICAiYnJhbmRfaWQiOiAzNywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiAxMjgsCiAgICAgICAgIm5ldHdvcmsiOiAiZmFjZWJvb2siLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiBudWxsCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiA3MzMsCiAgICAgICAgInVzZXJfaWQiOiA4NiwKICAgICAgICAiYnJhbmRfaWQiOiAzNywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiAxMjksCiAgICAgICAgIm5ldHdvcmsiOiAieW91dHViZSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDczNCwKICAgICAgICAidXNlcl9pZCI6IDg2LAogICAgICAgICJicmFuZF9pZCI6IDM3LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDEzMCwKICAgICAgICAibmV0d29yayI6ICJ0aWt0b2siLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIgogICAgICB9CiAgICBdLAogICAgInBvc3RzIjogWwogICAgICB7CiAgICAgICAgImlkIjogNywKICAgICAgICAidXNlcl9pZCI6IDg2LAogICAgICAgICJwb3N0X3RhcmdldF9pZCI6IDMwLAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDEyOCwKICAgICAgICAibmV0d29yayI6ICJmYWNlYm9vayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMSIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogbnVsbCwKICAgICAgICAgICJsaWtlcyI6IDIsCiAgICAgICAgICAiY29tbWVudHMiOiAxLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAic2F2ZWQiOiBudWxsLAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDMsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIKICAgICAgfQogICAgXQogIH0sCiAgInNlY29uZCI6IHsKICAgICJhY2NvdW50cyI6IFsKICAgICAgewogICAgICAgICJpZCI6IDczMSwKICAgICAgICAidXNlcl9pZCI6IDg2LAogICAgICAgICJicmFuZF9pZCI6IDM3LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDEyNywKICAgICAgICAibmV0d29yayI6ICJpbnN0YWdyYW0iLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiBudWxsCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiA3MzIsCiAgICAgICAgInVzZXJfaWQiOiA4NiwKICAgICAgICAiYnJhbmRfaWQiOiAzNywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiAxMjgsCiAgICAgICAgIm5ldHdvcmsiOiAiZmFjZWJvb2siLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiBudWxsCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiA3MzMsCiAgICAgICAgInVzZXJfaWQiOiA4NiwKICAgICAgICAiYnJhbmRfaWQiOiAzNywKICAgICAgICAic29jaWFsX2FjY291bnRfaWQiOiAxMjksCiAgICAgICAgIm5ldHdvcmsiOiAieW91dHViZSIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMCIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAiZm9sbG93ZXJzIjogMTAwLAogICAgICAgICAgImZvbGxvd2Vyc19nYWluZWQiOiAyLAogICAgICAgICAgImZvbGxvd2Vyc19sb3N0IjogbnVsbCwKICAgICAgICAgICJ2aWV3cyI6IG51bGwsCiAgICAgICAgICAicmVhY2giOiAzMCwKICAgICAgICAgICJwcm9maWxlX3ZpZXdzIjogNCwKICAgICAgICAgICJhY2NvdW50c19lbmdhZ2VkIjogOSwKICAgICAgICAgICJpbnRlcmFjdGlvbnMiOiA1LAogICAgICAgICAgImxpa2VzIjogbnVsbCwKICAgICAgICAgICJjb21tZW50cyI6IG51bGwsCiAgICAgICAgICAic2hhcmVzIjogbnVsbCwKICAgICAgICAgICJ3YXRjaF9taW51dGVzIjogbnVsbCwKICAgICAgICAgICJ2aWRlb19jb3VudCI6IG51bGwsCiAgICAgICAgICAicG9zdF9jb3VudCI6IG51bGwsCiAgICAgICAgICAiY2xpY2tzIjogbnVsbAogICAgICAgIH0sCiAgICAgICAgImNvbGxlY3RlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJjcmVhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAic2V0dGxlZF9hdCI6IG51bGwKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6IDczNCwKICAgICAgICAidXNlcl9pZCI6IDg2LAogICAgICAgICJicmFuZF9pZCI6IDM3LAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDEzMCwKICAgICAgICAibmV0d29yayI6ICJ0aWt0b2siLAogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMzAiLAogICAgICAgICJtZXRyaWNzIjogewogICAgICAgICAgImZvbGxvd2VycyI6IDEwMCwKICAgICAgICAgICJmb2xsb3dlcnNfZ2FpbmVkIjogMiwKICAgICAgICAgICJmb2xsb3dlcnNfbG9zdCI6IG51bGwsCiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogMzAsCiAgICAgICAgICAicHJvZmlsZV92aWV3cyI6IDQsCiAgICAgICAgICAiYWNjb3VudHNfZW5nYWdlZCI6IDksCiAgICAgICAgICAiaW50ZXJhY3Rpb25zIjogNSwKICAgICAgICAgICJsaWtlcyI6IG51bGwsCiAgICAgICAgICAiY29tbWVudHMiOiBudWxsLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwsCiAgICAgICAgICAidmlkZW9fY291bnQiOiBudWxsLAogICAgICAgICAgInBvc3RfY291bnQiOiBudWxsLAogICAgICAgICAgImNsaWNrcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzguMDAwMDAwWiIsCiAgICAgICAgInNldHRsZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOC4wMDAwMDBaIgogICAgICB9CiAgICBdLAogICAgInBvc3RzIjogWwogICAgICB7CiAgICAgICAgImlkIjogNywKICAgICAgICAidXNlcl9pZCI6IDg2LAogICAgICAgICJwb3N0X3RhcmdldF9pZCI6IDMwLAogICAgICAgICJzb2NpYWxfYWNjb3VudF9pZCI6IDEyOCwKICAgICAgICAibmV0d29yayI6ICJmYWNlYm9vayIsCiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0zMSIsCiAgICAgICAgIm1ldHJpY3MiOiB7CiAgICAgICAgICAidmlld3MiOiBudWxsLAogICAgICAgICAgInJlYWNoIjogbnVsbCwKICAgICAgICAgICJsaWtlcyI6IDIsCiAgICAgICAgICAiY29tbWVudHMiOiAxLAogICAgICAgICAgInNoYXJlcyI6IG51bGwsCiAgICAgICAgICAic2F2ZWQiOiBudWxsLAogICAgICAgICAgImludGVyYWN0aW9ucyI6IDMsCiAgICAgICAgICAid2F0Y2hfbWludXRlcyI6IG51bGwKICAgICAgICB9LAogICAgICAgICJjb2xsZWN0ZWRfYXQiOiAiMjAyNi0xMC0zMVQwOTozMTozOS4wMDAwMDBaIiwKICAgICAgICAiY3JlYXRlZF9hdCI6ICIyMDI2LTEwLTMxVDA5OjMxOjM4LjAwMDAwMFoiLAogICAgICAgICJ1cGRhdGVkX2F0IjogIjIwMjYtMTAtMzFUMDk6MzE6MzkuMDAwMDAwWiIKICAgICAgfQogICAgXQogIH0KfQ=="
+                    },
+                    {
+                      "name": "e2e-09-snapshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-09-·-snapshots-95ff3-empotentes-y-conservan-null-mobile-360\\attachments\\e2e-09-snapshot-86bc8b97f9ebb35327af65c7e941ca53dfa4bc10.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-98528d52378313f08356",
+          "file": "roadmap.spec.ts",
+          "line": 276,
+          "column": 1
+        },
+        {
+          "title": "E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6966,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:40.757Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-10-dashboard",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-10-·-dashboard-f9ee0-on-gráficos-y-no-disponible-mobile-360\\attachments\\e2e-10-dashboard-42e6e0e47b43c7d8337ca29019429fcb9a091bff.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-4292d6caf3c1bc8d89d0",
+          "file": "roadmap.spec.ts",
+          "line": 297,
+          "column": 1
+        },
+        {
+          "title": "E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6846,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:47.726Z",
+                  "attachments": [
+                    {
+                      "name": "informe-pdf",
+                      "contentType": "application/pdf",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-mobile-360\\attachments\\informe-pdf-b2afcf372e61904e8f076008df3b0e46084863fa.pdf"
+                    },
+                    {
+                      "name": "informe-csv",
+                      "contentType": "text/csv",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-mobile-360\\attachments\\informe-csv-a6234fa2936329e819938f8523b6c4dfe51d03d1.csv"
+                    },
+                    {
+                      "name": "e2e-11-informes-listos",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-11-·-informes--1cb56-scargados-con-datos-propios-mobile-360\\attachments\\e2e-11-informes-listos-691434afc190221c403e180d8ace57c396451f9d.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-59c841b759aaf4c3a497",
+          "file": "roadmap.spec.ts",
+          "line": 320,
+          "column": 1
+        },
+        {
+          "title": "E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4846,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:54.574Z",
+                  "attachments": [
+                    {
+                      "name": "e2e-12-key-revocada",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\artifacts\\roadmap-E2E-12-·-API-key-v-588e2-a-en-UI-y-rechazada-por-MCP-mobile-360\\attachments\\e2e-12-key-revocada-ed8b4bff533707e9d955f0428e4119b076caeab9.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-7e6a8fd00c9ce252665d",
+          "file": "roadmap.spec.ts",
+          "line": 368,
+          "column": 1
+        },
+        {
+          "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6615,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:31:59.424Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-188e252eb18dbfd1a686",
+          "file": "roadmap.spec.ts",
+          "line": 384,
+          "column": 1
+        },
+        {
+          "title": "API-02 · key inválida no devuelve herramientas ni datos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 961,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:32:06.042Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-3528f5abefc9dfbedd40",
+          "file": "roadmap.spec.ts",
+          "line": 427,
+          "column": 1
+        },
+        {
+          "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 3396,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T09:32:07.005Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5617acc3ac6aadc8a1e6-f0360da695d638654c40",
+          "file": "roadmap.spec.ts",
+          "line": 434,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-31T09:28:01.054Z",
+    "duration": 249570.049,
+    "expected": 57,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

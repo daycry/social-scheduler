@@ -1,0 +1,35 @@
+{
+  "observed_at_utc": "2026-10-31T20:06:53.904098+00:00",
+  "previous_attempts": [
+    {
+      "client": "OpenCode",
+      "session": 87495,
+      "exit_code": 1,
+      "error": "Authentication expired"
+    },
+    {
+      "client": "Claude Code",
+      "session": 58820,
+      "exit_code": 1,
+      "error": "Authentication timeout"
+    }
+  ],
+  "additional_opencode_attempt": {
+    "session": 22763,
+    "outcome": "Cancelled only this login after user reported no browser tab; new attempt explicitly opened fresh URL in visible Edge window"
+  },
+  "retry": "Both clients issued OAuth tokens after fresh consent; no server code or timeout policy changed",
+  "opencode_readonly_prior_blocker": "Default free model limit reached. User then authorized ChatGPT; standalone attempts returned tool_unavailable. Service connection subsequently showed connected, and a service-backed ChatGPT run completed list_brands once.",
+  "opencode_transient_connection_error": "mcp list previously returned POST error Bad request; subsequent service connection succeeded. Exact cause not proven; no server code fix asserted.",
+  "temporary_diagnostic": "Bootstrap restored to its exact original SHA256 before final successful call; no diagnostic trace captured because probe succeeded.",
+  "tool_calls_verified_clients": [
+    "Codex",
+    "Claude Code",
+    "OpenCode"
+  ],
+  "oauth_verified_clients": [
+    "Codex",
+    "Claude Code",
+    "OpenCode"
+  ]
+}

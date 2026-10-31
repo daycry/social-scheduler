@@ -1,0 +1,2715 @@
+{
+  "config": {
+    "configFile": "C:\\laragon\\www\\metricool\\playwright.config.ts",
+    "rootDir": "C:/laragon/www/metricool/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-f3244e51-e850-4e4a-921d-b9a524368659\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 15000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-f3244e51-e850-4e4a-921d-b9a524368659/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-f3244e51-e850-4e4a-921d-b9a524368659/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-f3244e51-e850-4e4a-921d-b9a524368659/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-360",
+        "name": "mobile-360",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "version": "1.49.1",
+    "workers": 1,
+    "webServer": {
+      "cwd": "C:\\laragon\\www\\metricool",
+      "command": "node tests/e2e/isolated/serve.cjs",
+      "url": "http://localhost:8080/up",
+      "reuseExistingServer": false,
+      "timeout": 90000,
+      "stdout": "ignore",
+      "stderr": "ignore",
+      "env": {
+        "E2E_GENERAL_ENV": "eyJQQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxsYXJhZ29uXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyXFxub2RlX21vZHVsZXNcXG5wbVxcbm9kZV9tb2R1bGVzXFxAbnBtY2xpXFxydW4tc2NyaXB0XFxsaWJcXG5vZGUtZ3lwLWJpbjtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwWmtzaEFaO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwVnRwU1ZiO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjIuMS14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwcmljTFJpO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXHN0YW5kYWxvbmVcXHJlbGVhc2VzXFwwLjE2Mi4xLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFdpbmRvd3NcXHN5c3RlbTMyO0M6XFxXaW5kb3dzO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2JlbTtDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdpbmRvd3NQb3dlclNoZWxsXFx2MS4wXFw7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxPcGVuU1NIXFw7QzpcXFByb2dyYW0gRmlsZXNcXE5WSURJQSBDb3Jwb3JhdGlvblxcTlZJRElBIEFwcFxcTnZETElTUjtDOlxcUHJvZ3JhbSBGaWxlcyAoeDg2KVxcTlZJRElBIENvcnBvcmF0aW9uXFxQaHlzWFxcQ29tbW9uO0M6XFxQcm9ncmFtIEZpbGVzXFxHaXRIdWIgQ0xJXFw7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXHBucG1cXGJpbjtDOlxcVXNlcnNcXGRheWNyXFwubG9jYWxcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxjb21wb3NlcjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGNtZDtDOlxcbGFyYWdvblxcYmluXFxnaXRcXG1pbmd3NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXHVzclxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG15c3FsXFxteXNxbC04LjQuMy13aW54NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxuZ3JvaztDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyO0M6XFxsYXJhZ29uXFxiaW5cXHBocFxccGhwLTguMy4zMy1XaW4zMi12czE2LXg2NDtDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzO0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTNcXFNjcmlwdHM7QzpcXGxhcmFnb25cXHVzclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxZYXJuXFxjb25maWdcXGdsb2JhbFxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXENvbXBvc2VyXFx2ZW5kb3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxucG07QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxPcGVuQUlcXENvZGV4XFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luZG93c0FwcHM7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFByb2dyYW1EYXRhXFxkYXljclxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbkdldFxcUGFja2FnZXNcXEd5YW4uRkZtcGVnX01pY3Jvc29mdC5XaW5nZXQuU291cmNlXzh3ZWt5YjNkOGJid2VcXGZmbXBlZy05LjAuMi1mdWxsX2J1aWxkXFxiaW47O0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcRG9ja2VyRGVza3RvcFxccmVzb3VyY2VzXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluXFxjb3BpbG90LXNoaW0iLCJQYXRoIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxsYXJhZ29uXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyXFxub2RlX21vZHVsZXNcXG5wbVxcbm9kZV9tb2R1bGVzXFxAbnBtY2xpXFxydW4tc2NyaXB0XFxsaWJcXG5vZGUtZ3lwLWJpbjtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwWmtzaEFaO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwVnRwU1ZiO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjIuMS14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwcmljTFJpO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXHN0YW5kYWxvbmVcXHJlbGVhc2VzXFwwLjE2Mi4xLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFdpbmRvd3NcXHN5c3RlbTMyO0M6XFxXaW5kb3dzO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2JlbTtDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdpbmRvd3NQb3dlclNoZWxsXFx2MS4wXFw7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxPcGVuU1NIXFw7QzpcXFByb2dyYW0gRmlsZXNcXE5WSURJQSBDb3Jwb3JhdGlvblxcTlZJRElBIEFwcFxcTnZETElTUjtDOlxcUHJvZ3JhbSBGaWxlcyAoeDg2KVxcTlZJRElBIENvcnBvcmF0aW9uXFxQaHlzWFxcQ29tbW9uO0M6XFxQcm9ncmFtIEZpbGVzXFxHaXRIdWIgQ0xJXFw7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXHBucG1cXGJpbjtDOlxcVXNlcnNcXGRheWNyXFwubG9jYWxcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxjb21wb3NlcjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGNtZDtDOlxcbGFyYWdvblxcYmluXFxnaXRcXG1pbmd3NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXHVzclxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG15c3FsXFxteXNxbC04LjQuMy13aW54NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxuZ3JvaztDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyO0M6XFxsYXJhZ29uXFxiaW5cXHBocFxccGhwLTguMy4zMy1XaW4zMi12czE2LXg2NDtDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzO0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTNcXFNjcmlwdHM7QzpcXGxhcmFnb25cXHVzclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxZYXJuXFxjb25maWdcXGdsb2JhbFxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXENvbXBvc2VyXFx2ZW5kb3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxucG07QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxPcGVuQUlcXENvZGV4XFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luZG93c0FwcHM7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFByb2dyYW1EYXRhXFxkYXljclxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbkdldFxcUGFja2FnZXNcXEd5YW4uRkZtcGVnX01pY3Jvc29mdC5XaW5nZXQuU291cmNlXzh3ZWt5YjNkOGJid2VcXGZmbXBlZy05LjAuMi1mdWxsX2J1aWxkXFxiaW47O0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcRG9ja2VyRGVza3RvcFxccmVzb3VyY2VzXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluXFxjb3BpbG90LXNoaW0iLCJTeXN0ZW1Sb290IjoiQzpcXFdpbmRvd3MiLCJTWVNURU1ST09UIjoiQzpcXFdpbmRvd3MiLCJXSU5ESVIiOiJDOlxcV2luZG93cyIsIlRFTVAiOiJDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcVGVtcCIsIlRNUCI6IkM6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxUZW1wIiwiQ09NU1BFQyI6IkM6XFxXaW5kb3dzXFxzeXN0ZW0zMlxcY21kLmV4ZSIsIlBBVEhFWFQiOiIuQ09NOy5FWEU7LkJBVDsuQ01EOy5WQlM7LlZCRTsuSlNFOy5XU0Y7LldTSDsuTVNDOy5DUEwgIiwiRTJFX0dFTkVSQUxfUlVOX1JPT1QiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC1mMzI0NGU1MS1lODUwLTRlNGEtOTIxZC1iOWE1MjQzNjg2NTkiLCJUNDNfUlVOX1JPT1QiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC1mMzI0NGU1MS1lODUwLTRlNGEtOTIxZC1iOWE1MjQzNjg2NTkiLCJBUFBfRU5WIjoiZTJlIiwiQVBQX0RFQlVHIjoidHJ1ZSIsIkFQUF9MT0NBTEUiOiJlcyIsIkFQUF9GQUxMQkFDS19MT0NBTEUiOiJlcyIsIkFQUF9VUkwiOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJBUFBfS0VZIjoiYmFzZTY0OlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTA9IiwiQVBQX0NPTkZJR19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWYzMjQ0ZTUxLWU4NTAtNGU0YS05MjFkLWI5YTUyNDM2ODY1OVxcY29uZmlnLnBocCIsIkFQUF9TRVJWSUNFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWYzMjQ0ZTUxLWU4NTAtNGU0YS05MjFkLWI5YTUyNDM2ODY1OVxcc2VydmljZXMucGhwIiwiQVBQX1BBQ0tBR0VTX0NBQ0hFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtZjMyNDRlNTEtZTg1MC00ZTRhLTkyMWQtYjlhNTI0MzY4NjU5XFxwYWNrYWdlcy5waHAiLCJBUFBfRVZFTlRTX0NBQ0hFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtZjMyNDRlNTEtZTg1MC00ZTRhLTkyMWQtYjlhNTI0MzY4NjU5XFxldmVudHMucGhwIiwiQVBQX1JPVVRFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWYzMjQ0ZTUxLWU4NTAtNGU0YS05MjFkLWI5YTUyNDM2ODY1OVxccm91dGVzLnBocCIsIkxBUkFWRUxfU1RPUkFHRV9QQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtZjMyNDRlNTEtZTg1MC00ZTRhLTkyMWQtYjlhNTI0MzY4NjU5IiwiREJfQ09OTkVDVElPTiI6InNxbGl0ZSIsIkRCX0RBVEFCQVNFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtZjMyNDRlNTEtZTg1MC00ZTRhLTkyMWQtYjlhNTI0MzY4NjU5XFxkYi5zcWxpdGUiLCJEQl9VUkwiOiIiLCJDQUNIRV9TVE9SRSI6ImZpbGUiLCJDQUNIRV9MSU1JVEVSX1NUT1JFIjoiZmlsZSIsIlNFU1NJT05fRFJJVkVSIjoiZGF0YWJhc2UiLCJTRVNTSU9OX0NPTk5FQ1RJT04iOiJzcWxpdGUiLCJRVUVVRV9DT05ORUNUSU9OIjoiZGF0YWJhc2UiLCJEQl9RVUVVRV9DT05ORUNUSU9OIjoic3FsaXRlIiwiU0VTU0lPTl9TRUNVUkVfQ09PS0lFIjoiZmFsc2UiLCJNQUlMX01BSUxFUiI6ImFycmF5IiwiTUVESUFfRElTSyI6ImxvY2FsIiwiU09DSUFMX0JBQ0tGSUxMX09OX0NPTk5FQ1QiOiJmYWxzZSIsIlRSVVNURURfUFJPWElFUyI6IiIsIkdPT0dMRV9DTElFTlRfSUQiOiJlMmUtZmFrZS1nb29nbGUiLCJHT09HTEVfQ0xJRU5UX1NFQ1JFVCI6ImUyZS1mYWtlLXNlY3JldCIsIk1FVEFfQVBQX0lEIjoiZTJlLWZha2UtbWV0YSIsIk1FVEFfQVBQX1NFQ1JFVCI6ImUyZS1mYWtlLXNlY3JldCIsIlRJS1RPS19DTElFTlRfS0VZIjoiZTJlLWZha2UtdGlrdG9rIiwiVElLVE9LX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJHT09HTEVfTE9HSU5fQ0xJRU5UX0lEIjoiZTJlLWZha2UtZ29vZ2xlLWxvZ2luIiwiR09PR0xFX0xPR0lOX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJNRVRBX0xPR0lOX0FQUF9JRCI6ImUyZS1mYWtlLW1ldGEtbG9naW4iLCJNRVRBX0xPR0lOX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJUSFJFQURTX0FQUF9JRCI6ImUyZS1mYWtlLXRocmVhZHMiLCJUSFJFQURTX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJHSVBIWV9BUElfS0VZIjoiIiwiQUlfQVNTSVNUQU5UX0VOQUJMRUQiOiJ0cnVlIiwiQU5USFJPUElDX0FQSV9LRVkiOiJlMmUtZmFrZS1hbnRocm9waWMiLCJNQ1BfT0FVVEhfUkVHSVNURVJfR0xPQkFMX1BFUl9IT1VSIjoiMTAwMDAwIiwiV0VCQVVUSE5fUlBfSUQiOiJsb2NhbGhvc3QiLCJXRUJBVVRITl9PUklHSU5TIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiVklFV19DT01QSUxFRF9QQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtZjMyNDRlNTEtZTg1MC00ZTRhLTkyMWQtYjlhNTI0MzY4NjU5XFx2aWV3cyIsIlBTWVNIX0NPTkZJRyI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWYzMjQ0ZTUxLWU4NTAtNGU0YS05MjFkLWI5YTUyNDM2ODY1OVxccHN5c2gucGhwIn0="
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "composer.spec.ts",
+      "file": "composer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-01 · compositor a pantalla completa con pastillas de red",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 5358,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:19.353Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-cb7a948e118f0f33e9bc",
+          "file": "composer.spec.ts",
+          "line": 59,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · contadores por red y tope de hashtags",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6155,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:24.766Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-1664871801f0584b74c3",
+          "file": "composer.spec.ts",
+          "line": 102,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4976,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:30.926Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-3f80dbfad6385f1cdc73",
+          "file": "composer.spec.ts",
+          "line": 138,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · confirmación al salir con cambios sin guardar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 8568,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:35.906Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-49a1f91059069b5a2204",
+          "file": "composer.spec.ts",
+          "line": 196,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4902,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:44.477Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-817198e5e1ef4b7c4dd9",
+          "file": "composer.spec.ts",
+          "line": 238,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 3959,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:49.384Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-df33ec8a6e4b1049e767",
+          "file": "composer.spec.ts",
+          "line": 261,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4611,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:53.346Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-9a9ab994649541a7f421",
+          "file": "composer.spec.ts",
+          "line": 274,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · ayer es inaccesible en Auckland: mismo mes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4409,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:39:57.962Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-1f31a43ed731b5677c3a",
+          "file": "composer.spec.ts",
+          "line": 328,
+          "column": 5
+        },
+        {
+          "title": "E2E-04 · ayer es inaccesible en Auckland: cambio de mes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4445,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:02.374Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-0e08b77b53d091d4cf50",
+          "file": "composer.spec.ts",
+          "line": 328,
+          "column": 5
+        },
+        {
+          "title": "E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 13708,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:06.823Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-5aa9439725b32d49974f",
+          "file": "composer.spec.ts",
+          "line": 350,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7257,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:20.536Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-e5c7b543a05a1f577afb",
+          "file": "composer.spec.ts",
+          "line": 462,
+          "column": 1
+        },
+        {
+          "title": "E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 9836,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:27.797Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-0baf76e11fcb291b114b",
+          "file": "composer.spec.ts",
+          "line": 498,
+          "column": 1
+        },
+        {
+          "title": "E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7023,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:37.636Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-b9bdb4ce83fc9eb6fcb5",
+          "file": "composer.spec.ts",
+          "line": 571,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 5351,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:44.662Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-fb93fff31b0965aaa2f6",
+          "file": "composer.spec.ts",
+          "line": 610,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 4398,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:50.017Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-0319cb6f8ee861fadd74",
+          "file": "composer.spec.ts",
+          "line": 641,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7254,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:40:54.419Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-f761d5d6625a0b0400aa",
+          "file": "composer.spec.ts",
+          "line": 661,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 3920,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:01.676Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-52130b300b0b422d3589",
+          "file": "composer.spec.ts",
+          "line": 691,
+          "column": 1
+        },
+        {
+          "title": "E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 7935,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:05.600Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-4d333967d4a4a38613af",
+          "file": "composer.spec.ts",
+          "line": 711,
+          "column": 1
+        },
+        {
+          "title": "A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6588,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:13.539Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-dac9de2a280cf1d2419c",
+          "file": "composer.spec.ts",
+          "line": 735,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6716,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:20.131Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-c9b97f0f02ab1cf8a839",
+          "file": "composer.spec.ts",
+          "line": 770,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 9908,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:26.851Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-ff0c7e935536523a02a4",
+          "file": "composer.spec.ts",
+          "line": 857,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 12838,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:36.763Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-d6aa55b2f2f36fe552c6",
+          "file": "composer.spec.ts",
+          "line": 915,
+          "column": 1
+        },
+        {
+          "title": "E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 10739,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:41:49.606Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-f135c87857d77542e8be",
+          "file": "composer.spec.ts",
+          "line": 1002,
+          "column": 1
+        },
+        {
+          "title": "E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 5520,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:00.348Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-12290b0c66965352cda3",
+          "file": "composer.spec.ts",
+          "line": 1040,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 5002,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:05.872Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-50877bf9fa0b1ec72ce1",
+          "file": "composer.spec.ts",
+          "line": 1118,
+          "column": 1
+        },
+        {
+          "title": "E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 6235,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:10.877Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-9d63c6cedcb53b751d4a",
+          "file": "composer.spec.ts",
+          "line": 1144,
+          "column": 1
+        },
+        {
+          "title": "E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "status": "passed",
+                  "duration": 5082,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:17.115Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-40ba99cc1de96ebddb15",
+          "file": "composer.spec.ts",
+          "line": 1225,
+          "column": 1
+        },
+        {
+          "title": "E2E-01 · compositor a pantalla completa con pastillas de red",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 5468,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:22.990Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-8a5d377f47ac605f44e3",
+          "file": "composer.spec.ts",
+          "line": 59,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · contadores por red y tope de hashtags",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:28.535Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-44e853e9f1734a98994b",
+          "file": "composer.spec.ts",
+          "line": 102,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4813,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:34.855Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-0a29c9d26b827dad213b",
+          "file": "composer.spec.ts",
+          "line": 138,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · confirmación al salir con cambios sin guardar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 8626,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:39.672Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-c388f29cdda9c8128dff",
+          "file": "composer.spec.ts",
+          "line": 196,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4907,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:48.302Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-368466db9007c1553c59",
+          "file": "composer.spec.ts",
+          "line": 238,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4082,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:53.213Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-7b89503aa4b3b3424de2",
+          "file": "composer.spec.ts",
+          "line": 261,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4967,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:42:57.299Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-d6f6277eacf0b404f1d8",
+          "file": "composer.spec.ts",
+          "line": 274,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · ayer es inaccesible en Auckland: mismo mes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4226,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:02.269Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-087f88655d4d89756a1d",
+          "file": "composer.spec.ts",
+          "line": 328,
+          "column": 5
+        },
+        {
+          "title": "E2E-04 · ayer es inaccesible en Auckland: cambio de mes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4273,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:06.499Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-de45ea609ef26adc2814",
+          "file": "composer.spec.ts",
+          "line": 328,
+          "column": 5
+        },
+        {
+          "title": "E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 13351,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:10.775Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-8d6c93b959c4f934f35e",
+          "file": "composer.spec.ts",
+          "line": 350,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 7631,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:24.131Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-a57c31aada34a2461652",
+          "file": "composer.spec.ts",
+          "line": 462,
+          "column": 1
+        },
+        {
+          "title": "E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 9724,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:31.767Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-d2b1f987db9ee3becce8",
+          "file": "composer.spec.ts",
+          "line": 498,
+          "column": 1
+        },
+        {
+          "title": "E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6928,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:41.495Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-d045d066683003017a7a",
+          "file": "composer.spec.ts",
+          "line": 571,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 5282,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:48.427Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-88644a9b9dc08a6aef05",
+          "file": "composer.spec.ts",
+          "line": 610,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4245,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:53.712Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-1c94b426fe57e81c3956",
+          "file": "composer.spec.ts",
+          "line": 641,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6886,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:43:57.961Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-5cae1b2425317e26c3b5",
+          "file": "composer.spec.ts",
+          "line": 661,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4100,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:04.851Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-5cbe8348f832dfccb769",
+          "file": "composer.spec.ts",
+          "line": 691,
+          "column": 1
+        },
+        {
+          "title": "E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 7658,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:08.955Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-d56ab091c6414d97dba6",
+          "file": "composer.spec.ts",
+          "line": 711,
+          "column": 1
+        },
+        {
+          "title": "A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6754,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:16.616Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-ef3e81421af949a55b6a",
+          "file": "composer.spec.ts",
+          "line": 735,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:23.376Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-60900e5da9fdfdd505d7",
+          "file": "composer.spec.ts",
+          "line": 770,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 10230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:29.695Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-4847e92e2f07898c6a4c",
+          "file": "composer.spec.ts",
+          "line": 857,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 12556,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:39.928Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-85e1e6238b8b83f094f5",
+          "file": "composer.spec.ts",
+          "line": 915,
+          "column": 1
+        },
+        {
+          "title": "E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 10775,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:44:52.487Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-9c16ac1b2de23fa37963",
+          "file": "composer.spec.ts",
+          "line": 1002,
+          "column": 1
+        },
+        {
+          "title": "E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 5571,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:03.267Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-7d6b97ce54789a59c6a8",
+          "file": "composer.spec.ts",
+          "line": 1040,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4741,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:08.843Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-40ceac16d42149cdacc4",
+          "file": "composer.spec.ts",
+          "line": 1118,
+          "column": 1
+        },
+        {
+          "title": "E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 6023,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:13.588Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-41da4352504598586fae",
+          "file": "composer.spec.ts",
+          "line": 1144,
+          "column": 1
+        },
+        {
+          "title": "E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "status": "passed",
+                  "duration": 4819,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:19.616Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-6cdecb294790f04100c3",
+          "file": "composer.spec.ts",
+          "line": 1225,
+          "column": 1
+        },
+        {
+          "title": "E2E-01 · compositor a pantalla completa con pastillas de red",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5283,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:25.272Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-985562155a7db87496f6",
+          "file": "composer.spec.ts",
+          "line": 59,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · contadores por red y tope de hashtags",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5907,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:30.613Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-22fa1288483fc395eed3",
+          "file": "composer.spec.ts",
+          "line": 102,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4876,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:36.523Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-262d121db86855c0fcf5",
+          "file": "composer.spec.ts",
+          "line": 138,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · confirmación al salir con cambios sin guardar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 8386,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:41.403Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-022daccd33e7104bbfcf",
+          "file": "composer.spec.ts",
+          "line": 196,
+          "column": 1
+        },
+        {
+          "title": "E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4838,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:49.793Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-84212518182db3e66eaa",
+          "file": "composer.spec.ts",
+          "line": 238,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 3853,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:54.635Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-5eb3005d5288c8e8f363",
+          "file": "composer.spec.ts",
+          "line": 261,
+          "column": 1
+        },
+        {
+          "title": "E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4568,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:45:58.491Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-bb16f3f5c7994ad0e586",
+          "file": "composer.spec.ts",
+          "line": 274,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · ayer es inaccesible en Auckland: mismo mes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4392,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:03.064Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-741d692fe9f72a67e208",
+          "file": "composer.spec.ts",
+          "line": 328,
+          "column": 5
+        },
+        {
+          "title": "E2E-04 · ayer es inaccesible en Auckland: cambio de mes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4447,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:07.460Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-6c580c93d225f1fb516c",
+          "file": "composer.spec.ts",
+          "line": 328,
+          "column": 5
+        },
+        {
+          "title": "E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 13531,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:11.910Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-38b24b4067a4165d377e",
+          "file": "composer.spec.ts",
+          "line": 350,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 7174,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:25.445Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-b3fb1c7e76680f7097ab",
+          "file": "composer.spec.ts",
+          "line": 462,
+          "column": 1
+        },
+        {
+          "title": "E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 9500,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:32.623Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-728ff433bc95719520cd",
+          "file": "composer.spec.ts",
+          "line": 498,
+          "column": 1
+        },
+        {
+          "title": "E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6839,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:42.126Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-9d39d69edc4258005d5d",
+          "file": "composer.spec.ts",
+          "line": 571,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5291,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:48.968Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-1c8a743606131c648cc9",
+          "file": "composer.spec.ts",
+          "line": 610,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4324,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:54.262Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-49cdcef6374a2e41fb04",
+          "file": "composer.spec.ts",
+          "line": 641,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6975,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:46:58.590Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-7202a7c333c3069c0a36",
+          "file": "composer.spec.ts",
+          "line": 661,
+          "column": 1
+        },
+        {
+          "title": "E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 3916,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:05.568Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-6a7672b6a5cf8c5b6297",
+          "file": "composer.spec.ts",
+          "line": 691,
+          "column": 1
+        },
+        {
+          "title": "E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 7793,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:09.487Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-3037baffa2042d471ee7",
+          "file": "composer.spec.ts",
+          "line": 711,
+          "column": 1
+        },
+        {
+          "title": "A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6548,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:17.286Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-6e914727b8fbbbd3da9b",
+          "file": "composer.spec.ts",
+          "line": 735,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6430,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:23.838Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-bc7d99125e8848645b6a",
+          "file": "composer.spec.ts",
+          "line": 770,
+          "column": 1
+        },
+        {
+          "title": "E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 10115,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:30.274Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-13f1a5e7a5960e7d8932",
+          "file": "composer.spec.ts",
+          "line": 857,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 12706,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:40.392Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-63e919e5b5a9c8dae7d4",
+          "file": "composer.spec.ts",
+          "line": 915,
+          "column": 1
+        },
+        {
+          "title": "E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 10476,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:47:53.102Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-4cc4757c82040ecdae04",
+          "file": "composer.spec.ts",
+          "line": 1002,
+          "column": 1
+        },
+        {
+          "title": "E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 5366,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:48:03.584Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-c28c38d25a8ffa41b29a",
+          "file": "composer.spec.ts",
+          "line": 1040,
+          "column": 1
+        },
+        {
+          "title": "E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4670,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:48:08.953Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-d4ad68b1bc3064f929e6",
+          "file": "composer.spec.ts",
+          "line": 1118,
+          "column": 1
+        },
+        {
+          "title": "E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 6071,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:48:13.627Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-945fa8bc2d2de13a01b7",
+          "file": "composer.spec.ts",
+          "line": 1144,
+          "column": 1
+        },
+        {
+          "title": "E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "status": "passed",
+                  "duration": 4939,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-31T11:48:19.702Z",
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1662a082f095f370d3d2-bed573dec88b2e4ee50e",
+          "file": "composer.spec.ts",
+          "line": 1225,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-31T11:39:11.721Z",
+    "duration": 554296.348,
+    "expected": 81,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

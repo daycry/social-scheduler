@@ -1,0 +1,60 @@
+{
+  "clients": [
+    {
+      "client_name": "Claude Code (roadmap_ca29_claude)",
+      "registered_at": "2026-10-31T19:28:20+00:00",
+      "callbacks_without_query": [
+        "http://localhost:42142/callback"
+      ],
+      "token_issued": false,
+      "token_created_at": null,
+      "token_last_used_at": null,
+      "token_expires_at": null
+    },
+    {
+      "client_name": "opencode",
+      "registered_at": "2026-10-31T19:38:33+00:00",
+      "callbacks_without_query": [
+        "http://127.0.0.1:63469/callback"
+      ],
+      "token_issued": false,
+      "token_created_at": null,
+      "token_last_used_at": null,
+      "token_expires_at": null
+    },
+    {
+      "client_name": "opencode",
+      "registered_at": "2026-10-31T19:55:22+00:00",
+      "callbacks_without_query": [
+        "http://127.0.0.1:56610/callback"
+      ],
+      "token_issued": false,
+      "token_created_at": null,
+      "token_last_used_at": null,
+      "token_expires_at": null
+    },
+    {
+      "client_name": "Claude Code (roadmap_ca29_claude)",
+      "registered_at": "2026-10-31T19:55:38+00:00",
+      "callbacks_without_query": [
+        "http://localhost:46319/callback"
+      ],
+      "token_issued": true,
+      "token_created_at": "2026-10-31T19:55:42+00:00",
+      "token_last_used_at": "2026-10-31T20:00:50+00:00",
+      "token_expires_at": "2027-01-29T19:55:42+00:00"
+    },
+    {
+      "client_name": "opencode",
+      "registered_at": "2026-10-31T19:57:10+00:00",
+      "callbacks_without_query": [
+        "http://127.0.0.1:60041/callback"
+      ],
+      "token_issued": true,
+      "token_created_at": "2026-10-31T19:57:13+00:00",
+      "token_last_used_at": "2026-10-31T20:06:15+00:00",
+      "token_expires_at": "2027-01-29T19:57:13+00:00"
+    }
+  ],
+  "checked_at_utc": "2026-10-31T20:06:53.904098+00:00"
+}

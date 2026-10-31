@@ -1,0 +1,14 @@
+{
+  "client": "opencode",
+  "server": "roadmap_ca29_opencode",
+  "checked_at_utc": "2026-10-31T20:06:53.904098+00:00",
+  "status_command_exit_code": 0,
+  "connected": true,
+  "selected_status_lines": [
+    "\u2713 roadmap_ca29_opencode  connected"
+  ],
+  "authorized_by_user": true,
+  "login_process_exit_code": 0,
+  "login_exit_note": "Observed interactive login exit 0",
+  "api_key_supplied_to_mcp": false
+}

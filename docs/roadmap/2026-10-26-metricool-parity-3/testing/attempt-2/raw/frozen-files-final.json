@@ -1,0 +1,87 @@
+﻿{
+    "capturedUtc":  "2026-10-31T12:31:52.3183051Z",
+    "files":  [
+                  {
+                      "path":  "playwright.config.ts",
+                      "sha256":  "16BFD56CCCDDB1E7B3A13D47B7364AC4CD620872CE563B2680F002E611862DB7",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "tests/e2e/global-setup.ts",
+                      "sha256":  "C52F92BA0B7439757D6A1DCFD070B264097B8444C4934EC8218DAA61CE93FA39",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "tests/e2e/global-teardown.ts",
+                      "sha256":  "428E54D95E34C3ACCB43EEB4B605454B8133995A6FD3F07FE363AD2B201B1885",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "tests/e2e/helpers.ts",
+                      "sha256":  "853A896EEB1535FA4EBB86159053082BD2D3E9AE4BAF861B6E215658A2DAB6E3",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "tests/e2e/composer.spec.ts",
+                      "sha256":  "32873EA75896E35780905779FB0823B0682AD4B52F22A503493685973C0ABA15",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "app/Http/Controllers/ApiKeyController.php",
+                      "sha256":  "F5C5DC389131052424E48EA99A889F9E24FB569BAF3EE2F805D03BCF91A0E0A8",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "public/build/manifest.json",
+                      "sha256":  "E93A822E15ABBD6ADA53E33F9D07E5A7A665E7009AB52D6762D3326BDAAA4409",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\bookends.guard.ts",
+                      "sha256":  "B504C1F30CE947DB55E1CB64D0AC477E8BBA433C9B79AABDA6055E26353BD2EA",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\bootstrap.php",
+                      "sha256":  "BE308C33E5390C0888D3BCD376BCC7C186FD28A0C267EE46355AD83C7A61E26A",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\cli.php",
+                      "sha256":  "3619AF9FB897C98BB383C71A69547A90B6B22FB2CEDFB41FCEFC975D077D9D52",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\fakes.php",
+                      "sha256":  "084354498F64C8BC1D8819E56D9F6FFF1ED9D1347B7299C7E4D95541902D92E3",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\guard.config.ts",
+                      "sha256":  "EF19E1558DF8F365553F8080492BD819D54EEAB34375F3A93137D32991770F05",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\runtime.ts",
+                      "sha256":  "F5FA10DD91452DD16199F3B8249BC5E8DCA4277A926A82CBE5DD10741F81C202",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\safety.test.cjs",
+                      "sha256":  "36CB65AB63907CF588ABD886E37832E52A9F67A67FC98F538B8DDCB1DD84A7A2",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\serve.cjs",
+                      "sha256":  "63D7193FB72D33D64F1590C5BEAA41A91F995CE74AF35CFE1D01330C589ACBF2",
+                      "unchanged":  true
+                  },
+                  {
+                      "path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\server.php",
+                      "sha256":  "CD52E943190D4B659262572C2515445038586EC311A0AA9ACD88F987F2588FA4",
+                      "unchanged":  true
+                  }
+              ],
+    "unchangedCount":  16,
+    "changedCount":  0
+}

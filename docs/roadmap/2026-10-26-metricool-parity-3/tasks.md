@@ -1622,7 +1622,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Dependencias**: T-16
 - **Tipo**: backend
 - **Archivos**: `app/Services/AiAssistant.php`, `tests/Feature/Ai/ProposeScheduleTest.php`, `config/social.php`
-- **Cubre (tests)**: —
+- **Cubre (tests)**: M-05
 - **Verificación**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleTest.php` → en verde (tabla de frases, zonas, cambio de hora, fechas pasadas)
 
 **Criterios de aceptación**
@@ -1658,7 +1658,7 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Dependencias**: T-49
 - **Tipo**: fullstack
 - **Archivos**: `app/Http/Controllers/AiAssistantController.php`, `routes/parity.php`, `resources/js/Components/Composer/ScheduleSection.vue`, `tests/Feature/Ai/ProposeScheduleEndpointTest.php`
-- **Cubre (tests)**: E2E-07, M-04
+- **Cubre (tests)**: E2E-07, M-04, M-05
 - **Verificación**: `php artisan test --compact tests/Feature/Ai/ProposeScheduleEndpointTest.php` → en verde (límite diario, IA desactivada, validación)
 
 **Criterios de aceptación**
@@ -2575,14 +2575,14 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 - **Descripción**: Cierre de la iniciativa: Pest completo, Playwright en `desktop`, `mobile` y `mobile-360` con el servidor propio de Playwright (sin `E2E_NO_SERVER`) y Pint.
 - **Changelog**: Regresión completa en verde antes de la PR: Pest, Playwright en escritorio y móvil, y Pint.
 - **Estado**: en-progreso
-- **Clase**: docs/verificación (sin código nuevo). Primer oráculo: la lectura/comando de la Verificación, ejecutado al cerrar.
+- **Clase**: verificación y corrección del harness de pruebas (continuidad del 2026-10-31). TDD para el aislamiento del runner; TDD n/a para notas y configuración.
 - **Tiempo humano**: est. 3,0h · real —
 - **Tiempo IA (ejec.)**: est. 0,41h · real —
 - **Supervisión**: est. 0,10h (≈25 % IA) · real —
 - **Previsión IA**: 109k in / 12k out tok · ⚠️ verificar €
 - **Dependencias**: T-76, T-30, T-64
 - **Tipo**: test
-- **Archivos**: `docs/roadmap/2026-10-26-metricool-parity-3/tasks.md`, `docs/roadmap/2026-10-26-metricool-parity-3/spec.md`, `docs/roadmap/2026-10-26-metricool-parity-3/evaluation.md`, `docs/roadmap/2026-10-26-metricool-parity-3/design.md`, `docs/roadmap/2026-10-26-metricool-parity-3/improvement-plan.md`, `docs/roadmap/2026-10-26-metricool-parity-3/test-plan.md`, `docs/roadmap/README.md` (orquestador: artefactos de la cadena spec→evaluación→diseño→plan, commits 851ab32 y f4a5272)
+- **Archivos**: `docs/roadmap/2026-10-26-metricool-parity-3/tasks.md`, `docs/roadmap/2026-10-26-metricool-parity-3/spec.md`, `docs/roadmap/2026-10-26-metricool-parity-3/evaluation.md`, `docs/roadmap/2026-10-26-metricool-parity-3/design.md`, `docs/roadmap/2026-10-26-metricool-parity-3/improvement-plan.md`, `docs/roadmap/2026-10-26-metricool-parity-3/test-plan.md`, `docs/roadmap/README.md`, `playwright.config.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `tests/e2e/helpers.ts`, `tests/e2e/composer.spec.ts`, `tests/e2e/isolated/`, `docs/roadmap/2026-10-26-metricool-parity-3/testing/`, `docs/guias/pruebas-t43.md`, `README.md`, `docs/README.md` (orquestador: artefactos de la cadena spec→evaluación→diseño→plan, commits 851ab32 y f4a5272; ampliación del 2026-10-31 para aislar la regresión general y conservar su evidencia)
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan test --compact` → toda la suite en verde
@@ -2595,12 +2595,58 @@ Candidatos del `architect` pendientes de decisión. Se conservan la ruta y el ha
 
 **Subtareas**
 - [x] Pest completo
-- [x] Playwright en 3 proyectos
+- [x] Playwright en 3 proyectos (QA actual del 2026-10-31: 502 passed y 2 skips históricos; el pase del 2026-10-27 se conserva)
 - [x] Pint
 - [x] Anotar cifras
 
-**Notas**: Patrón: T-50 de `2026-10-24-metricool-parity-2/tasks.md`. No se ejecutan otros servidores; `npm run test:e2e` levanta `php artisan serve` con `APP_ENV=e2e` (`playwright.config.ts`). Lo que falle se corrige en una tarea nueva, no se silencia.
+**Notas**: Patrón: T-50 de `2026-10-24-metricool-parity-2/tasks.md`. No se reutilizan otros servidores; `npm run test:e2e` levanta su router aislado en `localhost:8080` mediante `tests/e2e/isolated/serve.cjs`, con `APP_ENV=e2e`. Lo que falle no se silencia.
 
+**Regresión actual (2026-10-31)**: Pest completo pasa 2461 tests y 14549 aserciones; build, TypeScript y Pint correctos. T-43 acredita por separado 57 casos de su harness aislado. La batería general actual pasa 502 casos y omite los dos previstos de 504, sin fallos, flaky ni casos sin ejecutar por errores. Sus bookends, SQLite, almacenamiento y usuarios son desechables y están revisados por dos lentes. Se conservan los 498 casos originales y se añaden seis regresiones para la frontera de mes del selector. El criterio conjunto y la subtarea de Playwright quedan cumplidos; T-77 sigue abierta por T-30/T-64 y los smokes reales del usuario. A continuación se conserva la traza del diagnóstico y de ambos intentos de QA.
+
+**RED del aislamiento (2026-10-31)**: `node tests/e2e/isolated/safety.test.cjs` falló con `ERR_ASSERTION: The default runner can reach the real environment` antes de cambiar configuración y bookends; el runner cargaba `dotenv` y arrancaba `php artisan serve` sin el adaptador aislado. La guardia estática pasa después. No se atribuye un RED previo a las guardias dinámicas añadidas como verificación posterior.
+
+**Verificación del implementer (2026-10-31)**: tres guardias dinámicas pasan en 15,3 s, sin fallos/flaky/omitidos, raíz `storage/framework/testing/t43/run-general-d601e7df-aa0b-4b97-b545-4ee14ff0a751/`: `guards.json`, `isolation-proof.json`, `http-isolation-proof.json` y `two-run-isolation.json`. Comprueban los bookends con una DEMO ficticia protegida y usuario prefijado ajeno, igualdad de rutas efectivas HTTP/CLI y rechazo de configuración ajena antes del bootstrap. El segundo run `run-general-293866bb-3158-494c-a241-473e3a8f808d` tiene caché vacía, contador cero y lock disponible; otro proceso del primero conserva `first-run`, contador uno y lock ocupado. HTTP externo no simulado queda bloqueado. PHP recibe solo el manifiesto explícito, evitando que Playwright herede variables reales al servidor.
+
+Muestras de implementación: páginas/flujos/seguridad desktop → **44 passed**, sin fallos/flaky/omitidos, `run-general-3683fe8b-9be2-4bdf-88fd-47893fe4a07e/results.json`; Bluesky/Threads/Giphy/login social/importación de media desktop → **32 passed**, mismos ceros, `run-general-4840e956-c8f5-4dfb-bd80-b66fc11a9051/results.json`. Los intentos previos detectaron que el usuario readonly necesitaba marca/cuentas ficticias y que el simulador Bluesky debía conservar `CredentialConnector`; se corrigió solo el harness, sin quitar aserciones ni añadir skips. Estos fallos de preparación no se presentan como RED de producto. Pint del adaptador y TypeScript pasan. El inventario separado `--list --reporter=list` descubre **498 tests en 21 specs**; no acredita ejecución. La QA completa aún está pendiente y T-77 continúa abierta.
+
+**Comprobaciones del orquestador (2026-10-31, antes de QA general)**: `npm run build` → 893 módulos, 8,29 s, exit 0; `npx tsc --noEmit -p .` → exit 0; `vendor/bin/pint --test` global → passed, exit 0; guardia estática directa → un test pasado, exit 0. La puerta de alcance conjunta conserva 235 archivos autorizados, cero fuera de la unión y ningún aviso ni exclusión de usuario. Los enlaces de los veinte Markdown modificados o nuevos comprueban 259 destinos locales sin ausencias.
+
+**QA general, intento 1 (2026-10-31) — NO-VERDE**: la ejecución independiente completa finaliza con exit Playwright 1 y exit `qa-gate.py` 1: **442 passed, 3 failed, 53 skipped**, sin flaky ni interrumpidos ni errores del runner, 2242664,729 ms (37,4 min). De los 53, dos son las omisiones históricas del shell en móvil y **51 no se ejecutaron** por dependencia serial tras los tres fallos. Los tres tamaños fallan en `composer.spec.ts:373`: se espera deshabilitado `[data-date="2026-10-31"]`, pero el elemento no existe. El día fijo del test a las 20:00 UTC es ya 1 de noviembre en Auckland. La causa y la corrección se investigan antes de cambiar la prueba; no se retira la comprobación para aparentar verde.
+
+Evidencia roja inmutable: run `run-general-624d0e64-a610-4b7f-9a85-d829fa0584c2`, [informe](testing/report.md), [PDF](testing/report.pdf), `testing/raw/results.json`, SHA256 `4A0EB5024F3BCDD6136A67BB21A33359DC28FBFC464CEB820389441B317B19C3`, 84 capturas y tres trazas. Los quince archivos controlados mantienen sus hashes entre la captura durante la ejecución y el cierre. Los contadores provisionales del log confundieron resultados y casos no ejecutados; quedan sustituidos por este resultado del reporter JSON. No se declara verde ni se cierra T-77; la repetición corregida tendrá otro directorio y otro JSON.
+
+**Depuración de la frontera de mes (2026-10-31)**:
+
+1. Reproducción mínima: `npx playwright test tests/e2e/composer.spec.ts --project=desktop --grep 'E2E-04'` reproduce el fallo de la primera prueba seleccionada, con las dos dependientes sin ejecutar, en `run-general-d4ff82d4-2d61-4386-8e93-4f28efc8c31e`. No se ejecutan los otros 498 casos para reproducirlo.
+2. Aislamiento: el trace real muestra noviembre de 2026, el botón Mes anterior deshabilitado y la celda 1 de noviembre habilitada, enfocada y con `aria-current=date`. El componente rellena con `null` los días fuera del mes; no dibuja 31 de octubre. Se descartan un día pasado seleccionable y un error de zona del producto: el fallo es la suposición del test sobre el DOM.
+3. Hipótesis probada: «la prueba exige que ayer exista como celda incluso cuando pertenece al mes anterior». Dos regresiones reales se añaden antes del arreglo usando todavía la aserción antigua: el escenario del mismo mes pasa y el de cambio de mes falla porque 30 de noviembre no existe en la cuadrícula de diciembre. Comando `npx playwright test tests/e2e/composer.spec.ts --project=desktop --grep 'ayer es inaccesible'`, run `run-general-254f543d-d647-48ce-97d0-6710c6b27fc6`: **1 passed, 1 failed**.
+4. Corrección aplicada solo en `composer.spec.ts`: dentro del mismo mes, ayer debe estar deshabilitado; si cambia el mes, ayer debe estar ausente y Mes anterior deshabilitado. Se mantienen hoy habilitado/enfocado y la imposibilidad de retroceder con ArrowLeft. El caso original usa el mismo helper y se retira una aserción duplicada. Las dos regresiones usan fechas futuras derivadas del mes actual, prueban ambas ramas sin guardar una publicación ni modificar el reloj del servidor.
+
+GREEN mínimo: `npx playwright test tests/e2e/composer.spec.ts --grep 'ayer es inaccesible|panel único de errores'` → **9 passed** (los tres casos en los tres tamaños), 1,3 min, run `run-general-63110671-753f-402c-9b89-42331990a564`. TypeScript y diff-check del fichero pasan. Fuente congelada SHA256 `32873EA75896E35780905779FB0823B0682AD4B52F22A503493685973C0ABA15`; el compositor completo (81 casos) está en verificación. El inventario del orquestador con `--list --reporter=list` confirma **504 tests/21 specs**: conserva los 498 originales y añade dos regresiones por cada tamaño, sin omisiones nuevas. La fase de validación completa del fix sigue pendiente de la siguiente QA general.
+
+Para el segundo intento se prepara otro directorio `testing/attempt-2/`, sin sobrescribir la evidencia roja, y `--max-failures=1`: un fallo detendrá el intento como rojo; un resultado verde deberá ejecutar los 504 casos, salvo los dos skips históricos. El contador provisional corregido se contrasta con el log del primer intento y devuelve 442 passed, tres failed, 51 no ejecutados y dos skips explícitos, igual que su JSON. El nuevo manifiesto incluirá también `composer.spec.ts`.
+
+**Compositor completo tras el fix (2026-10-31)**: `npx playwright test tests/e2e/composer.spec.ts` → **81 passed**, 27 por cada tamaño, exit 0, 554296,348 ms (9,2 min), sin omitidos, fallos, flaky ni errores. Fuente `run-general-f3244e51-e850-4e4a-921d-b9a524368659/results.json`; copia estable `testing/diagnostic-calendar/green-composer.json`. El SHA256 del fichero sigue siendo `32873EA75896E35780905779FB0823B0682AD4B52F22A503493685973C0ABA15`. La segunda QA general de 504 casos recibe el GO tras las dos lentes aprobadas y esta comprobación completa del compositor.
+
+La trampa se registra como [candidato GOTCHA](../../knowledge/candidates/pending/2026-10-31-datepicker-ayer-fuera-del-mes.md), con síntoma, causa, alternativa y evidencia de las regresiones. El árbol del proyecto usa `candidates/pending/` y `approved/`; se respeta esa organización y la aprobación queda reservada al curador. Se actualiza el índice sin escribir en conocimiento aprobado ni en el journal.
+
+**QA general, intento 2 (2026-10-31) — VERDE automático**: `npx playwright test --max-failures=1`, sin limitar proyectos ni escenarios y con cero reintentos, finaliza exit 0. Resultado oficial: **502 passed, 2 skipped, 0 failed, 0 flaky, 0 interrupted**, cero errores del runner y **ningún caso sin ejecutar por un fallo**. Son 504 casos: 168 de escritorio pasan; en cada móvil pasan 167 y se omite únicamente el shell de escritorio que no existe en ese tamaño. Duración 2554569,949 ms (42,6 min). Los dos casos de fecha nuevos por tamaño se ejecutan junto con los 498 originales.
+
+Run `run-general-23f21d13-7032-4ba1-926b-c00d16c1cb0a`; copia exacta [results.json](testing/attempt-2/raw/results.json), SHA256 `B7DB16DE01B7BDF7CD240CE03F0E6D9159D72471090B22BA4595BAC88776CE7E`. QA independiente y orquestador ejecutan `qa-gate.py` sobre la copia: `VERDE`, exit 0, counts `{passed:502, failed:0, flaky:0, skipped:2, interrupted:0}`. El manifiesto de dieciséis archivos coincide antes y después de la ejecución: ningún cambio de fuente ni assets durante QA. El primer intento rojo, sus capturas y trazas quedan intactos en `testing/raw/` y `testing/report.*`; el intento verde usa `testing/attempt-2/`.
+
+Se completa la fase de verificación general del fix y la regresión automática pendiente de T-77. La suite PHP actual conserva 2461 tests/14549 aserciones; build, TypeScript y Pint están verificados antes de esta QA. El criterio conjunto y la subtarea de Playwright quedan cumplidos; **T-77 permanece `en-progreso` por T-30 y T-64**, los smokes reales del usuario. El verde automático tampoco cierra los manuales de otras iniciativas ni acredita un despliegue de estos cambios locales.
+
+Entrega: [informe final de QA general](testing/attempt-2/report.md) y [PDF](testing/attempt-2/report.pdf), nueve páginas. QA verifica visualmente el PDF; el orquestador revisa la lámina de las nueve páginas y la portada sin recortes ni solapes. Se conservan 81 capturas de esta ejecución y el detalle por cada uno de los 504 casos. El resultado de la primera corrida sigue etiquetado como rojo y no se usa como prueba de aprobación.
+
+**Reanudación documental (2026-10-31, QA P1)**: TDD n/a: prosa y referencias de cobertura, sin cambios de código ni nuevas ejecuciones Pest/Playwright/Pint. `test-plan.md` y este ledger ya están declarados en `Archivos` de T-77. El orquestador corrige el plan de pruebas; se respeta la denegación de su edición desde el rol implementer.
+
+Se enlaza M-05 desde T-49 y T-50 conforme a la tabla de cobertura existente. La tabla explícita del plan de pruebas sustituye el rango ambiguo por referencias a los tests existentes y sus límites. Estas referencias no acreditan la ejecución del manual ni un E2E de navegador equivalente.
+
+**Verificación previa** con Python 3.13 y scripts de custom-agents 1.21.1: `ledger-lint.py tasks.md` → `ledger-lint: 0 incoherencias · 2 avisos (tasks.md)` (exit 0; Changelog vacío de T-30/T-64). `coverage-check.py tasks.md test-plan.md spec.md` → exit 1, `broken_refs: 0`, `tests_sin_referencia: ["M-05"]`, `gwt_sin_cubrir: ["CA-03", "CA-04", "CA-05", "CA-06", "CA-07", "CA-08"]`.
+
+El usuario confirma el 2026-10-31 que los smokes reales siguen sin ejecutarse. T-30, T-64 y T-77 permanecen `en-progreso`; las cifras y ejecuciones históricas se conservan. Esta corrección no acredita QA global verde.
+
+**Verificación posterior de esta corrección documental (2026-10-31)**: `ledger-lint.py tasks.md` → `ledger-lint: 0 incoherencias · 2 avisos (tasks.md)` (exit 0, mismos avisos T-30/T-64); `coverage-check.py tasks.md test-plan.md spec.md` → exit 0, `broken_refs: 0`, `tests_sin_referencia: []`, `gwt_sin_cubrir: []`, CA-01 a CA-17 referenciados. Permanecen los avisos informativos de tareas sin escenario declarado (incluidas las de backend); no acreditan UI probada. `git diff --check` → exit 0, sin errores de whitespace; avisa de futura normalización CRLF→LF del `docs/knowledge/journal/README.md` previamente modificado, que esta corrección no toca.
 
 ## Revisión de dos lentes — intento 1: Fase 1-2 (T-01..T-14) — 1 Important, 9 Minor
 
@@ -2798,4 +2844,82 @@ Tests: 917/917 + 252/252. **La revisión de la iniciativa se cierra sin gaps Cri
 - `vendor/bin/pint --test` → sin diferencias.
 
 **Pendiente**: el criterio «todas las tareas anteriores `completado`» depende de T-30 (smoke real de Bluesky) y T-64 (smoke real de Threads), que hace el usuario con sus cuentas. T-77 se cierra cuando estén hechos.
+
+## Revisión de dos lentes — intento 2: Continuidad documental (T-49, T-50, T-77) y cierre de T-06
+
+Revisión del 2026-10-31 con lentes A y B de contexto fresco, sobre HEAD `c344866` y cambios locales. La interrupción de la primera pasada dejó dos hallazgos documentales; se corrigieron antes de esta segunda pasada. Ambas lentes verifican las correcciones y no encuentran defectos pendientes. El selector devuelve C=`false` y D=`false`: solo cambia documentación.
+
+| Criterio | Resultado | Evidencia |
+|---|---|---|
+| CA-02 a CA-09: referencias y aserciones | ✓ A y B | Tabla de `test-plan.md` contrastada con `BlueskyRulesTest`, `BlueskyPublisherTest`, `BlueskyFlowTest`, `McpBlueskyTest`, `McpBlueskyThreadsTest` y `ThreadsFlowTest`. Los límites de las pruebas quedan explícitos. |
+| M-05: referencias en ambos sentidos | ✓ A y B | T-49 y T-50 declaran M-05; coinciden con el manual y la tabla del plan. No se afirma su ejecución. |
+| Estado, procedencia y redacción | ✓ A y B | 74 completadas + 3 abiertas; T-30/T-64/T-77 permanecen `en-progreso`. Se distinguen los resultados históricos y los gates de referencias actuales. La nota de T-77 separa cada concepto. |
+| T-06 e índice del roadmap | ✓ A y B | Ledger de `social-scheduler`: 32/43, fase 1 = 3/5; HTTPS actual y CI existente sustentan el cierre. El índice refleja ambos ledgers. |
+
+| # | Grado | Gap de la primera pasada | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| R1 | Minor | La nueva tabla afirmaba que se aceptaban 300 emojis compuestos, sin esa aserción exacta | T-77 | Corregido y verificado por A y B: 300 ASCII y 100 familias emoji en casos separados; MCP prueba 300 secuencias de letra y acento. No se acredita 300 emojis compuestos. | `test-plan.md:19`; `BlueskyRulesTest.php:35-38`, `McpBlueskyTest.php:42` |
+| R2 | Minor | Un solo párrafo mezclaba alcance, verificaciones y pendientes | T-77 | Corregido y verificado por A y B: la nota de reanudación se divide por concepto. | Nota de reanudación de T-77 |
+
+Alcance conjunto: cada ejecución individual de `scope-check.py --base HEAD` devuelve exit 1 únicamente por los documentos de la otra iniciativa. La unión de los dos conjuntos autorizados contiene exactamente los cuatro documentos del cambio y deja 0 fuera, sin exclusiones de usuario ni avisos. El journal preexistente queda excluido por el patrón del plugin; no se modifica en esta corrección.
+
+Verificaciones documentales: `ledger-lint.py` → exit 0 en ambos ledgers (social: 0 avisos; esta iniciativa: 2 avisos de Changelog vacío en T-30/T-64). `coverage-check.py` → exit 0, `broken_refs=0`, `tests_sin_referencia=[]`, `gwt_sin_cubrir=[]`. `git diff --check` → exit 0. Estas puertas no sustituyen a los smokes ni a `qa-gate.py`; no se declara QA global verde.
+
+## Refuerzo de verificación literal — T-27 y T-72 (2026-10-31)
+
+Se añaden tres pruebas de caracterización de requisitos existentes, sin modificar producción ni simular un RED: los casos pasan con la implementación actual. `BlueskyFlowTest.php` integra ahora cuatro imágenes con una JPEG válida de exactamente 3 MB, reducción real y conservación de originales; también fuerza dos jobs reales tras un timeout y reconciliación temporalmente inaccesible, con la misma `rkey` y una sola creación externa. `McpBlueskyThreadsTest.php` acepta 300 grafemas con un emoji compuesto y rechaza 301 por web/MCP con el mismo mensaje, sin inserción inválida. CA-06 incorpora una aserción persistida de `comments=1`.
+
+Pruebas nuevas: 3 passed, 58 aserciones. Verificación de ambos ficheros vecinos → **15 passed, 137 aserciones**. Pint de los ficheros y `git diff --check` correctos. La tabla del test-plan se actualiza para reflejar las aserciones integradas; se conserva la distinción entre Pest y navegador. T-30, T-64 y T-77 siguen `en-progreso`; los smokes reales no se dan por ejecutados.
+
+## Revisión de dos lentes — intento 1: Refuerzo literal (T-27, T-72) — sin hallazgos
+
+Lentes A y B nuevas, de solo lectura, sobre los dos ficheros de test y su documentación. No se reabre la implementación ya revisada de T-43. Ambas confirman la correspondencia con los requisitos existentes y la ausencia de cambios de producción.
+
+| Criterio | A | B | Evidencia |
+|---|---|---|---|
+| CA-02: límite con emoji compuesto y paridad | ✓ | ✓ | `McpBlueskyThreadsTest.php:96-116`; comprobación PHP independiente: 300 grafemas, 306 code points, 324 bytes; con `a` adicional son 301. |
+| CA-03: cuatro imágenes, reducción y originales | ✓ | ✓ | `BlueskyFlowTest.php:116-150`; GD decodifica la JPEG de exactamente 3.000.000 bytes. Se miden los cuerpos HTTP y sus hashes, sin mockear el reductor. |
+| CA-04: reconciliación entre dos jobs | ✓ | ✓ | `BlueskyFlowTest.php:176-216`; dos despachos reales, `rkey` persistida, dos intentos y una creación/publicación externa. |
+| CA-06: comentarios persistidos | ✓ | ✓ | `BlueskyFlowTest.php:286-287`; aserción sobre el snapshot consultado después del colector real. |
+
+Las comprobaciones `php -l` y diff-check son correctas. La regresión completa final del orquestador pasa **2461 tests, 14549 aserciones**, sin errores, fallos ni omitidos; JUnit `storage/framework/testing/t43/phpunit-final-p3.xml`, con copia estable en `../2026-10-19-social-scheduler/testing/raw/phpunit-final-p3.xml`. Pint global correcto. Los nuevos tests de caracterización no se presentan como TDD con rojo retrospectivo y no sustituyen los smokes reales pendientes.
+
+## Revisión de dos lentes — intento 1: Runner general aislado (T-77, 2026-10-31) — sin hallazgos
+
+Lentes A y B nuevas sobre el diff congelado del runner general y la documentación que lo describe. A lee veinte ficheros o fragmentos autorizados; B lee los trece ficheros de implementación completos. El selector determinista devuelve C=`false`, D=`false`, sin avisos. `model-tier.py` no localiza `agents/` en el paquete parcial; se utiliza el rol `reviewer` disponible sin override. No se modifica producción ni la configuración y los tests de T-43 ya verificados.
+
+| Criterio | A | B | Evidencia |
+|---|---|---|---|
+| Entorno fake explícito por HTTP y CLI, sin `.env` real | ✓ | ✓ | `isolated/runtime.ts`, `serve.cjs`, `bootstrap.php`, `helpers.ts`; guardia estática ejecutada por ambos revisores, un passed |
+| SQLite y recursos efectivos dentro del run | ✓ | ✓ | `isolation-proof.json` y `http-isolation-proof.json` del run final `d601e7df-aa0b-4b97-b545-4ee14ff0a751` |
+| Persistencia entre procesos e independencia de dos raíces | ✓ | ✓ | `two-run-isolation.json`: caché/contador/lock propios; primer run conserva estado y segundo empieza vacío |
+| Bookends acotados y usuario readonly separado | ✓ | ✓ | `bookends.guard.ts`; tres guardias passed, preservación de DEMO ficticia, su marca y otro usuario prefijado ajeno. Limpieza residual OAuth por prefijo confinada a la SQLite desechable |
+| Contratos de fakes y rechazo de HTTP no simulado | ✓ | ✓ | Simulador Bluesky conserva `CredentialConnector`; JSON de las muestras de 44 y 32 casos, todos passed |
+| Inventario y configuración de ejecución | ✓ | ✓ | A ejecuta inventario separado con reporter list: 498 casos/21 specs; tres proyectos, cero retries, solo dos skips históricos del shell de escritorio en móvil |
+| Evidencia, alcance y documentación | ✓ | ✓ | A contrasta JUnit 2461/14549, tareas abiertas y prosa actual; scope conjunto: 235 archivos autorizados, cero fuera/avisos/exclusiones. B valida las afirmaciones del harness |
+| Regresión completa actual y smokes reales | Pendiente | Pendiente | La revisión permite pasar a QA; no atribuye ejecución de los 498 casos ni cierra T-30/T-64/T-77 |
+
+Cero gaps Critical/Important/Minor. B verifica sintaxis de los cuatro PHP del adaptador; ambos ejecutan la guardia estática directa. El intento `node --test` de B encontró `spawn EPERM` del sandbox; la ejecución directa pasó y no se clasifica como defecto del repositorio. Constitución ausente, sin resultados de memoria ADR; interop y OpenAPI no aplican. No existe Jira activo. QA independiente recibe el GO para la batería completa sin modificar fuentes ni assets.
+
+## Revisión de dos lentes — intento 1: Frontera de mes del test del compositor (T-77, 2026-10-31) — sin hallazgos
+
+Lentes A y B nuevas sobre `composer.spec.ts` y sus afirmaciones documentales. La fuente congelada coincide con SHA256 `32873EA75896E35780905779FB0823B0682AD4B52F22A503493685973C0ABA15`. Ambas aprueban la corrección y no reabren el runner aislado ya revisado. C y D siguen `false`; scope conjunto: 356 archivos autorizados, cero fuera de alcance y sin avisos ni exclusiones de usuario.
+
+| Criterio | A | B | Evidencia |
+|---|---|---|---|
+| Ayer sigue inaccesible en ambas ramas | ✓ | ✓ | Rama determinada por igualdad de mes, no por contar elementos: ayer disabled o ausente con Mes anterior disabled. Hoy habilitado/enfocado y ArrowLeft conserva foco; coincide con `DateTimePicker.vue` |
+| Caso original conservado y dos regresiones reales | ✓ | ✓ | Las 25 declaraciones originales permanecen; ambos nuevos casos usan el mismo helper sin guardar publicaciones. El original conserva error de fecha pasada y payload POST |
+| Fechas futuras, zonas y cruces de año | ✓ | ✓ | A ejecuta 120 combinaciones entre 2026–2030; B ejecuta 216 escenarios entre 2024–2032, con DST y bisiestos. Todas las combinaciones comprobadas pasan |
+| Evidencia RED/GREEN y límites de las cifras | ✓ | ✓ | Ambos leen los JSON: reproducción 1 failed/2 skipped; regresiones previas 1 passed/1 failed; mínimo posterior 9 passed, cero skips/flaky/errores. Inventario de 504 casos diferenciado de una ejecución |
+| Cierre de T-77 | Pendiente | Pendiente | No se declara QA completa verde ni se cierran los smokes reales |
+
+Cero gaps Critical/Important/Minor. Sin cambios de producción, de la lógica de fechas ni de las aserciones de los demás tests. No se ejecutan suites desde los revisores; se conserva el primer intento rojo para trazabilidad. La nueva QA general se lanzará tras terminar los 81 casos del compositor; el script detendrá el intento al primer fallo y conservará el resultado como rojo.
+
+## Cierre documental de esta reanudación (2026-10-31)
+
+La QA general posterior a las revisiones termina verde automático: 502 passed y dos omisiones previstas; sus datos completos están en T-77 y `testing/attempt-2/`. El orquestador vuelve a ejecutar el gate sobre el JSON estable y obtiene exit 0. Los estados del roadmap siguen siendo 33/43 en Social Scheduler, 28/29 en social-login-mcp-oauth, 41/43 en post-composer y 74/77 en esta iniciativa: ninguna prueba real se da por hecha.
+
+Puertas finales: `ledger-lint.py` devuelve exit 0 en los cuatro ledgers, con cero incoherencias y avisos únicamente por Changelog vacío de tareas abiertas (0, 1, 2 y 2 respectivamente). `coverage-check.py` devuelve exit 0 en los cuatro: cero referencias rotas, ningún escenario sin referencia ni criterio sin ID mapeado. Conserva 7, 16, 14 y 55 avisos de tareas sin cobertura declarada; esas referencias no prueban UI, manuales ni cobertura porcentual. No se convierten en QA global verde.
+
+La unión de alcance final autoriza los 475 archivos cambiados o nuevos, sin archivos fuera, avisos ni exclusiones de usuario. Se comprueban 337 destinos locales de los 24 Markdown modificados o nuevos, sin ausencias. `git diff --check` pasa; los avisos CRLF no son errores de whitespace. El journal preexistente no se edita. Solo `ApiKeyController.php` cambia dentro de `app/`; los demás cambios de esta reanudación son pruebas y documentación. No se realiza commit, push ni despliegue y no se vuelve a pedir acceso al VPS que el usuario probará.
 

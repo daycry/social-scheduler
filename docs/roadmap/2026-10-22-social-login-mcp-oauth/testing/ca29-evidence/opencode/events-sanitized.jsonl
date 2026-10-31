@@ -1,0 +1,5 @@
+{"event": "step_start"}
+{"event": "tool_use", "tool": {"tool": "roadmap_ca29_opencode_list_brands", "status": "completed"}}
+{"event": "step_finish"}
+{"event": "step_start"}
+{"event": "text", "final": {"success": true, "tool": "list_brands", "brand_count": 1, "failure_kind": "none"}}

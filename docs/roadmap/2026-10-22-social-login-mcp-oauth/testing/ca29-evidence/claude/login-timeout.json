@@ -1,0 +1,10 @@
+{
+  "client": "Claude Code",
+  "server": "roadmap_ca29_claude",
+  "version": "2.1.314",
+  "exit_code": 1,
+  "observed_error": "Authentication timeout",
+  "authorization": "Explicitly authorized by user; browser consent remains human-operated",
+  "current_attempt": "New interactive login running; this timeout is from prior terminal session",
+  "server_compatibility_conclusion": "Not determined"
+}

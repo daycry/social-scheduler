@@ -15,3 +15,10 @@
 | [`approved/gotchas/GOT-002-meta-paginas-portfolio-me-businesses.md`](approved/gotchas/GOT-002-meta-paginas-portfolio-me-businesses.md) — "Meta: las Páginas de portfolios empresariales no salen en me/accounts." | metricool.GOT-002 | Gotcha | OAuth / Meta | aprobado | `spike-report.md`, `MetaConnector.php` |
 | [`approved/gotchas/GOT-003-tiktok-creator-info-cuerpo-objeto-vacio.md`](approved/gotchas/GOT-003-tiktok-creator-info-cuerpo-objeto-vacio.md) — "TikTok: creator_info/query exige un objeto JSON vacío {}." | metricool.GOT-003 | Gotcha | API / TikTok | aprobado | `spike-report.md`, `TikTokPublisher.php` |
 | [`approved/gotchas/GOT-004-meta-impressions-retiradas-usar-views.md`](approved/gotchas/GOT-004-meta-impressions-retiradas-usar-views.md) — "Meta: impressions y page_fans retiradas; usar views y page_media_view." | metricool.GOT-004 | Gotcha | Analítica / Meta | aprobado | `spike-report.md`, `Insights.php` |
+
+## Candidatos pendientes
+
+| Entrada | Tipo | Área | Estado |
+|---|---|---|---|
+| [El día pasado puede estar ausente al cambiar de mes](candidates/pending/2026-10-31-datepicker-ayer-fuera-del-mes.md) | GOTCHA | Pruebas / selector de fecha | propuesta, pendiente de curación |
+| [Un consentimiento MCP caducado requiere un flujo nuevo](candidates/pending/2026-10-31-mcp-consentimiento-caducado.md) | GOTCHA | Pruebas / OAuth MCP | propuesta, pendiente de curación |

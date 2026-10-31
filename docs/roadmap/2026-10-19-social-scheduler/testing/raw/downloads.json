@@ -1,0 +1,44 @@
+[
+  {
+    "project": "desktop",
+    "format": "pdf",
+    "bytes": 31777,
+    "sha256": "da4efca2cfe0f4c1efea9f287d37060259e7e48e802618f61ff1cbe5c4f67106",
+    "path": "raw/downloads/desktop/informe.pdf"
+  },
+  {
+    "project": "desktop",
+    "format": "csv",
+    "bytes": 52518,
+    "sha256": "7637830dc5e115f13392ce0b7412786c437bfa7268260fb5c0bc720ffff5bcfa",
+    "path": "raw/downloads/desktop/informe.csv"
+  },
+  {
+    "project": "mobile",
+    "format": "pdf",
+    "bytes": 31770,
+    "sha256": "d0d1c8fe9fd13cded7be99759478c6f98a186a6a1709b92534abcc4b4f26f7c3",
+    "path": "raw/downloads/mobile/informe.pdf"
+  },
+  {
+    "project": "mobile",
+    "format": "csv",
+    "bytes": 52517,
+    "sha256": "fded6eae33f219c876bbd2fbf16b57bf83cbcaa86aa654c65dcf1591ba1031f7",
+    "path": "raw/downloads/mobile/informe.csv"
+  },
+  {
+    "project": "mobile-360",
+    "format": "pdf",
+    "bytes": 31804,
+    "sha256": "eea1f0f733005d4075366e501e97f653bd62aa2177a02ebe02c42df11bb5ebfa",
+    "path": "raw/downloads/mobile-360/informe.pdf"
+  },
+  {
+    "project": "mobile-360",
+    "format": "csv",
+    "bytes": 52521,
+    "sha256": "a221acd044617a323af115839870885a7b6f01a0996719aa8a9d05a69dac5c82",
+    "path": "raw/downloads/mobile-360/informe.csv"
+  }
+]

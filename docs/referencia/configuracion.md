@@ -141,7 +141,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `REPORTS_FOOTER` | vacío | Pie del PDF |
 | `REPORTS_CSV_LOCALE` | `es` | `es` = `;` y coma decimal; `en` = `,` y punto |
 
-⚠️ **Por confirmar** (M-03): las secciones por defecto del informe (`cover`, `summary`, `networks`, `top_posts`, `notes`, en `config/reports.php`) y el branding. No hay variable: se cambian en el fichero.
+**Aprobadas por el usuario el 2026-10-31 (T-41)**: las secciones actuales del informe (`cover`, `summary`, `networks`, `top_posts`, `notes`, en `config/reports.php`) y su diseño. No hay variable para la lista de secciones: se cambia en el fichero. La aprobación se refiere al PDF de muestra; la comprobación de métricas reales de M-03 sigue pendiente.
 
 ## Variables de MCP y analítica (fuera de `.env.example`)
 
@@ -171,7 +171,6 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `PUBLISH_RECONNECT_GRACE_HOURS` | 72 h | `.env` |
 | `META_OAUTH_METHOD` | `post` | `.env` |
 | Borrador TikTok = `publicada` con nota | activo | `TIKTOK_INBOX_GRACE_MINUTES` y `TikTokPublisher` |
-| Secciones del informe | 5 secciones | `config/reports.php` |
 
 ## Paridad con Metricool (P2–P4)
 

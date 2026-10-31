@@ -1,0 +1,25 @@
+{
+  "command": "npx playwright test -c playwright.roadmap.config.ts",
+  "source_run": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302",
+  "source_results": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-qa-host-20261031-1793438874302\\results.json",
+  "sha256": "ac554df539a373dbca70f3bc5065da457a7d7ac20cb26c740c76545283b95e6a",
+  "stats": {
+    "startTime": "2026-10-31T09:28:01.054Z",
+    "duration": 249570.049,
+    "expected": 57,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "runner_errors": [],
+  "project_counts": {
+    "desktop": 19,
+    "mobile": 19,
+    "mobile-360": 19
+  },
+  "scenario_counts": {
+    "E2E": 36,
+    "API": 9,
+    "harness": 12
+  }
+}

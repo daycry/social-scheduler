@@ -1,0 +1,29 @@
+{
+  "total": 504,
+  "stats": {
+    "startTime": "2026-10-31T11:49:17.533Z",
+    "duration": 2554569.949,
+    "expected": 502,
+    "skipped": 2,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "by_project": {
+    "desktop": {
+      "expected": 168
+    },
+    "mobile": {
+      "expected": 167,
+      "skipped": 1
+    },
+    "mobile-360": {
+      "expected": 167,
+      "skipped": 1
+    }
+  },
+  "topLevelErrors": 0,
+  "resultAttempts": 504,
+  "retries": 0,
+  "firstJsonSha256": "4a0eb5024f3bcdd6136a67bb21a33359dc28fbfc464ceb820389441b317b19c3",
+  "reportPdfSha256": "7450a4ea905c2bfa295d2b417c43da49a4f54f5384eb4545e7b7953d72c9f9e7"
+}

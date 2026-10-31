@@ -1,0 +1,27 @@
+{
+  "clients": [
+    {
+      "client_name": "Claude Code (roadmap_ca29_claude)",
+      "registered_at": "2026-10-31T19:28:20+00:00",
+      "callbacks_without_query": [
+        "http://localhost:42142/callback"
+      ],
+      "token_issued": false,
+      "token_created_at": null,
+      "token_last_used_at": null,
+      "token_expires_at": null
+    },
+    {
+      "client_name": "opencode",
+      "registered_at": "2026-10-31T19:38:33+00:00",
+      "callbacks_without_query": [
+        "http://127.0.0.1:63469/callback"
+      ],
+      "token_issued": false,
+      "token_created_at": null,
+      "token_last_used_at": null,
+      "token_expires_at": null
+    }
+  ],
+  "checked_at_utc": "2026-10-31T19:41:36.672605+00:00"
+}

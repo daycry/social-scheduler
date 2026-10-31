@@ -8,9 +8,26 @@
 
 > Los E2E corren en los proyectos Chromium `desktop`, `mobile` (375) y `mobile-360`, con los usuarios dedicados `e2e-sec-<proyecto>@example.test` de `global-setup.ts` y los helpers de `tests/e2e/helpers.ts` (`loginAs`, `axeSeriousCritical`, `expectNoOverflow`, `borrarMarcasE2e`). **Nunca** se usa el usuario id 28. Las redes externas (Bluesky, Threads, Giphy, Anthropic) se simulan; la regresión final usa el servidor propio de Playwright, sin `E2E_NO_SERVER`.
 >
-> **Criterios sin interfaz, cubiertos solo por Pest con `Http::fake`:** CA-02 a CA-09 (Bluesky y Threads: T-21..T-27, T-57..T-61). Las tareas de backend sin UI no llevan escenario E2E por diseño.
+> **Cobertura backend:** Pest con `Http::fake` prueba rutas, servicios y jobs; no equivale a un E2E de navegador. En CA-02 se verifica el endpoint que usa el compositor y su paridad con MCP, sin acreditar aquí la visualización del error en Vue. La tabla siguiente identifica las aserciones existentes y sus límites. El refuerzo del 2026-10-31 añade los casos literales de CA-02, CA-03 y CA-04 y la aserción de comentarios de CA-06; los comandos y resultados quedan registrados en el ledger.
 >
 > **Bloques opcionales no incluidos:** API-xx (smoke de endpoints con curl) y A11Y-xx dedicados; la accesibilidad ya se comprueba con axe dentro de cada E2E. Pídelos si los quieres.
+
+## Trazabilidad de las pruebas Pest de Bluesky y Threads
+
+| Criterio | Tareas | Ficheros Pest | Comportamiento comprobado y límites |
+|---|---|---|---|
+| CA-02 | T-21, T-27, T-72 | `tests/Feature/Connectors/Bluesky/BlueskyFlowTest.php`, `tests/Feature/Mcp/Tools/McpBlueskyTest.php`, `tests/Feature/Mcp/Tools/McpBlueskyThreadsTest.php`, `tests/Unit/MediaValidator/BlueskyRulesTest.php` | La regresión literal acepta en web y MCP 299 caracteres ASCII y una familia emoji ZWJ (300 grafemas, dentro del tope de bytes); con un carácter adicional rechaza 301 con el mismo mensaje y sin insertar otra publicación. Se conserva la cobertura de ASCII, familias y acentos combinantes. No acredita por sí sola el renderizado del error en navegador. |
+| CA-03 | T-22, T-23, T-27 | `tests/Feature/Connectors/Bluesky/BlueskyPublisherTest.php`, `tests/Feature/Connectors/Bluesky/BlueskyFlowTest.php` | Una regresión integrada ejecuta el job con cuatro imágenes, una JPEG válida de exactamente 3.000.000 bytes con relleno tras EOI. Comprueba cuatro blobs de ≤2.000.000 bytes, facets de enlace/hashtag y conservación de los originales mediante SHA-256. Se ejercita la reducción real sin redes externas. |
+| CA-04 | T-25, T-27 | `tests/Feature/Connectors/Bluesky/BlueskyFlowTest.php` | Tras un timeout de creación y una primera reconciliación temporalmente inaccesible, el destino queda programado para reintentar. Un segundo despacho/job real recupera la misma `rkey` y publica por reconciliación. Se comprueban dos intentos, una creación y una publicación externa, conservando el progreso entre jobs. |
+| CA-05 | T-24, T-27 | `tests/Feature/Connectors/Bluesky/BlueskyFlowTest.php` | Dado un vídeo, al pasar el estado simulado de ENCODING a COMPLETED con blob, el destino pasa de procesando a publicado con enlace bsky.app. Un email sin verificar produce un fallo claro. |
+| CA-06 | T-26, T-27 | `tests/Feature/Connectors/Bluesky/BlueskyFlowTest.php` | Dados cuenta y post publicados, al correr `SnapshotCollector` se comprueban seguidores=321, likes=7, comentarios=1, shares=2, interacciones=10 y views=null en cuenta/post. Los comentarios se comprueban mediante una aserción independiente sobre el snapshot persistido. |
+| CA-07 | T-55, T-61 | `tests/Feature/Connectors/Threads/ThreadsFlowTest.php` | Dado OAuth simulado, al completar el callback queda la cuenta activa con token largo y caducidad futura. A 100 h del vencimiento, `RefreshSocialAccount` renueva el token y la caducidad supera 59 días. |
+| CA-08 | T-57, T-61 | `tests/Feature/Connectors/Threads/ThreadsFlowTest.php` | Dadas 3 imágenes, al despachar el carrusel se comprueban 4 creaciones, padre con `children=C1,C2,C3`, publicación con `creation_id=PARENT` y estado publicada. |
+| CA-09 | T-58, T-61 | `tests/Feature/Connectors/Threads/ThreadsFlowTest.php` | Dada una cuota de 250 sobre 250, cuando se despacha el destino queda programado con error de cuota y sin POST de creación ni publicación. |
+
+Para reproducir las comprobaciones, ejecutar `php artisan test --compact <fichero>` con cada ruta de la tabla. En los dos ficheros `FlowTest`, `--filter=CA-04` (o el ID correspondiente) selecciona el caso; CA-02/CA-03 también comparten un caso de integración.
+
+**Límite de la puerta:** `coverage-check.py` comprueba referencias literales. No ejecuta estas pruebas ni acredita correspondencia 1:1 con Playwright, QA global verde o los smokes reales M-01/M-02.
 
 ## Automáticos (E2E — los ejecuta `qa` con Playwright)
 

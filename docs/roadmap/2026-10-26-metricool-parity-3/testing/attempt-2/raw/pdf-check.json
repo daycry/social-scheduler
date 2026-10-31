@@ -1,0 +1,50 @@
+{
+  "pages": 9,
+  "details": [
+    {
+      "page": 1,
+      "textChars": 1245,
+      "images": 0
+    },
+    {
+      "page": 2,
+      "textChars": 1853,
+      "images": 0
+    },
+    {
+      "page": 3,
+      "textChars": 1138,
+      "images": 0
+    },
+    {
+      "page": 4,
+      "textChars": 1172,
+      "images": 0
+    },
+    {
+      "page": 5,
+      "textChars": 2812,
+      "images": 0
+    },
+    {
+      "page": 6,
+      "textChars": 3564,
+      "images": 0
+    },
+    {
+      "page": 7,
+      "textChars": 1833,
+      "images": 0
+    },
+    {
+      "page": 8,
+      "textChars": 22,
+      "images": 2
+    },
+    {
+      "page": 9,
+      "textChars": 295,
+      "images": 1
+    }
+  ]
+}

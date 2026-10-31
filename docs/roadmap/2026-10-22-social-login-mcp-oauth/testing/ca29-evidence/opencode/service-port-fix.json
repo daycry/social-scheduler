@@ -1,0 +1,10 @@
+{
+  "ChangedUtc": "2026-10-31T19:34:37.3289695Z",
+  "OriginalConfiguredPort": "unset",
+  "OriginalStatePort": 49374,
+  "ExcludedRange": "49352-49451",
+  "OriginalBindError": "AccessDenied",
+  "NewConfiguredPort": 57789,
+  "NewBindProbe": "OK on loopback",
+  "WindowsReservationsChanged": false
+}

@@ -22,6 +22,8 @@ Mcp::web('/mcp', SchedulerServer::class)->middleware(['auth:sanctum', 'throttle:
 
 El Bearer es una API key personal con prefijo `msk_`, creada a mano en **API keys** o emitida por el flujo OAuth de la sección siguiente. Sanctum corre con `guard=[]`: una sesión web **no** autentica `/mcp`. La key se muestra una sola vez al crearla; en la base solo queda el hash. Caduca a los 365 días por defecto (`MCP_KEY_DEFAULT_DAYS`) con tope de 730 (`MCP_KEY_MAX_DAYS`). Crear y revocar quedan en `audit_logs` sin el secreto.
 
+El flash temporal de la key creada se cifra explícitamente antes de persistirlo en la sesión, también con `SESSION_ENCRYPT=false`. Solo se descifra para mostrar `newKey`; un flash antiguo o manipulado se descarta. Las regresiones usan el handler de sesiones de BD y comprueban que el bearer no aparece en el payload decodificado, se muestra una vez y conserva la revocación.
+
 Límites: `throttle:mcp-ip` (120/min, antes de auth, frena la adivinación de keys) y `throttle:mcp` (60/min por key).
 
 ## Autorización OAuth 2.1 (sin API key)
@@ -46,38 +48,38 @@ Además de las API keys, la app es un servidor de autorización OAuth 2.1 propio
 
 Sustituye `<APP_URL>` por la URL pública de la app **con esquema**, p. ej. `https://midominio.com` (así, `<APP_URL>/mcp` es `https://midominio.com/mcp`).
 
-> **Estado de verificación:** los comandos de OAuth de los cuatro clientes están **pendientes del smoke manual con los clientes reales** (T-11; M-03 a M-06 del plan de pruebas). Se indican tal como se preparó esa prueba y hay que contrastarlos con la versión instalada de cada cliente antes de darlos por buenos. Lo que sí está probado de punta a punta (Pest y Playwright) es el flujo del servidor: registro, autorización con PKCE, token, uso en `/mcp`, revocación y coexistencia con las API keys.
+> **Estado de verificación:** Codex CLI 0.162.1, Claude Code 2.1.314 y OpenCode 2.0.18 completaron OAuth y una llamada real a `list_brands` cada uno el 2026-10-31 (M-03, M-05 y M-06). OpenCode utiliza su servicio local y el acceso ChatGPT autorizado por el usuario. Desktop sigue pendiente (T-11; M-04). El [registro del smoke](../roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md) conserva callbacks, incidencias y evidencia saneada. Los tres flujos iniciales usan DCR sin CIMD ni refresh; no se ha probado la renovación posterior. Pest y Playwright prueban además el flujo del servidor.
 
 ### Con OAuth (recomendado: sin API key)
 
 El cliente se configura **sin** cabecera `Authorization`. La primera vez abre el navegador: inicia sesión (y el reto 2FA si lo tienes), revisa los permisos y pulsa *Autorizar*.
 
-**Claude Code** (CLI), pendiente de verificar (M-03):
+**Claude Code** (CLI), verificado en 2.1.314 con OAuth y una llamada real (M-03):
 
 ```bash
-claude mcp add --transport http social-scheduler <APP_URL>/mcp
-# dentro de `claude`: /mcp -> social-scheduler -> Authenticate
+claude mcp add --scope local --transport http social-scheduler <APP_URL>/mcp
+claude mcp login social-scheduler
 ```
 
 **Claude Desktop**, pendiente de verificar (M-04): *Ajustes → Connectors → Add custom connector*, nombre `social-scheduler`, URL `<APP_URL>/mcp`, *Connect*. El callback es de Claude (`https://claude.ai/api/mcp/auth_callback`, o `claude.com`). El servidor debe ser accesible desde Internet y el plan de Claude debe admitir conectores remotos; `claude_desktop_config.json` solo sirve para servidores locales (stdio).
 
-**Codex**, pendiente de verificar (M-05):
+**Codex**, verificado con OAuth y una llamada real en 0.162.1 el 2026-10-31 (M-05):
 
 ```bash
 codex mcp add social-scheduler --url <APP_URL>/mcp
 codex mcp login social-scheduler
 ```
 
-Si la versión pide activar el cliente MCP remoto, habilítalo en su configuración (`rmcp_client`).
+La prueba usó un override temporal en lugar de `mcp add` para preservar la configuración global; no necesitó `rmcp_client`. Se verificaron DCR, consentimiento en navegador y `list_brands` sin API key. El [registro del smoke](../roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md) conserva callback y evidencia saneada. La expiración posterior de la credencial y Desktop siguen pendientes.
 
-**OpenCode**, pendiente de verificar (M-06):
+**OpenCode**, verificado en 2.0.18 con OAuth y una llamada real mediante el servicio local (M-06):
 
 ```bash
 opencode mcp add social-scheduler --url <APP_URL>/mcp --global
 opencode mcp auth social-scheduler
 ```
 
-Si no inicia el flujo OAuth, añade `"oauth": {}` a la entrada remota del servidor en `opencode.json`.
+En OpenCode 2 la entrada se prepara bajo `mcp.servers.<nombre>` y usa `type: "remote"`; OAuth está habilitado por defecto. La [guía oficial de V2](https://opencode.ai/v2/docs/mcp-servers) distingue esta estructura de V1. La prueba usó configuración de proyecto, sin `--global`, y `codemode: false`. Tras autorizar ChatGPT en OpenCode, `opencode run --model openai/gpt-6.1-sol --agent ca29_readonly --format json …` completó `list_brands` mediante el servicio conectado; el agente temporal solo permitía esa herramienta. Los intentos en modo `--standalone` no completaron la llamada y se conservan como fallidos; no se declara compatibilidad de ese modo.
 
 Si un cliente es rechazado en el registro (`invalid_redirect_uri`), añade el prefijo `https://` de su callback a `MCP_OAUTH_REDIRECT_ALLOWED`.
 

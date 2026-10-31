@@ -1,0 +1,12 @@
+﻿{
+    "runRoot":  "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-624d0e64-a610-4b7f-9a85-d829fa0584c2",
+    "startUtc":  "2026-10-31T10:55:28.3871736Z",
+    "command":  "npx.cmd playwright test",
+    "expectedTests":  498,
+    "expectedProjects":  [
+                             "desktop",
+                             "mobile",
+                             "mobile-360"
+                         ],
+    "expectedHistoricalSkips":  2
+}

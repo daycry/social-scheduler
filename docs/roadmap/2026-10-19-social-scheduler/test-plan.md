@@ -4,16 +4,20 @@
 |---|---|
 | **Estado** | borrador |
 | **Plan** | [`improvement-plan.md`](improvement-plan.md) |
-| **URL local** | https://metricool.test |
+| **URL local de E2E** | http://localhost:8081 — servidor propio de `playwright.roadmap.config.ts` |
 
 > Los E2E corren con conectores **simulados** (`fake connector`, T-11) para no depender de las plataformas reales; la publicación y el OAuth reales se validan en los bloques manuales M-01 y M-02. Cada E2E mapea 1:1 con un criterio CA de la spec.
+
+La batería de T-43 se ejecuta con `npx playwright test -c playwright.roadmap.config.ts` en `desktop`, `mobile` y `mobile-360`. Cada ejecución crea una base SQLite nueva bajo `storage/framework/testing/t43/run-*`, con media, caché, sesiones y correo aislados. El router y la CLI de `tests/e2e/roadmap/` inyectan los conectores simulados y bloquean HTTP no simulado; los jobs y el worker operan únicamente sobre esa base.
+
+Los usuarios llevan el prefijo `e2e-sec-roadmap-`. Esta configuración no carga la sesión demo ni ejecuta los bookends de la batería general. Las pruebas de integración de ese harness comprueban el rechazo de producción y de una base fuera de su directorio desechable. Las verificaciones manuales conservan el entorno real del usuario; HTTPS local se verificó por separado en T-06.
 
 ## Automáticos (E2E — los ejecuta `qa` con Playwright)
 
 ### E2E-01 — Registro, login y panel vacío (CA-01)
 > **Nota (revisión intento 2, 2026-10-19):** con `MustVerifyEmail` activo (gap #10), tras el registro el usuario va a `/verify-email`; E2E-01 debe verificar el email (enlace firmado o `markEmailAsVerified` en el fixture) antes de esperar el panel vacío. Requiere SMTP configurado en producción (decisión abierta en T-07).
 - **Objetivo**: un visitante se registra, inicia sesión y ve solo su panel vacío.
-- **Precondiciones**: app levantada en la URL local; BD limpia con `migrate:fresh`.
+- **Precondiciones**: app levantada por la configuración T-43; SQLite desechable inicializada y migrada por su CLI. Nunca se aplica `migrate:fresh` a la BD de uso real.
 - **Pasos**:
   1. Abrir `/register` y completar el formulario.
   2. Cerrar sesión y volver a iniciar sesión en `/login`.
@@ -185,7 +189,7 @@
 ## Manuales (M — los realiza una persona)
 
 ### M-01 — Publicación real de cada tipo de contenido
-- **Qué revisar**: publicar de verdad en cuentas de prueba los 13 tipos (IG post, carrusel, reel, story; FB texto/enlace, foto, vídeo, reel; YouTube vídeo y short; TikTok vídeo y foto/carrusel) y comprobar la visibilidad real.
+- **Qué revisar**: publicar de verdad en cuentas de prueba los 12 tipos originales y sus 13 variantes de media (IG post, carrusel, reel y story de foto y de vídeo; FB texto/enlace, foto, vídeo, reel; YouTube vídeo y short; TikTok vídeo y foto/carrusel) y comprobar la visibilidad real. El enum cuenta la historia como un tipo; `config/media_specs.php` distingue sus dos variantes.
 - **Por qué no se automatiza**: requiere cuentas reales, contenido real y juicio sobre el resultado en la plataforma.
 - **Criterio de aceptación**:
   - [ ] Cada tipo soportado queda publicado con enlace/ID y visibilidad conforme a la decisión G1.
@@ -220,7 +224,8 @@
 - **Qué revisar**: que `spike-report.md` contiene evidencia de cada plataforma y que la decisión del usuario por red queda registrada.
 - **Por qué no se automatiza**: es una decisión de negocio con juicio del usuario.
 - **Criterio de aceptación**:
-  - [ ] Hay un veredicto por plataforma con evidencia y una decisión G1 por red.
+  - [x] Hay un veredicto por plataforma con evidencia y una decisión G1 por red.
+- **Evidencia revisada el 2026-10-31**: el [informe del spike](spike-report.md#tabla-de-viabilidad) contiene los veredictos y sus pruebas; la [decisión G1](spike-report.md#decisión-g1), registrada el 2026-10-19 con delegación expresa del usuario, fija YouTube A, TikTok D + B y continuar con Meta. T-05 ya estaba `completado`. Se reconcilia este pendiente documental; no se presenta como una nueva prueba de las plataformas reales.
 - **Cubre tareas**: T-01, T-02, T-03, T-04, T-05
 
 ## Cobertura (tarea → escenarios)

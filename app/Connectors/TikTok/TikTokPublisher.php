@@ -92,6 +92,11 @@ class TikTokPublisher implements Publisher, StatusPoller
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
+        if (filter_var($request->options['auto_add_music'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            && ($request->type !== ContentType::TikTokPhoto || ! self::directPost($account))) {
+            throw new PermanentPublishException('La música recomendada de TikTok requiere fotos o carruseles con publicación directa.', 'audio_no_admitido');
+        }
+
         return match ($request->type) {
             ContentType::TikTokVideo => $this->publishVideo($account, $request),
             ContentType::TikTokPhoto => $this->publishPhotos($account, $request),
@@ -540,6 +545,9 @@ class TikTokPublisher implements Publisher, StatusPoller
         // Opciones de C-04 (solo publicacion directa: `postInfo` no se usa con la cuenta en modo borrador). Solo se envian las
         // que el usuario fijo. Duet y Stitch existen solo para video (la referencia de fotos no las lista).
         $flags = ['brand_organic_toggle', 'brand_content_toggle'];
+        if ($request->type === ContentType::TikTokPhoto) {
+            $flags[] = 'auto_add_music';
+        }
         if ($request->type === ContentType::TikTokVideo) {
             array_push($flags, 'disable_duet', 'disable_stitch', 'is_aigc'); // `is_aigc` va dentro de `post_info` solo en video
         }

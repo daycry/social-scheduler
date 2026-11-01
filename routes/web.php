@@ -13,6 +13,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
 use App\Http\Controllers\GifController;
 use App\Http\Controllers\HashtagController;
+use App\Http\Controllers\InstagramAudioController;
 use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
@@ -52,6 +53,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Conexiones de redes sociales por marca (T-12..T-15).
     Route::get('brands/{brand}/connections', [ConnectionController::class, 'index'])->name('brands.connections.index');
+    Route::get('brands/{brand}/accounts/{account}/instagram-audio/{audio?}', InstagramAudioController::class)
+        ->whereNumber('account')->where('audio', '[0-9]{1,40}')->middleware('throttle:30,1')->name('brands.instagram-audio');
     Route::post('brands/{brand}/connections/select', [ConnectionController::class, 'select'])->name('brands.connections.select');
     Route::delete('brands/{brand}/connections/pending', [ConnectionController::class, 'discardPending'])->name('brands.connections.pending.discard');
     Route::delete('brands/{brand}/connections/{account}', [ConnectionController::class, 'destroy'])->name('brands.connections.destroy');

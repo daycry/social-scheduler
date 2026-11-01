@@ -55,9 +55,9 @@ test('create_post valida Threads con el mismo mensaje que el compositor y acepta
     expect($err)->toBeFalse()->and(Post::withoutUserScope()->count())->toBe(1);
 });
 
-test('tools/list ofrece exactamente 25 herramientas y las instrucciones nombran las 6 redes', function () {
+test('tools/list ofrece exactamente 27 herramientas y las instrucciones nombran las 6 redes', function () {
     $tools = $this->rpc($this->key, 'tools/list')->assertOk()->json('result.tools');
-    expect($tools)->toHaveCount(25);
+    expect($tools)->toHaveCount(27);
 
     $init = $this->rpc($this->key, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 't', 'version' => '1']])
         ->json('result.instructions');

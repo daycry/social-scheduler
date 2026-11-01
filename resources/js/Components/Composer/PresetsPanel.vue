@@ -45,22 +45,22 @@ const setCategory = (value) => {
             </div>
         </div>
 
-        <fieldset v-if="switches().length" class="space-y-2 border-0 p-0" :disabled="!editable">
+        <fieldset v-if="switches().length" class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 p-0" :disabled="!editable">
             <legend class="sr-only">Interruptores de {{ account.network_label }} ({{ account.name }})</legend>
-            <div v-for="s in switches()" :key="s.key">
-                <label class="flex items-start gap-2 text-sm">
+            <div v-for="s in switches()" :key="s.key" class="px-3 py-3">
+                <label class="composer-setting-row">
+                    <span>{{ s.label }}</span>
                     <input
-                        type="checkbox" role="switch" class="mt-0.5"
+                        type="checkbox" role="switch" class="composer-preset-toggle"
                         :checked="checked(s)" :disabled="lockedByTiktok(s)" :aria-describedby="s.hint && checked(s) ? `hint-${account.id}-${s.key}` : undefined"
                         @change="set(s, $event.target.checked)"
                     />
-                    <span>{{ s.label }}</span>
                 </label>
-                <p v-if="lockedByTiktok(s)" class="ml-6 text-xs text-slate-600">Desactivado en los ajustes de tu cuenta de TikTok.</p>
-                <p v-if="s.hint && checked(s)" :id="`hint-${account.id}-${s.key}`" class="ml-6 text-xs text-slate-600" role="status">{{ s.hint }}</p>
-                <p v-if="s.warning && checked(s)" class="ml-6 text-xs text-amber-800" role="status">{{ s.warning }}</p>
+                <p v-if="lockedByTiktok(s)" class="mt-1.5 text-xs leading-relaxed text-slate-600">Desactivado en los ajustes de tu cuenta de TikTok.</p>
+                <p v-if="s.hint && checked(s)" :id="`hint-${account.id}-${s.key}`" class="mt-1.5 text-xs leading-relaxed text-slate-600" role="status">{{ s.hint }}</p>
+                <p v-if="s.warning && checked(s)" class="mt-1.5 text-xs leading-relaxed text-amber-800" role="status">{{ s.warning }}</p>
             </div>
-            <p class="text-xs text-slate-600">Los interruptores se recuerdan para esta marca y red en las próximas publicaciones.</p>
         </fieldset>
+        <p v-if="switches().length && account.network !== 'instagram'" class="text-xs leading-relaxed text-slate-500">Se recuerdan los ajustes habituales de esta marca y red. La música recomendada y las colaboraciones de pago se deciden en cada publicación.</p>
     </div>
 </template>

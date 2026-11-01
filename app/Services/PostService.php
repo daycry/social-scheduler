@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Meta\Facebook\FacebookPostOptions;
+use App\Connectors\Meta\Instagram\InstagramAudio;
+use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
@@ -444,12 +447,12 @@ class PostService
     private const YOUTUBE_OPTIONS = ['category_id', 'tags', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media'];
 
     /** Opciones de TikTok (C-04) que actuan solo en publicacion directa (la cuenta con `meta.direct_post`). */
-    private const TIKTOK_DIRECT_OPTIONS = ['disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc'];
+    private const TIKTOK_DIRECT_OPTIONS = ['disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc', 'auto_add_music'];
 
     /** Opciones booleanas: la regla `boolean` de la web y el MCP admite `1`, `0`, `"1"` y `"0"` sin convertirlas. */
     private const BOOLEAN_OPTIONS = [
         'share_to_feed', 'shorts_hashtag', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media',
-        'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc',
+        'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc', 'auto_add_music',
     ];
 
     /**
@@ -462,6 +465,7 @@ class PostService
      */
     public static function normalizeOptions(array $options): array
     {
+        $options = InstagramPostOptions::normalize($options);
         foreach (self::BOOLEAN_OPTIONS as $key) {
             if (array_key_exists($key, $options) && $options[$key] !== null) {
                 $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];
@@ -481,7 +485,7 @@ class PostService
     private function optionErrors(ContentType $type, SocialAccount $account, array $options): array
     {
         $asked = fn (string $k) => array_key_exists($k, $options) && ! in_array($options[$k], [null, false, [], ''], true);
-        $errors = [];
+        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type));
 
         if ($type->network() !== Network::YouTube) {
             foreach (self::YOUTUBE_OPTIONS as $k) {
@@ -502,6 +506,9 @@ class PostService
         }
 
         $direct = TikTokPublisher::directPost($account);
+        if ($asked('auto_add_music') && $type !== ContentType::TikTokPhoto) {
+            $errors[] = 'La música recomendada de TikTok solo existe en fotos y carruseles, no en vídeos.';
+        }
         foreach (self::TIKTOK_DIRECT_OPTIONS as $k) {
             if ($asked($k) && ! $direct) {
                 $errors[] = "La opcion $k solo actua con la publicacion directa de TikTok: esta cuenta envia borradores a la bandeja.";

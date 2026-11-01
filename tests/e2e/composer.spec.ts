@@ -955,13 +955,13 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     await expect(seccion(page, 'YouTube', 'e2e YouTube').getByRole('switch', { name: 'Notificar a los suscriptores' })).not.toBeChecked();
     await expect(seccion(page, 'YouTube', 'e2e YouTube').getByLabel('Etiquetas (separadas por comas)')).toHaveValue('');
 
-    // CA-16 y CA-14: la etiqueta de IA no existe en Instagram ni Facebook; TikTok en modo borrador no ofrece nada; el directo sí.
+    // Contrato actualizado: Instagram ofrece indicación de IA por publicación, además de YouTube y TikTok directo.
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
     await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
     await page.getByRole('button', { name: /^TikTok: e2e TikTok borrador/ }).click();
     await page.getByRole('button', { name: /^TikTok: e2e TikTok directo/ }).click();
-    await expect(page.getByRole('switch', { name: /IA/ })).toHaveCount(2); // YouTube y TikTok directo, ninguna más
-    await expect(page.getByRole('region', { name: /Opciones de Instagram/ }).getByRole('switch')).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: /IA/ })).toHaveCount(3); // Instagram, YouTube y TikTok directo
+    await expect(page.getByRole('region', { name: /Opciones de Instagram/ }).getByRole('switch', { name: 'Contenido generado con IA', exact: true })).not.toBeChecked();
     await expect(page.getByRole('region', { name: /Opciones de Facebook/ }).getByRole('switch')).toHaveCount(0);
     const borrador = seccion(page, 'TikTok', 'e2e TikTok borrador');
     await expect(borrador.getByRole('switch')).toHaveCount(0);

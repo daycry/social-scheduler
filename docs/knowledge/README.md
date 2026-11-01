@@ -20,5 +20,7 @@
 
 | Entrada | Tipo | Área | Estado |
 |---|---|---|---|
+| [Un error de creator_info puede realimentar el watchEffect](candidates/pending/2026-10-31-tiktok-creator-reintento-reactivo.md) | GOTCHA | Frontend / TikTok | propuesta, pendiente de curación |
+| [ig_audio puede devolver un cursor sin paging.next](candidates/pending/2026-11-01-instagram-audio-cursor-sin-next.md) | GOTCHA | API / Instagram | propuesta, pendiente de curación |
 | [El día pasado puede estar ausente al cambiar de mes](candidates/pending/2026-10-31-datepicker-ayer-fuera-del-mes.md) | GOTCHA | Pruebas / selector de fecha | propuesta, pendiente de curación |
 | [Un consentimiento MCP caducado requiere un flujo nuevo](candidates/pending/2026-10-31-mcp-consentimiento-caducado.md) | GOTCHA | Pruebas / OAuth MCP | propuesta, pendiente de curación |

@@ -45,6 +45,8 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 
 ## Memoria técnica y planificación
 
+- Guía de usuario y agente: [añadir audio a Instagram Reels](guias/audio-instagram.md).
+
 - Decisiones: [ADR-001 stack](knowledge/adr/ADR-001-stack-laravel-nativo-hestia.md) y [ADR-002 PDF con DomPDF](knowledge/adr/ADR-002-pdf-dompdf.md) siguen como propuestas. [ADR-003 2FA y passkeys](knowledge/adr/ADR-003-2fa-totp-propio-y-laravel-passkeys.md), [ADR-004 OAuth del MCP y login social](knowledge/adr/ADR-004-oauth-mcp-propio-sobre-sanctum-y-login-social-socialite.md) y [ADR-005 publicación por destino](knowledge/adr/ADR-005-texto-efectivo-y-publicar-ahora-sobre-el-nucleo-de-publicacion.md) están aceptadas. El [índice de conocimiento](knowledge/README.md) conserva su estado y procedencia.
 - Roadmap de la iniciativa (gestionado por otros agentes, solo enlazado): [roadmap](roadmap/README.md) · [spec](roadmap/2026-10-19-social-scheduler/spec.md) · [diseño](roadmap/2026-10-19-social-scheduler/design.md) · [informe del spike](roadmap/2026-10-19-social-scheduler/spike-report.md) · [ledger de tareas](roadmap/2026-10-19-social-scheduler/tasks.md) · [plan de pruebas](roadmap/2026-10-19-social-scheduler/test-plan.md).
 - Índice para IA/RAG: [RAG-INDEX.md](RAG-INDEX.md).
@@ -64,3 +66,5 @@ Las comprobaciones con cuentas y servidor reales siguen en [Pendientes manuales]
 - `docs/security-scan/`: evidencia local de `nemesis`, excluida de git y de publicación documental porque puede contener datos sensibles.
 - Referencia de API HTTP pública: la app no expone API REST propia; la única interfaz máquina a máquina es el MCP ([mcp.md](modulos/mcp.md)).
 - Confluence: no se publica (opt-in no configurado).
+
+- [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.

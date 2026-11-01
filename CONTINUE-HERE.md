@@ -1,6 +1,6 @@
 # Continuación del roadmap
 
-Actualizado: 2026-10-31. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
+Actualizado: 2026-11-01. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
 
 ## Decisiones vigentes del usuario
 
@@ -12,6 +12,18 @@ Actualizado: 2026-10-31. Fuente canónica del estado de cada tarea: `docs/roadma
 - Las autorizaciones de Codex, Claude Code, OpenCode y el acceso ChatGPT de OpenCode ya están dadas. No volver a solicitarlas al reanudar las mismas comprobaciones.
 
 ## Estado comprobado de los ledgers
+
+### Compositor y audio: T-11/T-12 verificadas localmente
+
+En `feature/metricool-composer-parity`, audio por red y buscador T-01–10 conservan su verificación anterior. La ampliación autorizada incorpora paneles cuidados de ajustes globales y por cuenta, colaboradores e IA de Instagram, título de Facebook y errores plegables. [Spec](docs/roadmap/2026-10-31-metricool-composer-parity/spec.md), [ledger](docs/roadmap/2026-10-31-metricool-composer-parity/tasks.md), [guía e inventario observado](docs/guias/ajustes-compositor.md) y [QA actual](docs/roadmap/2026-10-31-metricool-composer-parity/testing/presets-ui/report.md).
+
+**11/12 completadas; solo T-06 real permanece abierta.** Suite actual PHP: **2.511 tests/14.763 aserciones**, cero fallos/errores/skips. Build y tipado correctos. Regresión E2E de 54 casos correcta, qa-gate VERDE y revisión independiente A+B+D, intento 2, sin gaps pendientes. T-06/CA-10 (publicación real) sigue a cargo del usuario. Los informes previos de audio y buscador son históricos y no sustituyen el nuevo cierre. El usuario ha autorizado expresamente **commits, push y PR al terminar**, sin nueva pregunta de permiso; aún pendientes. PR #16 de la rama anterior sigue abierta: la nueva PR se apilará sobre `feature/metricool-parity-3`.
+
+No se declara paridad total con Metricool. Acortador, modo manual y automatización de SmartLinks siguen identificados en el inventario como pendientes. El backlog amplio incluye X. Threads tiene código, pero faltan credenciales locales; no se cambia `.env`. El usuario dejó la comparación de catálogos musicales como estaba y probará servidor y publicaciones reales.
+
+Las cifras siguientes corresponden a los ocho ledgers previos; no incluyen ni dan por completada esta ampliación.
+
+Corrección del buscador (2026-11-01, T-10): Meta devuelve cursores `after` sin `paging.next`; antes se perdían. Web/MCP ya continúan por páginas, con resultados acumulados/deduplicados y cursores ligados a cuenta, consulta y filtro. Escribir actualiza la búsqueda; cambios/cierre invalidan respuestas atrasadas. Comprobación real: 25+25=50 pistas distintas. La [investigación inicial de Aipocalipsis / Libre](docs/roadmap/2026-10-31-metricool-composer-parity/testing/catalogo-aipocalipsis-libre.md) conserva solo los hechos de esas consultas; no demuestra ausencia general de la canción ni descarta defectos del buscador. Sin publicaciones reales.
 
 **264/280 tareas completadas; 16 abiertas.** La revisión de las tareas abiertas no encuentra otra implementación pendiente independiente de sus verificaciones reales o de sus cierres dependientes. No se cierran por tener pruebas simuladas en verde.
 

@@ -1,0 +1,110 @@
+{
+  "app/Connectors/Meta/Facebook/FacebookPostOptions.php": {
+    "before_sha256": null,
+    "after_sha256": "29c0b1c235cbca6d8ca6636998475a8476eb093f001713c4855b98e246c7bb71"
+  },
+  "app/Connectors/Meta/Facebook/FacebookPublisher.php": {
+    "before_sha256": "d5fbdda4a1cf07f4189ae528eb30099f093861282dea7bcc0b3af111fdb85866",
+    "after_sha256": "89319eedc24b6e072d35083a3cf4031fd18eb06aead0323479fe817fb40cf989"
+  },
+  "app/Connectors/Meta/Instagram/InstagramPostOptions.php": {
+    "before_sha256": null,
+    "after_sha256": "bc9c4a1d7662107fcb4d0a5e43f4895a7d27c6fc6c8507f9bd72379370ec64d1"
+  },
+  "app/Connectors/Meta/Instagram/InstagramPublisher.php": {
+    "before_sha256": "b93eacadcce457a0743113f428e42b49ca5a96903171d9c095a05416622f68e8",
+    "after_sha256": "5b9cf51a237a4d7f3d9d6a0966e31238330a1d518cd15d64df042e30c64d883a"
+  },
+  "app/Http/Controllers/PostController.php": {
+    "before_sha256": "6149436a0c05a4937e963ca811b8ec4436d59085f44c2613e55bcac453921fbd",
+    "after_sha256": "3baabeca8a6143de937ec381d31afe0d180071f9fe5ce99bb2ce8bf321a689a0"
+  },
+  "app/Http/Requests/PostRequest.php": {
+    "before_sha256": "20de3362a470137059a466411184e9347895a1f89a02249268fb908e40ec9eb4",
+    "after_sha256": "d9b26b4ff603abe14331ccbbe9acec0b6d4c8f8fd8219f8a0f9a30c34ca0cae7"
+  },
+  "app/Mcp/Tools/ListAccounts.php": {
+    "before_sha256": "b8f73962b80a72a6743a410f52da518867dc92d53bb7292dcb683774d1829d3d",
+    "after_sha256": "d0a4df5d5906ba3b10babd9df51e9e29d9dbefe8e671556a0a0c2178dc28da15"
+  },
+  "app/Mcp/Tools/PostPayload.php": {
+    "before_sha256": "e2f8bcb5f0cc98943bef631b2ef595f37cdf4bc8166d6a2fb2cc2617cc743911",
+    "after_sha256": "763a68746d4ae9c42b7a9b2b6c3821182efed22b1d0d851e827daec60e652bb9"
+  },
+  "app/Services/PostService.php": {
+    "before_sha256": "9eb5f47aae5759c6bcf0ac780bff2a0e61cc3ab5d586ac140a6dce78c4d76a56",
+    "after_sha256": "0092d4d873e1866c1be21249606a6434286d32eb6e246282aa7993a0486a22b1"
+  },
+  "playwright.presets.config.ts": {
+    "before_sha256": null,
+    "after_sha256": "8497f15714a45bd10efc66682962eed8ed76d4a87aba5d204877d5216c63557d"
+  },
+  "resources/css/app.css": {
+    "before_sha256": "5edb4eaef7a7a5fc41f0718fc385f224b524b0e0b5cba9bcbe20ed3548a1ae91",
+    "after_sha256": "97f5a754990ba034767acbab968714ec9bd6b1625edb176509f3603c160f39cc"
+  },
+  "resources/js/Components/Composer/ErrorsPanel.vue": {
+    "before_sha256": "40505e9b58453ed1ddf857760b2cb188156b0c10d3bab7f5cd3d8ebb9de1d57b",
+    "after_sha256": "321fa8838caed7199535e726ed6bd5d5a953c63b4ceb1b8976f3e708acd9c515"
+  },
+  "resources/js/Components/Composer/GlobalPresets.vue": {
+    "before_sha256": null,
+    "after_sha256": "2340f82ce6565f23fe799d2d820148f835e43bc9824646f2b8d87d84499c0e8f"
+  },
+  "resources/js/Components/Composer/InstagramAudioField.vue": {
+    "before_sha256": "b4ae0a53dbd43384f1a967ab8f9c28ea2dc0d21c8c06ac207b792c1b384589e7",
+    "after_sha256": "3e0a04997cd2b8cb57dec2d1313fcde5b4f89b70ae230d0a51e7644fa6ac99e8"
+  },
+  "resources/js/Components/Composer/InstagramCollaboratorsField.vue": {
+    "before_sha256": null,
+    "after_sha256": "88ab4a75cf7cac46cdcf5ce0ecb9fba54f01e8dd0b7f2b27c9452e4614b736f1"
+  },
+  "resources/js/Components/Composer/PresetSection.vue": {
+    "before_sha256": null,
+    "after_sha256": "87e95668ff4826cbeb708601ca4039fb047592a03803c5a2cb96363d11fc36c2"
+  },
+  "resources/js/Components/Composer/PresetsPanel.vue": {
+    "before_sha256": "0b0dbf331f02eb49c91cc66ce36117e523bdfd59a26710f561d3b5445c54d797",
+    "after_sha256": "2e80e03b7ca9c5e6f9026dd18a23fb9f4552dbb4c4abb5b128b87f5f4dd006ae"
+  },
+  "resources/js/Components/Composer/TargetOptions.vue": {
+    "before_sha256": "7fb722d868ff6502963032f2a29f19376adf275f3d49c5f2f7c470f6153045b4",
+    "after_sha256": "d2cc463ecddcf448bab8cc8f0f3bc60bba6be29b00832061bf5b6d80bf0d9ba6"
+  },
+  "resources/js/Composables/composerOptions.js": {
+    "before_sha256": "f4912a8edb30659c424360c8e30c2b00e384b330581f372935321cc464225cd6",
+    "after_sha256": "657807e9f99329480ae25e3b94e09c9c1d411532d24e68bd5fdb9275baffc4d6"
+  },
+  "resources/js/Composables/useComposer.js": {
+    "before_sha256": "a5b6544c18151a71fd04345ce4ce6cd9a30b61e0c2fa8f48208025f5eb8053b9",
+    "after_sha256": "0e93f10f7f4319a2caea6e2f3434fc287b7ffe5b0783f46da366cad7a4e055f3"
+  },
+  "resources/js/Pages/Posts/Compose.vue": {
+    "before_sha256": "4700cfb82ba0fefa7170f3c1ae12df06520dacd54fadd0c47db16dbd29178b80",
+    "after_sha256": "38b6b0ed17d7d28a36e86901cc95e890122e9a9ea065d3f1f26e8815a949a6f9"
+  },
+  "tests/Feature/Connectors/Meta/Instagram/InstagramPresetsPublishTest.php": {
+    "before_sha256": null,
+    "after_sha256": "280ee374bd86d0ba0b0844afb8c25d19fade2603a08cf77eeaf2e78144f0a725"
+  },
+  "tests/Feature/Mcp/Tools/McpInstagramAudioTest.php": {
+    "before_sha256": null,
+    "after_sha256": "1b51f24ca61762c0ea25a76ae461fe7e00cd20b95053b2065f7e1aa756537486"
+  },
+  "tests/Feature/Publishing/InstagramPresetsOptionsTest.php": {
+    "before_sha256": null,
+    "after_sha256": "740de4439ef704067502c2dbed70e123e0d5ac71f3ba546ca760aa35902abe54"
+  },
+  "tests/e2e/composer-presets.spec.ts": {
+    "before_sha256": null,
+    "after_sha256": "2c77bc8186760a0e5aa78686471b0ec6c62b9d595a16762dbf36cd8d4f47f434"
+  },
+  "tests/e2e/composer.spec.ts": {
+    "before_sha256": null,
+    "after_sha256": "44717f48c7d2ad2807f09fa4dfa731ebbdaa00eba1a1276bb69d8af018110c33"
+  },
+  "tsconfig.json": {
+    "before_sha256": "45b329603f39c638a37c36f35fa4f98838527a9bcb27d85bffe138e8db94415b",
+    "after_sha256": "3dce3fb5b02baa3bb3d4e0a167ac3643f48ae0dc88ca5676a39ab2df10a6a4ea"
+  }
+}

@@ -26,6 +26,58 @@
         @apply block w-full rounded-lg border-slate-300 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500;
     }
 
+    .composer-preset-section {
+        @apply min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .composer-preset-heading {
+        @apply flex cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3.5 transition-colors hover:bg-slate-50 sm:px-5;
+    }
+
+    .composer-preset-heading::-webkit-details-marker {
+        display: none;
+    }
+
+    details[open] > .composer-preset-heading {
+        @apply rounded-b-none;
+    }
+
+    .composer-preset-body input[type='datetime-local'] {
+        @apply w-full min-w-0 max-w-full;
+    }
+
+    .composer-preset-body {
+        @apply space-y-5 border-t border-slate-100 px-4 py-5 sm:px-5;
+    }
+
+    .composer-setting-row {
+        @apply flex cursor-pointer items-center justify-between gap-4 text-sm leading-5 text-slate-700;
+    }
+
+    .composer-preset-toggle {
+        @apply relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full border-0 bg-slate-300 shadow-inner transition-colors checked:bg-violet-600 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50;
+        background-image: none !important;
+    }
+
+    .composer-preset-toggle::after {
+        content: '';
+        @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform;
+    }
+
+    .composer-preset-toggle:checked::after {
+        transform: translateX(1rem);
+    }
+
+    @media (forced-colors: active) {
+        .composer-preset-toggle {
+            appearance: auto;
+        }
+
+        .composer-preset-toggle::after {
+            display: none;
+        }
+    }
+
     .btn {
         @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
     }

@@ -1,0 +1,37 @@
+{
+  "client": "Codex CLI",
+  "server": "roadmap_ca29_codex",
+  "started_utc": "2026-10-31T17:58:37.509321+00:00",
+  "configuration": "per-invocation URL override; user configuration ignored for this smoke",
+  "sandbox": "read-only",
+  "ephemeral": true,
+  "api_key_supplied": false,
+  "mcp_events": [
+    {
+      "event": "item.started",
+      "item_type": "mcp_tool_call",
+      "server": "roadmap_ca29_codex",
+      "tool": "list_brands",
+      "status": "in_progress"
+    },
+    {
+      "event": "item.completed",
+      "item_type": "mcp_tool_call",
+      "server": "roadmap_ca29_codex",
+      "tool": "list_brands",
+      "status": "completed"
+    }
+  ],
+  "unexpected_tools": [],
+  "diagnostics": [],
+  "final": {
+    "success": true,
+    "tool": "list_brands",
+    "brand_count": 1,
+    "failure_kind": "none"
+  },
+  "evidence_directory": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\roadmap-continuation\\mcp-runtime\\codex-smoke-20261031T175837Z",
+  "exit_code": 0,
+  "ended_utc": "2026-10-31T17:58:49.811486+00:00",
+  "verified_success": true
+}

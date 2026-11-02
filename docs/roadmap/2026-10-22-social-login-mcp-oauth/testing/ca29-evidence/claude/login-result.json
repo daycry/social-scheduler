@@ -1,0 +1,14 @@
+{
+  "client": "claude",
+  "server": "roadmap_ca29_claude",
+  "checked_at_utc": "2026-10-31T20:06:53.904098+00:00",
+  "status_command_exit_code": 0,
+  "connected": true,
+  "selected_status_lines": [
+    "Status: \u2714 Connected"
+  ],
+  "authorized_by_user": true,
+  "login_process_exit_code": null,
+  "login_exit_note": "Connected status, token metadata and real tool call verified; initial login process return was not retained",
+  "api_key_supplied_to_mcp": false
+}

@@ -1,0 +1,146 @@
+[
+  {
+    "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+    "scenario": "API-01",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6448,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-02 · key inválida no devuelve herramientas ni datos",
+    "scenario": "API-02",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 977,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+    "scenario": "API-03",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3447,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+    "scenario": "API-01",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6393,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-02 · key inválida no devuelve herramientas ni datos",
+    "scenario": "API-02",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 1030,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+    "scenario": "API-03",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3851,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+    "scenario": "API-01",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6615,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-02 · key inválida no devuelve herramientas ni datos",
+    "scenario": "API-02",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 961,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+    "scenario": "API-03",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3396,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  }
+]

@@ -119,7 +119,7 @@ class BestTimesService
     }
 
     /** Interacciones de la publicacion; si la red no da el total, la suma de lo que si da. `null` = sin datos. */
-    private function engagement(array $metrics): ?float
+    public function engagement(array $metrics): ?float
     {
         if (is_numeric($metrics[Metric::INTERACTIONS] ?? null)) {
             return (float) $metrics[Metric::INTERACTIONS];

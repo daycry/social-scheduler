@@ -20,15 +20,6 @@ use Illuminate\Support\Facades\Log;
  */
 class GraphClient
 {
-    /** Codigos de error de Graph que significan "credencial invalida/revocada/caducada". */
-    private const REAUTH_CODES = [102, 190, 458, 459, 460, 463, 464, 467];
-
-    /**
-     * Codigos de limite de uso: 4 (app), 17 (usuario), 32 (pagina), 613 (llamadas) y la familia 800xx de los limites por
-     * caso de uso de negocio (80000 IG, 80001 paginas, 80002 ... 80014): transitorios, nunca "metrica no disponible".
-     */
-    private const RATE_LIMIT_CODES = [4, 17, 32, 613, 80000, 80001, 80002, 80003, 80004, 80005, 80006, 80008, 80009, 80014];
-
     /** Subcodigos de error de la API de publicacion de Instagram -> [clase, codigo interno, mensaje]. */
     private const IG_SUBCODES = [
         2207042 => ['quota', 'cuota', 'Instagram ha alcanzado el limite diario de publicaciones de la cuenta.'],
@@ -123,7 +114,7 @@ class GraphClient
 
     private function exceptionFor(Response $response, int $code, int $sub, string $message): ConnectorException
     {
-        if (in_array($code, self::REAUTH_CODES, true)) {
+        if (GraphErrors::needsReconnect($code)) {
             return new ReconnectRequiredException('Meta rechazo las credenciales ('.$message.'). Reconecta la cuenta.');
         }
 
@@ -137,7 +128,7 @@ class GraphClient
             };
         }
 
-        if (in_array($code, self::RATE_LIMIT_CODES, true)) {
+        if (GraphErrors::isRateLimit($code)) {
             return new TransientPublishException('Meta limito temporalmente las peticiones ('.$message.').', 'rate_limit');
         }
 

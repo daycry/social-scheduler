@@ -30,7 +30,7 @@ class BestTimesController extends Controller
         return Inertia::render('BestTimes/Index', [
             'brands' => $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values(),
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
-            'networks' => array_map(fn (Network $n) => ['value' => $n->value, 'label' => $n->label()], Network::cases()),
+            'networks' => array_map(fn (Network $n) => $n->toArray(), Network::offered()),
             'network' => $network->value,
             'days' => $data['days'] ?? null,
             'days_labels' => BestTimesService::DAYS,

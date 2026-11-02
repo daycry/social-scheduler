@@ -16,6 +16,11 @@ it('Portada: un invitado ve la landing con acceso a entrar y crear cuenta', func
         ->where('canLogin', true)->where('canRegister', true)->where('auth.user', null));
 });
 
+it('Portada: recibe el catalogo de redes ofrecidas para pintarlas sin lista fija', function () {
+    $this->get('/')->assertInertia(fn (Assert $p) => $p->component('Welcome')
+        ->has('networks', 5)->where('networks.3.value', 'tiktok')->where('networks.4.value', 'bluesky')->where('networks.4.color', '#0a7aff'));
+});
+
 it('Portada: con sesion expone el usuario para mostrar «Ir al panel»', function () {
     $this->actingAs($this->user)->get('/')->assertOk()
         ->assertInertia(fn (Assert $p) => $p->component('Welcome')->where('auth.user.id', $this->user->id));
@@ -31,7 +36,8 @@ it('Shell: comparte marcas, marca actual, cuentas por red y avisos sin leer', fu
         ->assertInertia(fn (Assert $p) => $p
             ->has('shell.brands', 2)->where('shell.currentBrand.name', 'Alfa')
             ->has('shell.accounts.instagram', 1)->missing('shell.accounts.tiktok')
-            ->has('shell.networks', 4)
+            ->has('shell.networks', 5)
+            ->where('shell.networks.0', ['value' => 'instagram', 'label' => 'Instagram', 'short_label' => 'IG', 'color' => '#db2777', 'provider' => 'meta', 'auth_kind' => 'oauth'])
             ->where('unreadNotifications', 0)
             // nunca llegan los tokens
             ->missing('shell.accounts.instagram.0.access_token'));

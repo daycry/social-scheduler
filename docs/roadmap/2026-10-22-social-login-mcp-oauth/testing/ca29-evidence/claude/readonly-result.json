@@ -1,0 +1,33 @@
+{
+  "client": "Claude Code",
+  "server": "roadmap_ca29_claude",
+  "started_utc": "2026-10-31T19:56:21.284365+00:00",
+  "api_key_supplied": false,
+  "restricted": true,
+  "strict_mcp_config": true,
+  "session_persistence": false,
+  "tool_calls": [
+    {
+      "tool": "mcp__roadmap_ca29_claude__list_brands",
+      "status": "completed"
+    }
+  ],
+  "unexpected_tools": [],
+  "server_status": [
+    {
+      "name": "roadmap_ca29_claude",
+      "status": "connected"
+    }
+  ],
+  "final": {
+    "success": true,
+    "brand_count": 1,
+    "failure_kind": "none",
+    "tool": "list_brands"
+  },
+  "result_subtype": "success",
+  "result_is_error": false,
+  "exit_code": 0,
+  "ended_utc": "2026-10-31T19:56:26.542330+00:00",
+  "verified_success": true
+}

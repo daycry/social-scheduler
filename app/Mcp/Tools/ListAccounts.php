@@ -2,11 +2,14 @@
 
 namespace App\Mcp\Tools;
 
+use App\Connectors\Meta\Instagram\InstagramAudio;
+use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Mcp\Abilities;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\AudioCapabilities;
 use App\Services\SocialAccountService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -45,6 +48,15 @@ class ListAccounts extends SchedulerTool
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
+                'audio' => AudioCapabilities::forAccount($a),
+                'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
+                'instagram_audio' => $a->network === Network::Instagram ? [
+                    'available' => InstagramAudio::unavailableReason($a) === null,
+                    'reason' => InstagramAudio::unavailableReason($a),
+                    'content_types' => ['instagram_reel'],
+                ] : null,
+                // false = red apagada en esta instalacion (BLUESKY_ENABLED=false): sin tipos de contenido y create_post la rechaza.
+                'available' => ($a->network instanceof Network ? $a->network : Network::from($a->network))->isAvailable(),
                 'content_types' => array_values(array_map(
                     fn (ContentType $t) => $t->value,
                     array_filter(ContentType::forNetwork($a->network instanceof Network ? $a->network : Network::from($a->network)), fn (ContentType $t) => $t->isOffered()),

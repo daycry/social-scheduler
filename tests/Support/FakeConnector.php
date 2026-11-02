@@ -2,7 +2,7 @@
 
 namespace Tests\Support;
 
-use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\OAuthConnector;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ConnectorException;
@@ -11,7 +11,7 @@ use App\Models\SocialAccount;
 use Throwable;
 
 /** Conector simulado para tests: sin red. */
-class FakeConnector implements Connector
+class FakeConnector implements OAuthConnector
 {
     /** @var list<ConnectionCandidate> */
     public array $candidates = [];

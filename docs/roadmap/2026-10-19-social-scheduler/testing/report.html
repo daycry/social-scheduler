@@ -1,0 +1,364 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>QA T-43</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+body{font-family:Arial,sans-serif;font-size:10pt}h1{font-size:24pt}h2{break-after:avoid}img{display:block;margin:10px auto;max-width:100%;max-height:150mm;object-fit:contain}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{width:100%;table-layout:fixed;font-size:8pt}td,th{overflow-wrap:anywhere}tr,img,pre{break-inside:avoid}a{color:#4338ca}</style><body><h1>Informe de QA — Social Scheduler, validación integrada T-43</h1>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fecha</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>Estado de la parte automática</td>
+<td><strong>VERDE</strong>, <code>qa-gate.py</code> exit 0: 57 pasan, 0 fallos, 0 flaky, 0 omitidos</td>
+</tr>
+<tr>
+<td>Estado de la entrega completa</td>
+<td>No completada: M-01 a M-04 pendientes</td>
+</tr>
+<tr>
+<td>URL autorizada</td>
+<td><code>http://localhost:8081</code>, servidor de la configuración aislada T-43</td>
+</tr>
+<tr>
+<td>Plan</td>
+<td><a href="../improvement-plan.md">Plan</a> · <a href="../test-plan.md">Pruebas</a> · <a href="../tasks.md">Ledger</a></td>
+</tr>
+</tbody>
+</table>
+<h2>Alcance y aislamiento</h2>
+<p>Esta auditoría cubre los doce escenarios originales E2E-01 a E2E-12, los tres bloques API y las comprobaciones de seguridad del harness. Los perfiles previstos son <code>desktop</code>, <code>mobile</code> y <code>mobile-360</code> en Chromium.</p>
+<p>El runner específico crea una base SQLite, media, caché, vistas, sesiones y correo bajo un directorio desechable de T-43. Solo utiliza usuarios <code>e2e-sec-roadmap-*</code>; no carga la sesión demo ni los bookends de la batería general. El router y la CLI de pruebas simulan las redes sociales y rechazan HTTP no simulado. Los controladores, servicios, dispatcher, jobs, worker y generadores PDF/CSV son los de la aplicación. Los resultados no acreditan publicaciones ni OAuth en redes reales.</p>
+<h2>Veredicto automático</h2>
+<p>Ejecución independiente completada, sin limitar proyectos y con cero reintentos:</p>
+<pre><code class="language-powershell">npx playwright test -c playwright.roadmap.config.ts
+</code></pre>
+<p>Inicio del runner: <strong>2026-10-31T09:28:01.054Z</strong>. Duración: <strong>249,57 segundos</strong>. Resultado terminal del proceso: <strong>exit 0, 57 passed</strong>. Los perfiles <code>desktop</code> (1440 × 900), <code>mobile</code> (375 × 812) y <code>mobile-360</code> (360 × 740) ejecutaron <strong>19 casos cada uno</strong>: 12 E2E de navegador, 3 API y 4 comprobaciones del harness.</p>
+<p>Se ejecutó <code>qa-gate.py raw/results.json</code> sobre la copia exacta del reporter JSON; devolvió <strong>exit 0</strong>. Salida íntegra:</p>
+<pre><code class="language-json">{
+  &quot;verdict&quot;: &quot;VERDE&quot;,
+  &quot;counts&quot;: {
+    &quot;passed&quot;: 57,
+    &quot;failed&quot;: 0,
+    &quot;flaky&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;interrupted&quot;: 0
+  },
+  &quot;flaky_sin_justificar&quot;: [],
+  &quot;flaky_justificados&quot;: {},
+  &quot;threshold&quot;: &quot;verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado&quot;
+}
+</code></pre>
+<p>La <a href="raw/results.json">evidencia JSON</a> conserva los 57 resultados y las rutas originales; no es una salida de descubrimiento <code>--list</code>. SHA-256 de origen y copia: <code>ac554df539a373dbca70f3bc5065da457a7d7ac20cb26c740c76545283b95e6a</code>. <a href="raw/run-metadata.json">Metadatos</a>, <a href="raw/case-summary.json">resumen por caso</a>, <a href="raw/qa-gate.json">salida del gate</a> y <a href="raw/results.sha256">huella</a> permiten comprobar la procedencia.</p>
+<p>El primer intento dentro del sandbox terminó con exit 1 y <code>spawn EPERM</code> antes de arrancar la batería. Tras comprobar que ese proceso había terminado, se ejecutó la corrida anterior con acceso al host y un directorio nuevo. No hubo reinicios por timeouts de observación ni repeticiones para ocultar fallos; el run válido no tiene errores del runner ni casos flaky.</p>
+<h2>Puertas documentales P1</h2>
+<p>Ejecutadas el 2026-10-31 con Python 3.13 y el bundle <code>custom-agents</code> 1.21.1:</p>
+<ul>
+<li><code>ledger-lint.py tasks.md</code>: exit 0, <strong>0 incoherencias y 0 avisos</strong>.</li>
+<li><code>coverage-check.py tasks.md test-plan.md spec.md</code>: exit 0, <strong>0 referencias rotas</strong>, ningún escenario huérfano y ningún CA sin referencia literal.</li>
+<li>Los avisos de tareas sin escenario declarado son T-01 a T-06 y T-10. T-01 a T-05 corresponden al spike y a la decisión manual M-05; T-06 al esqueleto/CI y T-10 a infraestructura/M-04. No son escenarios de UI omitidos. El gate de referencias no prueba por sí mismo la ejecución ni las aserciones de los escenarios.</li>
+</ul>
+<h2>Resultados automáticos de navegador</h2>
+<p><strong>36/36 ejecuciones E2E pasan</strong>: los doce escenarios se comprobaron en los tres perfiles. La accesibilidad con axe y el desbordamiento horizontal se comprueban en los puntos de cierre definidos por <code>finish()</code>; las capturas de registro, recuperación y acceso denegado documentan además sus estados específicos.</p>
+<table>
+<thead>
+<tr>
+<th>Escenario</th>
+<th>Requisito observable</th>
+<th>Tareas</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E2E-01</td>
+<td>Registro, verificación, panel vacío, login y recuperación de contraseña</td>
+<td>T-07</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-02</td>
+<td>Dos sesiones: marca ajena inaccesible y ausencia de datos ajenos</td>
+<td>T-08</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-03</td>
+<td>OAuth local simulado de Instagram, Facebook, YouTube y TikTok; desconexión y credenciales retiradas</td>
+<td>T-11 a T-15</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-04</td>
+<td>Renovación por job, reconexión tras rechazo y conservación de publicaciones pendientes</td>
+<td>T-15, T-16</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-05</td>
+<td>Vídeo real fuera del límite de duración de reel: error visible y publicación no guardada</td>
+<td>T-18, T-23</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-06</td>
+<td>Compositor programa; dispatcher y worker publican con ID y enlace externo simulados</td>
+<td>T-17, T-19 a T-23, T-26, T-27</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-07</td>
+<td>Error transitorio y timeout tras enviar: reintentos con una sola publicación externa</td>
+<td>T-20, T-25</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-08</td>
+<td>Filtros del calendario, reprogramación de pendiente y bloqueo de publicada</td>
+<td>T-24</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-09</td>
+<td>Jobs de snapshots: segunda ejecución idempotente y métricas no disponibles como null</td>
+<td>T-31 a T-34, T-36</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-10</td>
+<td>Treinta días de histórico: métricas y gráficos, cambio de red/periodo y «no disponible»</td>
+<td>T-35, T-37</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-11</td>
+<td>Generación por cola y descarga de informes PDF/CSV con datos propios y sin datos ajenos</td>
+<td>T-38 a T-40</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>E2E-12</td>
+<td>API key mostrada una sola vez, revocada en UI y rechazada por MCP</td>
+<td>T-28</td>
+<td>PASA 3/3</td>
+</tr>
+</tbody>
+</table>
+<p>Se conservan <strong>45 capturas</strong> (15 por perfil) en <code>screenshots/</code>. Los artefactos originales, incluidos <strong>tres PDF y tres CSV descargados</strong>, están en <code>raw/artifacts/</code>. E2E-11 comprobó encabezado PDF, tamaño y texto extraído con <code>pdftotext</code>: marca, seguidores, publicaciones destacadas y publicación propia presentes; marcador del otro usuario ausente. El CSV se comprobó igualmente contra los datos propios y el marcador ajeno.</p>
+<h2>API</h2>
+<table>
+<thead>
+<tr>
+<th>Bloque</th>
+<th>Comprobación</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API-01</td>
+<td><code>initialize</code>, catálogo y flujo de herramientas con key válida</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>API-02</td>
+<td>Key inválida: 401 sin herramientas ni datos</td>
+<td>PASA 3/3</td>
+</tr>
+<tr>
+<td>API-03</td>
+<td>Lectura MCP de marca ajena: rechazo sin revelar datos</td>
+<td>PASA 3/3</td>
+</tr>
+</tbody>
+</table>
+<p>Los tres bloques se ejecutaron contra el servidor loopback con usuarios y tokens desechables. El <a href="raw/api-summary.json">resumen API</a> conserva sus nueve ejecuciones. Se presentan separados de los doce escenarios de navegador; el JSON combinado del runner y el gate incluyen ambos grupos y las comprobaciones del harness.</p>
+<h2>Aislamiento del harness y revisión previa</h2>
+<p><strong>12/12 comprobaciones pasan</strong>: cada perfil ejecutó rechazo de entorno de producción, rechazo de una base fuera del directorio desechable, creación exclusiva de usuarios dedicados y separación de caché/locks entre dos runs.</p>
+<p>Las dos lentes de revisión del intento 2 confirmaron la corrección de B1: las rutas de caché y locks se fijan antes de que los providers puedan resolver las instancias compartidas. La documentación se corrigió de tres a cuatro comprobaciones del harness. Esta auditoría se ejecutó después de esas correcciones, sin modificaciones de aplicación o harness durante la corrida.</p>
+<h2>Evidencia PHP existente</h2>
+<p>El <a href="raw/phpunit-final.xml">JUnit del pase completo</a>, copiado desde <code>storage/framework/testing/t43/phpunit-final.xml</code>, declara <strong>2458 tests, 14489 aserciones, 0 errores, 0 fallos y 0 omitidos</strong>. Se ha leído su cabecera; esta auditoría no ha repetido la suite PHP. Su procedencia se distingue de la nueva ejecución independiente de navegador.</p>
+<p>Después de esta QA de navegador, el refuerzo literal de Bluesky añade tres pruebas sin modificar producción ni el harness. La nueva regresión completa del orquestador pasa <strong>2461 tests y 14549 aserciones</strong>, sin errores, fallos ni omitidos, en 159907 ms. Se conserva por separado su <a href="raw/phpunit-final-p3.xml">JUnit final</a>; la evidencia anterior no se sobrescribe. Las lentes A y B verificaron esos casos de grafemas, reducción de cuatro imágenes, reconciliación entre dos jobs y comentarios persistidos.</p>
+<p>El orquestador comunica además las comprobaciones estáticas del árbol actual: <code>npx tsc --noEmit -p .</code> y <code>php vendor/bin/pint --test</code> terminan con exit 0; Pint devuelve <code>result: passed</code>. Estas comprobaciones pertenecen al orquestador y complementan la nueva ejecución independiente de Playwright.</p>
+<h2>Checklist manual</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>M-01 — Publicación real:</strong> los tipos soportados se publican en las cuentas reales con enlace/ID y visibilidad conforme a G1. Pendiente del usuario.</li>
+<li><input disabled="" type="checkbox"> <strong>M-02 — OAuth real:</strong> conectar, desconectar y reconectar las cuatro redes y comprobar renovación y cifrado de tokens. Pendiente del usuario.</li>
+<li><input disabled="" type="checkbox"> <strong>M-03 — Dashboard y PDF:</strong> queda la revisión con datos de cuentas reales. El usuario aprueba expresamente el diseño y las secciones de T-41 el 2026-10-31 sobre el PDF de muestra; no se atribuye a esa aprobación una validación de métricas reales.</li>
+<li><input disabled="" type="checkbox"> <strong>M-04 — VPS:</strong> cron/Hestia, workers systemd y recuperación de publicaciones vencidas tras una caída. El usuario indica que realizará estas pruebas. Las observaciones operativas del orquestador no cierran este manual ni despliegan el código local.</li>
+<li><input checked="" disabled="" type="checkbox"> <strong>M-05 — Spike y G1:</strong> evidencia histórica del 2026-10-19 reconciliada el 2026-10-31. El <a href="../spike-report.md#decisi%C3%B3n-g1">informe del spike</a> registra YouTube A, TikTok D + B y continuar con Meta; T-05 ya estaba completada. No es una nueva prueba de plataformas reales.</li>
+</ul>
+<p>Aunque la parte automática termine en verde, T-43 permanece abierta mientras no se verifiquen los manuales exigidos. Este informe no cambia el estado del plan ni de la spec.</p>
+<h2>Capturas por escenario</h2>
+<p>Cada bloque muestra una captura de escritorio y enlaza las otras dos anchuras. Las imágenes son de usuarios y cuentas simulados dentro del run desechable.</p>
+<h3>E2E-01 · registro, verificación, panel vacío, login y recuperación — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-01-panel-vacio.png" alt="E2E-01: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-01-recuperacion.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-01-recuperacion.png">Móvil 360 px</a></p>
+<h3>E2E-02 · aislamiento de una marca entre dos sesiones reales — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-02-marca-ajena.png" alt="E2E-02: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-02-marca-ajena.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-02-marca-ajena.png">Móvil 360 px</a></p>
+<h3>E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-03-cuentas-conectadas.png" alt="E2E-03: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-03-cuentas-conectadas.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-03-cuentas-conectadas.png">Móvil 360 px</a></p>
+<h3>E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-04-requiere-reconexion.png" alt="E2E-04: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-04-requiere-reconexion.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-04-requiere-reconexion.png">Móvil 360 px</a></p>
+<h3>E2E-05 · reel demasiado largo rechazado sin guardar publicación — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-05-duracion-rechazada.png" alt="E2E-05: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-05-duracion-rechazada.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-05-duracion-rechazada.png">Móvil 360 px</a></p>
+<h3>E2E-06 · compositor programa, dispatcher y worker publican con enlace — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-06-publicada.png" alt="E2E-06: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-06-publicada.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-06-publicada.png">Móvil 360 px</a></p>
+<h3>E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-07-idempotencia.png" alt="E2E-07: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-07-idempotencia.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-07-idempotencia.png">Móvil 360 px</a></p>
+<h3>E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-08-calendario.png" alt="E2E-08: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-08-calendario.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-08-calendario.png">Móvil 360 px</a></p>
+<h3>E2E-09 · snapshots reales por job son idempotentes y conservan null — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-09-snapshot.png" alt="E2E-09: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-09-snapshot.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-09-snapshot.png">Móvil 360 px</a></p>
+<h3>E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-10-dashboard.png" alt="E2E-10: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-10-dashboard.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-10-dashboard.png">Móvil 360 px</a></p>
+<h3>E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-11-informes-listos.png" alt="E2E-11: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-11-informes-listos.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-11-informes-listos.png">Móvil 360 px</a></p>
+<h3>E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP — PASA 3/3</h3>
+<p><img src="screenshots/desktop/e2e-12-key-revocada.png" alt="E2E-12: estado comprobado en escritorio" />
+<a href="screenshots/mobile/e2e-12-key-revocada.png">Móvil 375 px</a> · <a href="screenshots/mobile-360/e2e-12-key-revocada.png">Móvil 360 px</a></p>
+<h2>Informes descargados y conservados</h2>
+<table>
+<thead>
+<tr>
+<th>Perfil</th>
+<th>PDF</th>
+<th>CSV</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop</td>
+<td><a href="raw/downloads/desktop/informe.pdf">PDF, 31777 bytes</a></td>
+<td><a href="raw/downloads/desktop/informe.csv">CSV, 52518 bytes</a></td>
+</tr>
+<tr>
+<td>mobile</td>
+<td><a href="raw/downloads/mobile/informe.pdf">PDF, 31770 bytes</a></td>
+<td><a href="raw/downloads/mobile/informe.csv">CSV, 52517 bytes</a></td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td><a href="raw/downloads/mobile-360/informe.pdf">PDF, 31804 bytes</a></td>
+<td><a href="raw/downloads/mobile-360/informe.csv">CSV, 52521 bytes</a></td>
+</tr>
+</tbody>
+</table>
+<p><a href="raw/downloads.json">Manifiesto de tamaños y huellas de los seis informes</a>. Las copias enlazadas tienen el mismo SHA-256 que sus artefactos originales.</p>
+<p>Se inspeccionaron visualmente capturas representativas del dashboard en escritorio y del listado de informes a 360 px: contenido legible, gráficos presentes y botones accesibles sin recortes observados. Esta inspección de QA no es la aprobación del usuario exigida por M-03.</p>
+</body></html>

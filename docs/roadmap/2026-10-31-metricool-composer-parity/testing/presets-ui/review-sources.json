@@ -1,0 +1,46 @@
+{
+  "playwright.presets.config.ts": {
+    "before_sha256": null,
+    "after_sha256": "8497f15714a45bd10efc66682962eed8ed76d4a87aba5d204877d5216c63557d"
+  },
+  "resources/css/app.css": {
+    "before_sha256": "5edb4eaef7a7a5fc41f0718fc385f224b524b0e0b5cba9bcbe20ed3548a1ae91",
+    "after_sha256": "3052c12d9c9e1e4b6dff517f1ad00c12e72cca5ee2e77f2da8b478c2d619a490"
+  },
+  "resources/js/Components/Composer/ErrorsPanel.vue": {
+    "before_sha256": "40505e9b58453ed1ddf857760b2cb188156b0c10d3bab7f5cd3d8ebb9de1d57b",
+    "after_sha256": "09d9adf49e9e4558169e5306f007fab9dc291dfdad30db47970c7623eb5cd4ea"
+  },
+  "resources/js/Components/Composer/GlobalPresets.vue": {
+    "before_sha256": null,
+    "after_sha256": "2340f82ce6565f23fe799d2d820148f835e43bc9824646f2b8d87d84499c0e8f"
+  },
+  "resources/js/Components/Composer/InstagramAudioField.vue": {
+    "before_sha256": "b4ae0a53dbd43384f1a967ab8f9c28ea2dc0d21c8c06ac207b792c1b384589e7",
+    "after_sha256": "3e0a04997cd2b8cb57dec2d1313fcde5b4f89b70ae230d0a51e7644fa6ac99e8"
+  },
+  "resources/js/Components/Composer/PresetSection.vue": {
+    "before_sha256": null,
+    "after_sha256": "87e95668ff4826cbeb708601ca4039fb047592a03803c5a2cb96363d11fc36c2"
+  },
+  "resources/js/Components/Composer/PresetsPanel.vue": {
+    "before_sha256": "0b0dbf331f02eb49c91cc66ce36117e523bdfd59a26710f561d3b5445c54d797",
+    "after_sha256": "049e0a1111a240fb482d6fb69a05b82b213655cef25af784539ad7f63596d2ee"
+  },
+  "resources/js/Components/Composer/TargetOptions.vue": {
+    "before_sha256": "7fb722d868ff6502963032f2a29f19376adf275f3d49c5f2f7c470f6153045b4",
+    "after_sha256": "c57099a7a4420da8b07b290f4448c4bc88bce38c236650c9b08c85d3d33eb7ff"
+  },
+  "resources/js/Pages/Posts/Compose.vue": {
+    "before_sha256": "4700cfb82ba0fefa7170f3c1ae12df06520dacd54fadd0c47db16dbd29178b80",
+    "after_sha256": "a7cca2820d2a80fd8c7a49230186c8ec35650bcb990fdd5f6123819aed1a635b"
+  },
+  "tests/e2e/composer-presets.spec.ts": {
+    "before_sha256": null,
+    "after_sha256": "c401e2eff3fd54f36e72d4adcc2a7771439a759f3fa89c911038e92cc9709d99"
+  },
+  "tsconfig.json": {
+    "before_sha256": "45b329603f39c638a37c36f35fa4f98838527a9bcb27d85bffe138e8db94415b",
+    "after_sha256": "3dce3fb5b02baa3bb3d4e0a167ac3643f48ae0dc88ca5676a39ab2df10a6a4ea"
+  }
+}

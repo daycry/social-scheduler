@@ -18,6 +18,8 @@ final class PublishMedia
         /** Disco y ruta del fichero: permiten leerlo en streaming por trozos (YouTube, TikTok FILE_UPLOAD). */
         public readonly ?string $disk = null,
         public readonly ?string $path = null,
+        /** Origen del asset (`upload`, `giphy`...): un MP4 de Giphy es un GIF y Bluesky lo publica con `presentation: gif`. */
+        public readonly ?string $source = null,
     ) {}
 
     public function isVideo(): bool

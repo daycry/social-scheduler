@@ -1,0 +1,995 @@
+[
+  {
+    "title": "T43 harness rejects production environment before touching a database",
+    "scenario": "harness",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 44,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness rejects a database outside its disposable run",
+    "scenario": "harness",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 39,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness creates only dedicated disposable users and begins without real accounts",
+    "scenario": "harness",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 942,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 cache stores and unique locks remain independent across two disposable runs",
+    "scenario": "harness",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 1894,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness rejects production environment before touching a database",
+    "scenario": "harness",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 55,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness rejects a database outside its disposable run",
+    "scenario": "harness",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 45,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness creates only dedicated disposable users and begins without real accounts",
+    "scenario": "harness",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 917,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 cache stores and unique locks remain independent across two disposable runs",
+    "scenario": "harness",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 1689,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness rejects production environment before touching a database",
+    "scenario": "harness",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 45,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness rejects a database outside its disposable run",
+    "scenario": "harness",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 39,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 harness creates only dedicated disposable users and begins without real accounts",
+    "scenario": "harness",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 937,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "T43 cache stores and unique locks remain independent across two disposable runs",
+    "scenario": "harness",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 1612,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "E2E-01 · registro, verificación, panel vacío, login y recuperación",
+    "scenario": "E2E-01",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 9340,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-01-registro.png",
+      "screenshots/desktop/e2e-01-panel-vacio.png",
+      "screenshots/desktop/e2e-01-recuperacion.png"
+    ]
+  },
+  {
+    "title": "E2E-02 · aislamiento de una marca entre dos sesiones reales",
+    "scenario": "E2E-02",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4784,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-02-marca-ajena.png"
+    ]
+  },
+  {
+    "title": "E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión",
+    "scenario": "E2E-03",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 7518,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-03-cuentas-conectadas.png"
+    ]
+  },
+  {
+    "title": "E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes",
+    "scenario": "E2E-04",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3985,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-04-requiere-reconexion.png"
+    ]
+  },
+  {
+    "title": "E2E-05 · reel demasiado largo rechazado sin guardar publicación",
+    "scenario": "E2E-05",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6495,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-05-duracion-rechazada.png"
+    ]
+  },
+  {
+    "title": "E2E-06 · compositor programa, dispatcher y worker publican con enlace",
+    "scenario": "E2E-06",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6404,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-06-programada.png",
+      "screenshots/desktop/e2e-06-publicada.png"
+    ]
+  },
+  {
+    "title": "E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación",
+    "scenario": "E2E-07",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4581,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-07-idempotencia.png"
+    ]
+  },
+  {
+    "title": "E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas",
+    "scenario": "E2E-08",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5047,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-08-calendario.png"
+    ]
+  },
+  {
+    "title": "E2E-09 · snapshots reales por job son idempotentes y conservan null",
+    "scenario": "E2E-09",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4528,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-09-snapshot.png"
+    ]
+  },
+  {
+    "title": "E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible",
+    "scenario": "E2E-10",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 7198,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-10-dashboard.png"
+    ]
+  },
+  {
+    "title": "E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios",
+    "scenario": "E2E-11",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 7024,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-11-informes-listos.png"
+    ]
+  },
+  {
+    "title": "E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP",
+    "scenario": "E2E-12",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4749,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/desktop/e2e-12-key-revocada.png"
+    ]
+  },
+  {
+    "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+    "scenario": "API-01",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6448,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-02 · key inválida no devuelve herramientas ni datos",
+    "scenario": "API-02",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 977,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+    "scenario": "API-03",
+    "project": "desktop",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3447,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "E2E-01 · registro, verificación, panel vacío, login y recuperación",
+    "scenario": "E2E-01",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6430,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-01-registro.png",
+      "screenshots/mobile/e2e-01-panel-vacio.png",
+      "screenshots/mobile/e2e-01-recuperacion.png"
+    ]
+  },
+  {
+    "title": "E2E-02 · aislamiento de una marca entre dos sesiones reales",
+    "scenario": "E2E-02",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4583,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-02-marca-ajena.png"
+    ]
+  },
+  {
+    "title": "E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión",
+    "scenario": "E2E-03",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6671,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-03-cuentas-conectadas.png"
+    ]
+  },
+  {
+    "title": "E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes",
+    "scenario": "E2E-04",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3964,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-04-requiere-reconexion.png"
+    ]
+  },
+  {
+    "title": "E2E-05 · reel demasiado largo rechazado sin guardar publicación",
+    "scenario": "E2E-05",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5863,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-05-duracion-rechazada.png"
+    ]
+  },
+  {
+    "title": "E2E-06 · compositor programa, dispatcher y worker publican con enlace",
+    "scenario": "E2E-06",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6190,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-06-programada.png",
+      "screenshots/mobile/e2e-06-publicada.png"
+    ]
+  },
+  {
+    "title": "E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación",
+    "scenario": "E2E-07",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4550,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-07-idempotencia.png"
+    ]
+  },
+  {
+    "title": "E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas",
+    "scenario": "E2E-08",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4862,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-08-calendario.png"
+    ]
+  },
+  {
+    "title": "E2E-09 · snapshots reales por job son idempotentes y conservan null",
+    "scenario": "E2E-09",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4398,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-09-snapshot.png"
+    ]
+  },
+  {
+    "title": "E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible",
+    "scenario": "E2E-10",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 7127,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-10-dashboard.png"
+    ]
+  },
+  {
+    "title": "E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios",
+    "scenario": "E2E-11",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6713,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-11-informes-listos.png"
+    ]
+  },
+  {
+    "title": "E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP",
+    "scenario": "E2E-12",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4698,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile/e2e-12-key-revocada.png"
+    ]
+  },
+  {
+    "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+    "scenario": "API-01",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6393,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-02 · key inválida no devuelve herramientas ni datos",
+    "scenario": "API-02",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 1030,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+    "scenario": "API-03",
+    "project": "mobile",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3851,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "E2E-01 · registro, verificación, panel vacío, login y recuperación",
+    "scenario": "E2E-01",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6315,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-01-registro.png",
+      "screenshots/mobile-360/e2e-01-panel-vacio.png",
+      "screenshots/mobile-360/e2e-01-recuperacion.png"
+    ]
+  },
+  {
+    "title": "E2E-02 · aislamiento de una marca entre dos sesiones reales",
+    "scenario": "E2E-02",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4530,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-02-marca-ajena.png"
+    ]
+  },
+  {
+    "title": "E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexión",
+    "scenario": "E2E-03",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 7350,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-03-cuentas-conectadas.png"
+    ]
+  },
+  {
+    "title": "E2E-04 · job de renovación y reconexión conserva las publicaciones pendientes",
+    "scenario": "E2E-04",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3901,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-04-requiere-reconexion.png"
+    ]
+  },
+  {
+    "title": "E2E-05 · reel demasiado largo rechazado sin guardar publicación",
+    "scenario": "E2E-05",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5692,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-05-duracion-rechazada.png"
+    ]
+  },
+  {
+    "title": "E2E-06 · compositor programa, dispatcher y worker publican con enlace",
+    "scenario": "E2E-06",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5980,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-06-programada.png",
+      "screenshots/mobile-360/e2e-06-publicada.png"
+    ]
+  },
+  {
+    "title": "E2E-07 · reintento transitorio y timeout tras enviar no duplican la publicación",
+    "scenario": "E2E-07",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4497,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-07-idempotencia.png"
+    ]
+  },
+  {
+    "title": "E2E-08 · calendario filtra y reprograma pendientes, bloquea las publicadas",
+    "scenario": "E2E-08",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5030,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-08-calendario.png"
+    ]
+  },
+  {
+    "title": "E2E-09 · snapshots reales por job son idempotentes y conservan null",
+    "scenario": "E2E-09",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4379,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-09-snapshot.png"
+    ]
+  },
+  {
+    "title": "E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y no disponible",
+    "scenario": "E2E-10",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6966,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-10-dashboard.png"
+    ]
+  },
+  {
+    "title": "E2E-11 · informes PDF y CSV generados por la cola y descargados con datos propios",
+    "scenario": "E2E-11",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6846,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-11-informes-listos.png"
+    ]
+  },
+  {
+    "title": "E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP",
+    "scenario": "E2E-12",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4846,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": [
+      "screenshots/mobile-360/e2e-12-key-revocada.png"
+    ]
+  },
+  {
+    "title": "API-01 · initialize, catálogo y flujo completo de herramientas con key válida",
+    "scenario": "API-01",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6615,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-02 · key inválida no devuelve herramientas ni datos",
+    "scenario": "API-02",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 961,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "title": "API-03 · MCP rechaza leer una marca ajena sin revelar sus datos",
+    "scenario": "API-03",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "expectedStatus": "passed",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3396,
+        "retry": 0,
+        "errors": []
+      }
+    ],
+    "screenshots": []
+  }
+]

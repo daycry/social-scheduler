@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Meta\Facebook\FacebookPostOptions;
+use App\Connectors\Meta\Instagram\InstagramAudio;
+use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
@@ -327,6 +330,12 @@ class PostService
             $targets = $this->lockEditableTargets($post);
             $oldScheduledAt = $post->scheduled_at;
 
+            // Un destino de una red apagada en esta instalacion (p. ej. BLUESKY_ENABLED=false) no se reprograma: volveria a fallar.
+            $off = $targets->first(fn (PostTarget $t) => ! $t->content_type->network()->isAvailable());
+            if ($off !== null) {
+                throw new PostValidationException(['post' => [$off->content_type->network()->label().' no esta disponible en esta instalacion: quita ese destino antes de reprogramar.']]);
+            }
+
             $post->forceFill(['scheduled_at' => $at])->save();
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
@@ -438,12 +447,12 @@ class PostService
     private const YOUTUBE_OPTIONS = ['category_id', 'tags', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media'];
 
     /** Opciones de TikTok (C-04) que actuan solo en publicacion directa (la cuenta con `meta.direct_post`). */
-    private const TIKTOK_DIRECT_OPTIONS = ['disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc'];
+    private const TIKTOK_DIRECT_OPTIONS = ['disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc', 'auto_add_music'];
 
     /** Opciones booleanas: la regla `boolean` de la web y el MCP admite `1`, `0`, `"1"` y `"0"` sin convertirlas. */
     private const BOOLEAN_OPTIONS = [
         'share_to_feed', 'shorts_hashtag', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media',
-        'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc',
+        'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc', 'auto_add_music',
     ];
 
     /**
@@ -456,6 +465,7 @@ class PostService
      */
     public static function normalizeOptions(array $options): array
     {
+        $options = InstagramPostOptions::normalize($options);
         foreach (self::BOOLEAN_OPTIONS as $key) {
             if (array_key_exists($key, $options) && $options[$key] !== null) {
                 $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];
@@ -475,7 +485,7 @@ class PostService
     private function optionErrors(ContentType $type, SocialAccount $account, array $options): array
     {
         $asked = fn (string $k) => array_key_exists($k, $options) && ! in_array($options[$k], [null, false, [], ''], true);
-        $errors = [];
+        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type));
 
         if ($type->network() !== Network::YouTube) {
             foreach (self::YOUTUBE_OPTIONS as $k) {
@@ -496,6 +506,9 @@ class PostService
         }
 
         $direct = TikTokPublisher::directPost($account);
+        if ($asked('auto_add_music') && $type !== ContentType::TikTokPhoto) {
+            $errors[] = 'La música recomendada de TikTok solo existe en fotos y carruseles, no en vídeos.';
+        }
         foreach (self::TIKTOK_DIRECT_OPTIONS as $k) {
             if ($asked($k) && ! $direct) {
                 $errors[] = "La opcion $k solo actua con la publicacion directa de TikTok: esta cuenta envia borradores a la bandeja.";
@@ -588,7 +601,9 @@ class PostService
                 continue;
             }
             if (! $type->isOffered()) {
-                $errors[$key][] = "{$type->label()} de {$account->network->label()} no esta disponible: necesita un dominio verificado en TikTok.";
+                $errors[$key][] = ! $account->network->isAvailable()
+                    ? "{$account->network->label()} no esta disponible en esta instalacion."
+                    : "{$type->label()} de {$account->network->label()} no esta disponible: necesita un dominio verificado en TikTok.";
 
                 continue;
             }

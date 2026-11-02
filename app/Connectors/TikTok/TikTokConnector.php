@@ -2,7 +2,7 @@
 
 namespace App\Connectors\TikTok;
 
-use App\Connectors\Contracts\Connector;
+use App\Connectors\Contracts\OAuthConnector;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ConnectorException;
@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Log;
  *    (`meta.direct_post`, ausente = false, por cuenta; se activara tras la auditoria, en T-27). El conector
  *    no escribe esa clave para que reconectar nunca pise la eleccion del usuario.
  */
-class TikTokConnector implements Connector
+class TikTokConnector implements OAuthConnector
 {
     private const AUTH_URL = 'https://www.tiktok.com/v2/auth/authorize/';
 

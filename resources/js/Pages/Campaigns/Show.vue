@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import LineChart from '@/Pages/Dashboard/Partials/LineChart.vue';
-import { fmt, NETWORK_COLORS, UNAVAILABLE } from '@/Pages/Dashboard/Partials/format';
+import { fmt, TOTAL_COLOR, UNAVAILABLE } from '@/Pages/Dashboard/Partials/format';
 
 /** Panel de campaña (C-03, CA-11): KPIs del último snapshot de cada destino. «Sin datos» nunca se pinta como 0. */
 const props = defineProps({
@@ -27,7 +27,7 @@ const cards = computed(() => [
     { key: 'engagement', label: 'Engagement', value: pct(k.value.engagement_rate), none: k.value.engagement_rate === null },
 ]);
 
-const chart = (metric, name) => [{ name, color: NETWORK_COLORS.total, points: props.summary.daily.map((d) => ({ date: d.date, value: d[metric] })) }];
+const chart = (metric, name) => [{ name, color: TOTAL_COLOR, points: props.summary.daily.map((d) => ({ date: d.date, value: d[metric] })) }];
 const range = computed(() => {
     const { starts_on: a, ends_on: b } = props.campaign;
     if (a && b) return `${a} → ${b}`;

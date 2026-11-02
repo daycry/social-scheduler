@@ -1,11 +1,14 @@
 <script setup>
-import { deltaClass, fmt, fmtPct, NETWORK_COLORS, UNAVAILABLE } from '@/Pages/Dashboard/Partials/format';
+import { useNetworks } from '@/Composables/useNetworks';
+import { deltaClass, fmt, fmtPct, UNAVAILABLE } from '@/Pages/Dashboard/Partials/format';
 
 /**
  * Tarjeta KPI reutilizable: título, total grande, variación frente al periodo de comparación, desglose por red
  * en chips de color y un hueco (slot por defecto) para el gráfico.
  * `breakdown`: [{ network, label, value, available, delta_pct }]
  */
+const catalog = useNetworks();
+
 defineProps({
     label: { type: String, required: true },
     total: { type: Number, default: null },
@@ -36,7 +39,7 @@ defineProps({
                 class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
                 :class="b.available ? 'border-slate-300 text-slate-800' : 'border-dashed border-slate-300 text-slate-500'"
             >
-                <span class="inline-block h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: NETWORK_COLORS[b.network] }"></span>
+                <span class="inline-block h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: catalog.color(b.network) }"></span>
                 {{ b.label }}: {{ b.available ? fmt(b.value) : UNAVAILABLE }}
                 <span v-if="comparing && b.delta_pct !== null" class="rounded px-1" :class="deltaClass(b.delta_pct)">{{ fmtPct(b.delta_pct) }}</span>
             </li>

@@ -1,0 +1,89 @@
+[
+  {
+    "client": "OpenCode",
+    "server": "roadmap_ca29_opencode",
+    "started_utc": "2026-10-31T19:58:08.331312+00:00",
+    "api_key_supplied": false,
+    "standalone": true,
+    "agent": "ca29_readonly",
+    "tool_calls": [],
+    "unexpected_tools": [],
+    "diagnostics": [
+      {
+        "name": null
+      }
+    ],
+    "final": null,
+    "exit_code": 1,
+    "ended_utc": "2026-10-31T19:58:10.127235+00:00",
+    "verified_success": false
+  },
+  {
+    "client": "OpenCode",
+    "server": "roadmap_ca29_opencode",
+    "started_utc": "2026-10-31T19:58:28.484423+00:00",
+    "api_key_supplied": false,
+    "standalone": true,
+    "agent": "ca29_readonly",
+    "tool_calls": [],
+    "unexpected_tools": [],
+    "diagnostics": [
+      {
+        "name": null,
+        "message": "Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go",
+        "event_fields": [
+          "type",
+          "timestamp",
+          "sessionID",
+          "error"
+        ]
+      }
+    ],
+    "final": null,
+    "exit_code": 1,
+    "ended_utc": "2026-10-31T19:58:30.212804+00:00",
+    "verified_success": false
+  },
+  {
+    "client": "OpenCode",
+    "server": "roadmap_ca29_opencode",
+    "started_utc": "2026-10-31T20:04:19.126794+00:00",
+    "api_key_supplied": false,
+    "standalone": true,
+    "agent": "ca29_readonly",
+    "tool_calls": [],
+    "unexpected_tools": [],
+    "diagnostics": [],
+    "final": {
+      "success": false,
+      "tool": "list_brands",
+      "brand_count": 0,
+      "failure_kind": "tool_unavailable"
+    },
+    "model_override": "openai/gpt-6.1-sol",
+    "exit_code": 0,
+    "ended_utc": "2026-10-31T20:04:26.560134+00:00",
+    "verified_success": false
+  },
+  {
+    "client": "OpenCode",
+    "server": "roadmap_ca29_opencode",
+    "started_utc": "2026-10-31T20:05:49.386721+00:00",
+    "api_key_supplied": false,
+    "standalone": true,
+    "agent": "ca29_readonly",
+    "tool_calls": [],
+    "unexpected_tools": [],
+    "diagnostics": [],
+    "final": {
+      "success": false,
+      "tool": "list_brands",
+      "brand_count": 0,
+      "failure_kind": "tool_unavailable"
+    },
+    "model_override": "openai/gpt-6.1-sol",
+    "exit_code": 0,
+    "ended_utc": "2026-10-31T20:05:55.096558+00:00",
+    "verified_success": false
+  }
+]

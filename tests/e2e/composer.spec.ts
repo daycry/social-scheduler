@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedTiktokPhotoDraft, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
@@ -47,8 +47,13 @@ async function abrirMenu(page: Page) {
     await expect(page.getByRole('menu')).toBeVisible();
 }
 async function guardarBorrador(page: Page) {
+    // Causa raíz de E2E-09 intermitente: al editar, el encabezado «Editar publicación» ya estaba en pantalla ANTES de guardar, así que
+    // esperarlo no esperaba al guardado; el test seguía con `open()` y la navegación abortaba el PUT (el interruptor «recordado» no
+    // llegaba a persistirse). Se espera la respuesta real del guardado (alta POST o edición PUT).
+    const guardado = page.waitForResponse((r) => ['POST', 'PUT'].includes(r.request().method()) && /\/(posts\/\d+|brands\/\d+\/posts)$/.test(new URL(r.url()).pathname));
     await abrirMenu(page);
     await menuItem(page, 'Guardar borrador').click();
+    await guardado;
 }
 
 test('E2E-01 · compositor a pantalla completa con pastillas de red', async ({ page }) => {
@@ -305,6 +310,43 @@ test('E2E-03 · el botón Atrás del navegador pide confirmación con cambios si
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+async function expectPastDayInaccessible(dialog: Locator, today: string, yesterday: string) {
+    if (today.slice(0, 7) === yesterday.slice(0, 7)) {
+        await expect(dialog.locator(`[data-date="${yesterday}"]`)).toBeDisabled();
+    } else {
+        // La cuadrícula no dibuja días del mes anterior; tampoco permite navegar a ese mes pasado.
+        await expect(dialog.locator(`[data-date="${yesterday}"]`)).toHaveCount(0);
+        await expect(dialog.getByRole('button', { name: 'Mes anterior' })).toBeDisabled();
+    }
+    await expect(dialog.locator(`[data-date="${today}"]`)).toBeEnabled();
+    await expect(dialog.locator(`[data-date="${today}"]`)).toBeFocused();
+    await dialog.locator(`[data-date="${today}"]`).press('ArrowLeft');
+    await expect(dialog.locator(`[data-date="${today}"]`)).toBeFocused();
+}
+
+for (const scenario of ['mismo mes', 'cambio de mes'] as const) {
+    test(`E2E-04 · ayer es inaccesible en Auckland: ${scenario}`, async ({ page }) => {
+        const zone = 'Pacific/Auckland';
+        setBrandTimezone(brand.id, zone);
+        // Fechas derivadas del mes actual y siempre futuras; no se guarda ni se envía ninguna publicación.
+        const current = new Date();
+        const base = scenario === 'mismo mes'
+            ? new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 15, 20))
+            : new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 2, 0, 20));
+        const today = base.toLocaleDateString('en-CA', { timeZone: zone });
+        const yesterday = base.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+        expect(today).not.toBe(yesterday);
+        expect(today.slice(0, 7) === yesterday.slice(0, 7)).toBe(scenario === 'mismo mes');
+        await page.clock.install({ time: base });
+        await open(page);
+        await page.locator('#scheduled_at').click();
+        const dialog = page.getByRole('dialog', { name: 'Elegir fecha y hora' });
+        await expect(dialog).toBeVisible();
+        await expectPastDayInaccessible(dialog, today, yesterday);
+        await expect(page.locator('#scheduled_at')).toHaveAttribute('data-value', '');
+    });
+}
+
 test('E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca', async ({ page }) => {
     const w = watch(page);
     // La marca está en Pacific/Auckland y el navegador en Europe/Madrid. Con el reloj fijado a las 20:00 UTC, en Madrid es el día D
@@ -364,13 +406,9 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
     const hoy = base.toLocaleDateString('en-CA', { timeZone: ZONA });
     const hoyLocal = base.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
     expect(hoy).not.toBe(hoyLocal); // la prueba solo vale si la zona de la marca y la del navegador caen en días distintos
-    const [y, m, d] = hoy.split('-').map(Number);
-    await expect(dialogo.locator(`[data-date="${hoyLocal}"]`)).toBeDisabled(); // «hoy» de Madrid ya es pasado en Auckland
-    await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeEnabled();
-    await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeFocused();
-    if (d > 1) await expect(dialogo.locator(`[data-date="${y}-${pad(m)}-${pad(d - 1)}"]`)).toBeDisabled();
-    await page.keyboard.press('ArrowLeft'); // con el teclado tampoco se llega a un día pasado
-    await expect(dialogo.locator(`[data-date="${hoy}"]`)).toBeFocused();
+    const [y, m] = hoy.split('-').map(Number);
+    // «Hoy» de Madrid es ayer en Auckland: inaccesible incluso si cae en el mes anterior.
+    await expectPastDayInaccessible(dialogo, hoy, hoyLocal);
     await page.screenshot({ path: 'test-results/composer-selector-fecha.png' });
     await axeNow(page, 'selector de fecha abierto');
     await expectNoOverflow(page);
@@ -917,13 +955,13 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     await expect(seccion(page, 'YouTube', 'e2e YouTube').getByRole('switch', { name: 'Notificar a los suscriptores' })).not.toBeChecked();
     await expect(seccion(page, 'YouTube', 'e2e YouTube').getByLabel('Etiquetas (separadas por comas)')).toHaveValue('');
 
-    // CA-16 y CA-14: la etiqueta de IA no existe en Instagram ni Facebook; TikTok en modo borrador no ofrece nada; el directo sí.
+    // Contrato actualizado: Instagram ofrece indicación de IA por publicación, además de YouTube y TikTok directo.
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
     await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
     await page.getByRole('button', { name: /^TikTok: e2e TikTok borrador/ }).click();
     await page.getByRole('button', { name: /^TikTok: e2e TikTok directo/ }).click();
-    await expect(page.getByRole('switch', { name: /IA/ })).toHaveCount(2); // YouTube y TikTok directo, ninguna más
-    await expect(page.getByRole('region', { name: /Opciones de Instagram/ }).getByRole('switch')).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: /IA/ })).toHaveCount(3); // Instagram, YouTube y TikTok directo
+    await expect(page.getByRole('region', { name: /Opciones de Instagram/ }).getByRole('switch', { name: 'Contenido generado con IA', exact: true })).not.toBeChecked();
     await expect(page.getByRole('region', { name: /Opciones de Facebook/ }).getByRole('switch')).toHaveCount(0);
     const borrador = seccion(page, 'TikTok', 'e2e TikTok borrador');
     await expect(borrador.getByRole('switch')).toHaveCount(0);

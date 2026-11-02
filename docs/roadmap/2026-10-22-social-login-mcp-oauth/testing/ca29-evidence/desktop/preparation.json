@@ -1,0 +1,39 @@
+{
+  "client": "Claude Desktop",
+  "observed_date": "2026-10-31",
+  "installed_version": "4.4212.0.0",
+  "version_source": "installed package and active window file URL; About screen not inspected",
+  "user_opened_application": true,
+  "settings_route_observed": "https://claude.ai/customize/connectors/yours",
+  "existing_production_connector": {
+    "name": "Social scheduler",
+    "url": "https://social-scheduler.daycry.ovh/mcp",
+    "ui_status": "Conectado",
+    "modified": false,
+    "counts_as_current_local_smoke": false
+  },
+  "prepared_connector": {
+    "name": "Social Scheduler - CA29 local",
+    "url": "https://workable-humorous-rat.ngrok-free.app/mcp",
+    "authentication_detected": "Iniciar sesion ahora",
+    "oauth_client_detected": "Registrar automaticamente (DCR)",
+    "published_identity_CIMD_required": false,
+    "request_headers_added": false,
+    "api_key_supplied": false,
+    "form_step": "2 of 2",
+    "agent_add_click": "rejected before execution by automatic approval review",
+    "rejection_reason": "Creating persistent OAuth access requires action-time confirmation despite earlier authorization",
+    "user_handoff": "User asked to click Add and complete browser consent",
+    "oauth_completed": false,
+    "tool_call_completed": false
+  },
+  "usage_limit_observed": {
+    "message": "Limite de uso alcanzado",
+    "ui_reset_text": "2 nov a las 7:00",
+    "timezone_not_exposed_by_ui": true,
+    "extra_usage_purchased_or_enabled": false
+  },
+  "launch_observation": "Computer Use app launch approval timed out; user subsequently opened the application manually",
+  "raw_accessibility_tree_or_screenshot_retained": false,
+  "observed_at_utc": "2026-10-31T20:23:15.796167+00:00"
+}

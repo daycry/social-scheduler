@@ -10,6 +10,25 @@
 >
 > La **doble publicación** (riesgo principal) no se prueba en E2E, porque exige controlar la cola y los publicadores: la fijan los tests Pest `PublishNowDoubleDispatch` (T-15) y `TargetTextIdempotency*` (T-20).
 
+## Criterios condicionados al alcance aprobado
+
+La spec indica que solo aplican los criterios de las características aprobadas. El [alcance cerrado del plan](improvement-plan.md) y las restricciones de `tasks.md` excluyen C-02, C-05b, C-06, C-07 y C-10. La tabla distingue esas exclusiones de una falta de pruebas del alcance incluido; no exige implementar las funciones descartadas.
+
+| Criterio | Característica y comportamiento | Aplicación a este plan | Evidencia |
+|---|---|---|---|
+| CA-06 | C-02: maqueta por red y conmutador móvil/escritorio | **NO APLICA: característica excluida** | `spec.md:206-208`, alcance cerrado C-02 fuera. La previsualización parcial existente no acredita este criterio. |
+| CA-13 | C-04: opciones YouTube y conservación del tag interno | **APLICA: verificado por Pest** | `tests/Feature/Publishing/YouTubeOptionsTest.php:53-65` usa el publicador real con `Http::fake`: categoría 27, contenido para niños desactivado, tags con `targetTag(77)` y las etiquetas del usuario, `notifySubscribers=false` y etiqueta de IA. |
+| CA-18 | C-05b: acortador, reintento, 302 y clic | **NO APLICA: característica excluida** | La condición de `spec.md:229` exige C-05b; el plan incluye solo C-05a. |
+| CA-19 | C-06: primer comentario e idempotencia | **NO APLICA: característica excluida** | `spec.md:231-233`, C-06 fuera. Las pruebas de primer comentario añadidas en otra iniciativa no cambian el alcance de este plan. |
+| CA-20 | C-06: fallo del comentario, reintento y aviso | **NO APLICA: característica excluida** | `spec.md:234`, misma exclusión C-06. |
+| CA-23 | C-07: colaboradores de Reel tras spike positivo | **NO APLICA: característica excluida** | `spec.md:237-240`, C-07 fuera y condicionado al spike. |
+| CA-29 | C-10: capa semanal de mejores horas | **NO APLICA: característica excluida** | `spec.md:253-255`, C-10 fuera. Las pruebas del servicio de mejores horas no prueban ese overlay del calendario. |
+| CA-30 | C-10: tres franjas futuras en el selector | **NO APLICA: característica excluida** | `spec.md:256`, misma exclusión C-10. |
+
+CA-13 se reproduce con `php artisan test --compact tests/Feature/Publishing/YouTubeOptionsTest.php`. El [JUnit final](../2026-10-19-social-scheduler/testing/raw/phpunit-final-p3.xml) ya acredita la clase con 7 tests y 32 aserciones, sin errores, fallos ni omitidos. Esa prueba valida el payload del publicador; no es una publicación real ni una prueba de su UI. M-04 conserva la comprobación de opciones en cuentas reales.
+
+`coverage-check.py` solo detecta referencias literales: no interpreta la condición de características aprobadas. El exit 0 posterior comprueba referencias, **no** convierte las siete exclusiones en pruebas superadas ni acredita ocho funcionalidades implementadas. Las fuentes de alcance se conservan en `spec.md:196`, `tasks.md:36` e `improvement-plan.md:152,226`.
+
 ## Automáticos (E2E — los ejecuta `qa` con Playwright)
 
 ### E2E-01 — Compositor a pantalla completa con pastillas de red (CA-01)
@@ -254,6 +273,7 @@
 ### M-04 — Opciones de TikTok y de YouTube en cuentas reales
 - **Qué revisar**: que la divulgación de contenido de TikTok y las opciones de YouTube (categoría, hecho para niños, notificar) llegan como se espera, y que lo no confirmado en T-26 sigue oculto.
 - **Por qué no se automatiza**: depende de las cuentas reales y de la auditoría de TikTok.
+- **Modo TikTok**: el pase de borrador solo comprueba que los controles de divulgación no se ofrecen; no transmite esos campos. El contraste real de divulgación requiere Direct Post auditado. Si no está disponible, esa parte de M-04 sigue pendiente, aunque el envío a bandeja y YouTube hayan pasado. La divulgación elegida posteriormente en TikTok no acredita su transmisión desde la app.
 - **Criterio de aceptación**:
   - [ ] Los campos confirmados se ven en la plataforma tras publicar.
   - [ ] Lo no confirmado no se ofrece en la UI.

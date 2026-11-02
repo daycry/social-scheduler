@@ -196,6 +196,14 @@ test('Compose: 31 hashtags en Instagram se rechazan al programar y en la validac
         ->assertOk()->assertExactJson(['errors' => ['targets.0' => [$mensaje]]]);
 });
 
+test('Compose: Bluesky llega con su modo de conteo (grafemas) y los demas tipos no lo traen', function () {
+    $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('limits.bluesky_post', ['max_chars' => 300, 'max_hashtags' => null, 'count' => 'graphemes'])
+            ->where('limits.bluesky_video.count', 'graphemes')
+            ->missing('limits.instagram_reel.count'));
+});
+
 test('Compose: el compositor recibe los maximos de texto y hashtags por tipo', function () {
     $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))
         ->assertInertia(fn (Assert $page) => $page

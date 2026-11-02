@@ -52,6 +52,8 @@ class AnalyticsService
         Metric::SAVED => 'Guardados',
         Metric::WATCH_MINUTES => 'Minutos reproducidos',
         Metric::VIDEO_COUNT => 'Videos publicados',
+        Metric::POST_COUNT => 'Publicaciones',
+        Metric::CLICKS => 'Clics en enlaces',
     ];
 
     /** Metricas que cada red PUEDE ofrecer (las demas no se muestran en su pagina). Presentes pero sin dato = "no disponible". */
@@ -60,6 +62,10 @@ class AnalyticsService
         'facebook' => [Metric::FOLLOWERS, Metric::VIEWS, Metric::INTERACTIONS],
         'youtube' => [Metric::FOLLOWERS, Metric::FOLLOWERS_GAINED, Metric::FOLLOWERS_LOST, Metric::VIEWS, Metric::WATCH_MINUTES, Metric::INTERACTIONS, Metric::LIKES, Metric::COMMENTS, Metric::SHARES, Metric::VIDEO_COUNT],
         'tiktok' => [Metric::FOLLOWERS, Metric::VIDEO_COUNT],
+        // Solo stocks de cuenta; las interacciones llegan por publicacion. Sin visualizaciones ni alcance (null, nunca 0).
+        'bluesky' => [Metric::FOLLOWERS, Metric::POST_COUNT],
+        // Visitas al perfil (no visualizaciones: Threads no da `views` de cuenta, null y nunca 0) y los totales del dia.
+        'threads' => [Metric::FOLLOWERS, Metric::PROFILE_VIEWS, Metric::INTERACTIONS, Metric::LIKES, Metric::COMMENTS, Metric::SHARES, Metric::CLICKS],
     ];
 
     /** Publicaciones que lista la pagina de una red por defecto (las de mas interacciones); ver `social.analytics.dashboard_posts`. */

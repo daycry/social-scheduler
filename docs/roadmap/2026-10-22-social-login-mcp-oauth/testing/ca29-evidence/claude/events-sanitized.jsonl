@@ -1,0 +1,7 @@
+{"event": "system", "subtype": "init", "mcp_servers": [{"name": "roadmap_ca29_claude", "status": "connected"}]}
+{"event": "assistant", "subtype": null, "tools": [{"tool": "mcp__roadmap_ca29_claude__list_brands", "status": "started"}]}
+{"event": "rate_limit_event", "subtype": null}
+{"event": "user", "subtype": null, "tools": [{"tool": "mcp__roadmap_ca29_claude__list_brands", "status": "completed"}]}
+{"event": "assistant", "subtype": null, "tools": [{"tool": "StructuredOutput", "status": "started"}]}
+{"event": "user", "subtype": null, "tools": [{"tool": "StructuredOutput", "status": "completed"}]}
+{"event": "result", "subtype": "success", "final": {"success": true, "brand_count": 1, "failure_kind": "none", "tool": "list_brands"}}

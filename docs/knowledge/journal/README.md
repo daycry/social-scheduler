@@ -20,4 +20,7 @@ Este índice lo regenera `journal.py index`; no lo edites.
 
 | Fecha | Iniciativa | Resumen | Fuente |
 |---|---|---|---|
+| [2026-10-31](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+| [2026-10-27](2026-10-23-social-scheduler.md) | social-scheduler | <agent-message from="a02b055c63343b667"> [Subagent hand-back] The text below is the final report of… | hook |
+| [2026-10-21](2026-10-21-social-scheduler.md) | social-scheduler | <agent-message from="a2f5a01efa4b8d629"> [Subagent hand-back] The text below is the final report of… | recover |
 | [2026-10-19](2026-10-19-sesion.md) | n/a | al ser una herramienta local, van a haber problemas con la api de las redes sociales? | hook |

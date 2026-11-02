@@ -3,6 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
+import ViewsMenu from '@/Components/Calendar/ViewsMenu.vue';
+import { useNetworks } from '@/Composables/useNetworks';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -25,19 +27,22 @@ const props = defineProps({
     items: Array,
     undated: Array,
     truncated: Boolean,
+    export: { type: Object, default: null },
     filters: Object,
+    views: { type: Array, default: () => [] },
+    active_view: { type: Number, default: null },
     flash: Object,
 });
 
-const NETWORK_STYLE = {
-    instagram: { short: 'IG', classes: 'bg-pink-50 text-pink-800 border-pink-200' },
-    facebook: { short: 'FB', classes: 'bg-blue-50 text-blue-800 border-blue-200' },
-    youtube: { short: 'YT', classes: 'bg-red-50 text-red-800 border-red-200' },
-    tiktok: { short: 'TT', classes: 'bg-slate-800 text-white border-slate-900' },
-};
+const catalog = useNetworks();
 
 const go = (params) =>
     router.get(route('calendar.index'), { ...props.filters, view: props.view, date: props.date, ...params }, { preserveState: true, preserveScroll: true, replace: true });
+
+// `export` es palabra reservada: el aviso del tope se lee por `csvInfo`.
+const csvInfo = computed(() => props.export);
+// Exportar CSV (C-03c): mismos filtros que la lista (los de la vista guardada ya vienen aplicados en `filters`).
+const exportHref = computed(() => route('exports.posts', Object.fromEntries(Object.entries({ ...props.filters, date: props.date }).filter(([, v]) => v !== null && v !== undefined && v !== ''))));
 
 const setFilter = (key, value) => go({ [key]: value || undefined });
 
@@ -88,7 +93,15 @@ const reschedule = (item, value) => {
 const shellBrand = computed(() => usePage().props.shell?.currentBrand?.id ?? null);
 const createBrand = computed(() => props.filters.brand_id ?? (props.brands.length === 1 ? props.brands[0].id : shellBrand.value));
 const createHref = computed(() => (createBrand.value ? route('brands.posts.create', createBrand.value) : null));
-const networkOf = (n) => NETWORK_STYLE[n] ?? { short: n, classes: 'bg-slate-100 text-slate-700 border-slate-300' };
+// Etiqueta corta y color de la red desde el catalogo del servidor: texto oscurecido sobre un tinte claro del color de marca.
+const networkOf = (n) => {
+    const c = catalog.color(n);
+
+    return {
+        short: catalog.shortLabel(n),
+        style: { backgroundColor: `color-mix(in srgb, ${c} 12%, white)`, color: `color-mix(in srgb, ${c} 60%, black)`, borderColor: `color-mix(in srgb, ${c} 35%, white)` },
+    };
+};
 const saveToLibrary = (item) =>
     router.post(route('library.store'), { post_id: item.id, name: (item.text || 'Mi plantilla').slice(0, 60) }, { preserveScroll: true });
 
@@ -189,6 +202,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <span class="text-xs text-slate-500">Zona horaria: {{ timezone }}</span>
 
                     <div class="ml-auto flex flex-wrap items-center gap-2 text-sm">
+                        <ViewsMenu :views="views" :active-view="active_view" :filters="filters" :view="view" :date="date" />
                         <select :value="filters.brand_id ?? ''" class="field w-auto py-1.5" aria-label="Marca" @change="setFilter('brand_id', $event.target.value)">
                             <option value="">Todas las marcas</option>
                             <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
@@ -203,6 +217,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <option v-for="s in ['borrador', 'programada', 'publicando', 'procesando', 'publicada', 'fallida']" :key="s" :value="s">{{ s }}</option>
                             </select>
                             <input type="search" :value="filters.q ?? ''" placeholder="Buscar texto" class="field w-auto py-1.5" @keyup.enter="setFilter('q', $event.target.value)" />
+                            <a :href="exportHref" class="btn-secondary" data-testid="export-posts">Exportar CSV</a>
                         </template>
                     </div>
                 </div>
@@ -211,6 +226,10 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <Link v-if="createHref" :href="createHref" class="btn-primary">Crear publicación</Link>
                     <Link v-else :href="route('brands.index')" class="btn-primary">Crear una marca</Link>
                 </EmptyState>
+
+                <p v-if="view === 'list' && csvInfo?.truncated" class="text-sm text-amber-800" role="status" data-testid="export-truncated">
+                    Hay {{ csvInfo.total }} filas que exportar y el CSV incluye las primeras {{ csvInfo.max }}. Filtra por marca, red o estado para exportar el resto.
+                </p>
 
                 <p v-if="truncated" class="text-sm text-amber-700">Hay muchas publicaciones: se muestran las primeras 500. Filtra por marca o red.</p>
 
@@ -226,7 +245,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     <Link :href="route('posts.edit', item.id)" class="block">
                                         <span class="flex flex-wrap items-center gap-1">
                                             <span class="text-slate-600">{{ item.local_time }}</span>
-                                            <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
+                                            <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :style="networkOf(t.network).style" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge :status="item.status" :label="item.status_label" />
                                             <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                         </span>
@@ -252,7 +271,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <Link :href="route('posts.edit', item.id)" class="block">
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="text-slate-500">{{ item.local_time }}</span>
-                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :class="networkOf(t.network).classes" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
+                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :style="networkOf(t.network).style" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                         <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                     </span>
                                     <span class="line-clamp-1 text-slate-800">{{ item.text || 'Sin texto' }}</span>
@@ -291,7 +310,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <td class="max-w-xs px-3 py-2"><Link :href="route('posts.edit', item.id)" class="text-slate-900 hover:underline">{{ item.text || 'Sin texto' }}</Link> <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span></td>
                                 <td class="px-3 py-2">
                                     <div class="flex flex-wrap gap-1">
-                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1 text-xs" :class="networkOf(t.network).classes">{{ t.network_label }}</span>
+                                        <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1 text-xs" :style="networkOf(t.network).style">{{ t.network_label }}</span>
                                     </div>
                                 </td>
                                 <td class="px-3 py-2">

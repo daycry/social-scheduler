@@ -34,16 +34,16 @@ verificacion: obligatoria
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 0 — Spike de viabilidad de plataformas (puerta G1) | 5 | 5 | 100% | — / 10h | 1.3h (estimado) / 0.9h | 0 / 0.4h | 0 / 455k |
-| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 2 | 5 | 40% | 0h (IA) / 60h | 1.19h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
+| Fase 1 — Núcleo: Laravel, auth, marcas, aislamiento y despliegue en Hestia | 3 | 5 | 60% | 0h (IA) / 60h | 1.19h (medido) / 9.1h | 0 / 2.3h | 0 / 2,73M |
 | Fase 2 — Conexiones OAuth por red | 5 | 6 | 83% | 0h (IA) / 60h | 0.6h (medido) / 9h | 0 / 2.3h | 0 / 2,73M |
 | Fase 3 — Publicación base y Meta (IG + FB), calendario | 6 | 9 | 67% | 0h (IA) / 142h | 1.81h (medido) / 21.8h | 0 / 5.3h | 0 / 6,47M |
 | Fase 4 — Publicación en YouTube (condicionada a G1) | 0 | 1 | 0% | 0 / 18h | 0 / 2.8h | 0 / 0.7h | 0 / 820k |
 | Fase 5 — Publicación en TikTok (condicionada a G1) | 0 | 1 | 0% | 0 / 16h | 0 / 2.5h | 0 / 0.6h | 0 / 728k |
 | Fase 6 — Servidor MCP: núcleo, API keys y herramientas de publicación | 3 | 3 | 100% | 0h (IA) / 37h | 0.67h (0.27h medido, resto estimado) / 5.6h | 0 / 1.4h | 0 / 1,69M |
 | Fase 7 — Analítica: snapshots, insights y dashboards | 6 | 7 | 86% | 0h (IA) / 106h | 2.75h (medido) / 16.2h | 0 / 4.1h | 0 / 4,83M |
-| Fase 8 — Reporting PDF/CSV | 3 | 4 | 75% | 0 / 40h | ~1.5h (estimado) / 6h | 0 / 1.5h | 0 / 1,82M |
+| Fase 8 — Reporting PDF/CSV | 4 | 4 | 100% | 0 / 40h | ~1.5h (estimado) / 6h | 0 / 1.5h | 0 / 1,82M |
 | Fase 9 — MCP estadísticas/informes y validación final | 1 | 2 | 50% | 0 / 16h | 0.95h (medido) / 2.4h | 0 / 0.6h | 0 / 728k |
-| **TOTAL** | **31** | **43** | **72%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
+| **TOTAL** | **33** | **43** | **77%** | **0 / 505h** | **0 / 76.3h** | **0 / 19.2h** | **0 / 23,00M** |
 
 > **Horas → Jira.** El worklog que imputa `jira-sync` al completar cada tarea es **Tiempo IA (ejec.) + Supervisión** (real; o estimación si no hay real), topado a la jornada configurada. Ver `skills/jira-sync/SKILL.md`.
 
@@ -221,34 +221,46 @@ verificacion: obligatoria
 
 - **Descripción**: Crear el proyecto Laravel 13 en la raíz (sin pisar `docs/` ni `.claude/`) con Pest, Pint y CI. Fijar PHP 8.4/8.5 y BD MariaDB ≥ 10.6 / MySQL ≥ 8.0 (verificar con `mysql --version`); entorno local Laragon con `metricool.test`.
 - **Changelog**: Proyecto base de la aplicación listo para desarrollo.
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-10-31
 - **Tiempo humano**: est. 8h · real 0h (IA)
 - **Tiempo IA (ejec.)**: est. 1.2h · real 0.16h (medido; fix revisión 1: <0.01h estimado)
 - **Supervisión**: est. 0.3h (≈25 % IA) · real —
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-05
 - **Tipo**: backend
-- **Archivos**: `composer.json`, `app/`, `bootstrap/`, `config/`, `routes/`, `tests/`, `phpunit.xml`, `pint.json`, `.github/workflows/ci.yml`, `.env.example`, `README.md`, `.editorconfig`, `.gitattributes`, `.npmrc`, `artisan`, `public/`, `storage/`, `database/.gitignore`, `database/factories/UserFactory.php`, `database/seeders/DatabaseSeeder.php`, `package.json`, `package-lock.json`, `database/migrations/0001_01_01_000000_create_users_table.php`, `database/migrations/0001_01_01_000001_create_cache_table.php`, `database/migrations/0001_01_01_000002_create_jobs_table.php`, `docs/roadmap/2026-10-19-social-scheduler/ui-reference.md`
+- **Archivos**: `composer.json`, `app/`, `bootstrap/`, `config/`, `routes/`, `tests/`, `phpunit.xml`, `pint.json`, `.github/workflows/ci.yml`, `.env.example`, `README.md`, `.editorconfig`, `.gitattributes`, `.npmrc`, `artisan`, `public/`, `storage/`, `database/.gitignore`, `database/factories/UserFactory.php`, `database/seeders/DatabaseSeeder.php`, `package.json`, `package-lock.json`, `database/migrations/0001_01_01_000000_create_users_table.php`, `database/migrations/0001_01_01_000001_create_cache_table.php`, `database/migrations/0001_01_01_000002_create_jobs_table.php`, `docs/roadmap/2026-10-19-social-scheduler/ui-reference.md`, `docs/roadmap/README.md` (orquestador: reflejo del cierre de T-06 en el índice)
 - **Cubre (tests)**: —
 - **Verificación**:
   - `php artisan --version` → `Laravel Framework 13.`
   - `composer test` → suite verde (Pest) y `vendor/bin/pint --test` → exit 0
 
 **Criterios de aceptación**
-- [ ] Proyecto arranca en `https://metricool.test`
-- [ ] CI ejecuta tests y Pint
-- [ ] `.env.example` documenta las variables previstas
+- [x] Proyecto arranca en `https://metricool.test`
+- [x] CI ejecuta tests y Pint
+- [x] `.env.example` documenta las variables previstas
 
 **Subtareas**
-- [ ] `composer create-project laravel/laravel` en la raíz
-- [ ] Instalar Pest y Pint; script `composer test`
-- [ ] Workflow de CI
-- [ ] Comprobar versión de MariaDB/MySQL y documentarla
+- [x] `composer create-project laravel/laravel` en la raíz
+- [x] Instalar Pest y Pint; script `composer test`
+- [x] Workflow de CI
+- [x] Comprobar versión de MariaDB/MySQL y documentarla
 
 **Notas**: La decisión de frontend (Inertia + Vue por defecto, React alternativa) se fija en T-07.
 **Notas (implementer, 2026-10-19)**: Laravel 13.37.0 creado en la raiz (PHP 8.3 local; composer exige ^8.3, produccion 8.4/8.5), Pest 4 + Pint, `pint.json` excluye `spike/`, CI en `.github/workflows/ci.yml`, `.env.example` con R2/colas/OAuth. MySQL local = 8.4.3 (cumple >= 8.0). Verificacion: `php artisan --version` -> Laravel Framework 13.37.0; `composer test` -> 2 passed; `vendor/bin/pint --test` -> passed; `/up` -> 200 con `php -S` sobre `public/`. **PENDIENTE (manual)**: el vhost de Laragon (`auto.metricool.test.conf`) se cambio a `public/` pero Apache no se recargo (https://metricool.test/up sigue 404 hasta pulsar Reload en Laragon); el criterio 'arranca en https://metricool.test' queda sin marcar hasta entonces. Tampoco se marca 'CI ejecuta tests y Pint': el workflow esta escrito pero no se ha ejecutado en GitHub (se comprobara en el primer push). BD `metricool` y `metricool_testing` creadas en local.
 **Nota de alcance (implementer)**: ficheros del esqueleto Laravel (artisan, public/, storage/, .gitignore de carpetas, factories/seeders) y `ui-reference.md` (commit previo de la rama) declarados aqui para la puerta de alcance.
 **Corrección revisión 1 (implementer)**: #11 `permissions: contents: read` en el workflow de CI; #15 migraciones base (users/cache/jobs) declaradas en `Archivos`. #12 y #21 deuda aceptada.
+
+**Cierre por verificación (2026-10-31)**: TDD n/a: actualización documental de una implementación existente. Los pendientes de HTTPS local y CI que constaban en la nota del 2026-10-19 quedan resueltos con las comprobaciones siguientes; esa nota se conserva como evidencia histórica. No se recrea el proyecto ni se vuelven a ejecutar las suites locales en este cierre.
+
+- **HTTPS local, comprobado hoy por el orquestador con acceso al host**: `curl.exe --silent --show-error --max-time 12 --output NUL --write-out 'https_up=%{http_code}\n' https://metricool.test/up` → `https_up=200`; la misma comprobación sobre `https://metricool.test/` → `https_root=200`. No se ha usado `--insecure`.
+- **Versión local, comprobada hoy por el orquestador**: `php artisan --version` → `Laravel Framework 13.37.0`.
+- **CI existente, consultada hoy por el orquestador**: `gh run view 40482231236 --repo daycry/social-scheduler --json headSha,conclusion,jobs,url` → `conclusion: success`, `headSha: c344866bd2d449f536cb0aee8adcb7dc1ead89ca`. La ejecución es del **2026-10-27**, en el commit actual de código, con el job `tests` y los pasos `Pint` (9) y `Tests` (10) en `success`; `composer install` y `npm ci && npm run build` también pasaron. El workflow ejecuta `vendor/bin/pint --test` y `composer test` bajo PHP 8.4. [Evidencia del job](https://github.com/daycry/social-scheduler/actions/runs/40482231236/job/122115129558). Esto acredita la verificación declarada mediante CI; no se presenta como una nueva ejecución local ni como CI lanzada hoy.
+- **Esqueleto y configuración revisados hoy**: `composer.json` mantiene Laravel 13, Pest, Pint y el script `test`; `pint.json` y `.github/workflows/ci.yml` están presentes. `.env.example` documenta MySQL, cola `database`, R2 y OAuth, con comentarios y valores vacíos para credenciales. La comprobación de MySQL **8.4.3** y la creación inicial pertenecen a la evidencia del 2026-10-19; no se afirma una consulta nueva del servidor de BD.
+
+**Puerta documental ejecutada (2026-10-31)**: `python .../agent-kits/shared/ledger-lint.py docs/roadmap/2026-10-19-social-scheduler/tasks.md` (custom-agents 1.21.1, Python 3.13) → `ledger-lint: 0 incoherencias · 0 avisos (tasks.md)`, exit 0. `git diff --check -- docs/roadmap/2026-10-19-social-scheduler/tasks.md` → sin salida, exit 0.
+
+Se conservan las horas y tokens ya registrados: no hay una medición adicional atribuible a este cierre documental. T-09 y T-10 siguen `en-progreso`; no se cierra la fase ni el plan.
 
 ### T-07 — Autenticación web: registro, login, recuperación de contraseña e Inertia
 
@@ -336,7 +348,7 @@ verificacion: obligatoria
   - `curl -sI https://<dominio>/up` → `HTTP/2 200` en el VPS (manual, M-04)
 
 **Criterios de aceptación**
-- [ ] La app responde 200 en `/up` bajo HTTPS en el VPS
+- [x] La app responde 200 en `/up` bajo HTTPS en el VPS
 - [ ] Cron del scheduler activo
 - [x] Ajustes de Hestia versionados en `deploy/hestia/`
 - [x] Despliegue repetible con un solo comando
@@ -348,7 +360,11 @@ verificacion: obligatoria
 - [x] Script `deploy.sh` (pull, composer, migrate, caches, queue:restart)
 
 **Notas**: Requiere el acceso SSH/root confirmado. Parte del trabajo es no delegable (M-04).
-**Notas (implementer, 2026-10-19)**: Hecho y verificado en local: `deploy/hestia/deploy.sh` (down, migrate, caches, queue:restart, up, `app:health`; `--dry-run` sin efectos; `trap` que sube la app si falla), `deploy/hestia/nginx-overrides.conf`, `deploy/hestia/README.md` (runbook: dominio, plantilla Laravel, BD, TLS, PHP-FPM, cron, M-04) y `.env.production.example`. Verificacion: `bash -n deploy/hestia/deploy.sh` OK; `bash deploy/hestia/deploy.sh --dry-run` -> lista 14 pasos, exit 0; argumento desconocido -> exit 2. **PENDIENTE (manual en el VPS, M-04)**: crear dominio/BD/TLS en Hestia, instalar los ajustes de Nginx/PHP-FPM, dar de alta el cron `schedule:run` y comprobar `curl -sI https://<dominio>/up` -> 200. Los criterios 'responde 200 bajo HTTPS' y 'cron activo' y las subtareas 'Crear dominio y BD' y 'Cron de Hestia' NO se marcan: no verificables sin el VPS. La tarea sigue en-progreso hasta M-04.
+**Notas históricas (implementer, 2026-10-19)**: Hecho y verificado en local: `deploy/hestia/deploy.sh` (down, migrate, caches, queue:restart, up, `app:health`; `--dry-run` sin efectos; `trap` que sube la app si falla), `deploy/hestia/nginx-overrides.conf`, `deploy/hestia/README.md` (runbook: dominio, plantilla Laravel, BD, TLS, PHP-FPM, cron, M-04) y `.env.production.example`. Verificacion: `bash -n deploy/hestia/deploy.sh` OK; `bash deploy/hestia/deploy.sh --dry-run` -> lista 14 pasos, exit 0; argumento desconocido -> exit 2. En ese momento quedaban pendientes la configuración y las comprobaciones reales del VPS.
+
+**Verificación externa de solo lectura (2026-10-31)**: el origen configurado en `.env.production` es `https://social-scheduler.daycry.ovh`. `curl.exe --silent --show-error --max-time 20 --output NUL --write-out 'production_up=%{http_code}\n' https://social-scheduler.daycry.ovh/up` → `production_up=200`; la misma comprobación en la raíz → `production_root=200`. Se verifica HTTPS sin `--insecure` y se marca únicamente ese criterio. No se ha desplegado código ni modificado el servidor. Cron, configuración de Hestia/BD y workers aún requieren inspección del servidor; se ha solicitado host/puerto/usuario SSH al usuario. T-09 sigue `en-progreso`.
+
+**Healthcheck de producción (2026-10-31)**: se consultó `/health` con el token ya configurado, sin mostrarlo ni registrarlo en los artefactos. Respuesta `ok=true`, `status=ok`: BD `11.4.10-MariaDB-ubu2404` con SKIP LOCKED, cola con 0 pendientes y 0 fallos de las últimas 24 h (8 históricos), disco `local` operativo y scheduler con último latido hace 31 s. La sonda de disco crea, lee y elimina solo su archivo temporal de salud. Se confirma que el dominio con TLS y la BD de la aplicación funcionan; esto no prueba cómo están registrados en el panel de Hestia, por lo que esa subtarea sigue pendiente de inspección. El latido reciente tampoco se presenta como inspección del cron ni prueba de reinicio de workers. Se mantiene pendiente el acceso SSH y no se ha desplegado el código local nuevo.
 **Corrección revisión 1 (implementer)**: #3 `deploy.sh` ejecuta `npm ci && npm run build` (o `SKIP_BUILD=1`) y exige `public/build/manifest.json` antes de migrar y en el smoke final; #5 `artisan down` es el primer paso (antes de fetch/pull/composer) y el `trap` deja la app arriba si el código no cambió o en mantenimiento (con instrucciones de vuelta) si cambió, ejecutando siempre `queue:restart`; #4 los workers (`WORKER_UNITS`) se reinician antes del smoke y un fallo del smoke no los salta; #6 `chmod 600 .env` en el runbook. Verificación: `bash deploy/hestia/deploy.sh --dry-run` -> 18 pasos, exit 0; simulación con `PHP_BIN=echo COMPOSER=false` -> deploy fallido, app en mantenimiento, exit 1; sin manifest -> el gate falla. Test `deploy script goes down before touching code...`. Sigue en-progreso hasta M-04 (VPS).
 
 ### T-10 — Almacenamiento R2, cola `database`, workers systemd y healthcheck
@@ -1245,7 +1261,7 @@ verificacion: obligatoria
 
 ## Fase 8 — Reporting PDF/CSV
 
-**Estado**: en-progreso · **Estimado**: 40h · **Real**: ~1.5h IA (estimado) + corrección intento 1 (no medida) · **Verificación de fase** (estado final `d0cded2`): `php artisan test tests/Feature/Reports tests/Feature/Mcp` → 69 passed (1676 assertions); `vendor/bin/pint --test` (rutas del ámbito) → passed; `npm run build` → built OK; suite completa tras las correcciones → 669 passed (4802 assertions) · **Coste est.**: 2.400 € + tokens (⚠️ verificar precio) · **Tokens est.**: 1,82M
+**Estado**: completado · **Estimado**: 40h · **Real**: ~1.5h IA (estimado) + corrección intento 1 (no medida) · **Verificación de fase**: historial en `d0cded2` (69 tests de informes/MCP y 669 globales); regresión final del 2026-10-31: 2461 tests PHP y 57 E2E T-43 correctos. El usuario aprueba el diseño y las secciones de T-41 · **Coste est.**: 2.400 € + tokens (⚠️ verificar precio) · **Tokens est.**: 1,82M
 
 ### T-38 — ReportService y exportación CSV
 
@@ -1343,8 +1359,9 @@ verificacion: obligatoria
 ### T-41 — Plantilla y diseño visual del informe
 
 - **Descripción**: Cerrar secciones y branding del PDF (plantilla única por marca) y validar con el usuario.
-- **Changelog**: Informe con diseño pulido.
-- **Estado**: en-progreso
+- **Changelog**: Informe con diseño y secciones aprobados por el usuario.
+- **Estado**: completado
+- **Cerrada**: 2026-10-31
 - **Tiempo humano**: est. 6h · real —
 - **Tiempo IA (ejec.)**: est. 0.9h · real — (incluido en el ~1.5h estimado de la fase; usage-meter no separó tareas)
 - **Supervisión**: est. 0.2h (≈25 % IA) · real —
@@ -1354,29 +1371,31 @@ verificacion: obligatoria
 - **Archivos**: `resources/views/reports/brand.blade.php`, `tests/Feature/Reports/`; añadido al implementar (`0299ddf`): `config/reports.php` (secciones y branding)
 - **Cubre (tests)**: M-03
 - **Verificación**:
-  - lectura: M-03 aprobado por el usuario sobre un informe real
-  - real (estado final `d0cded2`): tests `ReportPdf` 3/3 (la vista contiene marca, color, KPI, comparación y la nota «No disponible»); PDF de muestra con datos sintéticos generado en el scratchpad de la sesión (`sample.pdf`); **M-03 PENDIENTE** (revisión del usuario con datos reales)
+  - aprobación expresa del usuario (2026-10-31): «Apruebo el diseño y las secciones», sobre el [PDF de ejemplo](testing/samples/informe-ejemplo.pdf) generado mediante el worker y revisado en sus siete páginas. El usuario conoce que contiene datos ficticios.
+  - histórica (estado final `d0cded2`): tests `ReportPdf` 3/3 (marca, color, KPI, comparación y «No disponible»), con una muestra sintética. La revisión de métricas de cuentas reales de M-03 se mantiene en T-37/T-43; esta aprobación cierra el diseño de T-41.
 
 **Criterios de aceptación**
-- [ ] El usuario aprueba el diseño del informe
+- [x] El usuario aprueba el diseño del informe
 
 **Subtareas**
 - [x] Ajuste de plantilla
-- [ ] Revisión con el usuario
+- [x] Revisión con el usuario
 
-**Notas**: Incógnita: secciones y branding sin definir en la spec.
+**Notas**: el usuario acepta el diseño y las secciones de la plantilla actual; se conserva el branding configurable global y el nombre de cada marca.
 
-**Motivo del estado**: `en-progreso` — el código está hecho, pero el criterio «el usuario aprueba el diseño» es la verificación manual **M-03** y no se cierra sin su aprobación.
+**Muestra revisable (2026-10-31)**: el E2E-11 genera y descarga un PDF real mediante el worker, con datos ficticios propios y de otro usuario para comprobar el aislamiento. Se conserva un [ejemplo de siete páginas](testing/samples/informe-ejemplo.pdf) y sus vistas previas en `testing/samples/`. Se han revisado visualmente portada, KPIs, gráfico, desglose y tabla de publicaciones; los bloques de texto de las siete páginas quedan dentro del A4. Se solicita al usuario aprobación del diseño y las secciones. Esta muestra no verifica M-03 con métricas de cuentas reales ni sustituye la aprobación del usuario.
 
-**Default propuesto (PENDIENTE DE VALIDAR por el usuario)**: portada con logo y color de marca; resumen KPI (4 tarjetas con variación si hay comparación + gráfico diario de visualizaciones + tabla por red); una página por red con todas sus métricas y tasa de interacción; publicaciones destacadas (top 5 por red, con datos); notas sobre métricas «No disponible». Configurable en `config/reports.php` (`sections`, `branding.color`, `branding.logo` ruta local PNG/JPG, `branding.footer`; env `REPORTS_BRAND_COLOR`/`REPORTS_LOGO_PATH`/`REPORTS_FOOTER`). Plantilla única compartida (color/logo globales, no por marca: `Brand` no tiene campos de branding; «plantilla por marca» requeriría migración + UI, no hecho).
+**Motivo del cierre (2026-10-31)**: el usuario responde expresamente «Apruebo el diseño y las secciones» a la muestra enlazada. Se cumple el criterio pendiente de T-41. No se atribuye a esa respuesta una validación de métricas reales ni de los demás manuales.
 
-**Pendientes**: validar M-03 con el usuario (diseño, secciones, branding) — bloquea cerrar T-41; branding por marca no implementado.
+**Diseño y secciones aprobados (2026-10-31)**: portada con identidad y color; resumen KPI (4 tarjetas con variación si hay comparación + gráfico diario de visualizaciones + tabla por red); una página por red con sus métricas y tasa de interacción; publicaciones destacadas (top 5 por red); notas sobre métricas «No disponible». Configurable en `config/reports.php` (`sections`, `branding.color`, `branding.logo` ruta local PNG/JPG, `branding.footer`; env `REPORTS_BRAND_COLOR`/`REPORTS_LOGO_PATH`/`REPORTS_FOOTER`). Plantilla compartida con nombre por marca; color y logo globales. No se ha añadido personalización de tema por marca.
+
+**Pendientes fuera de T-41**: M-03 con datos de cuentas reales sigue abierta para T-37 y T-43. No se vuelve a pedir aprobación del diseño aceptado.
 
 ---
 
 ## Fase 9 — MCP estadísticas/informes y validación final
 
-**Estado**: en-progreso · **Estimado**: 16h · **Real**: 0.95h IA (medido) · **Verificación de fase**: `php artisan test` → 619 passed (3311 assertions) tras T-42/T-43 y 669 passed (4802 assertions) tras las correcciones; `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx playwright test` → no ejecutable (Playwright no instalado) · **Coste est.**: 960 € + tokens (⚠️ verificar precio) · **Tokens est.**: 728k
+**Estado**: en-progreso · **Estimado**: 16h · **Real**: 0.95h IA (medición histórica) · **Verificación automática local (2026-10-31)**: PHP 2461 passed (14549 aserciones); Pint y TypeScript correctos; Playwright T-43 57 passed en tres proyectos, `qa-gate` VERDE. Manuales M-01…M-04 pendientes · **Coste est.**: 960 € + tokens (⚠️ verificar precio) · **Tokens est.**: 728k
 
 ### T-42 — Herramientas MCP: estadísticas e informes
 
@@ -1418,25 +1437,51 @@ verificacion: obligatoria
 - **Previsión IA**: 331k in / 33k out tok · ⚠️ verificar €
 - **Dependencias**: T-42, T-24, T-37
 - **Tipo**: test
-- **Archivos**: `tests/e2e/`, `docs/roadmap/2026-10-19-social-scheduler/test-plan.md`, `docs/README.md`, `docs/RAG-INDEX.md`, `docs/arquitectura.md`, `docs/stack.md`, `docs/modulos/`, `docs/referencia/`, `docs/guias/`, `docs/usuario/` (documentación del proyecto, Fase 4 del ciclo, commit `19da202`)
-- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06, E2E-07, E2E-08, E2E-09, E2E-10, E2E-11, E2E-12, M-01, M-02, M-03, M-04, M-05
+- **Archivos**: `tests/e2e/`, `playwright.config.ts`, `playwright.roadmap.config.ts`, `tsconfig.json`, `app/Http/Controllers/ApiKeyController.php`, `tests/Feature/Mcp/McpAuthTest.php`, `.gitignore`, `README.md`, `docs/security-scan/` (informe SAST local ignorado), `docs/roadmap/2026-10-19-social-scheduler/testing/`, `docs/roadmap/2026-10-19-social-scheduler/test-plan.md`, `docs/README.md`, `docs/RAG-INDEX.md`, `docs/arquitectura.md`, `docs/stack.md`, `docs/modulos/`, `docs/referencia/`, `docs/guias/`, `docs/usuario/` (documentación del proyecto, Fase 4 del ciclo, commit `19da202`; harness aislado y corrección de seguridad añadidos el 2026-10-31)
+- **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06, E2E-07, E2E-08, E2E-09, E2E-10, E2E-11, E2E-12, API-01, API-02, API-03, M-01, M-02, M-03, M-04, M-05
 - **Verificación**:
-  - `npx playwright test` → los 12 E2E (E2E-01…E2E-12) pasan
+  - `npx playwright test -c playwright.roadmap.config.ts` → los 12 E2E (E2E-01…E2E-12), API-01…API-03 y los guardas del harness pasan en escritorio y móvil, con BD desechable y conectores simulados
   - lectura: test-plan.md con M-01…M-05 marcados con evidencia
-  - real: `php artisan test` → 619 passed (3311 assertions); `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx playwright test` → **NO ejecutable** (Playwright no instalado: sin `playwright.config`, sin `tests/e2e/`, sin `node_modules/.bin/playwright`); M-01…M-05 sin ejecutar (humano)
+  - histórica (2026-10-20): `php artisan test` → 619 passed (3311 assertions); `vendor/bin/pint --test` → passed; `npm run build` → OK; `npx playwright test` → **NO ejecutable entonces** (Playwright no instalado: sin `playwright.config`, sin `tests/e2e/`, sin `node_modules/.bin/playwright`); M-01…M-05 figuraban pendientes
 
 **Criterios de aceptación**
 - [ ] Todos los CA-01…CA-12 verificados
-- [ ] Revisión de aislamiento y cifrado sin hallazgos críticos
+- [x] Revisión de aislamiento y cifrado sin hallazgos críticos
 
 **Subtareas**
-- [ ] Suite Playwright
+- [x] Suite Playwright
 - [ ] Pruebas manuales con evidencia
-- [ ] Revisión de seguridad
+- [x] Revisión de seguridad
 
 **Notas**: Las horas de pruebas por fase están dentro de cada tarea; aquí solo la ejecución final.
 
-**Motivo del estado**: `en-progreso` (parcial) — CA-01…CA-12 tienen cobertura Pest identificada, pero no están verificados por E2E de navegador (Playwright no instalado) ni por las pruebas manuales; la revisión de seguridad es parcial (aislamiento cubierto por tests; cifrado de tokens y revisión formal pendientes). Sin cambios de código en esta tarea (`tests/e2e/` no existe).
+**Seguridad verificada (2026-10-31)**: `nemesis` revisó el alcance previsto por T-43: aislamiento web/MCP, cifrado de credenciales y API keys, autorización de media e informes. La revisión independiente de autorización no confirmó vulnerabilidades. El SAST detectó VULN-001 (CWE-312, Medium): el secreto de una API key nueva se flasheaba sin cifrar en la sesión de BD. Se corrigió con cifrado explícito del flash y descifrado solo al mostrar `newKey`; un flash antiguo o manipulado se descarta. La UX de visualización única y la revocación se conservan.
+
+**RED (2026-10-31)**: `php artisan test --compact tests/Feature/Mcp/McpAuthTest.php --filter='el secreto temporal no queda en claro'` → 1 fallo, 9 aserciones: el bearer mostrado era recuperable del payload de sesión de BD decodificado. El test usa el handler real con SQLite en memoria y `session.encrypt=false`. RED adicional con `--filter='un secreto temporal antiguo o manipulado'`: el secreto antiguo aparecía en `newKey` en vez de descartarse. Ambos rojos se observaron antes de su corrección; los ajustes previos del harness del test no se cuentan como RED.
+
+**GREEN y verificación independiente**: las dos regresiones pasan (34 aserciones); `McpAuthTest` + `ApiKeyOriginTest` → 23 passed, 188 aserciones. `nemesis` volvió a ejecutar el conjunto focalizado de seguridad y origen de keys → **111 passed, 573 aserciones**, exit 0. VULN-001 queda remediada, con 0 hallazgos abiertos en ese alcance. Informe local: `docs/security-scan/2026-10-31_0948/index.html`; JUnit y reproducción histórica conservados allí. Esto no acredita DAST ni una auditoría global de ocho dimensiones.
+
+**Primera regresión PHP de la reanudación (2026-10-31)**: `php artisan test --compact --log-junit=storage/framework/testing/t43/phpunit-final.xml` → **2458 passed de 2458, 14489 aserciones**, exit 0, duración 146437 ms. La evidencia se conserva sin sobrescribirla; no sustituye las pruebas manuales.
+
+**Regresión PHP final (2026-10-31)**: tras añadir los tres casos literales de Bluesky, `php artisan test --compact --log-junit=storage/framework/testing/t43/phpunit-final-p3.xml` → **2461 passed de 2461, 14549 aserciones**, exit 0, duración 159907 ms. El JUnit confirma 0 errores, 0 fallos y 0 omitidos, con copia en `testing/raw/phpunit-final-p3.xml`. Pint global vuelve a pasar; no cambia producción ni el harness después de la QA de 57 casos.
+
+**Reconciliación de M-05 (2026-10-31)**: se ha leído el informe del spike, su tabla de viabilidad y la sección `Decisión G1`. La decisión del 2026-10-19 documenta la delegación expresa del usuario, YouTube A, TikTok D + B y continuar con Meta; T-05 ya estaba completada. M-05 se marca cumplido con esa evidencia histórica, sin pedir de nuevo la decisión ni afirmar una nueva prueba real. El test-plan y la referencia de pendientes quedan sincronizados.
+
+**Reanudación automática (2026-10-31)**: la nota histórica de Playwright no instalado ya no describe el árbol actual. QA ha contrastado los doce escenarios originales y ha identificado brechas de flujo real en registro/verificación, OAuth, renovación, colas, reintentos, snapshots, informes y aislamiento MCP. Se implementan en `tests/e2e/roadmap/` con configuración separada, SQLite nueva por ejecución, almacenamiento/caché/mail aislados y conectores simulados fuera del código de producción. El runner general excluye esta carpeta para no ejecutar esos fixtures con la sesión demo.
+
+La comprobación inicial del harness en escritorio pasó 3 tests: rechazo de entorno de producción, rechazo de una BD ajena al directorio desechable y creación de usuarios `e2e-sec-roadmap-*` sin cuentas reales. `npx playwright test -c playwright.config.ts --list` mantiene 498 tests en 21 ficheros; los escenarios nuevos se descubren exclusivamente con `playwright.roadmap.config.ts` (54 tests: 18 por cada uno de los tres proyectos). La evidencia inicial de aislamiento se amplía con la ejecución funcional siguiente; no acredita las pruebas manuales.
+
+**Verificación de implementación T-43 (2026-10-31)**: `npx playwright test -c playwright.roadmap.config.ts --project=desktop` → **18 passed, 0 failed, 0 flaky, 0 skipped**, 1,4 min. Comprende los doce E2E originales, tres escenarios MCP HTTP y tres comprobaciones del harness. JSON: `storage/framework/testing/t43/run-1793437913869-3204/results.json`; capturas, adjuntos de estado y PDF/CSV descargados se conservan bajo `artifacts/` de esa ejecución. `qa-gate.py` sobre ese JSON → `VERDE`, passed=18, failed=0, flaky=0, skipped=0, interrupted=0. `pint --test tests/e2e/roadmap` → passed; `ledger-lint.py` → 0 incoherencias y 0 avisos; `git diff --check` → exit 0. El último ajuste de los contextos B para heredar el viewport móvil se verificará en QA independiente de los tres proyectos. T-43 permanece `en-progreso`; no cambian los recuentos de tareas completadas ni se acredita el cierre de los manuales.
+
+**Motivo del estado al 2026-10-20 (histórico)**: `en-progreso` (parcial) — CA-01…CA-12 tenían cobertura Pest identificada, sin E2E de navegador ni pruebas manuales. Playwright y `tests/e2e/` no existían entonces; la revisión formal de seguridad también estaba pendiente. Las notas de reanudación del 2026-10-31 registran la implementación y verificación posteriores.
+
+**Comprobación TypeScript (2026-10-31)**: `npx tsc --noEmit -p .` detectó un uso preexistente de `Locator.filter({ visible: true })` no admitido por los tipos de Playwright 1.49.1 en `calendar-views.spec.ts`. Se reemplaza por la intersección con `page.locator(':visible')`, conservando la intención de seleccionar el enlace visible. `tsconfig.json` incluye ahora también la configuración aislada. El mismo comando pasa después del ajuste; no se ha ejecutado la batería general con sus bookends de demo.
+
+**QA independiente final (2026-10-31)**: `npx playwright test -c playwright.roadmap.config.ts`, sin limitar proyectos ni reintentos, → **57 passed, 0 failed, 0 flaky, 0 skipped**, 4,2 min, exit 0. `desktop`, `mobile` y `mobile-360` ejecutaron 19 casos cada uno: doce E2E originales, tres escenarios MCP HTTP y cuatro guardas del harness. La ejecución comprueba el último ajuste de los contextos móviles y la corrección B1 de caché/limiter/locks.
+
+`qa-gate.py` sobre la copia exacta de resultados devuelve `VERDE`, exit 0; counts `{passed:57, failed:0, flaky:0, skipped:0, interrupted:0}`, sin errores del runner. Fuente: `storage/framework/testing/t43/run-qa-host-20261031-1793438874302/results.json`; copia estable: `testing/raw/results.json`, SHA256 `ac554df539a373dbca70f3bc5065da457a7d7ac20cb26c740c76545283b95e6a`. El [informe de QA](testing/report.md) enlaza capturas, adjuntos, PDF/CSV descargados y JUnit PHP; el JSON no se vuelve a utilizar para descubrimiento ni se sobrescribe con `--list`.
+
+**Motivo actual del estado**: se completa la validación automática y la revisión de seguridad del alcance local; siguen sin verificarse M-01 (publicación real), M-02 (OAuth/renovación reales), M-03 (datos reales; diseño ya aprobado) y M-04 (operación del VPS). T-43 continúa `en-progreso`; no se marcan todos los CA como verificados globalmente por un resultado automático. El usuario indica que realizará las pruebas del VPS, por lo que no se vuelve a solicitar acceso SSH.
 
 **Matriz CA → cobertura (2026-10-20, resumen de `t43-matrix.md`)** — cobertura automática con Pest feature y conectores simulados (`Http::fake`/`Queue::fake`/`Http::preventStrayRequests`); los E2E de navegador quedan pendientes para `qa`.
 
@@ -1455,7 +1500,11 @@ verificacion: obligatoria
 | CA-11 informe PDF y CSV por rango | E2E-11, M-03 | `Reports/{ReportsTest,Csv/ReportCsvTest,Pdf/*}` | Auto OK · M-03 pendiente |
 | CA-12 MCP: marcas, posts, calendario, stats, informe | E2E-12, API-01..03 | `Mcp/{McpAuthTest,McpAuditTest}`, `Mcp/Tools/McpToolsTest`, `Mcp/Tools/McpStatsTest`, `Isolation/Mcp` | Auto OK · E2E-12 pendiente |
 
-**Pendientes para `qa`/humano**: instalar Playwright y escribir `tests/e2e/` (E2E-01…E2E-12); M-01 publicación real por tipo de contenido; M-02 OAuth real de las 4 redes; M-03 revisión visual de dashboards y PDF (incluye aprobar T-41 y cerrar T-37); M-04 despliegue en el VPS HestiaCP; M-05 informe del spike / decisión G1; API-01…API-03 con curl contra `/mcp` (API-01/03 ya cubiertos en Pest: `tools/list` incluye `get_stats`, `get_post_stats`, `generate_report`, `get_report`); revisión de cifrado de tokens y API keys. La limitación de descarga de `get_report` que recogía la matriz quedó resuelta en `d0cded2` (ruta solo con firma, ver T-42).
+**Pendientes actuales del usuario (2026-10-31)**: M-01 publicación real por tipo de contenido; M-02 OAuth y renovación reales de las cuatro redes; M-03 revisión de métricas de cuentas reales para T-37; M-04 cron/Hestia, workers y recuperación tras caída del VPS. El usuario asume las pruebas del VPS y ya aprueba diseño y secciones de T-41. La batería E2E/API, su aislamiento y el cifrado de API keys quedan implementados y verificados; no se vuelve a pedir instalar Playwright ni aprobar G1 o el diseño aceptado.
+
+**Coherencia de la guía manual (2026-10-31)**: se retiran de `pendientes-manuales.md` las afirmaciones obsoletas de que Playwright y las rutas legales no existen. Se contrasta la QA de 57 casos y `routes/web.php:30-31`; la verificación del proxy, los clientes MCP y las URLs legales publicadas sigue pendiente. M-01 aclara los doce tipos originales del enum y sus trece variantes de media: la historia de Instagram se prueba como foto y como vídeo. No se reduce el smoke ni se atribuyen nuevas publicaciones reales. La repetición del runner general queda bajo T-77 de `metricool-parity-3`.
+
+**Regresión general posterior (2026-10-31)**: [T-77](../2026-10-26-metricool-parity-3/tasks.md) acredita además la batería general aislada: **502 passed y dos skips previstos de 504**, cero fallos/flaky/interrumpidos y ningún caso sin ejecutar por errores; Playwright y qa-gate exit 0. Su [informe independiente](../2026-10-26-metricool-parity-3/testing/attempt-2/report.md) conserva el primer intento rojo y la corrección del oráculo del test de fecha al cambiar de mes. Esta regresión es distinta de los 57 casos propios de T-43, cuyo código y configuración no se modifican. No cambia el estado de M-01…M-04 ni acredita despliegue: T-43 continúa abierta y el roadmap principal mantiene 33/43 tareas completadas.
 
 ## Revisión de dos lentes — intento 1: Fase 1 (T-06..T-10) — 6 Important, 15 Minor
 
@@ -1740,3 +1789,51 @@ Lentes A+B+C+D (agente `reviewer`, contexto fresco) con traspaso de las tablas d
 | T2 | Minor (ledger) | TTL de la URL de `get_report` no constaba como 5 min | T-42 | Notas de T-42: URL firmada de 5 min, ruta solo con firma (`reports.download_minutes` = 5) | `config/reports.php`, `Report::signedDownloadUrl()` |
 
 Verificación tras corregir: suite completa 675 passed (4818 assertions); `vendor/bin/pint --test` passed; `npm run build` OK. Sin gaps Critical/Important pendientes: bucles de las Fases 7, 8 y 9 cerrados.
+
+## Revisión de dos lentes — intento 2: Continuidad del roadmap (T-06) — sin hallazgos pendientes
+
+Revisión documental del 2026-10-31, lentes A y B con contexto fresco, sobre HEAD `c344866` y los cambios locales autorizados. Las lentes C y D no aplican: el selector devuelve ambas `false`. Se revisan conjuntamente el cierre de T-06, la trazabilidad de `metricool-parity-3` y el índice; la [traza conjunta](../2026-10-26-metricool-parity-3/tasks.md#revisión-de-dos-lentes--intento-2-continuidad-documental-t-49-t-50-t-77-y-cierre-de-t-06) conserva los dos hallazgos documentales corregidos antes de esta pasada.
+
+| Criterio | Resultado | Evidencia |
+|---|---|---|
+| T-06: HTTPS local, CI y configuración | ✓ A y B | `/up` y raíz HTTPS 200; CI `40482231236`, job `122115129558`, pasos Tests/Pint correctos; configuración y esqueleto leídos. Ver nota de cierre de T-06. |
+| Procedencia de las verificaciones | ✓ A y B | CI del 2026-10-27 consultada el 2026-10-31, versión/HTTPS comprobados hoy y MySQL histórico identificados por separado. Sin nuevas suites locales. |
+| Recuentos y alcance | ✓ A y B | Conteo independiente 32 completadas + 11 abiertas; fase 1 = 3/5. Índice sincronizado. Unión del alcance de ambos ledgers: cuatro documentos autorizados, ninguno fuera. |
+
+`ledger-lint.py` → exit 0, 0 incoherencias y 0 avisos. `git diff --check` → exit 0. No se declara QA global ni se cierran los pendientes de cuentas reales, VPS o juicio del usuario.
+
+## Revisión de dos lentes — intento 1: T-43 (harness, E2E y seguridad) — 1 Important
+
+Revisión independiente A y B del 2026-10-31 sobre HEAD `c344866` y cambios locales. El selector determinista no activa C ni D; la revisión SAST focalizada de `nemesis` y su verificación de VULN-001 son evidencia adicional, sin sustituir una auditoría global.
+
+| Criterio | Lente A | Lente B | Evidencia |
+|---|---|---|---|
+| Implementación de CA-01…CA-12 y API-01…API-03 | ✓ | ✓ estático | Rutas, jobs, worker, subida/ffprobe y descargas reales; solo plataformas externas simuladas. PDF con datos ajenos sembrados y excluidos. |
+| API key cifrada y visualización única | ✓ | ✓ | Regresiones con sesión BD real sin cifrado global, hash y revocación; JUnit de seguridad independiente. |
+| Aislamiento de los recursos del harness | ✓ inicial | ✗ B1 | La comprobación de rutas de BD no basta para la caché ya resuelta por los providers. |
+| QA de los tres proyectos y manuales | Pendiente | Pendiente | Desktop inicial 18/18; no acredita la pasada final de los tres viewports ni las cuentas/VPS reales. |
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B1 | Important | La caché y el `RateLimiter` se resuelven durante el bootstrap, antes de redirigir las rutas al directorio desechable | T-43 | Verificado por el orquestador; vuelve al implementer con regresión de aislamiento previa al fix. Pendiente de revisión del intento 2. | `tests/e2e/roadmap/bootstrap.php:64-69` en la primera pasada; `AppServiceProvider.php:131`; reproducción de B con `CacheServiceProvider` y `RateLimiter` sin escrituras: el FileStore conserva `REAL_SHARED_CACHE` tras cambiar config a `DISPOSABLE_RUN/cache`. Los locks `ShouldBeUnique` pueden colisionar entre runs con los mismos IDs. |
+
+Las salidas de `ledger-lint`, cobertura literal y diff-check fueron correctas en la revisión. No se toma la pasada desktop en verde como prueba de que el aislamiento sea correcto; QA completa se ejecutará después de corregir B1.
+
+## Revisión de dos lentes — intento 2: T-43 (corrección de aislamiento) — 0 Important pendientes
+
+Lentes A y B nuevas, con la tabla completa del intento anterior. B1 queda corregido: `useStoragePath()` y el hook posterior a `LoadConfiguration` fijan caché, limiter, locks y demás recursos del run antes de resolver los providers. La regresión inspecciona los almacenes reales, comprueba independencia entre dos runs y persistencia entre procesos de un mismo run; no adquiere locks ni escribe probes cuando las rutas no pertenecen al run.
+
+| Criterio | A | B | Evidencia |
+|---|---|---|---|
+| Aislamiento previo a providers y regresión B1 | ✓ | ✓ | `bootstrap.php`, `cli.php` y `harness.spec.ts`; orden de bootstrap contrastado con Kernel. RED: `run-1793438342216-18176/results.json`, 1 fallo por rutas compartidas. GREEN de implementación: `run-1793438415290-14328/results.json`, 19 passed, sin fallos/flaky/skipped. |
+| Resto de CA, flujos, cifrado y alcance | ✓ conservado | ✓ conservado | Sin nuevas evidencias que reabran los criterios aprobados. QA independiente de los tres proyectos y manuales siguen pendientes. |
+| Locator compatible y tipos de la nueva configuración | ✓ | ✓ | La intersección `and(:visible)` conserva la intención con Playwright 1.49.1; `tsconfig.json` incluye la configuración aislada. `npx tsc --noEmit -p .` → exit 0. |
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B1 | Important (intento 1) | Caché y locks compartidos antes de resolver providers | T-43 | Corregido y verificado por A y B | Regresión y bootstrap descritos arriba. |
+| A1 | Minor | La guía seguía enumerando tres guardas | T-43 | Corregido por el orquestador: se documentan las cuatro, incluida la regresión de caché/limiter/locks | `docs/guias/pruebas-t43.md`; índice de docs sincronizado. |
+
+Se descarta como evidencia de ejecución el JSON `run-1793438584485-1684/results.json`: un descubrimiento posterior lo dejó con 0 passed y 57 skipped. No se utiliza para acreditar el pase aislado 1/1 que había informado el implementer. La pasada independiente de QA comprobará el conjunto actual de 57 tests con un JSON nuevo y conservado.
+
+Puertas actuales del orquestador: `npx tsc --noEmit -p .` → exit 0; `php vendor/bin/pint --test` → `{"tool":"pint","result":"passed"}`, exit 0. No quedan gaps Critical/Important de corrección pendientes; se autoriza QA independiente de los tres proyectos sin cerrar los manuales ni T-43.

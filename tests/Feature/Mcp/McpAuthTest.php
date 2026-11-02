@@ -3,6 +3,9 @@
 use App\Mcp\Abilities;
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Session\DatabaseSessionHandler;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\Support\McpClient;
@@ -100,12 +103,49 @@ test('McpAuth: la fecha de caducidad elegida manda dentro del tope; sin ella, el
         ->and((int) round(now()->diffInDays($tokens[1]->expires_at, true)))->toBe(365);
 });
 
+test('McpAuth: el secreto temporal no queda en claro en una sesion de base de datos sin cifrar', function () {
+    config(['session.driver' => 'database', 'session.encrypt' => false, 'session.serialization' => 'json', 'session.lottery' => [0, 100]]);
+    app('session')->forgetDrivers();
+    app()->forgetInstance('session.store');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('api-keys.store', absolute: false), ['name' => 'Temporal', 'abilities' => ['brands:read']])
+        ->assertRedirect(route('api-keys.index', absolute: false));
+
+    expect(app('session.store')->getHandler())->toBeInstanceOf(DatabaseSessionHandler::class);
+    $sessionId = session()->getId();
+    $storedAfterCreation = base64_decode(DB::table('sessions')->where('id', $sessionId)->value('payload'), true);
+
+    $shown = $this->actingAs($user)->get(route('api-keys.index', absolute: false))->assertOk();
+    $plain = $shown->viewData('page')['props']['newKey'];
+    $storedAfterDisplay = base64_decode(DB::table('sessions')->where('id', $sessionId)->value('payload'), true);
+    $row = PersonalAccessToken::firstOrFail();
+
+    expect($plain)->toBeString()->toContain('|msk_')
+        ->and($row->token)->toBe(hash('sha256', explode('|', $plain, 2)[1]))
+        // El resto de la sesion sigue serializado sin cifrar: se protege el secreto incluso con SESSION_ENCRYPT=false.
+        ->and(json_decode($storedAfterCreation, true, flags: JSON_THROW_ON_ERROR))->toHaveKey('new_key')
+        ->and($storedAfterCreation)->not->toContain($plain)
+        ->and($storedAfterDisplay)->not->toContain($plain);
+
+    $this->actingAs($user)->get(route('api-keys.index', absolute: false))
+        ->assertOk()->assertInertia(fn ($page) => $page->where('newKey', null));
+    expect(base64_decode(DB::table('sessions')->where('id', $sessionId)->value('payload'), true))->not->toContain($plain);
+});
+
+test('McpAuth: un secreto temporal antiguo o manipulado se descarta sin mostrarlo', function () {
+    $this->actingAs(User::factory()->create())->withSession(['new_key' => 'msk_legacy-no-cifrado'])
+        ->get(route('api-keys.index', absolute: false))->assertOk()
+        ->assertInertia(fn ($page) => $page->where('newKey', null))
+        ->assertSessionMissing('new_key');
+});
+
 test('McpAuth: la key se guarda con hash y el secreto solo se muestra una vez', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('api-keys.store', absolute: false), ['name' => 'Claude', 'abilities' => ['brands:read']])
         ->assertRedirect(route('api-keys.index', absolute: false));
-    $plain = session('new_key');
+    $plain = Crypt::decryptString(session('new_key'));
     $row = PersonalAccessToken::first();
 
     expect($plain)->toContain('|msk_')->and($row->name)->toBe('Claude')->and($row->abilities)->toBe(['brands:read'])
@@ -157,7 +197,7 @@ test('McpAuth: un usuario no puede revocar la key de otro (404)', function () {
 test('McpAuth: crear y revocar quedan en el registro de uso sin el secreto', function () {
     $user = User::factory()->create();
     $this->actingAs($user)->post(route('api-keys.store', absolute: false), ['name' => 'Claude', 'abilities' => ['posts:read']]);
-    $plain = session('new_key');
+    $plain = Crypt::decryptString(session('new_key'));
     $this->actingAs($user)->delete(route('api-keys.destroy', $user->tokens()->first()->id, absolute: false));
 
     expect(AuditLog::pluck('action')->all())->toBe(['api_key.created', 'api_key.revoked'])

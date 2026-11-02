@@ -32,6 +32,7 @@ class PublishRequestFactory
             size: $m->size,
             disk: $m->disk,
             path: $m->path,
+            source: $m->source,
         ))->all();
 
         return new PublishRequest(

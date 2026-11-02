@@ -1,0 +1,6 @@
+{"event": "thread.started", "item_type": null}
+{"event": "turn.started", "item_type": null}
+{"event": "item.started", "item_type": "mcp_tool_call", "server": "roadmap_ca29_codex", "tool": "list_brands", "status": "in_progress"}
+{"event": "item.completed", "item_type": "mcp_tool_call", "server": "roadmap_ca29_codex", "tool": "list_brands", "status": "completed"}
+{"event": "item.completed", "item_type": "agent_message", "final": {"success": true, "tool": "list_brands", "brand_count": 1, "failure_kind": "none"}}
+{"event": "turn.completed", "item_type": null}

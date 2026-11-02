@@ -1,0 +1,593 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>QA T-77</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+body{font-family:Arial,sans-serif;font-size:10pt}h1{font-size:24pt}h2{break-after:avoid}img{display:block;margin:10px auto;max-width:100%;max-height:150mm;object-fit:contain}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{width:100%;table-layout:fixed;font-size:8pt}td,th{overflow-wrap:anywhere}tr,img,pre{break-inside:avoid}a{color:#4338ca}</style><body><h1>Informe de QA - T-77, segundo intento de regresión general</h1>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fecha</td>
+<td>2026-10-31</td>
+</tr>
+<tr>
+<td>Automáticos</td>
+<td><strong>VERDE</strong>; Playwright exit 0; qa-gate exit 0</td>
+</tr>
+<tr>
+<td>Entrega completa</td>
+<td>Abierta: manuales M-01 a M-05; T-30, T-64 y T-77 no se cierran</td>
+</tr>
+<tr>
+<td>Entorno</td>
+<td><a href="http://localhost:8080">http://localhost:8080</a>, servidor propio gestionado y SQLite desechable</td>
+</tr>
+<tr>
+<td>Fuentes</td>
+<td><a href="../../improvement-plan.md">Plan</a>, <a href="../../test-plan.md">test-plan</a>, <a href="../../tasks.md">ledger</a></td>
+</tr>
+</tbody>
+</table>
+<h2>Veredicto del gate</h2>
+<p>Salida íntegra de qa-gate.py sobre la copia exacta del reporter:</p>
+<pre><code class="language-json">{
+
+  &quot;verdict&quot;: &quot;VERDE&quot;,
+
+  &quot;counts&quot;: {
+
+    &quot;passed&quot;: 502,
+
+    &quot;failed&quot;: 0,
+
+    &quot;flaky&quot;: 0,
+
+    &quot;skipped&quot;: 2,
+
+    &quot;interrupted&quot;: 0
+
+  },
+
+  &quot;flaky_sin_justificar&quot;: [],
+
+  &quot;flaky_justificados&quot;: {},
+
+  &quot;threshold&quot;: &quot;verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado&quot;
+
+}
+</code></pre>
+<p><strong>502/504 pasan</strong>, 0 fallos, 0 flaky, 2 skipped y 0 interrupted. Errores top-level: 0.
+El veredicto automático no acredita publicaciones, OAuth, métricas ni IA reales, ni completa la QA global del roadmap.</p>
+<h2>Alcance, procedencia y ejecución</h2>
+<p>La configuración general conserva los <strong>498 casos originales</strong> y añade <strong>6 ejecuciones</strong> de dos regresiones de fecha (mismo mes y cruce de mes) en los tres perfiles: <strong>504 casos, 168 por proyecto</strong>. Son 21 specs, Chromium, workers=1 y retries=0. No se aplica grep ni se restringen proyectos.</p>
+<pre><code class="language-powershell">npx.cmd playwright test --max-failures=1
+</code></pre>
+<p><code>--max-failures=1</code> detiene el intento ante el primer fallo; no convierte lo no ejecutado en aprobado. El primer fallo, si lo hay, se notifica desde el mismo handle. No se reinicia el proceso por timeouts de observación.
+Inicio 2026-10-31T11:49:16.5247356Z; fin 2026-10-31T12:31:52.3253078Z. Duración reporter <strong>2554.57 s</strong>. Raíz nueva: <code>C:\laragon\www\metricool\storage\framework\testing\t43\run-general-23f21d13-7032-4ba1-926b-c00d16c1cb0a</code>.
+Base: HEAD c344866 más diff local revisado, sin desplegar. A/B aprobaron el fix de prueba antes del GO. La causa del primer rojo fue una aserción que buscaba el día del mes anterior en un calendario que solo renderiza el mes actual; el fix modifica la prueba, no producción. La evidencia previa recibida es 81 casos de compositor correctos (27 por perfil, cero fallos/omitidos/flaky/errores), sin repetirla desde QA.
+El servidor usa localhost:8080, reuseExistingServer=false y no utiliza E2E_NO_SERVER. PHP recibe únicamente el manifiesto fake explícito del harness. SQLite, media, sesiones/auth, vistas, correo y cachés viven bajo la raíz UUID. Redes externas simuladas y HTTP no simulado bloqueado. No se carga .env real ni se actúa sobre cuentas reales, DEMO real o VPS. Guardrail local: exit 0.
+Se capturaron hashes antes y después: <strong>16 archivos sin cambios y 0 cambiados</strong>. Incluyen los 13 del runner/config, composer.spec.ts, ApiKeyController y el manifiesto build.</p>
+<h2>Resultado por proyecto</h2>
+<table>
+<thead>
+<tr>
+<th>Proyecto</th>
+<th align="right">Total</th>
+<th align="right">Pasan</th>
+<th align="right">Fallan</th>
+<th align="right">Flaky</th>
+<th align="right">Skipped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop</td>
+<td align="right">168</td>
+<td align="right">168</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td align="right">168</td>
+<td align="right">167</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td align="right">168</td>
+<td align="right">167</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<p>Desglose skipped: <strong>2 históricos</strong> del shell de escritorio en móvil y <strong>0 otros no ejecutados/omitidos</strong>. Los históricos están en pages.spec.ts:50 (mobile y mobile-360): la barra lateral de escritorio no existe en esos perfiles. No se cuentan como aprobados.</p>
+<h2>Resultado por spec</h2>
+<table>
+<thead>
+<tr>
+<th>Spec</th>
+<th align="right">Pasan</th>
+<th align="right">Fallan</th>
+<th align="right">Flaky</th>
+<th align="right">Skipped</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a11y.spec.ts</td>
+<td align="right">105</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>all-brands.spec.ts</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>bluesky.spec.ts</td>
+<td align="right">12</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>calendar-views.spec.ts</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>campaigns.spec.ts</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>composer.spec.ts</td>
+<td align="right">81</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>csv-export.spec.ts</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>first-comment.spec.ts</td>
+<td align="right">18</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>flows.spec.ts</td>
+<td align="right">12</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>gif-picker.spec.ts</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>hashtags.spec.ts</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>inbox-notes.spec.ts</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>instagram-grid.spec.ts</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>media-import.spec.ts</td>
+<td align="right">39</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>natural-schedule.spec.ts</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>oauth.spec.ts</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>pages.spec.ts</td>
+<td align="right">94</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td>saved-texts.spec.ts</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>security.spec.ts</td>
+<td align="right">24</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>social.spec.ts</td>
+<td align="right">21</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>threads.spec.ts</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p>Trazabilidad del inventario: <strong>498 originales</strong> (496 correctos y 2 omitidos), más <strong>6 nuevas regresiones de fecha</strong>, todas con resultado: expected. Los casos «ayer es inaccesible en Auckland: mismo mes» y «cambio de mes» están en composer.spec.ts:328 y pasan en desktop, mobile y mobile-360. El caso integrado anterior pasa ahora en composer.spec.ts:350 en los tres perfiles.
+<a href="raw/case-summary.json">Detalle de los 504 casos</a>: títulos, fichero/línea, proyecto, duración, estados, errores y adjuntos. El <a href="raw/results.json">JSON original</a> no se transforma.</p>
+<h2>Escenarios del plan y trazabilidad</h2>
+<table>
+<thead>
+<tr>
+<th>Escenario</th>
+<th>Tareas</th>
+<th>Specs ejecutadas</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E2E-01</td>
+<td>T-03, T-06</td>
+<td>inbox-notes.spec.ts</td>
+<td>3/3 pasan</td>
+</tr>
+<tr>
+<td>E2E-02</td>
+<td>T-10, T-13</td>
+<td>calendar-views.spec.ts</td>
+<td>9/9 pasan</td>
+</tr>
+<tr>
+<td>E2E-03</td>
+<td>T-20, T-28</td>
+<td>bluesky.spec.ts</td>
+<td>12/12 pasan</td>
+</tr>
+<tr>
+<td>E2E-04</td>
+<td>T-32, T-35</td>
+<td>all-brands.spec.ts</td>
+<td>3/3 pasan</td>
+</tr>
+<tr>
+<td>E2E-05</td>
+<td>T-39, T-41</td>
+<td>csv-export.spec.ts</td>
+<td>3/3 pasan</td>
+</tr>
+<tr>
+<td>E2E-06</td>
+<td>T-44, T-47</td>
+<td>hashtags.spec.ts</td>
+<td>9/9 pasan</td>
+</tr>
+<tr>
+<td>E2E-07</td>
+<td>T-50, T-52</td>
+<td>natural-schedule.spec.ts</td>
+<td>15/15 pasan</td>
+</tr>
+<tr>
+<td>E2E-08</td>
+<td>T-60, T-62</td>
+<td>threads.spec.ts, bluesky.spec.ts</td>
+<td>27/27 pasan</td>
+</tr>
+<tr>
+<td>E2E-09</td>
+<td>T-66, T-70</td>
+<td>gif-picker.spec.ts</td>
+<td>9/9 pasan</td>
+</tr>
+</tbody>
+</table>
+<p>Accesibilidad: los escenarios existentes incorporan axe y aserciones de desbordamiento. El test-plan no define bloques API-xx/A11Y-xx separados; no se atribuyen smokes curl adicionales.</p>
+<h2>Fallos y errores</h2>
+<p>No hay fallos/flaky/interrumpidos de casos en el reporter de este intento.</p>
+<h2>Puertas P1 y límites</h2>
+<p>Ledger-lint:</p>
+<pre><code class="language-text">⚠️  T-30: campo **Changelog** VACÍO — escribe una frase (qué cambia para quien USA el proyecto) o quita el campo
+
+⚠️  T-64: campo **Changelog** VACÍO — escribe una frase (qué cambia para quien USA el proyecto) o quita el campo
+
+ledger-lint: 0 incoherencias · 2 avisos (tasks.md)
+</code></pre>
+<p>Coverage-check (salida literal):</p>
+<pre><code class="language-text">⚠️  T-01: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-02: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-04: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-05: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-07: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-08: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-09: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-11: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-12: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-14: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-15: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-16: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-18: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-19: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-21: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-22: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-23: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-24: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-25: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-26: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-27: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-29: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-31: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-33: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-34: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-36: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-37: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-38: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-40: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-42: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-43: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-45: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-46: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-48: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-51: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-53: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-54: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-55: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-56: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-57: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-58: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-59: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-61: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-63: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-65: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-67: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-68: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-69: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-71: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-72: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-73: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-74: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-75: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-76: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+⚠️  T-77: sin cobertura declarada (si es tarea de UI, es un criterio huérfano → NO verde)
+
+{&quot;applies&quot;: true, &quot;defined&quot;: [&quot;E2E-01&quot;, &quot;E2E-02&quot;, &quot;E2E-03&quot;, &quot;E2E-04&quot;, &quot;E2E-05&quot;, &quot;E2E-06&quot;, &quot;E2E-07&quot;, &quot;E2E-08&quot;, &quot;E2E-09&quot;, &quot;M-01&quot;, &quot;M-02&quot;, &quot;M-03&quot;, &quot;M-04&quot;, &quot;M-05&quot;], &quot;referenced&quot;: [&quot;E2E-01&quot;, &quot;E2E-02&quot;, &quot;E2E-03&quot;, &quot;E2E-04&quot;, &quot;E2E-05&quot;, &quot;E2E-06&quot;, &quot;E2E-07&quot;, &quot;E2E-08&quot;, &quot;E2E-09&quot;, &quot;M-01&quot;, &quot;M-02&quot;, &quot;M-03&quot;, &quot;M-04&quot;, &quot;M-05&quot;], &quot;broken_refs&quot;: 0, &quot;tasks_sin_cobertura&quot;: [&quot;T-01&quot;, &quot;T-02&quot;, &quot;T-04&quot;, &quot;T-05&quot;, &quot;T-07&quot;, &quot;T-08&quot;, &quot;T-09&quot;, &quot;T-11&quot;, &quot;T-12&quot;, &quot;T-14&quot;, &quot;T-15&quot;, &quot;T-16&quot;, &quot;T-18&quot;, &quot;T-19&quot;, &quot;T-21&quot;, &quot;T-22&quot;, &quot;T-23&quot;, &quot;T-24&quot;, &quot;T-25&quot;, &quot;T-26&quot;, &quot;T-27&quot;, &quot;T-29&quot;, &quot;T-31&quot;, &quot;T-33&quot;, &quot;T-34&quot;, &quot;T-36&quot;, &quot;T-37&quot;, &quot;T-38&quot;, &quot;T-40&quot;, &quot;T-42&quot;, &quot;T-43&quot;, &quot;T-45&quot;, &quot;T-46&quot;, &quot;T-48&quot;, &quot;T-51&quot;, &quot;T-53&quot;, &quot;T-54&quot;, &quot;T-55&quot;, &quot;T-56&quot;, &quot;T-57&quot;, &quot;T-58&quot;, &quot;T-59&quot;, &quot;T-61&quot;, &quot;T-63&quot;, &quot;T-65&quot;, &quot;T-67&quot;, &quot;T-68&quot;, &quot;T-69&quot;, &quot;T-71&quot;, &quot;T-72&quot;, &quot;T-73&quot;, &quot;T-74&quot;, &quot;T-75&quot;, &quot;T-76&quot;, &quot;T-77&quot;], &quot;tests_sin_referencia&quot;: [], &quot;gwt_cubiertos&quot;: [&quot;CA-01&quot;, &quot;CA-02&quot;, &quot;CA-03&quot;, &quot;CA-04&quot;, &quot;CA-05&quot;, &quot;CA-06&quot;, &quot;CA-07&quot;, &quot;CA-08&quot;, &quot;CA-09&quot;, &quot;CA-10&quot;, &quot;CA-11&quot;, &quot;CA-12&quot;, &quot;CA-13&quot;, &quot;CA-14&quot;, &quot;CA-15&quot;, &quot;CA-16&quot;, &quot;CA-17&quot;], &quot;gwt_sin_cubrir&quot;: [], &quot;gwt_sin_id&quot;: 0, &quot;test_plan_na&quot;: false, &quot;marcador_no_canonico&quot;: null}
+</code></pre>
+<p>Exit ledger-lint: 0; exit coverage-check: 0. Las puertas comprueban coherencia y referencias literales; no prueban por sí solas UI ni ejecutan los smokes reales. Se conservan los avisos tasks_sin_cobertura y los manuales asociados a tareas de interfaz. El resultado automático no los cierra.</p>
+<h2>Checklist manual pendiente</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>M-01 / T-30, T-68:</strong> Bluesky real: app password, texto/enlaces/menciones, cuatro imágenes, vídeo, GIF, idempotencia, métricas, renovación y errores reales.</li>
+<li><input disabled="" type="checkbox"> <strong>M-02 / T-64:</strong> Threads real: OAuth/cancelación, texto/emojis, imagen, vídeo, carrusel, cuota, métricas, renovación y funcionamiento como tester.</li>
+<li><input disabled="" type="checkbox"> <strong>M-03 / T-66, T-75:</strong> términos de Giphy sobre republicación del MP4 y atribución visible/legible en móvil.</li>
+<li><input disabled="" type="checkbox"> <strong>M-04:</strong> juicio visual y UX de inbox/notas, vistas, Todas las marcas, hashtags, Escribe cuándo, GIF y Bluesky; español, estados vacíos/error, foco y tabulación.</li>
+<li><input disabled="" type="checkbox"> <strong>M-05 / T-49, T-50:</strong> IA real: frases, zona horaria, límite diario y coste por llamada.
+T-77 depende de T-30/T-64; no se cierra ni se declara QA global del roadmap completa.</li>
+</ul>
+<h2>Evidencia previa y primer intento</h2>
+<ul>
+<li>Pest completo previo: <strong>2461 tests, 14549 aserciones</strong>; <a href="../../../2026-10-19-social-scheduler/testing/raw/phpunit-final-p3.xml">JUnit estable</a>. No repetido aquí.</li>
+<li>QA aislada de T-43: <strong>57 casos correctos</strong>, gate exit 0; <a href="../../../2026-10-19-social-scheduler/testing/report.md">informe separado</a>. No sustituye la regresión general.</li>
+<li><a href="../report.md">Primer informe rojo intacto</a>: 442 correctos, tres fallos de fecha, 51 no ejecutados y dos omitidos históricos; su JSON y PDF permanecen en el directorio original. Los recuentos provisionales del primer intento fueron corregidos en ese informe y no se reutilizan como evidencia.</li>
+</ul>
+<h2>Capturas y procedencia</h2>
+<p>SHA-256 origen <code>B7DB16DE01B7BDF7CD240CE03F0E6D9159D72471090B22BA4595BAC88776CE7E</code>; copia <code>B7DB16DE01B7BDF7CD240CE03F0E6D9159D72471090B22BA4595BAC88776CE7E</code>; coinciden: <strong>True</strong>.
+<a href="raw/playwright-full.log">Log</a>, <a href="raw/playwright-exit.json">exit real</a>, <a href="raw/run-metadata.json">metadatos</a>, <a href="raw/qa-gate.json">gate</a>, <a href="raw/results-sha256.json">hashes</a>, <a href="raw/frozen-files-before.json">manifiesto previo</a> y <a href="raw/frozen-files-final.json">comparación final</a>.
+Se conservan los adjuntos del reporter en screenshots/ y raw/artifacts/. No todos los escenarios producen capturas positivas inicial/final; no se inventan ni se presenta una imagen como evidencia de una aserción que no cubre. La revisión visual humana M-04 sigue abierta.</p>
+<p><img src="screenshots/333-0.png" alt="Muestra conservada" /></p>
+<p><img src="screenshots/334-0.png" alt="Muestra conservada" /></p>
+<p><img src="screenshots/335-0.png" alt="Muestra conservada" /></p>
+<p>Total de capturas conservadas: 81. Relación completa por caso en case-summary.json.</p>
+<h2>Cierre</h2>
+<p>Solo se escriben artefactos de QA. No se cambian fuentes, configuración, spec ni ledger; el orquestador gestiona estados y continuidad. Informe local, sin publicación en Confluence.</p>
+</body></html>

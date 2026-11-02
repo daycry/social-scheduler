@@ -1,0 +1,11 @@
+﻿{
+    "reviewUtc":  "2026-10-31T11:35:10.1710010Z",
+    "pdfPages":  13,
+    "reviewed":  [
+                     "all13pages-contact-sheet",
+                     "page01-full",
+                     "page08-full"
+                 ],
+    "result":  "sin recortes, solapes ni capturas rotas observados",
+    "basis":  "inspeccion visual de PNG renderizados con PyMuPDF"
+}

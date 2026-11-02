@@ -6,8 +6,10 @@ use App\Mcp\Abilities;
 use App\Models\PersonalAccessToken;
 use App\Services\AuditLog;
 use Carbon\Carbon;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,7 +34,7 @@ class ApiKeyController extends Controller
             'abilities' => Abilities::all(),
             'presets' => Abilities::presets(),
             'endpoint' => url('/mcp'),
-            'newKey' => session('new_key'),
+            'newKey' => $this->newKey($request),
         ]);
     }
 
@@ -51,8 +53,8 @@ class ApiKeyController extends Controller
         $token = $request->user()->createToken($data['name'], array_values(array_unique($data['abilities'])), isset($data['expires_at']) ? Carbon::parse($data['expires_at'])->endOfDay() : now()->addDays($defaultDays));
         $audit->record($request->user(), 'api_key.created', AuditLog::OK, 'api_key', $token->accessToken->id, null, 'web');
 
-        // Se muestra una sola vez: en BD solo queda su hash.
-        return redirect()->route('api-keys.index')->with('new_key', $token->plainTextToken);
+        // La tabla de tokens conserva solo el hash; el flash tambien se cifra aunque SESSION_ENCRYPT=false.
+        return redirect()->route('api-keys.index')->with('new_key', Crypt::encryptString($token->plainTextToken));
     }
 
     public function destroy(Request $request, int $key, AuditLog $audit): RedirectResponse
@@ -63,5 +65,22 @@ class ApiKeyController extends Controller
         $audit->record($request->user(), 'api_key.revoked', AuditLog::OK, 'api_key', $key, null, 'web');
 
         return redirect()->route('api-keys.index')->with('success', 'API key revocada.');
+    }
+
+    private function newKey(Request $request): ?string
+    {
+        $encrypted = $request->session()->get('new_key');
+        if (! is_string($encrypted)) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($encrypted);
+        } catch (DecryptException) {
+            // Descarta un flash anterior al cifrado o manipulado, sin exponerlo ni provocar un error de pagina.
+            $request->session()->forget('new_key');
+
+            return null;
+        }
     }
 }

@@ -1,14 +1,19 @@
 <script setup>
-import { onBeforeUnmount, ref } from 'vue';
+import { nextTick, onBeforeUnmount, ref } from 'vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { useDrivePicker } from '@/Composables/useDrivePicker';
+import GifPicker from '@/Components/Composer/GifPicker.vue';
 
 // La subida vive ahora en la barra del editor (`EditorToolbar`); aquí queda la lista ordenable de lo elegido
 // y la importación «Desde URL» (C-04a): el servidor descarga en segundo plano y aquí se sondea hasta `listo` o `invalido`.
-const { form, editable, mediaById, move, removeMedia, onUploaded, drivePicker } = useComposerContext();
+const { form, editable, mediaById, move, removeMedia, onUploaded, drivePicker, giphyEnabled } = useComposerContext();
 
 // «Google Drive» (C-04b): solo con el Picker configurado en el servidor. Comparte lista y sondeo con «Desde URL».
 const drive = useDrivePicker(() => drivePicker.value);
+
+// «GIF» (C-04b): solo con GIPHY_API_KEY en el servidor. El MP4 elegido se importa por el mismo camino y sondeo que «Desde URL».
+const gifOpen = ref(false);
+const gifButton = ref(null);
 
 const url = ref('');
 const sending = ref(false);
@@ -150,6 +155,22 @@ const importFromDrive = async () => {
     }
 };
 
+const importGif = async (gif) => {
+    gifOpen.value = false;
+    if (sending.value) return;
+    sending.value = true;
+    error.value = '';
+    try {
+        const { asset } = await call(route('media.import-gif'), 'POST', { url: gif.mp4 });
+        track(asset);
+    } catch (e) {
+        error.value = e.message;
+    } finally {
+        sending.value = false;
+        nextTick(() => gifButton.value?.focus());
+    }
+};
+
 // Cancela una importación en curso (o atascada): borra el asset, así el worker la abandona y se libera su cupo de las 3 vivas.
 const cancel = async (item) => {
     if (item.cancelling) return;
@@ -208,8 +229,11 @@ onBeforeUnmount(() => {
                 <button type="submit" class="btn-secondary" :disabled="sending || !url.trim()">{{ sending ? 'Importando…' : 'Importar' }}</button>
                 <button v-if="drive.available()" type="button" class="btn-secondary" data-testid="media-import-drive" :disabled="sending || drive.busy.value"
                     aria-describedby="media-import-help" @pointerenter="drive.preload()" @focus="drive.preload()" @click="importFromDrive">{{ drive.busy.value ? 'Abriendo Drive…' : 'Google Drive' }}</button>
+                <button v-if="giphyEnabled" ref="gifButton" type="button" class="btn-secondary" data-testid="media-import-gif" aria-haspopup="dialog"
+                    :disabled="sending" @click="gifOpen = true">GIF</button>
             </form>
-            <p id="media-import-help" class="mt-1 text-xs text-slate-600">Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()"> También puedes elegir un fichero de Google Drive.</template></p>
+            <GifPicker v-if="giphyEnabled" :show="gifOpen" @close="gifOpen = false" @pick="importGif" />
+            <p id="media-import-help" class="mt-1 text-xs text-slate-600">Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()"> También puedes elegir un fichero de Google Drive.</template><template v-if="giphyEnabled"> O busca un GIF en Giphy.</template></p>
             <p id="media-import-error" role="alert" class="mt-1 text-sm text-red-700" data-testid="media-import-error">{{ error }}</p>
 
             <ul v-if="imports.length" class="mt-2 space-y-2" aria-live="polite">

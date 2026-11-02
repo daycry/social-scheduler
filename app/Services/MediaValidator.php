@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\ContentType;
 use App\Models\MediaAsset;
+use App\Services\Media\ImageDownscaler;
+use App\Support\TextLength;
 use InvalidArgumentException;
 
 /**
@@ -24,9 +26,9 @@ class MediaValidator
         $label = $spec['label'];
         $errors = [];
 
-        $errors = array_merge($errors, $this->validateText($spec, $label, $text));
-
         $count = count($media);
+        $errors = array_merge($errors, $this->validateText($spec, $label, $text, $count));
+
         $min = $spec['media']['min'];
         $max = $spec['media']['max'];
 
@@ -80,6 +82,13 @@ class MediaValidator
             $rules = $spec['recommended'][$asset->kind] ?? [];
             $noun = $asset->isVideo() ? 'El video' : 'La imagen';
 
+            // Imagen por encima del tope de la red: se publica una copia recomprimida (aviso, no error).
+            $capKey = $spec[$asset->kind]['recompress_to_config'] ?? null;
+            $size = (int) ($asset->size ?? $asset->declared_size);
+            if ($capKey !== null && ! $asset->isVideo() && $size > (int) config($capKey)) {
+                $out[] = 'La imagen pesa '.$this->mb($size).' y '.$spec['label'].' admite '.$this->mb((int) config($capKey)).': se publicara una copia recomprimida (la original no se modifica).';
+            }
+
             foreach ([['width', 'ancho'], ['height', 'alto']] as [$field, $word]) {
                 $min = $rules["min_$field"] ?? null;
                 if ($min !== null && $asset->{$field} !== null && $asset->{$field} < $min) {
@@ -115,16 +124,26 @@ class MediaValidator
     }
 
     /** @return list<string> */
-    private function validateText(array $spec, string $label, ?string $text): array
+    private function validateText(array $spec, string $label, ?string $text, int $mediaCount = 0): array
     {
-        $length = mb_strlen(trim((string) $text));
+        // El modo de conteo es de la red: caracteres (por defecto), grafemas (Bluesky) o la regla de Threads.
+        $length = TextLength::count($text, $spec['text']['count'] ?? TextLength::CHARS);
 
         if (($spec['text']['required'] ?? false) && $length === 0) {
             return [ucfirst($label).' necesita texto.'];
         }
 
+        if (($spec['text']['required_without_media'] ?? false) && $length === 0 && $mediaCount === 0) {
+            return [ucfirst($label).' necesita texto o al menos una imagen.'];
+        }
+
         if ($length > $spec['text']['max']) {
             return ["El texto tiene $length caracteres y $label admite como maximo ".$spec['text']['max'].'.'];
+        }
+
+        $maxBytes = $spec['text']['max_bytes'] ?? null;
+        if ($maxBytes !== null && strlen(trim((string) $text)) > $maxBytes) {
+            return ['El texto pesa '.strlen(trim((string) $text))." bytes y $label admite como maximo $maxBytes bytes."];
         }
 
         $maxHashtags = $spec['text']['max_hashtags'] ?? null;
@@ -142,7 +161,7 @@ class MediaValidator
      */
     public static function countHashtags(string $text): int
     {
-        return (int) preg_match_all('/(?<![\p{L}\p{N}_\/])#[\p{L}\p{N}_]+/u', $text);
+        return (int) preg_match_all('/(?<![\p{L}\p{M}\p{N}_\/])#[\p{L}\p{N}_][\p{L}\p{M}\p{N}_]*/u', $text);
     }
 
     /** @return list<string> */
@@ -156,8 +175,23 @@ class MediaValidator
             $e[] = "$noun es ".$this->formatName($asset->mime).' y '.$label.' solo admite '.implode(', ', array_map($this->formatName(...), $rules['mimes'])).'.';
         }
 
-        if (isset($rules['max_bytes']) && ($asset->size ?? $asset->declared_size) > $rules['max_bytes']) {
-            $e[] = "$noun pesa ".$this->mb($asset->size ?? $asset->declared_size)." y $label admite como maximo ".$this->mb($rules['max_bytes']).'.';
+        // Tope fijo (`max_bytes`) o de esta instalacion (`max_bytes_config`, p. ej. el video de Bluesky), con mensaje propio opcional.
+        $maxBytes = isset($rules['max_bytes_config']) ? (int) config($rules['max_bytes_config']) : ($rules['max_bytes'] ?? null);
+        if ($maxBytes !== null && ($asset->size ?? $asset->declared_size) > $maxBytes) {
+            $e[] = isset($rules['too_big_message'])
+                ? strtr($rules['too_big_message'], [':max' => $this->mb($maxBytes), ':size' => $this->mb($asset->size ?? $asset->declared_size)])
+                : "$noun pesa ".$this->mb($asset->size ?? $asset->declared_size)." y $label admite como maximo ".$this->mb($maxBytes).'.';
+        }
+
+        // Imagen por encima del tope de la red: se publica una copia recomprimida (la hace la cola al publicar, NUNCA esta peticion).
+        // Aqui solo se mira el tamano y el tope de pixeles (no la memoria de esta peticion: la memoria se mira en el worker). Que
+        // baje del tope se comprueba al publicar.
+        if (isset($rules['recompress_to_config']) && ! $asset->isVideo()) {
+            $cap = (int) config($rules['recompress_to_config']);
+            $size = (int) ($asset->size ?? $asset->declared_size);
+            if ($size > $cap && ImageDownscaler::exceedsPixelCap($asset->width, $asset->height)) {
+                $e[] = "$noun pesa ".$this->mb($size)." y mide {$asset->width} x {$asset->height} px: es demasiado grande para reducirla hasta los ".$this->mb($cap)." que admite $label. Usa una imagen mas pequena.";
+            }
         }
 
         if (isset($rules['min_duration']) || isset($rules['max_duration'])) {

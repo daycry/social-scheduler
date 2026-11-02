@@ -46,3 +46,11 @@ spike/.results-*.json
 docs/roadmap/*/testing/results.json
 docs/roadmap/*/.claude/
 .serena/
+
+# Evidencia local de seguridad (puede contener datos sensibles)
+docs/security-scan/
+
+# Salidas de QA desechable enlazadas por los informes versionados.
+!/docs/roadmap/2026-10-19-social-scheduler/testing/raw/console.log
+!/docs/roadmap/2026-10-26-metricool-parity-3/testing/raw/playwright-full.log
+!/docs/roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/raw/playwright-full.log

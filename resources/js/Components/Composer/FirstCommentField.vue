@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import { useComposerContext } from '@/Composables/useComposer';
-import { countChars } from '@/Composables/textCount';
+import { countChars, padForInsert } from '@/Composables/textCount';
 
 /**
  * Primer comentario de un destino (C-01b): se publica como comentario propio justo después de la publicación. Solo en los tipos que
@@ -21,12 +21,13 @@ const blocked = computed(() => props.account.can_comment === false);
 const area = ref(null);
 const id = computed(() => `first-comment-${props.account.id}`);
 
-const insertAtCursor = async (text) => {
+const insertAtCursor = async (raw, { pad = false } = {}) => {
     const el = area.value;
     if (!el || !target.value) return;
     const value = el.value;
     const start = el.selectionStart ?? value.length;
     const end = el.selectionEnd ?? start;
+    const text = pad ? padForInsert(value, start, end, raw) : raw;
     target.value.first_comment = value.slice(0, start) + text + value.slice(end);
     await nextTick();
     el.setSelectionRange(start + text.length, start + text.length);

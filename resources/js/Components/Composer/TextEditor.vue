@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onBeforeUnmount, ref } from 'vue';
 import { useComposerContext } from '@/Composables/useComposer';
+import { padForInsert } from '@/Composables/textCount';
 
 /**
  * Área de texto grande del compositor. Expone `insertAtCursor(texto)`: sustituye la selección actual (o inserta en el
@@ -17,13 +18,14 @@ const emit = defineEmits(['update:modelValue']);
 
 const area = ref(null);
 
-const insertAtCursor = async (text) => {
+const insertAtCursor = async (raw, { pad = false } = {}) => {
     const el = area.value;
     if (!el) return;
     // Los offsets de la selección son sobre `el.value` (siempre LF), así que se calcula sobre ese mismo valor.
     const value = el.value;
     const start = el.selectionStart ?? value.length;
     const end = el.selectionEnd ?? start;
+    const text = pad ? padForInsert(value, start, end, raw) : raw;
     emit('update:modelValue', value.slice(0, start) + text + value.slice(end));
     await nextTick();
     // No se roba el foco: tras elegir un emoji el foco vuelve al botón de la barra; el cursor queda tras lo insertado.

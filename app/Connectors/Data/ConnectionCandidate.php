@@ -14,6 +14,7 @@ final class ConnectionCandidate
     /**
      * @param  list<string>  $scopes
      * @param  array<string, mixed>  $meta  Datos especificos de la red (page_id, opciones...).
+     * @param  ?string  $secret  Credencial larga del usuario (app password de Bluesky): se guarda cifrada, nunca sale en toPublicArray.
      */
     public function __construct(
         public readonly Network $network,
@@ -27,6 +28,7 @@ final class ConnectionCandidate
         public readonly ?CarbonInterface $dataAccessExpiresAt = null,
         public readonly array $scopes = [],
         public readonly array $meta = [],
+        public readonly ?string $secret = null,
     ) {}
 
     /** Clave estable usada para elegir candidatos en la UI. */

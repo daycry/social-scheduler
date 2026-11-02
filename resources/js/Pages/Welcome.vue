@@ -8,16 +8,11 @@ import { computed } from 'vue';
 defineProps({
     canLogin: { type: Boolean },
     canRegister: { type: Boolean },
+    // Catalogo de redes (Network::offered): la portada es publica y no tiene `shell`.
+    networks: { type: Array, default: () => [] },
 });
 
 const user = computed(() => usePage().props.auth?.user);
-
-const NETWORKS = [
-    { value: 'instagram', label: 'Instagram' },
-    { value: 'facebook', label: 'Facebook' },
-    { value: 'youtube', label: 'YouTube' },
-    { value: 'tiktok', label: 'TikTok' },
-];
 
 const FEATURES = [
     { icon: 'calendar', title: 'Planificación', text: 'Calendario semanal, mensual y en lista. Arrastra una publicación para reprogramarla y revisa el estado en cada red.', soon: false },
@@ -83,7 +78,7 @@ const FAQ = [
                             </template>
                         </div>
                         <ul class="mt-8 flex flex-wrap items-center gap-3" aria-label="Redes compatibles">
-                            <li v-for="n in NETWORKS" :key="n.value" class="flex items-center gap-2 rounded-full bg-white/5 py-1 pe-3 ps-1 text-sm text-slate-200 ring-1 ring-white/10"><NetworkIcon :network="n.value" size="sm" />{{ n.label }}</li>
+                            <li v-for="n in networks" :key="n.value" class="flex items-center gap-2 rounded-full bg-white/5 py-1 pe-3 ps-1 text-sm text-slate-200 ring-1 ring-white/10"><NetworkIcon :network="n.value" :color="n.color" size="sm" />{{ n.label }}</li>
                         </ul>
                     </div>
 

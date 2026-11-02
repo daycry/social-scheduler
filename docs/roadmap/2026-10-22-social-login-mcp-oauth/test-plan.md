@@ -155,29 +155,31 @@
 - **Qué revisar**: `claude mcp add --transport http …` contra `https://<ngrok>/mcp` sin cabecera `Authorization`, `/mcp` para autenticarse, consentimiento y una llamada a una tool. Anotar versión y comando en `testing/smoke-ca29.md`.
 - **Por qué no se automatiza**: depende del cliente real, de su versión y del navegador del usuario.
 - **Criterio de aceptación**:
-  - [ ] Se conecta solo con el navegador y llama a una tool.
-  - [ ] El callback real (loopback y puerto) queda anotado.
+  - [x] Se conecta solo con el navegador y llama a una tool. Claude Code 2.1.314: `list_brands` completada una vez el 2026-10-31; sesión restringida exit 0, evidencia en `testing/ca29-evidence/claude/`.
+  - [x] El callback real (loopback y puerto) queda anotado: `http://localhost:46319/callback`, sin query ni fragmento.
 - **Cubre tareas**: T-07, T-11
 
 ### M-04 — Claude Desktop (conector personalizado) (CA-29)
+- **Situación vigente (2026-10-31)**: aplazado expresamente por el usuario; continuar con el resto del roadmap sin retomar Desktop ni volver a solicitar su consentimiento.
 - **Qué revisar**: añadir el conector remoto con la URL del MCP, autorizar en el navegador y probar una tool. Verificar el callback `https://claude.ai/api/mcp/auth_callback` y si el plan admite conectores remotos.
-- **Por qué no se automatiza**: cliente de escritorio de terceros y plan de pago.
+- **Por qué no se automatiza**: cliente de escritorio de terceros, cuenta y consentimiento del usuario.
 - **Criterio de aceptación**:
   - [ ] Conecta sin API key; el callback queda anotado y, si es otro, se añade a `MCP_OAUTH_REDIRECT_ALLOWED`.
+  - Preparación real del 2026-10-31: formulario ngrok completo en Personalización → Conectores → Tuyos, con OAuth y DCR detectados. Revisión automática rechaza el clic del agente en «Añadir» antes de ejecutarlo; usuario completa ese paso y el consentimiento. Desktop muestra además límite de uso hasta «2 nov a las 7:00». No se marca M-04 como cumplido por preparar el formulario ni por el conector previo al VPS. Evidencia en `testing/ca29-evidence/desktop/preparation.json`.
 - **Cubre tareas**: T-07, T-11
 
 ### M-05 — Codex (CA-29)
 - **Qué revisar**: `codex mcp add … --url …` y `codex mcp login …`; comprobar DCR, PKCE y `resource`.
 - **Por qué no se automatiza**: cliente de terceros.
 - **Criterio de aceptación**:
-  - [ ] Conecta sin API key y llama a una tool; versión y comando verificados.
+  - [x] Conecta sin API key y llama a una tool; versión y comando verificados. Evidencia real del 2026-10-31 en `testing/smoke-ca29.md`: Codex 0.162.1, OAuth con consentimiento del usuario y una llamada `list_brands` completada.
 - **Cubre tareas**: T-07, T-11
 
 ### M-06 — OpenCode (CA-29)
 - **Qué revisar**: entrada `remote` en `opencode.json` y `opencode mcp auth …`; comprobar si exige refresh token o CIMD.
 - **Por qué no se automatiza**: cliente de terceros.
 - **Criterio de aceptación**:
-  - [ ] Conecta sin API key y llama a una tool; conclusión explícita sobre refresh y CIMD.
+  - [x] Conecta sin API key y llama a una tool; conclusión explícita sobre refresh y CIMD. OpenCode 2.0.18 completa OAuth y `list_brands` una vez mediante su servicio local y el proveedor ChatGPT autorizado por el usuario, modelo `openai/gpt-6.1-sol`; exit 0 a las 20:06:20 UTC del 2026-10-31. Callback `http://127.0.0.1:60041/callback`. DCR y llamada inicial funcionan sin CIMD ni refresh; renovación posterior no probada. Evidencia en `testing/ca29-evidence/opencode/`, con intentos anteriores fallidos separados del resultado definitivo.
 - **Cubre tareas**: T-07, T-11
 
 ### M-07 — Nginx/Hestia en el entorno real (cierra la parte de M-F6-2)

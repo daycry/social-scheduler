@@ -1,0 +1,24 @@
+﻿{
+    "CheckedUtc":  "2026-10-31T18:08:56.7993367Z",
+    "PublicUrl":  "https://workable-humorous-rat.ngrok-free.app",
+    "ProtectedResourceStatus":  200,
+    "Resource":  "https://workable-humorous-rat.ngrok-free.app/mcp",
+    "AuthorizationServers":  [
+                                 "https://workable-humorous-rat.ngrok-free.app"
+                             ],
+    "AuthorizationMetadataStatus":  200,
+    "Issuer":  "https://workable-humorous-rat.ngrok-free.app",
+    "RegistrationEndpoint":  "https://workable-humorous-rat.ngrok-free.app/oauth/register",
+    "GrantTypes":  [
+                       "authorization_code"
+                   ],
+    "TokenEndpointAuthMethods":  [
+                                     "none"
+                                 ],
+    "CodeChallengeMethods":  [
+                                 "S256"
+                             ],
+    "ClientIdMetadataDocumentSupported":  null,
+    "OwnedTunnelPid":  30484,
+    "TunnelProcessRunning":  true
+}

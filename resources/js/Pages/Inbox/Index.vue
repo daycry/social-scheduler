@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
+import CommentNotes from '@/Components/Inbox/CommentNotes.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
@@ -12,6 +13,7 @@ const props = defineProps({
     filters: Object,
     unread_count: Number,
     comments: Object,
+    note_max: { type: Number, default: 2000 },
     accounts: Array,
     flash: Object,
 });
@@ -98,6 +100,10 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
                         <input type="checkbox" :checked="filters.hidden === true" @change="setFilter({ hidden: $event.target.checked ? 1 : null })" />
                         Solo ocultos
                     </label>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" :checked="filters.has_notes === true" data-testid="filter-has-notes" @change="setFilter({ has_notes: $event.target.checked ? 1 : null })" />
+                        Solo con nota
+                    </label>
                     <span class="ms-auto flex items-center gap-2">
                         <button type="button" class="btn btn-secondary" @click="readAll">Marcar todo como leído</button>
                         <button type="button" class="btn btn-secondary" @click="sync">Actualizar</button>
@@ -115,6 +121,7 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
                                         <p class="font-medium text-slate-900">
                                             {{ c.author || 'Anónimo' }}
                                             <span v-if="!c.read" class="ms-1 rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">nuevo</span>
+                                            <span v-if="c.notes.length" class="ms-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900" data-testid="note-badge">con nota</span>
                                             <span v-if="c.hidden" class="ms-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700">oculto</span>
                                             <span v-if="c.is_reply" class="ms-1 text-xs font-normal text-slate-500">(respuesta en un hilo)</span>
                                         </p>
@@ -136,6 +143,8 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
                             <ul v-if="c.my_replies.length" class="ms-8 space-y-1 border-s-2 border-teal-300 ps-3">
                                 <li v-for="r in c.my_replies" :key="r.id" class="text-slate-600"><span class="text-xs text-teal-700">Tú · {{ fmt(r.at) }}</span><br />{{ r.text }}</li>
                             </ul>
+
+                            <CommentNotes :comment="c" :note-max="note_max" />
 
                             <form v-if="replying[c.id]" class="ms-8 space-y-2" @submit.prevent="sendReply(c)">
                                 <label class="block">

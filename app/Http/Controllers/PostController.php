@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Meta\Instagram\InstagramAudio;
+use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
@@ -12,13 +14,16 @@ use App\Models\Campaign;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\AudioCapabilities;
 use App\Services\CampaignService;
 use App\Services\ComposerPresetService;
 use App\Services\Media\DriveFileSource;
+use App\Services\Media\GiphyClient;
 use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
+use App\Support\TextLength;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -195,9 +200,17 @@ class PostController extends Controller
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
+                'audio' => AudioCapabilities::forAccount($a),
+                'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
+                'instagram_audio' => $a->network === Network::Instagram ? [
+                    'available' => InstagramAudio::unavailableReason($a) === null,
+                    'reason' => InstagramAudio::unavailableReason($a),
+                ] : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
                 'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),
+                // Red apagada en esta instalacion (p. ej. BLUESKY_ENABLED=false): la cuenta sigue conectada pero no se puede elegir.
+                'available' => $a->network->isAvailable(),
             ])->values(),
             // Tipos por red con sus limitaciones (T-21): el formulario las avisa al elegir el tipo.
             'contentTypes' => collect(Network::cases())->mapWithKeys(fn (Network $n) => [
@@ -214,7 +227,12 @@ class PostController extends Controller
             'limits' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(function (ContentType $t) {
                 $text = $this->validator->spec($t)['text'];
 
-                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]];
+                // `count` solo viaja si no es el modo por defecto (chars): el cliente cuenta grafemas (Bluesky) o la regla de Threads.
+                $mode = $text['count'] ?? TextLength::CHARS;
+
+                return [$t->value => ['max_chars' => $text['max'], 'max_hashtags' => $text['max_hashtags'] ?? null]
+                    + ($mode !== TextLength::CHARS ? ['count' => $mode] : [])
+                    + (isset($text['advise_hashtags']) ? ['advise_hashtags' => $text['advise_hashtags']] : [])];
             }),
             // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
             'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()
@@ -227,6 +245,8 @@ class PostController extends Controller
                 'app_id' => config('services.google.picker_app_id'),
                 'client_id' => config('services.google.client_id'),
             ] : null,
+            // Giphy (C-04b): solo un booleano. Sin `GIPHY_API_KEY` el boton «GIF» no aparece; la clave nunca llega a la pagina.
+            'giphy' => ['enabled' => GiphyClient::configured()],
             'presets' => $this->presets->forBrand($user, $brand), // interruptores recordados por red: valores iniciales al activar una red
             'savedTexts' => $this->savedTexts->forBrand($user, $brand->id), // textos guardados de la marca + «Todas las marcas» (C-01a)
             // Campañas de la marca para el selector (C-03): las activas y, al editar, la del post aunque esté archivada.

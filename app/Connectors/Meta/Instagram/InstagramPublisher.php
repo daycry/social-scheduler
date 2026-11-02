@@ -62,7 +62,22 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
         $this->assertSupported($request);
+        $this->assertPostOptions($request);
+        $selection = $request->options['instagram_audio'] ?? null;
+        $audioErrors = InstagramAudio::selectionErrors($selection, $request->type, $account, checkAvailability: false);
+        if ($audioErrors !== []) {
+            throw new PermanentPublishException(implode(' ', $audioErrors), 'audio_no_admitido');
+        }
         $budget = $request->budget();
+
+        if ($selection !== null) {
+            try {
+                (new InstagramAudio($this->graph))->get($account, $selection['audio_id'], forPublishing: true);
+            } catch (\InvalidArgumentException $e) {
+                throw new PermanentPublishException($e->getMessage(), 'audio_no_disponible');
+            }
+            $budget->spent();
+        }
 
         if ($request->type === ContentType::InstagramCarousel) {
             if ($request->progress === []) {
@@ -85,6 +100,7 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
 
     public function poll(SocialAccount $account, PublishRequest $request): PublishResult
     {
+        $this->assertPostOptions($request);
         if ($request->reference === null) {
             throw new PermanentPublishException('Falta la referencia del contenedor de Instagram.', 'sin_referencia');
         }
@@ -226,7 +242,7 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
             'media_type' => 'CAROUSEL',
             'children' => implode(',', $children),
             'caption' => (string) $request->text,
-        ]);
+        ] + InstagramPostOptions::containerParams($request->options));
         $budget->spent();
         $progress = ['children' => $children, 'ready' => $ready, 'parent' => $parent];
         $request->checkpoint($parent, $progress);
@@ -321,17 +337,30 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
         $media = $request->firstMedia();
         $caption = (string) $request->text;
 
-        return match ($request->type) {
+        return (match ($request->type) {
             ContentType::InstagramImage => ['image_url' => $media->url] + ($caption !== '' ? ['caption' => $caption] : []),
             ContentType::InstagramReel => [
                 'media_type' => 'REELS',
                 'video_url' => $media->url,
                 'share_to_feed' => ($request->options['share_to_feed'] ?? true) ? 'true' : 'false',
-            ] + ($caption !== '' ? ['caption' => $caption] : []),
+            ] + ($caption !== '' ? ['caption' => $caption] : []) + (isset($request->options['instagram_audio']) ? [
+                'audio_configuration' => json_encode([
+                    'audio_id' => $request->options['instagram_audio']['audio_id'],
+                    'audio_volume' => (int) ($request->options['instagram_audio']['audio_volume'] ?? 100),
+                    'video_volume' => (int) ($request->options['instagram_audio']['video_volume'] ?? 100),
+                ], JSON_THROW_ON_ERROR),
+            ] : []),
             // Las historias no admiten texto: la descripcion se ignora (limitacion avisada en el compositor).
             ContentType::InstagramStory => ['media_type' => 'STORIES'] + $this->mediaParams($media),
             default => throw new PermanentPublishException('Tipo de contenido no admitido en Instagram.', 'tipo_no_admitido'),
-        };
+        }) + InstagramPostOptions::containerParams($request->options);
+    }
+
+    private function assertPostOptions(PublishRequest $request): void
+    {
+        if (($errors = InstagramPostOptions::errors($request->options, $request->type)) !== []) {
+            throw new PermanentPublishException(implode(' ', $errors), 'opciones_instagram_invalidas');
+        }
     }
 
     /** @return array<string, string> */
@@ -345,7 +374,8 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
     /** @param array<string, string> $params */
     private function createContainer(SocialAccount $account, array $params): string
     {
-        $created = $this->graph->post($account->external_id.'/media', $params, (string) $account->access_token);
+        $token = isset($params['audio_configuration']) ? $account->refresh_token : $account->access_token;
+        $created = $this->graph->post($account->external_id.'/media', $params, (string) $token);
         $id = (string) ($created['id'] ?? '');
 
         if ($id === '') {

@@ -1,0 +1,18 @@
+{
+  "build": {
+    "exit_code": 0,
+    "log": "raw/build.txt",
+    "observed_chunk": "7756b6"
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit",
+    "exit_code": 0,
+    "observed_chunk": "7756b6"
+  },
+  "network_invariant": {
+    "tests": 5,
+    "assertions": 19,
+    "exit_code": 0,
+    "observed_chunk": "7756b6"
+  }
+}

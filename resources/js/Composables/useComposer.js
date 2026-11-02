@@ -91,6 +91,9 @@ export function useComposer(props) {
         for (const t of form.targets) {
             const account = props.accounts.find((a) => a.id === t.account_id);
             const keep = new Set(switchesFor(account, t).map((s) => s.key));
+            if (account?.network === 'instagram' && t.content_type === 'instagram_reel') keep.add('instagram_audio');
+            if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('collaborators');
+            if (account?.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(t.content_type)) keep.add('facebook_title');
             if (account?.network === 'youtube') ['category_id', 'tags'].forEach((k) => keep.add(k));
             for (const key of MANAGED_KEYS) {
                 if (key in t.options && !keep.has(key)) delete t.options[key];

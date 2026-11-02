@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Meta\Instagram\InstagramAudio;
+use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
@@ -12,6 +14,7 @@ use App\Models\Campaign;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\AudioCapabilities;
 use App\Services\CampaignService;
 use App\Services\ComposerPresetService;
 use App\Services\Media\DriveFileSource;
@@ -197,6 +200,12 @@ class PostController extends Controller
                 'name' => $a->name,
                 'username' => $a->username,
                 'status' => $a->status,
+                'audio' => AudioCapabilities::forAccount($a),
+                'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
+                'instagram_audio' => $a->network === Network::Instagram ? [
+                    'available' => InstagramAudio::unavailableReason($a) === null,
+                    'reason' => InstagramAudio::unavailableReason($a),
+                ] : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
                 'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),

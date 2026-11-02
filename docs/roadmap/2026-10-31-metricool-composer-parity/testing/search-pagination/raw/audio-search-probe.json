@@ -1,0 +1,454 @@
+{
+    "account_id": 2,
+    "created_at": "2026-11-01T09:31:33+00:00",
+    "version": "v23.0",
+    "queries": [
+        {
+            "query": "",
+            "limit": null,
+            "keys": [
+                "audio",
+                "paging"
+            ],
+            "count": 25,
+            "paging_keys": [
+                "cursors"
+            ],
+            "tracks": [
+                {
+                    "audio_id": "774586475327868",
+                    "title": "Sentimental",
+                    "display_artist": "Martin Czerny"
+                },
+                {
+                    "audio_id": "3661927097298204",
+                    "title": "Today Has a Little Swing",
+                    "display_artist": "EMMA JAZZ"
+                },
+                {
+                    "audio_id": "843197416765198",
+                    "title": "Thriller 7\" (Special Edit)",
+                    "display_artist": "Michael Jackson"
+                },
+                {
+                    "audio_id": "736015230804186",
+                    "title": "Ramalama (Bang Bang)",
+                    "display_artist": "Róisín Murphy"
+                },
+                {
+                    "audio_id": "4307962669420400",
+                    "title": "Piano de la Tristeza – Melodía Melancólica para los Momentos de Dolor",
+                    "display_artist": "Tristeza Melancolía"
+                },
+                {
+                    "audio_id": "1701624340510988",
+                    "title": "Halloween (Special Version Cute Spooky )",
+                    "display_artist": "numberbee"
+                },
+                {
+                    "audio_id": "434453355437555",
+                    "title": "Halloween Waltz",
+                    "display_artist": "Moon blues"
+                },
+                {
+                    "audio_id": "918097127688069",
+                    "title": "Spectacular Moment",
+                    "display_artist": "life motivation"
+                },
+                {
+                    "audio_id": "437917182545111",
+                    "title": "Trick Or Treat Begins",
+                    "display_artist": "Jon Presstone"
+                },
+                {
+                    "audio_id": "412971409445783",
+                    "title": "Vivaldi’s Winter 1",
+                    "display_artist": "Mike Block"
+                },
+                {
+                    "audio_id": "1403531713126269",
+                    "title": "Jueves",
+                    "display_artist": "La Oreja de Van Gogh"
+                },
+                {
+                    "audio_id": "172700404160952",
+                    "title": "This Is Halloween (From \"The Nightmare Before Christmas\" Soundtrack)",
+                    "display_artist": "The Citizens of Halloween"
+                },
+                {
+                    "audio_id": "1221726954885489",
+                    "title": "Adagio for Strings, Op. 11",
+                    "display_artist": "London Philharmonic Orchestra"
+                },
+                {
+                    "audio_id": "1577625463374506",
+                    "title": "Trick Or Bite Me",
+                    "display_artist": "Ash Queen"
+                },
+                {
+                    "audio_id": "328288862402472",
+                    "title": "Halloween Hijinks (feat. Rizzi)",
+                    "display_artist": "Global Genius"
+                },
+                {
+                    "audio_id": "4588548731466513",
+                    "title": "Saxophone Getting Louder",
+                    "display_artist": "NDIOUGA KÉBÉ RECORDS"
+                },
+                {
+                    "audio_id": "1910772422569336",
+                    "title": "Goo Goo Muck",
+                    "display_artist": "The Cramps"
+                },
+                {
+                    "audio_id": "549681875511286",
+                    "title": "La Castanyera",
+                    "display_artist": "Dàmaris Gelabert"
+                },
+                {
+                    "audio_id": "268589387110766",
+                    "title": "Monster Mash",
+                    "display_artist": "Bobby (Boris) Pickett and The Crypt Kickers"
+                },
+                {
+                    "audio_id": "1599863094669308",
+                    "title": "Recuérdame",
+                    "display_artist": "Natalia Lafourcade, Carlos Rivera"
+                },
+                {
+                    "audio_id": "2038379799817329",
+                    "title": "Ghostbusters (Instrumental Version)",
+                    "display_artist": "Ray Parker Jr."
+                },
+                {
+                    "audio_id": "1187881032964418",
+                    "title": "Spooky, Scary Skeletons (House VIP Remix)",
+                    "display_artist": "Crystal Knives, Lex Allen"
+                },
+                {
+                    "audio_id": "964480006713500",
+                    "title": "The Reason - DEEP HOUSE",
+                    "display_artist": "HARDMAX"
+                },
+                {
+                    "audio_id": "3393305074182615",
+                    "title": "LA CATRINA Y LA LLORONA",
+                    "display_artist": "SENDA SAGRADA Project"
+                },
+                {
+                    "audio_id": "409445346766227",
+                    "title": "Einaudi: Nuvole Bianche",
+                    "display_artist": "Ludovico Einaudi"
+                }
+            ]
+        },
+        {
+            "query": "Evidence",
+            "limit": null,
+            "keys": [
+                "audio"
+            ],
+            "count": 3,
+            "paging_keys": [],
+            "tracks": [
+                {
+                    "audio_id": "275476500527361",
+                    "title": "Evidence",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1026177633336202",
+                    "title": "Memory",
+                    "display_artist": "LAVLO"
+                },
+                {
+                    "audio_id": "806407797436796",
+                    "title": "All The Smoke",
+                    "display_artist": "Jumbo"
+                }
+            ]
+        },
+        {
+            "query": "Dhruv Goel",
+            "limit": null,
+            "keys": [
+                "audio",
+                "paging"
+            ],
+            "count": 25,
+            "paging_keys": [
+                "cursors"
+            ],
+            "tracks": [
+                {
+                    "audio_id": "1387786032349374",
+                    "title": "On The Go",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "992914062887945",
+                    "title": "Infinite",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "283066584103655",
+                    "title": "Go Go Go!",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1520629835116877",
+                    "title": "Thank You",
+                    "display_artist": "Phillipe Bianco"
+                },
+                {
+                    "audio_id": "786675804035640",
+                    "title": "Chasing Love (Instrumental)",
+                    "display_artist": "Giulio Cercato"
+                },
+                {
+                    "audio_id": "2184489268330071",
+                    "title": "Estos Momentos",
+                    "display_artist": "Eric Harper"
+                },
+                {
+                    "audio_id": "261216951467888",
+                    "title": "Bageshri Dhun (feat. Amit Kumar Das & Indranil Mallick)",
+                    "display_artist": "Jim Santi Owen (Producer)"
+                },
+                {
+                    "audio_id": "899150467376882",
+                    "title": "En Oviyam (feat. Basskaran Carmel)",
+                    "display_artist": "Jose Franklin"
+                },
+                {
+                    "audio_id": "607917953812167",
+                    "title": "The Simple Life",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1991535984566435",
+                    "title": "That's Easy",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "296861997666070",
+                    "title": "The Nature Of Memories",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "275476500527361",
+                    "title": "Evidence",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "977692547100335",
+                    "title": "The Moment",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1073385267824497",
+                    "title": "Refresh",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "456705843118348",
+                    "title": "Winter In Delhi (feat. Nuno Silva)",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "390106383155784",
+                    "title": "Flow",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "943652184067967",
+                    "title": "City Of Gardens",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "649251140409579",
+                    "title": "City Walk",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "981510330704369",
+                    "title": "Unstoppable",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "2447272315442371",
+                    "title": "Filter Coffee",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "2684460575088663",
+                    "title": "After Hours",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1121322649178424",
+                    "title": "Morning Chai",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1372960953297547",
+                    "title": "Dance Off",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "3213789592130632",
+                    "title": "Sunlight",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "933586007891717",
+                    "title": "Get Ready",
+                    "display_artist": "Dhruv Goel"
+                }
+            ]
+        },
+        {
+            "query": "Libre",
+            "limit": 10,
+            "keys": [
+                "audio"
+            ],
+            "count": 10,
+            "paging_keys": [],
+            "tracks": [
+                {
+                    "audio_id": "150504705576125",
+                    "title": "Quirky Bossa (Vocals)",
+                    "display_artist": "Scott Dugdale"
+                },
+                {
+                    "audio_id": "2185456801802676",
+                    "title": "Head In The Clouds",
+                    "display_artist": "Sugartapes"
+                },
+                {
+                    "audio_id": "3015012582136708",
+                    "title": "Piano On A Rainy Day",
+                    "display_artist": "Cy Curnin"
+                },
+                {
+                    "audio_id": "536113000332712",
+                    "title": "Hometown",
+                    "display_artist": "Global Genius"
+                },
+                {
+                    "audio_id": "4035197266698346",
+                    "title": "Iro (Lies) (Instrumental)",
+                    "display_artist": "Afro Sound Machine"
+                },
+                {
+                    "audio_id": "349991522078777",
+                    "title": "Vasona",
+                    "display_artist": "Lyle Workman"
+                },
+                {
+                    "audio_id": "869937260830851",
+                    "title": "Paint Me Happy",
+                    "display_artist": "Abby Posner"
+                },
+                {
+                    "audio_id": "1540826030450846",
+                    "title": "Curious Mind",
+                    "display_artist": "LAVLO"
+                },
+                {
+                    "audio_id": "1197857668796525",
+                    "title": "Carry On (Instrumental)",
+                    "display_artist": "Giulio Cercato"
+                },
+                {
+                    "audio_id": "1744712439298788",
+                    "title": "Be Creative",
+                    "display_artist": "Giulio Cercato"
+                }
+            ]
+        },
+        {
+            "query": "Libre",
+            "limit": 50,
+            "keys": [
+                "audio"
+            ],
+            "count": 10,
+            "paging_keys": [],
+            "tracks": [
+                {
+                    "audio_id": "150504705576125",
+                    "title": "Quirky Bossa (Vocals)",
+                    "display_artist": "Scott Dugdale"
+                },
+                {
+                    "audio_id": "2185456801802676",
+                    "title": "Head In The Clouds",
+                    "display_artist": "Sugartapes"
+                },
+                {
+                    "audio_id": "3015012582136708",
+                    "title": "Piano On A Rainy Day",
+                    "display_artist": "Cy Curnin"
+                },
+                {
+                    "audio_id": "536113000332712",
+                    "title": "Hometown",
+                    "display_artist": "Global Genius"
+                },
+                {
+                    "audio_id": "4035197266698346",
+                    "title": "Iro (Lies) (Instrumental)",
+                    "display_artist": "Afro Sound Machine"
+                },
+                {
+                    "audio_id": "349991522078777",
+                    "title": "Vasona",
+                    "display_artist": "Lyle Workman"
+                },
+                {
+                    "audio_id": "869937260830851",
+                    "title": "Paint Me Happy",
+                    "display_artist": "Abby Posner"
+                },
+                {
+                    "audio_id": "1540826030450846",
+                    "title": "Curious Mind",
+                    "display_artist": "LAVLO"
+                },
+                {
+                    "audio_id": "1197857668796525",
+                    "title": "Carry On (Instrumental)",
+                    "display_artist": "Giulio Cercato"
+                },
+                {
+                    "audio_id": "1744712439298788",
+                    "title": "Be Creative",
+                    "display_artist": "Giulio Cercato"
+                }
+            ]
+        },
+        {
+            "query": "aipocalipsis",
+            "limit": 50,
+            "keys": [
+                "audio"
+            ],
+            "count": 2,
+            "paging_keys": [],
+            "tracks": [
+                {
+                    "audio_id": "275476500527361",
+                    "title": "Evidence",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "961748457559235",
+                    "title": "Apocalyptic Apathy",
+                    "display_artist": "Austin Woodward & Zack Ledbetter"
+                }
+            ]
+        }
+    ]
+}

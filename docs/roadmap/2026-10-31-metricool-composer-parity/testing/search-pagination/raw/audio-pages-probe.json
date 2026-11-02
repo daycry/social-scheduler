@@ -1,0 +1,285 @@
+{
+    "account_id": 2,
+    "query": "Dhruv Goel",
+    "pages": [
+        {
+            "page": 1,
+            "count": 25,
+            "paging_keys": [
+                "cursors"
+            ],
+            "cursor_keys": [
+                "after"
+            ],
+            "has_after": true,
+            "after_length": 5,
+            "tracks": [
+                {
+                    "audio_id": "1387786032349374",
+                    "title": "On The Go",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "992914062887945",
+                    "title": "Infinite",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "283066584103655",
+                    "title": "Go Go Go!",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1520629835116877",
+                    "title": "Thank You",
+                    "display_artist": "Phillipe Bianco"
+                },
+                {
+                    "audio_id": "786675804035640",
+                    "title": "Chasing Love (Instrumental)",
+                    "display_artist": "Giulio Cercato"
+                },
+                {
+                    "audio_id": "2184489268330071",
+                    "title": "Estos Momentos",
+                    "display_artist": "Eric Harper"
+                },
+                {
+                    "audio_id": "261216951467888",
+                    "title": "Bageshri Dhun (feat. Amit Kumar Das & Indranil Mallick)",
+                    "display_artist": "Jim Santi Owen (Producer)"
+                },
+                {
+                    "audio_id": "899150467376882",
+                    "title": "En Oviyam (feat. Basskaran Carmel)",
+                    "display_artist": "Jose Franklin"
+                },
+                {
+                    "audio_id": "607917953812167",
+                    "title": "The Simple Life",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1991535984566435",
+                    "title": "That's Easy",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "296861997666070",
+                    "title": "The Nature Of Memories",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "275476500527361",
+                    "title": "Evidence",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "977692547100335",
+                    "title": "The Moment",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1073385267824497",
+                    "title": "Refresh",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "456705843118348",
+                    "title": "Winter In Delhi (feat. Nuno Silva)",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "390106383155784",
+                    "title": "Flow",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "943652184067967",
+                    "title": "City Of Gardens",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "649251140409579",
+                    "title": "City Walk",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "981510330704369",
+                    "title": "Unstoppable",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "2447272315442371",
+                    "title": "Filter Coffee",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "2684460575088663",
+                    "title": "After Hours",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1121322649178424",
+                    "title": "Morning Chai",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1372960953297547",
+                    "title": "Dance Off",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "3213789592130632",
+                    "title": "Sunlight",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "933586007891717",
+                    "title": "Get Ready",
+                    "display_artist": "Dhruv Goel"
+                }
+            ]
+        },
+        {
+            "page": 2,
+            "count": 25,
+            "paging_keys": [
+                "cursors"
+            ],
+            "cursor_keys": [
+                "before",
+                "after"
+            ],
+            "has_after": true,
+            "after_length": 5,
+            "tracks": [
+                {
+                    "audio_id": "2277269892522332",
+                    "title": "Leviathan",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1261176671242930",
+                    "title": "Marine Drive",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "725075000236387",
+                    "title": "Dance Off (Loop)",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1131843685308079",
+                    "title": "City Life",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1258014098222634",
+                    "title": "Grand Bazaar",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "249201165751597",
+                    "title": "Nayi Rahein",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "297142523234542",
+                    "title": "Dance Off (Instrumental)",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1476068023627451",
+                    "title": "Hurry Up Slow Down",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "590318976107395",
+                    "title": "Running",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1864468727717420",
+                    "title": "Euphoria",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1181934320252594",
+                    "title": "Switch Up",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1168499650409402",
+                    "title": "Voyage (feat. Neelamjit Dhillon)",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "3290758384559161",
+                    "title": "Kismet",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "942615577934614",
+                    "title": "Sunny Days",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "8433157620064892",
+                    "title": "Family",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "917680773172274",
+                    "title": "Summer In Goa",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1668101930256900",
+                    "title": "Oasis",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "9556672854461601",
+                    "title": "The Grand Finale",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "682087063881321",
+                    "title": "Prayers",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "749803293315589",
+                    "title": "Gold",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "523192130083202",
+                    "title": "Nostalgia",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "918385440306471",
+                    "title": "Nayi Rahein (Instrumental)",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "861405111904235",
+                    "title": "Siyahi",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "1204512204083973",
+                    "title": "Greetings",
+                    "display_artist": "Dhruv Goel"
+                },
+                {
+                    "audio_id": "677306044490766",
+                    "title": "Sultan",
+                    "display_artist": "Dhruv Goel"
+                }
+            ]
+        }
+    ]
+}

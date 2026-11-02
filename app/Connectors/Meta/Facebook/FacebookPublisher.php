@@ -45,6 +45,9 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
+        if (($errors = FacebookPostOptions::errors($request->options, $request->type)) !== []) {
+            throw new PermanentPublishException(implode(' ', $errors), 'opciones_facebook_invalidas');
+        }
         $token = (string) $account->access_token;
         $page = $account->external_id;
         $media = $request->firstMedia();
@@ -69,14 +72,14 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 
             case ContentType::FacebookVideo:
                 $this->requireMedia($media, 'video');
-                $res = $this->graph->post("$page/videos", ['file_url' => $media->url] + ($text !== '' ? ['description' => $text] : []), $token);
+                $res = $this->graph->post("$page/videos", ['file_url' => $media->url] + ($text !== '' ? ['description' => $text] : []) + FacebookPostOptions::params($request->options), $token);
 
                 return $this->processing($res['id'] ?? null);
 
             case ContentType::FacebookReel:
                 $this->requireMedia($media, 'video');
 
-                return $this->startReel($account, $media->url, $text);
+                return $this->startReel($account, $media->url, $text, FacebookPostOptions::params($request->options));
 
             default:
                 throw new PermanentPublishException('Tipo de contenido no admitido en Facebook.', 'tipo_no_admitido');
@@ -145,7 +148,7 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
     }
 
     /** Reel en 3 pasos: abrir la sesion, indicar el fichero por URL y cerrar publicandolo. */
-    private function startReel(SocialAccount $account, string $url, string $description): PublishResult
+    private function startReel(SocialAccount $account, string $url, string $description, array $extra = []): PublishResult
     {
         $token = (string) $account->access_token;
         $page = $account->external_id;
@@ -164,7 +167,7 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
             'upload_phase' => 'finish',
             'video_id' => $videoId,
             'video_state' => 'PUBLISHED',
-        ] + ($description !== '' ? ['description' => $description] : []), $token);
+        ] + ($description !== '' ? ['description' => $description] : []) + $extra, $token);
 
         return PublishResult::processing($videoId);
     }

@@ -5,6 +5,7 @@
 | Documento | Responde a | Palabras clave |
 |---|---|---|
 | [README.md](README.md) | Mapa de la documentación | índice, estado |
+| [guias/audio-instagram.md](guias/audio-instagram.md) | Añadir, preescuchar y quitar audio de catálogo en Reels desde web y MCP | `instagram_audio`, `search_instagram_audio`, `get_instagram_audio`, volúmenes, Meta |
 | [arquitectura.md](arquitectura.md) | Capas, flujos, estados de publicación, aislamiento por usuario | `UserScope`, `PostStatus`, colas, scheduler |
 | [stack.md](stack.md) | Versiones, dependencias y configuraciones de pruebas | Laravel 13, Inertia, Pest, DomPDF, Sanctum, Playwright, SQLite desechable |
 | [modulos/conexiones.md](modulos/conexiones.md) | OAuth de Meta/Google/TikTok, refresco, reconexión | `ConnectorRegistry`, `RefreshTokens`, `requiere_reconexion` |
@@ -32,3 +33,5 @@
 | [guias/threads-app-meta.md](guias/threads-app-meta.md) | Crear la app de Meta para Threads y conectarla | THREADS_APP_ID, THREADS_APP_SECRET, tester, URI de redirección, App Review |
 | [usuario/guia-de-usuario.md](usuario/guia-de-usuario.md) | Uso de la app | marcas, conectar, programar, informes |
 | [knowledge/README.md](knowledge/README.md) | ADR y gotchas con su estado canónico | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |
+
+- [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.

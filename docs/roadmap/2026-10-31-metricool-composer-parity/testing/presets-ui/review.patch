@@ -1,0 +1,352 @@
+diff --git a/playwright.presets.config.ts b/playwright.presets.config.ts
+--- a/playwright.presets.config.ts
++++ b/playwright.presets.config.ts
+@@ -0,0 +1,9 @@
++import { defineConfig } from '@playwright/test';
++import audio from './playwright.audio.config';
++
++// Same disposable server/fake providers; exercise the restyled sections and their existing interactions.
++export default defineConfig({
++    ...audio,
++    testMatch: ['composer-presets.spec.ts', 'composer.spec.ts', 'instagram-audio.spec.ts', 'tiktok-audio.spec.ts'],
++    grep: /Presets:|Audio Reel:|TikTok |E2E-04|E2E-09|E2E-10/,
++});
+diff --git a/resources/css/app.css b/resources/css/app.css
+--- a/resources/css/app.css
++++ b/resources/css/app.css
+@@ -26,6 +26,50 @@
+         @apply block w-full rounded-lg border-slate-300 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500;
+     }
+ 
++    .composer-preset-section {
++        @apply min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm;
++    }
++
++    .composer-preset-heading {
++        @apply flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50 sm:px-5;
++    }
++
++    .composer-preset-heading::-webkit-details-marker {
++        display: none;
++    }
++
++    .composer-preset-body {
++        @apply space-y-5 border-t border-slate-100 px-4 py-5 sm:px-5;
++    }
++
++    .composer-setting-row {
++        @apply flex cursor-pointer items-center justify-between gap-4 text-sm leading-5 text-slate-700;
++    }
++
++    .composer-preset-toggle {
++        @apply relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full border-0 bg-slate-300 shadow-inner transition-colors checked:bg-violet-600 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50;
++        background-image: none !important;
++    }
++
++    .composer-preset-toggle::after {
++        content: '';
++        @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform;
++    }
++
++    .composer-preset-toggle:checked::after {
++        transform: translateX(1rem);
++    }
++
++    @media (forced-colors: active) {
++        .composer-preset-toggle {
++            appearance: auto;
++        }
++
++        .composer-preset-toggle::after {
++            display: none;
++        }
++    }
++
+     .btn {
+         @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+     }
+diff --git a/resources/js/Components/Composer/ErrorsPanel.vue b/resources/js/Components/Composer/ErrorsPanel.vue
+--- a/resources/js/Components/Composer/ErrorsPanel.vue
++++ b/resources/js/Components/Composer/ErrorsPanel.vue
+@@ -25,6 +25,7 @@
+ const focusControl = (id) => {
+     const el = id ? document.getElementById(id) : null;
+     if (!el) return;
++    for (let panel = el.closest('details'); panel; panel = panel.parentElement?.closest('details')) panel.open = true;
+     if (!el.matches('button, input, select, textarea, a[href], [tabindex]')) el.setAttribute('tabindex', '-1');
+     el.scrollIntoView({ block: 'center' });
+     el.focus({ preventScroll: true });
+diff --git a/resources/js/Components/Composer/GlobalPresets.vue b/resources/js/Components/Composer/GlobalPresets.vue
+--- a/resources/js/Components/Composer/GlobalPresets.vue
++++ b/resources/js/Components/Composer/GlobalPresets.vue
+@@ -0,0 +1,14 @@
++<script setup>
++import PresetSection from '@/Components/Composer/PresetSection.vue';
++import ScheduleSection from '@/Components/Composer/ScheduleSection.vue';
++import NotesPanel from '@/Components/Composer/NotesPanel.vue';
++</script>
++
++<template>
++    <PresetSection id="global-presets" title="Ajustes globales" label="Ajustes globales" subtitle="Programación y organización de la publicación">
++        <ScheduleSection class="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none" />
++        <div class="border-t border-slate-100 pt-5">
++            <NotesPanel class="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none" />
++        </div>
++    </PresetSection>
++</template>
+diff --git a/resources/js/Components/Composer/InstagramAudioField.vue b/resources/js/Components/Composer/InstagramAudioField.vue
+--- a/resources/js/Components/Composer/InstagramAudioField.vue
++++ b/resources/js/Components/Composer/InstagramAudioField.vue
+@@ -145,7 +145,10 @@
+             <p class="text-xs text-slate-600">De 1 a 100. La preescucha reproduce solo la pista; la mezcla final se aplica al publicar.</p>
+             <button type="button" :disabled="!editable" class="btn btn-secondary" @click="remove">Quitar audio</button>
+         </div>
+-        <button ref="trigger" type="button" :disabled="!editable || !available" class="btn btn-secondary" @click="show">{{ selection ? 'Cambiar audio' : 'Añadir audio' }}</button>
++        <button ref="trigger" type="button" :disabled="!editable || !available" class="inline-flex items-center gap-2 rounded-lg border border-dashed border-violet-300 bg-violet-50/50 px-3 py-2 text-sm font-medium text-violet-800 transition hover:border-violet-500 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50" @click="show">
++            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13M9 9l12-2" /><ellipse cx="6" cy="18" rx="3" ry="2" /><ellipse cx="18" cy="16" rx="3" ry="2" /></svg>
++            {{ selection ? 'Cambiar audio' : 'Añadir audio' }}
++        </button>
+ 
+         <Modal :show="open" max-width="2xl" @close="close">
+             <div class="space-y-3 p-4 sm:p-6" data-testid="instagram-audio-picker" role="group" :aria-labelledby="`audio-title-${account.id}`">
+diff --git a/resources/js/Components/Composer/PresetSection.vue b/resources/js/Components/Composer/PresetSection.vue
+--- a/resources/js/Components/Composer/PresetSection.vue
++++ b/resources/js/Components/Composer/PresetSection.vue
+@@ -0,0 +1,32 @@
++<script setup>
++defineProps({
++    id: { type: String, required: true },
++    title: { type: String, required: true },
++    label: { type: String, required: true },
++    subtitle: { type: String, default: '' },
++    badge: { type: String, default: '' },
++});
++</script>
++
++<template>
++    <section :aria-label="label" class="composer-preset-section">
++        <details open class="group">
++            <summary :aria-controls="`${id}-content`" class="composer-preset-heading">
++                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
++                    <slot name="icon">
++                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
++                            <path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="3" fill="white" /><circle cx="15" cy="17" r="3" fill="white" />
++                        </svg>
++                    </slot>
++                </span>
++                <span class="min-w-0 flex-1">
++                    <span class="block text-sm font-semibold text-slate-900">{{ title }}</span>
++                    <span v-if="subtitle" class="mt-0.5 block truncate text-xs font-normal text-slate-500">{{ subtitle }}</span>
++                </span>
++                <span v-if="badge" class="max-w-[30%] truncate rounded-md bg-violet-50 px-2 py-1 text-[11px] font-medium text-violet-800">{{ badge }}</span>
++                <svg class="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 8 5 5 5-5" /></svg>
++            </summary>
++            <div :id="`${id}-content`" class="composer-preset-body"><slot /></div>
++        </details>
++    </section>
++</template>
+diff --git a/resources/js/Components/Composer/PresetsPanel.vue b/resources/js/Components/Composer/PresetsPanel.vue
+--- a/resources/js/Components/Composer/PresetsPanel.vue
++++ b/resources/js/Components/Composer/PresetsPanel.vue
+@@ -45,22 +45,22 @@
+             </div>
+         </div>
+ 
+-        <fieldset v-if="switches().length" class="space-y-2 border-0 p-0" :disabled="!editable">
++        <fieldset v-if="switches().length" class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 p-0" :disabled="!editable">
+             <legend class="sr-only">Interruptores de {{ account.network_label }} ({{ account.name }})</legend>
+-            <div v-for="s in switches()" :key="s.key">
+-                <label class="flex items-start gap-2 text-sm">
++            <div v-for="s in switches()" :key="s.key" class="px-3 py-3">
++                <label class="composer-setting-row">
++                    <span>{{ s.label }}</span>
+                     <input
+-                        type="checkbox" role="switch" class="mt-0.5"
++                        type="checkbox" role="switch" class="composer-preset-toggle"
+                         :checked="checked(s)" :disabled="lockedByTiktok(s)" :aria-describedby="s.hint && checked(s) ? `hint-${account.id}-${s.key}` : undefined"
+                         @change="set(s, $event.target.checked)"
+                     />
+-                    <span>{{ s.label }}</span>
+                 </label>
+-                <p v-if="lockedByTiktok(s)" class="ml-6 text-xs text-slate-600">Desactivado en los ajustes de tu cuenta de TikTok.</p>
+-                <p v-if="s.hint && checked(s)" :id="`hint-${account.id}-${s.key}`" class="ml-6 text-xs text-slate-600" role="status">{{ s.hint }}</p>
+-                <p v-if="s.warning && checked(s)" class="ml-6 text-xs text-amber-800" role="status">{{ s.warning }}</p>
++                <p v-if="lockedByTiktok(s)" class="mt-1.5 text-xs leading-relaxed text-slate-600">Desactivado en los ajustes de tu cuenta de TikTok.</p>
++                <p v-if="s.hint && checked(s)" :id="`hint-${account.id}-${s.key}`" class="mt-1.5 text-xs leading-relaxed text-slate-600" role="status">{{ s.hint }}</p>
++                <p v-if="s.warning && checked(s)" class="mt-1.5 text-xs leading-relaxed text-amber-800" role="status">{{ s.warning }}</p>
+             </div>
+-            <p class="text-xs text-slate-600">Se recuerdan los ajustes habituales de esta marca y red. La música recomendada y las colaboraciones de pago se deciden en cada publicación.</p>
+         </fieldset>
++        <p v-if="switches().length" class="text-xs leading-relaxed text-slate-500">Se recuerdan los ajustes habituales de esta marca y red. La música recomendada y las colaboraciones de pago se deciden en cada publicación.</p>
+     </div>
+ </template>
+diff --git a/resources/js/Components/Composer/TargetOptions.vue b/resources/js/Components/Composer/TargetOptions.vue
+--- a/resources/js/Components/Composer/TargetOptions.vue
++++ b/resources/js/Components/Composer/TargetOptions.vue
+@@ -4,11 +4,12 @@
+ import PresetsPanel from '@/Components/Composer/PresetsPanel.vue';
+ import FirstCommentField from '@/Components/Composer/FirstCommentField.vue';
+ import InstagramAudioField from '@/Components/Composer/InstagramAudioField.vue';
++import PresetSection from '@/Components/Composer/PresetSection.vue';
+ import { watchEffect } from 'vue';
+ import { useComposerContext } from '@/Composables/useComposer';
+ import { PRIVACY_LABELS, loadTiktokCreator, tiktokCreator } from '@/Composables/tiktokCreator';
+ 
+-const { accounts, brand, editable, targetFor, firstCommentMax } = useComposerContext();
++const { accounts, brand, editable, targetFor, firstCommentMax, typeLabel } = useComposerContext();
+ 
+ // Direct Post de TikTok: al elegir la cuenta se consulta `creator_info` (nombre, visibilidades e interacciones de esa cuenta).
+ watchEffect(() => {
+@@ -38,13 +39,15 @@
+ <template>
+     <!-- Opciones por cuenta (las que ya existían) y errores de cada destino -->
+     <template v-for="account in accounts" :key="account.id">
+-        <section v-if="hasOptions(account)" class="card space-y-2 p-4" :aria-label="`Opciones de ${account.network_label} (${account.name})`">
+-            <h2 class="flex items-center gap-2 font-medium text-slate-900">
+-                <NetworkIcon :network="account.network" size="sm" /> {{ account.network_label }} · {{ account.name }}
+-            </h2>
+-            <label v-if="targetFor(account.id).content_type === 'instagram_reel'" class="flex items-center gap-2 text-sm">
+-                <input type="checkbox" :disabled="!editable" :checked="targetFor(account.id).options.share_to_feed !== false" @change="targetFor(account.id).options.share_to_feed = $event.target.checked" />
+-                Compartir también en el feed
++        <PresetSection
++            v-if="hasOptions(account)" :id="`network-presets-${account.id}`"
++            :title="`Ajustes de ${account.network_label}`" :label="`Opciones de ${account.network_label} (${account.name})`"
++            :subtitle="account.name" :badge="typeLabel(targetFor(account.id).content_type)"
++        >
++            <template #icon><NetworkIcon :network="account.network" size="md" /></template>
++            <label v-if="targetFor(account.id).content_type === 'instagram_reel'" class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3">
++                <span>Compartir también en el feed</span>
++                <input type="checkbox" class="composer-preset-toggle" :disabled="!editable" :checked="targetFor(account.id).options.share_to_feed !== false" @change="targetFor(account.id).options.share_to_feed = $event.target.checked" />
+             </label>
+             <div v-if="targetFor(account.id).content_type === 'facebook_text'">
+                 <InputLabel :for="`link-${account.id}`" value="Enlace (opcional)" />
+@@ -96,8 +99,8 @@
+             <!-- Interruptores por red (C-04): se recuerdan por marca y red; solo salen los que la API de la red admite -->
+             <PresetsPanel v-if="account.network === 'youtube' || account.network === 'tiktok'" :account="account" />
+             <FirstCommentField :account="account" />
+-            <p v-if="targetFor(account.id).content_type !== 'instagram_reel' && account.audio?.embedded_video_types?.includes(targetFor(account.id).content_type)" class="border-t border-slate-200 pt-2 text-xs text-slate-600" data-testid="network-audio-note">{{ account.audio.note }}</p>
++            <p v-if="targetFor(account.id).content_type !== 'instagram_reel' && account.audio?.embedded_video_types?.includes(targetFor(account.id).content_type)" class="rounded-xl bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600" data-testid="network-audio-note">{{ account.audio.note }}</p>
+             <InstagramAudioField v-if="targetFor(account.id).content_type === 'instagram_reel'" :account="account" />
+-        </section>
++        </PresetSection>
+     </template>
+ </template>
+diff --git a/resources/js/Pages/Posts/Compose.vue b/resources/js/Pages/Posts/Compose.vue
+--- a/resources/js/Pages/Posts/Compose.vue
++++ b/resources/js/Pages/Posts/Compose.vue
+@@ -5,10 +5,9 @@
+ import TargetOptions from '@/Components/Composer/TargetOptions.vue';
+ import TextSection from '@/Components/Composer/TextSection.vue';
+ import MediaSection from '@/Components/Composer/MediaSection.vue';
+-import ScheduleSection from '@/Components/Composer/ScheduleSection.vue';
++import GlobalPresets from '@/Components/Composer/GlobalPresets.vue';
+ import ErrorsPanel from '@/Components/Composer/ErrorsPanel.vue';
+ import ActionBar from '@/Components/Composer/ActionBar.vue';
+-import NotesPanel from '@/Components/Composer/NotesPanel.vue';
+ import PostStatusHeader from '@/Components/Composer/PostStatusHeader.vue';
+ import PreviewPanel from '@/Components/Composer/PreviewPanel.vue';
+ import TargetStatusPanel from '@/Components/Composer/TargetStatusPanel.vue';
+@@ -52,9 +51,10 @@
+                     <NetworkPicker />
+                     <TextSection />
+                     <MediaSection />
+-                    <TargetOptions />
+-                    <ScheduleSection />
+-                    <NotesPanel />
++                    <div class="space-y-3" data-testid="composer-presets">
++                        <GlobalPresets />
++                        <TargetOptions />
++                    </div>
+                     <ErrorsPanel />
+                     <ActionBar />
+                 </form>
+diff --git a/tests/e2e/composer-presets.spec.ts b/tests/e2e/composer-presets.spec.ts
+--- a/tests/e2e/composer-presets.spec.ts
++++ b/tests/e2e/composer-presets.spec.ts
+@@ -0,0 +1,76 @@
++import AxeBuilder from '@axe-core/playwright';
++import { expect, test } from '@playwright/test';
++import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp } from './helpers';
++
++test('Presets: global and network panels keep values and reveal collapsed validation fields', async ({ page }, info) => {
++    const user = e2eUser(info.project.name);
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `presets-${stamp()}-${info.project.name}`);
++    try {
++        const draft = artisan(String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brand.id}); $u = App\Models\User::findOrFail($b->user_id); ` +
++            String.raw`$m = App\Models\MediaAsset::factory()->video(duration:30)->for($u)->create(); $targets = App\Models\SocialAccount::withoutUserScope()->where('brand_id',$b->id)->get()->map(fn($a)=>['account_id'=>$a->id,'content_type'=>$a->network === App\Connectors\Network::Instagram ? 'instagram_reel' : 'facebook_reel'])->all(); ` +
++            String.raw`$p = app(App\Services\PostService::class)->create($u,$b,['text'=>'Una nueva historia para compartir.','schedule'=>false,'media'=>[$m->id],'targets'=>$targets]); echo 'POST:'.$p->id;`);
++        await loginAs(page, user);
++        await page.goto(`/posts/${draft.match(/POST:(\d+)/)![1]}/edit`);
++        await settle(page);
++        const global = page.getByRole('region', { name: 'Ajustes globales', exact: true });
++        await expect(global).toBeVisible();
++        await page.getByLabel('Notas internas', { exact: true }).fill('Estas notas se conservan al plegar.');
++        const globalSummary = global.locator('summary');
++        await globalSummary.focus();
++        await page.keyboard.press('Enter');
++        await expect(page.getByLabel('Notas internas', { exact: true })).toBeHidden();
++        await page.keyboard.press('Space');
++        await expect(page.getByLabel('Notas internas', { exact: true })).toHaveValue('Estas notas se conservan al plegar.');
++        const instagram = page.getByRole('region', { name: 'Opciones de Instagram (e2e Instagram)', exact: true });
++        const summary = instagram.locator('summary');
++        await expect(summary).toContainText('Ajustes de Instagram');
++        await expect(page.getByRole('region', { name: 'Opciones de Facebook (e2e Facebook)', exact: true }).locator('summary')).toContainText('Ajustes de Facebook');
++        await instagram.getByLabel('Compartir también en el feed').uncheck();
++        const comment = instagram.getByLabel('Primer comentario (opcional)', { exact: true });
++        await comment.fill('Comentario conservado.');
++        await summary.click();
++        await expect(comment).toBeHidden();
++        await summary.click();
++        await expect(comment).toHaveValue('Comentario conservado.');
++        await expect(instagram.getByLabel('Compartir también en el feed')).not.toBeChecked();
++        const saved = page.waitForResponse(response => response.request().method() === 'PUT' && /\/posts\/\d+$/.test(new URL(response.url()).pathname));
++        await page.getByRole('button', { name: 'Más acciones de publicación' }).click();
++        await page.getByRole('menuitem', { name: 'Guardar borrador', exact: true }).click();
++        await saved;
++        await settle(page);
++        await page.reload();
++        await expect(comment).toHaveValue('Comentario conservado.');
++        await expect(page.getByLabel('Notas internas', { exact: true })).toHaveValue('Estas notas se conservan al plegar.');
++        await expect(instagram.getByLabel('Compartir también en el feed')).not.toBeChecked();
++        await page.mouse.move(0, 0);
++        await expectNoOverflow(page);
++        await page.getByTestId('composer-presets').screenshot({ path: info.outputPath('composer-presets.png'), style: 'header { visibility: hidden !important; }' });
++        const a11y = await new AxeBuilder({ page }).include('[data-testid="composer-presets"]').analyze();
++        expect(a11y.violations.filter(v => ['critical', 'serious'].includes(v.impact ?? ''))).toEqual([]);
++    } finally {
++        cleanComposerBrands(user.email);
++    }
++});
++
++test('Presets: validation opens a collapsed global panel and focuses its date field', async ({ page }, info) => {
++    const user = e2eUser(info.project.name);
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `presets-error-${stamp()}-${info.project.name}`);
++    try {
++        await loginAs(page, user);
++        await page.goto(`/brands/${brand.id}/posts/create?selector=nativo`);
++        await settle(page);
++        const global = page.getByRole('region', { name: 'Ajustes globales', exact: true });
++        const date = page.locator('#scheduled_at');
++        await date.fill('2000-01-01T10:00');
++        await global.locator('summary').click();
++        await expect(date).toBeHidden();
++        await page.getByRole('button', { name: /Ir al control con el error: La fecha de publicacion debe ser futura/ }).click();
++        await expect(date).toBeVisible();
++        await expect(date).toBeFocused();
++        await expectNoOverflow(page);
++    } finally {
++        cleanComposerBrands(user.email);
++    }
++});
+diff --git a/tsconfig.json b/tsconfig.json
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -9,5 +9,5 @@
+         "esModuleInterop": true,
+         "types": ["node"]
+     },
+-    "include": ["tests/e2e/**/*.ts", "playwright.config.ts", "playwright.roadmap.config.ts", "playwright.audio.config.ts"]
++    "include": ["tests/e2e/**/*.ts", "playwright.config.ts", "playwright.roadmap.config.ts", "playwright.audio.config.ts", "playwright.presets.config.ts"]
+ }

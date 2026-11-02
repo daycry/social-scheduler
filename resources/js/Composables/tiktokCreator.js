@@ -8,8 +8,8 @@ export function tiktokCreator(accountId) {
     return state[accountId] ?? { loading: false, data: null, error: null };
 }
 
-export async function loadTiktokCreator(brandId, accountId) {
-    if (state[accountId]?.loading || state[accountId]?.data) return;
+export async function loadTiktokCreator(brandId, accountId, retry = false) {
+    if (state[accountId]?.loading || state[accountId]?.data || (!retry && state[accountId]?.error != null)) return;
     state[accountId] = { loading: true, data: null, error: null };
     try {
         const response = await fetch(route('brands.connections.tiktok-creator', { brand: brandId, account: accountId }), {
@@ -17,9 +17,13 @@ export async function loadTiktokCreator(brandId, accountId) {
             credentials: 'same-origin',
         });
         const body = await response.json().catch(() => ({}));
-        state[accountId] = response.ok
+        const message = typeof body?.message === 'string' && body.message.trim()
+            ? body.message : 'No se pudo consultar tu cuenta de TikTok.';
+        const valid = response.ok && body && !Array.isArray(body)
+            && typeof body.nickname === 'string' && Array.isArray(body.privacy_level_options);
+        state[accountId] = valid
             ? { loading: false, data: body, error: null }
-            : { loading: false, data: null, error: body.message ?? 'No se pudo consultar tu cuenta de TikTok.' };
+            : { loading: false, data: null, error: message };
     } catch {
         state[accountId] = { loading: false, data: null, error: 'No se pudo consultar tu cuenta de TikTok.' };
     }

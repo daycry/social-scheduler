@@ -102,10 +102,14 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 | `posts:write` | crear, programar, editar, cancelar y borrar |
 | `stats:read` | estadísticas de marcas, redes y publicaciones |
 | `reports:write` | generar y descargar informes |
+| `inbox:read` / `inbox:write` | leer comentarios / responder y anotar |
+| `designs:read` / `designs:write` | consultar diseños, kits, carpetas y trabajos / crear, modificar, registrar recursos y exportar |
 
 `*` también vale. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
 
-## Herramientas (27)
+## Herramientas (36)
+
+**Estudio por marca.** Se añaden `list_designs`, `get_design`, `create_design`, `update_design`, `manage_design`, `manage_design_folder`, `attach_design_asset`, `manage_brand_kit` y `export_design`. Comparten servicios y revisiones con web y API v1. `tools/list` devuelve 30 herramientas y `nextCursor`; continúa hasta agotarlo. El historial de exportaciones también está paginado, 50 por defecto. [Guía completa de API/MCP, permisos y render](../guias/estudio-api-mcp.md).
 
 **Audio de Instagram Reels.** `search_instagram_audio` y `get_instagram_audio` consultan el catálogo autorizado de Meta para una cuenta propia (`account_id`, ability `brands:read`). La primera admite `q` y `type=all|music|original_sound`; la segunda recibe un `audio_id` y renueva la preescucha temporal. `list_accounts` anuncia `instagram_audio.available` y el motivo si falta acceso. `create_post`/`update_post` aceptan `options.instagram_audio={audio_id, audio_volume, video_volume}` por destino; solo Reels elegibles, volúmenes opcionales 1–100 (por defecto 100), `null` para quitar. La preescucha no es la mezcla final y las URLs no se guardan en opciones. [Guía y ejemplo completo](../guias/audio-instagram.md).
 

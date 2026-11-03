@@ -1,0 +1,22 @@
+﻿[
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+        "Hash":  "8478D9A1804C261F3D5BF14DB5368EE48E3F4EB1E159B4A2B8DBC33CF0A06B83"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts",
+        "Hash":  "22F56D084DE2951B384855B9F2C462277F3E5313E006485A1D9039DBFAED250D"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+        "Hash":  "E1788139B9AFDF90DF821B64A8BFAC81DB2F9C75FD3F2E7A5462CACD2921F974"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\public\\build\\manifest.json",
+        "Hash":  "C382D25A98914B499C95226C7EC8AD5F5D391383675A13228AFB17CF088DF30D"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\public\\build\\studio-renderer.js",
+        "Hash":  "906113480E5454B208A7308CCF95B8F5664A9F4BF8B263B91A84185F6633E411"
+    }
+]

@@ -2,12 +2,15 @@
 
 Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-10-31
+Última actualización: 2026-11-04
 
 ## Por dónde empezar
 
 | Si quieres… | Lee |
 |---|---|
+| Diseñar contenido por marca y reutilizarlo en una publicación | [Estudio creativo](guias/estudio-creativo.md) |
+| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/creative-suite.openapi.yaml) |
+| Revisar cobertura, cálculos y recolección de métricas | [Auditoría de métricas](roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) |
 | Entender cómo encaja todo | [Arquitectura](arquitectura.md) y [Stack](stack.md) |
 | Saber qué se decidió por red (Meta, YouTube, TikTok, Bluesky) | [Decisiones por red](referencia/decisiones-por-red.md) |
 | Rellenar el `.env` | [Configuración](referencia/configuracion.md) |
@@ -64,7 +67,6 @@ Las comprobaciones con cuentas y servidor reales siguen en [Pendientes manuales]
 ## Categorías omitidas
 
 - `docs/security-scan/`: evidencia local de `nemesis`, excluida de git y de publicación documental porque puede contener datos sensibles.
-- Referencia de API HTTP pública: la app no expone API REST propia; la única interfaz máquina a máquina es el MCP ([mcp.md](modulos/mcp.md)).
 - Confluence: no se publica (opt-in no configurado).
 
 - [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.

@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daycry/social-scheduler/actions/workflows/ci.yml)
 [![Code Style](https://img.shields.io/badge/code%20style-Laravel%20Pint-f05340.svg)](https://laravel.com/docs/pint)
-[![Tests](https://img.shields.io/badge/tests-Pest%202461-22c55e.svg)](tests)
+[![Tests](https://img.shields.io/badge/tests-Pest%202585-22c55e.svg)](tests)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20·%203%20viewports-2ead33.svg)](tests/e2e)
 [![Accesibilidad](https://img.shields.io/badge/a11y-axe%20WCAG%202.1%20AA-7c3aed.svg)](tests/e2e/a11y.spec.ts)
 
@@ -23,7 +23,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/daycry/social-scheduler)](https://github.com/daycry/social-scheduler/issues)
 [![Last commit](https://img.shields.io/github/last-commit/daycry/social-scheduler)](https://github.com/daycry/social-scheduler/commits)
 
-Programación y analítica de redes sociales para uso personal, con identidad propia: planifica publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads, mide su rendimiento, genera informes y se maneja también desde agentes de IA por MCP.
+Programación, diseño y analítica de redes sociales por marca: crea diseños editables, prepara publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads, mide su rendimiento, genera informes y automatiza desde API/MCP.
 
 Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudflare R2, preparado para el despliegue en HestiaCP.
 
@@ -33,16 +33,19 @@ Laravel 13 + Inertia (Vue 3), cola `database`, workers systemd y media en Cloudf
 
 | | |
 |---|---|
-| Código de aplicación | 307 ficheros PHP · ~30.600 líneas en `app/` |
-| Interfaz | 101 componentes Vue (Inertia) |
-| Base de datos | 47 migraciones |
-| Tests unitarios y de integración | **2.461 tests Pest** en 233 ficheros (SQLite en memoria; ejecución local final del 2026-10-31) |
+| Código de aplicación | 344 ficheros PHP en `app/` |
+| Interfaz | 113 componentes Vue (Inertia) |
+| Base de datos | 48 migraciones |
+| Tests unitarios y de integración | **2.585 tests Pest**, 15.376 aserciones, en 247 ficheros de tests (SQLite en memoria y almacenamiento aislado; 2026-11-03). Verificación posterior de límites Studio: 55/55, incluyendo dos casos Unicode nuevos |
 | Tests E2E | T-43: **57 tests pasados**; batería general: **502 pasados y 2 omitidos previstos** de 504, en 3 tamaños con SQLite aislada (2026-10-31). Ver [QA de T-43](docs/roadmap/2026-10-19-social-scheduler/testing/report.md), [evidencia general](docs/roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/raw/results.json) y [guía](docs/guias/pruebas-t43.md). |
-| Servidor MCP | 25 herramientas (marcas, cuentas de las 6 redes, calendario y vistas, publicaciones —con «publicar ahora», notas y campañas—, importación de media por URL, estadísticas, hashtags, informes, comentarios y notas) |
-| Documentación | [Índice general](docs/README.md) y [RAG](docs/RAG-INDEX.md) · 5 ADR · 8 iniciativas en el roadmap |
+| Servidor MCP | 36 herramientas: núcleo social y nueve del estudio; descubrimiento paginado de 30 en 30. [API v1/MCP](docs/guias/estudio-api-mcp.md) |
+| Estudio y métricas: QA actual | **18/18 E2E**, tres tamaños de pantalla, cero fallos/flaky/omitidos; **29 pruebas frontend** y 3 guardas del runner. [Informe](docs/roadmap/2026-11-03-creative-social-suite/testing/qa-final/report.md) |
+| Documentación | [Índice general](docs/README.md) y [RAG](docs/RAG-INDEX.md) · 5 ADR · 10 iniciativas en el roadmap |
 
 ## Funcionalidades
 
+- **Estudio por marca**: lienzo, texto, formas, capas, grupos, páginas, filtros, recursos, kit, carpetas, 14 plantillas, autosave y revisiones. PNG/JPEG/WebP/SVG/PDF reales y borrador adjunto desde el diseño. [Guía](docs/guias/estudio-creativo.md).
+- **Calidad de métricas**: cobertura y fechas visibles, engagement con observaciones compatibles y comparaciones sin porcentajes engañosos cuando faltan muestras. La [matriz de paridad](docs/roadmap/2026-11-03-creative-social-suite/reference-inventory.md) mantiene abiertas las funciones avanzadas restantes.
 - **Publicación** en Instagram (post, carrusel, reel, story), páginas de Facebook, YouTube (vídeo y short), TikTok, Bluesky (app password; texto, imágenes y vídeo) y Threads (texto, imagen, vídeo y carrusel), con cola con reintentos y calendario.
 - **Compositor a pantalla completa**: texto común o propio por red, tipo de publicación junto a cada red, contadores y errores en vivo, opciones por red recordadas por marca, notas internas, generador de enlaces con UTM, «Publicar ahora» y guardado en biblioteca.
 - **Analítica e informes**: dashboards por marca, mejores horas para publicar, informes PDF y comparativa con competidores.

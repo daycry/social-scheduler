@@ -1,0 +1,6 @@
+{
+  "loopback_connect_attempts": {
+    "127.0.0.1:8080": 351
+  },
+  "refused_tcp_connects": []
+}

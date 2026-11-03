@@ -5,6 +5,10 @@
 | Documento | Responde a | Palabras clave |
 |---|---|---|
 | [README.md](README.md) | Mapa de la documentación | índice, estado |
+| [guias/estudio-creativo.md](guias/estudio-creativo.md) | Diseños editables por marca, guardado, exportación y borrador | Studio, Fabric, páginas, revisión, kit, PNG, SVG, PDF |
+| [guias/estudio-api-mcp.md](guias/estudio-api-mcp.md) | API v1, nueve herramientas Studio, permisos y renderer | designs:read, designs:write, paginación, Chromium, media, jobs |
+| [Auditoría de métricas](roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) | Exactitud, cobertura, frescura y contraste Meta local | MetricCoverage, ComparisonQuality, YouTube, snapshots, pares cuenta/día |
+| [Inventario suite](roadmap/2026-11-03-creative-social-suite/reference-inventory.md) | Qué está implementado y qué falta para la paridad solicitada | Canva, Metricool, REA, premium, matriz, límites externos |
 | [guias/audio-instagram.md](guias/audio-instagram.md) | Añadir, preescuchar y quitar audio de catálogo en Reels desde web y MCP | `instagram_audio`, `search_instagram_audio`, `get_instagram_audio`, volúmenes, Meta |
 | [arquitectura.md](arquitectura.md) | Capas, flujos, estados de publicación, aislamiento por usuario | `UserScope`, `PostStatus`, colas, scheduler |
 | [stack.md](stack.md) | Versiones, dependencias y configuraciones de pruebas | Laravel 13, Inertia, Pest, DomPDF, Sanctum, Playwright, SQLite desechable |

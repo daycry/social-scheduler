@@ -22,9 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             // /health fuera del grupo `web` (sin sesion en BD) y con rate limit.
             Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
+            Route::middleware('api')->group(base_path('routes/studio-api.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Design documents are typed data: whitespace and empty text/strokes carry visual meaning.
+        $studioJson = static fn (Request $request): bool => $request->isJson()
+            && ($request->is('studio*', 'brands/*/studio*', 'api/v1/*')
+                || ($request->is('mcp*') && is_array($request->input('params.arguments.document'))));
+        $middleware->trimStrings(except: [$studioJson]);
+        $middleware->convertEmptyStringsToNull(except: [$studioJson]);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

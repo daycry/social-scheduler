@@ -76,11 +76,11 @@ test('sin histórico devuelve el estado vacío explícito y no llama a la IA', f
     Http::assertNothingSent();
 });
 
-test('tools/list ofrece 27 herramientas en una sola página, con suggest_hashtags y brand en su esquema', function () {
+test('tools/list ofrece 30 herramientas en la primera página con cursor, con suggest_hashtags y brand en su esquema', function () {
     $response = $this->rpc($this->key, 'tools/list')->assertOk();
     $tools = collect($response->json('result.tools'))->keyBy('name');
 
-    expect($tools)->toHaveCount(27)->and($tools->has('suggest_hashtags'))->toBeTrue()
-        ->and($response->json('result.nextCursor'))->toBeNull()
+    expect($tools)->toHaveCount(30)->and($tools->has('suggest_hashtags'))->toBeTrue()
+        ->and($response->json('result.nextCursor'))->not->toBeNull()
         ->and($tools['suggest_hashtags']['inputSchema']['properties'])->toHaveKeys(['brand', 'brand_id', 'network']);
 });

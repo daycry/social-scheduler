@@ -93,8 +93,8 @@ test('McpNotes: create_post admite notes y las 22 herramientas caben en la prime
     $r = $this->rpc($this->key, 'tools/list')->assertOk();
     $names = collect($r->json('result.tools'))->pluck('name');
 
-    expect($names)->toHaveCount(27)->and($names)->toContain('update_post_notes', 'publish_post_now')
-        ->and($r->json('result.nextCursor'))->toBeNull();
+    expect($names)->toHaveCount(30)->and($names)->toContain('update_post_notes', 'publish_post_now')
+        ->and($r->json('result.nextCursor'))->not->toBeNull();
 });
 
 test('PostNotes: el calendario marca el post con nota', function () {

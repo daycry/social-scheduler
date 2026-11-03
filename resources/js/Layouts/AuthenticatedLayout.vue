@@ -51,6 +51,7 @@ const moduleTitle = computed(() => current.value.label);
 // ---------------------------------------------------------------- selector de marca
 const switchBrand = (id) => {
     const name = route().current();
+    if (name?.startsWith('studio.')) return router.get(route('studio.index', { brand_id: id }));
     if (name === 'brands.connections.index' || name === 'brands.posts.create') {
         return router.get(route(name, id));
     }

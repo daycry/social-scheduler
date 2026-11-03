@@ -12,6 +12,17 @@
  */
 export const MODULES = [
     {
+        key: 'studio', label: 'Estudio', icon: 'palette', match: ['studio.*'],
+        when: (c) => c.has('studio.index'),
+        href: (c) => c.route('studio.index', c.q),
+        side: [
+            { key: 'designs', label: 'Mis diseños', icon: 'grid', match: ['studio.index', 'studio.designs.*'], href: (c) => c.route('studio.index', c.q) },
+            { key: 'templates', label: 'Plantillas', icon: 'bookmark', match: [], href: (c) => c.route('studio.index', { ...c.q, templates: 1 }) },
+            { key: 'brand-kit', label: 'Identidad de marca', icon: 'palette', match: [], href: (c) => c.route('studio.index', { ...c.q, tab: 'brand' }) },
+            { key: 'archived-designs', label: 'Papelera de diseños', icon: 'trash', match: [], href: (c) => c.route('studio.index', { ...c.q, archived: 1 }) },
+        ],
+    },
+    {
         key: 'analytics',
         label: 'Analítica',
         icon: 'chart',

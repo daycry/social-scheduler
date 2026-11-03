@@ -3,6 +3,7 @@
 defineProps({ name: { type: String, required: true } });
 
 const PATHS = {
+    palette: 'M12 3a9 9 0 100 18h1a2 2 0 001.7-3l-.5-.8A2 2 0 0116 14h2a3 3 0 003-3 9 9 0 00-9-8zM7 10h.01M9 6h.01M14 6h.01M17 9h.01',
     chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
     calendar: 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z',
     list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',

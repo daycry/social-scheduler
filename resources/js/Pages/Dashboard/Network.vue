@@ -1,6 +1,7 @@
 <script setup>
 import ConnectNetwork from '@/Components/ConnectNetwork.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import MetricQuality from '@/Components/MetricQuality.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -73,13 +74,14 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                         <!-- Crecimiento -->
                         <section class="card p-5" data-section="growth">
                             <h2 class="text-sm font-semibold text-slate-700">Crecimiento</h2>
+                            <MetricQuality :coverage="metric('followers')?.coverage" :freshness="metric('followers')?.freshness" />
                             <div class="mt-2 grid gap-4 sm:grid-cols-4">
                                 <div>
-                                    <p class="text-xs text-slate-500">Seguidores (fin del periodo)</p>
+                                    <p class="text-xs text-slate-500">Seguidores (último dato conocido)</p>
                                     <p class="text-2xl font-semibold" :class="detail.growth.end === null ? 'text-slate-500 text-lg' : ''">{{ fmt(detail.growth.end) }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-slate-500">Seguidores (inicio)</p>
+                                    <p class="text-xs text-slate-500">Seguidores (primer dato conocido)</p>
                                     <p class="text-2xl font-semibold" :class="detail.growth.start === null ? 'text-slate-500 text-lg' : ''">{{ fmt(detail.growth.start) }}</p>
                                 </div>
                                 <div>
@@ -91,6 +93,8 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                                     <p class="text-2xl font-semibold" :class="detail.growth.pct === null ? 'text-slate-500 text-lg' : ''">{{ detail.growth.pct === null ? UNAVAILABLE : fmtPct(detail.growth.pct) }}</p>
                                 </div>
                             </div>
+                            <p v-if="detail.growth.status === 'partial'" class="mt-2 text-xs text-amber-800">Crecimiento parcial: {{ detail.growth.unmeasured_accounts }} cuenta(s) sin dos observaciones. La variación solo incluye las cuentas medibles; el saldo conserva los seguidores conocidos.</p>
+                            <p v-else-if="detail.growth.status === 'insufficient'" class="mt-2 text-xs text-amber-800">Faltan dos observaciones por cuenta para medir el crecimiento.</p>
                             <p v-if="detail.comparison && detail.growth.previous" class="mt-1 text-xs text-slate-500">
                                 Periodo de comparación: {{ fmt(detail.growth.previous.change) }} ({{ fmtPct(detail.growth.previous.pct) ?? UNAVAILABLE }})
                             </p>
@@ -111,6 +115,7 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                                         <span v-if="detail.comparison && m.delta_pct !== null" class="rounded px-1.5 text-xs" :class="deltaClass(m.delta_pct)">{{ fmtPct(m.delta_pct) }}</span>
                                     </div>
                                     <p class="text-2xl font-semibold" :class="m.available ? 'text-slate-900' : 'text-slate-500 text-lg'">{{ fmt(m.total) }}</p>
+                                    <MetricQuality :coverage="m.coverage" :freshness="m.freshness" :comparison="m.comparison_quality" />
                                     <LineChart :series="chart(m)" :height="140" />
                                 </div>
                             </div>
@@ -120,14 +125,14 @@ const dt = (iso) => (iso ? new Date(iso).toLocaleString('es-ES', { dateStyle: 's
                         <section class="card p-5" data-section="kpis">
                             <h2 class="text-sm font-semibold text-slate-700">KPIs</h2>
                             <dl class="mt-3 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                                <div><dt class="text-xs text-slate-500">Interacciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.interactions, 1) }}</dd></div>
-                                <div><dt class="text-xs text-slate-500">Visualizaciones por dia</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.views, 1) }}</dd></div>
+                                <div><dt class="text-xs text-slate-500">Interacciones por día con datos</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.interactions, 1) }}</dd><p v-if="detail.kpis.per_day_basis?.interactions" class="text-xs text-slate-500">{{ detail.kpis.per_day_basis.interactions.observed_days }} de {{ detail.kpis.per_day_basis.interactions.requested_days }} días</p></div>
+                                <div><dt class="text-xs text-slate-500">Visualizaciones por día con datos</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_day.views, 1) }}</dd><p v-if="detail.kpis.per_day_basis?.views" class="text-xs text-slate-500">{{ detail.kpis.per_day_basis.views.observed_days }} de {{ detail.kpis.per_day_basis.views.requested_days }} días</p></div>
                                 <div><dt class="text-xs text-slate-500">Engagement (cuenta)</dt><dd class="text-lg font-semibold">{{ detail.kpis.engagement_rate === null ? UNAVAILABLE : `${fmt(detail.kpis.engagement_rate, 2)} %` }}</dd></div>
                                 <div><dt class="text-xs text-slate-500">Visualizaciones por publicacion</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_post.views, 1) }}</dd></div>
                                 <div><dt class="text-xs text-slate-500">Interacciones por publicacion</dt><dd class="text-lg font-semibold">{{ fmt(detail.kpis.per_post.interactions, 1) }}</dd></div>
                                 <div><dt class="text-xs text-slate-500">Engagement por publicacion</dt><dd class="text-lg font-semibold">{{ detail.kpis.per_post.engagement_rate === null ? UNAVAILABLE : `${fmt(detail.kpis.per_post.engagement_rate, 2)} %` }}</dd></div>
                             </dl>
-                            <p class="mt-2 text-xs text-slate-500">Engagement = interacciones / visualizaciones. Las medias por publicacion solo incluyen las publicadas desde esta aplicacion con datos.</p>
+                            <p class="mt-2 text-xs text-slate-500">Engagement = interacciones / visualizaciones, usando cuentas y días con ambas métricas. Las medias por publicación solo incluyen las publicadas desde esta aplicación con datos.</p>
                         </section>
 
                         <!-- Publicaciones -->

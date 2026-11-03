@@ -90,6 +90,9 @@ const connectCards = [
                         :previous="card.previous"
                         :comparison-label="summary.comparison ? `Periodo de comparación (${summary.comparison.from} - ${summary.comparison.to})` : ''"
                         :breakdown="card.by_network"
+                        :coverage="card.coverage"
+                        :freshness="card.freshness"
+                        :comparison-quality="card.comparison_quality"
                     >
                         <LineChart :series="seriesFor(card)" :height="180" />
                     </KpiCard>

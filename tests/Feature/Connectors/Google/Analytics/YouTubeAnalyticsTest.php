@@ -71,7 +71,7 @@ it('YouTubeAnalytics: metricas diarias del canal con Analytics API y seguidores 
 
     $report = collect($this->requests)->first(fn ($r) => str_contains($r->url(), YT_REPORTS));
     parse_str(parse_url($report->url(), PHP_URL_QUERY), $q);
-    expect($q['ids'])->toBe('channel==MINE')->and($q['startDate'])->toBe('2026-10-31')->and($q['endDate'])->toBe('2026-10-31')
+    expect($q['ids'])->toBe('channel==UCabc')->and($q['startDate'])->toBe('2026-10-31')->and($q['endDate'])->toBe('2026-10-31')
         ->and($q['metrics'])->toContain('subscribersGained')
         ->and($report->header('Authorization')[0])->toBe('Bearer yt-access');
 });

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Analytics\Calculator;
+use App\Analytics\ComparisonQuality;
 use App\Analytics\Metric;
+use App\Analytics\MetricCoverage;
 use App\Analytics\Period;
 use App\Connectors\Network;
 use App\Enums\PostStatus;
@@ -97,8 +99,12 @@ class AnalyticsService
     public function summary(User $user, Brand $brand, Period $period, ?Period $compare = null): array
     {
         $networks = $this->connectedNetworks($user, $brand);
-        $current = $this->networkSeries($user, $brand, $period);
-        $previous = $compare ? $this->networkSeries($user, $brand, $compare) : [];
+        $coverageAccounts = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            ->get(['id', 'network', 'status']);
+        $snapshots = null;
+        $current = $this->networkSeries($user, $brand, $period, null, $snapshots);
+        $previousSnapshots = null;
+        $previous = $compare ? $this->networkSeries($user, $brand, $compare, null, $previousSnapshots) : [];
         $dates = $period->dates();
 
         $cards = [];
@@ -115,11 +121,16 @@ class AnalyticsService
                 $series = $this->fill(Calculator::combine($accounts, $metric, $dates), $dates);
                 $value = Calculator::totalAcross($accounts, $metric);
                 $prev = $compare ? Calculator::totalAcross($previous[$net][$metric] ?? [], $metric) : null;
+                $networkAccounts = $coverageAccounts->filter(fn ($a) => $a->network->value === $net);
+                $metadata = MetricCoverage::forMetric($metric, $networkAccounts, $snapshots, $period);
+                $previousMetadata = $compare ? MetricCoverage::forMetric($metric, $networkAccounts, $previousSnapshots, $compare) : null;
+                $quality = ComparisonQuality::forMetric($metric, $accounts, $previous[$net][$metric] ?? [], $metadata, $previousMetadata);
 
                 $byNetwork[] = [
                     'network' => $net, 'label' => $n['label'], 'value' => $value, 'previous' => $prev,
-                    'delta_pct' => Calculator::delta($value, $prev)['pct'], 'available' => $value !== null,
-                ];
+                    'delta_pct' => ComparisonQuality::delta($value, $prev, $quality)['pct'], 'available' => $value !== null,
+                    'comparison_quality' => $quality,
+                ] + $metadata;
 
                 $total = $value === null ? $total : ($total ?? 0) + $value;
                 $prevTotal = $prev === null ? $prevTotal : ($prevTotal ?? 0) + $prev;
@@ -130,13 +141,15 @@ class AnalyticsService
                 }
             }
 
-            $delta = Calculator::delta($total, $prevTotal);
+            $quality = ComparisonQuality::merge(array_column($byNetwork, 'comparison_quality'));
+            $delta = ComparisonQuality::delta($total, $prevTotal, $quality);
             $cards[] = [
                 'key' => $metric, 'label' => $label, 'kind' => in_array($metric, Metric::STOCKS, true) ? 'stock' : 'flow',
                 'total' => $total, 'previous' => $compare ? $prevTotal : null, 'delta_abs' => $delta['abs'], 'delta_pct' => $delta['pct'],
                 'available' => $total !== null, 'by_network' => $byNetwork,
+                'comparison_quality' => $quality,
                 'series' => collect($timeline)->map(fn ($row, $date) => ['date' => $date, 'total' => $row['total'], 'values' => $row['values']])->values()->all(),
-            ];
+            ] + MetricCoverage::merge($byNetwork);
         }
 
         return [
@@ -156,14 +169,17 @@ class AnalyticsService
     {
         $this->assertOwns($user, $brand);
 
-        $accounts = SocialAccount::withoutUserScope()
+        $coverageAccounts = SocialAccount::withoutUserScope()
             ->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)
-            ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->orderBy('name')->get();
+            ->orderBy('name')->get();
+        $accounts = $coverageAccounts->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->values();
 
         $dates = $period->dates();
         // Solo se carga la red pedida (no las cuatro).
-        $current = $this->networkSeries($user, $brand, $period, $network)[$network->value] ?? [];
-        $previous = $compare ? ($this->networkSeries($user, $brand, $compare, $network)[$network->value] ?? []) : [];
+        $snapshots = null;
+        $current = $this->networkSeries($user, $brand, $period, $network, $snapshots)[$network->value] ?? [];
+        $previousSnapshots = null;
+        $previous = $compare ? ($this->networkSeries($user, $brand, $compare, $network, $previousSnapshots)[$network->value] ?? []) : [];
 
         $metrics = [];
         $combined = [];
@@ -172,16 +188,27 @@ class AnalyticsService
             $combined[$metric] = $this->fill(Calculator::combine($current[$metric] ?? [], $metric, $dates), $dates);
             $total = Calculator::totalAcross($current[$metric] ?? [], $metric);
             $prev = $compare ? Calculator::totalAcross($previous[$metric] ?? [], $metric) : null;
+            $metadata = MetricCoverage::forMetric($metric, $coverageAccounts, $snapshots, $period);
+            $previousMetadata = $compare ? MetricCoverage::forMetric($metric, $coverageAccounts, $previousSnapshots, $compare) : null;
+            $quality = ComparisonQuality::forMetric($metric, $current[$metric] ?? [], $previous[$metric] ?? [], $metadata, $previousMetadata);
 
             $metrics[] = [
                 'key' => $metric, 'label' => self::LABELS[$metric], 'kind' => in_array($metric, Metric::STOCKS, true) ? 'stock' : 'flow',
-                'total' => $total, 'previous' => $prev, 'delta_pct' => Calculator::delta($total, $prev)['pct'],
+                'total' => $total, 'previous' => $prev, 'delta_pct' => ComparisonQuality::delta($total, $prev, $quality)['pct'],
                 'available' => $total !== null,
+                'comparison_quality' => $quality,
                 'series' => collect($combined[$metric])->map(fn ($v, $d) => ['date' => $d, 'value' => $v])->values()->all(),
-            ];
+            ] + $metadata;
         }
 
         $stats = $this->postStats($user, $brand, $accounts, $period);
+
+        $growthSeries = $current[Metric::FOLLOWERS] ?? [];
+        $previousGrowthSeries = $previous[Metric::FOLLOWERS] ?? [];
+        foreach ($accounts as $account) {
+            $growthSeries[$account->id] ??= [];
+            $previousGrowthSeries[$account->id] ??= [];
+        }
 
         return [
             'network' => ['value' => $network->value, 'label' => $network->label()],
@@ -189,11 +216,11 @@ class AnalyticsService
             'period' => $period->toArray(),
             'comparison' => $compare?->toArray(),
             // Crecimiento = suma de la variacion de CADA cuenta entre su primer y ultimo dato del periodo (sin saltos por altas/bajas).
-            'growth' => Calculator::growthAcross($current[Metric::FOLLOWERS] ?? []) + [
-                'previous' => $compare ? Calculator::growthAcross($previous[Metric::FOLLOWERS] ?? []) : null,
+            'growth' => Calculator::growthAcross($growthSeries) + [
+                'previous' => $compare ? Calculator::growthAcross($previousGrowthSeries) : null,
             ],
             'metrics' => $metrics,
-            'kpis' => $this->kpis($combined, $stats['kpis']),
+            'kpis' => $this->kpis($combined, $stats['kpis'], $current),
             'posts' => $stats['posts'],
             'posts_total' => $stats['total'],
             'posts_limit' => $stats['limit'],
@@ -206,9 +233,10 @@ class AnalyticsService
      *
      * @param  array<string, array<string, int|float|null>>  $series  serie combinada por metrica
      * @param  array<string, mixed>  $perPost
+     * @param  array<string, array<int, array<string, int|float|null>>>  $accounts
      * @return array<string, mixed>
      */
-    private function kpis(array $series, array $perPost): array
+    private function kpis(array $series, array $perPost, array $accounts): array
     {
         $interactions = $series[Metric::INTERACTIONS] ?? [];
         $views = $series[Metric::VIEWS] ?? [];
@@ -218,7 +246,12 @@ class AnalyticsService
                 'interactions' => Calculator::perDay($interactions),
                 'views' => Calculator::perDay($views),
             ],
-            'engagement_rate' => Calculator::engagementRate(Calculator::total($interactions, Metric::INTERACTIONS), Calculator::total($views, Metric::VIEWS)),
+            'per_day_basis' => array_map(function (array $daily): array {
+                $observed = count(array_filter($daily, fn ($value) => $value !== null));
+
+                return ['basis' => 'days_with_data', 'observed_days' => $observed, 'requested_days' => count($daily), 'missing_days' => count($daily) - $observed];
+            }, ['interactions' => $interactions, 'views' => $views]),
+            'engagement_rate' => Calculator::engagementAcross($accounts[Metric::INTERACTIONS] ?? [], $accounts[Metric::VIEWS] ?? []),
             'per_post' => $perPost,
         ];
     }
@@ -327,15 +360,16 @@ class AnalyticsService
     /**
      * Series por red, metrica y CUENTA del periodo (se combinan despues segun sea flujo o stock).
      *
-     * @return array<string, array<string, list<array<string, int|float|null>>>> [red][metrica][] = [fecha => valor] (una por cuenta)
+     * @return array<string, array<string, array<int, array<string, int|float|null>>>> [red][metrica][cuenta] = [fecha => valor]
      */
-    private function networkSeries(User $user, Brand $brand, Period $period, ?Network $only = null): array
+    private function networkSeries(User $user, Brand $brand, Period $period, ?Network $only = null, ?Collection &$snapshots = null): array
     {
         $rows = AccountSnapshot::withoutUserScope()
             ->where('user_id', $user->id)->where('brand_id', $brand->id)
             ->when($only, fn ($q) => $q->where('network', $only->value))
             ->whereBetween('date', [$period->from->format('Y-m-d'), $period->to->format('Y-m-d')])
-            ->get(['social_account_id', 'network', 'date', 'metrics']);
+            ->get(['social_account_id', 'network', 'date', 'metrics', 'collected_at']);
+        $snapshots = $rows;
 
         $perAccount = [];
 
@@ -351,9 +385,9 @@ class AnalyticsService
 
         foreach ($perAccount as $network => $byMetric) {
             foreach ($byMetric as $metric => $byAccount) {
-                foreach ($byAccount as $series) {
+                foreach ($byAccount as $accountId => $series) {
                     ksort($series);
-                    $out[$network][$metric][] = $series;
+                    $out[$network][$metric][$accountId] = $series;
                 }
             }
         }

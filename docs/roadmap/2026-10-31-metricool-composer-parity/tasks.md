@@ -1,7 +1,7 @@
 ---
 estado: en-progreso
 creado: 2026-10-31
-actualizado: 2026-11-01
+actualizado: 2026-11-03
 plan: improvement-plan.md
 verificacion: obligatoria
 ---
@@ -14,9 +14,9 @@ Fuente única de progreso. Entrega autorizada por «creo que con eso ya sería s
 
 | Fase | Completadas | Total | Progreso |
 |---|---:|---:|---|
-| Fase 1 — Compositor y audio | 11 | 12 | 92 % |
+| Fase 1 — Compositor y audio | 12 | 13 | 92 % |
 
-T-01–05 y T-07–12 completadas con verificación local. T-11/T-12 incorporan estética y opciones adicionales; T-06 (smoke real) sigue abierta. [QA actual de presets](testing/presets-ui/report.md). T-10 y sus evidencias son históricos. Evidencia inicial: [informe de QA](testing/report.md) y [manifiesto con hashes](testing/validation-summary.json); sus hashes corresponden al código anterior a T-10.
+T-01–05 y T-07–12 completadas con verificación local. T-13 corrige el refresco al crear y está verificada localmente; T-06 (smoke real) sigue abierta. [QA actual del refresco](testing/composer-refresh/report.md). La [QA de presets](testing/presets-ui/report.md), T-10 y sus evidencias son históricos. Evidencia inicial: [informe de QA](testing/report.md) y [manifiesto con hashes](testing/validation-summary.json); sus hashes corresponden al código anterior a T-10.
 
 ## Fase 1 — Audio por red
 
@@ -182,6 +182,19 @@ TDD n/a para colores/espaciados; el comportamiento nuevo de plegado y navegació
 - [x] Pruebas de servidor, MCP, publicador y UI; revisión independiente y QA final con evidencias.
 
 
+### T-13 — Refrescar el compositor después de guardar
+
+- **Estado**: completado
+- **Archivos**: `resources/js/Composables/useComposer.js`, `tests/e2e/composer-refresh.spec.ts`, `docs/roadmap/2026-10-31-metricool-composer-parity/spec.md`, `docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/**`, `docs/roadmap/README.md`, `CONTINUE-HERE.md`
+- **Verificación**: ejecutada. **21 E2E pasados** en escritorio 1440 y móviles 375/360, cero fallos/flaky/skips/errores; qa-gate VERDE. Build y tipado exit 0. Revisión A/B intento 2 sin gaps. [Informe y evidencia](testing/composer-refresh/report.md). PHP y publicaciones reales no ejecutados en T-13.
+- RED: `composer-refresh.spec.ts::create retains attachments on errors and refreshes local state after saving` falló esperando Desde URL vacío tras un POST correcto y redirección a edición; conservaba `https://example.invalid/siguiente-imagen.jpg` · 2026-11-03. Run `run-general-35f223e7-6edb-4ffc-b8e4-d32262b5d154`. Las iteraciones previas ajustaron fixtures (scope del usuario y tipo Foto) y no cuentan como RED funcional.
+
+**Criterios de aceptación**
+- [x] Después de crear correctamente, reconstruir el compositor desde la respuesta del servidor, descartando entradas y previsualizaciones temporales anteriores.
+- [x] Mantener los adjuntos realmente guardados en el borrador y conservar todo lo escrito cuando hay errores de validación.
+- [x] Una publicación nueva no arrastra texto ni adjuntos anteriores; edición y guardado de presets mantienen sus flujos existentes.
+- [x] E2E en escritorio y móviles, build y tipado correctos; registrar evidencia y resultado del qa-gate.
+
 ## Revisión de dos lentes — intento 1: Instagram (T-01–T-05) — corregir reconexión
 
 Lentes A+B+D. Selector C=false, D=true por ruta `SchedulerServer.php`. Scope-check exit 0, 40 archivos declarados, sin exclusiones ni avisos. Revisores frescos `audio_review_a`, `audio_review_b`, `audio_review_d`; no escribieron código. A verificó CA-01..08; CA-09 estaba en curso y CA-10 pendiente previsto. D sin hallazgos (10 tests/46 aserciones ejecutados). B ejecutó 23 tests/87 aserciones y reprodujo B1 fuera de la cobertura inicial. Sin Jira configurado; no hay operaciones remotas.
@@ -279,3 +292,27 @@ Lentes A+B+D; revisores frescos de solo lectura `presets_final_a`, `presets_fina
 Resultado de revisión: **0 Critical, 0 Important, 0 Minor pendientes**. Los tres revisores mantuvieron explícitamente pendiente el resultado E2E integral que estaba ejecutándose; la revisión no se presenta como QA final. No se publicaron posts ni invitaciones reales.
 
 QA posterior al intento 2: **54 E2E pasados**, cero fallos/flaky/skips/errores; qa-gate **VERDE**. PHP **2.511/14.763**, build y tipado correctos. Evidencia actual en `testing/presets-ui/`; T-11/T-12 completadas y CA-14/15 acreditados. Solo T-06/CA-10 queda pendiente del usuario.
+
+
+## Revisión de dos lentes — intento 1: T-13 — corregir preservación ante rechazo
+
+Lentes A+B, revisores frescos `refresh_review_a` y `refresh_review_b`, de solo lectura. A confirmó criterios y RED, con QA aún pendiente. B ejecutó un arnés puro de callbacks/defaults/biblioteca/notas sin defectos. La sospecha preliminar de regex con doble barra fue rebatida con bytes y Node: `POST:123` sí coincide; no es gap. El orquestador detectó O1 durante pruebas de la primera alternativa.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| O1 | Important | Basar reconstrucción solo en errors podía descartar trabajo rechazado si la respuesta carecía de errores temporales | T-13 | Retirar preserveState:errors; detectar el post realmente creado. Con post=null se conserva el alta y PUT sigue intacto | Trace de run-general-e2facb8e-def3-422f-8cb2-a255c4fb08ad: rechazo vuelve con post=null/errors={} y un segundo envío acababa vacío; la alternativa se retiró antes del cierre |
+
+## Revisión de dos lentes — intento 2: T-13 — sin gaps pendientes
+
+Revisores frescos `refresh_final_a`, `refresh_final_b`; tabla anterior transferida, sin reabrir lo rebatido sin evidencia nueva. C=false/D=false, scope-check exit 0 sin extras/avisos. Sin Jira configurado ni publicaciones remotas de revisión. La instalación parcial no aporta model-tier; se usó el rol reviewer disponible, sin override. Sin candidatos nuevos de conocimiento.
+
+| Criterio | Veredicto | Evidencia |
+|---|---|---|
+| A: alta correcta reconstruye; rechazo conserva el trabajo | ✓ | Callback y contrato del controlador leídos; 4 combinaciones reales de post/errors ejecutadas PASS |
+| A: alcance exacto, edición preservada y test completo | ✓ | PUT intacto, test de alta/edición/rechazo/nueva publicación; RED leído; sin gaps |
+| B: O1 corregido independientemente de errors/flash | ✓ | Función real extraída, 27 combinaciones PASS |
+| B: callbacks y PUT conservados | ✓ | Arnés puro PASS, sin BD/HTTP; flujo de biblioteca/notas sin cambios |
+
+Resultado: **0 Critical, 0 Important, 0 Minor pendientes**. Ambos revisores dejaron explícitamente pendiente la QA integral; no se usa su revisión como resultado E2E. GREEN focal del código final: 1/1 escritorio, chunk `2a82fb`. QA posterior de 21 casos en curso.
+
+QA posterior al intento 2 de T-13: **21/21 pasados**, cero fallos/flaky/skips/errores, qa-gate VERDE; build y tipado correctos. T-13 completada, CA-16 acreditado; T-06/CA-10 sigue pendiente del usuario.

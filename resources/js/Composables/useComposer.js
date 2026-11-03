@@ -182,7 +182,8 @@ export function useComposer(props) {
 
     const send = (options = {}) => {
         if (props.post) form.put(route('posts.update', props.post.id), { preserveScroll: true, ...options });
-        else form.post(route('brands.posts.store', props.brand.id), { preserveScroll: true, ...options });
+        // Creating a draft redirects to its saved post; a rejected creation returns to the empty-post page.
+        else form.post(route('brands.posts.store', props.brand.id), { preserveScroll: true, preserveState: (page) => !page.props.post, ...options });
     };
 
     // Un envío ya en curso (clic doble, Enter repetido) no lanza otra petición.

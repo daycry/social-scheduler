@@ -1,6 +1,6 @@
 # Continuación del roadmap
 
-Actualizado: 2026-11-01. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
+Actualizado: 2026-11-03. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
 
 ## Decisiones vigentes del usuario
 
@@ -17,7 +17,9 @@ Actualizado: 2026-11-01. Fuente canónica del estado de cada tarea: `docs/roadma
 
 En `feature/metricool-composer-parity`, audio por red y buscador T-01–10 conservan su verificación anterior. La ampliación autorizada incorpora paneles cuidados de ajustes globales y por cuenta, colaboradores e IA de Instagram, título de Facebook y errores plegables. [Spec](docs/roadmap/2026-10-31-metricool-composer-parity/spec.md), [ledger](docs/roadmap/2026-10-31-metricool-composer-parity/tasks.md), [guía e inventario observado](docs/guias/ajustes-compositor.md) y [QA actual](docs/roadmap/2026-10-31-metricool-composer-parity/testing/presets-ui/report.md).
 
-**11/12 completadas; solo T-06 real permanece abierta.** Suite actual PHP: **2.511 tests/14.763 aserciones**, cero fallos/errores/skips. Build y tipado correctos. Regresión E2E de 54 casos correcta, qa-gate VERDE y revisión independiente A+B+D, intento 2, sin gaps pendientes. T-06/CA-10 (publicación real) sigue a cargo del usuario. Los informes previos de audio y buscador son históricos y no sustituyen el nuevo cierre. Implementación y pruebas en `6dba441`, documentación/evidencias en `40ac8e2`, subidas a GitHub por autorización expresa del usuario. [PR #17](https://github.com/daycry/social-scheduler/pull/17) abierta sobre `feature/metricool-parity-3` porque #16 sigue abierta; sin fusionar. CI remota en ejecución al crear la PR; consultar su estado antes de fusionar. El push usa la sesión autenticada de GitHub CLI mediante helper temporal, sin cambiar configuración global.
+La [PR #17](https://github.com/daycry/social-scheduler/pull/17) está integrada en `feature/metricool-parity-3`, merge `46c3b01`, con CI correcta. La PR #16 sigue abierta. T-11/T-12 conservan su evidencia: 2.511 tests PHP/14.763 aserciones y 54 E2E correctos; no son ejecuciones de T-13.
+
+**12/13 completadas; solo T-06 real abierta.** El usuario informa que los adjuntos permanecen al crear una publicación. La corrección de `fix/composer-refresh-after-save` reconstruye el compositor tras crear correctamente, conservando los adjuntos persistidos y el trabajo ante errores. La edición mantiene su flujo. GREEN focal correcto; revisión A/B intento 2 sin gaps; QA final de **21/21 casos** correcta, cero fallos/flaky/skips/errores y qa-gate VERDE. [Informe actual de T-13](docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/report.md). Build y tipado correctos. Las publicaciones reales y pruebas del servidor siguen a cargo del usuario; no se ejecutan como parte de esta corrección. El usuario autorizó commits, push y PR al terminar; usar la sesión de GitHub CLI mediante helper temporal, sin cambiar configuración global.
 
 No se declara paridad total con Metricool. Acortador, modo manual y automatización de SmartLinks siguen identificados en el inventario como pendientes. El backlog amplio incluye X. Threads tiene código, pero faltan credenciales locales; no se cambia `.env`. El usuario dejó la comparación de catálogos musicales como estaba y probará servidor y publicaciones reales.
 

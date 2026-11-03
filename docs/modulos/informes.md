@@ -2,6 +2,8 @@
 
 Informes por marca y rango de fechas, con comparación opcional. Se generan en la cola `reports`.
 
+La selección inicial respeta la marca del contexto o `brand_id` y calcula el periodo en su zona horaria. Al generar conserva esa marca. El historial reciente sigue siendo del usuario completo; no se presenta como una lista exclusiva de la marca seleccionada.
+
 ## Piezas
 
 | Pieza | Ruta |

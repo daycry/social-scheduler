@@ -1,0 +1,78 @@
+{
+  "created_utc": "2026-11-03T20:09:14.393168+00:00",
+  "task": "T-13",
+  "branch": "fix/composer-refresh-after-save",
+  "base": "46c3b014bc70a8e2e69b375d1d8b2ed91d2f079e",
+  "playwright": {
+    "startTime": "2026-11-03T20:05:23.997Z",
+    "duration": 210257.973,
+    "expected": 21,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "qa_gate": {
+    "verdict": "VERDE",
+    "counts": {
+      "passed": 21,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "interrupted": 0
+    },
+    "flaky_sin_justificar": [],
+    "flaky_justificados": {},
+    "threshold": "verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado"
+  },
+  "build": {
+    "exit_code": 0,
+    "observed_chunk": "f8f605"
+  },
+  "typescript": {
+    "exit_code": 0,
+    "observed_chunk": "f8f605"
+  },
+  "review": {
+    "attempt": 2,
+    "lenses": [
+      "A",
+      "B"
+    ],
+    "pending_gaps": 0
+  },
+  "php": "Not rerun: frontend-only change; prior T-12 run remains historical.",
+  "real_publication": "Pending user smoke T-06 / CA-10.",
+  "sources_sha256": {
+    "resources/js/Composables/useComposer.js": "82b1ebba759889af27aa67672734e3db7c117386200b94a909e4a4110bdf3022",
+    "tests/e2e/composer-refresh.spec.ts": "6d14f99df1272fd864300c766cb5a554f41184d82f49b67b2e40ffcdb53c06a9"
+  },
+  "sources_lf_sha256": {
+    "resources/js/Composables/useComposer.js": "82b1ebba759889af27aa67672734e3db7c117386200b94a909e4a4110bdf3022",
+    "tests/e2e/composer-refresh.spec.ts": "6d14f99df1272fd864300c766cb5a554f41184d82f49b67b2e40ffcdb53c06a9"
+  },
+  "build_manifest_sha256": "1122e1f268e4cf81b8fa470cd1d0134e035da3f286185c455e0a7efe5bbb994b",
+  "evidence_sha256": {
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/build.txt": "9ec798885c69713b5b4cdbaa9b6a7e1ffd7159922e331463614940f6a3e3b75f",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/green-playwright.json": "1ac8f0c38eec4e73b9823cd0dac3144e4523f9bd5af5bf299907b4de8bf5cfbc",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/ledger-lint.txt": "4515b817666c9fc338a5ed921d1a3cd8610358cd9f17b086f6002cd2512afe46",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/playwright.json": "eb0627c7814056147288f6760ddd5b3fcde5bd87fec846d0874001f2bc038695",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/qa-gate.json": "ba6457045a579b11b7e7620199a6e6098bbfcfb5606ca4d1581e9865bc385531",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/red-playwright.json": "51ecc82107656e18433fcbe85fc2f7a4333088b8779d0112c29831a6ff76d2ed",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/rejected-refresh-trace.json": "4a717e2a106d5bd3873934e2caa93bfaf54965a3c5d4466ac31c06e4f65c4557",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/scope-check.json": "5c546ba5710965d53e3663dff6947030c3f01749a629574b79ae46df1dea1d83"
+  },
+  "sources_git_sha256": {
+    "resources/js/Composables/useComposer.js": "82b1ebba759889af27aa67672734e3db7c117386200b94a909e4a4110bdf3022",
+    "tests/e2e/composer-refresh.spec.ts": "6d14f99df1272fd864300c766cb5a554f41184d82f49b67b2e40ffcdb53c06a9"
+  },
+  "evidence_git_sha256": {
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/build.txt": "9ec798885c69713b5b4cdbaa9b6a7e1ffd7159922e331463614940f6a3e3b75f",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/green-playwright.json": "1ac8f0c38eec4e73b9823cd0dac3144e4523f9bd5af5bf299907b4de8bf5cfbc",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/ledger-lint.txt": "7b6865ce7f72fbbb751c27c37e5f3371d7baa6e75f1c773774cb83565d1828c5",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/playwright.json": "eb0627c7814056147288f6760ddd5b3fcde5bd87fec846d0874001f2bc038695",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/qa-gate.json": "b0f529981b1f61e5cf953a92b33daed4b0b12f86d491f8c7b7d1eec8f8c29664",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/red-playwright.json": "51ecc82107656e18433fcbe85fc2f7a4333088b8779d0112c29831a6ff76d2ed",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/rejected-refresh-trace.json": "4a717e2a106d5bd3873934e2caa93bfaf54965a3c5d4466ac31c06e4f65c4557",
+    "docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/raw/scope-check.json": "808233e6113479f289b673a111d7d5e296505c966bd8893d4c5ed5534441c281"
+  }
+}

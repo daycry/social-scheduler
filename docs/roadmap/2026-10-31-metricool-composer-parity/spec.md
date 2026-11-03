@@ -86,3 +86,9 @@ Tras observar la pestaña real de Metricool, el usuario pide colaboradores, cont
 - [x] CA-15 · Colaboradores normalizados y distintos, máximo 3 según el contrato de Meta; IA booleana por publicación, no preferencia recordada. Persistencia y limpieza por formato; ambos campos solo en el contenedor padre de carrusel. Título de Facebook máximo 255, enviado a videos o al finish del Reel. Errores plegables y enlaces accesibles. Inventario visible con implementado/pendiente, pruebas web/MCP/publicador/UI y revisión independiente.
 
 Referencias verificadas el 2026-11-01: [contenedores de Instagram](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media/), [changelog de IA](https://developers.facebook.com/docs/instagram-platform/changelog/), [Reels de Facebook](https://developers.facebook.com/docs/video-api/guides/reels-publishing/). La ayuda de Metricool anuncia hasta cinco colaboradores; esta integración respeta los tres documentados por Meta para este endpoint. [Inventario y uso](../../guias/ajustes-compositor.md), [QA de T-11/T-12](testing/presets-ui/report.md).
+
+## Refresco después de guardar (T-13, 2026-11-03)
+
+El usuario informa que los adjuntos permanecen al crear una publicación y pide refrescar la página. Tras crear correctamente, el compositor se reconstruye con los datos del servidor y descarta su estado temporal. Un error de validación conserva el trabajo pendiente. Los adjuntos guardados en un borrador siguen perteneciendo a ese borrador. El flujo existente de edición se conserva.
+
+- [x] CA-16 — El alta renueva el estado local después del éxito, manteniendo los datos persistidos; la edición conserva su comportamiento. Los errores conservan texto, adjuntos y previsualizaciones temporales. Abrir otra publicación empieza sin los adjuntos anteriores. Verificado mediante E2E en escritorio y móviles.

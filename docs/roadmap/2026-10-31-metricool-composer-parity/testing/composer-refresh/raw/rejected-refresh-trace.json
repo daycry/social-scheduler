@@ -1,0 +1,71 @@
+{
+  "source": "storage\\framework\\testing\\t43\\run-general-e2facb8e-def3-422f-8cb2-a255c4fb08ad\\artifacts\\composer-refresh-Composer--b855c-es-local-state-after-saving-desktop\\trace.zip",
+  "trace_sha256": "257b0bdd8a5c28dd4dbbeb9e748d2c557a02d9b5444620d691638448e6836529",
+  "events": [
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/brands/2/posts/create",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "url": "http://localhost:8080/brands/2/posts",
+      "status": 302,
+      "request_body": {
+        "text": "Contenido guardado con su adjunto.",
+        "notes": "",
+        "campaign_id": null,
+        "scheduled_at": "",
+        "schedule": false,
+        "media": [
+          1
+        ],
+        "targets": [
+          {
+            "account_id": 8,
+            "content_type": "facebook_photo",
+            "text": null,
+            "first_comment": "",
+            "options": {}
+          }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/brands/2/posts/create",
+      "status": 200,
+      "response_props": {
+        "post": null,
+        "errors": {}
+      }
+    },
+    {
+      "method": "POST",
+      "url": "http://localhost:8080/brands/2/posts",
+      "status": 302,
+      "request_body": {
+        "text": "",
+        "notes": "",
+        "campaign_id": null,
+        "scheduled_at": "",
+        "schedule": false,
+        "media": [],
+        "targets": []
+      }
+    },
+    {
+      "method": "GET",
+      "url": "http://localhost:8080/posts/1/edit",
+      "status": 200,
+      "response_props": {
+        "post": {
+          "id": 1,
+          "text": null,
+          "media": []
+        },
+        "errors": {}
+      }
+    }
+  ]
+}

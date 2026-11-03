@@ -21,6 +21,8 @@ La [PR #17](https://github.com/daycry/social-scheduler/pull/17) está integrada 
 
 **12/13 completadas; solo T-06 real abierta.** El usuario informa que los adjuntos permanecen al crear una publicación. La corrección de `fix/composer-refresh-after-save` reconstruye el compositor tras crear correctamente, conservando los adjuntos persistidos y el trabajo ante errores. La edición mantiene su flujo. GREEN focal correcto; revisión A/B intento 2 sin gaps; QA final de **21/21 casos** correcta, cero fallos/flaky/skips/errores y qa-gate VERDE. [Informe actual de T-13](docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/report.md). Build y tipado correctos. Las publicaciones reales y pruebas del servidor siguen a cargo del usuario; no se ejecutan como parte de esta corrección. El usuario autorizó commits, push y PR al terminar; usar la sesión de GitHub CLI mediante helper temporal, sin cambiar configuración global.
 
+Corrección y evidencias subidas en `88ebdd0`. [PR #18](https://github.com/daycry/social-scheduler/pull/18) abierta sobre `feature/metricool-parity-3`, sin fusionar. Comprobar su CI antes de integrarla; no repetir los E2E locales ya acreditados salvo cambios o fallos nuevos.
+
 No se declara paridad total con Metricool. Acortador, modo manual y automatización de SmartLinks siguen identificados en el inventario como pendientes. El backlog amplio incluye X. Threads tiene código, pero faltan credenciales locales; no se cambia `.env`. El usuario dejó la comparación de catálogos musicales como estaba y probará servidor y publicaciones reales.
 
 Las cifras siguientes corresponden a los ocho ledgers previos; no incluyen ni dan por completada esta ampliación.

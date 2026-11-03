@@ -26,3 +26,5 @@ Intento 1: A/B conformes con la alternativa inicial y QA pendiente. El orquestad
 ## Resultado final
 
 [Playwright completo](raw/playwright.json) · [qa-gate VERDE](raw/qa-gate.json) · [manifiesto de fuentes y evidencias](validation-summary.json). Run final: `run-general-45c087f5-72cb-4dfe-9fac-463b76f76d9d`. [Extracto del trace de O1](raw/rejected-refresh-trace.json). [GREEN focal](raw/green-playwright.json). El manifiesto distingue bytes locales de fuentes y su normalización LF para contrastar tras clonar en otro sistema.
+
+Publicado en [PR #18](https://github.com/daycry/social-scheduler/pull/18), commit `88ebdd0`. El manifiesto incluye también hashes de blobs Git de fuentes y evidencias para contrastarlos tras la normalización de saltos de línea de Windows.

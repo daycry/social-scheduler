@@ -27,6 +27,8 @@ La [auditoría de métricas](docs/roadmap/2026-11-03-creative-social-suite/testi
 
 Agentes de implementación/revisión/QA de este bloque terminados. Métricas en `6c33b0e`, coherencia de marca en `48e453e`, estudio/API/MCP/render y transporte de QA en `e4c37b2`. [Manifiesto de entrega](docs/roadmap/2026-11-03-creative-social-suite/testing/delivery-manifest.json) con hashes y alcance de cada verificación. Conservar cualquier cambio posterior de otros chats y comprobar rama/estado antes de escribir.
 
+Rama subida y [PR #19 en borrador](https://github.com/daycry/social-scheduler/pull/19), apilada sobre `fix/composer-refresh-after-save` / [PR #18](https://github.com/daycry/social-scheduler/pull/18), que seguía abierta al comprobarla. Documentación/evidencias en `d14957d`. No duplicar la PR ni fusionarla automáticamente. Consultar sus checks actuales antes de integrarla. La paridad completa continúa pendiente y la siguiente tarea es T-09.
+
 ### Compositor y audio: T-11/T-12 verificadas localmente
 
 En `feature/metricool-composer-parity`, audio por red y buscador T-01–10 conservan su verificación anterior. La ampliación autorizada incorpora paneles cuidados de ajustes globales y por cuenta, colaboradores e IA de Instagram, título de Facebook y errores plegables. [Spec](docs/roadmap/2026-10-31-metricool-composer-parity/spec.md), [ledger](docs/roadmap/2026-10-31-metricool-composer-parity/tasks.md), [guía e inventario observado](docs/guias/ajustes-compositor.md) y [QA actual](docs/roadmap/2026-10-31-metricool-composer-parity/testing/presets-ui/report.md).

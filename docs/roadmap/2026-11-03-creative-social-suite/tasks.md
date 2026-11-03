@@ -367,3 +367,13 @@ A/B frescas confirman el aborto propagado al navegador, 502 antes de cabeceras y
 QA independiente sobre el último helper de streaming: **18/18 E2E, cero failed/flaky/skipped/interrupted**, `qa-gate.py` exit 0. Los intentos 1/2 rojos y el 3 verde previo al arreglo de streaming permanecen conservados; el final corresponde a la cuarta ejecución. [Informe](testing/qa-final/report.md), [PDF](testing/qa-final/report.pdf), [JSON/gate](testing/qa-final/raw/final/qa-gate.json). Capturas de editor y métricas desktop/375/360 revisadas sin clipping ni overflow. Frontend completo **29/29** (`testing/raw/frontend.tap`), guardas Node **3/3**, build/Pint/TypeScript/OpenAPI correctos. La migración se aplicó exclusivamente al MySQL local verificado; sin VPS, publicaciones reales ni captura de snapshots del proveedor.
 
 Se cierran **T-02 y T-04–08: 6/23**. El resto conserva su alcance original: T-03 mantiene contraste global/operación real abiertos; T-09–20 requieren sus funciones y pruebas; T-21 solo cierra su subbloque de coherencia. T-22/T-23 son cierres globales y siguen en progreso. No se declara clon completo ni se reemplazan los manuales del usuario por fakes. Los avisos de Changelog de tareas futuras no cerradas son informativos; las seis tareas cerradas tienen su entrada específica.
+
+## Entrega git del bloque — 2026-11-04
+
+- `6c33b0e`: métricas, cobertura/frescura y contraste de lectura.
+- `48e453e`: contexto de marca de Ads/informes y sus regresiones.
+- `e4c37b2`: estudio, API/MCP, exportaciones y transporte aislado.
+- `d14957d`: contratos, inventario, guías y evidencias saneadas.
+- Rama `feature/creative-social-suite` subida. [PR #19](https://github.com/daycry/social-scheduler/pull/19) **borrador**, base `fix/composer-refresh-after-save` (#18 aún abierta). Checks consultables en la PR; no se acredita despliegue ni merge.
+
+La comprobación Pint global detectó formato del helper documental `render-report.php`; se corrigió sin cambiar comportamiento ni regenerar evidencias. Esta nota y el punto de continuación se comitean con esa corrección. No hay cambios en `.env`, tokens, cron/worker del VPS ni publicaciones reales.

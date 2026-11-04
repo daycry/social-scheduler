@@ -1,0 +1,26 @@
+[
+  {
+    "test": "brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile",
+    "url": "http://localhost:8080/build/assets/Index-Dt335epj.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile-360",
+    "url": "http://localhost:8080/studio/designs/10",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile",
+    "url": "http://localhost:8080/build/assets/AllBrands-D1WciCT5.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360",
+    "url": "http://localhost:8080/dashboard",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  }
+]

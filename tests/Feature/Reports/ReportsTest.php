@@ -32,7 +32,7 @@ it('Reports: genera en cola reports con timeout < 120 (PDF y CSV)', function () 
 
     $this->actingAs($this->user)->post(route('reports.store'), [
         'brand_id' => $this->brand->id, 'from' => '2026-10-01', 'to' => '2026-10-31', 'compare' => 'previous', 'formats' => ['pdf', 'csv'],
-    ])->assertRedirect(route('reports.index'));
+    ])->assertRedirect(route('reports.index', ['brand_id' => $this->brand->id]));
 
     Bus::assertDispatched(GenerateReport::class, 2);
     expect(Report::count())->toBe(2)->and((new GenerateReport(1))->queue)->toBe('reports')->and((new GenerateReport(1))->timeout)->toBeLessThan(120);

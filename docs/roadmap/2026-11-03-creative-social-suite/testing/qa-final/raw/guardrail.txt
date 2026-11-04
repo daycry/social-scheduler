@@ -1,0 +1,8 @@
+bash :       0 [main] bash (16020) C:\laragon\bin\git\bin\..\usr\bin\bash.exe: *** fatal error - CreateFileMapping 
+S-1-5-21-1885103294-173453266-1331944734-1003.1, Win32 error 5.  Terminating.
+At line:2 char:150
++ ... | Out-Null; bash -c '. C:/Users/daycr/.codex/plugins/cache/daycry/cus ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (      0 [main] ....  Terminating.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

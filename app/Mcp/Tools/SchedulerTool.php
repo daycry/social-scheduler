@@ -11,11 +11,13 @@ use App\Models\User;
 use App\Services\AuditLog;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
@@ -27,6 +29,12 @@ abstract class SchedulerTool extends Tool
 {
     /** Ability de Sanctum que exige la herramienta. */
     abstract protected function ability(): string;
+
+    /** Tools with read and write actions can require the exact scope for the requested operation. */
+    protected function abilityFor(Request $request): string
+    {
+        return $this->ability();
+    }
 
     /** Recurso sobre el que actua (para la auditoria). */
     protected function resource(): ?string
@@ -44,16 +52,17 @@ abstract class SchedulerTool extends Tool
         $audit = app(AuditLog::class);
         $user = $request->user();
         $action = $this->name();
-        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('brand_id');
+        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('design_id') ?? $request->get('export_id') ?? $request->get('brand_id');
 
         if (! $user instanceof User) {
             return Response::error('No autenticado.');
         }
 
-        if (! $user->tokenCan($this->ability())) {
-            $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Falta el permiso '.$this->ability());
+        $ability = $this->abilityFor($request);
+        if (! $user->tokenCan($ability)) {
+            $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Falta el permiso '.$ability);
 
-            return Response::error("Esta API key no tiene el permiso «{$this->ability()}».");
+            return Response::error("Esta API key no tiene el permiso «{$ability}».");
         }
 
         try {
@@ -66,6 +75,15 @@ abstract class SchedulerTool extends Tool
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 
             return Response::error('Datos no validos: '.collect($e->errors())->map(fn ($m, $k) => "$k: ".implode(' ', $m))->implode(' | '));
+        } catch (ModelNotFoundException $e) {
+            $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Recurso inexistente o ajeno');
+
+            return Response::error('404: Recurso no encontrado.');
+        } catch (HttpExceptionInterface $e) {
+            $status = $e->getStatusCode();
+            $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status);
+
+            return Response::error($status === 409 ? '409: '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : 'No se pudo completar la operación.'));
         } catch (PostValidationException $e) {
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 

@@ -1,5 +1,10 @@
 * text=auto eol=lf
 
+# Verification artifacts retain the exact bytes recorded by their SHA-256 manifests.
+docs/roadmap/2026-11-03-creative-social-suite/testing/t09/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# The exact terminal transcript includes native trailing spaces on wrapped output.
+docs/roadmap/2026-11-03-creative-social-suite/testing/t09/qa/raw/playwright-console.txt whitespace=-blank-at-eol,cr-at-eol
+
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html

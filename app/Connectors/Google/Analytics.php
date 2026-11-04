@@ -59,7 +59,7 @@ class Analytics implements RangeInsightsReader
         $date = $day->copy()->startOfDay()->format('Y-m-d');
 
         $row = $this->report($token, [
-            'ids' => 'channel==MINE',
+            'ids' => 'channel=='.$account->external_id,
             'startDate' => $date,
             'endDate' => $date,
             'metrics' => implode(',', array_keys(self::CHANNEL_METRICS)),
@@ -75,7 +75,7 @@ class Analytics implements RangeInsightsReader
 
         if (CarbonImmutable::createFromFormat('!Y-m-d', $day->format('Y-m-d'), 'UTC')->gte(Days::closed($account->network))) {
             try {
-                $stats = $this->channelStatistics($token);
+                $stats = $this->channelStatistics($account);
             } catch (PermanentPublishException) {
                 $stats = [];
             }
@@ -102,7 +102,7 @@ class Analytics implements RangeInsightsReader
 
         try {
             $json = $this->get(self::REPORTS_URL, [
-                'ids' => 'channel==MINE',
+                'ids' => 'channel=='.$account->external_id,
                 'startDate' => $from->format('Y-m-d'),
                 'endDate' => $to->format('Y-m-d'),
                 'dimensions' => 'day',
@@ -150,7 +150,7 @@ class Analytics implements RangeInsightsReader
 
         // Acumulado desde la publicacion: un informe sin dimension de dia filtrado por video.
         $row = $this->report((string) $account->access_token, [
-            'ids' => 'channel==MINE',
+            'ids' => 'channel=='.$account->external_id,
             'startDate' => now()->subYears(2)->format('Y-m-d'),
             'endDate' => now()->format('Y-m-d'),
             'metrics' => 'views,estimatedMinutesWatched,likes,comments,shares',
@@ -208,9 +208,9 @@ class Analytics implements RangeInsightsReader
     }
 
     /** @return array<string, mixed> */
-    private function channelStatistics(string $token): array
+    private function channelStatistics(SocialAccount $account): array
     {
-        $json = $this->get(self::CHANNELS_URL, ['part' => 'statistics', 'mine' => 'true'], $token);
+        $json = $this->get(self::CHANNELS_URL, ['part' => 'statistics', 'id' => (string) $account->external_id], (string) $account->access_token);
 
         return $json['items'][0]['statistics'] ?? [];
     }

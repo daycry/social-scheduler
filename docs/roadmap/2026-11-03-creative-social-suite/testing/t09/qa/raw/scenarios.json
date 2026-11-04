@@ -1,0 +1,170 @@
+[
+  {
+    "id": "E2E-06",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 5218,
+    "errors": []
+  },
+  {
+    "id": "E2E-06",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 4693,
+    "errors": []
+  },
+  {
+    "id": "E2E-06",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 4627,
+    "errors": []
+  },
+  {
+    "id": "E2E-01",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 3967,
+    "errors": []
+  },
+  {
+    "id": "E2E-01",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 3584,
+    "errors": []
+  },
+  {
+    "id": "E2E-01",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 3471,
+    "errors": []
+  },
+  {
+    "id": "E2E-07",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 7544,
+    "errors": []
+  },
+  {
+    "id": "E2E-08",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 11380,
+    "errors": []
+  },
+  {
+    "id": "E2E-07",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 8211,
+    "errors": []
+  },
+  {
+    "id": "E2E-08",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 10904,
+    "errors": []
+  },
+  {
+    "id": "E2E-07",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 7561,
+    "errors": []
+  },
+  {
+    "id": "E2E-08",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 11067,
+    "errors": []
+  },
+  {
+    "id": "E2E-05",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 6449,
+    "errors": []
+  },
+  {
+    "id": "E2E-02",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 6282,
+    "errors": []
+  },
+  {
+    "id": "E2E-03",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 5331,
+    "errors": []
+  },
+  {
+    "id": "E2E-04",
+    "project": "desktop",
+    "status": "expected",
+    "duration_ms": 5052,
+    "errors": []
+  },
+  {
+    "id": "E2E-05",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 5734,
+    "errors": []
+  },
+  {
+    "id": "E2E-02",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 6432,
+    "errors": []
+  },
+  {
+    "id": "E2E-03",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 5561,
+    "errors": []
+  },
+  {
+    "id": "E2E-04",
+    "project": "mobile",
+    "status": "expected",
+    "duration_ms": 5218,
+    "errors": []
+  },
+  {
+    "id": "E2E-05",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 5642,
+    "errors": []
+  },
+  {
+    "id": "E2E-02",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 6232,
+    "errors": []
+  },
+  {
+    "id": "E2E-03",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 5203,
+    "errors": []
+  },
+  {
+    "id": "E2E-04",
+    "project": "mobile-360",
+    "status": "expected",
+    "duration_ms": 5142,
+    "errors": []
+  }
+]

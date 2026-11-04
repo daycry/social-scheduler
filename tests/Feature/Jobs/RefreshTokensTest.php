@@ -244,6 +244,36 @@ test('RefreshTokens a transient error from a stale token chain is not counted ag
     expect(SocialAccount::withoutUserScope()->find($account->id)->refresh_failures)->toBe(0);
 });
 
+test('RefreshTokens ignores outcomes from credentials replaced in the same second', function (string $outcome) {
+    $this->travelTo(now()->startOfSecond());
+    $account = SocialAccount::factory()->for($this->brand)->create([
+        'token_expires_at' => now()->addDay(), 'last_refreshed_at' => now(),
+        'access_token' => 'OLD-ACCESS', 'refresh_token' => 'OLD-REFRESH',
+    ]);
+    $this->fake->duringRefresh = function () use ($account, $outcome) {
+        SocialAccount::withoutUserScope()->findOrFail($account->id)->forceFill([
+            'access_token' => 'RECONNECTED-ACCESS', 'refresh_token' => 'RECONNECTED-REFRESH',
+            'last_refreshed_at' => now(),
+        ])->save();
+        if ($outcome === 'permanent') {
+            throw new ReconnectRequiredException('invalid_grant from old credentials');
+        }
+        if ($outcome === 'transient') {
+            throw new ConnectorException('503 from old request');
+        }
+    };
+    $this->fake->refreshResult = new RefreshResult('STALE-REFRESH-RESULT', 'STALE-ROTATED-TOKEN', now()->addDays(60));
+
+    refreshAccount($account);
+
+    $current = SocialAccount::withoutUserScope()->findOrFail($account->id);
+    expect($current->status)->toBe('activa')
+        ->and($current->access_token)->toBe('RECONNECTED-ACCESS')
+        ->and($current->refresh_token)->toBe('RECONNECTED-REFRESH')
+        ->and($current->refresh_failures)->toBe(0);
+    Notification::assertNothingSent();
+})->with(['success', 'permanent', 'transient']);
+
 test('RefreshTokens does nothing for a missing, disconnected or already marked account', function () {
     $off = SocialAccount::factory()->for($this->brand)->create(['status' => 'desconectada', 'token_expires_at' => now()->subHour()]);
     $marked = SocialAccount::factory()->for($this->brand)->requiresReconnection()->create(['token_expires_at' => now()->subHour()]);

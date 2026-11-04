@@ -20,6 +20,8 @@
 
 | Entrada | Tipo | Área | Estado |
 |---|---|---|---|
+| [Generación de credenciales y consumo atómico de OAuth](candidates/pending/2026-11-04-reconnection-generation-and-oauth-state.md) | GOTCHA | Conexiones / OAuth / concurrencia | propuesta, pendiente de curación |
+| [Loopback y keep-alive en el runner PHP/Chromium](candidates/pending/2026-11-03-playwright-php-loopback-keepalive.md) | GOTCHA | Pruebas / Windows / transporte local | propuesta, pendiente de curación |
 | [Un error de creator_info puede realimentar el watchEffect](candidates/pending/2026-10-31-tiktok-creator-reintento-reactivo.md) | GOTCHA | Frontend / TikTok | propuesta, pendiente de curación |
 | [ig_audio puede devolver un cursor sin paging.next](candidates/pending/2026-11-01-instagram-audio-cursor-sin-next.md) | GOTCHA | API / Instagram | propuesta, pendiente de curación |
 | [El día pasado puede estar ausente al cambiar de mes](candidates/pending/2026-10-31-datepicker-ayer-fuera-del-mes.md) | GOTCHA | Pruebas / selector de fecha | propuesta, pendiente de curación |

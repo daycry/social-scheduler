@@ -18,7 +18,7 @@ const props = defineProps({
 });
 
 const form = useForm({
-    brand_id: props.brands[0]?.id ?? '',
+    brand_id: props.defaults.brand_id ?? '',
     from: props.defaults.from,
     to: props.defaults.to,
     compare: props.defaults.compare,
@@ -70,7 +70,7 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                     <div class="flex flex-wrap items-end gap-4">
                         <label class="text-sm">
                             <span class="block text-xs font-medium text-slate-500">Marca</span>
-                            <select v-model="form.brand_id" class="field w-auto py-1.5">
+                            <select v-model="form.brand_id" aria-label="Marca" class="field w-auto py-1.5">
                                 <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                         </label>

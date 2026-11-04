@@ -1,0 +1,212 @@
+[
+  {
+    "path": "raw/attempt-1/artifacts/brand-reporting-Ads-and-re-523b4-igation-and-report-creation-desktop/error-context.md",
+    "sha256": "2a68daea75bc3f35774c7afc8130f5a9db34df9d4f8b34be61199087745ac46d",
+    "bytes": 4827
+  },
+  {
+    "path": "raw/attempt-1/artifacts/brand-reporting-Ads-and-re-523b4-igation-and-report-creation-desktop/test-failed-1.png",
+    "sha256": "12ed3a24d99b7f551c14d12d1e64c19a670725248c0c9615ea1b7eec1e0702b4",
+    "bytes": 51222
+  },
+  {
+    "path": "raw/attempt-1/artifacts/brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile/error-context.md",
+    "sha256": "38bdded0031ab360605cc89590b2385a40a857a3f6075de2cffdc6623f0e9041",
+    "bytes": 4032
+  },
+  {
+    "path": "raw/attempt-1/artifacts/brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile/test-failed-1.png",
+    "sha256": "f1feeb301e9f44794fc6611146da3ea4399d7f9de21997624c8aba3c618538d3",
+    "bytes": 35186
+  },
+  {
+    "path": "raw/attempt-1/artifacts/brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360/error-context.md",
+    "sha256": "90b78ab9b70ae5f1ea62596d608f1a6d0f1e4a777461608593cb26cfeb89872b",
+    "bytes": 5506
+  },
+  {
+    "path": "raw/attempt-1/artifacts/brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360/test-failed-1.png",
+    "sha256": "388ca488cef6c168bcc5453b5d8f72449d6dc303ceec5c167c2c1e6fe018756d",
+    "bytes": 42476
+  },
+  {
+    "path": "raw/attempt-1/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-desktop/metrics-quality.png",
+    "sha256": "0d1577bc3f1dedaf92cf251147ff80687528b02cde1ada290773a613e15b53cf",
+    "bytes": 236906
+  },
+  {
+    "path": "raw/attempt-1/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile/error-context.md",
+    "sha256": "e27354d27404df18254fd9f4c6aa7a591202661fcc8a1a05bbbfd4ce7ace9b84",
+    "bytes": 13007
+  },
+  {
+    "path": "raw/attempt-1/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile/metrics-quality.png",
+    "sha256": "e343addc7127a5f0dadb62f6116dea5fdac0ffc97ecdde7c11e328e8d56c48d6",
+    "bytes": 239449
+  },
+  {
+    "path": "raw/attempt-1/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile/test-failed-1.png",
+    "sha256": "853a47afa11f7587eafb800ceedb102c37ac5fb9238f34199716a286260bbd64",
+    "bytes": 56695
+  },
+  {
+    "path": "raw/attempt-1/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile-360/metrics-quality.png",
+    "sha256": "b696420413d9b641d3afbbd52efa7d6c8d342cc52d9c7ceff89bd45a576cb866",
+    "bytes": 238228
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-a-stale-revi-9870a--recover-the-server-version-desktop/studio-local-conflict.json",
+    "sha256": "8bb58fb12f7dbe7d64ba2f1fb14eb8f3d5ca64667f09e65141264046f6f255ec",
+    "bytes": 1259
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-a-stale-revi-9870a--recover-the-server-version-mobile/studio-local-conflict.json",
+    "sha256": "3b1b380c3eecdcb3538e6abb9ca6cd2bb5bd719fdc1de554b1354eba677f1a4c",
+    "bytes": 1259
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-a-stale-revi-9870a--recover-the-server-version-mobile-360/studio-local-conflict.json",
+    "sha256": "02ae44d3db4efea8b88dbe16eab77ace1218fbde8fa18d9676f6ddeb5721cab6",
+    "bytes": 1259
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop/error-context.md",
+    "sha256": "2d4ff57152ee1e63b853a51fbce41d2f16827a1900c045996e34b157abd6fbf9",
+    "bytes": 15589
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop/studio-editor.png",
+    "sha256": "c5dfb84ba3349656fd991041de1752f8358bb783b3494f23c7b8629b382d8bf7",
+    "bytes": 114565
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop/studio-export.png",
+    "sha256": "8761518f47d149174f042aa3031222b7f10f345f9b0887e6c7c5fefe23174abe",
+    "bytes": 40477
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop/test-failed-1.png",
+    "sha256": "4d6300bc7499c9b8355a804c942fd082affd50635bbce61f336ecea723e2853d",
+    "bytes": 83003
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile/error-context.md",
+    "sha256": "deec9d0dd9f3e7f563fe1f76fc5265f2b52f1cfb22628c78a973d732c557c6ba",
+    "bytes": 15497
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile/studio-editor.png",
+    "sha256": "15361cd200dc56cd710732c68f062dfce1c1d1a92e254db3ed86609ca0e5305a",
+    "bytes": 83326
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile/studio-export.png",
+    "sha256": "8761518f47d149174f042aa3031222b7f10f345f9b0887e6c7c5fefe23174abe",
+    "bytes": 40477
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile/test-failed-1.png",
+    "sha256": "0e90059484f7a9286e33ab0cb0e4020bc5879599d4ef7298cfe68e3ae446cb0e",
+    "bytes": 38243
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile-360/studio-editor.png",
+    "sha256": "315038366175faae8cee1a5b11680f1c190392c6471df8e43ba867904989b6e8",
+    "bytes": 83565
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile-360/studio-export.png",
+    "sha256": "8761518f47d149174f042aa3031222b7f10f345f9b0887e6c7c5fefe23174abe",
+    "bytes": 40477
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile/error-context.md",
+    "sha256": "cd4f637db0f56a009a7718ed00acaa859e6124c57ef4e4e3ac2cb6c83def1d62",
+    "bytes": 17194
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile/test-failed-1.png",
+    "sha256": "db2247456b00a24ba84b36e1803c0ba19015e548081ae255931c0fcf560f9456",
+    "bytes": 51987
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile-360/error-context.md",
+    "sha256": "a3a019de695340f263959aa313b23be5fd29be05480a84c740214e0931e30404",
+    "bytes": 19049
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile-360/test-failed-1.png",
+    "sha256": "bedfad4074ebd7675e7a99e23204b7826edc6ba8f340d55e8ed1254c2377fbb9",
+    "bytes": 45776
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-export.jpeg",
+    "sha256": "87a45fc3bb7bb12e0f29640073f69d78d67da6eb9fb8655d22bcbc3541112399",
+    "bytes": 16186
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-export.svg",
+    "sha256": "2be44333cd14368949102aab96686fded72d89f5d2924f84cb24a0f5b17aa1bf",
+    "bytes": 1269
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-export.webp",
+    "sha256": "2560bb8f224874736a1886c7ed18ecaf575d139c8c1c6e5990831f64470251bb",
+    "bytes": 8146
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-pages.pdf",
+    "sha256": "51000473c3200cd8d9b03959729f292bc19cf414b368639dd05d9bbc1605e50f",
+    "bytes": 21376
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-export.jpeg",
+    "sha256": "87a45fc3bb7bb12e0f29640073f69d78d67da6eb9fb8655d22bcbc3541112399",
+    "bytes": 16186
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-export.svg",
+    "sha256": "2be44333cd14368949102aab96686fded72d89f5d2924f84cb24a0f5b17aa1bf",
+    "bytes": 1269
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-export.webp",
+    "sha256": "2560bb8f224874736a1886c7ed18ecaf575d139c8c1c6e5990831f64470251bb",
+    "bytes": 8146
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-pages.pdf",
+    "sha256": "f87a434cedf086a9aa3af431e3afb9403d03878b5dc38a22427ba0524da55b40",
+    "bytes": 21376
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/error-context.md",
+    "sha256": "d05547fe04d4d392211dba702cfcfdcd8169387f51396534fd84d69aa5b26cd8",
+    "bytes": 17369
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-export.jpeg",
+    "sha256": "87a45fc3bb7bb12e0f29640073f69d78d67da6eb9fb8655d22bcbc3541112399",
+    "bytes": 16186
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-export.svg",
+    "sha256": "2be44333cd14368949102aab96686fded72d89f5d2924f84cb24a0f5b17aa1bf",
+    "bytes": 1269
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-export.webp",
+    "sha256": "2560bb8f224874736a1886c7ed18ecaf575d139c8c1c6e5990831f64470251bb",
+    "bytes": 8146
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-pages.pdf",
+    "sha256": "7898328c073e10d0f89d7b9b5b49f8232acd58b680a321ed609e8e0a086902c1",
+    "bytes": 21376
+  },
+  {
+    "path": "raw/attempt-1/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/test-failed-1.png",
+    "sha256": "b992c6489528ae55f441c3b5990c867ab5ded3c864208c425aa16829265432a3",
+    "bytes": 48948
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-04",
+  "code_head": "e4c37b2185c4010bec7e4411e0bfef62797c47c5",
+  "scope": "T-02,T-04..08; T-03 corrections and T-21 brand consistency; global roadmap remains in progress",
+  "verification": {
+    "php_full": {
+      "passed": 2585,
+      "assertions": 15376,
+      "note": "Before the two final Unicode separator datasets"
+    },
+    "php_studio_after_boundary_fix": {
+      "passed": 55,
+      "assertions": 356
+    },
+    "frontend": {
+      "passed": 29
+    },
+    "runner_guards": {
+      "passed": 3
+    },
+    "e2e": {
+      "passed": 18,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "interrupted": 0
+    }
+  },
+  "sha256": {
+    "raw/phpunit.xml": "dbf274c37c28a470fe4854a57c4f081f590d425c3c26d45800ec72155c03d420",
+    "raw/studio-boundaries-final.xml": "44e5a8c499928a41751f68ee888a3a0d37a6be84a1b5156e9303b40298dfcf29",
+    "raw/frontend.tap": "f1404f148999928f10f78ef78219d951311f96c9cf89c19d08137867f0bb9c0d",
+    "qa-final/raw/final/results.json": "44006d8f3e419adc0e779c66de2fa03915e5a3bbc004b75ff5f5406bdc486ff3",
+    "qa-final/raw/final/qa-gate.json": "a3f7420daa10a11ee1d5ff6e2f4dd5b434b84226a707a8ebd3e483b156714aa8",
+    "qa-final/report.md": "1801539afe64285c53a7836d7232c9beca953fb6516a8a785f68ce8aa77c2944",
+    "qa-final/report.pdf": "f0c10ca5763e7aeaf44dd64dc1f022d9b9d9ea897a9e2e9301b89a1f8bd0456c"
+  }
+}

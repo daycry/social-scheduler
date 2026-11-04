@@ -1,0 +1,19 @@
+{
+  "run": "run-general-f58f9f10-68aa-4044-8a63-413ae13e6f86",
+  "loopback_connect_attempts": {
+    "[::1]:8080": 346,
+    "127.0.0.1:8080": 1
+  },
+  "refused_tcp_connects": [
+    {
+      "source": 1484,
+      "address": "127.0.0.1:8080",
+      "net_error": -102
+    }
+  ],
+  "failed_request_urls": [
+    "http://localhost:8080/build/assets/NetworkChip-D2R70ZI3.js",
+    "http://localhost:8080/build/assets/NetworkChip-D2R70ZI3.js",
+    "http://localhost:8080/build/assets/NetworkChip-D2R70ZI3.js"
+  ]
+}

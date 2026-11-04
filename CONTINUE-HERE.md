@@ -1,6 +1,6 @@
 # Continuación del roadmap
 
-Actualizado: 2026-11-03. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
+Actualizado: 2026-11-04. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
 
 ## Decisiones vigentes del usuario
 
@@ -12,6 +12,24 @@ Actualizado: 2026-11-03. Fuente canónica del estado de cada tarea: `docs/roadma
 - Las autorizaciones de Codex, Claude Code, OpenCode y el acceso ChatGPT de OpenCode ya están dadas. No volver a solicitarlas al reanudar las mismas comprobaciones.
 
 ## Estado comprobado de los ledgers
+
+### Iniciativa activa: suite creativa y social por marca
+
+**Tanda terminada 2026-11-04:** T-09 completa: plantillas propias/campos/kit/resize/variantes web/API/MCP. Referencia del kit y undo/redo, presupuesto previo a expansión y colores lineales corregidos y revisados. El usuario añadió reconexiones frecuentes: subbloque T-18 corregido, con guard de generación de credenciales y registro OAuth atómico por contexto de navegador. [Auditoría](docs/roadmap/2026-11-03-creative-social-suite/testing/connections/audit-2026-11-04.md). Revisión final sin gaps; PHP **2618/2618,15568 aserciones**, Studio Node/Chromium **26/26**, QA independiente **24/24**, gate VERDE en tres viewports. [QA/PDF](docs/roadmap/2026-11-03-creative-social-suite/testing/t09/qa/report.md). Código en `f64c677`, `9d1491f`, `e3f1cef`; documentos/evidencias en el commit posterior de esta misma rama/PR #19. Migración adicional `2026_11_04_080000_add_kit_reference_to_studio_designs.php` no aplicada al MySQL local (no escucha); no VPS ni cambios de `.env`. Siguiente implementación: **T-10**, fuentes reales/recursos/máscaras/quitar fondo; conservar el alcance completo y no repetir estas suites sin cambios o defectos nuevos.
+
+El usuario amplía el alcance a las funciones de Metricool y Canva, incluidas las de pago, con APIs/MCP y revisión específica de exactitud de métricas. Trabajar de forma autónoma; no confundir este alcance nuevo con los ledgers anteriores cerrados. Rama actual `feature/creative-social-suite`, base `2b38fb8` de PR #18. [Spec](docs/roadmap/2026-11-03-creative-social-suite/spec.md), [plan](docs/roadmap/2026-11-03-creative-social-suite/improvement-plan.md), [ledger de 23 tareas](docs/roadmap/2026-11-03-creative-social-suite/tasks.md).
+
+**7/23 tareas completadas**: T-02 y T-04–09. Estudio nativo por marca usable, con revisiones/recursos/kits/carpetas, Canvas Fabric, 14 plantillas, editor responsive, plantillas propias y campos, identidad aplicable, resize/variantes, cinco exportaciones estáticas reales y borrador asociado. API v1 y nueve herramientas nativas; catálogo MCP total 36, paginado de 30 en 30, acciones ampliadas de `manage_design`. No afirmar paridad total ni exportación MP4 por cerrar estos bloques. Próximo trabajo: T-10 y después las capacidades avanzadas/sociales de la matriz; no reiniciar el estudio ni repetir sus pruebas sin nuevos cambios.
+
+Revisión Studio A/B/C/D intento 2 sin gaps; suplemento de límites Unicode y grupos vacíos también revisado. QA independiente final **18/18**, cero fallos/flaky/skips, gate VERDE; frontend **29/29** y runner **3/3**. PHP completo **2585/2585, 15376 aserciones**, más focal posterior Studio **55/55** que incorpora dos datasets Unicode adicionales. [QA y PDF](docs/roadmap/2026-11-03-creative-social-suite/testing/qa-final/report.md). Node/Chromium/cola `media` son requisitos del renderer del servidor; [guía API/MCP y despliegue](docs/guias/estudio-api-mcp.md). Migración Studio aplicada a MySQL local tras comprobar host de loopback; no se accedió al VPS.
+
+Diagnóstico del runner: PHP local escuchaba solo IPv6, Chrome intentaba IPv4 y cada asset cerraba su TCP. El runner usa ahora un frontend loopback keep-alive y PHP privado; conserva el origen/RP ID localhost:8080 y todas las guardas/errores. [Evidencia y regresión](docs/roadmap/2026-11-03-creative-social-suite/testing/debug-loopback/report.md). La suite PHP amplia debe usar un `LARAVEL_STORAGE_PATH` único si se ejecuta junto con otro proceso de tests: `Storage::fake` compartido produjo colisiones, no defectos del producto.
+
+La [auditoría de métricas](docs/roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) confirmó y corrigió engagement con coberturas dispares y selección implícita de canal YouTube. En la BD **local**, marca 55, los snapshots terminan el 21 de octubre. GETs de Meta devuelven actividad 28 octubre–2 noviembre: Facebook 46 vistas, Instagram 314 vistas/6 interacciones. No se escribieron esos datos ni se renovaron credenciales. Esto acredita una brecha local de recolección; no diagnostica el VPS (el navegador usa marca 2 de otro entorno). Cobertura/frescura aditivas web/MCP y avisos UI en curso. Las pruebas del servidor siguen a cargo del usuario.
+
+Agentes de implementación/revisión/QA de este bloque terminados. Métricas en `6c33b0e`, coherencia de marca en `48e453e`, estudio/API/MCP/render y transporte de QA en `e4c37b2`. [Manifiesto de entrega](docs/roadmap/2026-11-03-creative-social-suite/testing/delivery-manifest.json) con hashes y alcance de cada verificación. Conservar cualquier cambio posterior de otros chats y comprobar rama/estado antes de escribir.
+
+Rama subida y [PR #19 en borrador](https://github.com/daycry/social-scheduler/pull/19), apilada sobre `fix/composer-refresh-after-save` / [PR #18](https://github.com/daycry/social-scheduler/pull/18), que seguía abierta al comprobarla. Documentación/evidencias iniciales en `d14957d`; tanda T-09/conexiones descrita arriba. No duplicar la PR ni fusionarla automáticamente. Consultar sus checks actuales antes de integrarla. La paridad completa continúa pendiente y la siguiente tarea es T-10.
 
 ### Compositor y audio: T-11/T-12 verificadas localmente
 

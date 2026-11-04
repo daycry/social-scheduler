@@ -1,0 +1,1236 @@
+{
+  "config": {
+    "argv": [
+      "C:\\laragon\\bin\\nodejs\\node-v22\\node.exe",
+      "C:\\laragon\\www\\metricool\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "tests/e2e/studio.spec.ts",
+      "tests/e2e/metrics-quality.spec.ts",
+      "tests/e2e/brand-reporting.spec.ts"
+    ],
+    "configFile": "C:\\laragon\\www\\metricool\\playwright.config.ts",
+    "rootDir": "C:/laragon/www/metricool/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-751c4db2-a6a7-485b-b890-d581684560c6/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-751c4db2-a6a7-485b-b890-d581684560c6/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-751c4db2-a6a7-485b-b890-d581684560c6/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-360",
+        "name": "mobile-360",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "desktop",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "desktop"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "mobile",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 375,
+            "height": 812
+          },
+          "isMobile": true,
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "mobile-360",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 360,
+            "height": 740
+          },
+          "isMobile": true,
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile-360"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "cwd": "C:\\laragon\\www\\metricool",
+      "command": "node tests/e2e/isolated/serve.cjs",
+      "url": "http://localhost:8080/up",
+      "reuseExistingServer": false,
+      "timeout": 90000,
+      "stdout": "ignore",
+      "stderr": "ignore",
+      "env": {
+        "E2E_GENERAL_ENV": "eyJQQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxsYXJhZ29uXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyXFxub2RlX21vZHVsZXNcXG5wbVxcbm9kZV9tb2R1bGVzXFxAbnBtY2xpXFxydW4tc2NyaXB0XFxsaWJcXG5vZGUtZ3lwLWJpbjtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwWmtzaEFaO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwVnRwU1ZiO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjIuMS14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwcmljTFJpO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXHN0YW5kYWxvbmVcXHJlbGVhc2VzXFwwLjE2Mi4xLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFdpbmRvd3NcXHN5c3RlbTMyO0M6XFxXaW5kb3dzO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2JlbTtDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdpbmRvd3NQb3dlclNoZWxsXFx2MS4wXFw7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxPcGVuU1NIXFw7QzpcXFByb2dyYW0gRmlsZXNcXE5WSURJQSBDb3Jwb3JhdGlvblxcTlZJRElBIEFwcFxcTnZETElTUjtDOlxcUHJvZ3JhbSBGaWxlcyAoeDg2KVxcTlZJRElBIENvcnBvcmF0aW9uXFxQaHlzWFxcQ29tbW9uO0M6XFxQcm9ncmFtIEZpbGVzXFxHaXRIdWIgQ0xJXFw7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXHBucG1cXGJpbjtDOlxcVXNlcnNcXGRheWNyXFwubG9jYWxcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxjb21wb3NlcjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGNtZDtDOlxcbGFyYWdvblxcYmluXFxnaXRcXG1pbmd3NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXHVzclxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG15c3FsXFxteXNxbC04LjQuMy13aW54NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxuZ3JvaztDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyO0M6XFxsYXJhZ29uXFxiaW5cXHBocFxccGhwLTguMy4zMy1XaW4zMi12czE2LXg2NDtDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzO0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTNcXFNjcmlwdHM7QzpcXGxhcmFnb25cXHVzclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxZYXJuXFxjb25maWdcXGdsb2JhbFxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXENvbXBvc2VyXFx2ZW5kb3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxucG07QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxPcGVuQUlcXENvZGV4XFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luZG93c0FwcHM7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFByb2dyYW1EYXRhXFxkYXljclxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbkdldFxcUGFja2FnZXNcXEd5YW4uRkZtcGVnX01pY3Jvc29mdC5XaW5nZXQuU291cmNlXzh3ZWt5YjNkOGJid2VcXGZmbXBlZy05LjAuMi1mdWxsX2J1aWxkXFxiaW47O0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcRG9ja2VyRGVza3RvcFxccmVzb3VyY2VzXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluXFxjb3BpbG90LXNoaW0iLCJQYXRoIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxsYXJhZ29uXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyXFxub2RlX21vZHVsZXNcXG5wbVxcbm9kZV9tb2R1bGVzXFxAbnBtY2xpXFxydW4tc2NyaXB0XFxsaWJcXG5vZGUtZ3lwLWJpbjtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwWmtzaEFaO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwVnRwU1ZiO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjIuMS14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwXFxjb2RleC1hcmcwcmljTFJpO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXHN0YW5kYWxvbmVcXHJlbGVhc2VzXFwwLjE2Mi4xLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFdpbmRvd3NcXHN5c3RlbTMyO0M6XFxXaW5kb3dzO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2JlbTtDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdpbmRvd3NQb3dlclNoZWxsXFx2MS4wXFw7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxPcGVuU1NIXFw7QzpcXFByb2dyYW0gRmlsZXNcXE5WSURJQSBDb3Jwb3JhdGlvblxcTlZJRElBIEFwcFxcTnZETElTUjtDOlxcUHJvZ3JhbSBGaWxlcyAoeDg2KVxcTlZJRElBIENvcnBvcmF0aW9uXFxQaHlzWFxcQ29tbW9uO0M6XFxQcm9ncmFtIEZpbGVzXFxHaXRIdWIgQ0xJXFw7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXHBucG1cXGJpbjtDOlxcVXNlcnNcXGRheWNyXFwubG9jYWxcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxjb21wb3NlcjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGNtZDtDOlxcbGFyYWdvblxcYmluXFxnaXRcXG1pbmd3NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXHVzclxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG15c3FsXFxteXNxbC04LjQuMy13aW54NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxuZ3JvaztDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyO0M6XFxsYXJhZ29uXFxiaW5cXHBocFxccGhwLTguMy4zMy1XaW4zMi12czE2LXg2NDtDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzO0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTNcXFNjcmlwdHM7QzpcXGxhcmFnb25cXHVzclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxZYXJuXFxjb25maWdcXGdsb2JhbFxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXENvbXBvc2VyXFx2ZW5kb3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxucG07QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxPcGVuQUlcXENvZGV4XFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luZG93c0FwcHM7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFByb2dyYW1EYXRhXFxkYXljclxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbkdldFxcUGFja2FnZXNcXEd5YW4uRkZtcGVnX01pY3Jvc29mdC5XaW5nZXQuU291cmNlXzh3ZWt5YjNkOGJid2VcXGZmbXBlZy05LjAuMi1mdWxsX2J1aWxkXFxiaW47O0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcRG9ja2VyRGVza3RvcFxccmVzb3VyY2VzXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluXFxjb3BpbG90LXNoaW0iLCJTeXN0ZW1Sb290IjoiQzpcXFdpbmRvd3MiLCJTWVNURU1ST09UIjoiQzpcXFdpbmRvd3MiLCJXSU5ESVIiOiJDOlxcV2luZG93cyIsIlRFTVAiOiJDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcVGVtcCIsIlRNUCI6IkM6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxUZW1wIiwiQ09NU1BFQyI6IkM6XFxXaW5kb3dzXFxzeXN0ZW0zMlxcY21kLmV4ZSIsIlBBVEhFWFQiOiIuQ09NOy5FWEU7LkJBVDsuQ01EOy5WQlM7LlZCRTsuSlNFOy5XU0Y7LldTSDsuTVNDOy5DUEwgIiwiRTJFX0dFTkVSQUxfUlVOX1JPT1QiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC03NTFjNGRiMi1hNmE3LTQ4NWItYjg5MC1kNTgxNjg0NTYwYzYiLCJUNDNfUlVOX1JPT1QiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC03NTFjNGRiMi1hNmE3LTQ4NWItYjg5MC1kNTgxNjg0NTYwYzYiLCJBUFBfRU5WIjoiZTJlIiwiQVBQX0RFQlVHIjoidHJ1ZSIsIkFQUF9MT0NBTEUiOiJlcyIsIkFQUF9GQUxMQkFDS19MT0NBTEUiOiJlcyIsIkFQUF9VUkwiOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJBUFBfS0VZIjoiYmFzZTY0OlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTA9IiwiQVBQX0NPTkZJR19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTc1MWM0ZGIyLWE2YTctNDg1Yi1iODkwLWQ1ODE2ODQ1NjBjNlxcY29uZmlnLnBocCIsIkFQUF9TRVJWSUNFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTc1MWM0ZGIyLWE2YTctNDg1Yi1iODkwLWQ1ODE2ODQ1NjBjNlxcc2VydmljZXMucGhwIiwiQVBQX1BBQ0tBR0VTX0NBQ0hFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtNzUxYzRkYjItYTZhNy00ODViLWI4OTAtZDU4MTY4NDU2MGM2XFxwYWNrYWdlcy5waHAiLCJBUFBfRVZFTlRTX0NBQ0hFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtNzUxYzRkYjItYTZhNy00ODViLWI4OTAtZDU4MTY4NDU2MGM2XFxldmVudHMucGhwIiwiQVBQX1JPVVRFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTc1MWM0ZGIyLWE2YTctNDg1Yi1iODkwLWQ1ODE2ODQ1NjBjNlxccm91dGVzLnBocCIsIkxBUkFWRUxfU1RPUkFHRV9QQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtNzUxYzRkYjItYTZhNy00ODViLWI4OTAtZDU4MTY4NDU2MGM2IiwiREJfQ09OTkVDVElPTiI6InNxbGl0ZSIsIkRCX0RBVEFCQVNFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtNzUxYzRkYjItYTZhNy00ODViLWI4OTAtZDU4MTY4NDU2MGM2XFxkYi5zcWxpdGUiLCJEQl9VUkwiOiIiLCJDQUNIRV9TVE9SRSI6ImZpbGUiLCJDQUNIRV9MSU1JVEVSX1NUT1JFIjoiZmlsZSIsIlNFU1NJT05fRFJJVkVSIjoiZGF0YWJhc2UiLCJTRVNTSU9OX0NPTk5FQ1RJT04iOiJzcWxpdGUiLCJRVUVVRV9DT05ORUNUSU9OIjoiZGF0YWJhc2UiLCJEQl9RVUVVRV9DT05ORUNUSU9OIjoic3FsaXRlIiwiU0VTU0lPTl9TRUNVUkVfQ09PS0lFIjoiZmFsc2UiLCJNQUlMX01BSUxFUiI6ImFycmF5IiwiTUVESUFfRElTSyI6ImxvY2FsIiwiU09DSUFMX0JBQ0tGSUxMX09OX0NPTk5FQ1QiOiJmYWxzZSIsIlRSVVNURURfUFJPWElFUyI6IiIsIkdPT0dMRV9DTElFTlRfSUQiOiJlMmUtZmFrZS1nb29nbGUiLCJHT09HTEVfQ0xJRU5UX1NFQ1JFVCI6ImUyZS1mYWtlLXNlY3JldCIsIk1FVEFfQVBQX0lEIjoiZTJlLWZha2UtbWV0YSIsIk1FVEFfQVBQX1NFQ1JFVCI6ImUyZS1mYWtlLXNlY3JldCIsIlRJS1RPS19DTElFTlRfS0VZIjoiZTJlLWZha2UtdGlrdG9rIiwiVElLVE9LX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJHT09HTEVfTE9HSU5fQ0xJRU5UX0lEIjoiZTJlLWZha2UtZ29vZ2xlLWxvZ2luIiwiR09PR0xFX0xPR0lOX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJNRVRBX0xPR0lOX0FQUF9JRCI6ImUyZS1mYWtlLW1ldGEtbG9naW4iLCJNRVRBX0xPR0lOX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJUSFJFQURTX0FQUF9JRCI6ImUyZS1mYWtlLXRocmVhZHMiLCJUSFJFQURTX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJHSVBIWV9BUElfS0VZIjoiIiwiQUlfQVNTSVNUQU5UX0VOQUJMRUQiOiJ0cnVlIiwiQU5USFJPUElDX0FQSV9LRVkiOiJlMmUtZmFrZS1hbnRocm9waWMiLCJNQ1BfT0FVVEhfUkVHSVNURVJfR0xPQkFMX1BFUl9IT1VSIjoiMTAwMDAwIiwiV0VCQVVUSE5fUlBfSUQiOiJsb2NhbGhvc3QiLCJXRUJBVVRITl9PUklHSU5TIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiVklFV19DT01QSUxFRF9QQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtNzUxYzRkYjItYTZhNy00ODViLWI4OTAtZDU4MTY4NDU2MGM2XFx2aWV3cyIsIlBTWVNIX0NPTkZJRyI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTc1MWM0ZGIyLWE2YTctNDg1Yi1iODkwLWQ1ODE2ODQ1NjBjNlxccHN5c2gucGhwIn0="
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "brand-reporting.spec.ts",
+      "file": "brand-reporting.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Ads and reports retain the selected brand across navigation and report creation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 15155,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByLabel('Marca', { exact: true })\nExpected: \u001b[32m\"3\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByLabel('Marca', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Marca', { exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByLabel('Marca', { exact: true })\nExpected: \u001b[32m\"3\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByLabel('Marca', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Marca', { exact: true })\u001b[22m\n\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts:22:65",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                      "column": 65,
+                      "line": 22
+                    },
+                    "snippet": "  20 |         // No explicit query: the current shell/session brand must survive into Reporting.\n  21 |         await page.goto('/reports');\n> 22 |         await expect(page.getByLabel('Marca', { exact: true })).toHaveValue(String(z.id));\n     |                                                                 ^\n  23 |         await page.getByLabel('PDF', { exact: true }).uncheck();\n  24 |         await page.getByRole('button', { name: 'Generar informe', exact: true }).click();\n  25 |         await expect(page).toHaveURL(new RegExp(`/reports\\\\?brand_id=${z.id}$`));"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                        "column": 65,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByLabel('Marca', { exact: true })\nExpected: \u001b[32m\"3\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByLabel('Marca', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Marca', { exact: true })\u001b[22m\n\n\n  20 |         // No explicit query: the current shell/session brand must survive into Reporting.\n  21 |         await page.goto('/reports');\n> 22 |         await expect(page.getByLabel('Marca', { exact: true })).toHaveValue(String(z.id));\n     |                                                                 ^\n  23 |         await page.getByLabel('PDF', { exact: true }).uncheck();\n  24 |         await page.getByRole('button', { name: 'Generar informe', exact: true }).click();\n  25 |         await expect(page).toHaveURL(new RegExp(`/reports\\\\?brand_id=${z.id}$`));\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts:22:65"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:21:29.652Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-desktop\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-desktop\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-desktop\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                    "column": 65,
+                    "line": 22
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "726f187762d27fc5d5b3-f2c00e4257135415129a",
+          "file": "brand-reporting.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Ads and reports retain the selected brand across navigation and report creation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 15146,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByLabel('Marca', { exact: true })\nExpected: \u001b[32m\"10\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByLabel('Marca', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Marca', { exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByLabel('Marca', { exact: true })\nExpected: \u001b[32m\"10\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByLabel('Marca', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Marca', { exact: true })\u001b[22m\n\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts:22:65",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                      "column": 65,
+                      "line": 22
+                    },
+                    "snippet": "  20 |         // No explicit query: the current shell/session brand must survive into Reporting.\n  21 |         await page.goto('/reports');\n> 22 |         await expect(page.getByLabel('Marca', { exact: true })).toHaveValue(String(z.id));\n     |                                                                 ^\n  23 |         await page.getByLabel('PDF', { exact: true }).uncheck();\n  24 |         await page.getByRole('button', { name: 'Generar informe', exact: true }).click();\n  25 |         await expect(page).toHaveURL(new RegExp(`/reports\\\\?brand_id=${z.id}$`));"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                        "column": 65,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByLabel('Marca', { exact: true })\nExpected: \u001b[32m\"10\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByLabel('Marca', { exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByLabel('Marca', { exact: true })\u001b[22m\n\n\n  20 |         // No explicit query: the current shell/session brand must survive into Reporting.\n  21 |         await page.goto('/reports');\n> 22 |         await expect(page.getByLabel('Marca', { exact: true })).toHaveValue(String(z.id));\n     |                                                                 ^\n  23 |         await page.getByLabel('PDF', { exact: true }).uncheck();\n  24 |         await page.getByRole('button', { name: 'Generar informe', exact: true }).click();\n  25 |         await expect(page).toHaveURL(new RegExp(`/reports\\\\?brand_id=${z.id}$`));\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts:22:65"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:20.119Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                    "column": 65,
+                    "line": 22
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "726f187762d27fc5d5b3-da38b4fb128a9dfd4fd1",
+          "file": "brand-reporting.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Ads and reports retain the selected brand across navigation and report creation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5919,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts:29:31",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                      "column": 31,
+                      "line": 29
+                    },
+                    "snippet": "  27 |         await expect(page.locator('[data-report]').first()).toContainText(z.name);\n  28 |         await expectNoOverflow(page);\n> 29 |         expect(errors.errors).toEqual([]);\n     |                               ^\n  30 |     } finally { cleanComposerBrands(user.email); }\n  31 | });\n  32 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                        "column": 31,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 4\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  27 |         await expect(page.locator('[data-report]').first()).toContainText(z.name);\n  28 |         await expectNoOverflow(page);\n> 29 |         expect(errors.errors).toEqual([]);\n     |                               ^\n  30 |     } finally { cleanComposerBrands(user.email); }\n  31 | });\n  32 |\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts:29:31"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:23:09.388Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+                    "column": 31,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "726f187762d27fc5d5b3-38a207cff6cf491b014f",
+          "file": "brand-reporting.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "metrics-quality.spec.ts",
+      "file": "metrics-quality.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4264,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:21:45.964Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a4c3c93e021e965c668-6651096be39bd15d19e1",
+          "file": "metrics-quality.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4126,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts:26:31",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts",
+                      "column": 31,
+                      "line": 26
+                    },
+                    "snippet": "  24 |         await expectNoOverflow(page);\n  25 |         await page.screenshot({ path: info.outputPath('metrics-quality.png'), fullPage: true });\n> 26 |         expect(errors.errors).toEqual([]);\n     |                               ^\n  27 |     } finally { cleanComposerBrands(user.email); }\n  28 | });\n  29 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts",
+                        "column": 31,
+                        "line": 26
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  24 |         await expectNoOverflow(page);\n  25 |         await page.screenshot({ path: info.outputPath('metrics-quality.png'), fullPage: true });\n> 26 |         expect(errors.errors).toEqual([]);\n     |                               ^\n  27 |     } finally { cleanComposerBrands(user.email); }\n  28 | });\n  29 |\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts:26:31"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:36.004Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts",
+                    "column": 31,
+                    "line": 26
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "3a4c3c93e021e965c668-2fbc9d1bac55d6ceb042",
+          "file": "metrics-quality.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4173,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:23:16.058Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a4c3c93e021e965c668-cca3217469b3ed65ddba",
+          "file": "metrics-quality.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio.spec.ts",
+      "file": "studio.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7812,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:21:50.492Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-81342f6b922c69eb82c1",
+          "file": "studio.spec.ts",
+          "line": 25,
+          "column": 1
+        },
+        {
+          "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 8138,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                      "column": 43,
+                      "line": 22
+                    },
+                    "snippet": "  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                        "column": 43,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:21:58.314Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                    "column": 43,
+                    "line": 22
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-dbd6eba5fea36548bbd3",
+          "file": "studio.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6188,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:07.309Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-b80fc4e040d3e5cd0ca1",
+          "file": "studio.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Studio: a stale revision preserves local edits and can recover the server version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6059,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:13.577Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-23a521fe9272d0a8b9f9",
+          "file": "studio.spec.ts",
+          "line": 162,
+          "column": 1
+        },
+        {
+          "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 6616,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                      "column": 43,
+                      "line": 22
+                    },
+                    "snippet": "  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                        "column": 43,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:41.072Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                    "column": 43,
+                    "line": 22
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-981ed5e394226c6bb8eb",
+          "file": "studio.spec.ts",
+          "line": 25,
+          "column": 1
+        },
+        {
+          "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 7733,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                      "column": 43,
+                      "line": 22
+                    },
+                    "snippet": "  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                        "column": 43,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:48.590Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                    "column": 43,
+                    "line": 22
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-9918710a746d42523234",
+          "file": "studio.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5849,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:22:57.172Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-508e91f9485ddf71de24",
+          "file": "studio.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Studio: a stale revision preserves local edits and can recover the server version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5853,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:23:03.116Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-0f13d1a899cdb0b3c461",
+          "file": "studio.spec.ts",
+          "line": 162,
+          "column": 1
+        },
+        {
+          "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 60719,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 60000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                        "column": 43,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43"
+                    },
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                        "column": 39,
+                        "line": 43
+                      },
+                      "message": "Error: page.waitForResponse: Test timeout of 60000ms exceeded.\n\n  41 |         for (const format of ['png', 'jpeg', 'webp']) {\n  42 |             await dialog.getByLabel('Formato', { exact: true }).selectOption(format);\n> 43 |             const registration = page.waitForResponse(response => /\\/studio\\/designs\\/\\d+\\/exports$/.test(new URL(response.url()).pathname) && response.request().method() === 'POST');\n     |                                       ^\n  44 |             await dialog.getByRole('button', { name: 'Guardar en biblioteca', exact: true }).click();\n  45 |             const response = await registration;\n  46 |             expect(response.status()).toBe(201);\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:43:39"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:23:20.451Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile-360\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile-360\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile-360\\trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-527ecd56d51a85b60a56",
+          "file": "studio.spec.ts",
+          "line": 25,
+          "column": 1
+        },
+        {
+          "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7103,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:24:21.978Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-52aefa5b250c0d2068bf",
+          "file": "studio.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5800,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                      "column": 43,
+                      "line": 22
+                    },
+                    "snippet": "  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                        "column": 43,
+                        "line": 22
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"console: Failed to load resource: net::ERR_CONNECTION_REFUSED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  20 | test.afterEach(async ({ page }) => {\n  21 |     await expectNoOverflow(page);\n> 22 |     expect(browserErrors.get(page) ?? []).toEqual([]);\n     |                                           ^\n  23 | });\n  24 |\n  25 | test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library', async ({ page }, info) => {\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts:22:43"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:24:29.222Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-751c4db2-a6a7-485b-b890-d581684560c6\\artifacts\\studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+                    "column": 43,
+                    "line": 22
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-26b4600539e9fec37fac",
+          "file": "studio.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Studio: a stale revision preserves local edits and can recover the server version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5767,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T22:24:35.899Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-12e8762dddd8b369aec0",
+          "file": "studio.spec.ts",
+          "line": 162,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-03T22:21:18.141Z",
+    "duration": 205098.975,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 9,
+    "flaky": 0
+  }
+}

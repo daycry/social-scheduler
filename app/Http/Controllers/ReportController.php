@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AuditLog;
 use App\Services\Reports\TooManyActiveReports;
 use App\Services\ReportService;
+use App\Support\CurrentBrand;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -28,9 +29,11 @@ class ReportController extends Controller
 
     public function index(Request $request): Response
     {
-        $brands = Brand::query()->orderBy('name')->get(['id', 'name', 'timezone']);
+        $data = $request->validate(['brand_id' => ['nullable', 'integer']]);
+        $brands = CurrentBrand::brands($request);
+        $brand = ! empty($data['brand_id']) ? ($brands->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : CurrentBrand::resolve($request);
         $names = $brands->pluck('name', 'id');
-        $period = Period::make(null, null, $brands->first()?->timezone)->toArray();
+        $period = Period::make(null, null, $brand?->timezone)->toArray();
 
         // Un pending/processing atascado se muestra como fallido (lo marca de verdad `reports:prune`).
         $items = Report::query()->latest('id')->limit(20)->get()->map(fn (Report $r) => [
@@ -47,7 +50,7 @@ class ReportController extends Controller
         return Inertia::render('Reports/Index', [
             'brands' => $brands->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name])->all(),
             'reports' => $items->all(),
-            'defaults' => ['from' => $period['from'], 'to' => $period['to'], 'compare' => 'none'],
+            'defaults' => ['brand_id' => $brand?->id, 'from' => $period['from'], 'to' => $period['to'], 'compare' => 'none'],
             'flash' => ['success' => session('success')],
             'polling' => $items->contains(fn ($r) => in_array($r['status'], [Report::STATUS_PENDING, Report::STATUS_PROCESSING], true)),
         ]);
@@ -82,7 +85,7 @@ class ReportController extends Controller
             return back()->withErrors(['formats' => $e->getMessage()]);
         }
 
-        return to_route('reports.index')->with('success', 'Informe en cola. Se generara en unos instantes.');
+        return to_route('reports.index', ['brand_id' => $brand->id])->with('success', 'Informe en cola. Se generara en unos instantes.');
     }
 
     /** Genera un enlace firmado nuevo (5 min) y redirige a el: el boton Descargar nunca tiene un enlace caducado. */

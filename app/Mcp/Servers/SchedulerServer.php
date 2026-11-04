@@ -3,12 +3,16 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddCommentNote;
+use App\Mcp\Tools\AttachDesignAsset;
 use App\Mcp\Tools\CancelPost;
+use App\Mcp\Tools\CreateDesign;
 use App\Mcp\Tools\CreatePost;
 use App\Mcp\Tools\DeletePost;
+use App\Mcp\Tools\ExportDesign;
 use App\Mcp\Tools\GenerateReport;
 use App\Mcp\Tools\GetBestTimes;
 use App\Mcp\Tools\GetCalendar;
+use App\Mcp\Tools\GetDesign;
 use App\Mcp\Tools\GetInstagramAudio;
 use App\Mcp\Tools\GetPost;
 use App\Mcp\Tools\GetPostStats;
@@ -20,12 +24,17 @@ use App\Mcp\Tools\ListBrands;
 use App\Mcp\Tools\ListCalendarViews;
 use App\Mcp\Tools\ListCampaigns;
 use App\Mcp\Tools\ListComments;
+use App\Mcp\Tools\ListDesigns;
 use App\Mcp\Tools\ListMedia;
+use App\Mcp\Tools\ManageBrandKit;
+use App\Mcp\Tools\ManageDesign;
+use App\Mcp\Tools\ManageDesignFolder;
 use App\Mcp\Tools\PublishPostNow;
 use App\Mcp\Tools\ReplyComment;
 use App\Mcp\Tools\ReschedulePost;
 use App\Mcp\Tools\SearchInstagramAudio;
 use App\Mcp\Tools\SuggestHashtags;
+use App\Mcp\Tools\UpdateDesign;
 use App\Mcp\Tools\UpdatePost;
 use App\Mcp\Tools\UpdatePostCampaign;
 use App\Mcp\Tools\UpdatePostNotes;
@@ -41,10 +50,10 @@ use Laravel\Mcp\Server\Attributes\Version;
 #[Icon('/favicon.svg', 'image/svg+xml', ['any'])]
 #[Name('Social Scheduler')]
 #[Version('1.0.0')]
-#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads (list_accounts dice cuales estan disponibles en esta instalacion y sus tipos de contenido; cada red cuenta el texto a su manera: Bluesky 300 grafemas, Threads 500 con el conteo conservador de emojis y 1 etiqueta de tema). Audio de Instagram Reels: search_instagram_audio busca pistas autorizadas de Meta para account_id; get_instagram_audio consulta la pista y renueva su preescucha temporal. create_post/update_post aceptan targets[].options.instagram_audio={audio_id, audio_volume, video_volume}; solo Reels elegibles mediante Facebook, volumenes 1-100 y null quita la pista. list_accounts anuncia instagram_audio.available. Nunca inventes un audio_id ni lo obtengas de una URL de Reel; la preescucha no es la mezcla final. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente: list_media con status=pendiente da su progreso y con status=invalido el motivo del fallo; solo la media «listo» se usa en un post) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) y update_post_campaign asigna o quita la campana, ambas aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; list_calendar_views lista las vistas guardadas del calendario (usa su id en get_calendar view=<id>); get_best_times da el engagement medio por dia y hora para elegir cuando publicar; suggest_hashtags propone hashtags del historico propio de la marca (sin IA). Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB; Bluesky y Threads no tienen buzon, filtros network/unread) reply_comment y add_comment_note (nota interna que nunca se publica) (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Solo ves y modificas los datos del usuario dueno de la API key.')]
+#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads (list_accounts dice cuales estan disponibles en esta instalacion y sus tipos de contenido; cada red cuenta el texto a su manera: Bluesky 300 grafemas, Threads 500 con el conteo conservador de emojis y 1 etiqueta de tema). Audio de Instagram Reels: search_instagram_audio busca pistas autorizadas de Meta para account_id; get_instagram_audio consulta la pista y renueva su preescucha temporal. create_post/update_post aceptan targets[].options.instagram_audio={audio_id, audio_volume, video_volume}; solo Reels elegibles mediante Facebook, volumenes 1-100 y null quita la pista. list_accounts anuncia instagram_audio.available. Nunca inventes un audio_id ni lo obtengas de una URL de Reel; la preescucha no es la mezcla final. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente: list_media con status=pendiente da su progreso y con status=invalido el motivo del fallo; solo la media «listo» se usa en un post) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) y update_post_campaign asigna o quita la campana, ambas aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; list_calendar_views lista las vistas guardadas del calendario (usa su id en get_calendar view=<id>); get_best_times da el engagement medio por dia y hora para elegir cuando publicar; suggest_hashtags propone hashtags del historico propio de la marca (sin IA). Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB; Bluesky y Threads no tienen buzon, filtros network/unread) reply_comment y add_comment_note (nota interna que nunca se publica) (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Disenos nativos por marca: list_designs -> get_design (documento v1, revision, kit, assets y exports) -> create_design/update_design (revision esperada; 409 exige recargar). Media: import_media_from_url -> list_media listo -> attach_design_asset -> asset_id en el documento; nunca URLs arbitrarias en elementos. manage_brand_kit edita colores, fuentes, logos y voz. manage_design duplica, archiva y restaura sin perder revisiones/exportaciones. manage_design_folder lista, crea o elimina carpetas de una marca; list requiere designs:read, mutaciones designs:write. get_design pagina exports de 50 en 50 con exports_page y exports_pagination. export_design renderiza PNG/JPEG/WebP/SVG/PDF; consulta get_design para el estado y download_url temporal real. Estas herramientas no publican. Permisos designs:read/designs:write. tools/list esta paginado: sigue nextCursor hasta que desaparezca, conservando todas las herramientas. Solo ves y modificas los datos del usuario dueno de la API key.')]
 class SchedulerServer extends Server
 {
-    /** Todas las herramientas en la primera pagina de `tools/list` (el valor por defecto, 15, dejaba fuera a las ultimas). */
+    /** Clients follow nextCursor after each page; studio tools bring the catalog above 30 entries. */
     public int $defaultPaginationLength = 30;
 
     protected array $tools = [
@@ -75,5 +84,14 @@ class SchedulerServer extends Server
         SuggestHashtags::class,
         SearchInstagramAudio::class,
         GetInstagramAudio::class,
+        ListDesigns::class,
+        GetDesign::class,
+        CreateDesign::class,
+        UpdateDesign::class,
+        ExportDesign::class,
+        ManageBrandKit::class,
+        AttachDesignAsset::class,
+        ManageDesign::class,
+        ManageDesignFolder::class,
     ];
 }

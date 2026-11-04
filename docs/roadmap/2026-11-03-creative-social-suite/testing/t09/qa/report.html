@@ -1,0 +1,419 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>QA final suite creativa</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+ img {max-height:245mm;object-fit:contain} pre {white-space:pre-wrap;overflow-wrap:anywhere} h2,h3 {break-after:avoid} table {font-size:9pt}</style><body><main class="doc"><h1>Informe de QA — automatización del estudio y regresión de fundamentos</h1>
+<p>Fecha: 2026-11-04T20:59:25+01:00.</p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Estado del bloque auditado</td>
+<td><strong>VERDE</strong></td>
+</tr>
+<tr>
+<td>URL</td>
+<td><code>http://localhost:8080</code>, servidor gestionado y desechable</td>
+</tr>
+<tr>
+<td>Dispositivos</td>
+<td>Chromium 1440×900, 375×812 y 360×740</td>
+</tr>
+<tr>
+<td>Plan</td>
+<td><a href="../../../improvement-plan.md">Plan</a> · <a href="../../../test-plan.md">Pruebas</a></td>
+</tr>
+</tbody>
+</table>
+<p>Alcance: E2E-01–08, T-09 y regresión de T-03/T-04–08/coherencia de marca T-21. La iniciativa completa continúa en progreso: este informe no certifica las funciones futuras, el VPS ni las autorizaciones reales de los proveedores.</p>
+<h2>Veredicto determinista</h2>
+<pre><code class="language-json">{
+  &quot;verdict&quot;: &quot;VERDE&quot;,
+  &quot;counts&quot;: {
+    &quot;passed&quot;: 24,
+    &quot;failed&quot;: 0,
+    &quot;flaky&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;interrupted&quot;: 0
+  },
+  &quot;flaky_sin_justificar&quot;: [],
+  &quot;flaky_justificados&quot;: {},
+  &quot;threshold&quot;: &quot;verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado&quot;
+}
+</code></pre>
+<p>Automáticos: <strong>24/24 aprobados</strong>; 0 fallos, 0 flaky, 0 omitidos y 0 interrumpidos. Una única ejecución integrada, un worker y cero reintentos. No se justifican flaky ni se excluyen fallos.</p>
+<h2>Puertas de entrada y cobertura</h2>
+<p><code>guardrail_assert http://localhost:8080</code>: exit 0. <code>ledger-lint.py</code>: <strong>0 incoherencias, 17 avisos</strong> de Changelog en tareas aún abiertas. <code>coverage-check.py</code>: <strong>0 referencias rotas</strong>, 0 tests sin referencia y 0 criterios GWT huérfanos. Los ocho E2E y cuatro manuales están definidos y referenciados.</p>
+<p>El script lista sin cobertura T-01/T-02 (investigación/contrato, sin UI propia), T-10–17/T-19–20 (capacidades de UI futuras fuera de esta tanda) y T-18 (redes/opciones futuras y correcciones de servicio/OAuth, sin nueva UI auditada). Esas tareas no tienen verde global por este informe. Las correcciones de reconexión de T-18 se verifican por separado con PHP y sondas de revisión; no se presentan como una autorización externa E2E. Véanse las salidas completas en <a href="raw/ledger-lint.txt">ledger-lint</a> y <a href="raw/coverage-check.txt">coverage-check</a>.</p>
+<p>El runner creó SQLite, almacenamiento, sesión, caché e identidades desechables propios. Los conectores de prueba impiden llamadas a redes. Crear la publicación comprobada significa guardar un borrador. No se utilizó la base MySQL del usuario, no se editaron credenciales ni <code>.env</code> y no se accedió al VPS. No existen bloques API-xx/A11Y-xx en este test-plan; no se instala ni se atribuye una auditoría axe. No hay gate de cobertura unitaria configurado que informar.</p>
+<h2>Resultados automáticos</h2>
+<table>
+<thead>
+<tr>
+<th>Escenario</th>
+<th>Dispositivo</th>
+<th>Resultado</th>
+<th align="right">Duración</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E2E-01</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">4.0 s</td>
+</tr>
+<tr>
+<td>E2E-01</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">3.6 s</td>
+</tr>
+<tr>
+<td>E2E-01</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">3.5 s</td>
+</tr>
+<tr>
+<td>E2E-02</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">6.3 s</td>
+</tr>
+<tr>
+<td>E2E-02</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">6.4 s</td>
+</tr>
+<tr>
+<td>E2E-02</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">6.2 s</td>
+</tr>
+<tr>
+<td>E2E-03</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">5.3 s</td>
+</tr>
+<tr>
+<td>E2E-03</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">5.6 s</td>
+</tr>
+<tr>
+<td>E2E-03</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">5.2 s</td>
+</tr>
+<tr>
+<td>E2E-04</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">5.1 s</td>
+</tr>
+<tr>
+<td>E2E-04</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">5.2 s</td>
+</tr>
+<tr>
+<td>E2E-04</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">5.1 s</td>
+</tr>
+<tr>
+<td>E2E-05</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">6.4 s</td>
+</tr>
+<tr>
+<td>E2E-05</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">5.7 s</td>
+</tr>
+<tr>
+<td>E2E-05</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">5.6 s</td>
+</tr>
+<tr>
+<td>E2E-06</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">5.2 s</td>
+</tr>
+<tr>
+<td>E2E-06</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">4.7 s</td>
+</tr>
+<tr>
+<td>E2E-06</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">4.6 s</td>
+</tr>
+<tr>
+<td>E2E-07</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">7.5 s</td>
+</tr>
+<tr>
+<td>E2E-07</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">8.2 s</td>
+</tr>
+<tr>
+<td>E2E-07</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">7.6 s</td>
+</tr>
+<tr>
+<td>E2E-08</td>
+<td>desktop</td>
+<td>PASA</td>
+<td align="right">11.4 s</td>
+</tr>
+<tr>
+<td>E2E-08</td>
+<td>mobile</td>
+<td>PASA</td>
+<td align="right">10.9 s</td>
+</tr>
+<tr>
+<td>E2E-08</td>
+<td>mobile-360</td>
+<td>PASA</td>
+<td align="right">11.1 s</td>
+</tr>
+</tbody>
+</table>
+<h2>Aserciones verificadas</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Comportamiento comprobado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E2E-01</td>
+<td>Cero real, cobertura parcial, fecha antigua, comparación desigual omitida y denominador diario.</td>
+</tr>
+<tr>
+<td>E2E-02</td>
+<td>Crear, editar, guardar, reabrir, PNG 1080² con firma/dimensiones reales y borrador con adjunto en su marca.</td>
+</tr>
+<tr>
+<td>E2E-03</td>
+<td>Undo/redo, orden de páginas, JPEG/WebP/SVG reales y PDF de dos páginas; SVG conserva el texto.</td>
+</tr>
+<tr>
+<td>E2E-04</td>
+<td>Conflicto 409 conserva el trabajo local; descarga JSON y recuperación de la revisión del servidor.</td>
+</tr>
+<tr>
+<td>E2E-05</td>
+<td>PNG/JPEG/WebP de diseño 41² a escala 0,5 se registran como imágenes 21².</td>
+</tr>
+<tr>
+<td>E2E-06</td>
+<td>Ads e informes conservan la marca seleccionada al navegar y generar un informe.</td>
+</tr>
+<tr>
+<td>E2E-07</td>
+<td>Guardar plantilla crea otra entidad; original sigue sin ser plantilla. Campos <code>$&amp;</code> y <code>{{otro}}</code> son literales. Editar la instancia no cambia la plantilla; reapertura y PNG 1080² real.</td>
+</tr>
+<tr>
+<td>E2E-08</td>
+<td>Subida real de logo PNG, registro en marca y selección en kit; cambio Arial→Georgia, undo/redo de documento y referencia, reaplicación posterior del kit, resize 540×1080, dos variantes independientes, reapertura y PNG 1080×1920 real.</td>
+</tr>
+</tbody>
+</table>
+<p>Las cuatro suites vigilan errores JavaScript/consola y desbordamiento. Solo el test de conflicto acepta su 409 deliberado en el endpoint exacto. Los demás errores, incluidos los de conexión, hacen fallar la prueba. Las duraciones y errores originales permanecen en <a href="raw/results.json">results.json</a>.</p>
+<h2>Evidencia visual</h2>
+<p>Se revisaron las doce capturas de esta ejecución: editor base, instancia de plantilla, variante vertical y métricas en los tres tamaños. En móvil las herramientas se apilan y requieren desplazamiento vertical; no hay desbordamiento horizontal. La inspección visual se limita a estas capturas y no certifica todas las pantallas o criterios de accesibilidad de la aplicación.</p>
+<p><img src="screenshots/template-instance-editor-desktop.png" alt="template-instance-editor-desktop.png" /></p>
+<p><img src="screenshots/portrait-variant-editor-desktop.png" alt="portrait-variant-editor-desktop.png" /></p>
+<p><img src="screenshots/template-instance-editor-mobile.png" alt="template-instance-editor-mobile.png" /></p>
+<p><img src="screenshots/portrait-variant-editor-mobile-360.png" alt="portrait-variant-editor-mobile-360.png" /></p>
+<p><img src="screenshots/metrics-quality-desktop.png" alt="metrics-quality-desktop.png" /></p>
+<p><img src="screenshots/studio-editor-mobile-360.png" alt="studio-editor-mobile-360.png" /></p>
+<h2>Trazabilidad</h2>
+<table>
+<thead>
+<tr>
+<th>Tarea</th>
+<th>Evidencia de navegador</th>
+<th>Límite</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-03</td>
+<td>E2E-01</td>
+<td>Recolección real del VPS pendiente.</td>
+</tr>
+<tr>
+<td>T-04–06</td>
+<td>E2E-02–04</td>
+<td>Documento, editor y conflicto en tres viewports.</td>
+</tr>
+<tr>
+<td>T-07</td>
+<td>E2E-02/03/05</td>
+<td>Exportación local real; Linux/R2 de producción pendiente.</td>
+</tr>
+<tr>
+<td>T-08</td>
+<td>Flujos integrados E2E-02–05</td>
+<td>API/MCP y contratos se verifican en pruebas de servicio aparte.</td>
+</tr>
+<tr>
+<td>T-09</td>
+<td>E2E-07/08</td>
+<td>Plantillas, kit, copia independiente, resize, variantes y archivos reales.</td>
+</tr>
+<tr>
+<td>T-18</td>
+<td>No incluido como OAuth externo</td>
+<td>Pruebas PHP y revisión independientes; proveedor/VPS no observado.</td>
+</tr>
+<tr>
+<td>T-21</td>
+<td>E2E-06</td>
+<td>Solo coherencia de marca; Ads/reporting ampliados siguen abiertos.</td>
+</tr>
+</tbody>
+</table>
+<h2>Checklist manual pendiente</h2>
+<ul>
+<li>[ ] <strong>M-01 — Usuario:</strong> scheduler/worker del VPS, heartbeat y capturas recientes del periodo cerrado.</li>
+<li>[ ] <strong>M-02 — Usuario:</strong> publicación real por red y smokes Bluesky/Threads pendientes.</li>
+<li>[ ] <strong>M-03 — Desarrollo + usuario:</strong> Node/Chromium/fuentes/cola media y render real con almacenamiento local/R2 del servidor.</li>
+<li>[ ] <strong>M-04 — Usuario, aplazado:</strong> Claude Desktop.</li>
+</ul>
+<p>No se solicita SSH ni se sustituyen esos manuales por conectores simulados.</p>
+<h2>Artefactos y reproducibilidad</h2>
+<p><a href="raw/results.json">JSON del reporter</a>, <a href="raw/qa-gate.json">qa-gate</a>, <a href="raw/input-hashes.json">hashes de entrada</a>, <a href="raw/artifact-manifest.json">inventario de artefactos</a> y <a href="raw/playwright-console.txt">consola del runner</a>. Los hashes se comprueban antes/después. Se copian únicamente imágenes y exportaciones de prueba conocidas; las trazas ZIP, sesiones, cookies, cabeceras y bases SQLite permanecen fuera de esta entrega.</p>
+<p>El PDF aplica el tema de la skill <code>to-pdf</code>: Markdown → League/CommonMark ya instalado → HTML → Chromium de Playwright ya instalado. Se reutiliza ese adaptador local porque el cache de Puppeteer/markdown-it/mammoth no está instalado; no se descargan dependencias. El HTML comprueba que todas las imágenes cargan antes de generar el PDF. La firma y el número de páginas del PDF se verifican con pdf-lib. La vista HTML de impresión se inspecciona visualmente; no se atribuye rasterización independiente del PDF al no estar disponible Poppler/PyMuPDF.</p>
+</main></body></html>

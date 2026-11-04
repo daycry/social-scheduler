@@ -13,6 +13,10 @@ final class Abilities
 
     public const STATS_READ = 'stats:read';
 
+    public const DESIGNS_READ = 'designs:read';
+
+    public const DESIGNS_WRITE = 'designs:write';
+
     public const REPORTS_WRITE = 'reports:write';
 
     public const INBOX_READ = 'inbox:read';
@@ -27,6 +31,8 @@ final class Abilities
             self::POSTS_READ => 'Leer publicaciones, su estado y el calendario',
             self::POSTS_WRITE => 'Crear, programar, editar, cancelar y borrar publicaciones',
             self::STATS_READ => 'Leer estadisticas de marcas, redes y publicaciones',
+            self::DESIGNS_READ => 'Leer diseños, recursos, kits y exportaciones de las marcas',
+            self::DESIGNS_WRITE => 'Crear y editar diseños, kits y exportaciones de las marcas',
             self::REPORTS_WRITE => 'Generar informes PDF/CSV y consultar su estado',
             self::INBOX_READ => 'Leer los comentarios recibidos en Instagram y Facebook',
             self::INBOX_WRITE => 'Responder a comentarios de Instagram y Facebook y anadirles notas internas',

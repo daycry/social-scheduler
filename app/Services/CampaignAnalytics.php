@@ -143,6 +143,12 @@ class CampaignAnalytics
             // Un `null` JSON es "no disponible": NULLIF evita que MySQL lo lea como la cadena 'null' (que casteada seria 0).
             $sums[] = 'SUM(CAST(NULLIF('.$grammar->wrap('metrics->'.$key).", 'null') AS DECIMAL(20,4))) as ".$grammar->wrap($key);
         }
+        $number = fn (string $key): string => 'CAST(NULLIF('.$grammar->wrap('metrics->'.$key).", 'null') AS DECIMAL(20,4))";
+        $views = $number(Metric::VIEWS);
+        $interactions = $number(Metric::INTERACTIONS);
+        $paired = "$views IS NOT NULL AND $interactions IS NOT NULL";
+        $sums[] = "SUM(CASE WHEN $paired THEN $views END) as paired_views";
+        $sums[] = "SUM(CASE WHEN $paired THEN $interactions END) as paired_interactions";
 
         $targetIds = PostTarget::withoutUserScope()->select('id')->where('user_id', $user->id)
             ->where('status', PostStatus::Published->value)->whereIn('post_id', $postIds);
@@ -159,7 +165,7 @@ class CampaignAnalytics
             }
 
             return ['date' => substr((string) $r->date, 0, 10)] + $metrics
-                + ['engagement_rate' => Calculator::engagementRate($metrics[Metric::INTERACTIONS], $metrics[Metric::VIEWS])];
+                + ['engagement_rate' => Calculator::engagementRate($num($r->paired_interactions), $num($r->paired_views))];
         })->values()->all();
     }
 

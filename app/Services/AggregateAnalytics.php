@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Analytics\Calculator;
+use App\Analytics\ComparisonQuality;
 use App\Analytics\Metric;
+use App\Analytics\MetricCoverage;
 use App\Analytics\Period;
 use App\Models\Brand;
 use App\Models\User;
@@ -94,6 +95,8 @@ class AggregateAnalytics
         $previous = null;
         $byNetwork = [];
         $timeline = [];
+        $metadata = [];
+        $networkMetadata = [];
 
         foreach ($summaries as $s) {
             $card = collect($s['cards'])->firstWhere('key', $metric);
@@ -103,11 +106,13 @@ class AggregateAnalytics
 
             $total = self::add($total, $card['total']);
             $previous = self::add($previous, $card['previous']);
+            $metadata[] = $card;
 
             foreach ($card['by_network'] as $n) {
                 $byNetwork[$n['network']] ??= ['network' => $n['network'], 'label' => $n['label'], 'value' => null, 'previous' => null];
                 $byNetwork[$n['network']]['value'] = self::add($byNetwork[$n['network']]['value'], $n['value']);
                 $byNetwork[$n['network']]['previous'] = self::add($byNetwork[$n['network']]['previous'], $n['previous']);
+                $networkMetadata[$n['network']][] = $n;
             }
 
             foreach ($card['series'] as $point) {
@@ -121,17 +126,25 @@ class AggregateAnalytics
             }
         }
 
-        $byNetwork = collect($byNetwork)->sortBy('label')->map(fn (array $n) => $n + [
-            'delta_pct' => Calculator::delta($n['value'], $n['previous'])['pct'], 'available' => $n['value'] !== null,
-        ])->values()->all();
+        $byNetwork = collect($byNetwork)->sortBy('label')->map(function (array $n) use ($networkMetadata): array {
+            $metadata = $networkMetadata[$n['network']] ?? [];
+            $quality = ComparisonQuality::merge(array_column($metadata, 'comparison_quality'));
+
+            return $n + [
+                'delta_pct' => ComparisonQuality::delta($n['value'], $n['previous'], $quality)['pct'], 'available' => $n['value'] !== null,
+                'comparison_quality' => $quality,
+            ] + MetricCoverage::merge($metadata);
+        })->values()->all();
         ksort($timeline);
-        $delta = Calculator::delta($total, $previous);
+        $quality = ComparisonQuality::merge(array_column($metadata, 'comparison_quality'));
+        $delta = ComparisonQuality::delta($total, $previous, $quality);
 
         return [
             'key' => $metric, 'label' => $label, 'kind' => in_array($metric, Metric::STOCKS, true) ? 'stock' : 'flow',
             'total' => $total, 'previous' => $comparing ? $previous : null, 'delta_abs' => $delta['abs'], 'delta_pct' => $delta['pct'],
             'available' => $total !== null, 'by_network' => $byNetwork, 'series' => array_values($timeline),
-        ];
+            'comparison_quality' => $quality,
+        ] + MetricCoverage::merge($metadata);
     }
 
     /** Suma con `null` = «no disponible»: solo es `null` si ambos lo son. */

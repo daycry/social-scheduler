@@ -2,6 +2,8 @@
 
 Cuentas publicitarias, campañas y métricas básicas (gasto, impresiones, clics, CTR, CPC) por periodo. **Solo lectura**: no crea ni modifica anuncios.
 
+La conexión origen pertenece a la marca seleccionada y al propietario. La caché separa propietario, marca, conexión y versión de credenciales; cambiar el periodo conserva `brand_id`. Meta devuelve las cuentas publicitarias accesibles a esa conexión: todavía no hay una asignación persistente de cada cuenta publicitaria a una marca.
+
 | Pieza | Ruta |
 |---|---|
 | Conector | `app/Connectors/Meta/Ads.php` |

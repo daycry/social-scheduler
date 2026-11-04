@@ -1,0 +1,47 @@
+[
+  {
+    "path": "report.md",
+    "sha256": "1801539afe64285c53a7836d7232c9beca953fb6516a8a785f68ce8aa77c2944",
+    "bytes": 8705
+  },
+  {
+    "path": "report.pdf",
+    "sha256": "f0c10ca5763e7aeaf44dd64dc1f022d9b9d9ea897a9e2e9301b89a1f8bd0456c",
+    "bytes": 917868
+  },
+  {
+    "path": "results.json",
+    "sha256": "44006d8f3e419adc0e779c66de2fa03915e5a3bbc004b75ff5f5406bdc486ff3",
+    "bytes": 37749
+  },
+  {
+    "path": "screenshots/editor-desktop.png",
+    "sha256": "0c15cbabad8b230e8f460cc8a7cb35e9d3b03855439725b51a0bc461cc0acd4e",
+    "bytes": 114551
+  },
+  {
+    "path": "screenshots/editor-mobile-360.png",
+    "sha256": "057f0050165fbebf4ef8c2b1fa05280b4c8785d74ad5c072752cc9097452493b",
+    "bytes": 83565
+  },
+  {
+    "path": "screenshots/editor-mobile.png",
+    "sha256": "02c6725dd74efc168fd10def315cb72e265ad300dfda3490059a113b5e9e8d31",
+    "bytes": 83079
+  },
+  {
+    "path": "screenshots/metrics-desktop.png",
+    "sha256": "a6bba92170597bfdcb5df39e9ba7fcdc9fb879e695d84993267e8145778e5e95",
+    "bytes": 236116
+  },
+  {
+    "path": "screenshots/metrics-mobile-360.png",
+    "sha256": "67a111eb4c495cf67ef6c9c05443b5372ee49595b5c62ef5d3c259e0fd64ec87",
+    "bytes": 238299
+  },
+  {
+    "path": "screenshots/metrics-mobile.png",
+    "sha256": "935f407f8d81333cc8d50915db9a56a9f17d38627027773b0c7959e61c74cd25",
+    "bytes": 239475
+  }
+]

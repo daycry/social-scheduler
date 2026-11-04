@@ -8,15 +8,16 @@ use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Ads;
 use App\Connectors\Network;
+use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Meta Ads solo lectura (PA-11). Resuelve la cuenta de Meta del usuario con `ads_read`, lista sus cuentas publicitarias y
+ * Meta Ads solo lectura (PA-11). Resuelve la conexión Meta de la marca con `ads_read`, lista sus cuentas publicitarias y
  * devuelve campanas con insights del periodo. Si no hay permiso/cuenta, el estado es «no disponible» con la instruccion de
- * activarlo (nunca un error). Respuestas cacheadas unos minutos POR USUARIO (limites de Graph).
+ * activarlo (nunca un error). Caché por propietario, marca y conexión, invalidada al cambiar credenciales.
  */
 class AdsService
 {
@@ -30,12 +31,15 @@ class AdsService
     /**
      * @return array{available: bool, reason: ?string, message: ?string, ad_accounts: list<array<string, mixed>>, selected: ?array<string, mixed>, period: int, totals: ?array<string, mixed>, campaigns: list<array<string, mixed>>}
      */
-    public function overview(User $user, ?string $adAccountId = null, int $days = 30): array
+    public function overview(User $user, ?Brand $brand, ?string $adAccountId = null, int $days = 30): array
     {
         $days = in_array($days, self::PERIODS, true) ? $days : 30;
         $base = ['available' => false, 'reason' => null, 'message' => null, 'ad_accounts' => [], 'selected' => null, 'period' => $days, 'totals' => null, 'campaigns' => []];
 
-        $source = $this->source($user);
+        if ($brand === null) {
+            return ['reason' => 'sin_marca', 'message' => 'Crea una marca y conecta su cuenta de Meta para consultar los anuncios.'] + $base;
+        }
+        $source = $this->source($user, $brand);
         if ($source === null) {
             return ['reason' => 'sin_permiso', 'message' => 'Meta Ads no está disponible. '.self::HOWTO] + $base;
         }
@@ -46,7 +50,7 @@ class AdsService
         $token = (string) $source->refresh_token;
 
         try {
-            $adAccounts = $this->cached($user, 'accounts', fn () => $this->ads->adAccounts($token));
+            $adAccounts = $this->cached($source, 'accounts', fn () => $this->ads->adAccounts($token));
             $base['ad_accounts'] = $adAccounts;
             $base['available'] = true;
 
@@ -60,9 +64,9 @@ class AdsService
 
             $until = CarbonImmutable::now('UTC')->toDateString();
             $since = CarbonImmutable::now('UTC')->subDays($days - 1)->toDateString();
-            $campaigns = $this->cached($user, "campaigns:{$selected['id']}", fn () => $this->ads->campaigns($token, $selected['id']));
-            $totals = $this->cached($user, "totals:{$selected['id']}:$since:$until", fn () => $this->ads->insights($token, $selected['id'], $since, $until, false));
-            $perCampaign = $this->cached($user, "by-campaign:{$selected['id']}:$since:$until", fn () => $this->ads->insights($token, $selected['id'], $since, $until, true));
+            $campaigns = $this->cached($source, "campaigns:{$selected['id']}", fn () => $this->ads->campaigns($token, $selected['id']));
+            $totals = $this->cached($source, "totals:{$selected['id']}:$since:$until", fn () => $this->ads->insights($token, $selected['id'], $since, $until, false));
+            $perCampaign = $this->cached($source, "by-campaign:{$selected['id']}:$since:$until", fn () => $this->ads->insights($token, $selected['id'], $since, $until, true));
 
             $base['totals'] = $totals[''] ?? null;
             $base['campaigns'] = collect($campaigns)->map(fn (array $c) => $c + ['insights' => $perCampaign[$c['id']] ?? null])->values()->all();
@@ -85,10 +89,13 @@ class AdsService
         }
     }
 
-    /** Cuenta de Meta del usuario que concedio `ads_read` y conserva el token de usuario (la mas reciente). */
-    public function source(User $user): ?SocialAccount
+    /** Conexión Meta propia de esta marca con `ads_read` y token de usuario (la más reciente). */
+    public function source(User $user, Brand $brand): ?SocialAccount
     {
+        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+
         return SocialAccount::withoutUserScope()->where('user_id', $user->id)
+            ->where('brand_id', $brand->id)
             ->whereIn('network', [Network::Facebook->value, Network::Instagram->value])
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
             ->orderByDesc('id')->get()
@@ -96,10 +103,11 @@ class AdsService
     }
 
     /** @template T @param \Closure(): T $load @return T */
-    private function cached(User $user, string $key, \Closure $load): mixed
+    private function cached(SocialAccount $source, string $key, \Closure $load): mixed
     {
         $ttl = max(0, (int) config('social.ads.cache_minutes', 10));
+        $credentialVersion = hash('sha256', (string) $source->refresh_token);
 
-        return $ttl === 0 ? $load() : Cache::remember("ads:{$user->id}:$key", now()->addMinutes($ttl), $load);
+        return $ttl === 0 ? $load() : Cache::remember("ads:v2:{$source->user_id}:{$source->brand_id}:{$source->id}:$credentialVersion:$key", now()->addMinutes($ttl), $load);
     }
 }

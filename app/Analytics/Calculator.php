@@ -65,7 +65,7 @@ final class Calculator
      * Serie de un conjunto de cuentas para mostrar: los STOCKS arrastran el ultimo valor conocido de cada cuenta entre su
      * primer y su ultimo dato (un dia sin snapshot no es un salto hacia abajo); los flujos se suman tal cual.
      *
-     * @param  list<array<string, int|float|null>>  $seriesList  una serie por cuenta
+     * @param  array<int|string, array<string, int|float|null>>  $seriesList  una serie por cuenta
      * @param  list<string>  $dates  dias del periodo
      * @return array<string, int|float|null>
      */
@@ -82,7 +82,7 @@ final class Calculator
      * Valor de un periodo para varias cuentas: flujos = suma de los dias; stocks = SUMA DEL ULTIMO VALOR CONOCIDO DE CADA
      * CUENTA (no el ultimo dia de la suma, que dejaria fuera a las cuentas sin dato ese dia). `null` si ninguna tiene dato.
      *
-     * @param  list<array<string, int|float|null>>  $seriesList
+     * @param  array<int|string, array<string, int|float|null>>  $seriesList
      */
     public static function totalAcross(array $seriesList, string $metric): int|float|null
     {
@@ -99,30 +99,36 @@ final class Calculator
      * Crecimiento de un stock sumado por cuenta: la variacion de CADA cuenta entre su primer y su ultimo dato dentro del
      * periodo, sumadas. Una cuenta conectada (o desconectada) a mitad de periodo aporta solo su propia variacion: nunca
      * su saldo entero como un salto. Solo aportan variacion las que tienen al menos dos puntos; las de un solo punto suman su valor
-     * a `start` y `end` (variacion 0).
+     * a `start` y `end`, pero su cambio es desconocido. `pct` es null si alguna cuenta no tiene dos puntos: su saldo no puede
+     * diluir el porcentaje de las cuentas medidas como si se conociera su base inicial. `measured_start/end` excluye esas cuentas.
      *
-     * @param  list<array<string, int|float|null>>  $seriesList
-     * @return array{start: int|float|null, end: int|float|null, change: int|float|null, pct: float|null, accounts: int}
+     * @param  array<int|string, array<string, int|float|null>>  $seriesList
+     * @return array{start: int|float|null, end: int|float|null, change: int|float|null, pct: float|null, accounts: int, status: string, unmeasured_accounts: int, measured_start: int|float|null, measured_end: int|float|null}
      */
     public static function growthAcross(array $seriesList): array
     {
         $measured = [];
         $single = [];
+        $unmeasured = 0;
 
         foreach ($seriesList as $series) {
             $g = self::growth($series);
 
             if ($g['change'] !== null) {
                 $measured[] = $g;
-            } elseif ($g['start'] !== null) {
-                $single[] = $g;
+            } else {
+                $unmeasured++;
+                if ($g['start'] !== null) {
+                    $single[] = $g;
+                }
             }
         }
 
         if ($measured === []) {
             $start = $single === [] ? null : array_sum(array_column($single, 'start'));
 
-            return ['start' => $start, 'end' => $start, 'change' => null, 'pct' => null, 'accounts' => 0];
+            return ['start' => $start, 'end' => $start, 'change' => null, 'pct' => null, 'accounts' => 0,
+                'status' => 'insufficient', 'unmeasured_accounts' => $unmeasured, 'measured_start' => null, 'measured_end' => null];
         }
 
         // Una cuenta con un solo punto no aporta variacion (0) pero SI su valor: asi `end` coincide con el total de seguidores.
@@ -130,7 +136,9 @@ final class Calculator
         $end = array_sum(array_column($measured, 'end')) + array_sum(array_column($single, 'end'));
         $change = array_sum(array_column($measured, 'change'));
 
-        return ['start' => $start, 'end' => $end, 'change' => $change, 'pct' => self::pct($change, $start), 'accounts' => count($measured)];
+        return ['start' => $start, 'end' => $end, 'change' => $change, 'pct' => $unmeasured > 0 ? null : self::pct($change, $start), 'accounts' => count($measured),
+            'status' => $unmeasured > 0 ? 'partial' : 'complete', 'unmeasured_accounts' => $unmeasured,
+            'measured_start' => array_sum(array_column($measured, 'start')), 'measured_end' => array_sum(array_column($measured, 'end'))];
     }
 
     /**
@@ -189,6 +197,32 @@ final class Calculator
     }
 
     /**
+     * Rate over matching account-day observations only. A missing metric in another account or day must not
+     * inflate either side of the fraction, even when both aggregate series happen to have a value that day.
+     *
+     * @param  array<int|string, array<string, int|float|null>>  $interactionsByAccount
+     * @param  array<int|string, array<string, int|float|null>>  $viewsByAccount
+     */
+    public static function engagementAcross(array $interactionsByAccount, array $viewsByAccount): ?float
+    {
+        $interactions = null;
+        $views = null;
+
+        foreach ($interactionsByAccount as $account => $series) {
+            foreach ($series as $date => $value) {
+                $denominator = $viewsByAccount[$account][$date] ?? null;
+                if ($value === null || $denominator === null) {
+                    continue;
+                }
+                $interactions = ($interactions ?? 0) + $value;
+                $views = ($views ?? 0) + $denominator;
+            }
+        }
+
+        return self::engagementRate($interactions, $views);
+    }
+
+    /**
      * Media por dia sobre los dias CON dato.
      *
      * @param  array<string, int|float|null>  $series
@@ -215,7 +249,7 @@ final class Calculator
     /**
      * Suma por clave de varias series (p. ej. varias cuentas de una misma red): `null` solo si todas lo son ese dia.
      *
-     * @param  list<array<string, int|float|null>>  $seriesList
+     * @param  array<int|string, array<string, int|float|null>>  $seriesList
      * @return array<string, int|float|null>
      */
     public static function sumSeries(array $seriesList): array

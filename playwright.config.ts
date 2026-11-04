@@ -23,6 +23,8 @@ export default defineConfig({
     },
     use: {
         baseURL,
+        // Match the disposable PHP listener without changing origin/RP ID or trusting another host.
+        launchOptions: { args: ['--host-resolver-rules=MAP localhost 127.0.0.1'] },
         locale: 'es-ES',
         timezoneId: 'Europe/Madrid',
         trace: 'retain-on-failure',

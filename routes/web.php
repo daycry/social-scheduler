@@ -24,6 +24,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SavedTextController;
+use App\Http\Controllers\Studio\StudioExportDownloadController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -166,3 +167,7 @@ Route::get('reports/{report}/download/{owner}', [ReportController::class, 'downl
     ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');
 
 require __DIR__.'/parity.php';
+require __DIR__.'/studio.php';
+
+Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
+    ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:60,1'])->name('studio.exports.download');

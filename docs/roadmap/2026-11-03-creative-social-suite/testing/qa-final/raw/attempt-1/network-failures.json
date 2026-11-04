@@ -1,0 +1,50 @@
+[
+  {
+    "test": "brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360",
+    "url": "http://localhost:8080/build/assets/SocialProviderIcon-BXGpuBQi.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "brand-reporting-Ads-and-re-523b4-igation-and-report-creation-mobile-360",
+    "url": "http://localhost:8080/build/assets/Index-BY2pnhf3.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile",
+    "url": "http://localhost:8080/build/assets/MetricQuality-f78KOVHU.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop",
+    "url": "http://localhost:8080/build/assets/GuestLayout-DlfE8i5O.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile",
+    "url": "http://localhost:8080/build/assets/ResetPassword-BczpvdSa.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile",
+    "url": "http://localhost:8080/build/assets/format-BiMMVSo3.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-fractional-e-3caaa-G-WebP-in-the-brand-library-mobile-360",
+    "url": "http://localhost:8080/media/9/upload",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  },
+  {
+    "test": "studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360",
+    "url": "http://localhost:8080/build/assets/KpiCard-DKqdCSmd.js",
+    "failure": "net::ERR_CONNECTION_REFUSED",
+    "status": -1
+  }
+]

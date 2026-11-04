@@ -2,6 +2,10 @@
 
 La app guarda un snapshot diario por cuenta y métricas por publicación reciente. Los dashboards y los informes leen de esas tablas, no de las redes.
 
+La revisión del 2026-11-03 añade `coverage`, `freshness` y `comparison_quality` compartidos por web/API/MCP. Cero numérico es una observación; null o un día ausente no lo son. El engagement empareja cuenta y día con ambas métricas; una comparación de muestras desiguales omite el delta. Las cuentas desconectadas que aportan snapshots históricos siguen contando en la cobertura de ese rango. [Auditoría, contraste real y evidencias](../roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md).
+
+Estos metadatos describen el periodo solicitado, no certifican que el cron esté activo hoy. El periodo predeterminado puede terminar en el último día recogido; para comprobar la recogida reciente consulta explícitamente los últimos días cerrados. `latest_attempt_at` es un intento de captura, no una garantía de actualización del valor. En el entorno local auditado faltan snapshots desde el 22 de octubre; el estado del VPS permanece pendiente de la prueba del usuario.
+
 ## Piezas
 
 | Pieza | Ruta |

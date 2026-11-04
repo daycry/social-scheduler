@@ -76,6 +76,33 @@ it('Backfill: sin presupuesto de tiempo se reencola con el desplazamiento por do
     Bus::assertDispatched(BackfillMetrics::class, fn ($j) => $j->accountId === $this->account->id && $j->offset === 1);
 });
 
+it('Backfill: a continuation across midnight keeps the original closed-day range', function () {
+    Bus::fake();
+    config(['social.analytics.backfill_budget_seconds' => 1]);
+    $slow = new class extends FakeInsights
+    {
+        public function accountInsights(SocialAccount $account, CarbonInterface $day): array
+        {
+            if ($this->accountCalls === 0) {
+                usleep(1_100_000);
+            }
+
+            return parent::accountInsights($account, $day);
+        }
+    };
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->registerInsights(Network::Instagram, $slow));
+    runBackfill($this->account);
+    $continuation = Bus::dispatched(BackfillMetrics::class)->first();
+    expect($continuation)->toBeInstanceOf(BackfillMetrics::class);
+
+    Carbon::setTestNow('2026-11-02 12:00:00');
+    config(['social.analytics.backfill_budget_seconds' => 80]);
+    $continuation->handle(app(SnapshotCollector::class), app(SocialAccountService::class));
+
+    $dates = AccountSnapshot::withoutUserScope()->orderBy('date')->pluck('date')->map(fn ($day) => substr((string) $day, 0, 10))->all();
+    expect($dates)->toBe(['2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31']);
+});
+
 it('Backfill: sin dias configurados (TikTok) no hace nada', function () {
     config(['social.analytics.backfill_days.instagram' => 0]);
 

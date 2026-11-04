@@ -8,6 +8,7 @@ use App\Analytics\SnapshotCollector;
 use App\Jobs\Concerns\GuardsInsightsErrors;
 use App\Models\SocialAccount;
 use App\Services\SocialAccountService;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -43,8 +44,12 @@ class BackfillMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     public int $uniqueFor = 3600;
 
-    public function __construct(public readonly int $accountId, public readonly int $offset = 0)
-    {
+    public function __construct(
+        public readonly int $accountId,
+        public readonly int $offset = 0,
+        /** Closed-day label fixed by the first batch; offsets must not move when the queue crosses midnight. */
+        public readonly ?string $throughDate = null,
+    ) {
         $this->onQueue((string) config('social.analytics.queue', 'metrics'));
     }
 
@@ -66,7 +71,10 @@ class BackfillMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $budget = max(1, (int) config('social.analytics.backfill_budget_seconds', 80));
         $started = microtime(true);
         $slowest = 0.0;
-        $newest = Days::closed($account->network);
+        // The null-coalescing read also supports payloads queued before this property existed.
+        $newest = ($this->throughDate ?? null) === null
+            ? Days::closed($account->network)
+            : CarbonImmutable::createFromFormat('!Y-m-d', $this->throughDate, 'UTC');
         $range = $collector->rangeReader($account);
         $next = $this->offset;
 
@@ -93,7 +101,7 @@ class BackfillMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
         });
 
         if ($ok && $next < $total) {
-            self::dispatch($this->accountId, $next);
+            self::dispatch($this->accountId, $next, $newest->format('Y-m-d'));
         }
     }
 }

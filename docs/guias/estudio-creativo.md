@@ -10,13 +10,23 @@ Abre **Estudio** y selecciona la marca en la cabecera. Cada marca conserva sus d
 
 En **Identidad de marca** guarda paleta, familias tipográficas, guía y voz. Las familias deben estar disponibles en el equipo o servidor que renderiza; escribir el nombre de una fuente no la instala. Las plantillas usan los estilos de la marca y crean copias independientes.
 
+## Reutilizar plantillas, identidad y tamaños
+
+Desde el editor, **Guardar como plantilla** crea una copia en la biblioteca de la marca. Puedes incluir campos de texto como `{{nombre}}` o `{{fecha}}`, también dentro de grupos. En el catálogo, filtra **Plantillas** y pulsa **Usar plantilla**: rellena los campos y el nombre del nuevo diseño. Los valores se insertan como texto literal; puedes dejarlos vacíos o conservar espacios. Cambiar la copia no cambia la plantilla.
+
+**Aplicar identidad de marca** actualiza los estilos y logos vinculados a la referencia del kit. El kit admite seleccionar logos entre las imágenes registradas en la marca; no sustituye fotos arbitrarias por logotipos. Si el diseño no tenía referencia de estilos, los colores se corresponden por orden de aparición. Revisa visualmente el resultado antes de exportar. Deshacer permite recuperar el documento anterior.
+
+En **Página**, indica el ancho y alto y elige cómo adaptar el contenido: **Ajustar sin recortar** conserva proporciones y puede dejar márgenes; **Llenar y recortar** cubre el nuevo formato dejando fuera los bordes sobrantes; **Solo cambiar lienzo** conserva las posiciones y tamaños. La operación afecta a todas las páginas y guarda una nueva revisión.
+
+**Crear variantes** permite seleccionar varios formatos y un tamaño personalizado. Cada resultado es un diseño independiente de la misma marca, listo para abrir, editar y exportar. El original se conserva. Estas operaciones guardan antes los cambios pendientes; un conflicto detiene la operación y conserva el trabajo local.
+
 ## Exportar y crear una publicación
 
 **Exportar** permite seleccionar páginas, formato y opciones. PNG/JPEG/WebP generan imágenes reales; SVG incorpora los píxeles de los medios, y PDF reúne las páginas como imágenes de alta calidad. El PDF actual es rasterizado, no un documento vectorial editable.
 
 **Guardar en biblioteca** sube y valida las imágenes. **Usar en publicación** crea un borrador en la marca del diseño con los archivos adjuntos; continúa editándolo en el compositor. No publica automáticamente. La exportación queda vinculada a la revisión que se guardó, aunque el diseño cambie después.
 
-Vídeos en el lienzo pueden reproducirse y recortarse para preparar un fotograma. Los cinco formatos actuales son estáticos; timeline, mezcla y MP4/GIF continúan pendientes. También permanecen abiertos resize automático, colaboración, fuentes propias, IA creativa, documentos/sitios e integración externa de Canva. Consulta el [inventario completo](../roadmap/2026-11-03-creative-social-suite/reference-inventory.md), que no declara paridad total.
+Vídeos en el lienzo pueden reproducirse y recortarse para preparar un fotograma. Los cinco formatos actuales son estáticos; timeline, mezcla y MP4/GIF continúan pendientes. También permanecen abiertos colaboración, fuentes propias, IA creativa, documentos/sitios e integración externa de Canva. Consulta el [inventario completo](../roadmap/2026-11-03-creative-social-suite/reference-inventory.md), que no declara paridad total.
 
 ## API y MCP
 

@@ -60,8 +60,8 @@ Referencias oficiales de alcance social: [introducción de Metricool](https://he
 | C09 | Quitar fondo/edición localizada | Pendiente: pipeline real y proveedor/modelo configurado. No se entrega una imagen sin modificar como si fuera un resultado. | Pendiente | T-10/14 |
 | C10 | Undo/redo y recuperación | Nuevo: historial local, autosave en cola, conflicto sin sobrescribir y copia JSON local de recuperación. Historial persistido por revisiones; falta interfaz avanzada para compararlas. | Web; revisiones API/MCP | T-04/06/13 |
 | C11 | Páginas | Nuevo: añadir/duplicar/borrar/ordenar, cambiar de página sin introducir respuestas de cargas antiguas. | Web; documento API/MCP | T-05/06 |
-| C12 | Plantillas y marca | Nuevo: 14 plantillas originales con vistas previas renderizadas, paleta/fuentes/guía/voz por marca. Logo almacenable en kit; flujo visual de logos mejorable. | Sí, mediante kit y documentos | T-09 |
-| C13 | Redimensionar y variantes | Pendiente: resize real, copia adaptada y plantillas con campos variables/lotes. Cambiar solo metadatos no basta. | Pendiente | T-09 |
+| C12 | Plantillas y marca | Nuevo: 14 plantillas originales, biblioteca propia por marca, campos literales, copias independientes, kit aplicable y selector real de logos. Referencia trazable conservada con undo/redo. | Sí, servicios comunes web/API/MCP | T-09 |
+| C13 | Redimensionar y variantes | Nuevo: canvas/contain/cover con geometría proporcional, todas las páginas y hasta doce variantes transaccionales; reapertura y exportación reales. El contenido de campos es común al lote; automatización de datasets por fila sigue en T-14. | Sí, servicios comunes web/API/MCP | T-09/14 |
 | C14 | PNG/JPEG/WebP | Nuevo: píxeles reales, escala/calidad/fondo transparente, subida validada y uso como borrador. Revisión y páginas vinculadas. | Sí | T-07/08 |
 | C15 | SVG/PDF | Nuevo: SVG con medios embebidos y PDF multipágina rasterizado; no PDF vectorial editable. Descarga privada temporal en servidor. | Sí | T-07/08 |
 | C16 | PPTX y otros formatos | Pendiente: exportación real con contrato específico y prueba de apertura. | Pendiente | T-12 |

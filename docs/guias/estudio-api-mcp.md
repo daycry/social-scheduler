@@ -1,6 +1,6 @@
 # Estudio nativo: API, MCP y render en servidor
 
-Actualizado: 2026-11-03. Esta guía describe el código disponible en esta entrega. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca.
+Actualizado: 2026-11-04. Esta guía describe el código disponible en esta entrega. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca.
 
 Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
 
@@ -38,6 +38,11 @@ Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en e
 | `PATCH /designs/{design}` | `designs:write` | Nueva revisión; `409` si la esperada quedó obsoleta. |
 | `DELETE /designs/{design}` | `designs:write` | Archivado lógico; conserva revisiones y exportaciones. |
 | `POST /designs/{design}/duplicate` | `designs:write` | `201`, copia con historial independiente. |
+| `POST /designs/{design}/template` | `designs:write` | `201`, `{design}` de una copia como plantilla, con revisión de origen obligatoria. |
+| `POST /designs/{design}/instantiate` | `designs:write` | `201`, `{design}` independiente, sustituyendo campos de una plantilla. |
+| `POST /designs/{design}/resize` | `designs:write` | `200`, `{design}` con nueva revisión y tamaño adaptado. |
+| `POST /designs/{design}/variants` | `designs:write` | `201`, `{designs}` independientes, hasta doce en una transacción. |
+| `POST /designs/{design}/apply-kit` | `designs:write` | `200`, `{design}` con los estilos del kit actual. |
 | `POST /designs/{design}/restore` | `designs:write` | Restaura un diseño archivado. |
 | `GET /brands/{brand}/brand-kit` | `designs:read` | Kit de esa marca. |
 | `PUT /brands/{brand}/brand-kit` | `designs:write` | Actualización parcial de los campos del kit. |
@@ -151,6 +156,24 @@ curl --fail -X POST "$BASE/api/v1/designs/$DESIGN_ID/restore" \
 ```
 
 Las carpetas están aisladas por marca y usuario. Crear una devuelve `{"folder":{...}}`; el listado devuelve `{"folders":[...]}`. Asigna su ID mediante `folder_id` al crear o actualizar un diseño. Eliminar una carpeta quita esa asociación tanto en diseños activos como archivados, sin borrar documentos, revisiones o exportaciones; los números de revisión se conservan.
+
+## Plantillas y automatización por marca
+
+El detalle añade `template_fields`, una lista de los campos `{{nombre}}` presentes en textos, incluidos grupos. Guardar una plantilla requiere `revision` y admite `name`; la fuente se conserva. La instancia requiere la revisión de la plantilla y todos y solo sus campos, con valores de texto literales. `apply_brand_kit: true` solicita aplicar los estilos actuales de la marca; no instala fuentes. El nuevo diseño tiene IDs y revisiones independientes.
+
+```json
+{"revision":3,"name":"Saludo de noviembre","fields":{"nombre":"Aipocalipsis"},"apply_brand_kit":true}
+```
+
+Envía ese cuerpo a `POST /api/v1/designs/{template}/instantiate`. Los envoltorios `{design}`/`{designs}` de estas nuevas operaciones son distintos de las respuestas sin envolver de los endpoints CRUD existentes. Una plantilla se edita o archiva con los endpoints CRUD habituales. Filtra `templates=true` para obtener la biblioteca paginada.
+
+Para redimensionar, envía `revision`, `width`, `height` y `mode` (`canvas`, `contain` o `cover`). Para variantes, envía `revision` y `variants: [{name,width,height,mode}]`; añade `fields` si la fuente contiene campos y `apply_brand_kit` si corresponde. Se permiten hasta doce variantes, con un máximo acumulado de 8 MiB de documentos y 20000 elementos. Si falla una variante no se crea ninguna.
+
+MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo mantiene 36 herramientas. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
+
+Al restaurar desde el historial un documento anterior a un cambio de kit, `PATCH /designs/{design}` y MCP `update_design` admiten `kit_revision`: número de una revisión guardada del mismo diseño. El servidor recupera de ella la referencia del kit; no acepta referencias de otro diseño o usuario. El editor conserva ese dato en undo/redo, guardado y recuperación para que las aplicaciones posteriores del kit reconozcan los estilos restaurados. Sin ese argumento, una actualización conserva la referencia actual.
+
+La migración adicional `2026_11_04_080000_add_kit_reference_to_studio_designs.php` conserva la referencia del kit en diseños y revisiones. Debe aplicarse junto con el despliegue antes de servir este código. En esta sesión no se pudo aplicar al MySQL local porque no estaba escuchando en loopback; las pruebas utilizan bases desechables con la migración real. El VPS sigue sin modificarse.
 
 ```bash
 curl --fail "$BASE/api/v1/brands/$BRAND_ID/design-folders" \

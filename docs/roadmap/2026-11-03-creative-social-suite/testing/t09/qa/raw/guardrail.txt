@@ -1,0 +1,1 @@
+﻿guardrail_assert http://localhost:8080: exit 0

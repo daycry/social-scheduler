@@ -1,6 +1,6 @@
 # Pruebas del bloque de fundamentos y métricas
 
-Ámbito: T-03, T-04–08 y coherencia de marca de T-21. Las demás capacidades de la matriz permanecen abiertas y necesitarán pruebas propias.
+Ámbito: T-03, T-04–09 y coherencia de marca de T-21. Las demás capacidades de la matriz permanecen abiertas y necesitarán pruebas propias.
 
 ## Servicio y contrato
 
@@ -23,6 +23,8 @@ Los tests usan el runner local aislado con SQLite, almacenamiento y cuentas dese
 | E2E-04 | `studio.spec.ts`, conflicto | Adelantar revisión desde segundo escritor; 409 conserva trabajo local y permite copia JSON o recuperar versión guardada. |
 | E2E-05 | `studio.spec.ts`, raster fraccionario | Diseño 41² a escala 0,5: PNG/JPEG/WebP 21²; subida y registro 201 en servidor. |
 | E2E-06 | `brand-reporting.spec.ts` | Cambiar marca en Ads, abrir informes sin query y conservar marca; generar informe y mantener contexto/propiedad. |
+| E2E-07 | `studio-automation.spec.ts`, plantilla propia | Guardar una copia como plantilla sin convertir el original; biblioteca por marca, campos literales con `$&` y llaves, instancia independiente, edición/reapertura y PNG real. |
+| E2E-08 | `studio-automation.spec.ts`, variantes/kit | Aplicar identidad real, adaptar tamaño conservando geometría, generar dos variantes sin cambiar el original, reabrir y exportar un PNG de dimensiones exactas. |
 
 Las capturas se revisan visualmente. `qa-gate.py` consume el JSON real de Playwright y debe dar VERDE; no se fabrica un resumen con menos casos que la ejecución. Las pruebas focales durante desarrollo no sustituyen el resultado final tras las correcciones de revisión.
 

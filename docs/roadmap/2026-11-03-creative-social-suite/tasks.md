@@ -16,11 +16,11 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 | Fase | Completadas | Total | Progreso |
 |---|---:|---:|---:|
 | Fase 1 | 1 | 3 | 33 % |
-| Fase 2 | 5 | 6 | 83 % |
+| Fase 2 | 6 | 6 | 100 % |
 | Fase 3 | 0 | 7 | 0 % |
 | Fase 4 | 0 | 5 | 0 % |
 | Fase 5 | 0 | 2 | 0 % |
-| **Total** | **6** | **23** | **26 %** |
+| **Total** | **7** | **23** | **30 %** |
 
 ## Fase 1 — Investigación y consistencia
 
@@ -53,6 +53,7 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 
 - [ ] Tasas, flujos/stocks, nulos, fechas, paginación y presentación auditados.
 - **Evidencia parcial**: RED 4/4 cálculos (`ced8e9`); GREEN correcciones 4/4. Cobertura RED 3/3 → GREEN 4/4, 107 aserciones. Regresión analytics 91/91, 532 aserciones (`f45c53`); web/MCP 26/26, 398. UI calidad RED 3/3 (`823aa4`) → GREEN 3/3 (`45d27d`). Informe de contraste real en `testing/metrics/audit-2026-11-03.md`; ningún write de snapshots reales. Revisión y QA local correctas; siguen abiertos el contraste integral por proveedor y la operación de recolección del VPS.
+- **RED:** `tests/Feature/Backfill/BackfillTest.php::a continuation across midnight keeps the original closed-day range` omitía `2026-10-27`: cuatro snapshots en lugar de los cinco solicitados cuando una continuación cruzaba medianoche · 2026-11-04 (`02bfb7`). GREEN `32f74c`: **33/33, 110 aserciones** de Backfill/Snapshots tras conservar `throughDate` al despachar continuaciones. La lectura del nuevo atributo tolera payloads antiguos sin él. Esta corrección no diagnostica ni modifica la cola del VPS; revisión independiente pendiente junto a T-09.
 
 ## Fase 2 — Estudio gráfico por marca
 
@@ -116,13 +117,20 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - **Evidencia parcial**: OpenAPI válido, cero errores y tres avisos opcionales. RED bearer API 404 en lugar de 401 (`bbefa8`), MCP sin `list_designs` (`7741c1`). Implementación y renderer real verificados en revisión y QA final.
 
 ### T-09 — Plantillas y automatización de kits por marca
-- **Estado**: borrador
-- **Verificación**: Pruebas de plantilla independiente, sustitución de variables y redimensionado con contenido real; variantes vía web/API/MCP y E2E de reapertura/exportación. Pendiente de ejecutar.
-- **Archivos**: `app/Services/Studio/**`, `resources/js/Studio/**`, `resources/js/Pages/Studio/**`, `tests/**`
+- **Estado**: completado
+- **Changelog**: Añade plantillas propias con campos literales, aplicación trazable del kit, redimensionado proporcional y variantes independientes por web, API y MCP.
+- **Verificación**: Pest StudioAutomation/Studio/MCP, OpenAPI lint/diff, Node/Chromium, build, TypeScript y Pint; E2E-07/08 de plantilla, logo real, kit/undo/redo/resize/variantes/reapertura/exportación dentro de los 24 recorridos integrados, con QA independiente VERDE.
+- **Archivos**: `app/Services/Studio/**`, `app/Models/Studio/**`, `app/Http/Controllers/Studio/**`, `app/Mcp/**`, `routes/studio*.php`, `database/migrations/*studio*`, `bootstrap/app.php`, `docs/api/creative-suite.openapi.yaml`, `resources/js/Studio/**`, `resources/js/Pages/Studio/**`, `resources/js/Components/Studio/**`, `tests/**`
+- **Cubre (tests)**: E2E-07, E2E-08
 
 **Criterios de aceptación**
 
-- [ ] Plantillas propias originales, copia independiente, sustitución de campos, resize y variantes.
+- [x] Plantillas propias originales, copia independiente, sustitución de campos, resize y variantes.
+- **RED:** `tests/e2e/studio-automation.spec.ts::own template substitutes literal fields` falla al buscar el botón inexistente `Guardar como plantilla`, tras crear/editar/guardar correctamente el original · 2026-11-04. Salida `52af25`, ejecución aislada `run-general-1c257688-582c-4f6c-9e1b-9cf9a61a3c3a`; no se implementó UI antes de este fallo. El primer intento `9b6ca1` no pudo lanzar el proceso (`spawn EPERM`) y no cuenta como RED funcional.
+- **Contrato acordado antes de implementación:** reutilizar `Design.is_template`; guardar plantilla genera una copia, instancia sustituye `{{campo}}` literalmente, sin sustitución recursiva. Redimensionado `canvas|contain|cover`, identidad de marca y variantes con revisión de origen obligatoria y servicios comunes web/API/MCP. Los campos conservan espacios y cadenas vacías; se validan recursos/propiedad y se generan copias transaccionales con IDs independientes. Contrato OpenAPI ampliado y validado sin cambios rompedores (`ffa418`). RED backend de rutas ausentes `39ce11` / `319b84`; detalle por criterio se registra al integrar el informe del implementador.
+- **RED/GREEN de integración backend:** guardar plantilla 404 frente a 201 (`39ce11`), instanciar/redimensionar/aplicar kit/variantes 404 frente a 201/200 (`319b84`) → GREEN 5/5, 50 aserciones (`10fb58`). MCP acciones inexistentes (`cc840b`) → GREEN (`9856e0`). Duplicar tras cambiar kit perdía referencia: RED esperaba rojo del nuevo kit y mantenía violeta antiguo (`33f119`) → GREEN 13/13, 101 aserciones (`83c652`). Regresión Studio+MCP **355/355, 2290 aserciones** (`45d895`, `testing/t09/raw/phpunit-studio-mcp.xml`), con almacenamiento desechable propio.
+- **RED UI logos:** el diálogo real carecía del grupo `Logotipos de marca`, expect element not found (`acd520`) → selector de imágenes registradas implementado tras el fallo. REDs de navegador conservados en `testing/t09/raw/red-ui` y `red-logos`. Primera integración de escritorio pasa plantillas y detecta un error del propio test de variantes (buscaba dimensiones en nivel superior en vez de `document`, `20f918`); corregido el test contra el contrato, sin cambiar el producto por ese resultado. QA final pendiente.
+- **Despliegue:** nueva migración nullable de `kit_reference` en diseños/revisiones. Intento local `a1f963` no pudo conectar con MySQL loopback y no acredita aplicación de la migración. Ninguna modificación del VPS ni de `.env`; el runner y PHPUnit aplican la migración real a sus bases desechables.
 
 ## Fase 3 — Capacidades creativas avanzadas
 
@@ -193,12 +201,17 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - [ ] Contrato compartido web/API/MCP, persistencia, validación y publicación usan los mismos medios por destino.
 
 ### T-18 — Opciones avanzadas y redes adicionales
-- **Estado**: borrador
+- **Estado**: en-progreso
 - **Verificación**: Contratos por red/formato y TDD de opciones; OAuth/scopes y smokes reales cuando el usuario los ejecute. No equiparar fake HTTP con autorización del proveedor.
+- **Archivos**: `app/Models/SocialAccount.php`, `app/Services/SocialAccountService.php`, `app/Jobs/RefreshSocialAccount.php`, `app/Http/Controllers/OAuth/OAuthController.php`, `routes/web.php`, `tests/**`, `docs/**`
 
 **Criterios de aceptación**
 
 - [ ] X y redes del inventario, portadas/alt/localización/etiquetados y opciones soportadas verificadas por contrato.
+- **Ampliación explícita del usuario, 2026-11-04:** investigar peticiones frecuentes de reconexión y posible mezcla de marcas. No sustituye el resto de T-18 ni autoriza publicaciones reales o acceso SSH.
+- **RED:** `RefreshTokensTest::ignores outcomes from credentials replaced in the same second` (tres resultados: success/permanent/transient) y `SocialAccountTest::ignores a late rejected request` fallan **4/4** (`78721c`): token nuevo sobrescrito por el anterior, conexión nueva marcada como reconexión y fallo transitorio atribuido a la nueva cadena. Causa demostrada: comparar solo segundos de `last_refreshed_at`, y marcar desde peticiones antiguas sin comparar generación de credenciales. GREEN **32/32,127 aserciones** (`997573`) tras comparar un marcador interno de ciphertext/identidad, sin exponerlo ni registrarlo.
+- **RED OAuth/marcas:** iniciar dos autorizaciones del mismo proveedor sobrescribía el único state por proveedor; además un callback inválido consumía el state legítimo. Tres casos fallan (`4dc18d`) en ambos órdenes de retorno y tras callback ajeno. RED de expiración del intento a 31 minutos (`823f0d`). Se conserva cada intento por state, propietario y marca, de un solo uso, máximo diez por proveedor/30 minutos; las rutas bloquean la sesión durante mutaciones para no perder intentos concurrentes. Reintento ajeno ya no consume otra autorización. GREEN conexiones **16/16,137 aserciones** (`5688c6`); regresión conexiones/jobs/conectores **517/517,2581 aserciones** (`9e6d14`).
+- **Alcance de la conclusión:** hay fallos reproducidos de carreras y pérdida de intentos, no prueba de asignación de credenciales a otra marca. El aislamiento se comprueba además con la misma cuenta externa en dos marcas. Pendiente revisión independiente y QA. El navegador/pipe de acceso actual no está disponible y MySQL local no escucha; no se afirma diagnóstico del evento concreto del VPS ni se alteran sus conexiones.
 
 ### T-19 — Aprobaciones, publicación manual, recurrencia y lotes
 - **Estado**: borrador
@@ -377,3 +390,53 @@ Se cierran **T-02 y T-04–08: 6/23**. El resto conserva su alcance original: T-
 - Rama `feature/creative-social-suite` subida. [PR #19](https://github.com/daycry/social-scheduler/pull/19) **borrador**, base `fix/composer-refresh-after-save` (#18 aún abierta). Checks consultables en la PR; no se acredita despliegue ni merge.
 
 La comprobación Pint global detectó formato del helper documental `render-report.php`; se corrigió sin cambiar comportamiento ni regenerar evidencias. Esta nota y el punto de continuación se comitean con esa corrección. No hay cambios en `.env`, tokens, cron/worker del VPS ni publicaciones reales.
+
+## Revisión de dos lentes — intento 1: automatización T-09 y suplemento T-03 — cuatro gaps confirmados
+
+Base `3d83f70`, diff más archivos nuevos; scope-check exit 0, 30 archivos, sin avisos/fuera de alcance/exclusiones de usuario (`a3ab8b` y comprobación posterior). Lentes A+B+D, C=false; D activada por migración. Roles reviewer con contexto fresco; `model-tier.py` no encuentra `agents/` en paquete instalado, configuración heredada. Sin Jira habilitado.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Important | Una referencia legacy null se convertía en `[]`, fuera del contrato object/null | T-09 | Referencia vacía canónica con paleta/fuentes/logos y presentación compatible con filas legacy | RED `57df51` → GREEN `978166` |
+| B1 | Important | Undo de aplicar kit restauraba el documento, pero conservaba referencia del kit posterior; siguiente aplicación no reconocía sus estilos | T-09 | `kit_revision` opcional validada contra snapshot del mismo diseño/usuario; historial/autosave/recover lo preservan, API y MCP comparten servicio | RED `57df51` → GREEN `978166` |
+| D1 | Important | Sustitución de campos podía expandir 100 KiB válidos hasta 200 MB antes de validar, agotando memoria | T-09 | Preflight por longitud Unicode y bytes JSON antes de materializar, límite por texto y documento | RED seguro en proceso 96 MiB (`57df51`) → GREEN `978166` |
+| D2 | Important | Acumular colores con búsquedas lineales crecía cuadráticamente bajo lock | T-09 | Hashset normalizado conserva el primer orden; deduplicación hexadecimal equivalente | 36000 colores: 2470,40 ms (`583caa`) → 56,75 ms (`978166`) |
+
+A/B ejecutan 24/24 PHP,126 aserciones aisladas; D usa sondas sin BD/proveedores. Todos los gaps se comprobaron antes de corregir; no se rebaten ni se rebajan. Implementador de corrección distinto, RED 4/4 (`57df51`), GREEN 4/4,19 aserciones (`978166`), regresión Studio/MCP **361/361,2319 aserciones** (`32e19a`), JUnit `testing/t09/raw/phpunit-studio-mcp-fixed.xml`. Pint/TypeScript/OpenAPI correctos, cero cambios rompedores. Re-revisión y QA pendientes; no se cierra T-09.
+
+La suite PHP amplia de la primera integración pasó **2601/2601,15483 aserciones** (`923f0e`), anterior a estas correcciones y al nuevo bloque de conexiones. Se conserva ese alcance temporal; no se atribuye a la versión final.
+
+## Revisión de dos lentes — intento 2: T-09 y fiabilidad de conexiones T-18 — dos gaps nuevos en OAuth
+
+Lentes A+B+C+D de contexto fresco, en tandas por disponibilidad de tres slots. A1/B1/D1/D2 de T-09 quedan **corregidos**, sin reabrir los criterios anteriores. A confirma OpenAPI base exacta, cero errores/rompedores y focal 68/68,399 aserciones. C no halla un bypass adicional; el replay reproducido por B se incorpora a la tabla común. D mide preflight en 96 MiB sin OOM y 36000 colores en 54,60 ms. Scope-check exit 0,42 archivos sin avisos, C activada por `OAuthController.php`, D por migración. Sin Jira activado.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B2 | Important | Un GET normal que terminaba después del callback podía restaurar un state consumido o borrar un intento nuevo; bloquear solo dos rutas no protegía escrituras ordinarias | T-18 | Registro autoritativo de intentos en caché con lock corto para crear/consumir, vinculado a usuario/secreto CSRF de la sesión/proveedor, TTL y máximo diez. La sesión conserva únicamente puntero de conveniencia; no se acepta como alternativa al registro. | RED `e3364e`: dos `Store` con handler común y callback real aceptan dos veces. GREEN conexiones/reconexiones **62/62,353 aserciones** (`7a6a6f`); prueba adicional de otro navegador del mismo usuario: conexiones **18/18,145 aserciones** (`a3e6c0`). |
+| D3 | Important | Lock de toda la sesión incluía las llamadas HTTP al proveedor y hacía caducar a los 10 s otro callback independiente | T-18 | Se elimina ese bloqueo de ruta; el lock del registro solo cubre estado local y termina antes del intercambio HTTP | D reproduce `LockTimeoutException` con StartSession real/ruta real y lock retenido durante ~10 s. Cambio pendiente de re-revisión, sin afirmar operación del VPS. |
+
+El primer intento de registro vinculado al ID de sesión falló tres casos de las peticiones HTTP de prueba (`1a3dfc`); se usa el secreto CSRF estable de la sesión, que distingue navegadores y cambia cuando se renueva el contexto de autenticación. No se imprime ni registra dicho secreto. No hay fallback a snapshots viejos. El test del navegador ajeno comprueba que su rechazo no consume el intento legítimo. Revisión final y QA pendientes.
+
+## Revisión de dos lentes — intento 3: fiabilidad OAuth T-18 — sin gaps pendientes
+
+B+C+D de contexto fresco reevalúan exclusivamente B2/D3; se mantienen los criterios aprobados por A2/B2/C1/D2 de T-09, guard de credenciales, separación de marcas y contrato. **0 Critical, 0 Important, 0 Minor pendientes.** No se ha aceptado deuda ni rebatido un fallo sin evidencia. No hay Jira habilitado.
+
+| Criterio corregido | B | C | D | Evidencia |
+|---|---|---|---|---|
+| Snapshot de sesión antiguo no resucita ni borra autorización | ✓ | ✓ | — | B: dos Store/handler compartido, ambos intercalados correctos; C: replay tras restauración rechazado |
+| Consumo atómico, límites y caducidad | ✓ | ✓ | ✓ | B: diez consumibles/evicción del primero, válido a 1799 s/rechazado a 1800; C: caché database con SQLite y cache_locks, 8/8 sondas |
+| Usuario/navegador/proveedor ajenos no consumen el legítimo | ✓ | ✓ | — | C comprueba los tres contextos; Connections 18/18,145 aserciones por B y C |
+| Red fuera de lock, callbacks independientes | ✓ | ✓ | ✓ | D: primer callback suspendido en exchangeCode, segundo termina 302 en 0,41 ms; lock disponible, sin block de ruta |
+| Trabajo local acotado | — | — | ✓ | D:1000 inicios en209,37 ms, máximo y final10 registros |
+
+B ejecuta además Connections/SocialAccount/RefreshTokens/Backfill **62/62,302 aserciones** (scope distinto al bundle de 353 aserciones); C conserva los criterios previos y usa caché database en su sonda. D inicializó aplicación sin `.env`, con servicios simulados y Fiber; no midió producción. No hubo proveedores ni BD real.
+
+Verificación global posterior de la misma versión: PHP **2618/2618,15568 aserciones**, cero fallos/errores/omitidos (`07d8f3`, `testing/t09/raw/phpunit-final.xml`); Studio Node/Chromium **26/26**, cero fallos/omitidos (`4dbba6`, `testing/t09/raw/frontend-final.tap`); Pint global, TypeScript y diff-check correctos (`7d2bb2`). Dos E2E desktop T-09 tras fix de kit_reference, logos reales, undo/redo y variantes: **2/2** (`8e6234`); QA independiente de los 24 integrados sigue en marcha. T-09 no se cierra aún.
+
+## Cierre T-09 y entrega del suplemento de conexiones — 2026-11-04
+
+QA independiente posterior al último fix: **24/24**, cero failed/flaky/skipped/interrupted, una ejecución sin reintentos; `qa-gate.py` **VERDE** (`bf558b`/`36d951`), doce capturas revisadas en 1440×900/375×812/360×740 sin overflow ni clipping. PNG de instancia 1080² y variante 1080×1920 reales, comprobados en los tres viewports. Ocho hashes de entrada iguales antes/después. [Informe](testing/t09/qa/report.md), [PDF de once páginas](testing/t09/qa/report.pdf), [JSON/gate](testing/t09/qa/raw/qa-gate.json); sin publicar trazas, cookies ni bases de datos.
+
+Se cierra **T-09** con su alcance completo y evidencia de servicio/web/API/MCP, revisión y QA. El total pasa a **7/23**. T-03 sigue abierta por el contraste global/recolección del VPS; T-18 conserva las redes y opciones pendientes aunque su subbloque de reconexiones quede corregido y revisado. T-10–23 no se dan por implementadas mediante esta tanda. No se altera ninguna verificación real que el usuario mantuvo a su cargo.
+
+Commits de código: `f64c677` conexiones, `9d1491f` backfill y `e3f1cef` automatización del estudio. Continúa la misma PR #19 en borrador; no se fusiona ni despliega automáticamente. La migración adicional de referencias de kit sigue pendiente del MySQL de la instalación; el intento local falló por ausencia del listener. Las bases desechables de pruebas sí aplicaron las migraciones reales. Sin cambios en `.env` o permisos del proveedor.

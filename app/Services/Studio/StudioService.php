@@ -42,24 +42,27 @@ class StudioService
         return $query->latest('updated_at')->latest('id')->paginate(24, ['*'], 'page', isset($filters['page']) ? (int) $filters['page'] : null)->withQueryString();
     }
 
-    public function create(User $user, Brand $brand, array $data): Design
+    public function create(User $user, Brand $brand, array $data, ?array $kitReference = null): Design
     {
         $this->assets->assertBrand($user, $brand);
         $data = $this->input($data);
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, $data['folder_id'] ?? null);
 
-        return DB::transaction(function () use ($user, $brand, $data, $document, $folderId): Design {
+        $kitReference ??= array_intersect_key($this->kit($user, $brand), array_flip(['palette', 'fonts', 'logos']));
+        $kitReference = self::reference($kitReference);
+
+        return DB::transaction(function () use ($user, $brand, $data, $document, $folderId, $kitReference): Design {
             $design = Design::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => trim($data['name']), 'document' => $document,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
-                'revision' => 1, 'is_template' => $data['is_template'] ?? false, 'folder_id' => $folderId]);
+                'revision' => 1, 'is_template' => $data['is_template'] ?? false, 'folder_id' => $folderId, 'kit_reference' => $kitReference]);
             $this->snapshot($design);
 
             return $design;
         });
     }
 
-    public function update(User $user, Design $design, array $data): Design
+    public function update(User $user, Design $design, array $data, ?array $kitReference = null): Design
     {
         $current = $this->owned($user, $design);
         $data = $this->input($data, true);
@@ -67,9 +70,19 @@ class StudioService
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
 
-        return DB::transaction(function () use ($user, $current, $data, $document, $folderId): Design {
+        return DB::transaction(function () use ($user, $current, $data, $document, $folderId, $kitReference): Design {
             $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
             abort_if($locked->revision !== (int) $data['revision'], 409, 'El diseño cambió en otra sesión. Recarga la versión guardada antes de continuar.');
+            if ($kitReference !== null) {
+                $locked->kit_reference = self::reference($kitReference);
+            } elseif (isset($data['kit_revision'])) {
+                $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)
+                    ->where('design_id', $locked->id)->where('revision', $data['kit_revision'])->first();
+                if ($snapshot === null) {
+                    throw ValidationException::withMessages(['kit_revision' => ['Selecciona una revisión existente de este mismo diseño.']]);
+                }
+                $locked->kit_reference = self::reference($snapshot->kit_reference);
+            }
             $locked->fill(['name' => trim($data['name']), 'document' => $document, 'revision' => $locked->revision + 1,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
                 'is_template' => $data['is_template'] ?? $locked->is_template, 'folder_id' => $folderId])->save();
@@ -85,7 +98,7 @@ class StudioService
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($source->brand_id);
 
         return $this->create($user, $brand, ['name' => $name ?? mb_substr($source->name, 0, 248).' (copia)', 'document' => $source->document,
-            'folder_id' => $source->folder_id, 'is_template' => $source->is_template]);
+            'folder_id' => $source->folder_id, 'is_template' => $source->is_template], $source->kit_reference ?? []);
     }
 
     public function archive(User $user, Design $design): void
@@ -117,7 +130,18 @@ class StudioService
     {
         $current = $this->owned($user, $design, $design->trashed());
 
-        return $current->only(['id', 'user_id', 'brand_id', 'folder_id', 'name', 'document', 'revision', 'is_template', 'created_at', 'updated_at', 'deleted_at']);
+        $data = $current->only(['id', 'user_id', 'brand_id', 'folder_id', 'name', 'document', 'revision', 'is_template', 'kit_reference', 'created_at', 'updated_at', 'deleted_at']);
+        if ($data['kit_reference'] !== null) {
+            $data['kit_reference'] = self::reference($data['kit_reference']);
+        }
+
+        return $data + ['template_fields' => StudioAutomation::fields($current->document)];
+    }
+
+    /** Preserve legacy meaning without recapturing a newer brand kit or serializing an empty list. */
+    public static function reference(?array $reference): array
+    {
+        return ['palette' => $reference['palette'] ?? [], 'fonts' => $reference['fonts'] ?? [], 'logos' => $reference['logos'] ?? []];
     }
 
     public function folders(User $user, Brand $brand): Collection
@@ -190,6 +214,7 @@ class StudioService
         $rules = ['name' => ['required', 'string', 'max:255'], 'document' => ['required', 'array'], 'folder_id' => ['nullable', 'integer', 'min:1'], 'is_template' => ['sometimes', 'boolean']];
         if ($updating) {
             $rules['revision'] = ['required', 'integer', 'min:1'];
+            $rules['kit_revision'] = ['sometimes', 'integer', 'min:1'];
         }
         $data = Validator::make($data, $rules)->validate();
         if (trim($data['name']) === '') {
@@ -213,6 +238,6 @@ class StudioService
 
     private function snapshot(Design $design): void
     {
-        DesignRevision::create(['user_id' => $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document]);
+        DesignRevision::create(['user_id' => $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
     }
 }

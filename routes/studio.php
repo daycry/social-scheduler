@@ -14,6 +14,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('studio/designs/{design}', [StudioController::class, 'destroy'])->whereNumber('design')->name('studio.designs.destroy');
     Route::post('studio/designs/{design}/duplicate', [StudioController::class, 'duplicate'])->whereNumber('design')->name('studio.designs.duplicate');
     Route::post('studio/designs/{design}/restore', [StudioController::class, 'restore'])->withTrashed()->whereNumber('design')->name('studio.designs.restore');
+    foreach (['template', 'instantiate', 'resize', 'variants', 'apply-kit'] as $operation) {
+        Route::post('studio/designs/{design}/'.$operation, [StudioController::class, 'automation'])
+            ->defaults('operation', $operation)->whereNumber('design')->name('studio.designs.'.$operation);
+    }
     Route::get('brands/{brand}/studio/brand-kit', [StudioController::class, 'kit'])->whereNumber('brand')->name('studio.kit.show');
     Route::put('brands/{brand}/studio/brand-kit', [StudioController::class, 'updateKit'])->whereNumber('brand')->name('studio.kit.update');
     Route::get('brands/{brand}/studio/assets', [StudioController::class, 'assets'])->whereNumber('brand')->name('studio.assets.index');

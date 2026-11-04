@@ -20,7 +20,7 @@ class Design extends Model
 
     protected function casts(): array
     {
-        return ['document' => 'array', 'revision' => 'integer', 'is_template' => 'boolean', 'width' => 'integer', 'height' => 'integer', 'page_count' => 'integer'];
+        return ['document' => 'array', 'kit_reference' => 'array', 'revision' => 'integer', 'is_template' => 'boolean', 'width' => 'integer', 'height' => 'integer', 'page_count' => 'integer'];
     }
 
     public function brand(): BelongsTo

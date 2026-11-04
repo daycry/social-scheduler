@@ -8,6 +8,7 @@ use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
 use App\Services\Studio\StudioAssets;
+use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioExports;
 use App\Services\Studio\StudioService;
 use App\Support\CurrentBrand;
@@ -90,6 +91,12 @@ class StudioController extends Controller
 
         return $request->expectsJson() ? response()->json(['design' => $this->studio->present($request->user(), $restored)])
             : redirect()->route('studio.index', ['brand_id' => $design->brand_id]);
+    }
+
+    public function automation(Request $request, Design $design, string $operation): JsonResponse
+    {
+        return response()->json(app(StudioAutomation::class)->perform($request->user(), $design, $operation, $request->all()),
+            in_array($operation, ['resize', 'apply-kit'], true) ? 200 : 201);
     }
 
     public function kit(Request $request, Brand $brand): JsonResponse

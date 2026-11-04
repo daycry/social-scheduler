@@ -6,16 +6,20 @@ import Icon from '@/Components/Icon.vue';
 import Inspector from '@/Components/Studio/Inspector.vue';
 import LayerPanel from '@/Components/Studio/LayerPanel.vue';
 import ExportDialog from '@/Components/Studio/ExportDialog.vue';
+import StudioDialog from '@/Components/Studio/StudioDialog.vue';
+import VariantsDialog from '@/Components/Studio/VariantsDialog.vue';
 import { blankDocument, cloneDocument, duplicatePage, findPage, validateDocument } from '@/Studio/document';
 import { createStudioCanvas } from '@/Studio/canvas';
 import { createHistory } from '@/Studio/history';
 import { studioRequest, uploadStudioFile, downloadStudioBlob } from '@/Studio/api';
+import { STUDIO_RESIZE_MODES } from '@/Studio/format-presets';
 
 const props = defineProps({ design: Object, brand: Object, kit: Object, assets: Array, folders: Array, exports: Array });
 const documentData = ref(validateDocument(props.design.document));
 const name = ref(props.design.name);
 const template = ref(props.design.is_template);
 const revision = ref(props.design.revision);
+const kitRevision = ref(props.design.revision);
 const pageId = ref(documentData.value.pages[0].id);
 const page = computed(() => findPage(documentData.value, pageId.value) ?? documentData.value.pages[0]);
 const selection = ref([]);
@@ -47,8 +51,17 @@ const playing = ref(false);
 const timeline = ref(0);
 const designWidth = ref(documentData.value.width);
 const designHeight = ref(documentData.value.height);
+const resizeMode = ref('contain');
+const automationBusy = ref(false);
+const templateSaveOpen = ref(false);
+const templateName = ref('');
+const templateCreated = ref(null);
+const variantsOpen = ref(false);
+const variantsCreated = ref([]);
+const templateFields = ref(props.design.template_fields ?? []);
+const automationMessage = ref('');
 const historyVersion = ref(0);
-const snapshot = () => ({ document: cloneDocument(documentData.value), name: name.value, is_template: template.value });
+const snapshot = () => ({ document: cloneDocument(documentData.value), name: name.value, is_template: template.value, kit_revision: kitRevision.value });
 const history = createHistory(snapshot());
 const canUndo = computed(() => { historyVersion.value; return history.canUndo; });
 const canRedo = computed(() => { historyVersion.value; return history.canRedo; });
@@ -81,8 +94,9 @@ async function saveNow() {
     status.value = 'Guardando…';
     pendingSave = (async () => {
         try {
-            const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, folder_id: props.design.folder_id });
+            const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, folder_id: props.design.folder_id, kit_revision: saved.kit_revision });
             revision.value = result.design.revision;
+            templateFields.value = result.design.template_fields ?? [];
             if (version === changeVersion) { dirty.value = false; status.value = 'Guardado'; }
             else { status.value = 'Cambios pendientes'; scheduleSave(); }
             return true;
@@ -126,7 +140,7 @@ async function restoreHistory(mode) {
     await run(async () => {
         const state = history[mode]();
         if (!state) return;
-        documentData.value = state.document; name.value = state.name; template.value = state.is_template;
+        documentData.value = state.document; name.value = state.name; template.value = state.is_template; kitRevision.value = state.kit_revision;
         if (!findPage(documentData.value, pageId.value)) pageId.value = documentData.value.pages[0].id;
         designWidth.value = documentData.value.width; designHeight.value = documentData.value.height;
         changeVersion++; historyVersion.value++; dirty.value = true; status.value = 'Cambios pendientes'; scheduleSave();
@@ -165,8 +179,57 @@ async function pageAction(mode, offset = 0) {
 function patchPage(patch) {
     run(() => { const next = cloneDocument(documentData.value); Object.assign(findPage(next, pageId.value), patch); documentData.value = validateDocument(next); commit(); });
 }
+async function savedOperation(operation) {
+    if (automationBusy.value || busy.value || exportBusy.value || conflict.value) return;
+    automationBusy.value = true; error.value = ''; automationMessage.value = '';
+    try {
+        await prepareExport();
+        return await operation();
+    } catch (e) {
+        error.value = e.message;
+        if (e.status === 409) { conflict.value = true; status.value = 'Conflicto de revisión'; }
+    } finally { automationBusy.value = false; }
+}
+async function acceptDesignMutation(design) {
+    documentData.value = validateDocument(design.document); revision.value = design.revision;
+    kitRevision.value = design.revision;
+    name.value = design.name; template.value = design.is_template; templateFields.value = design.template_fields ?? [];
+    designWidth.value = documentData.value.width; designHeight.value = documentData.value.height;
+    if (!findPage(documentData.value, pageId.value)) pageId.value = documentData.value.pages[0].id;
+    history.commit(snapshot()); historyVersion.value++; dirty.value = false; status.value = 'Guardado';
+    await reloadCanvas(); fit();
+}
 function resizeDesign() {
-    run(async () => { const next = validateDocument({ ...cloneDocument(documentData.value), width: Number(designWidth.value), height: Number(designHeight.value) }); documentData.value = next; commit(); await reloadCanvas(); fit(); });
+    return savedOperation(async () => {
+        const result = await studioRequest('POST', route('studio.designs.resize', props.design.id), { revision: revision.value, width: Number(designWidth.value), height: Number(designHeight.value), mode: resizeMode.value });
+        await acceptDesignMutation(result.design);
+        automationMessage.value = 'Tamaño actualizado en todas las páginas.';
+    });
+}
+function openTemplateSave() {
+    templateName.value = `${name.value.slice(0, 240)} — plantilla`; templateCreated.value = null; error.value = ''; templateSaveOpen.value = true;
+}
+function saveTemplate() {
+    return savedOperation(async () => {
+        const result = await studioRequest('POST', route('studio.designs.template', props.design.id), { revision: revision.value, name: templateName.value.trim() });
+        templateCreated.value = result.design;
+    });
+}
+function openVariants() {
+    return savedOperation(async () => { variantsCreated.value = []; variantsOpen.value = true; });
+}
+function createVariants(payload) {
+    return savedOperation(async () => {
+        const result = await studioRequest('POST', route('studio.designs.variants', props.design.id), { ...payload, revision: revision.value });
+        variantsCreated.value = result.designs;
+    });
+}
+function applyBrandKit() {
+    return savedOperation(async () => {
+        const result = await studioRequest('POST', route('studio.designs.apply-kit', props.design.id), { revision: revision.value });
+        await acceptDesignMutation(result.design);
+        automationMessage.value = 'Identidad de marca aplicada. Puedes deshacer el cambio.';
+    });
 }
 async function upload(event) {
     const files = [...(event.target.files ?? [])];
@@ -191,13 +254,15 @@ function downloadLocal() { downloadStudioBlob(new Blob([JSON.stringify(snapshot(
 async function recover() {
     await run(async () => {
         const latest = await studioRequest('GET', route('studio.designs.show', props.design.id));
-        documentData.value = validateDocument(latest.design.document); name.value = latest.design.name; revision.value = latest.design.revision; template.value = latest.design.is_template;
+        documentData.value = validateDocument(latest.design.document); name.value = latest.design.name; revision.value = latest.design.revision; template.value = latest.design.is_template; kitRevision.value = latest.design.revision;
+        templateFields.value = latest.design.template_fields ?? [];
         pageId.value = documentData.value.pages[0].id; conflict.value = false; dirty.value = false; status.value = 'Guardado'; error.value = ''; history.reset(snapshot()); historyVersion.value++;
         await reloadCanvas();
     });
 }
-function beforeUnload(event) { if (dirty.value || pendingSave) { event.preventDefault(); event.returnValue = ''; } }
+function beforeUnload(event) { if (dirty.value || pendingSave || automationBusy.value) { event.preventDefault(); event.returnValue = ''; } }
 function onKey(event) {
+    if (automationBusy.value) return;
     if (/INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) || event.target?.isContentEditable || adapter?.canvas.getActiveObject()?.isEditing) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); restoreHistory(event.shiftKey ? 'redo' : 'undo'); }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); saveNow(); }
@@ -218,6 +283,7 @@ onMounted(async () => {
     window.addEventListener('beforeunload', beforeUnload);
     window.addEventListener('keydown', onKey);
     removeNavigate = router.on('before', event => {
+        if (automationBusy.value && event.detail.visit.method === 'get') { event.preventDefault(); return; }
         if (!dirty.value || navigating || event.detail.visit.method !== 'get') return;
         event.preventDefault();
         saveNow().then(success => { if (success && !disposed) { navigating = true; router.visit(event.detail.visit.url); } });
@@ -232,13 +298,21 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); resizeObserver?.di
         <div class="-m-3 min-w-0 space-y-3 sm:-m-1">
             <header class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3">
                 <Link :href="route('studio.index', { brand_id: brand.id })" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label="Volver al estudio"><Icon name="chevronLeft" class="h-4 w-4" /></Link>
-                <div class="min-w-0 flex-1"><label class="sr-only" for="studio-design-name">Nombre del diseño</label><input id="studio-design-name" v-model="name" class="w-full min-w-0 rounded-md border-transparent bg-transparent px-1 py-0.5 text-sm font-semibold focus:border-violet-300 focus:ring-violet-200" maxlength="255" @input="commit" /><div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[10px] text-slate-500"><span>{{ brand.name }}</span><span data-testid="studio-save-status" role="status" :class="conflict ? 'text-red-700' : dirty ? 'text-amber-700' : 'text-emerald-700'">{{ status }}</span><span>Revisión {{ revision }}</span></div></div>
-                <div class="flex flex-wrap items-center gap-2"><button type="button" class="tool" :disabled="!canUndo || busy" aria-label="Deshacer" title="Deshacer (Ctrl+Z)" @click="restoreHistory('undo')">↶</button><button type="button" class="tool" :disabled="!canRedo || busy" aria-label="Rehacer" title="Rehacer (Ctrl+Mayús+Z)" @click="restoreHistory('redo')">↷</button><button type="button" class="btn-secondary text-xs" :disabled="conflict" @click="saveNow">Guardar ahora</button><button type="button" class="btn-secondary text-xs" :disabled="!ready || busy || exportBusy" @click="exportOpen = true">Exportar</button><button type="button" class="rounded-lg bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:opacity-50" :disabled="!ready || busy || exportBusy" @click="exporter.publish()">Usar en publicación</button></div>
+                <div class="min-w-0 flex-1"><label class="sr-only" for="studio-design-name">Nombre del diseño</label><input id="studio-design-name" v-model="name" class="w-full min-w-0 rounded-md border-transparent bg-transparent px-1 py-0.5 text-sm font-semibold focus:border-violet-300 focus:ring-violet-200" maxlength="255" :disabled="automationBusy" @input="commit" /><div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[10px] text-slate-500"><span>{{ brand.name }}</span><span data-testid="studio-save-status" role="status" :class="conflict ? 'text-red-700' : dirty ? 'text-amber-700' : 'text-emerald-700'">{{ status }}</span><span>Revisión {{ revision }}</span></div></div>
+                <div class="flex flex-wrap items-center gap-2"><button type="button" class="tool" :disabled="!canUndo || busy || automationBusy" aria-label="Deshacer" title="Deshacer (Ctrl+Z)" @click="restoreHistory('undo')">↶</button><button type="button" class="tool" :disabled="!canRedo || busy || automationBusy" aria-label="Rehacer" title="Rehacer (Ctrl+Mayús+Z)" @click="restoreHistory('redo')">↷</button><button type="button" class="btn-secondary text-xs" :disabled="conflict || automationBusy" @click="saveNow">Guardar ahora</button><button type="button" class="btn-secondary text-xs" :disabled="!ready || busy || exportBusy || automationBusy" @click="exportOpen = true">Exportar</button><button type="button" class="rounded-lg bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:opacity-50" :disabled="!ready || busy || exportBusy || automationBusy" @click="exporter.publish()">Usar en publicación</button></div>
             </header>
+            <div class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2" aria-label="Plantillas y formatos">
+                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openTemplateSave">Guardar como plantilla</button>
+                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openVariants">Crear variantes</button>
+                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="applyBrandKit">Aplicar identidad de marca</button>
+                <span v-if="template" class="ml-auto rounded-full bg-violet-50 px-3 py-1 text-[10px] font-semibold text-violet-800">Plantilla de {{ brand.name }}</span>
+                <span v-if="automationBusy" role="status" class="text-xs text-violet-700">Guardando y preparando el diseño…</span>
+            </div>
+            <p v-if="automationMessage" role="status" class="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ automationMessage }}</p>
             <div v-if="error" role="alert" class="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><span>{{ error }}</span><button v-if="!conflict" type="button" aria-label="Cerrar error" @click="error = ''">×</button></div>
             <div v-if="conflict" class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p>Otra sesión ha cambiado este diseño. El guardado automático está detenido para conservar tus cambios locales. Descarga una copia antes de recuperar la versión guardada.</p><div class="flex flex-wrap gap-2"><button type="button" class="btn-secondary text-xs" @click="downloadLocal">Descargar copia local</button><button type="button" class="btn-secondary text-xs" @click="recover">Recuperar versión guardada</button></div></div>
 
-            <div class="grid min-w-0 items-start gap-3 xl:grid-cols-[190px_minmax(240px,1fr)_260px]">
+            <div class="grid min-w-0 items-start gap-3 xl:grid-cols-[190px_minmax(240px,1fr)_260px]" :inert="automationBusy || undefined">
                 <aside class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto" aria-label="Herramientas de diseño">
                     <div class="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1"><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="leftPanel === 'elements' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="leftPanel = 'elements'">Elementos</button><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="leftPanel === 'assets' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="leftPanel = 'assets'">Recursos</button></div>
                     <div v-if="leftPanel === 'elements'" class="space-y-5"><button type="button" class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-3 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50" :disabled="!ready || busy" @click="addText"><span class="font-serif text-xl" aria-hidden="true">T</span>Añadir texto</button><div><h2 class="mb-3 text-xs font-semibold">Formas</h2><div class="grid grid-cols-3 gap-2"><button v-for="shape in [{key:'rect',label:'Rectángulo',symbol:'▭'},{key:'ellipse',label:'Elipse',symbol:'◯'},{key:'triangle',label:'Triángulo',symbol:'△'},{key:'line',label:'Línea',symbol:'╱'},{key:'path',label:'Trazado',symbol:'〰'}]" :key="shape.key" type="button" class="rounded-xl border border-slate-200 py-3 text-2xl text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50" :aria-label="`Añadir ${shape.label.toLowerCase()}`" :title="shape.label" :disabled="!ready || busy" @click="addShape(shape.key)">{{ shape.symbol }}</button></div></div><div class="space-y-3 border-t border-slate-100 pt-4"><button type="button" class="w-full rounded-lg border px-3 py-2 text-xs font-medium" :class="drawing ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200'" :aria-pressed="drawing" :disabled="!ready" @click="toggleDrawing">Dibujo libre</button><div v-if="drawing" class="flex items-center gap-2"><label class="sr-only" for="studio-draw-color">Color del pincel</label><input id="studio-draw-color" v-model="drawColor" type="color" class="h-8 w-10" @input="adapter.setDrawing(true,drawColor,drawWidth)" /><label class="sr-only" for="studio-draw-width">Grosor del pincel</label><input id="studio-draw-width" v-model.number="drawWidth" type="number" min="1" max="200" class="field w-20 text-xs" @change="adapter.setDrawing(true,drawColor,drawWidth)" /></div></div><div class="border-t border-slate-100 pt-4"><h3 class="mb-3 text-xs font-semibold">Colores de {{ brand.name }}</h3><div class="flex flex-wrap gap-2"><button v-for="color in kit?.palette ?? []" :key="color" type="button" class="h-7 w-7 rounded-full border border-slate-200" :style="{ background: color }" :aria-label="`Color de marca ${color}`" :disabled="!selection.length" @click="patchSelection({fill:color})" /></div><p class="mt-3 text-[10px] leading-relaxed text-slate-400">Selecciona un elemento para aplicarle un color.</p></div></div>
@@ -256,10 +330,33 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); resizeObserver?.di
                     <section class="rounded-xl border border-slate-200 bg-white p-3" aria-label="Páginas del diseño"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 class="text-xs font-semibold">Páginas <span class="font-normal text-slate-400">{{ documentData.pages.length }}/100</span></h2><div class="flex flex-wrap gap-1"><button type="button" class="tool text-xs" :disabled="busy || !ready || documentData.pages.length >= 100" @click="pageAction('add')">Añadir página</button><button type="button" class="tool text-xs" :disabled="busy || !ready || documentData.pages.length >= 100" @click="pageAction('duplicate')">Duplicar página</button><button type="button" class="tool text-xs" :disabled="busy || !ready || documentData.pages.length < 2" @click="pageAction('delete')">Eliminar página</button></div></div><div class="flex gap-2 overflow-x-auto pb-1"><button v-for="(item,index) in documentData.pages" :key="item.id" type="button" class="min-w-24 max-w-40 shrink-0 rounded-lg border p-2 text-left" :class="pageId === item.id ? 'border-violet-400 bg-violet-50 text-violet-800' : 'border-slate-200'" :aria-pressed="pageId === item.id" :disabled="busy" @click="changePage(item.id)"><span class="block text-[10px] text-slate-400">{{ String(index + 1).padStart(2,'0') }}</span><span class="mt-1 block truncate text-xs font-medium">{{ item.name }}</span></button></div><div class="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3"><button type="button" class="tool text-xs" :disabled="busy || documentData.pages[0].id === pageId" @click="pageAction('move',-1)">← Mover página</button><button type="button" class="tool text-xs" :disabled="busy || documentData.pages.at(-1).id === pageId" @click="pageAction('move',1)">Mover página →</button></div></section>
                 </main>
 
-                <aside class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto" aria-label="Panel de edición"><div class="mb-5 flex gap-1 rounded-lg bg-slate-100 p-1"><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="panel === 'layers' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="panel = 'layers'">Capas</button><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="panel === 'properties' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="panel = 'properties'">Propiedades</button><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="panel === 'page' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="panel = 'page'">Página</button></div><LayerPanel v-show="panel === 'layers'" :layers="layers" :selection="selection" @select="selectLayer" @patch="patchLayer" @action="action" /><Inspector v-show="panel === 'properties'" :selection="selection" :kit="kit" @patch="patchSelection" @action="action" /><section v-show="panel === 'page'" class="space-y-4 text-xs"><h2 class="text-sm font-semibold">Ajustes de página</h2><label class="block space-y-1">Nombre de la página<input class="field text-xs" :value="page.name" maxlength="255" @change="patchPage({name:$event.target.value})" /></label><label class="flex items-center justify-between gap-2">Fondo de página<input type="color" class="h-8 w-10" :value="typeof page.background === 'string' ? page.background.slice(0,7) : page.background.stops[0].color.slice(0,7)" :disabled="!ready" @input="action('setBackground',$event.target.value)" /></label><label class="block space-y-1">Duración de página (s)<input type="number" class="field text-xs" min="0.1" max="3600" step="0.1" :value="page.duration" @change="patchPage({duration:Number($event.target.value)})" /></label><div class="space-y-3 border-t border-slate-100 pt-4"><h3 class="font-semibold">Tamaño de todo el diseño</h3><div class="grid grid-cols-2 gap-2"><label>Ancho del diseño<input v-model.number="designWidth" type="number" min="40" max="8000" class="field mt-1 text-xs" /></label><label>Alto del diseño<input v-model.number="designHeight" type="number" min="40" max="8000" class="field mt-1 text-xs" /></label></div><button type="button" class="tool w-full text-xs" :disabled="busy || !ready" @click="resizeDesign">Aplicar tamaño</button><p class="leading-relaxed text-slate-400">Las capas conservan sus posiciones y tamaño al cambiar el lienzo.</p></div><label class="flex items-center gap-2 border-t border-slate-100 pt-4"><input v-model="template" type="checkbox" @change="commit" />Guardar como plantilla de marca</label></section></aside>
+                <aside class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto" aria-label="Panel de edición">
+                    <div class="mb-5 flex gap-1 rounded-lg bg-slate-100 p-1"><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="panel === 'layers' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="panel = 'layers'">Capas</button><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="panel === 'properties' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="panel = 'properties'">Propiedades</button><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="panel === 'page' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="panel = 'page'">Página</button></div>
+                    <LayerPanel v-show="panel === 'layers'" :layers="layers" :selection="selection" @select="selectLayer" @patch="patchLayer" @action="action" />
+                    <Inspector v-show="panel === 'properties'" :selection="selection" :kit="kit" @patch="patchSelection" @action="action" />
+                    <section v-show="panel === 'page'" class="space-y-4 text-xs">
+                        <h2 class="text-sm font-semibold">Ajustes de página</h2>
+                        <label class="block space-y-1">Nombre de la página<input class="field text-xs" :value="page.name" maxlength="255" @change="patchPage({name:$event.target.value})" /></label>
+                        <label class="flex items-center justify-between gap-2">Fondo de página<input type="color" class="h-8 w-10" :value="typeof page.background === 'string' ? page.background.slice(0,7) : page.background.stops[0].color.slice(0,7)" :disabled="!ready" @input="action('setBackground',$event.target.value)" /></label>
+                        <label class="block space-y-1">Duración de página (s)<input type="number" class="field text-xs" min="0.1" max="3600" step="0.1" :value="page.duration" @change="patchPage({duration:Number($event.target.value)})" /></label>
+                        <div class="space-y-3 border-t border-slate-100 pt-4">
+                            <h3 class="font-semibold">Tamaño de todo el diseño</h3>
+                            <div class="grid grid-cols-2 gap-2"><label>Ancho del diseño<input v-model.number="designWidth" type="number" min="40" max="8000" class="field mt-1 text-xs" /></label><label>Alto del diseño<input v-model.number="designHeight" type="number" min="40" max="8000" class="field mt-1 text-xs" /></label></div>
+                            <label class="block space-y-1">Adaptación al redimensionar<select v-model="resizeMode" aria-label="Adaptación al redimensionar" class="field mt-1 text-xs"><option v-for="mode in STUDIO_RESIZE_MODES" :key="mode.value" :value="mode.value">{{ mode.label }}</option></select></label>
+                            <button type="button" class="tool w-full text-xs" :disabled="busy || !ready || conflict" @click="resizeDesign">Aplicar tamaño</button>
+                            <p class="leading-relaxed text-slate-400">{{ resizeMode === 'contain' ? 'Escala y centra el contenido sin deformarlo. Pueden quedar márgenes.' : resizeMode === 'cover' ? 'Escala sin deformar y llena el lienzo. Las partes exteriores quedan recortadas en la exportación.' : 'Conserva las posiciones y el tamaño de las capas.' }}</p>
+                        </div>
+                        <div class="space-y-2 border-t border-slate-100 pt-4"><p class="font-medium">{{ template ? 'Plantilla de marca' : 'Contenido reutilizable' }}</p><p class="leading-relaxed text-slate-500">Para crear campos sustituibles, escribe un nombre entre llaves dobles en un texto, por ejemplo <code class="rounded bg-slate-100 px-1" v-text="'{{nombre}}'" />. Guarda una copia como plantilla para reutilizarla.</p></div>
+                    </section>
+                </aside>
             </div>
         </div>
         <ExportDialog ref="exporter" v-model="exportOpen" :document="documentData" :assets="localAssets" :design-id="design.id" :prepare="prepareExport" @busy="exportBusy = $event" />
+        <StudioDialog :model-value="templateSaveOpen" title="Guardar como plantilla" @update:model-value="value => { if (!automationBusy) templateSaveOpen = value; }">
+            <div v-if="templateCreated" class="space-y-5"><p role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">Plantilla guardada en {{ brand.name }}. Tu diseño original se conserva.</p><div class="flex flex-wrap justify-end gap-2"><button type="button" class="btn-secondary" @click="templateSaveOpen = false">Cerrar plantilla</button><Link :href="route('studio.designs.edit', templateCreated.id)" class="btn-primary bg-violet-700">Ver plantilla</Link></div></div>
+            <form v-else class="space-y-5" @submit.prevent="saveTemplate"><p class="text-sm leading-relaxed text-slate-500">Guarda una copia independiente de todas las páginas, recursos y campos para los próximos diseños de esta marca.</p><label class="block text-sm font-medium">Nombre de la plantilla<input v-model="templateName" class="field mt-1" maxlength="255" required autofocus :disabled="automationBusy" /></label><p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p><div class="flex justify-end"><button type="submit" class="btn-primary bg-violet-700" :disabled="automationBusy || !templateName.trim()">{{ automationBusy ? 'Guardando…' : 'Guardar plantilla' }}</button></div></form>
+        </StudioDialog>
+        <VariantsDialog v-model="variantsOpen" :design-name="name" :template-fields="templateFields" :busy="automationBusy" :error="error" :results="variantsCreated" @create="createVariants" />
     </AuthenticatedLayout>
 </template>
 <style scoped>

@@ -17,7 +17,7 @@ class DesignRevision extends Model
 
     protected function casts(): array
     {
-        return ['document' => 'array', 'revision' => 'integer'];
+        return ['document' => 'array', 'kit_reference' => 'array', 'revision' => 'integer'];
     }
 
     public function design(): BelongsTo

@@ -23,6 +23,10 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
         Route::delete('designs/{design}', [StudioApiController::class, 'destroy'])->name('studio.designs.destroy');
         Route::post('designs/{design}/duplicate', [StudioApiController::class, 'duplicate'])->name('studio.designs.duplicate');
         Route::post('designs/{design}/restore', [StudioApiController::class, 'restore'])->withTrashed()->name('studio.designs.restore');
+        foreach (['template', 'instantiate', 'resize', 'variants', 'apply-kit'] as $operation) {
+            Route::post('designs/{design}/'.$operation, [StudioApiController::class, 'automation'])
+                ->defaults('operation', $operation)->whereNumber('design')->name('studio.designs.'.$operation);
+        }
         Route::put('brands/{brand}/brand-kit', [StudioApiController::class, 'updateKit'])->name('studio.kit.update');
         Route::post('brands/{brand}/design-folders', [StudioApiController::class, 'storeFolder'])->name('studio.folders.store');
         Route::delete('design-folders/{folder}', [StudioApiController::class, 'destroyFolder'])->whereNumber('folder')->name('studio.folders.destroy');

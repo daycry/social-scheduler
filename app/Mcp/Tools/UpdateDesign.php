@@ -29,7 +29,8 @@ class UpdateDesign extends SchedulerTool
 
     public function schema(JsonSchema $schema): array
     {
-        return ['design_id' => $schema->integer()->required(), 'revision' => $schema->integer()->min(1)->required()] + $this->designPayloadSchema($schema);
+        return ['design_id' => $schema->integer()->required(), 'revision' => $schema->integer()->min(1)->required(),
+            'kit_revision' => $schema->integer()->min(1)->description('Opcional: restaurar la referencia del kit de una revisión existente del mismo diseño al deshacer, junto al documento')] + $this->designPayloadSchema($schema);
     }
 
     protected function run(Request $request, User $user): array

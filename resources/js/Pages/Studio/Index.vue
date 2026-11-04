@@ -5,9 +5,11 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Icon from '@/Components/Icon.vue';
 import TemplatePreview from '@/Components/Studio/TemplatePreview.vue';
 import StudioDialog from '@/Components/Studio/StudioDialog.vue';
+import TemplateInstanceDialog from '@/Components/Studio/TemplateInstanceDialog.vue';
 import { blankDocument } from '@/Studio/document';
 import { STUDIO_TEMPLATES, createFromTemplate } from '@/Studio/templates';
 import { studioRequest } from '@/Studio/api';
+import { STUDIO_FORMAT_PRESETS } from '@/Studio/format-presets';
 
 const props = defineProps({ brand: Object, designs: Object, kit: Object, assets: Array, folders: Array, filters: Object });
 const createOpen = ref(false);
@@ -21,18 +23,18 @@ const height = ref(1080);
 const selectedFolder = ref(props.filters?.folder_id ?? '');
 const newFolder = ref('');
 const folderOpen = ref(false);
+const instanceOpen = ref(false);
+const instanceTemplate = ref(null);
 const paletteText = ref((props.kit?.palette ?? ['#7c3aed', '#111827', '#ffffff']).join(', '));
 const fontsText = ref((props.kit?.fonts ?? ['Arial']).join(', '));
+const selectedLogos = ref([...(props.kit?.logos ?? [])]);
+const logoAssets = computed(() => (props.assets ?? []).filter(asset => asset.kind === 'image'));
 const guidelines = ref(props.kit?.guidelines ?? '');
 const voice = ref(props.kit?.voice ?? '');
 const rows = computed(() => props.designs?.data ?? []);
 const archived = computed(() => !!props.filters?.archived);
 const templatesOnly = computed(() => !!props.filters?.templates);
-const presets = [
-    { label: 'Publicación cuadrada', w: 1080, h: 1080 }, { label: 'Instagram vertical', w: 1080, h: 1350 },
-    { label: 'Instagram 3:4', w: 1080, h: 1440 }, { label: 'Historia / Reel', w: 1080, h: 1920 },
-    { label: 'Presentación / vídeo', w: 1920, h: 1080 }, { label: 'Documento A4', w: 2480, h: 3508 },
-];
+const presets = STUDIO_FORMAT_PRESETS;
 
 const filter = (patch = {}) => router.get(route('studio.index'), {
     brand_id: props.brand?.id, query: query.value || undefined, folder_id: selectedFolder.value || undefined,
@@ -60,12 +62,28 @@ const mutate = async (design, action) => {
         else router.reload({ only: ['designs'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
 };
+const useTemplate = async design => {
+    if (busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        const result = await studioRequest('GET', route('studio.designs.show', design.id));
+        instanceTemplate.value = result.design; instanceOpen.value = true;
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const instantiateTemplate = async payload => {
+    if (busy.value || !instanceTemplate.value) return;
+    busy.value = true; error.value = '';
+    try {
+        const result = await studioRequest('POST', route('studio.designs.instantiate', instanceTemplate.value.id), payload);
+        instanceOpen.value = false; router.visit(route('studio.designs.edit', result.design.id));
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
 const saveKit = async () => {
     busy.value = true; error.value = '';
     try {
         await studioRequest('PUT', route('studio.kit.update', props.brand.id), {
             palette: paletteText.value.split(',').map(s => s.trim()).filter(Boolean), fonts: fontsText.value.split(',').map(s => s.trim()).filter(Boolean),
-            logos: props.kit?.logos ?? [], guidelines: guidelines.value, voice: voice.value,
+            logos: selectedLogos.value, guidelines: guidelines.value, voice: voice.value,
         });
         kitOpen.value = false; router.reload({ only: ['kit'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
@@ -132,6 +150,7 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                             </Link>
                             <div v-else class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-100"><Icon name="trash" class="h-8 w-8 text-slate-400" /></div>
                             <div class="mt-3 flex items-start gap-2"><div class="min-w-0 flex-1"><h3 class="truncate text-sm font-semibold">{{ design.name }}</h3><p class="mt-1 text-xs text-slate-500">{{ date(design.updated_at) }}<span v-if="design.is_template"> · Plantilla</span></p></div><details class="relative"><summary class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-slate-100" :aria-label="`Opciones de ${design.name}`">•••</summary><div class="absolute right-0 z-20 mt-1 min-w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, 'duplicate')">Duplicar diseño</button><button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, archived ? 'restore' : 'archive')">{{ archived ? 'Restaurar' : 'Mover a papelera' }}</button></div></details></div>
+                            <button v-if="design.is_template && !archived" type="button" class="mt-3 w-full rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:opacity-50" :disabled="busy" @click="useTemplate(design)">Usar plantilla</button>
                         </article>
                     </div>
                     <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center"><Icon :name="archived ? 'trash' : 'palette'" class="mx-auto mb-4 h-8 w-8 text-violet-400" /><h3 class="text-base font-semibold">{{ query ? 'No hay diseños con esa búsqueda' : archived ? 'La papelera está vacía' : 'Aquí empieza tu próxima idea' }}</h3><p class="mt-2 text-sm text-slate-500">{{ query ? 'Prueba con otro nombre o carpeta.' : 'Crea un diseño o elige una plantilla para empezar.' }}</p><button v-if="!archived" type="button" class="mt-5 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white" @click="createOpen = true">Crear mi primer diseño</button></div>
@@ -146,6 +165,28 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
             <form class="space-y-5" @submit.prevent="create()"><div><label class="mb-1 block text-sm font-medium" for="studio-create-name">Nombre</label><input id="studio-create-name" v-model="createName" class="field" maxlength="255" autofocus required /></div><div class="grid grid-cols-2 gap-4"><label class="space-y-1 text-sm font-medium">Ancho<input v-model.number="width" type="number" min="40" max="8000" class="field" required /></label><label class="space-y-1 text-sm font-medium">Alto<input v-model.number="height" type="number" min="40" max="8000" class="field" required /></label></div><p class="text-xs text-slate-500">Dimensiones en píxeles. Podrás adaptarlas desde el editor.</p><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><div class="flex justify-end gap-2"><button type="button" class="btn-secondary" @click="createOpen = false">Cancelar</button><button type="submit" class="btn-primary bg-violet-700" :disabled="busy">{{ busy ? 'Creando…' : 'Crear diseño' }}</button></div></form>
         </StudioDialog>
         <StudioDialog v-model="folderOpen" title="Nueva carpeta"><form class="space-y-4" @submit.prevent="createFolder"><label class="block text-sm font-medium">Nombre de la carpeta<input v-model="newFolder" class="field mt-1" maxlength="255" required autofocus /></label><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><button type="submit" class="btn-primary" :disabled="busy">Crear carpeta</button></form></StudioDialog>
-        <StudioDialog v-model="kitOpen" title="Identidad de marca"><form class="space-y-4" @submit.prevent="saveKit"><p class="text-sm text-slate-500">Los estilos pertenecen a {{ brand?.name }} y se aplican a los diseños de esta marca.</p><label class="block text-sm font-medium">Paleta de colores<input v-model="paletteText" class="field mt-1" placeholder="#7c3aed, #111827, #ffffff" /><span class="mt-1 block text-xs font-normal text-slate-500">Colores hexadecimales separados por comas.</span></label><div class="flex gap-2"><span v-for="color in paletteText.split(',').map(s => s.trim()).filter(s => /^#[0-9a-f]{3,8}$/i.test(s))" :key="color" class="h-8 w-8 rounded-full border border-slate-200" :style="{ background: color }" /></div><label class="block text-sm font-medium">Tipografías<input v-model="fontsText" class="field mt-1" /><span class="mt-1 block text-xs font-normal text-slate-500">Familias disponibles en tu equipo, separadas por comas.</span></label><label class="block text-sm font-medium">Guía de estilo<textarea v-model="guidelines" class="field mt-1" rows="3" maxlength="10000" /></label><label class="block text-sm font-medium">Voz de la marca<textarea v-model="voice" class="field mt-1" rows="2" maxlength="5000" /></label><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><div class="flex justify-end"><button type="submit" class="btn-primary bg-violet-700" :disabled="busy">Guardar identidad</button></div></form></StudioDialog>
+        <TemplateInstanceDialog v-model="instanceOpen" :template="instanceTemplate" :busy="busy" :error="error" @create="instantiateTemplate" />
+        <StudioDialog v-model="kitOpen" title="Identidad de marca">
+            <form class="space-y-4" @submit.prevent="saveKit">
+                <p class="text-sm text-slate-500">Los estilos pertenecen a {{ brand?.name }} y se aplican a los diseños de esta marca.</p>
+                <fieldset class="min-w-0 space-y-4" :disabled="busy">
+                    <label class="block text-sm font-medium">Paleta de colores<input v-model="paletteText" class="field mt-1" placeholder="#7c3aed, #111827, #ffffff" /><span class="mt-1 block text-xs font-normal text-slate-500">Colores hexadecimales separados por comas.</span></label>
+                    <div class="flex flex-wrap gap-2"><span v-for="color in paletteText.split(',').map(s => s.trim()).filter(s => /^#[0-9a-f]{3,8}$/i.test(s))" :key="color" class="h-8 w-8 rounded-full border border-slate-200" :style="{ background: color }" /></div>
+                    <label class="block text-sm font-medium">Tipografías<input v-model="fontsText" class="field mt-1" /><span class="mt-1 block text-xs font-normal text-slate-500">Familias disponibles en tu equipo, separadas por comas.</span></label>
+                    <fieldset class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Logotipos de marca">
+                        <legend class="px-1 text-sm font-medium">Logotipos de marca</legend>
+                        <p class="text-xs leading-relaxed text-slate-500">Selecciona hasta 30 imágenes de esta marca, en el orden en que quieras vincularlas al kit. Puedes subirlas desde Recursos en cualquier diseño.</p>
+                        <div v-if="logoAssets.length" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+                            <label v-for="asset in logoAssets" :key="asset.id" class="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 p-2" :class="selectedLogos.includes(asset.id) ? 'border-violet-300 bg-violet-50' : ''"><input v-model="selectedLogos" type="checkbox" :value="asset.id" :aria-label="`Logo de marca ${asset.name}`" :disabled="!selectedLogos.includes(asset.id) && selectedLogos.length >= 30" /><img :src="asset.preview_url" alt="" class="h-10 w-10 shrink-0 rounded bg-white object-contain" loading="lazy" /><span class="min-w-0 break-words text-xs">{{ asset.name }}<span v-if="selectedLogos.includes(asset.id)" class="mt-1 block text-[10px] font-medium text-violet-700">Posición {{ selectedLogos.indexOf(asset.id) + 1 }}</span></span></label>
+                        </div>
+                        <p v-else class="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">Todavía no hay imágenes en la biblioteca de esta marca.</p>
+                        <p class="text-xs text-slate-500">{{ selectedLogos.length }}/30 seleccionados</p>
+                    </fieldset>
+                    <label class="block text-sm font-medium">Guía de estilo<textarea v-model="guidelines" class="field mt-1" rows="3" maxlength="10000" /></label>
+                    <label class="block text-sm font-medium">Voz de la marca<textarea v-model="voice" class="field mt-1" rows="2" maxlength="5000" /></label>
+                </fieldset>
+                <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><div class="flex justify-end"><button type="submit" class="btn-primary bg-violet-700" :disabled="busy">Guardar identidad</button></div>
+            </form>
+        </StudioDialog>
     </AuthenticatedLayout>
 </template>

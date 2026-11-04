@@ -70,6 +70,86 @@ paths:
       responses:
         '200': { description: Diseño archivado sin borrar versiones ni exportaciones }
         '404': { $ref: '#/components/responses/NotFound' }
+  /designs/{design}/template:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: saveStudioTemplate
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateCopy' }
+      responses:
+        '201': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/instantiate:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: instantiateStudioTemplate
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InstantiateTemplate' }
+      responses:
+        '201': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/resize:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: resizeStudioDesign
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResizeDesign' }
+      responses:
+        '200': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/apply-kit:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: applyStudioBrandKit
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExpectedRevision' }
+      responses:
+        '200': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/variants:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: createStudioVariants
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DesignVariants' }
+      responses:
+        '201': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResults' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /designs/{design}/duplicate:
     parameters:
       - $ref: '#/components/parameters/Design'
@@ -340,6 +420,7 @@ components:
           required: [revision]
           properties:
             revision: { type: integer, minimum: 1 }
+            kit_revision: { type: integer, minimum: 1, description: Referencia opcional a una revisión existente del mismo diseño para restaurar la identidad junto al documento al deshacer; no acepta estilos arbitrarios }
     PaginationMeta:
       type: object
       required: [current_page, last_page, per_page, total, has_more]
@@ -358,6 +439,8 @@ components:
             id: { type: integer }
             brand_id: { type: integer }
             revision: { type: integer, minimum: 1 }
+            template_fields: { type: array, items: { type: string, pattern: '^[A-Za-z_][A-Za-z0-9_]{0,63}$' }, description: Campos ASCII únicos ordenados encontrados en textos anidados; no se incluyen en el listado ligero }
+            kit_reference: { type: object, nullable: true, description: Referencia de paleta/fuentes/logos al crear o aplicar el kit; no admite entradas del cliente }
             exports: { type: array, items: { $ref: '#/components/schemas/Export' } }
             exports_pagination: { $ref: '#/components/schemas/PaginationMeta' }
     DesignFolder:
@@ -389,3 +472,77 @@ components:
         options: { type: object, nullable: true }
         error: { type: string, nullable: true }
         download_url: { type: string, nullable: true, description: URL firmada de descarga válida durante 10 minutos; null hasta disponer de artefacto listo }
+    ExpectedRevision:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 1 }
+    TemplateCopy:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+    ResizeMode:
+      type: string
+      enum: [canvas, contain, cover]
+      default: contain
+      description: canvas cambia solo el lienzo; contain/cover escalan uniformemente los objetos raíz y centran, preservando grupos, tipografía, trayectorias y recortes.
+    TemplateFields:
+      type: object
+      maxProperties: 100
+      additionalProperties: { type: string, maxLength: 10000 }
+      description: Todas y solo las claves ASCII de tokens {{key}} presentes en texto; sustitución literal simultánea, sin HTML ni evaluación recursiva. El texto final y el documento conservan sus límites.
+    InstantiateTemplate:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        fields: { $ref: '#/components/schemas/TemplateFields' }
+        apply_brand_kit: { type: boolean, default: false }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        mode: { $ref: '#/components/schemas/ResizeMode' }
+      description: Solo plantillas. width y height se proporcionan juntas o se omiten. Copia independiente sin modificar plantilla; IDs nuevos, revisión inicial 1. Kit aplica slots de referencia al actual; si no hay referencias usa primera aparición de colores/fuentes. Logos solo reemplazan IDs que eran logos. Kit vacío solicitado devuelve 422.
+    ResizeDesign:
+      type: object
+      additionalProperties: false
+      required: [revision, width, height]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        mode: { $ref: '#/components/schemas/ResizeMode' }
+    DesignVariant:
+      type: object
+      additionalProperties: false
+      required: [width, height]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        mode: { $ref: '#/components/schemas/ResizeMode' }
+    DesignVariants:
+      type: object
+      additionalProperties: false
+      required: [revision, variants]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        fields: { $ref: '#/components/schemas/TemplateFields' }
+        apply_brand_kit: { type: boolean, default: false }
+        variants: { type: array, minItems: 1, maxItems: 12, items: { $ref: '#/components/schemas/DesignVariant' } }
+      description: Variantes de diseño o plantilla; se exigen los campos presentes. Transacción total, máximo 12 documentos, 8 MiB UTF-8 acumulados y 20000 elementos acumulados. Fuente intacta, IDs independientes, revisión inicial 1, is_template false.
+    DesignResult:
+      type: object
+      required: [design]
+      properties:
+        design: { $ref: '#/components/schemas/Design' }
+    DesignResults:
+      type: object
+      required: [designs]
+      properties:
+        designs: { type: array, minItems: 1, maxItems: 12, items: { $ref: '#/components/schemas/Design' } }

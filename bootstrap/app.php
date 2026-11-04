@@ -29,7 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Design documents are typed data: whitespace and empty text/strokes carry visual meaning.
         $studioJson = static fn (Request $request): bool => $request->isJson()
             && ($request->is('studio*', 'brands/*/studio*', 'api/v1/*')
-                || ($request->is('mcp*') && is_array($request->input('params.arguments.document'))));
+                || ($request->is('mcp*') && (is_array($request->input('params.arguments.document'))
+                    || is_array($request->input('params.arguments.fields')))));
         $middleware->trimStrings(except: [$studioJson]);
         $middleware->convertEmptyStringsToNull(except: [$studioJson]);
 

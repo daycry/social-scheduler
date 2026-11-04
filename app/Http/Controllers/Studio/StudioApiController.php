@@ -8,6 +8,7 @@ use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
 use App\Services\Studio\StudioAssets;
+use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioExports;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
@@ -71,6 +72,12 @@ class StudioApiController extends Controller
     public function restore(Request $request, Design $design): JsonResponse
     {
         return response()->json($this->studio->present($request->user(), $this->studio->restore($request->user(), $design)));
+    }
+
+    public function automation(Request $request, Design $design, string $operation): JsonResponse
+    {
+        return response()->json(app(StudioAutomation::class)->perform($request->user(), $design, $operation, $request->all()),
+            in_array($operation, ['resize', 'apply-kit'], true) ? 200 : 201);
     }
 
     public function kit(Request $request, Brand $brand): JsonResponse

@@ -71,4 +71,13 @@ class SocialAccount extends Model
     {
         return $this->status === self::STATUS_RECONNECT;
     }
+
+    /** Internal generation marker; never expose or log it. Uses stored ciphertext, not plaintext tokens. */
+    public function credentialVersion(): string
+    {
+        $keys = ['id', 'user_id', 'brand_id', 'network', 'external_id', 'access_token', 'refresh_token',
+            'credential_secret', 'connected_at', 'last_refreshed_at'];
+
+        return hash('sha256', serialize(array_map(fn (string $key) => $this->getRawOriginal($key), $keys)));
+    }
 }

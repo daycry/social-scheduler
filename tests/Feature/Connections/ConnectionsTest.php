@@ -3,10 +3,14 @@
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Network;
+use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\SocialAccountService;
+use Illuminate\Http\Request;
+use Illuminate\Session\ArraySessionHandler;
+use Illuminate\Session\Store;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\FakeConnector;
 
@@ -144,4 +148,94 @@ test('Connections accounts from other brands and users never appear on the page'
     $response = $this->actingAs($this->user)->get($this->url);
 
     expect($response->getContent())->not->toContain('AJENA')->not->toContain('OTRA MARCA');
+});
+
+test('Connections concurrent authorizations preserve their original brand and credentials', function (bool $reverse) {
+    $otherBrand = Brand::factory()->for($this->user)->create(['name' => 'Segunda marca']);
+    $connector = new FakeConnector('meta', [Network::Instagram, Network::Facebook]);
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->register($connector));
+    $this->actingAs($this->user);
+    $this->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $firstState = session('oauth.meta.state');
+    $this->post(route('brands.connections.connect', ['brand' => $otherBrand, 'provider' => 'meta'], false));
+    $secondState = session('oauth.meta.state');
+    $flows = [[$this->brand, $firstState, 'FIRST-TOKEN'], [$otherBrand, $secondState, 'SECOND-TOKEN']];
+    foreach ($reverse ? array_reverse($flows) : $flows as [$brand, $state, $token]) {
+        $connector->candidates = [new ConnectionCandidate(Network::Instagram, 'shared-external-account', 'Cuenta compartida', 'shared', $token, 'REFRESH-'.$token)];
+        $this->get('/connections/meta/callback?code=CODE&state='.$state)
+            ->assertRedirect(route('brands.connections.index', $brand, false));
+    }
+
+    $accounts = SocialAccount::withoutUserScope()->where('user_id', $this->user->id)->get()->keyBy('brand_id');
+    expect($accounts)->toHaveCount(2)
+        ->and($accounts[$this->brand->id]->access_token)->toBe('FIRST-TOKEN')
+        ->and($accounts[$otherBrand->id]->access_token)->toBe('SECOND-TOKEN');
+})->with(['original order' => false, 'reverse order' => true]);
+
+test('Connections an invalid callback does not consume another pending authorization', function () {
+    $connector = new FakeConnector('meta');
+    $connector->candidates = [new ConnectionCandidate(Network::Facebook, 'page-1', 'Página', null, 'ACCESS', 'REFRESH')];
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->register($connector));
+    $this->actingAs($this->user)->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $state = session('oauth.meta.state');
+    $this->get('/connections/meta/callback?code=CODE&state=unrelated')->assertRedirect(route('brands.index', absolute: false));
+    expect(SocialAccount::withoutUserScope()->count())->toBe(0);
+    $this->get('/connections/meta/callback?code=CODE&state='.$state)->assertRedirect($this->url);
+    $this->get('/connections/meta/callback?code=CODE&state='.$state)->assertRedirect(route('brands.index', absolute: false));
+    expect(SocialAccount::withoutUserScope()->count())->toBe(1);
+});
+
+test('Connections an authorization older than thirty minutes must be restarted', function () {
+    $connector = new FakeConnector('meta');
+    $connector->candidates = [new ConnectionCandidate(Network::Facebook, 'page-1', 'Página', null, 'ACCESS', 'REFRESH')];
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->register($connector));
+    $this->actingAs($this->user)->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $state = session('oauth.meta.state');
+    $this->travel(31)->minutes();
+
+    $this->get('/connections/meta/callback?code=CODE&state='.$state)->assertRedirect(route('brands.index', absolute: false));
+    expect(SocialAccount::withoutUserScope()->count())->toBe(0);
+});
+
+test('Connections an ordinary request cannot resurrect a consumed authorization', function () {
+    $this->actingAs($this->user)->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $state = session('oauth.meta.state');
+    $sessionId = session()->getId();
+    $handler = new ArraySessionHandler(120);
+    $open = function () use ($handler, $sessionId) {
+        $store = new Store('connection-race', $handler, $sessionId, 'json');
+        $store->start();
+
+        return $store;
+    };
+    $seed = $open();
+    $seed->replace(session()->all());
+    $seed->save();
+    $ordinary = $open();
+    $callback = $open();
+    $request = Request::create('/connections/meta/callback');
+    $request->setUserResolver(fn () => $this->user);
+    $request->setLaravelSession($callback);
+    $take = new ReflectionMethod(OAuthController::class, 'takeFlow');
+    $controller = app(OAuthController::class);
+    expect($take->invoke($controller, $request, 'meta', $state))->toBeArray();
+    $callback->save();
+    $ordinary->save(); // A normal GET finishes after the callback, restoring its earlier session snapshot.
+    $request->setLaravelSession($open());
+
+    expect($take->invoke($controller, $request, 'meta', $state))->toBeNull();
+});
+
+test('Connections another browser session cannot consume the same user authorization', function () {
+    $connector = new FakeConnector('meta');
+    $connector->candidates = [new ConnectionCandidate(Network::Facebook, 'page-1', 'Página', null, 'ACCESS', 'REFRESH')];
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->register($connector));
+    $this->actingAs($this->user)->post(route('brands.connections.connect', ['brand' => $this->brand, 'provider' => 'meta'], false));
+    $state = session('oauth.meta.state');
+    $csrf = session()->token();
+    $this->withSession(['_token' => str_repeat('x', 40)])->get('/connections/meta/callback?code=CODE&state='.$state)
+        ->assertRedirect(route('brands.index', absolute: false));
+    expect(SocialAccount::withoutUserScope()->count())->toBe(0);
+    $this->withSession(['_token' => $csrf])->get('/connections/meta/callback?code=CODE&state='.$state)->assertRedirect($this->url);
+    expect(SocialAccount::withoutUserScope()->count())->toBe(1);
 });

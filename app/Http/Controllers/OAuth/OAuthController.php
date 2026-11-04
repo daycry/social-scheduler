@@ -14,6 +14,7 @@ use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -32,6 +33,8 @@ class OAuthController extends Controller
 
     public const PENDING_KEY = 'oauth.pending';
 
+    private const FLOW_TTL_SECONDS = 1800;
+
     public function __construct(
         private readonly ConnectorRegistry $connectors,
         private readonly BrandService $brands,
@@ -44,7 +47,17 @@ class OAuthController extends Controller
         $connector = $this->oauthConnector($provider);
 
         $state = Str::random(40);
-        $request->session()->put("oauth.$provider", ['state' => $state, 'brand_id' => $brand->id]);
+        $flow = ['state' => $state, 'brand_id' => $brand->id, 'user_id' => $request->user()->id, 'issued_at' => now()->timestamp];
+        $key = $this->flowKey($request, $provider);
+        Cache::lock($key.'.lock', 5)->block(5, function () use ($key, $flow, $state): void {
+            $flows = Cache::get($key, []);
+            $flows = array_filter(is_array($flows) ? $flows : [], fn ($item) => is_array($item)
+                && ($item['issued_at'] ?? 0) > now()->timestamp - self::FLOW_TTL_SECONDS);
+            $flows[hash('sha256', $state)] = $flow;
+            Cache::put($key, array_slice($flows, -10, null, true), self::FLOW_TTL_SECONDS);
+        });
+        // Convenience pointer only: ordinary session writes cannot create or revive authoritative flows.
+        $request->session()->put("oauth.$provider", $flow);
 
         $url = $connector->authorizationUrl(
             $state,
@@ -61,10 +74,10 @@ class OAuthController extends Controller
     {
         $connector = $this->oauthConnector($provider);
 
-        $stored = $request->session()->pull("oauth.$provider");
-        $state = (string) $request->query('state', '');
+        $state = $request->query('state', '');
+        $stored = is_string($state) ? $this->takeFlow($request, $provider, $state) : null;
 
-        if (! is_array($stored) || $state === '' || ! hash_equals($stored['state'], $state)) {
+        if ($stored === null) {
             Log::warning('oauth.invalid_state', ['user_id' => $request->user()->id, 'provider' => $provider]);
 
             return redirect()->route('brands.index')->with('error', 'La sesion de conexion ha caducado o no es valida. Vuelve a intentarlo.');
@@ -115,6 +128,46 @@ class OAuthController extends Controller
 
         // Sin aviso verde: aun no se ha conectado nada. La tarjeta de eleccion (y el aviso global) piden el paso que falta.
         return redirect()->route('brands.connections.index', $brand);
+    }
+
+    /** Consume one matching authorization without invalidating another tab or brand. */
+    private function takeFlow(Request $request, string $provider, string $state): ?array
+    {
+        if ($state === '' || strlen($state) > 128) {
+            return null;
+        }
+        $key = $this->flowKey($request, $provider);
+        $stored = Cache::lock($key.'.lock', 5)->block(5, function () use ($key, $state, $request): ?array {
+            $flows = Cache::get($key, []);
+            $hash = hash('sha256', $state);
+            $flow = is_array($flows) ? ($flows[$hash] ?? null) : null;
+            if (! is_array($flow) || ! is_string($flow['state'] ?? null) || ! hash_equals($flow['state'], $state)) {
+                return null;
+            }
+            unset($flows[$hash]);
+            Cache::put($key, $flows, self::FLOW_TTL_SECONDS);
+            if (($flow['user_id'] ?? null) !== $request->user()->id
+                || ($flow['issued_at'] ?? 0) <= now()->timestamp - self::FLOW_TTL_SECONDS) {
+                return null;
+            }
+
+            return $flow;
+        });
+        if ($stored === null) {
+            return null;
+        }
+        $latest = $request->session()->get("oauth.$provider");
+        if (is_array($latest) && is_string($latest['state'] ?? null) && hash_equals($latest['state'], $state)) {
+            $request->session()->forget("oauth.$provider");
+        }
+
+        return $stored;
+    }
+
+    private function flowKey(Request $request, string $provider): string
+    {
+        // The CSRF secret identifies the browser session without depending on a rotated session ID.
+        return 'social.oauth.flows.'.hash('sha256', $request->user()->id.'|'.$request->session()->token().'|'.$provider);
     }
 
     /** Solo los proveedores OAuth tienen redireccion y callback; los de credenciales (Bluesky) responden 404. */

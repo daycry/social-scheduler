@@ -7,9 +7,11 @@ use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\ReconnectRequired;
 use App\Services\SocialAccountService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Tests\Support\FakeConnector;
 
 beforeEach(function () {
@@ -109,4 +111,36 @@ test('SocialAccount registry resolves connectors by provider and network and rej
 
 test('SocialAccount candidate public array carries no tokens', function () {
     expect(json_encode(candidate()->toPublicArray()))->not->toContain('PLAIN-')->and(candidate()->key())->toBe('instagram:17841400000000000');
+});
+
+test('SocialAccount ignores a late rejected request after credentials were replaced', function () {
+    Notification::fake();
+    $this->travelTo(now()->startOfSecond());
+    $stale = SocialAccount::factory()->for($this->brand)->create([
+        'access_token' => 'OLD-ACCESS', 'refresh_token' => 'OLD-REFRESH', 'last_refreshed_at' => now(),
+    ]);
+    SocialAccount::withoutUserScope()->findOrFail($stale->id)->forceFill([
+        'access_token' => 'NEW-ACCESS', 'refresh_token' => 'NEW-REFRESH', 'last_refreshed_at' => now(),
+    ])->save();
+
+    $this->service->flagReconnection($stale, 'The previous request used an invalid token');
+
+    $current = $stale->fresh();
+    expect($current->status)->toBe('activa')->and($current->last_error)->toBeNull();
+    Notification::assertNothingSent();
+});
+
+test('SocialAccount reconnection is isolated even when brands share the external account', function () {
+    Notification::fake();
+    $otherBrand = Brand::factory()->for($this->user)->create();
+    $first = SocialAccount::factory()->for($this->brand)->create(['external_id' => 'shared-account', 'access_token' => 'SHARED-TOKEN']);
+    $second = SocialAccount::factory()->for($otherBrand)->create(['external_id' => 'shared-account', 'access_token' => 'SHARED-TOKEN']);
+
+    $this->service->flagReconnection($first, 'Current credentials were rejected');
+
+    expect($first->fresh()->status)->toBe('requiere_reconexion')
+        ->and($second->fresh()->status)->toBe('activa')
+        ->and($second->fresh()->last_error)->toBeNull();
+    Notification::assertSentToTimes($this->user, ReconnectRequired::class, 1);
+    Notification::assertSentTo($this->user, ReconnectRequired::class, fn ($notification) => $notification->accountId === $first->id && $notification->brandId === $this->brand->id);
 });

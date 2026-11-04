@@ -255,7 +255,7 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - **Estado**: en-progreso
 - **Cubre (tests)**: M-01, M-02, M-03, M-04
 - **Verificación**: Enlaces/docs/ledger lint, diff limpio, commits y push de la rama y PR verificable; requisitos de servidor documentados. No cerrar despliegue por tener PR.
-- **Archivos**: `docs/**`, `CONTINUE-HERE.md`, `README.md`, `CHANGELOG*`
+- **Archivos**: `docs/**`, `CONTINUE-HERE.md`, `README.md`, `CHANGELOG*`, `.gitattributes`
 
 **Criterios de aceptación**
 
@@ -440,3 +440,5 @@ QA independiente posterior al último fix: **24/24**, cero failed/flaky/skipped/
 Se cierra **T-09** con su alcance completo y evidencia de servicio/web/API/MCP, revisión y QA. El total pasa a **7/23**. T-03 sigue abierta por el contraste global/recolección del VPS; T-18 conserva las redes y opciones pendientes aunque su subbloque de reconexiones quede corregido y revisado. T-10–23 no se dan por implementadas mediante esta tanda. No se altera ninguna verificación real que el usuario mantuvo a su cargo.
 
 Commits de código: `f64c677` conexiones, `9d1491f` backfill y `e3f1cef` automatización del estudio. Continúa la misma PR #19 en borrador; no se fusiona ni despliega automáticamente. La migración adicional de referencias de kit sigue pendiente del MySQL de la instalación; el intento local falló por ausencia del listener. Las bases desechables de pruebas sí aplicaron las migraciones reales. Sin cambios en `.env` o permisos del proveedor.
+
+Integridad de entrega: al comparar hashes contra los blobs de Git se detectó que la normalización CRLF→LF cambiaba tres archivos textuales de QA respecto a sus manifiestos. `.gitattributes` preserva los bytes exactos únicamente dentro de `testing/t09/**`; se vuelve a indexar esa evidencia y se comprueban sus hashes contra Git. Es configuración documental (`TDD n/a`), sin cambios del producto ni repetición de suites ya verdes.

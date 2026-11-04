@@ -1,5 +1,8 @@
 * text=auto eol=lf
 
+# Verification artifacts retain the exact bytes recorded by their SHA-256 manifests.
+docs/roadmap/2026-11-03-creative-social-suite/testing/t09/** -text
+
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html

@@ -26,6 +26,10 @@ final class Abilities
 
     public const INBOX_WRITE = 'inbox:write';
 
+    public const SITES_READ = 'sites:read';
+
+    public const SITES_WRITE = 'sites:write';
+
     /** @return array<string, string> ability => descripcion para la UI */
     public static function all(): array
     {
@@ -40,6 +44,8 @@ final class Abilities
             self::REPORTS_WRITE => 'Generar informes PDF/CSV y consultar su estado',
             self::INBOX_READ => 'Leer los comentarios recibidos en Instagram y Facebook',
             self::INBOX_WRITE => 'Responder a comentarios de Instagram y Facebook y anadirles notas internas',
+            self::SITES_READ => 'Leer los sitios publicados de las marcas y su URL',
+            self::SITES_WRITE => 'Publicar y despublicar los sitios de las marcas',
         ];
     }
 

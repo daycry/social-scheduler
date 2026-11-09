@@ -4269,3 +4269,19 @@ Corrección por TDD (RED observado antes del arreglo en los gaps de PHP; en los 
 | F1 | Fuera de lente | La API REST no auditaba | T-17 | `get_post`/`create_post`/`update_post` con canal `api` en `AuditLog`, como el MCP | Pest «registra en la auditoría» (RED, GREEN) |
 
 **Verificación:** Pest 3202 tests, 3193 pass, 9 skipped, 20052 aserciones; Pint passed; build ok; `target-media.spec.ts` (3 tests) + `composer.spec.ts` en desktop, mobile y mobile-360: 90 pass.
+
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-19) — aprobaciones y lotes
+
+Veredicto del intento 1: 1 Important y 5 Minor, todos corregidos con TDD (rojo primero en `tests/Feature/Workflow/ReviewFixesTest.php`, 6 tests) y commit `5f05490`.
+
+| Id | Gravedad | Hallazgo | Corrección | Evidencia |
+|---|---|---|---|---|
+| 1 | Important (CWE-367) | La aprobación no estaba ligada a la versión del contenido | `posts.approval_signature` guarda la huella al pedir la aprobación. Editar el contenido de un post pendiente o aprobado lo devuelve a borrador y pendiente, renueva la huella y vuelve a avisar a los aprobadores. `approve`/`reject` exigen la `signature` (la `content_signature` que devuelven la web, la API y `list_pending_approvals`): sin ella 422, si no coincide 409 «El contenido ha cambiado desde que lo revisaste». El lote exige `signatures` (id => huella) y valida cada elemento con la suya. Web, API y MCP usan la misma lógica | Test: V1 → V2 estando pendiente; aprobar o rechazar con V1 da 409 y el post sigue pendiente; con V2 se aprueba |
+| 2 | Minor | Sin separación de funciones | Se mantiene la autoaprobación del propietario. Nueva ability `posts:approve` (`Abilities::POSTS_APPROVE`, en `all()`/«Todo»; el preset «Publicar» NO la incluye). Las rutas API de aprobar/rechazar, `approve_post`, `reject_post` y las acciones approve/reject de `batch_posts` (MCP y API) la exigen: `posts:write` no basta (403) | Test con token `posts:write` en API, MCP y lote: todo denegado; con `posts:approve` se aprueba |
+| 3 | Minor | `reschedule` de una ocurrencia no la marcaba como excepción | `PostService::reschedule` pone `series_exception` si hay `series_id` | Test: mover una ocurrencia y editar la serie no la devuelve a su fecha |
+| 4 | Minor | El límite de 10/min no aplicaba por MCP | `ServiceThrottle` (RateLimiter por usuario y cubo) dentro de `BatchService::run` y `BrandCollaboration::invite`; 429 también en el MCP | Test: la 11.ª llamada MCP de `batch_posts` y de invitar devuelve 429 |
+| 5 | Minor | Clave de idempotencia huérfana bloqueaba 24 h | Una reserva sin respuesta de más de 5 minutos se retoma y `prune()` la borra | Test: 409 a los 0 min, 200 a los 6 min |
+| 6 | Minor | `starts_on` sin límite inferior | 422 en español si es de hace más de un año (solo al crear o al cambiarlo); sin tope de veces, `dates()` salta hasta una semana antes de hoy | Tests de 422 y de serie antigua |
+
+Verificación del intento: `tests/Feature/Workflow` 54/54; `php artisan test --compact` 3256 tests, 3247 passed, 9 skipped; Pint y `npm run build` en verde; `workflow.spec.ts` 15/15 en desktop, mobile y mobile-360; `ledger-lint` exit 0.

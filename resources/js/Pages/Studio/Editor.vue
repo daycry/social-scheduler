@@ -8,6 +8,7 @@ import LayerPanel from '@/Components/Studio/LayerPanel.vue';
 import ExportDialog from '@/Components/Studio/ExportDialog.vue';
 import PresentationDialog from '@/Components/Studio/PresentationDialog.vue';
 import StudioDialog from '@/Components/Studio/StudioDialog.vue';
+import StudioCollabPanel from '@/Components/Studio/StudioCollabPanel.vue';
 import VariantsDialog from '@/Components/Studio/VariantsDialog.vue';
 import StudioFontsDialog from '@/Components/Studio/StudioFontsDialog.vue';
 import StudioChartsDialog from '@/Components/Studio/StudioChartsDialog.vue';
@@ -25,7 +26,7 @@ import { createTimelinePreview } from '@/Studio/timeline-preview';
 import { completeStudioAudio, isStudioAudio, uploadStudioAudio } from '@/Studio/audio-api';
 import { captionOperation } from '@/Studio/captions';
 
-const props = defineProps({ design: Object, brand: Object, kit: Object, assets: Array, folders: Array, exports: Array, fonts: { type: Array, default: () => [] } });
+const props = defineProps({ design: Object, brand: Object, kit: Object, assets: Array, folders: Array, exports: Array, fonts: { type: Array, default: () => [] }, access: { type: Object, default: () => ({ role: 'owner', role_label: 'Propietario', is_owner: true, can_edit: true, can_comment: true, owner_name: '' }) } });
 const documentData = ref(validateDocument(props.design.document));
 const name = ref(props.design.name);
 const template = ref(props.design.is_template);
@@ -108,6 +109,22 @@ const drawing = ref(false);
 const drawColor = ref(props.kit?.palette?.[0] ?? '#7c3aed');
 const drawWidth = ref(8);
 const exportOpen = ref(false);
+const collabOpen = ref(false);
+const collabElement = computed(() => selection.value.length === 1 ? (selection.value[0].id ?? null) : null);
+async function openCollab() {
+    if (dirty.value && !conflict.value) await saveNow();
+    collabOpen.value = true;
+}
+async function restoredVersion(design) {
+    await run(async () => { await acceptDesignMutation(design); collabOpen.value = false; automationMessage.value = 'Versión restaurada como una versión nueva.'; });
+}
+async function saveAsCopy() {
+    await run(async () => {
+        const result = await studioRequest('POST', route('studio.copies.store', props.design.id), { name: `${name.value.trim() || 'Diseño sin título'} (mi copia)`, document: validateDocument(snapshot().document) });
+        dirty.value = false;
+        router.visit(result.edit_url);
+    });
+}
 const presentationOpen = ref(false), presentationOpening = ref(false), presentationDocument = shallowRef(null), presentationDialog = ref(null);
 const notesValue = ref(page.value.notes ?? ''), notesError = ref('');
 const syncNotes = () => { notesValue.value = page.value.notes ?? ''; notesError.value = ''; };
@@ -645,22 +662,24 @@ onBeforeUnmount(() => { closePresentation(); disposed = true; chartResources.val
             <header class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3" :inert="fontBusy || undefined">
                 <Link :href="route('studio.index', { brand_id: brand.id })" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label="Volver al estudio"><Icon name="chevronLeft" class="h-4 w-4" /></Link>
                 <div class="min-w-0 flex-1"><label class="sr-only" for="studio-design-name">Nombre del diseño</label><input id="studio-design-name" v-model="name" class="w-full min-w-0 rounded-md border-transparent bg-transparent px-1 py-0.5 text-sm font-semibold focus:border-violet-300 focus:ring-violet-200" maxlength="255" :disabled="automationBusy" @input="commit" /><div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[10px] text-slate-500"><span>{{ brand.name }}</span><span data-testid="studio-save-status" role="status" :class="conflict ? 'text-red-700' : dirty ? 'text-amber-700' : 'text-emerald-700'">{{ status }}</span><span>Revisión {{ revision }}</span></div></div>
-                <div class="flex flex-wrap items-center gap-2"><button type="button" class="tool" :disabled="!canUndo || busy || automationBusy" aria-label="Deshacer" title="Deshacer (Ctrl+Z)" @click="restoreHistory('undo')">↶</button><button type="button" class="tool" :disabled="!canRedo || busy || automationBusy" aria-label="Rehacer" title="Rehacer (Ctrl+Mayús+Z)" @click="restoreHistory('redo')">↷</button><button type="button" class="btn-secondary text-xs" :disabled="conflict || automationBusy" @click="saveNow">Guardar ahora</button><button type="button" class="btn-secondary text-xs" :disabled="!ready || busy || exportBusy || automationBusy || presentationOpening" @click="openPresentation">{{ presentationOpening ? 'Preparando...' : 'Presentar' }}</button><button type="button" class="btn-secondary text-xs" :disabled="!ready || busy || exportBusy || automationBusy" @click="exportOpen = true">Exportar</button><button type="button" class="rounded-lg bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:opacity-50" :disabled="!ready || busy || exportBusy || automationBusy" @click="exporter.publish()">Usar en publicación</button></div>
+                <div class="flex flex-wrap items-center gap-2"><button type="button" class="tool" :disabled="!canUndo || busy || automationBusy" aria-label="Deshacer" title="Deshacer (Ctrl+Z)" @click="restoreHistory('undo')">↶</button><button type="button" class="tool" :disabled="!canRedo || busy || automationBusy" aria-label="Rehacer" title="Rehacer (Ctrl+Mayús+Z)" @click="restoreHistory('redo')">↷</button><button type="button" class="btn-secondary text-xs" :disabled="conflict || automationBusy" @click="saveNow">Guardar ahora</button><button type="button" class="btn-secondary text-xs" :disabled="!ready || busy || exportBusy || automationBusy || presentationOpening" @click="openPresentation">{{ presentationOpening ? 'Preparando...' : 'Presentar' }}</button><button v-if="access.is_owner" type="button" class="btn-secondary text-xs" :disabled="!ready || busy || exportBusy || automationBusy" @click="exportOpen = true">Exportar</button><button v-if="access.is_owner" type="button" class="rounded-lg bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:opacity-50" :disabled="!ready || busy || exportBusy || automationBusy" @click="exporter.publish()">Usar en publicación</button></div>
             </header>
             <div class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2" aria-label="Plantillas y formatos" :inert="fontBusy || undefined">
-                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openTemplateSave">Guardar como plantilla</button>
-                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openVariants">Crear variantes</button>
-                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="applyBrandKit">Aplicar identidad de marca</button>
+                <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy" @click="openCollab">Compartir y comentarios</button>
+                <button v-if="access.is_owner" type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openTemplateSave">Guardar como plantilla</button>
+                <button v-if="access.is_owner" type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openVariants">Crear variantes</button>
+                <button v-if="access.is_owner" type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="applyBrandKit">Aplicar identidad de marca</button>
                 <button type="button" class="tool text-xs" :disabled="busy || automationBusy || exportBusy" @click="startChart">Tablas de datos</button>
                 <button type="button" class="tool text-xs" :disabled="busy || automationBusy || exportBusy" @click="fontsOpen = true">Tipografías de marca</button>
                 <button type="button" class="tool text-xs" :aria-pressed="timelineOpen" :disabled="!ready || busy || automationBusy || exportBusy" @click="openTimeline">Línea de tiempo</button>
                 <span v-if="template" class="ml-auto rounded-full bg-violet-50 px-3 py-1 text-[10px] font-semibold text-violet-800">Plantilla de {{ brand.name }}</span>
                 <span v-if="automationBusy" role="status" class="text-xs text-violet-700">Guardando y preparando el diseño…</span>
             </div>
+            <p v-if="!access.is_owner" role="status" class="rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-900">Editas el diseño de {{ access.owner_name }} como {{ access.role_label.toLowerCase() }}. Sus exportaciones y plantillas siguen siendo del propietario.</p>
             <p v-if="automationMessage" role="status" class="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ automationMessage }}</p>
             <p v-if="fontBusy" role="status" class="rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-800">Cargando la tipografía antes de actualizar el texto…</p>
             <div v-if="error" role="alert" class="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"><span>{{ error }}</span><button v-if="!conflict" type="button" aria-label="Cerrar error" @click="error = ''">×</button></div>
-            <div v-if="conflict" class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p>Otra sesión ha cambiado este diseño. El guardado automático está detenido para conservar tus cambios locales. Descarga una copia antes de recuperar la versión guardada.</p><div class="flex flex-wrap gap-2"><button type="button" class="btn-secondary text-xs" @click="downloadLocal">Descargar copia local</button><button type="button" class="btn-secondary text-xs" @click="recover">Recuperar versión guardada</button></div></div>
+            <div v-if="conflict" class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p>Otra sesión ha cambiado este diseño. El guardado automático está detenido para conservar tus cambios locales. Guarda tu versión como copia, descarga una copia local o recupera la versión guardada.</p><div class="flex flex-wrap gap-2"><button type="button" class="btn-primary text-xs" :disabled="busy" @click="saveAsCopy">Guardar como copia</button><button type="button" class="btn-secondary text-xs" @click="downloadLocal">Descargar copia local</button><button type="button" class="btn-secondary text-xs" @click="recover">Recuperar versión guardada</button></div></div>
 
             <div class="grid min-w-0 items-start gap-3 xl:grid-cols-[190px_minmax(240px,1fr)_260px]" :inert="!ready || automationBusy || fontBusy || undefined">
                 <aside class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto" aria-label="Herramientas de diseño">
@@ -721,6 +740,9 @@ onBeforeUnmount(() => { closePresentation(); disposed = true; chartResources.val
         <StudioDialog :model-value="templateSaveOpen" title="Guardar como plantilla" @update:model-value="value => { if (!automationBusy) templateSaveOpen = value; }">
             <div v-if="templateCreated" class="space-y-5"><p role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">Plantilla guardada en {{ brand.name }}. Tu diseño original se conserva.</p><div class="flex flex-wrap justify-end gap-2"><button type="button" class="btn-secondary" @click="templateSaveOpen = false">Cerrar plantilla</button><Link :href="route('studio.designs.edit', templateCreated.id)" class="btn-primary bg-violet-700">Ver plantilla</Link></div></div>
             <form v-else class="space-y-5" @submit.prevent="saveTemplate"><p class="text-sm leading-relaxed text-slate-500">Guarda una copia independiente de todas las páginas, recursos y campos para los próximos diseños de esta marca.</p><label class="block text-sm font-medium">Nombre de la plantilla<input v-model="templateName" class="field mt-1" maxlength="255" required autofocus :disabled="automationBusy" /></label><p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p><div class="flex justify-end"><button type="submit" class="btn-primary bg-violet-700" :disabled="automationBusy || !templateName.trim()">{{ automationBusy ? 'Guardando…' : 'Guardar plantilla' }}</button></div></form>
+        </StudioDialog>
+        <StudioDialog v-model="collabOpen" title="Compartir y comentarios" wide>
+            <StudioCollabPanel v-if="collabOpen" :design-id="design.id" :access="access" :pages="documentData.pages.map((item, index) => ({ id: item.id, name: item.name || `Página ${index + 1}` }))" :page-id="pageId" :element-id="collabElement" :revision="revision" id-prefix="editor-collab" @restored="restoredVersion" />
         </StudioDialog>
         <VariantsDialog v-model="variantsOpen" :design-name="name" :template-fields="templateFields" :busy="automationBusy" :error="error" :results="variantsCreated" @create="createVariants" />
     </AuthenticatedLayout>

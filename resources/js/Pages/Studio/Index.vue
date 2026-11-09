@@ -13,7 +13,7 @@ import { STUDIO_TEMPLATES, createFromTemplate } from '@/Studio/templates';
 import { studioRequest } from '@/Studio/api';
 import { STUDIO_FORMAT_PRESETS } from '@/Studio/format-presets';
 
-const props = defineProps({ brand: Object, designs: Object, kit: Object, assets: Array, folders: Array, filters: Object, fonts: { type: Array, default: () => [] } });
+const props = defineProps({ brand: Object, designs: Object, kit: Object, assets: Array, folders: Array, filters: Object, fonts: { type: Array, default: () => [] }, shared: { type: Array, default: () => [] } });
 const createOpen = ref(false);
 const kitOpen = ref(!!props.brand && new URLSearchParams(location.search).get('tab') === 'brand');
 const error = ref('');
@@ -140,6 +140,18 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
             </section>
 
             <p v-if="error" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ error }}</p>
+            <section v-if="shared.length" class="space-y-3" aria-labelledby="studio-shared-title" data-testid="studio-shared">
+                <h2 id="studio-shared-title" class="text-xl font-semibold tracking-tight">Compartidos conmigo</h2>
+                <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <li v-for="item in shared" :key="item.id">
+                        <Link :href="route('studio.designs.edit', item.id)" class="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">
+                            <span class="block truncate text-sm font-semibold">{{ item.name }}</span>
+                            <span class="mt-1 block text-xs text-slate-600">De {{ item.owner_name }} · {{ item.role_label }}</span>
+                            <span class="mt-1 block text-[11px] text-slate-500">{{ item.page_count }} {{ item.page_count === 1 ? 'página' : 'páginas' }} · {{ date(item.updated_at) }}</span>
+                        </Link>
+                    </li>
+                </ul>
+            </section>
             <template v-if="brand">
                 <section class="space-y-4" aria-label="Formatos de diseño">
                     <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2><div class="flex flex-wrap gap-4"><button type="button" class="text-sm font-medium text-violet-700" @click="datasetsOpen = true">Tablas de datos</button><button type="button" class="text-sm font-medium text-violet-700" @click="fontsOpen = true">Tipografías de marca</button><button type="button" class="text-sm font-medium text-violet-700" @click="kitOpen = true">Identidad de marca <span aria-hidden="true">↗</span></button></div></div>

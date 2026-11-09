@@ -13,7 +13,11 @@ use Throwable;
  */
 class YouTubeComments implements CommentSource
 {
-    public function __construct(private readonly YouTubePublisher $youtube = new YouTubePublisher) {}
+    private const LIST_COST = 1;
+
+    private const REPLY_COST = 50;
+
+    public function __construct(private readonly YouTubePublisher $youtube = new YouTubePublisher, private readonly YouTubeInboxBudget $budget = new YouTubeInboxBudget) {}
 
     public function hasScopes(SocialAccount $account, bool $write = false): bool
     {
@@ -29,7 +33,12 @@ class YouTubeComments implements CommentSource
             if ($page > 0 && $deadline !== null && microtime(true) + (float) config('social.http_timeout', 15) > $deadline) {
                 break;
             }
+            // Presupuesto del inbox: sin unidades se devuelve lo leido (nunca se gasta el cupo de las subidas).
+            if (! $this->budget->allows(self::LIST_COST)) {
+                break;
+            }
             $json = $this->youtube->commentThreads($account, $postExternalId, $token);
+            $this->budget->charge(self::LIST_COST);
 
             foreach ((array) ($json['items'] ?? []) as $thread) {
                 $top = $this->normalize($account, (array) ($thread['snippet']['topLevelComment'] ?? []), null);
@@ -58,7 +67,11 @@ class YouTubeComments implements CommentSource
 
     public function reply(SocialAccount $account, string $commentId, string $message): string
     {
-        return $this->youtube->replyToComment($account, $commentId, $message);
+        $this->budget->assertAllows(self::REPLY_COST);
+        $id = $this->youtube->replyToComment($account, $commentId, $message);
+        $this->budget->charge(self::REPLY_COST);
+
+        return $id;
     }
 
     /** @param array<string, mixed> $c */

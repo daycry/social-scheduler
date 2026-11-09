@@ -117,7 +117,7 @@ class InboxService
             return ['new' => 0, 'next' => null];
         }
 
-        $max = (int) config('social.inbox.max_posts', 25);
+        $max = $account->network === Network::YouTube ? (int) config('social.inbox.youtube_max_posts', 10) : (int) config('social.inbox.max_posts', 25);
         $targets = PostTarget::withoutUserScope()->where('user_id', $account->user_id)->where('social_account_id', $account->id)
             ->where('status', PostStatus::Published->value)->whereNotNull('external_id')
             ->where('published_at', '>=', now()->subDays((int) config('social.inbox.post_days', 30)))
@@ -249,15 +249,17 @@ class InboxService
         }
 
         $account = $this->moderationAccount($comment);
+        // YouTube solo admite respuestas a comentarios de primer nivel: responder a una respuesta cuelga del comentario raiz del hilo.
+        $parentId = $comment->network === Network::YouTube ? ($comment->parent_external_id ?? $comment->external_id) : $comment->external_id;
 
-        $id = $this->call($account, fn () => ($this->source($account->network) ?? $this->comments)->reply($account, $comment->external_id, $text));
+        $id = $this->call($account, fn () => ($this->source($account->network) ?? $this->comments)->reply($account, $parentId, $text));
 
         $comment->forceFill(['read_at' => $comment->read_at ?? now()])->save();
 
         // Meta ya publico la respuesta: nada de lo que sigue puede fallar hacia el usuario (ni 500 ni duplicados).
         $reply = new InboxComment([
             'network' => $comment->network, 'external_id' => $id,
-            'parent_external_id' => $comment->external_id, 'post_external_id' => $comment->post_external_id,
+            'parent_external_id' => $parentId, 'post_external_id' => $comment->post_external_id,
             'author_name' => $account->username ?? $account->name, 'text' => $text, 'is_own' => true, 'hidden' => false,
             'commented_at' => now(), 'read_at' => now(),
         ]);

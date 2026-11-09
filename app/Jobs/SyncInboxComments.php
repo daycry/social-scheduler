@@ -8,6 +8,7 @@ use App\Services\InboxService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Despachador (rapido) de la sincronizacion periodica del buzon (PA-10): un `SyncAccountComments` por cuenta activa de
@@ -41,6 +42,10 @@ class SyncInboxComments implements ShouldBeUnique, ShouldQueue
             ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
             ->chunkById(200, function ($accounts): void {
                 foreach ($accounts as $account) {
+                    // YouTube gasta cupo por llamada: como mucho una pasada por hora y cuenta (el resto del tiempo se omite).
+                    if ($account->network === Network::YouTube && ! Cache::add('inbox:youtube-sync:'.$account->id, 1, max(1, (int) config('social.inbox.youtube_sync_minutes', 60)) * 60)) {
+                        continue;
+                    }
                     SyncAccountComments::dispatch($account->id);
                 }
             });

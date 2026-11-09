@@ -299,6 +299,9 @@ return [
     */
     'competitors' => [
         'daily_at' => env('SOCIAL_COMPETITORS_DAILY_AT', '13:00'),
+        /* Actualizaciones manuales de publicaciones: 1 cada N minutos por competidor y un tope por hora y usuario (< 200/h de Graph). */
+        'refresh_cooldown_minutes' => 10,
+        'refresh_per_hour' => (int) env('SOCIAL_COMPETITORS_REFRESH_PER_HOUR', 60),
         'posts_limit' => (int) env('SOCIAL_COMPETITORS_POSTS_LIMIT', 25),
         'posts_at' => env('SOCIAL_COMPETITORS_POSTS_AT', '13:30'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
@@ -336,6 +339,10 @@ return [
         'budget_seconds' => (float) env('SOCIAL_INBOX_BUDGET_SECONDS', 60),
         'sync_minutes' => (int) env('SOCIAL_INBOX_SYNC_MINUTES', 15),
         'reply_max_chars' => 2200,
+        /* YouTube: unidades de cupo al dia (dia del Pacifico) que puede gastar el inbox; el resto queda para subir. Videos y frecuencia acotados. */
+        'youtube_daily_units' => (int) env('SOCIAL_INBOX_YOUTUBE_UNITS', 2000),
+        'youtube_max_posts' => (int) env('SOCIAL_INBOX_YOUTUBE_MAX_POSTS', 10),
+        'youtube_sync_minutes' => (int) env('SOCIAL_INBOX_YOUTUBE_SYNC_MINUTES', 60),
         /* Profundidad de respuestas que se lee de un hilo de Bluesky. */
         'bluesky_depth' => (int) env('SOCIAL_INBOX_BLUESKY_DEPTH', 6),
         /* Tope de acciones en lote (marcar leido / cerrar) por peticion. */

@@ -232,7 +232,7 @@
                 @if (! $b['data']['available'])
                     <p class="muted">{{ $b['data']['message'] ?? 'Meta Ads no esta disponible para esta marca.' }}</p>
                 @else
-                    <p>Cuenta publicitaria: <strong>{{ $b['data']['account'] ?? '-' }}</strong> · ultimos {{ $b['data']['window_days'] }} dias</p>
+                    <p>Cuenta publicitaria: <strong>{{ $b['data']['account'] ?? '-' }}</strong> · del {{ $data['period']['from'] }} al {{ $data['period']['to'] }}</p>
                     @if ($b['data']['totals'])
                         @php $tt = $b['data']['totals']; @endphp
                         <p>Gasto: <strong>{{ $fmt($tt['spend']) }} {{ $b['data']['currency'] }}</strong> · Impresiones: {{ $fmt($tt['impressions']) }} · Clics: {{ $fmt($tt['clicks']) }}</p>

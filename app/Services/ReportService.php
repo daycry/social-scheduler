@@ -191,10 +191,12 @@ class ReportService
      */
     private function resolveBlocks(User $user, Brand $brand, Period $period, array $blocks, array $data): array
     {
-        return array_map(function (array $b) use ($user, $brand, $period) {
+        $memo = []; // un bloque repetido no vuelve a pedir competidores ni Ads en el mismo informe
+
+        return array_map(function (array $b) use ($user, $brand, $period, &$memo) {
             $payload = match ($b['type']) {
-                ReportBlocks::COMPETITORS => $this->competitorsBlock($user, $brand, $period),
-                ReportBlocks::ADS => $this->adsBlock($user, $brand, $period),
+                ReportBlocks::COMPETITORS => $memo['c'] ??= $this->competitorsBlock($user, $brand, $period),
+                ReportBlocks::ADS => $memo['a'] ??= $this->adsBlock($user, $brand, $period),
                 default => [],
             };
 
@@ -215,8 +217,8 @@ class ReportService
     private function adsBlock(User $user, Brand $brand, Period $period): array
     {
         $days = $period->from->diffInDays($period->to) + 1;
-        $window = collect(AdsService::PERIODS)->first(fn (int $p) => $p >= $days) ?? max(AdsService::PERIODS);
-        $o = $this->ads->overview($user, $brand, null, $window);
+        $window = $days;
+        $o = $this->ads->overview($user, $brand, null, 30, [$period->from->format('Y-m-d'), $period->to->format('Y-m-d')]);
 
         return [
             'available' => $o['available'], 'message' => $o['message'], 'window_days' => $window,

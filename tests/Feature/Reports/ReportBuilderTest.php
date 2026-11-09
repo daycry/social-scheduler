@@ -12,10 +12,12 @@ use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\CompetitorService;
 use App\Services\Reports\ReportBlocks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -266,4 +268,35 @@ it('Schedules: el alta y el cambio de destinatarios tienen limite por minuto por
 
     // Otro usuario tiene su propio cupo.
     $this->actingAs($this->stranger)->put(route('report-schedules.update', $s), ['active' => false])->assertNotFound();
+});
+
+it('Ads block: un informe de enero generado en noviembre pide a Meta el rango de enero', function () {
+    SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook, 'refresh_token' => 'TOKEN-A', 'scopes' => ['ads_read']]);
+    Http::fake(function ($request) {
+        if (str_contains($request->url(), '/me/adaccounts')) {
+            return Http::response(['data' => [['id' => 'act_1', 'name' => 'Cuenta A', 'currency' => 'EUR']]]);
+        }
+
+        return Http::response(['data' => []]);
+    });
+
+    $this->actingAs($this->user)->postJson(route('reports.preview'), ['brand_id' => $this->brand->id, 'from' => '2026-01-01', 'to' => '2026-01-31', 'blocks' => [['type' => 'ads']]])->assertOk();
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), '/insights') && str_contains(urldecode($r->url()), '"since":"2026-01-01"') && str_contains(urldecode($r->url()), '"until":"2026-01-31"'));
+    Http::assertNotSent(fn ($r) => str_contains(urldecode($r->url()), '2026-11-04'));
+});
+
+it('Competitors block: dos bloques en el mismo informe calculan la comparacion una sola vez', function () {
+    $this->mock(CompetitorService::class, fn ($m) => $m->shouldReceive('comparison')->once()->andReturn(['own' => null, 'competitors' => [], 'range' => ['from' => '2026-10-01', 'to' => '2026-10-31'], 'sort' => 'followers']));
+
+    $this->actingAs($this->user)->postJson(route('reports.preview'), ['brand_id' => $this->brand->id, 'from' => '2026-10-01', 'to' => '2026-10-31', 'blocks' => [['type' => 'competitors'], ['type' => 'competitors', 'title' => 'Otra vez']]])->assertOk();
+});
+
+it('Templates: una carrera con el mismo nombre da error de formulario y no un 500', function () {
+    ReportTemplate::creating(function (ReportTemplate $t) {
+        if ($t->name === 'Carrera') {
+            DB::table('report_templates')->insert(['user_id' => $t->user_id, 'brand_id' => $t->brand_id, 'name' => 'Carrera', 'blocks' => '[]', 'created_at' => now(), 'updated_at' => now()]);
+        }
+    });
+    $this->actingAs($this->user)->post(route('report-templates.store'), ['brand_id' => $this->brand->id, 'name' => 'Carrera', 'blocks' => [['type' => 'kpis']], 'range_days' => 30])->assertSessionHasErrors('name');
 });

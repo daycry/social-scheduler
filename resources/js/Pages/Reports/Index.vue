@@ -316,7 +316,7 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                             <div v-else-if="b.type === 'ads'" class="mt-1 text-slate-700">
                                 <p v-if="!b.data.available" class="break-words">{{ b.data.message }}</p>
                                 <template v-else>
-                                    <p>Cuenta {{ b.data.account }}: {{ b.data.campaigns.length }} campañas · {{ b.data.window_days }} días</p>
+                                    <p>Cuenta {{ b.data.account }}: {{ b.data.campaigns.length }} campañas · {{ preview.period.from }} - {{ preview.period.to }}</p>
                                     <ul class="mt-1 space-y-1">
                                         <li v-for="c in b.data.campaigns" :key="c.name" class="break-words">{{ c.name }}</li>
                                     </ul>

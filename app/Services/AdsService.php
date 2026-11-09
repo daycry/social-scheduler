@@ -31,7 +31,7 @@ class AdsService
     /**
      * @return array{available: bool, reason: ?string, message: ?string, ad_accounts: list<array<string, mixed>>, selected: ?array<string, mixed>, period: int, totals: ?array<string, mixed>, campaigns: list<array<string, mixed>>}
      */
-    public function overview(User $user, ?Brand $brand, ?string $adAccountId = null, int $days = 30): array
+    public function overview(User $user, ?Brand $brand, ?string $adAccountId = null, int $days = 30, ?array $range = null): array
     {
         $days = in_array($days, self::PERIODS, true) ? $days : 30;
         $base = ['available' => false, 'reason' => null, 'message' => null, 'ad_accounts' => [], 'selected' => null, 'period' => $days, 'totals' => null, 'campaigns' => []];
@@ -62,8 +62,8 @@ class AdsService
             $selected = collect($adAccounts)->firstWhere('id', $adAccountId) ?? $adAccounts[0];
             $base['selected'] = $selected;
 
-            $until = CarbonImmutable::now('UTC')->toDateString();
-            $since = CarbonImmutable::now('UTC')->subDays($days - 1)->toDateString();
+            // Con `$range` [desde, hasta] (informes) se consulta ese periodo exacto; sin el, los ultimos `$days` hasta hoy.
+            [$since, $until] = $range ?? [CarbonImmutable::now('UTC')->subDays($days - 1)->toDateString(), CarbonImmutable::now('UTC')->toDateString()];
             $campaigns = $this->cached($source, "campaigns:{$selected['id']}", fn () => $this->ads->campaigns($token, $selected['id']));
             $totals = $this->cached($source, "totals:{$selected['id']}:$since:$until", fn () => $this->ads->insights($token, $selected['id'], $since, $until, false));
             $perCampaign = $this->cached($source, "by-campaign:{$selected['id']}:$since:$until", fn () => $this->ads->insights($token, $selected['id'], $since, $until, true));

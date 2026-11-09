@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 /** Validates our public scene format, never a renderer's executable class graph. */
 class StudioDocument
 {
+    public const MAX_TABLE_CELLS = 2000;
+
     public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart', 'table', 'connector'];
 
     public static function blank(int $width = 1080, int $height = 1080): array
@@ -51,6 +53,8 @@ class StudioDocument
             $this->optionalNumber($page, 'duration', 0.1, 3600, $path);
             $count = 0;
             $this->elements($page['elements'] ?? null, $path.'.elements', 1, $count, $seen, $needed);
+            $this->ensure(self::tableCells($page['elements']) <= self::MAX_TABLE_CELLS, $path.'.elements', 'Las tablas de la página superan las '.self::MAX_TABLE_CELLS.' celdas. Reduce filas o columnas.');
+            $document['pages'][$i]['elements'] = self::linkConnectors($page['elements']);
         }
         if ($needed !== []) {
             $links = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
@@ -233,6 +237,63 @@ class StudioDocument
                 $this->elements($element['elements'] ?? null, $p.'.elements', $depth + 1, $count, $seen, $needed);
             }
         }
+    }
+
+    /** Table cells on a page, groups included. */
+    public static function tableCells(array $elements): int
+    {
+        $cells = 0;
+        foreach ($elements as $element) {
+            if ($element['type'] === 'table') {
+                $cells += count($element['table']['rows']) * count($element['table']['rows'][0]);
+            } elseif ($element['type'] === 'group') {
+                $cells += self::tableCells($element['elements']);
+            }
+        }
+
+        return $cells;
+    }
+
+    /**
+     * Keep every connector end pointing at another (non-connector) element of the same page, else null.
+     * With `$renamed` (old id => new id) the ends are first translated, for copies with fresh ids.
+     */
+    public static function linkConnectors(array $elements, ?array $renamed = null): array
+    {
+        $valid = [];
+        $collect = function (array $items) use (&$collect, &$valid): void {
+            foreach ($items as $item) {
+                if ($item['type'] !== 'connector') {
+                    $valid[$item['id']] = true;
+                }
+                if ($item['type'] === 'group') {
+                    $collect($item['elements']);
+                }
+            }
+        };
+        $collect($elements);
+        $walk = function (array $items) use (&$walk, $valid, $renamed): array {
+            foreach ($items as &$item) {
+                if ($item['type'] === 'connector') {
+                    foreach (['from', 'to'] as $key) {
+                        if (! array_key_exists($key, $item)) {
+                            continue;
+                        }
+                        $id = $item[$key];
+                        if ($renamed !== null && $id !== null) {
+                            $id = $renamed[$id] ?? null;
+                        }
+                        $item[$key] = $id !== null && $id !== $item['id'] && isset($valid[$id]) ? $id : null;
+                    }
+                } elseif ($item['type'] === 'group') {
+                    $item['elements'] = $walk($item['elements']);
+                }
+            }
+
+            return $items;
+        };
+
+        return $walk($elements);
     }
 
     private function table(mixed $table, string $path): void

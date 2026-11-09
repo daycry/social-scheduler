@@ -191,11 +191,22 @@ class StudioAutomation
         }
         unset($page);
 
-        return self::visit($document, function (array $element): array {
-            $element['id'] = $element['type'].'_'.Str::uuid();
+        $renamed = [];
+        $document = self::visit($document, function (array $element) use (&$renamed): array {
+            $id = $element['type'].'_'.Str::uuid();
+            $renamed[$element['id']] = $id;
+            $element['id'] = $id;
 
             return $element;
         });
+
+        // A connector follows the copy of the shapes it was glued to; anything outside its page is detached.
+        foreach ($document['pages'] as &$page) {
+            $page['elements'] = StudioDocument::linkConnectors($page['elements'], $renamed);
+        }
+        unset($page);
+
+        return $document;
     }
 
     private function resized(array $document, array $data): array
@@ -212,6 +223,14 @@ class StudioAutomation
                 foreach ($page['elements'] as &$element) {
                     $element['x'] = $element['x'] * $scale + $dx;
                     $element['y'] = $element['y'] * $scale + $dy;
+                    if ($element['type'] === 'connector') {
+                        // Its points are page geometry: scale them, never the transform.
+                        $element['width'] *= $scale;
+                        $element['height'] *= $scale;
+                        $element['points'] = array_map(fn (array $point) => [$point[0] * $scale, $point[1] * $scale], $element['points']);
+
+                        continue;
+                    }
                     $element['scaleX'] = ($element['scaleX'] ?? 1) * $scale;
                     $element['scaleY'] = ($element['scaleY'] ?? 1) * $scale;
                 }

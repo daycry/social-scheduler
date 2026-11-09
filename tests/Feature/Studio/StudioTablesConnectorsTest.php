@@ -3,6 +3,7 @@
 use App\Models\Brand;
 use App\Models\Studio\Design;
 use App\Models\User;
+use App\Services\Studio\StudioService;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\McpClient;
@@ -97,4 +98,79 @@ test('Studio API: the same board document is accepted and returned through the b
     $bad = $document;
     $bad['pages'][0]['elements'][1]['route'] = 'curved';
     $this->postJson('/api/v1/brands/'.$this->brand->id.'/designs', ['name' => 'Mala', 'document' => $bad], $headers)->assertUnprocessable();
+});
+
+function linkedBoard(): array
+{
+    $shape = ['id' => 'forma_1', 'type' => 'rect', 'x' => 10, 'y' => 10, 'width' => 100, 'height' => 60, 'fill' => '#ffffff'];
+
+    return boardDocument([$shape, boardTable(), boardConnector(['from' => 'forma_1', 'to' => 'tabla_1'])]);
+}
+
+function linkedEnds(array $document): array
+{
+    $elements = $document['pages'][0]['elements'];
+
+    return [$elements, $elements[2]['from'], $elements[2]['to']];
+}
+
+test('Studio automation: template, instantiate and variants relink connectors to the new ids', function () {
+    $source = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Pizarra', 'document' => linkedBoard()]);
+    $check = function (array $design) {
+        [$elements, $from, $to] = linkedEnds($design['document']);
+        expect($from)->toBe($elements[0]['id'])->and($to)->toBe($elements[1]['id'])
+            ->and($elements[0]['id'])->not->toBe('forma_1');
+    };
+    $url = '/studio/designs/'.$source->id;
+    $template = $this->postJson($url.'/template', ['revision' => 1])->assertCreated()->json('design');
+    $check($template);
+    $check($this->postJson('/studio/designs/'.$template['id'].'/instantiate', ['revision' => 1])->assertCreated()->json('design'));
+    foreach ($this->postJson($url.'/variants', ['revision' => 1, 'variants' => [['width' => 1600, 'height' => 900], ['width' => 800, 'height' => 800]]])->assertCreated()->json('designs') as $variant) {
+        $check($variant);
+    }
+    app('auth')->forgetGuards();
+    $key = $this->mcpKey($this->user, ['designs:read', 'designs:write']);
+    [$error, $result] = $this->callTool($key, 'manage_design', ['action' => 'template', 'design_id' => $source->id, 'revision' => 1]);
+    expect($error)->toBeFalse();
+    $check($result['design']);
+});
+
+test('Studio automation: a connector pointing outside its page loses that end when copied', function () {
+    $document = linkedBoard();
+    $document['pages'][0]['elements'][2]['to'] = 'otra_pagina';
+    $source = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Pizarra', 'document' => $document]);
+    $design = $this->postJson('/studio/designs/'.$source->id.'/template', ['revision' => 1])->assertCreated()->json('design');
+    [$elements, $from, $to] = linkedEnds($design['document']);
+    expect($from)->toBe($elements[0]['id'])->and($to)->toBeNull();
+});
+
+test('Studio: connector ends must be shapes of the same page, never the connector itself', function () {
+    $document = linkedBoard();
+    $document['pages'][0]['elements'][2]['from'] = 'conector_1';
+    $document['pages'][0]['elements'][2]['to'] = 'fantasma';
+    $id = $this->postJson($this->createUrl, ['name' => 'Enlaces', 'document' => $document])->assertCreated()->json('design.id');
+    [, $from, $to] = linkedEnds($this->getJson('/studio/designs/'.$id)->json('design.document'));
+    expect($from)->toBeNull()->and($to)->toBeNull();
+    $two = boardDocument([...boardDocument([])['pages'][0]['elements'], boardTable()]);
+    $two['pages'][] = ['id' => 'page_2', 'name' => 'Dos', 'background' => '#ffffff', 'duration' => 5, 'elements' => [boardConnector(['id' => 'c_2', 'from' => 'tabla_1'])]];
+    $id = $this->postJson($this->createUrl, ['name' => 'Cruzado', 'document' => $two])->assertCreated()->json('design.id');
+    expect($this->getJson('/studio/designs/'.$id)->json('design.document.pages.1.elements.0.from'))->toBeNull();
+});
+
+test('Studio: a page may hold at most 2000 table cells', function () {
+    $big = fn (string $id) => ['id' => $id] + boardTable(['rows' => array_fill(0, 30, array_fill(0, 12, 'x'))]);
+    $this->postJson($this->createUrl, ['name' => 'Celdas', 'document' => boardDocument(array_map($big, ['t1', 't2', 't3', 't4', 't5', 't6']))])
+        ->assertUnprocessable()->assertJsonValidationErrors('document.pages.0.elements');
+    $this->postJson($this->createUrl, ['name' => 'Celdas', 'document' => boardDocument(array_map($big, ['t1', 't2', 't3', 't4', 't5']))])->assertCreated();
+});
+
+test('Studio automation: resizing scales connector points, not its transform', function () {
+    $source = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Pizarra', 'document' => linkedBoard()]);
+    $design = $this->postJson('/studio/designs/'.$source->id.'/resize', ['revision' => 1, 'width' => 6400, 'height' => 3600])->assertOk()->json('design');
+    $connector = $design['document']['pages'][0]['elements'][2];
+    expect($connector['points'])->toEqual([[0, 0], [300, 0], [300, 240], [600, 240]])
+        ->and($connector['width'])->toEqual(600)->and($connector['height'])->toEqual(240)
+        ->and($connector['x'])->toEqual(200)->and($connector['scaleX'] ?? 1)->toEqual(1)->and($connector['scaleY'] ?? 1)->toEqual(1);
+    $shape = $design['document']['pages'][0]['elements'][0];
+    expect($shape['scaleX'])->toEqual(2);
 });

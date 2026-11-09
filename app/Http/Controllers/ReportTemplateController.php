@@ -6,6 +6,7 @@ use App\Analytics\Period;
 use App\Models\Brand;
 use App\Models\ReportTemplate;
 use App\Services\Reports\ReportBlocks;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -34,7 +35,11 @@ class ReportTemplateController extends Controller
             return back()->withErrors(['blocks' => $e->getMessage()]);
         }
 
-        ReportTemplate::create(['user_id' => $request->user()->id, 'brand_id' => $brand->id, 'name' => $data['name'], 'blocks' => $blocks, 'range_days' => $data['range_days'], 'compare' => $data['compare'] ?? 'none']);
+        try {
+            ReportTemplate::create(['user_id' => $request->user()->id, 'brand_id' => $brand->id, 'name' => $data['name'], 'blocks' => $blocks, 'range_days' => $data['range_days'], 'compare' => $data['compare'] ?? 'none']);
+        } catch (UniqueConstraintViolationException) { // carrera entre dos altas del mismo nombre
+            return back()->withErrors(['name' => 'Ya hay una plantilla con ese nombre en esta marca.']);
+        }
 
         return to_route('reports.index', ['brand_id' => $brand->id])->with('success', 'Plantilla guardada.');
     }
@@ -53,7 +58,11 @@ class ReportTemplateController extends Controller
             return back()->withErrors(['blocks' => $e->getMessage()]);
         }
 
-        $template->update(['name' => $data['name'], 'blocks' => $blocks, 'range_days' => $data['range_days'], 'compare' => $data['compare'] ?? 'none']);
+        try {
+            $template->update(['name' => $data['name'], 'blocks' => $blocks, 'range_days' => $data['range_days'], 'compare' => $data['compare'] ?? 'none']);
+        } catch (UniqueConstraintViolationException) {
+            return back()->withErrors(['name' => 'Ya hay una plantilla con ese nombre en esta marca.']);
+        }
 
         return to_route('reports.index', ['brand_id' => $template->brand_id])->with('success', 'Plantilla actualizada.');
     }

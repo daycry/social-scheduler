@@ -8,7 +8,7 @@ import { clipMediaState, restrictElementWindow } from './timeline.js';
 import { createChartFabric } from './chart-renderer.js';
 import { assertChartDocumentBudget } from './chart-scene.js';
 import { createConnectorFabric, createTableFabric } from './board-objects.js';
-import { anchorPoints, normalizeConnector, routePoints } from './board.js';
+import { anchorPoints, normalizeConnector, rerouteConnector, routePoints } from './board.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const round = value => Math.round((Number(value) || 0) * 1e6) / 1e6;
@@ -363,32 +363,19 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
     const rectOf = object => { const box = object.getBoundingRect(); return { left: box.left, top: box.top, width: box.width, height: box.height }; };
     /** Keep bound connectors glued to their shapes (and detach the ones whose shape was deleted). */
     function reroute() {
-        const byId = new Map(objects().filter(object => !isConnector(object)).map(object => [object.studioId, object]));
+        const byId = new Map();
+        const collect = items => items.forEach(object => { if (isConnector(object)) return; if (object.studioId) byId.set(object.studioId, object); if (object instanceof Group && !(object instanceof ActiveSelection)) collect(object.getObjects()); });
+        collect(objects());
         const active = new Set(selectedObjects());
         for (const object of objects().filter(isConnector)) {
             if (active.has(object) || object.studioLocked) continue;
             const current = studioObjectToElement(object);
             const from = byId.get(current.from);
             const to = byId.get(current.to);
-            const next = { ...current, from: from ? current.from : null, to: to ? current.to : null };
-            const absolute = current.points.map(([x, y]) => ({ x: x + current.x, y: y + current.y }));
-            let start = absolute[0];
-            let end = absolute.at(-1);
-            let horizontal = Math.abs(absolute[1].x - absolute[0].x) >= Math.abs(absolute[1].y - absolute[0].y);
-            if (from && to) ({ start, end, horizontal } = anchorPoints(rectOf(from), rectOf(to)));
-            else if (from || to) {
-                const bound = rectOf(from ?? to);
-                const free = from ? end : start;
-                const placed = anchorPoints(from ? bound : { left: free.x, top: free.y, width: 0, height: 0 }, from ? { left: free.x, top: free.y, width: 0, height: 0 } : bound);
-                if (from) ({ start, horizontal } = placed); else ({ end, horizontal } = placed);
-            }
-            const points = routePoints(start, end, current.route, horizontal);
-            const same = next.from === current.from && next.to === current.to && points.length === absolute.length
-                && points.every(([x, y], i) => Math.abs(x - absolute[i].x) < 0.5 && Math.abs(y - absolute[i].y) < 0.5);
-            if (same) continue;
-            const frame = normalizeConnector({ ...next, x: 0, y: 0, points });
-            const replacement = createConnectorFabric({ ...next, ...frame, points: frame.points }, commonOptions({ ...next, ...frame }));
-            setIdentity(replacement, { ...next, ...frame });
+            const element = rerouteConnector(current, from && rectOf(from), to && rectOf(to));
+            if (!element) continue;
+            const replacement = createConnectorFabric(element, commonOptions(element));
+            setIdentity(replacement, element);
             const position = objects().indexOf(object);
             canvas.remove(object); canvas.insertAt(position, replacement); object.dispose();
         }

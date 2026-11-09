@@ -76,3 +76,33 @@ export function normalizeConnector(element) {
         commands: commands.map(([type, x, y]) => [type, round(x - frame.minX), round(y - frame.minY)]),
     };
 }
+
+const IDENTITY = Object.freeze({ scaleX: 1, scaleY: 1, rotation: 0, skewX: 0, skewY: 0, flipX: false, flipY: false });
+
+/**
+ * Recompute a connector against the rectangles (page coordinates) of the shapes it is glued to.
+ * A missing rectangle means the shape is gone, so that end is detached. The points are in page
+ * coordinates, hence the redrawn connector carries the identity transform, not the old one.
+ * Returns null when nothing changes.
+ */
+export function rerouteConnector(current, fromRect, toRect) {
+    const next = { ...current, from: fromRect ? current.from : null, to: toRect ? current.to : null };
+    const absolute = current.points.map(([x, y]) => ({ x: x + current.x, y: y + current.y }));
+    let start = absolute[0];
+    let end = absolute.at(-1);
+    let horizontal = Math.abs(absolute[1].x - absolute[0].x) >= Math.abs(absolute[1].y - absolute[0].y);
+    if (fromRect && toRect) ({ start, end, horizontal } = anchorPoints(fromRect, toRect));
+    else if (fromRect || toRect) {
+        const free = fromRect ? end : start;
+        const dot = { left: free.x, top: free.y, width: 0, height: 0 };
+        const placed = anchorPoints(fromRect ?? dot, fromRect ? dot : toRect);
+        if (fromRect) ({ start, horizontal } = placed); else ({ end, horizontal } = placed);
+    }
+    const points = routePoints(start, end, current.route, horizontal);
+    const same = next.from === current.from && next.to === current.to && points.length === absolute.length
+        && points.every(([x, y], i) => Math.abs(x - absolute[i].x) < 0.5 && Math.abs(y - absolute[i].y) < 0.5)
+        && Object.entries(IDENTITY).every(([key, value]) => (current[key] ?? value) === value);
+    if (same) return null;
+    const frame = normalizeConnector({ ...next, x: 0, y: 0, points });
+    return { ...next, ...IDENTITY, ...frame, points: frame.points };
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { anchorPoints, connectorCommands, normalizeConnector, routePoints } from '../../resources/js/Studio/board.js';
+import { anchorPoints, connectorCommands, normalizeConnector, rerouteConnector, routePoints } from '../../resources/js/Studio/board.js';
 import { duplicatePage, newElement, validateDocument, StudioDocumentError } from '../../resources/js/Studio/document.js';
 
 const page = elements => ({ schema_version: 1, width: 3200, height: 1800, pages: [{ id: 'p1', name: 'Pizarra', background: '#f8fafc', duration: 5, elements }] });
@@ -38,4 +38,23 @@ test('duplicating a page re-attaches connectors to the copied shapes', () => {
     assert.equal(copy.elements[1].from, copy.elements[0].id);
     assert.notEqual(copy.elements[0].id, 'tabla_1');
     assert.equal(copy.elements[1].to, null);
+});
+
+test('rerouting redraws a connector with the identity transform, whatever it inherited', () => {
+    const base = { x: 0, y: 0, route: 'straight', arrow: 'end', strokeWidth: 4, points: [[0, 0], [100, 0]], from: 'a', to: 'b', scaleX: 2, scaleY: 0.5, rotation: 30, flipX: true, flipY: true, skewX: 5, skewY: 5 };
+    const moved = rerouteConnector(base, { left: 0, top: 0, width: 10, height: 10 }, { left: 300, top: 300, width: 10, height: 10 });
+    assert.deepEqual([moved.scaleX, moved.scaleY, moved.rotation, moved.flipX, moved.flipY, moved.skewX, moved.skewY], [1, 1, 0, false, false, 0, 0]);
+    assert.equal(moved.from, 'a');
+    // Even when the geometry does not move, a stale transform forces a clean redraw.
+    const still = rerouteConnector({ ...base, points: [[10, 5], [300, 305]], scaleX: 1.5 }, { left: 0, top: 0, width: 10, height: 10 }, { left: 300, top: 300, width: 10, height: 10 });
+    assert.equal(still?.scaleX, 1);
+});
+
+test('deleting a shape detaches its end of the connector, the other end stays glued', () => {
+    const base = { x: 0, y: 0, route: 'straight', arrow: 'end', strokeWidth: 4, points: [[10, 5], [300, 305]], from: 'a', to: 'b' };
+    const gone = rerouteConnector(base, { left: 0, top: 0, width: 10, height: 10 }, undefined);
+    assert.equal(gone.from, 'a');
+    assert.equal(gone.to, null);
+    const both = rerouteConnector(base, undefined, undefined);
+    assert.deepEqual([both.from, both.to], [null, null]);
 });

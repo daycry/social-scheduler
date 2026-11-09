@@ -3,6 +3,7 @@ import NetworkIcon from '@/Components/NetworkIcon.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PresetsPanel from '@/Components/Composer/PresetsPanel.vue';
 import FirstCommentField from '@/Components/Composer/FirstCommentField.vue';
+import ManualToggle from '@/Components/Composer/ManualToggle.vue';
 import InstagramAudioField from '@/Components/Composer/InstagramAudioField.vue';
 import PresetSection from '@/Components/Composer/PresetSection.vue';
 import InstagramCollaboratorsField from '@/Components/Composer/InstagramCollaboratorsField.vue';
@@ -107,6 +108,7 @@ const hasOptions = (account) => {
             <!-- Solo aparecen las opciones admitidas; la indicación de IA de Instagram es por publicación. -->
             <PresetsPanel v-if="hasYoutubeFields(account) || switchesFor(account, targetFor(account.id)).length" :account="account" />
             <FirstCommentField :account="account" />
+            <ManualToggle :account="account" />
             <p v-if="targetFor(account.id).content_type !== 'instagram_reel' && account.audio?.embedded_video_types?.includes(targetFor(account.id).content_type)" class="rounded-xl bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600" data-testid="network-audio-note">{{ account.audio.note }}</p>
             <InstagramAudioField v-if="targetFor(account.id).content_type === 'instagram_reel'" :account="account" />
         </PresetSection>

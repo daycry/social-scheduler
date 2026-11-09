@@ -40,6 +40,8 @@ export const AUTH_PAGES: Array<[string, string]> = [
     ['mejores horas', '/best-times'],
     ['biblioteca', '/library'],
     ['papelera', '/trash'],
+    ['aprobaciones', '/approvals'],
+    ['series', '/series'],
     ['smartlinks', '/smartlinks'],
     ['competidores', '/competitors'],
     ['autolistas', '/autolists'],

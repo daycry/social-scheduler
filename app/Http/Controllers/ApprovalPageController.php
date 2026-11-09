@@ -28,7 +28,7 @@ class ApprovalPageController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $brands = Brand::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->get(['id', 'name']);
+        $brands = Brand::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->get();
 
         return Inertia::render('Approvals/Index', [
             'pending' => array_map(fn (Post $p) => $this->approvals->present($p), $this->approvals->pendingFor($user)),

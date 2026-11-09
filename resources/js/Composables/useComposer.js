@@ -28,6 +28,8 @@ export function useComposer(props) {
         campaign_id: props.post?.campaign_id ?? null,
         scheduled_at: props.post?.scheduled_at ?? '',
         schedule: true,
+        // Aprobación (T-19): solo al crear. En un post guardado se pide con su botón (ApprovalPanel).
+        requires_approval: false,
         media: (props.post?.media ?? []).map((m) => m.id),
         targets: (props.post?.targets ?? []).map((t) => ({
             account_id: t.account_id,
@@ -35,6 +37,8 @@ export function useComposer(props) {
             // `null` = vinculado al texto común (plantilla); una cadena = texto propio de esta red (C-03).
             text: t.text ?? null,
             first_comment: t.first_comment ?? '',
+            // Publicación manual (T-19): el destino no se envía a la red; a la hora se avisa y se marca como publicado.
+            manual: !!t.manual,
             // Media propia del destino (T-17): `null` = hereda la común; una lista [{ id, alt, cover_id }] = su selección, orden, alt y portada.
             media: t.media ? t.media.map((m) => ({ id: m.id, alt: m.alt ?? '', cover_id: m.cover_id ?? null })) : null,
             options: { ...(t.options ?? {}) },
@@ -186,7 +190,7 @@ export function useComposer(props) {
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
             const type = typesOf(account.network)[0]?.value;
-            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', media: null, options: presetOptions(account, type) });
+            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', manual: false, media: null, options: presetOptions(account, type) });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }

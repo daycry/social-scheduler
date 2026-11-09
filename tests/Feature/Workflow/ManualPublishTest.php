@@ -6,6 +6,7 @@ use App\Enums\PostStatus;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
+use App\Models\BrandCollaborator;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
@@ -136,4 +137,18 @@ test('reprogramar o editar un manual rearma el aviso', function () {
 
     Carbon::setTestNow('2026-11-10 09:30:00');
     expect(app(ManualPublishService::class)->notifyDue())->toBe(1);
+});
+
+test('las paginas de aprobaciones, series y aviso manual se renderizan con sus datos', function () {
+    $collab = BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $this->other->id, 'role' => 'aprobador']);
+    $post = manualPost();
+
+    $this->actingAs($this->user)->get(route('approvals.index'))->assertOk()
+        ->assertInertia(fn ($page) => $page->component('Approvals/Index')->has('brands', 1)->where('brands.0.collaborators.0.id', $collab->id));
+    $this->actingAs($this->user)->get(route('series.index'))->assertOk()
+        ->assertInertia(fn ($page) => $page->component('Series/Index')->has('brands.0.accounts', 2));
+    $this->actingAs($this->user)->get(route('posts.manual.show', $post->id))->assertOk()
+        ->assertInertia(fn ($page) => $page->component('Posts/Manual')->has('targets', 1));
+    // Un aprobador invitado ve la bandeja sin gestionar colaboradores.
+    $this->actingAs($this->other)->get(route('approvals.index'))->assertOk()->assertInertia(fn ($page) => $page->has('brands', 0));
 });

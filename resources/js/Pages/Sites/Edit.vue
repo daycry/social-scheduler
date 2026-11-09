@@ -50,19 +50,20 @@ watch(
 
 const TYPE_LABELS = { heading: 'Título', text: 'Texto', image: 'Imagen', gallery: 'Galería', button: 'Botón o enlace', youtube: 'Video de YouTube', contact: 'Formulario de contacto', design: 'Diseño del estudio', faq: 'Preguntas frecuentes (acordeón)', poll: 'Encuesta' };
 const TYPES = Object.keys(TYPE_LABELS);
-const blank = (type) =>
-    ({
-        heading: { type, text: '', level: 2 },
-        text: { type, body: '' },
-        image: { type, media_id: null, alt: '', caption: '' },
-        gallery: { type, items: [{ media_id: null, alt: '' }] },
-        button: { type, label: '', kind: 'url', url: 'https://', page: null },
-        youtube: { type, url: 'https://', title: '' },
-        contact: { type, title: 'Escríbenos', cta: 'Enviar', consent: '' },
-        design: { type, export_id: null, page: 0, alt: '' },
-        faq: { type, title: '', items: [{ q: '', a: '' }] },
-        poll: { type, question: '', options: ['', ''] },
-    })[type];
+const blank = (type) => {
+    switch (type) {
+        case 'heading': return { type, text: '', level: 2 };
+        case 'text': return { type, body: '' };
+        case 'image': return { type, media_id: null, alt: '', caption: '' };
+        case 'gallery': return { type, items: [{ media_id: null, alt: '' }] };
+        case 'button': return { type, label: '', kind: 'url', url: 'https://', page: null };
+        case 'contact': return { type, title: 'Escríbenos', cta: 'Enviar', consent: '' };
+        case 'design': return { type, export_id: null, page: 0, alt: '' };
+        case 'faq': return { type, title: '', items: [{ q: '', a: '' }] };
+        case 'poll': return { type, question: '', options: ['', ''] };
+        default: return { type, url: 'https://', title: '' }; // video
+    }
+};
 
 const addPage = () => {
     if (form.pages.length >= props.limits.pages) return;

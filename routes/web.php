@@ -179,6 +179,7 @@ Route::get('reports/{report}/download/{owner}', [ReportController::class, 'downl
     ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');
 
 require __DIR__.'/parity.php';
+require __DIR__.'/sites.php';
 require __DIR__.'/studio.php';
 require __DIR__.'/post-workflow.php';
 

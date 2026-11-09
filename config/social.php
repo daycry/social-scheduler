@@ -319,6 +319,8 @@ return [
     */
     /* SmartLinks: contacto al que enviar denuncias de una pagina publica (por defecto, el remitente del correo). */
     'smartlinks' => [
+        /* Tope de suscriptores por formulario de email (el formulario es publico: acota el abuso). */
+        'max_subscribers' => (int) env('SMARTLINKS_MAX_SUBSCRIBERS', 5000),
         'report_email' => env('SMARTLINKS_REPORT_EMAIL'),
     ],
 

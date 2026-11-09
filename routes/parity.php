@@ -44,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // SmartLinks (PA-07): el microsite de la marca.
     Route::get('smartlinks', [SmartLinkController::class, 'index'])->name('smartlinks.index');
     Route::post('smartlinks', [SmartLinkController::class, 'save'])->name('smartlinks.save');
+    Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers');
     Route::delete('smartlinks/{smartLink}', [SmartLinkController::class, 'destroy'])->whereNumber('smartLink')->name('smartlinks.destroy');
 
     // Analytics · Competidores de Instagram (PA-08).
@@ -103,5 +104,6 @@ Route::withoutMiddleware([
 ])->middleware('throttle:120,1')->group(function () {
     $slug = '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])';
     Route::get('l/{slug}', [PublicSmartLinkController::class, 'show'])->where('slug', $slug)->name('smartlinks.public');
+    Route::post('l/{slug}/subscribe/{block}', [PublicSmartLinkController::class, 'subscribe'])->middleware('throttle:5,1,smartlink-subscribe')->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.subscribe');
     Route::get('l/{slug}/go/{block}', [PublicSmartLinkController::class, 'go'])->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.go');
 });

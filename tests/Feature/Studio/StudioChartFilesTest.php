@@ -152,7 +152,7 @@ final class StudioChartFilesTest extends TestCase
             $call();
             $this->fail('Expected '.$status);
         } catch (HttpException $e) {
-            $this->assertSame($status,$e->getStatusCode());
+            $this->assertSame($status, $e->getStatusCode());
         }
     }
 }

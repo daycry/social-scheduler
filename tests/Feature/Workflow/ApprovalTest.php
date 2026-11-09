@@ -34,6 +34,11 @@ beforeEach(function () {
     BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => 'aprobador']);
 });
 
+function wfSig(Post $post): string
+{
+    return (string) $post->fresh()->approval_signature;
+}
+
 function approvalPost(array $over = []): Post
 {
     return app(PostService::class)->create(test()->owner, test()->brand, array_merge([
@@ -55,7 +60,7 @@ test('flujo completo: pedir, aprobar por el aprobador invitado, programar', func
     $this->actingAs($this->owner)->postJson(route('workflow.approval.request', $post->id))->assertOk()->assertJsonPath('post.approval_status', 'pendiente');
     expect($this->approver->fresh()->notifications()->where('data->type', 'approval_requested')->count())->toBe(1);
 
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id))->assertOk()->assertJsonPath('post.approval_status', 'aprobado');
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertOk()->assertJsonPath('post.approval_status', 'aprobado');
     expect($this->owner->fresh()->notifications()->where('data->type', 'approval_approved')->count())->toBe(1);
 
     $scheduled = app(PostService::class)->schedule($this->owner, $post->fresh());
@@ -65,8 +70,8 @@ test('flujo completo: pedir, aprobar por el aprobador invitado, programar', func
 test('rechazar exige comentario, deja el post en borrador y avisa al propietario', function () {
     $post = approvalPost(['requires_approval' => true]);
 
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $post->id), ['comment' => '  '])->assertStatus(422);
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $post->id), ['comment' => 'Falta el enlace'])
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $post->id), ['signature' => wfSig($post), 'comment' => '  '])->assertStatus(422);
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $post->id), ['signature' => wfSig($post), 'comment' => 'Falta el enlace'])
         ->assertOk()->assertJsonPath('post.approval_status', 'rechazado')->assertJsonPath('post.approval_comment', 'Falta el enlace');
 
     expect($post->fresh()->status)->toBe(PostStatus::Draft);
@@ -78,23 +83,23 @@ test('rechazar exige comentario, deja el post en borrador y avisa al propietario
 
 test('aprobar y rechazar son idempotentes y no se pisan', function () {
     $post = approvalPost(['requires_approval' => true]);
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id))->assertOk();
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id))->assertOk();
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertOk();
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertOk();
     expect($this->owner->notifications()->where('data->type', 'approval_approved')->count())->toBe(1);
 
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $post->id), ['comment' => 'tarde'])->assertStatus(422);
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $post->id), ['signature' => wfSig($post), 'comment' => 'tarde'])->assertStatus(422);
     expect($post->fresh()->approval_status)->toBe('aprobado');
 });
 
 test('un extrano o un colaborador revocado no aprueba y recibe un 404 uniforme (sin IDOR)', function () {
     $post = approvalPost(['requires_approval' => true]);
 
-    $this->actingAs($this->stranger)->postJson(route('workflow.approval.approve', $post->id))->assertNotFound();
+    $this->actingAs($this->stranger)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertNotFound();
     $this->actingAs($this->stranger)->postJson(route('workflow.approval.approve', 999999))->assertNotFound();
     $this->actingAs($this->stranger)->postJson(route('workflow.approval.request', $post->id))->assertNotFound();
 
     $this->actingAs($this->owner)->deleteJson(route('workflow.collaborators.destroy', [$this->brand->id, BrandCollaborator::query()->first()->id]))->assertOk();
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id))->assertNotFound();
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertNotFound();
     expect($post->fresh()->approval_status)->toBe('pendiente');
 });
 
@@ -108,7 +113,7 @@ test('un aprobador no puede pedir la aprobacion ni gestionar ajenas, pero si ve 
 
 test('editar el contenido de un post aprobado lo devuelve a pendiente y a borrador; guardar sin cambios no', function () {
     $post = approvalPost(['requires_approval' => true, 'scheduled_at' => '2026-11-10T10:00']);
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id))->assertOk();
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertOk();
     $service = app(PostService::class);
     $service->schedule($this->owner, $post->fresh());
     expect($post->fresh()->status)->toBe(PostStatus::Scheduled);
@@ -153,9 +158,9 @@ test('un post sin aprobar nunca se publica: ni el despachador ni el job ni publi
 
 test('la API REST aprueba y rechaza con la misma respuesta que la web y audita', function () {
     $post = approvalPost(['requires_approval' => true]);
-    $key = $this->approver->createToken('k', ['posts:write'])->plainTextToken;
+    $key = $this->approver->createToken('k', ['posts:write', 'posts:approve'])->plainTextToken;
 
-    $this->withToken($key)->postJson('/api/v1/posts/'.$post->id.'/approval/approve')->assertOk()->assertJsonPath('post.approval_status', 'aprobado');
+    $this->withToken($key)->postJson('/api/v1/posts/'.$post->id.'/approval/approve', ['signature' => wfSig($post)])->assertOk()->assertJsonPath('post.approval_status', 'aprobado');
     expect(AuditLog::query()->where('action', 'approve_post')->where('channel', 'api')->where('outcome', 'ok')->exists())->toBeTrue();
 
     $readOnly = $this->approver->createToken('r', ['posts:read'])->plainTextToken;

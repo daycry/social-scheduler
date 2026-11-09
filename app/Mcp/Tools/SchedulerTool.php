@@ -83,7 +83,7 @@ abstract class SchedulerTool extends Tool
             $status = $e->getStatusCode();
             $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status);
 
-            return Response::error(in_array($status, [403, 409], true) ? $status.': '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : ($status === 503 && $this->resource() === 'studio_dataset' ? '503: Dataset snapshot unavailable.' : 'No se pudo completar la operación.')));
+            return Response::error(in_array($status, [403, 409, 429], true) ? $status.': '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : ($status === 503 && $this->resource() === 'studio_dataset' ? '503: Dataset snapshot unavailable.' : 'No se pudo completar la operación.')));
         } catch (PostValidationException $e) {
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 

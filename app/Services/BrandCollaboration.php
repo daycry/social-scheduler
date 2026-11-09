@@ -33,6 +33,7 @@ class BrandCollaboration
     public function invite(User $actor, Brand $brand, mixed $email, mixed $role = BrandCollaborator::ROLE_APPROVER): ?BrandCollaborator
     {
         $this->assertOwner($actor, $brand);
+        ServiceThrottle::hit($actor, 'brand-collaborators');
         $data = validator(['email' => $email, 'role' => $role ?: BrandCollaborator::ROLE_APPROVER], [
             'email' => ['required', 'string', 'email', 'max:255'],
             'role' => ['required', 'in:'.implode(',', self::ROLES)],

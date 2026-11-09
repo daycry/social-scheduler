@@ -89,7 +89,7 @@ test('aprobar y rechazar en lote respetan el permiso de cada elemento', function
     $other = foreignPost();
     Post::withoutUserScope()->whereKey($other->id)->update(['approval_status' => 'pendiente']);
 
-    $res = $this->actingAs($this->approver)->postJson(route('workflow.batch'), ['action' => 'approve', 'post_ids' => [$mine->id, $other->id]])->assertOk();
+    $res = $this->actingAs($this->approver)->postJson(route('workflow.batch'), ['action' => 'approve', 'post_ids' => [$mine->id, $other->id], 'signatures' => [$mine->id => wfSig($mine), $other->id => 'zz']])->assertOk();
     expect($res->json('ok'))->toBe(1)->and($mine->fresh()->approval_status)->toBe('aprobado')->and($other->fresh()->approval_status)->toBe('pendiente');
 
     // El aprobador no puede cancelar ni borrar: no es el propietario.
@@ -98,7 +98,7 @@ test('aprobar y rechazar en lote respetan el permiso de cada elemento', function
 
     $this->actingAs($this->approver)->postJson(route('workflow.batch'), ['action' => 'reject', 'post_ids' => [$mine->id]])->assertStatus(422);
     $p2 = batchPost(['schedule' => false, 'requires_approval' => true]);
-    $this->actingAs($this->user)->postJson(route('workflow.batch'), ['action' => 'reject', 'post_ids' => [$p2->id], 'comment' => 'No'])->assertOk()->assertJsonPath('ok', 1);
+    $this->actingAs($this->user)->postJson(route('workflow.batch'), ['action' => 'reject', 'post_ids' => [$p2->id], 'comment' => 'No', 'signatures' => [$p2->id => wfSig($p2)]])->assertOk()->assertJsonPath('ok', 1);
     expect($p2->fresh()->approval_status)->toBe('rechazado');
 });
 

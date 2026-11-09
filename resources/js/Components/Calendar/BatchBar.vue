@@ -43,6 +43,8 @@ const run = async () => {
         post_ids: [...props.selected],
         ...(action.value === 'reschedule' ? { shift_days: Number(shiftDays.value) || 0, shift_hours: Number(shiftHours.value) || 0 } : {}),
         ...(action.value === 'reject' ? { comment: comment.value } : {}),
+        // Aprobar o rechazar exige la versión que se ve en la lista: si alguien editó el contenido, ese elemento falla con 409.
+        ...(['approve', 'reject'].includes(action.value) ? { signatures: Object.fromEntries(props.selected.map((id) => [id, props.items.find((i) => i.id === id)?.approval_signature ?? ''])) } : {}),
     };
     const serialized = JSON.stringify(body);
     if (serialized !== lastBody) {

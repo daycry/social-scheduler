@@ -19,6 +19,11 @@ class BatchPosts extends SchedulerTool
         return Abilities::POSTS_WRITE;
     }
 
+    protected function abilityFor(Request $request): string
+    {
+        return in_array($request->get('action'), ['approve', 'reject'], true) ? Abilities::POSTS_APPROVE : Abilities::POSTS_WRITE;
+    }
+
     protected function resource(): ?string
     {
         return 'post';
@@ -26,7 +31,7 @@ class BatchPosts extends SchedulerTool
 
     public function schema(JsonSchema $schema): array
     {
-        return ['action' => $schema->string()->enum(['schedule', 'reschedule', 'cancel', 'delete', 'approve', 'reject'])->required(), 'post_ids' => $schema->array()->items($schema->integer())->description('IDs de publicaciones (maximo 100)')->required(), 'shift_days' => $schema->integer()->description('reschedule: dias a desplazar'), 'shift_hours' => $schema->integer()->description('reschedule: horas a desplazar'), 'comment' => $schema->string()->description('reject: motivo'), 'idempotency_key' => $schema->string()->description('Clave de idempotencia (hasta 120 caracteres: letras, numeros . _ : -)')];
+        return ['action' => $schema->string()->enum(['schedule', 'reschedule', 'cancel', 'delete', 'approve', 'reject'])->required(), 'post_ids' => $schema->array()->items($schema->integer())->description('IDs de publicaciones (maximo 100)')->required(), 'shift_days' => $schema->integer()->description('reschedule: dias a desplazar'), 'shift_hours' => $schema->integer()->description('reschedule: horas a desplazar'), 'comment' => $schema->string()->description('reject: motivo'), 'signatures' => $schema->object()->description('approve/reject: mapa id => content_signature revisada de cada publicacion'), 'idempotency_key' => $schema->string()->description('Clave de idempotencia (hasta 120 caracteres: letras, numeros . _ : -)')];
     }
 
     protected function run(Request $request, User $user): array

@@ -38,15 +38,15 @@ class PostWorkflowActions
     }
 
     /** @return array<string, mixed> */
-    public function approve(User $user, int $post): array
+    public function approve(User $user, int $post, mixed $signature = null): array
     {
-        return $this->decision($this->approvals->approve($user, $this->approvals->findForDecision($user, $post)));
+        return $this->decision($this->approvals->approve($user, $this->approvals->findForDecision($user, $post), $signature));
     }
 
     /** @return array<string, mixed> */
-    public function reject(User $user, int $post, mixed $comment): array
+    public function reject(User $user, int $post, mixed $comment, mixed $signature = null): array
     {
-        return $this->decision($this->approvals->reject($user, $this->approvals->findForDecision($user, $post), $comment));
+        return $this->decision($this->approvals->reject($user, $this->approvals->findForDecision($user, $post), $comment, $signature));
     }
 
     /** @return array<string, mixed> */
@@ -82,7 +82,7 @@ class PostWorkflowActions
      */
     public function batch(User $user, array $input, ?string $key): array
     {
-        $input = array_intersect_key($input, array_flip(['action', 'post_ids', 'shift_days', 'shift_hours', 'comment']));
+        $input = array_intersect_key($input, array_flip(['action', 'post_ids', 'shift_days', 'shift_hours', 'comment', 'signatures']));
 
         return $this->idempotency->run($user, 'post-batch', $key, $input, fn () => $this->batches->run($user, $input));
     }

@@ -231,6 +231,7 @@ class CalendarService
             'can_publish_now' => $editable && $post->isPublishable() && $post->targets->isNotEmpty() && in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled], true),
             // T-19: aprobacion, serie, reintento y publicacion manual.
             'approval_status' => $post->approval_status,
+            'approval_signature' => $post->approval_signature,
             'series_id' => $post->series_id,
             'can_retry' => $post->isPublishable() && $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed),
             'has_manual' => $post->targets->contains(fn (PostTarget $t) => $t->manual),

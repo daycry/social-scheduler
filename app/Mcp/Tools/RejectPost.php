@@ -16,7 +16,7 @@ class RejectPost extends SchedulerTool
 {
     protected function ability(): string
     {
-        return Abilities::POSTS_WRITE;
+        return Abilities::POSTS_APPROVE;
     }
 
     protected function resource(): ?string
@@ -26,13 +26,13 @@ class RejectPost extends SchedulerTool
 
     public function schema(JsonSchema $schema): array
     {
-        return ['post_id' => $schema->integer()->min(1)->description('ID de la publicacion')->required(), 'comment' => $schema->string()->description('Motivo del rechazo (obligatorio, hasta 2000 caracteres)')->required()];
+        return ['post_id' => $schema->integer()->min(1)->description('ID de la publicacion')->required(), 'comment' => $schema->string()->description('Motivo del rechazo (obligatorio, hasta 2000 caracteres)')->required(), 'signature' => $schema->string()->description('content_signature revisada; si el contenido cambio responde 409')->required()];
     }
 
     protected function run(Request $request, User $user): array
     {
         $actions = app(PostWorkflowActions::class);
 
-        return $actions->reject($user, (int) $request->get('post_id'), $request->get('comment'));
+        return $actions->reject($user, (int) $request->get('post_id'), $request->get('comment'), $request->get('signature'));
     }
 }

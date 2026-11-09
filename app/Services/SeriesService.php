@@ -156,9 +156,16 @@ class SeriesService
         $max = $series->max_occurrences;
         $weekdays = array_map('intval', (array) ($series->weekdays ?: [$start->isoWeekday()]));
 
+        // Sin tope de numero de veces no hace falta recorrer desde el origen: se salta hasta una semana antes de hoy.
+        $floor = CarbonImmutable::now('UTC')->subDays(7)->startOfDay();
+        $skip = 0;
+        if ($max === null && $start->lt($floor)) {
+            $skip = $series->frequency === 'mensual' ? (int) $start->diffInMonths($floor) : (int) $start->diffInDays($floor);
+        }
+
         $out = [];
         $n = 0;
-        for ($i = 0; $i < 4000; $i++) {
+        for ($i = $skip; $i < $skip + 4000; $i++) {
             $day = match ($series->frequency) {
                 'diaria' => $start->addDays($i),
                 'semanal' => $start->addDays($i),
@@ -246,13 +253,14 @@ class SeriesService
             'weekdays' => ['nullable', 'array', 'max:7'],
             'weekdays.*' => ['integer', 'between:1,7'],
             'time_local' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
-            'starts_on' => ['required', 'date_format:Y-m-d'],
+            'starts_on' => ['required', 'date_format:Y-m-d', ...($current === null || ($data['starts_on'] ?? null) !== $current->starts_on->format('Y-m-d') ? ['after_or_equal:'.now()->subYear()->format('Y-m-d')] : [])],
             'ends_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:starts_on'],
             'max_occurrences' => ['nullable', 'integer', 'between:1,'.self::MAX_OCCURRENCES],
         ], [
             'frequency.in' => 'La frecuencia debe ser diaria, semanal o mensual.',
             'time_local.regex' => 'La hora debe tener el formato HH:MM.',
             'ends_on.after_or_equal' => 'El fin no puede ser anterior al inicio.',
+            'starts_on.after_or_equal' => 'El inicio no puede ser de hace mas de un anio.',
         ]);
         $clean = $v->validate();
 

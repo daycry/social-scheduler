@@ -31,12 +31,12 @@ class PostWorkflowController extends Controller
 
     public function approve(Request $request, int $post): JsonResponse
     {
-        return $this->guard($request, 'approve_post', $post, fn () => $this->actions->approve($request->user(), $post));
+        return $this->guard($request, 'approve_post', $post, fn () => $this->actions->approve($request->user(), $post, $request->input('signature')));
     }
 
     public function reject(Request $request, int $post): JsonResponse
     {
-        return $this->guard($request, 'reject_post', $post, fn () => $this->actions->reject($request->user(), $post, $request->input('comment')));
+        return $this->guard($request, 'reject_post', $post, fn () => $this->actions->reject($request->user(), $post, $request->input('comment'), $request->input('signature')));
     }
 
     public function manualContent(Request $request, int $post): JsonResponse
@@ -56,6 +56,10 @@ class PostWorkflowController extends Controller
 
     public function batch(Request $request): JsonResponse
     {
+        // Aprobar o rechazar en lote exige la ability propia en los tokens de la API (las sesiones web no llevan token).
+        if ($request->routeIs('api.*') && in_array($request->input('action'), ['approve', 'reject'], true) && ! $request->user()->tokenCan('posts:approve')) {
+            return response()->json(['message' => 'Falta el permiso posts:approve.'], 403);
+        }
         $key = $request->header('Idempotency-Key') ?: $request->input('idempotency_key');
         $replayed = false;
         $response = $this->guard($request, 'batch_posts', null, function () use ($request, $key, &$replayed) {

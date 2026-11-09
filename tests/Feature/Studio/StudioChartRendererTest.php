@@ -96,6 +96,6 @@ final class StudioChartRendererTest extends TestCase
             return Process::result(output: '{"files":[{"name":"page-001.svg","mime":"image/svg+xml"}]}');
         });
         (new StudioRenderer(\Mockery::mock(StudioService::class), $exports, $assets, $fonts))->render($export->id);
-        $this->assertSame('ready',$export->refresh()->status,$export->error ?? '');
+        $this->assertSame('ready', $export->refresh()->status, $export->error ?? '');
     }
 }

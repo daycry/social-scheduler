@@ -11,6 +11,9 @@ final class Abilities
 
     public const POSTS_WRITE = 'posts:write';
 
+    /** Aprobar o rechazar publicaciones (T-19): no basta posts:write. */
+    public const POSTS_APPROVE = 'posts:approve';
+
     public const STATS_READ = 'stats:read';
 
     public const DESIGNS_READ = 'designs:read';
@@ -30,6 +33,7 @@ final class Abilities
             self::BRANDS_READ => 'Leer marcas, cuentas conectadas y media',
             self::POSTS_READ => 'Leer publicaciones, su estado y el calendario',
             self::POSTS_WRITE => 'Crear, programar, editar, cancelar y borrar publicaciones',
+            self::POSTS_APPROVE => 'Aprobar y rechazar publicaciones pendientes de aprobacion',
             self::STATS_READ => 'Leer estadisticas de marcas, redes y publicaciones',
             self::DESIGNS_READ => 'Leer diseños, recursos, kits y exportaciones de las marcas',
             self::DESIGNS_WRITE => 'Crear y editar diseños, kits y exportaciones de las marcas',

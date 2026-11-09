@@ -355,7 +355,8 @@ class PostService
                 throw new PostValidationException(['post' => [$off->content_type->network()->label().' no esta disponible en esta instalacion: quita ese destino antes de reprogramar.']]);
             }
 
-            $post->forceFill(['scheduled_at' => $at])->save();
+            // Mover una ocurrencia a mano la saca de la serie: `reconcile()` no la devuelve a su fecha.
+            $post->forceFill(['scheduled_at' => $at] + ($post->series_id !== null ? ['series_exception' => true] : []))->save();
             PostTarget::withoutUserScope()->where('post_id', $post->id)->where('manual', true)->update(['manual_notified_at' => null]);
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
@@ -464,7 +465,8 @@ class PostService
             return $plan;
         }
 
-        if ($post->approval_status === Post::APPROVAL_APPROVED && $this->postSignature($post) !== $this->planSignature($plan)) {
+        // Cambiar el contenido invalida la version que se pidio aprobar (CWE-367), este aprobada o aun pendiente.
+        if (in_array($post->approval_status, [Post::APPROVAL_APPROVED, Post::APPROVAL_PENDING], true) && $this->postSignature($post) !== $this->planSignature($plan)) {
             $plan['status'] = PostStatus::Draft;
             $plan['publish_now'] = false;
             $plan['reset_approval'] = true;
@@ -483,7 +485,7 @@ class PostService
     {
         $post->forceFill([
             'approval_status' => Post::APPROVAL_PENDING, 'approval_comment' => null, 'approval_requested_at' => now(),
-            'approval_decided_at' => null, 'approval_decided_by' => null,
+            'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => $this->postSignature($post),
         ])->save();
 
         $brandName = (string) Brand::withoutUserScope()->whereKey($post->brand_id)->value('name');
@@ -491,6 +493,12 @@ class PostService
         foreach (app(BrandCollaboration::class)->approvers((int) $post->brand_id) as $approver) {
             $approver->notify(new PostWorkflowActivity('approval_requested', $post->id, $post->brand_id, $brandName, $message, (string) $post->text));
         }
+    }
+
+    /** Huella publica del contenido actual del post (la que el aprobador debe haber visto). */
+    public function contentSignature(Post $post): string
+    {
+        return $this->postSignature($post);
     }
 
     /** Contenido que fija una aprobacion: texto, media comun y destinos (no la fecha). */

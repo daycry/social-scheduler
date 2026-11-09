@@ -35,7 +35,7 @@ const fail = (result) => {
 const approve = async (post) => {
     if (busy.value) return;
     busy.value = true;
-    const result = await workflowRequest('POST', route('workflow.approval.approve', post.id));
+    const result = await workflowRequest('POST', route('workflow.approval.approve', post.id), { signature: post.content_signature });
     busy.value = false;
     result.ok ? done('Publicación aprobada.') : fail(result);
 };
@@ -46,7 +46,7 @@ const startReject = (post) => {
 const reject = async (post) => {
     if (busy.value) return;
     busy.value = true;
-    const result = await workflowRequest('POST', route('workflow.approval.reject', post.id), { comment: comment.value });
+    const result = await workflowRequest('POST', route('workflow.approval.reject', post.id), { comment: comment.value, signature: post.content_signature });
     busy.value = false;
     if (result.ok) {
         rejecting.value = null;

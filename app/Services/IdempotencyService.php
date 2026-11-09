@@ -17,6 +17,9 @@ class IdempotencyService
 {
     public const TTL_HOURS = 24;
 
+    /** Una reserva sin respuesta (proceso muerto) deja de bloquear pasados estos minutos. */
+    public const STALE_MINUTES = 5;
+
     /**
      * @param  array<string, mixed>  $payload  lo que identifica la peticion (accion, ids, parametros)
      * @param  callable(): array<string, mixed>  $run
@@ -43,6 +46,11 @@ class IdempotencyService
             if ($existing->request_hash !== $hash) {
                 throw new PostValidationException(['idempotency_key' => ['Esta clave de idempotencia ya se uso con otra peticion.']]);
             }
+            if ($existing->response === null && $existing->created_at !== null && $existing->created_at->lt(now()->subMinutes(self::STALE_MINUTES))) {
+                $existing->delete(); // reserva huerfana: se retoma
+
+                return $this->run($user, $scope, $key, $payload, $run);
+            }
             if ($existing->response === null) {
                 abort(409, 'La peticion con esta clave de idempotencia sigue en curso.');
             }
@@ -65,7 +73,8 @@ class IdempotencyService
     /** Borra las claves caducadas. */
     public function prune(): int
     {
-        return IdempotencyKey::query()->where('created_at', '<', now()->subHours(self::TTL_HOURS))->delete();
+        return IdempotencyKey::query()->where('created_at', '<', now()->subHours(self::TTL_HOURS))->delete()
+            + IdempotencyKey::query()->whereNull('response')->where('created_at', '<', now()->subMinutes(self::STALE_MINUTES))->delete();
     }
 
     private function canonical(mixed $v): mixed

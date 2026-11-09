@@ -28,6 +28,7 @@ class BatchService
      */
     public function run(User $actor, array $input): array
     {
+        ServiceThrottle::hit($actor, 'post-batches');
         $data = Validator::make($input, [
             'action' => ['required', 'in:'.implode(',', self::ACTIONS)],
             'post_ids' => ['required', 'array', 'min:1', 'max:'.self::MAX_ITEMS],
@@ -35,6 +36,7 @@ class BatchService
             'shift_days' => ['nullable', 'integer', 'between:-365,365'],
             'shift_hours' => ['nullable', 'integer', 'between:-8760,8760'],
             'comment' => ['nullable', 'string', 'max:2000'],
+            'signatures' => ['nullable', 'array'],
         ], ['action.in' => 'La accion debe ser: '.implode(', ', self::ACTIONS).'.', 'post_ids.max' => 'Un lote admite como maximo '.self::MAX_ITEMS.' publicaciones.'])->validate();
 
         $action = $data['action'];
@@ -47,9 +49,13 @@ class BatchService
             throw new PostValidationException(['comment' => ['Indica el motivo del rechazo.']]);
         }
 
+        if (in_array($action, ['approve', 'reject'], true) && empty($data['signatures'])) {
+            throw new PostValidationException(['signatures' => ['Indica la version revisada de cada publicacion (signatures: id => content_signature).']]);
+        }
+
         $results = [];
         foreach (array_values(array_unique(array_map('intval', $data['post_ids']))) as $id) {
-            $results[] = $this->one($actor, $action, $id, $days, $hours, $data['comment'] ?? null);
+            $results[] = $this->one($actor, $action, $id, $days, $hours, $data['comment'] ?? null, $data['signatures'][$id] ?? null);
         }
         $ok = count(array_filter($results, fn ($r) => $r['ok']));
 
@@ -57,7 +63,7 @@ class BatchService
     }
 
     /** @return array<string, mixed> */
-    private function one(User $actor, string $action, int $id, int $days, int $hours, ?string $comment): array
+    private function one(User $actor, string $action, int $id, int $days, int $hours, ?string $comment, mixed $signature = null): array
     {
         $post = Post::withoutUserScope()->find($id);
         $decision = in_array($action, ['approve', 'reject'], true);
@@ -72,8 +78,8 @@ class BatchService
                 'reschedule' => $this->shift($actor, $post, $days, $hours),
                 'cancel' => $this->posts->unschedule($actor, $post),
                 'delete' => $this->delete($actor, $post),
-                'approve' => $this->approvals->approve($actor, $post),
-                'reject' => $this->approvals->reject($actor, $post, $comment),
+                'approve' => $this->approvals->approve($actor, $post, $signature),
+                'reject' => $this->approvals->reject($actor, $post, $comment, $signature),
             };
         } catch (PostValidationException|InvalidPostTransition $e) {
             return ['post_id' => $id, 'ok' => false, 'error' => $e->getMessage()];

@@ -14,10 +14,12 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
         Route::get('series/{series}', [PostWorkflowController::class, 'seriesShow'])->whereNumber('series')->name('series.show');
         Route::get('brands/{brand}/collaborators', [PostWorkflowController::class, 'collaborators'])->whereNumber('brand')->name('collaborators.index');
     });
-    Route::middleware(RequireApiAbility::class.':posts:write')->group(function () {
-        Route::post('posts/{post}/approval/request', [PostWorkflowController::class, 'requestApproval'])->whereNumber('post')->name('approval.request');
+    Route::middleware(RequireApiAbility::class.':posts:approve')->group(function () {
         Route::post('posts/{post}/approval/approve', [PostWorkflowController::class, 'approve'])->whereNumber('post')->name('approval.approve');
         Route::post('posts/{post}/approval/reject', [PostWorkflowController::class, 'reject'])->whereNumber('post')->name('approval.reject');
+    });
+    Route::middleware(RequireApiAbility::class.':posts:write')->group(function () {
+        Route::post('posts/{post}/approval/request', [PostWorkflowController::class, 'requestApproval'])->whereNumber('post')->name('approval.request');
         Route::post('posts/{post}/targets/{target}/manual-published', [PostWorkflowController::class, 'markPublished'])->whereNumber(['post', 'target'])->name('manual.published');
         Route::post('posts/{post}/retry', [PostWorkflowController::class, 'retry'])->whereNumber('post')->middleware('throttle:30,1')->name('retry');
         Route::post('posts/batch', [PostWorkflowController::class, 'batch'])->middleware('throttle:post-batches')->name('batch');

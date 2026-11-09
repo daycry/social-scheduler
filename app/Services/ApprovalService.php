@@ -54,7 +54,7 @@ class ApprovalService
             }
             Post::withoutUserScope()->whereKey($post->id)->update([
                 'approval_status' => Post::APPROVAL_PENDING, 'approval_comment' => null, 'approval_requested_at' => now(),
-                'approval_decided_at' => null, 'approval_decided_by' => null,
+                'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => $this->posts->contentSignature($locked),
             ]);
         });
         $post = $post->fresh();
@@ -66,14 +66,14 @@ class ApprovalService
         return $post;
     }
 
-    public function approve(User $actor, Post $post): Post
+    public function approve(User $actor, Post $post, mixed $signature = null): Post
     {
         abort_unless($this->canDecide($actor, $post), 404);
 
-        return $this->decide($actor, $post, Post::APPROVAL_APPROVED, null);
+        return $this->decide($actor, $post, Post::APPROVAL_APPROVED, null, $signature);
     }
 
-    public function reject(User $actor, Post $post, mixed $comment): Post
+    public function reject(User $actor, Post $post, mixed $comment, mixed $signature = null): Post
     {
         abort_unless($this->canDecide($actor, $post), 404);
         $comment = trim((string) $comment);
@@ -84,7 +84,7 @@ class ApprovalService
             throw new PostValidationException(['comment' => ['El comentario admite 2000 caracteres como maximo.']]);
         }
 
-        return $this->decide($actor, $post, Post::APPROVAL_REJECTED, $comment);
+        return $this->decide($actor, $post, Post::APPROVAL_REJECTED, $comment, $signature);
     }
 
     /**
@@ -118,6 +118,8 @@ class ApprovalService
             'text' => $post->text,
             'approval_status' => $post->approval_status,
             'approval_comment' => $post->approval_comment,
+            // Version del contenido que se pide aprobar: aprobar o rechazar exige devolverla (CWE-367).
+            'content_signature' => $post->approval_signature,
             'requested_by' => (string) User::query()->whereKey($post->user_id)->value('name'),
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),
             'networks' => $post->targets->map(fn ($t) => $t->network->label())->unique()->values()->all(),
@@ -125,15 +127,21 @@ class ApprovalService
         ];
     }
 
-    private function decide(User $actor, Post $post, string $status, ?string $comment): Post
+    private function decide(User $actor, Post $post, string $status, ?string $comment, mixed $signature = null): Post
     {
-        $changed = DB::transaction(function () use ($actor, $post, $status, $comment): bool {
+        $changed = DB::transaction(function () use ($actor, $post, $status, $comment, $signature): bool {
             $locked = Post::withoutUserScope()->lockForUpdate()->findOrFail($post->id);
             if ($locked->approval_status === $status) {
                 return false; // idempotente: ya esta decidido igual
             }
             if ($locked->approval_status !== Post::APPROVAL_PENDING) {
                 throw new PostValidationException(['approval' => ['La publicacion no esta pendiente de aprobacion.']]);
+            }
+            if (! is_string($signature) || $signature === '') {
+                throw new PostValidationException(['signature' => ['Indica la version que has revisado (signature, la content_signature de la publicacion).']]);
+            }
+            if (! hash_equals((string) $locked->approval_signature, $signature)) {
+                abort(409, 'El contenido ha cambiado desde que lo revisaste: vuelve a abrir la publicacion antes de decidir.');
             }
             $locked->forceFill(['approval_status' => $status, 'approval_comment' => $comment, 'approval_decided_at' => now(), 'approval_decided_by' => $actor->id])->save();
 

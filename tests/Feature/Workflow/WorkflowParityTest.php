@@ -50,9 +50,9 @@ test('aprobar: web, API y MCP devuelven el mismo post', function () {
     $api = wfPost(['requires_approval' => true]);
     $mcp = wfPost(['requires_approval' => true]);
 
-    $w = $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $web->id))->assertOk()->json('post');
-    $a = wfApi($this->approverKey, 'POST', "/api/v1/posts/{$api->id}/approval/approve")->assertOk()->json('post');
-    [$err, $m] = $this->callTool($this->approverKey, 'approve_post', ['post_id' => $mcp->id]);
+    $w = $this->actingAs($this->approver)->postJson(route('workflow.approval.approve', $web->id), ['signature' => wfSig($web)])->assertOk()->json('post');
+    $a = wfApi($this->approverKey, 'POST', "/api/v1/posts/{$api->id}/approval/approve", ['signature' => wfSig($api)])->assertOk()->json('post');
+    [$err, $m] = $this->callTool($this->approverKey, 'approve_post', ['post_id' => $mcp->id, 'signature' => wfSig($mcp)]);
 
     expect($err)->toBeFalse();
     $strip = fn (array $p) => array_diff_key($p, ['id' => 1, 'requested_by' => 1]);
@@ -64,14 +64,14 @@ test('rechazar: mismo contrato y el comentario es obligatorio en los tres canale
     $b = wfPost(['requires_approval' => true]);
     $c = wfPost(['requires_approval' => true]);
 
-    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $a->id), ['comment' => ''])->assertStatus(422);
-    wfApi($this->approverKey, 'POST', "/api/v1/posts/{$b->id}/approval/reject", [])->assertStatus(422);
-    [$err] = $this->callTool($this->approverKey, 'reject_post', ['post_id' => $c->id, 'comment' => '   ']);
+    $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $a->id), ['signature' => wfSig($a), 'comment' => ''])->assertStatus(422);
+    wfApi($this->approverKey, 'POST', "/api/v1/posts/{$b->id}/approval/reject", ['signature' => wfSig($b)])->assertStatus(422);
+    [$err] = $this->callTool($this->approverKey, 'reject_post', ['post_id' => $c->id, 'comment' => '   ', 'signature' => wfSig($c)]);
     expect($err)->toBeTrue();
 
-    $w = $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $a->id), ['comment' => 'No'])->assertOk()->json('post');
-    $x = wfApi($this->approverKey, 'POST', "/api/v1/posts/{$b->id}/approval/reject", ['comment' => 'No'])->assertOk()->json('post');
-    [$err2, $m] = $this->callTool($this->approverKey, 'reject_post', ['post_id' => $c->id, 'comment' => 'No']);
+    $w = $this->actingAs($this->approver)->postJson(route('workflow.approval.reject', $a->id), ['signature' => wfSig($a), 'comment' => 'No'])->assertOk()->json('post');
+    $x = wfApi($this->approverKey, 'POST', "/api/v1/posts/{$b->id}/approval/reject", ['comment' => 'No', 'signature' => wfSig($b)])->assertOk()->json('post');
+    [$err2, $m] = $this->callTool($this->approverKey, 'reject_post', ['post_id' => $c->id, 'comment' => 'No', 'signature' => wfSig($c)]);
     expect($err2)->toBeFalse();
     $strip = fn (array $p) => array_diff_key($p, ['id' => 1]);
     expect($strip($w))->toBe($strip($x))->and($strip($m['post']))->toBe($strip($x))->and($x['approval_status'])->toBe('rechazado');
@@ -82,14 +82,14 @@ test('un extrano recibe el mismo 404 en los tres canales y el MCP respeta la abi
     $stranger = User::factory()->create();
     $key = $this->mcpKey($stranger);
 
-    $this->actingAs($stranger)->postJson(route('workflow.approval.approve', $post->id))->assertNotFound();
-    wfApi($key, 'POST', "/api/v1/posts/{$post->id}/approval/approve")->assertNotFound();
-    [$err, $msg] = $this->callTool($key, 'approve_post', ['post_id' => $post->id]);
+    $this->actingAs($stranger)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertNotFound();
+    wfApi($key, 'POST', "/api/v1/posts/{$post->id}/approval/approve", ['signature' => 'x'])->assertNotFound();
+    [$err, $msg] = $this->callTool($key, 'approve_post', ['post_id' => $post->id, 'signature' => wfSig($post)]);
     [$err2, $msg2] = $this->callTool($key, 'approve_post', ['post_id' => 999999]);
     expect($err)->toBeTrue()->and($msg)->toBe($msg2);
 
     $readOnly = $this->mcpKey($this->approver, ['posts:read']);
-    [$denied] = $this->callTool($readOnly, 'approve_post', ['post_id' => $post->id]);
+    [$denied] = $this->callTool($readOnly, 'approve_post', ['post_id' => $post->id, 'signature' => wfSig($post)]);
     expect($denied)->toBeTrue()->and($post->fresh()->approval_status)->toBe('pendiente');
     [$ok, $list] = $this->callTool($readOnly, 'list_pending_approvals');
     expect($ok)->toBeFalse()->and($list['pending'][0]['id'])->toBe($post->id);

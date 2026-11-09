@@ -49,6 +49,9 @@ Schedule::call(fn () => RefreshPostMetrics::dispatchDue())->cron('15 */6 * * *')
 // Informes (M-9): expira los atascados y purga ficheros/filas pasada la retencion (reports.retention_days).
 Schedule::command('reports:prune')->dailyAt('04:10')->name('reports-prune')->withoutOverlapping();
 
+// Informes programados (T-21): cada hora encola los envios por email (semanal/mensual) cuya fecha ya paso. Cola `reports`.
+Schedule::command('reports:send-scheduled')->hourly()->name('reports-send-scheduled')->withoutOverlapping();
+
 // Papelera (PA-06): elimina las publicaciones con mas de 30 dias en la papelera.
 Schedule::command('posts:purge-trash')->dailyAt('04:30')->name('posts-purge-trash')->withoutOverlapping();
 

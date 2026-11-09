@@ -16,6 +16,7 @@ const props = defineProps({
     stats: Object,
     images: Array,
     defaults: Object,
+    subscribers: { type: Array, default: () => [] },
     block_types: { type: Array, default: () => [] },
     social_networks: { type: Array, default: () => [] },
     flash: Object,
@@ -58,7 +59,15 @@ const visibilityText = (b) => (b.visibility === 'scheduled' ? 'Programado: aún 
 const ctr = (b) => (props.stats?.views > 0 ? Math.round((clicks(b) / props.stats.views) * 100) : 0);
 const clicks7 = (b) => (b.id ? (props.stats?.by_block_7d?.[b.id] ?? 0) : 0);
 const hasClicks = (b) => ['link', 'image', 'youtube', 'social'].includes(b.type);
-const removeBlock = (i) => form.blocks.splice(i, 1);
+const removeBlock = (i) => {
+    const b = form.blocks[i];
+    if (b.type === 'email' && b.id && (props.stats?.subscribers ?? 0) > 0 && !confirm('La lista de suscriptores se conserva aunque quites el formulario; puedes descargarla o borrarla desde «Suscriptores». ¿Quitar el formulario?')) return;
+    form.blocks.splice(i, 1);
+};
+const removeSubscriber = (s) => router.delete(route('smartlinks.subscribers.destroy', [props.link.id, s.id]), { preserveScroll: true });
+const clearSubscribers = () => {
+    if (confirm('¿Borrar TODOS los suscriptores? No se puede deshacer.')) router.delete(route('smartlinks.subscribers.clear', props.link.id), { preserveScroll: true });
+};
 const move = (i, d) => {
     const j = i + d;
     if (j < 0 || j >= form.blocks.length) return;
@@ -213,7 +222,7 @@ const avatarUrl = computed(() => props.images?.find((m) => m.id === form.avatar_
                             <div v-if="b.type === 'email'" class="mt-2 grid gap-2 sm:grid-cols-2">
                                 <label class="block text-sm"><span class="block text-xs font-medium text-slate-600">Texto del botón</span><input v-model="b.data.cta" type="text" maxlength="30" class="field" /></label>
                                 <label class="block text-sm"><span class="block text-xs font-medium text-slate-600">Aviso de consentimiento</span><input v-model="b.data.consent" type="text" maxlength="200" class="field" /></label>
-                                <p class="text-xs text-slate-600 sm:col-span-2">Las direcciones se guardan en tu cuenta (sin servicio externo). <a v-if="link" :href="route('smartlinks.subscribers', link.id)" class="underline" data-testid="export-subscribers">Descargar suscriptores (CSV)</a> · {{ stats?.subscribers ?? 0 }} suscritos.</p>
+                                <p class="text-xs text-slate-600 sm:col-span-2">Las direcciones se guardan en tu cuenta (sin servicio externo ni correo de confirmación) y te avisamos cuando se llena. Puedes borrarlas una a una. <a v-if="link" :href="route('smartlinks.subscribers', link.id)" class="underline" data-testid="export-subscribers">Descargar suscriptores (CSV)</a> · {{ stats?.subscribers ?? 0 }} suscritos.</p>
                             </div>
                             <label v-if="b.type === 'posts'" class="mt-2 block text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Cuántas mostrar (1-6)</span>
@@ -244,6 +253,23 @@ const avatarUrl = computed(() => props.images?.find((m) => m.id === form.avatar_
                         <button v-if="link" type="button" class="text-sm font-medium text-red-700 underline" @click="destroy">Eliminar SmartLink</button>
                     </div>
                 </form>
+
+                <section v-if="link && ((stats?.subscribers ?? 0) > 0)" class="card space-y-2 p-5 text-sm lg:col-span-2" data-testid="subscribers" aria-label="Suscriptores">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="text-base font-semibold text-slate-900">Suscriptores ({{ stats.subscribers }})</h2>
+                        <span class="flex gap-3">
+                            <a :href="route('smartlinks.subscribers', link.id)" class="underline">Descargar CSV</a>
+                            <button type="button" class="font-medium text-red-700 underline" data-testid="subscribers-clear" @click="clearSubscribers">Borrar todos</button>
+                        </span>
+                    </div>
+                    <ul class="divide-y">
+                        <li v-for="s in subscribers" :key="s.id" class="flex flex-wrap items-center justify-between gap-2 py-1">
+                            <span class="min-w-0 break-all">{{ s.email }}</span>
+                            <button type="button" class="text-xs font-medium text-red-700 underline" :aria-label="`Eliminar a ${s.email}`" @click="removeSubscriber(s)">Eliminar</button>
+                        </li>
+                    </ul>
+                    <p v-if="stats.subscribers > subscribers.length" class="text-xs text-slate-600">Se muestran los {{ subscribers.length }} más recientes; el CSV incluye todos.</p>
+                </section>
 
                 <aside class="lg:sticky lg:top-4" aria-label="Vista previa de tu página">
                     <p class="mb-2 text-xs font-medium text-slate-600">Vista previa en vivo</p>

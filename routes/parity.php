@@ -45,6 +45,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('smartlinks', [SmartLinkController::class, 'index'])->name('smartlinks.index');
     Route::post('smartlinks', [SmartLinkController::class, 'save'])->name('smartlinks.save');
     Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers');
+    Route::delete('smartlinks/{smartLink}/subscribers/{subscriber}', [SmartLinkController::class, 'destroySubscriber'])->middleware('throttle:60,1')->whereNumber(['smartLink', 'subscriber'])->name('smartlinks.subscribers.destroy');
+    Route::delete('smartlinks/{smartLink}/subscribers', [SmartLinkController::class, 'clearSubscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers.clear');
     Route::delete('smartlinks/{smartLink}', [SmartLinkController::class, 'destroy'])->whereNumber('smartLink')->name('smartlinks.destroy');
 
     // Analytics · Competidores de Instagram (PA-08).

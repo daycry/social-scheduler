@@ -51,6 +51,7 @@ class SmartLinkController extends Controller
                 ])->values(),
             ] : null,
             'stats' => $link ? $this->links->stats($link) : null,
+            'subscribers' => $link ? SmartLinkSubscriber::query()->where('smart_link_id', $link->id)->orderByDesc('id')->limit(100)->get(['id', 'email', 'created_at'])->map(fn ($s) => ['id' => $s->id, 'email' => $s->email, 'at' => $s->created_at?->toIso8601String()])->values() : [],
             'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(50)->get()->map(fn ($m) => $m->toPublicArray() + ['url' => $this->thumbUrl($m)])->values(),
             'defaults' => ['theme_color' => '#4f46e5', 'theme_mode' => 'light', 'max_blocks' => SmartLinkService::MAX_BLOCKS, 'timezone' => $brand?->timezone ?: 'UTC'],
             'block_types' => SmartLinkBlock::TYPES,
@@ -138,5 +139,24 @@ class SmartLinkController extends Controller
                 echo $csv->line([$r->email, $r->created_at?->utc()->format('Y-m-d H:i')]);
             }
         }, 'suscriptores-'.$smartLink->slug.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    /** Borra un suscriptor de la lista (solo el propietario del SmartLink). */
+    public function destroySubscriber(SmartLink $smartLink, SmartLinkSubscriber $subscriber): RedirectResponse
+    {
+        $this->authorize('delete', $smartLink);
+        abort_unless($subscriber->smart_link_id === $smartLink->id, 404);
+        $subscriber->delete();
+
+        return back()->with('success', 'Suscriptor eliminado.');
+    }
+
+    /** Vacia la lista de suscriptores (solo el propietario). */
+    public function clearSubscribers(SmartLink $smartLink): RedirectResponse
+    {
+        $this->authorize('delete', $smartLink);
+        $n = SmartLinkSubscriber::query()->where('smart_link_id', $smartLink->id)->delete();
+
+        return back()->with('success', "$n suscriptores eliminados.");
     }
 }

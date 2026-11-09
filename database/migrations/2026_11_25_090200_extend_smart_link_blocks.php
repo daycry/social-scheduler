@@ -20,7 +20,8 @@ return new class extends Migration
         Schema::create('smart_link_subscribers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('smart_link_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('smart_link_block_id')->constrained()->cascadeOnDelete();
+            // Quitar el bloque NO borra la lista: el suscriptor queda ligado al SmartLink (se borra con el, o a mano).
+            $table->foreignId('smart_link_block_id')->nullable()->constrained()->nullOnDelete();
             $table->string('email', 254);
             $table->timestamp('created_at')->nullable();
 

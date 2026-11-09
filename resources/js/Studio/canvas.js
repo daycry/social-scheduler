@@ -2,11 +2,13 @@ import {
     Canvas, StaticCanvas, Rect, Ellipse, Triangle, Line, Path, Textbox, Group, ActiveSelection,
     FabricImage, Gradient, Shadow, PencilBrush, Point, LayoutManager, FixedLayout, util, filters,
 } from 'fabric';
-import { blankDocument, cloneDocument, findPage, newElement, newId, normalizeFill, validateDocument, StudioDocumentError } from './document.js';
+import { blankDocument, cloneDocument, findPage, newElement, newId, normalizeFill, renameElements, validateDocument, StudioDocumentError } from './document.js';
 import { createStudioFontRegistry, ensureStudioFonts, studioFontFamily } from './fonts.js';
 import { clipMediaState, restrictElementWindow } from './timeline.js';
 import { createChartFabric } from './chart-renderer.js';
 import { assertChartDocumentBudget } from './chart-scene.js';
+import { createConnectorFabric, createTableFabric } from './board-objects.js';
+import { anchorPoints, normalizeConnector, routePoints } from './board.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const round = value => Math.round((Number(value) || 0) * 1e6) / 1e6;
@@ -130,6 +132,11 @@ export function studioObjectToElement(object, { absolute = false } = {}) {
     if (type === 'image' && object.studioMask != null) element.mask = clone(object.studioMask);
     if (type === 'video') Object.assign(element, object.studioVideoOptions);
     if (type === 'chart') element.chart = clone(object.studioChart);
+    if (type === 'table') element.table = clone(object.studioTable);
+    if (type === 'connector') {
+        const { from, to, route, arrow, points } = object.studioConnector;
+        Object.assign(element, { from, to, route, arrow, points: clone(points) });
+    }
     if (type === 'group') element.elements = object.getObjects().map(child => studioObjectToElement(child));
     return element;
 }
@@ -210,6 +217,8 @@ export async function elementToFabric(element, { assets = new Map(), signal, vid
     let object;
     switch (element.type) {
         case 'chart': object = await createChartFabric(element, { chartResources, fontRegistry, signal, options }); break;
+        case 'table': object = createTableFabric(element, options); break;
+        case 'connector': object = createConnectorFabric(element, options); break;
         case 'rect': object = new Rect({ ...options, rx: element.radius ?? 0, ry: element.radius ?? 0 }); break;
         case 'ellipse': object = new Ellipse({ ...options, rx: element.width / 2, ry: element.height / 2 }); break;
         case 'triangle': object = new Triangle(options); break;
@@ -350,8 +359,43 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
     const serialize = () => objects().map(object => studioObjectToElement(object, { absolute: true }));
     const selection = () => selectedObjects().map(object => studioObjectToElement(object, { absolute: true }));
     const notifySelection = () => { if (!loading && !destroyed) onSelection(selection()); };
+    const isConnector = object => object.studioType === 'connector' && object.studioConnector;
+    const rectOf = object => { const box = object.getBoundingRect(); return { left: box.left, top: box.top, width: box.width, height: box.height }; };
+    /** Keep bound connectors glued to their shapes (and detach the ones whose shape was deleted). */
+    function reroute() {
+        const byId = new Map(objects().filter(object => !isConnector(object)).map(object => [object.studioId, object]));
+        const active = new Set(selectedObjects());
+        for (const object of objects().filter(isConnector)) {
+            if (active.has(object) || object.studioLocked) continue;
+            const current = studioObjectToElement(object);
+            const from = byId.get(current.from);
+            const to = byId.get(current.to);
+            const next = { ...current, from: from ? current.from : null, to: to ? current.to : null };
+            const absolute = current.points.map(([x, y]) => ({ x: x + current.x, y: y + current.y }));
+            let start = absolute[0];
+            let end = absolute.at(-1);
+            let horizontal = Math.abs(absolute[1].x - absolute[0].x) >= Math.abs(absolute[1].y - absolute[0].y);
+            if (from && to) ({ start, end, horizontal } = anchorPoints(rectOf(from), rectOf(to)));
+            else if (from || to) {
+                const bound = rectOf(from ?? to);
+                const free = from ? end : start;
+                const placed = anchorPoints(from ? bound : { left: free.x, top: free.y, width: 0, height: 0 }, from ? { left: free.x, top: free.y, width: 0, height: 0 } : bound);
+                if (from) ({ start, horizontal } = placed); else ({ end, horizontal } = placed);
+            }
+            const points = routePoints(start, end, current.route, horizontal);
+            const same = next.from === current.from && next.to === current.to && points.length === absolute.length
+                && points.every(([x, y], i) => Math.abs(x - absolute[i].x) < 0.5 && Math.abs(y - absolute[i].y) < 0.5);
+            if (same) continue;
+            const frame = normalizeConnector({ ...next, x: 0, y: 0, points });
+            const replacement = createConnectorFabric({ ...next, ...frame, points: frame.points }, commonOptions({ ...next, ...frame }));
+            setIdentity(replacement, { ...next, ...frame });
+            const position = objects().indexOf(object);
+            canvas.remove(object); canvas.insertAt(position, replacement); object.dispose();
+        }
+    }
     const changed = reason => {
         if (loading || destroyed) return;
+        reroute();
         currentPage.elements = serialize();
         documentData.pages = documentData.pages.map(page => page.id === currentPage.id ? clone(currentPage) : page);
         mutationVersion++;
@@ -388,6 +432,8 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
 
     function applyObjectPatch(object, candidate) {
         const options = commonOptions(candidate);
+        // Tables and connectors lay themselves out (row heights, arrow heads), so their frame is not patched.
+        if (candidate.type === 'table' || candidate.type === 'connector') for (const key of ['left', 'top', 'width', 'height']) delete options[key];
         if (object instanceof Textbox) Object.assign(options, { text: candidate.text, fontFamily: fontRegistry.family(candidate), fontSize: candidate.fontSize, fontWeight: candidate.fontWeight, fontStyle: candidate.fontStyle, textAlign: candidate.textAlign, underline: candidate.underline, lineHeight: candidate.lineHeight, charSpacing: candidate.charSpacing });
         if (object instanceof Ellipse) Object.assign(options, { rx: candidate.width / 2, ry: candidate.height / 2 });
         if (candidate.type === 'rect') Object.assign(options, { rx: candidate.radius ?? 0, ry: candidate.radius ?? 0 });
@@ -463,6 +509,33 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             catch (error) { object.dispose(); throw error; }
             return element.id;
         },
+        async addTable(patch = {}) {
+            ready();
+            const request = generation;
+            const element = checked(newElement('table', { x: 80, y: 80, ...patch }));
+            const object = await elementToFabric(element);
+            try { if (!await commitNextBudget(() => [...serialize(), element], request, () => { canvas.add(object); choose([object]); changed('add'); })) { object.dispose(); return; } }
+            catch (error) { object.dispose(); throw error; }
+            return element.id;
+        },
+        /** With two shapes selected the connector is glued to both; otherwise it is a free arrow. */
+        async addConnector(patch = {}) {
+            ready();
+            const request = generation;
+            const pair = selectedObjects().filter(object => !isConnector(object)).slice(0, 2);
+            let element = newElement('connector', { x: 120, y: 120, ...patch });
+            if (pair.length === 2) {
+                const { start, end, horizontal } = anchorPoints(rectOf(pair[0]), rectOf(pair[1]));
+                const frame = normalizeConnector({ ...element, x: 0, y: 0, route: 'elbow', points: routePoints(start, end, 'elbow', horizontal) });
+                element = { ...element, ...patch, from: pair[0].studioId, to: pair[1].studioId, route: 'elbow', ...frame, points: frame.points };
+                delete element.commands;
+            }
+            element = checked(element);
+            const object = await elementToFabric(element);
+            try { if (!await commitNextBudget(() => [...serialize(), element], request, () => { canvas.add(object); choose([object]); changed('add'); })) { object.dispose(); return; } }
+            catch (error) { object.dispose(); throw error; }
+            return element.id;
+        },
         async addText(value = 'Escribe tu texto', patch = {}) {
             ready();
             const element = checked(newElement('text', { x: 80, y: 80, width: Math.max(120, documentData.width - 160), text: value, ...patch }));
@@ -516,7 +589,7 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
                 for (let i = 0; i < selected.length; i++) {
                     const object = selected[i];
                     // Common edits retain non-chart objects and their media lifetimes.
-                    if (editable(object) && object.studioType === 'chart') replacements.set(object, await elementToFabric(candidates[i], { assets: resources, fontRegistry, chartResources, signal: controller?.signal }));
+                    if (editable(object) && ['chart', 'table', 'connector'].includes(object.studioType)) replacements.set(object, await elementToFabric(candidates[i], { assets: resources, fontRegistry, chartResources, signal: controller?.signal }));
                 }
                 const committed = await commitNextBudget(() => objects().map(object => editable(object) ? candidateFor(object) : studioObjectToElement(object, { absolute: true })), request, () => {
                     // Read latest transforms before publication; no awaits can split this commit.
@@ -554,8 +627,8 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             const nextVideos = [];
             const clones = clone(elements);
             await waitForStudioFonts(clones, { registry: fontRegistry, signal: controller?.signal });
-            const rename = element => { element.id = newId(element.type); if (element.elements) element.elements.forEach(rename); };
-            for (const element of clones) { rename(element); element.x += 24; element.y += 24; }
+            renameElements(clones);
+            for (const element of clones) { element.x += 24; element.y += 24; }
             const additions = [];
             try {
                 for (const element of clones) additions.push(await elementToFabric(checked(element), { assets: resources, videos: nextVideos, signal: controller?.signal, fontRegistry, chartResources }));

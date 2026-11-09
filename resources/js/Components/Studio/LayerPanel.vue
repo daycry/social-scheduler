@@ -3,7 +3,7 @@ import { computed } from 'vue';
 const props = defineProps({ layers: { type: Array, default: () => [] }, selection: { type: Array, default: () => [] } });
 const emit = defineEmits(['select', 'patch', 'action']);
 const selectedIds = computed(() => new Set(props.selection.map(item => item.id)));
-const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle: 'Triángulo', line: 'Línea', path: 'Dibujo', image: 'Imagen', video: 'Vídeo', group: 'Grupo' };
+const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle: 'Triángulo', line: 'Línea', path: 'Dibujo', image: 'Imagen', video: 'Vídeo', group: 'Grupo', chart: 'Gráfico', table: 'Tabla', connector: 'Conector' };
 </script>
 <template>
     <section aria-label="Capas del diseño" class="space-y-4">

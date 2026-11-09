@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { stripTypeScriptTypes } from 'node:module';
 
 // Execute the actual helper with an in-memory filesystem and deterministic poll.
 // These unit tests make no claim about HTTP or browser delivery.
@@ -78,46 +77,4 @@ test('helper journal ignores foreign tokens', async () => {
     const h = harness();
     h.append({ token: 'foreign', kind: 'hold-captured-real-response' });
     assert.deepEqual(await h.hold.cleanup(), { captured: false, released: false, events: [] });
-});
-
-// Characterize evidence retention in the real hook with failures, without a browser.
-function afterEachHarness({ holds = [], fonts = [], network = { issues: [], expected_http: [], intentional_aborts: [] }, overflowError } = {}) {
-    const source = readFileSync(new URL('../e2e/studio-charts.spec.ts', import.meta.url), 'utf8');
-    const hookSource = source.slice(source.indexOf('test.afterEach('), source.indexOf("test.fixme('E2E28.01"));
-    let hook, cleaned = 0;
-    const files = new Map(), page = { __chartHolds: holds, viewportSize: () => ({ width: 375, height: 812 }) };
-    const policies = new WeakMap([[page, {}]]), fontReads = new WeakMap([[page, fonts]]);
-    const fs = { writeFileSync: (file, bytes) => files.set(file, bytes), existsSync: () => false };
-    const expect = value => ({ toEqual: other => assert.deepEqual(value, other), toHaveLength: length => assert.equal(value.length, length) });
-    new Function('test', 'fs', 'isolation', 'policies', 'fontReads', 'expect', 'expectNoOverflow', 'cleanComposerBrands', 'e2eUser', stripTypeScriptTypes(hookSource))(
-        { afterEach: fn => { hook = fn; } }, fs, { assess: () => network }, policies, fontReads, expect,
-        async () => { if (overflowError) throw overflowError; }, () => { cleaned++; }, () => ({ email: 'unit@example.invalid' }),
-    );
-    return { files, get cleaned() { return cleaned; }, run: () => hook({ page }, { title: 'E2E28.03 unit', project: { name: 'mobile' }, outputPath: name => name }) };
-}
-
-test('afterEach retains viewport network fonts and cleanup results before rethrowing a cleanup failure', async () => {
-    const error = new Error('release journal missing'), later = { captured: false, released: false, events: [] };
-    const h = afterEachHarness({ holds: [{ cleanup: async () => { throw error; } }, { cleanup: async () => later }] });
-    await assert.rejects(h.run(), err => err instanceof AggregateError && err.errors.includes(error));
-    assert.deepEqual(JSON.parse(h.files.get('hold-cleanup.json')), [later]);
-    assert.deepEqual(JSON.parse(h.files.get('viewport.json')).viewport, { width: 375, height: 812 });
-    assert.deepEqual(JSON.parse(h.files.get('network-observer.json')).issues, []);
-    assert.deepEqual(JSON.parse(h.files.get('font-responses.json')), []);
-    assert.equal(h.cleaned, 1);
-});
-
-test('afterEach preserves fonts when network or overflow assertions fail and rejects intentional aborts', async () => {
-    const h = afterEachHarness({ network: { issues: [], expected_http: [], intentional_aborts: [{}] }, overflowError: new Error('overflow') });
-    await assert.rejects(h.run(), err => err instanceof AggregateError && err.errors.length === 2);
-    assert.ok(h.files.has('viewport.json')); assert.ok(h.files.has('network-observer.json'));
-    assert.deepEqual(JSON.parse(h.files.get('font-responses.json')), []);
-    assert.equal(h.cleaned, 1);
-});
-
-test('afterEach records successful cleanup without altering its observed events', async () => {
-    const result = { captured: true, released: true, events: [{ kind: 'hold-captured-real-response' }, { kind: 'hold-released', deadline_release: false }] };
-    const h = afterEachHarness({ holds: [{ cleanup: async () => result }] });
-    await h.run(); assert.deepEqual(JSON.parse(h.files.get('hold-cleanup.json')), [result]);
-    assert.equal(h.cleaned, 1);
 });

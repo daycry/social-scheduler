@@ -128,7 +128,7 @@ test('caption static frames survive scale rerender and include private vector te
 });
 
 test('caption private font SVG passes the actual closed-network server render entry', () => {
-    const directory = path.resolve('storage/framework/testing/t11-captions/studio-exports/0/0', randomUUID());
+    const directory = path.resolve('storage/framework/testing/t11-captions/studio-exports/1/1', randomUUID());
     const input = { document: source(), assets: [], fonts: [{ ...font, file_url: `data:font/woff2;base64,${fontBytes.toString('base64')}` }], format: 'svg', pageIds: ['a', 'b'],
         frame_times: [{ page_id: 'a', time: 0.75 }, { page_id: 'b', time: 0.25 }] };
     const output = execFileSync('node', ['scripts/studio/render.mjs', directory], { input: JSON.stringify(input), encoding: 'utf8', timeout: 90000, maxBuffer: 4 * 1024 * 1024 });

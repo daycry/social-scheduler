@@ -8,7 +8,7 @@ import { PDFDocument } from 'pdf-lib';
 import { chromium } from 'playwright';
 import { blankDocument, newElement, duplicatePage } from '../../resources/js/Studio/document.js';
 
-const base = path.resolve('storage/app/private/studio-exports/0/0');
+const base = path.resolve('storage/app/private/studio-exports/1/1');
 async function render(document, format, pageIds, assets = [], fonts = [], options = {}) {
     const directory = path.join(base, crypto.randomUUID());
     assert.ok(directory.startsWith(`${base}${path.sep}`));

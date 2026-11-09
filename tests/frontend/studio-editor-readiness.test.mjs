@@ -40,7 +40,8 @@ async function mountPendingEditor() {
     document.pages[0].elements = [documentCore.newElement('chart', { id: 'historic_chart', chart: {
         binding: { dataset: { id: 4, revision: 1, sha256: 'a'.repeat(64) }, category_column: 'category', series_columns: ['s0'] }, options: { kind: 'column-grouped' },
     } })];
-    const props = vue.reactive({ design: { id: 1, name: 'Readiness fixture', document, revision: 4, is_template: false }, brand: { id: 1, name: 'Fictitious brand' }, kit: { palette: [], fonts: [] }, assets: [], fonts: [], folders: [], exports: [] });
+    const props = vue.reactive({ design: { id: 1, name: 'Readiness fixture', document, revision: 4, is_template: false }, brand: { id: 1, name: 'Fictitious brand' }, kit: { palette: [], fonts: [] }, assets: [], fonts: [], folders: [], exports: [],
+        access: { role: 'owner', role_label: 'Propietario', is_owner: true, can_edit: true, can_comment: true, owner_name: '' } });
     const scope = vue.effectScope();
     const state = scope.run(() => component.setup(props, { expose() {} }));
     const compiledTemplate = withoutImports(template.code);

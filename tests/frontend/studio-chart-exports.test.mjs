@@ -24,7 +24,7 @@ async function prepare(output,descriptors, fileSystem = fs) {
 test('server maps verified canonical chart files to closed synthetic URLs and removes private names',async()=>{
  const {output,descriptor}=await fixture();const {input,resources}=await prepare(output,[descriptor]);
  assert.equal(input.chartFiles,undefined);assert.equal(input.chartDescriptors.length,1);
- const d=input.chartDescriptors[0];assert.equal(d.name,undefined);assert.match(d.url,/^http:\/\/studio-renderer.invalid\/datasets\//);
+ const d=input.chartDescriptors[0];assert.equal(d.name,undefined);assert.match(d.url,/^https:\/\/studio-renderer.invalid\/datasets\//);
  assert.equal(resources.get(d.url).mime,'application/json');assert.equal(resources.get(d.url).body.length,descriptor.bytes);
 });
 test('server rejects traversal unknown fields SHA size and symlink chart files',async()=>{

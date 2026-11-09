@@ -51,7 +51,7 @@ class SiteRenderer
     public function gate(Site $site, string $mode, ?string $error, int $status): Response
     {
         $nonce = base64_encode(random_bytes(16));
-        $response = response()->view('sites.gate', ['mode' => $mode, 'slug' => $site->slug, 'error' => $error, 'nonce' => $nonce], $status);
+        $response = response()->view('sites.gate', ['mode' => $mode, 'slug' => $site->publicSlug(), 'error' => $error, 'nonce' => $nonce], $status);
 
         return $this->secure($response, $nonce, false, true);
     }

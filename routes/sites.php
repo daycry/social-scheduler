@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('sites/{site}/tokens', [SiteController::class, 'storeToken'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.tokens.store');
     Route::delete('sites/{site}/tokens/{token}', [SiteController::class, 'destroyToken'])->middleware('throttle:60,1')->whereNumber(['site', 'token'])->name('sites.tokens.destroy');
     Route::post('sites/{site}/revoke-access', [SiteController::class, 'revokeAll'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.revoke-access');
+    Route::delete('sites/{site}/messages', [SiteController::class, 'clearMessages'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.messages.clear');
     Route::delete('sites/{site}/messages/{message}', [SiteController::class, 'destroyMessage'])->middleware('throttle:60,1')->whereNumber(['site', 'message'])->name('sites.messages.destroy');
     Route::get('sites/{site}/preview/{page?}', [SiteController::class, 'preview'])->whereNumber('site')->where('page', '[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?')->name('sites.preview');
     Route::get('sites/{site}/preview-media/{media}', [SiteController::class, 'previewMedia'])->whereNumber(['site', 'media'])->name('sites.preview-media');

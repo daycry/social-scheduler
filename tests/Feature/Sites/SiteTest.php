@@ -8,9 +8,13 @@ use App\Models\SiteToken;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\User;
+use App\Services\Sites\SiteAccess;
 use App\Services\Sites\SiteService;
+use App\Services\SmartLinkService;
+use App\Support\SafeUrl;
 use App\Support\SiteRichText;
 use App\Support\SiteView;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -92,7 +96,7 @@ test('el borrador sanea texto, valida YouTube y URL, y rechaza imagenes ajenas',
         ['type' => 'image', 'media_id' => $mine->id, 'alt' => 'Foto'],
     ]));
     $blocks = $saved->draft['pages'][0]['blocks'];
-    expect($blocks[0]['text'])->not->toContain('<')->and($blocks[2]['video_id'])->toBe('dQw4w9WgXcQ')->and($blocks[1]['key'])->toMatch('/^[a-f0-9]{8}$/');
+    expect($blocks[0]['text'])->toBe('<script>alert(1)</script>Hola')->and($blocks[2]['video_id'])->toBe('dQw4w9WgXcQ')->and($blocks[1]['key'])->toMatch('/^[a-f0-9]{8}$/');
 
     $html = SiteRichText::render($blocks[1]['body']);
     expect($html)->toContain('<strong>negrita</strong>')->toContain('href="https://example.com/a?b=1&amp;c=2"')->toContain('rel="nofollow noopener noreferrer ugc"')
@@ -230,7 +234,7 @@ test('el formulario de contacto guarda, con trampa, marca de tiempo y limite', f
     $this->post($url, $data + ['ts' => SiteView::token($site, $block['key'], now()->getTimestamp())])->assertRedirect('/s/mi-sitio?sent=0#contacto'); // demasiado rapido
     $this->post($url, $data + ['ts' => $old()])->assertRedirect('/s/mi-sitio?sent=1#contacto');
     $row = DB::table('site_messages')->first();
-    expect($row->name)->toBe('Ana')->and($row->message)->not->toContain('<')->and(DB::table('site_messages')->count())->toBe(1);
+    expect($row->name)->toBe('Ana <b>')->and($row->message)->toBe('Hola <script>x</script> mundo')->and(DB::table('site_messages')->count())->toBe(1);
 
     $this->post($url, $data + ['website' => 'http://spam', 'ts' => 'x'])->assertRedirect('/s/mi-sitio?sent=1#contacto'); // trampa
     $this->post($url, ['email' => 'no-es-correo', 'name' => 'a', 'message' => 'm', 'ts' => $old()])->assertRedirect('/s/mi-sitio?sent=0#contacto');
@@ -351,4 +355,90 @@ test('MCP: manage_site lista, devuelve la URL, publica y despublica con sus abil
     expect($res['published'])->toBeFalse();
     [$err] = $this->callTool($writer, 'manage_site', ['action' => 'publish', 'site_id' => $alien->id]);
     expect($err)->toBeTrue();
+});
+
+test('revision: cambiar el slug del borrador no rompe lo publicado; al republicar la direccion antigua redirige con 301 y queda reservada', function () {
+    $site = siteMk($this, 'promo');
+    $this->svc->updateAccess($this->user, $site, 'token', null, false);
+    $this->svc->publish($this->user, $site->refresh());
+    [, $plain] = $this->svc->createToken($this->user, $site, 'A', null);
+
+    siteSave($this, $site->refresh(), sitePages([['type' => 'heading', 'text' => 'Hola', 'level' => 2]]), ['slug' => 'nuevo']);
+    $this->get('/s/promo?t='.$plain)->assertRedirect('/s/promo'); // sigue vivo, con su token
+    $this->get('/s/nuevo')->assertNotFound();
+    expect(fn () => $this->svc->create(User::factory()->create(), Brand::factory()->create(), 'x', 'promo'))->toThrow(PostValidationException::class);
+
+    $this->svc->publish($this->user, $site->refresh());
+    $this->get('/s/promo/inicio?t='.$plain)->assertStatus(301)->assertRedirect('/s/nuevo/inicio?t='.$plain);
+    $this->get('/s/nuevo?t='.$plain)->assertRedirect('/s/nuevo');
+    $other = User::factory()->create();
+    foreach (['promo', 'nuevo'] as $taken) {
+        expect(fn () => $this->svc->create($other, Brand::factory()->for($other)->create(), 'x', $taken))->toThrow(PostValidationException::class);
+    }
+    // Volver a la direccion antigua es posible para el mismo sitio.
+    siteSave($this, $site->refresh(), sitePages([]), ['slug' => 'promo']);
+    $this->svc->publish($this->user, $site->refresh());
+    $this->get('/s/nuevo')->assertStatus(301);
+    $this->svc->unpublish($this->user, $site->refresh());
+    $this->get('/s/nuevo')->assertNotFound();
+});
+
+test('revision: el formulario nunca se bloquea al llegar al tope (FIFO), avisa una vez y el panel pagina y borra', function () {
+    $site = siteMk($this);
+    siteSave($this, $site, sitePages([['type' => 'contact', 'title' => 'C']]));
+    $this->svc->publish($this->user, $site->refresh());
+    $rows = collect(range(1, SiteService::MAX_MESSAGES))->map(fn ($i) => ['site_id' => $site->id, 'page_key' => 'aaaaaaa1', 'block_key' => 'x', 'name' => "n$i", 'email' => 'a@example.com', 'message' => "m$i", 'created_at' => now()]);
+    $rows->chunk(100)->each(fn ($c) => DB::table('site_messages')->insert($c->all()));
+
+    expect($this->svc->addMessage($site, 'aaaaaaa1', 'x', 'Nuevo', 'b@example.com', 'ultimo'))->toBeTrue()
+        ->and($this->svc->addMessage($site, 'aaaaaaa1', 'x', 'Nuevo2', 'b@example.com', 'ultimo2'))->toBeTrue();
+    expect(DB::table('site_messages')->count())->toBe(SiteService::MAX_MESSAGES)->and(DB::table('site_messages')->where('name', 'n1')->exists())->toBeFalse()
+        ->and(DB::table('site_messages')->where('name', 'Nuevo2')->exists())->toBeTrue();
+    expect($this->user->notifications()->count())->toBe(1); // una sola vez
+
+    $props = $this->actingAs($this->user)->get(route('sites.edit', $site))->assertOk()->viewData('page')['props'];
+    expect($props['messages'])->toHaveCount(20)->and($props['messages_meta']['last'])->toBe(25);
+    $this->actingAs($this->user)->delete(route('sites.messages.clear', $site), ['only_read' => true])->assertRedirect();
+    expect(DB::table('site_messages')->count())->toBe(SiteService::MAX_MESSAGES - 20);
+    $this->actingAs($this->user)->delete(route('sites.messages.clear', $site))->assertRedirect();
+    expect(DB::table('site_messages')->count())->toBe(0);
+});
+
+test('revision: limites por sitio y por /64 de IPv6; voto y contrasena reservan el intento de forma atomica', function () {
+    $site = siteMk($this);
+    siteSave($this, $site, sitePages([['type' => 'poll', 'question' => 'Q', 'options' => ['A', 'B']], ['type' => 'contact', 'title' => 'C']]));
+    $this->svc->publish($this->user, $site->refresh());
+    $blocks = $site->refresh()->published['pages'][0]['blocks'];
+    $poll = $blocks[0]['key'];
+
+    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2::1'])->post("/s/mi-sitio/_vote/aaaaaaa1/$poll", ['option' => 0]);
+    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2:ffff::9'])->post("/s/mi-sitio/_vote/aaaaaaa1/$poll", ['option' => 0]); // mismo /64
+    $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:3::1'])->post("/s/mi-sitio/_vote/aaaaaaa1/$poll", ['option' => 1]); // otro /64
+    expect($this->svc->pollResults($site, $blocks[0]))->toBe([1, 1]);
+
+    foreach (range(1, 30) as $i) {
+        RateLimiter::hit('site-contact-all:'.$site->id, 3600); // el sitio ya agoto su cupo por hora
+    }
+    $contact = $blocks[1]['key'];
+    $this->post("/s/mi-sitio/_contact/aaaaaaa1/$contact", ['name' => 'a', 'email' => 'a@example.com', 'message' => 'm', 'ts' => SiteView::token($site, $contact, now()->getTimestamp() - 5)])
+        ->assertRedirect('/s/mi-sitio?sent=0#contacto');
+    expect(DB::table('site_messages')->count())->toBe(0);
+
+    $this->svc->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
+    foreach (range(1, 50) as $i) {
+        RateLimiter::hit('site-pw-all:'.$site->id, 900);
+    }
+    $this->post('/s/mi-sitio/_access', ['password' => 'una-clave-larga'])->assertStatus(429); // tope global por sitio
+    expect(SiteAccess::clientNet(Request::create('/', 'GET', [], [], [], ['REMOTE_ADDR' => '2001:db8:1:2:3:4:5:6'])))->toBe('20010db800010002::/64');
+});
+
+test('revision: el texto se guarda tal cual y se pinta escapado (1 <2 y 3> 0), y SafeUrl rechaza espacios Unicode en el host', function () {
+    expect(SiteRichText::clean('precio 1 <2 y 3> 0'))->toBe('precio 1 <2 y 3> 0')
+        ->and(SiteRichText::render('precio 1 <2 y 3> 0'))->toBe('<p>precio 1 &lt;2 y 3&gt; 0</p>')
+        ->and(SiteRichText::render('<script>alert(1)</script>'))->not->toContain('<script');
+    expect(SmartLinkService::clean('1 <2 y 3> 0'))->toBe('1 <2 y 3> 0');
+    foreach (["https://exa\u{00A0}mple.com/", "https://example\u{2003}.com/", "https://example.com\u{3000}/x"] as $bad) {
+        expect(SafeUrl::isSafe($bad))->toBeFalse($bad);
+    }
+    expect(SafeUrl::isSafe('https://example.com/a'))->toBeTrue();
 });

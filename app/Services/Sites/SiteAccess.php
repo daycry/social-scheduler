@@ -23,6 +23,10 @@ class SiteAccess
 
     public const PASSWORD_DECAY = 300;
 
+    public const GLOBAL_ATTEMPTS = 50;
+
+    public const GLOBAL_DECAY = 900;
+
     public function __construct(private readonly SiteService $sites) {}
 
     /** ¿Puede ver el sitio quien hace esta peticion? (publico siempre; el resto exige una cookie vigente). */
@@ -53,12 +57,12 @@ class SiteAccess
     {
         $exp = time() + self::SESSION_MINUTES * 60;
 
-        return new Cookie(self::cookieName($site), $tokenId.'.'.$exp.'.'.$this->sign($site, $tokenId, $exp), $exp, '/s/'.$site->slug, null, $request->isSecure(), true, false, Cookie::SAMESITE_LAX);
+        return new Cookie(self::cookieName($site), $tokenId.'.'.$exp.'.'.$this->sign($site, $tokenId, $exp), $exp, '/s/'.$site->publicSlug(), null, $request->isSecure(), true, false, Cookie::SAMESITE_LAX);
     }
 
     public function forget(Request $request, Site $site): Cookie
     {
-        return new Cookie(self::cookieName($site), '', 1, '/s/'.$site->slug, null, $request->isSecure(), true, false, Cookie::SAMESITE_LAX);
+        return new Cookie(self::cookieName($site), '', 1, '/s/'.$site->publicSlug(), null, $request->isSecure(), true, false, Cookie::SAMESITE_LAX);
     }
 
     public function checkPassword(Site $site, string $password): bool
@@ -66,20 +70,40 @@ class SiteAccess
         return $site->password_hash !== null && Hash::check($password, $site->password_hash);
     }
 
-    /** Clave de limitador sin IP en claro. */
+    /** Huella del cliente para limitadores: IPv4 completa; IPv6 por prefijo /64 (un cliente controla todo su /64). */
+    public static function clientNet(Request $request): string
+    {
+        $ip = (string) $request->ip();
+        $bin = @inet_pton($ip);
+        if ($bin !== false && strlen($bin) === 16) {
+            return bin2hex(substr($bin, 0, 8)).'::/64';
+        }
+
+        return $ip;
+    }
+
+    /** Clave de limitador sin IP en claro (HMAC de red + sitio). */
     public function limiterKey(Request $request, Site $site, string $scope): string
     {
-        return 'site-'.$scope.':'.hash_hmac('sha256', $site->id.'|'.$request->ip(), (string) config('app.key'));
+        return 'site-'.$scope.':'.hash_hmac('sha256', $site->id.'|'.self::clientNet($request), (string) config('app.key'));
     }
 
-    public function tooManyPasswordAttempts(Request $request, Site $site): bool
+    /**
+     * Reserva un intento ANTES de verificar (el contador sube de forma atomica, asi que las peticiones en paralelo no se cuelan):
+     * por cliente 5 cada 5 min y, ademas, tope global del sitio de 50 FALLOS cada 15 min.
+     */
+    public function reserveAttempt(Request $request, Site $site): bool
     {
-        return RateLimiter::tooManyAttempts($this->limiterKey($request, $site, 'pw'), self::PASSWORD_ATTEMPTS);
+        if (RateLimiter::tooManyAttempts('site-pw-all:'.$site->id, self::GLOBAL_ATTEMPTS)) {
+            return false;
+        }
+
+        return RateLimiter::hit($this->limiterKey($request, $site, 'pw'), self::PASSWORD_DECAY) <= self::PASSWORD_ATTEMPTS;
     }
 
-    public function hitPassword(Request $request, Site $site): void
+    public function failedAttempt(Site $site): void
     {
-        RateLimiter::hit($this->limiterKey($request, $site, 'pw'), self::PASSWORD_DECAY);
+        RateLimiter::hit('site-pw-all:'.$site->id, self::GLOBAL_DECAY);
     }
 
     public function clearPassword(Request $request, Site $site): void
@@ -87,18 +111,19 @@ class SiteAccess
         RateLimiter::clear($this->limiterKey($request, $site, 'pw'));
     }
 
-    /** Un token de enlace abre el sitio: se marca su ultimo uso. Los intentos fallidos se limitan igual que la contrasena. */
+    /** Un token de enlace abre el sitio: se marca su ultimo uso. Comparte el limite de intentos con la contrasena. */
     public function openWithToken(Request $request, Site $site, string $plain): ?int
     {
-        if ($this->tooManyPasswordAttempts($request, $site)) {
+        if (! $this->reserveAttempt($request, $site)) {
             return null;
         }
         $token = $this->sites->findToken($site, $plain);
         if (! $token || ! $token->isUsable()) {
-            $this->hitPassword($request, $site);
+            $this->failedAttempt($site);
 
             return null;
         }
+        $this->clearPassword($request, $site);
         $token->forceFill(['last_used_at' => now()])->save();
 
         return $token->id;

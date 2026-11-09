@@ -21,7 +21,7 @@ final class SiteView
         if ($this->preview) {
             return route('sites.preview', ['site' => $this->site->id, 'page' => $slug], $absolute);
         }
-        $path = '/s/'.$this->site->slug.($index === 0 || $slug === null ? '' : '/'.$slug);
+        $path = '/s/'.$this->site->publicSlug().($index === 0 || $slug === null ? '' : '/'.$slug);
 
         return $absolute ? url($path) : $path;
     }
@@ -32,12 +32,12 @@ final class SiteView
             return null;
         }
 
-        return $this->preview ? route('sites.preview-media', ['site' => $this->site->id, 'media' => $id], false) : '/s/'.$this->site->slug.'/_m/'.$id;
+        return $this->preview ? route('sites.preview-media', ['site' => $this->site->id, 'media' => $id], false) : '/s/'.$this->site->publicSlug().'/_m/'.$id;
     }
 
     public function action(string $kind, string $pageKey, string $blockKey): string
     {
-        return $this->preview ? '#' : '/s/'.$this->site->slug.'/_'.($kind === 'vote' ? 'vote' : 'contact').'/'.$pageKey.'/'.$blockKey;
+        return $this->preview ? '#' : '/s/'.$this->site->publicSlug().'/_'.($kind === 'vote' ? 'vote' : 'contact').'/'.$pageKey.'/'.$blockKey;
     }
 
     /** Marca de tiempo firmada del formulario (anti-bot): se rechaza un envio inmediato o de una pagina muy vieja. */

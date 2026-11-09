@@ -55,6 +55,10 @@ class SiteController extends Controller
     {
         $brand = $site->brand()->firstOrFail();
         $user = $request->user();
+        // Mensajes paginados de 20 en 20; los que se muestran pasan a leidos (permite «borrar leidos»).
+        $messages = DB::table('site_messages')->where('site_id', $site->id)->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'message', 'created_at', 'read_at'], 'messages_page');
+        $unread = DB::table('site_messages')->where('site_id', $site->id)->whereNull('read_at')->count();
+        DB::table('site_messages')->where('site_id', $site->id)->whereIn('id', $messages->pluck('id'))->whereNull('read_at')->update(['read_at' => now()]);
 
         return Inertia::render('Sites/Edit', [
             'site' => $this->summary($site) + [
@@ -70,7 +74,8 @@ class SiteController extends Controller
             ])->values(),
             'new_token' => $request->session()->get('site_token'),
             'stats' => $this->sites->stats($site),
-            'messages' => DB::table('site_messages')->where('site_id', $site->id)->orderByDesc('id')->limit(50)->get(['id', 'name', 'email', 'message', 'created_at'])->values(),
+            'messages' => $messages->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'email' => $m->email, 'message' => $m->message, 'created_at' => $m->created_at, 'unread' => $m->read_at === null])->values(),
+            'messages_meta' => ['page' => $messages->currentPage(), 'last' => $messages->lastPage(), 'total' => $messages->total(), 'unread' => $unread],
             'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(100)->get()
                 ->map(fn (MediaAsset $m) => ['id' => $m->id, 'name' => $m->original_name, 'url' => route('sites.preview-media', ['site' => $site->id, 'media' => $m->id], false)])->values(),
             'exports' => DesignExport::query()->where('brand_id', $brand->id)->where('status', 'ready')->latest('id')->limit(50)->with('design')->get()
@@ -149,6 +154,13 @@ class SiteController extends Controller
         $this->sites->revokeAllAccess($request->user(), $site);
 
         return back()->with('success', 'Acceso revocado: se cerraron todas las sesiones y se revocaron todos los enlaces.');
+    }
+
+    public function clearMessages(Request $request, Site $site): RedirectResponse
+    {
+        $n = $this->sites->clearMessages($request->user(), $site, $request->boolean('only_read'));
+
+        return back()->with('success', $n.' '.($n === 1 ? 'mensaje eliminado.' : 'mensajes eliminados.'));
     }
 
     public function destroyMessage(Site $site, int $message): RedirectResponse

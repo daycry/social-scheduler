@@ -43,8 +43,14 @@ class Site extends Model
         return $this->hasMany(SiteToken::class)->orderByDesc('id');
     }
 
+    /** Direccion que sirve `/s/...`: la de la ultima publicacion (el `slug` del borrador solo pasa a serlo al publicar). */
+    public function publicSlug(): string
+    {
+        return $this->public_slug ?? $this->slug;
+    }
+
     public function url(?string $page = null): string
     {
-        return url('/s/'.$this->slug.($page ? '/'.$page : ''));
+        return url('/s/'.$this->publicSlug().($page ? '/'.$page : ''));
     }
 }

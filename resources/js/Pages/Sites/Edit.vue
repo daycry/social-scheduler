@@ -18,6 +18,7 @@ const props = defineProps({
     new_token: Object,
     stats: Object,
     messages: { type: Array, default: () => [] },
+    messages_meta: { type: Object, default: () => ({ page: 1, last: 1, total: 0, unread: 0 }) },
     images: { type: Array, default: () => [] },
     exports: { type: Array, default: () => [] },
     limits: Object,
@@ -124,6 +125,10 @@ const createToken = () => tokenForm.post(route('sites.tokens.store', props.site.
 const revoke = (t) => router.delete(route('sites.tokens.destroy', [props.site.id, t.id]), { preserveScroll: true });
 const revokeAll = () => {
     if (confirm('Se cerrarán todas las sesiones de acceso y se revocarán todos los enlaces. ¿Continuar?')) router.post(route('sites.revoke-access', props.site.id), {}, { preserveScroll: true });
+};
+const goMessages = (n) => router.get(route('sites.edit', props.site.id), { messages_page: n }, { preserveScroll: true, preserveState: true, only: ['messages', 'messages_meta'] });
+const clearMessages = (onlyRead) => {
+    if (confirm(onlyRead ? '¿Borrar los mensajes ya leídos?' : '¿Borrar TODOS los mensajes? No se puede deshacer.')) router.delete(route('sites.messages.clear', props.site.id), { data: { only_read: onlyRead }, preserveScroll: true });
 };
 const removeMessage = (m) => router.delete(route('sites.messages.destroy', [props.site.id, m.id]), { preserveScroll: true });
 const MODES = { public: 'Público', password: 'Con contraseña', token: 'Por enlace con token' };
@@ -367,15 +372,25 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                         <p class="text-xs text-slate-600">Solo contadores diarios por página: no se guarda IP ni agente.</p>
                     </section>
 
-                    <section v-if="messages.length" class="card space-y-2 p-4 text-sm" aria-labelledby="s-mensajes">
-                        <h2 id="s-mensajes" class="text-base font-semibold text-slate-900">Mensajes del formulario</h2>
+                    <section v-if="messages_meta.total" class="card space-y-2 p-4 text-sm" aria-labelledby="s-mensajes">
+                        <h2 id="s-mensajes" class="text-base font-semibold text-slate-900">Mensajes del formulario ({{ messages_meta.total }})</h2>
+                        <p class="text-xs text-slate-600">Se guardan los últimos 500; al llegar al tope se descartan los más antiguos. {{ messages_meta.unread }} sin leer.</p>
+                        <div class="flex flex-wrap gap-3 text-xs">
+                            <button type="button" class="font-medium text-red-700 underline" data-testid="messages-clear-read" @click="clearMessages(true)">Borrar leídos</button>
+                            <button type="button" class="font-medium text-red-700 underline" data-testid="messages-clear-all" @click="clearMessages(false)">Borrar todos</button>
+                        </div>
                         <ul class="divide-y" data-testid="messages">
                             <li v-for="m in messages" :key="m.id" class="py-2">
-                                <p class="font-medium">{{ m.name }} · <span class="break-all text-xs font-normal">{{ m.email }}</span></p>
+                                <p class="font-medium">{{ m.name }} · <span class="break-all text-xs font-normal">{{ m.email }}</span> <span v-if="m.unread" class="rounded bg-amber-100 px-1 text-xs">Nuevo</span></p>
                                 <p class="whitespace-pre-line">{{ m.message }}</p>
                                 <button type="button" class="text-xs font-medium text-red-700 underline" :aria-label="`Eliminar el mensaje de ${m.name}`" @click="removeMessage(m)">Eliminar</button>
                             </li>
                         </ul>
+                        <nav v-if="messages_meta.last > 1" class="flex items-center justify-between text-xs" aria-label="Paginación de mensajes">
+                            <button type="button" class="btn btn-secondary" :disabled="messages_meta.page <= 1" @click="goMessages(messages_meta.page - 1)">Anteriores</button>
+                            <span>Página {{ messages_meta.page }} de {{ messages_meta.last }}</span>
+                            <button type="button" class="btn btn-secondary" :disabled="messages_meta.page >= messages_meta.last" @click="goMessages(messages_meta.page + 1)">Siguientes</button>
+                        </nav>
                     </section>
 
                     <button type="button" class="text-sm font-medium text-red-700 underline" @click="destroy">Eliminar sitio</button>

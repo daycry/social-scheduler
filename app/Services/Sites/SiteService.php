@@ -10,6 +10,7 @@ use App\Models\SiteToken;
 use App\Models\SmartLink;
 use App\Models\Studio\DesignExport;
 use App\Models\User;
+use App\Notifications\SiteMessagesFull;
 use App\Services\SmartLinkService;
 use App\Services\Studio\StudioService;
 use App\Support\SafeUrl;
@@ -126,7 +127,15 @@ class SiteService
             throw new PostValidationException(['pages' => ['Alguna imagen del sitio ya no está disponible. Revisa las imágenes antes de publicar.']]);
         }
 
+        // La direccion del borrador pasa a ser la publica solo aqui; la anterior queda reservada para este sitio y redirige.
+        $old = $site->public_slug;
+        if ($old !== null && $old !== $site->slug) {
+            DB::table('site_slug_history')->insertOrIgnore(['site_id' => $site->id, 'slug' => $old, 'created_at' => now()]);
+        }
+        DB::table('site_slug_history')->where('site_id', $site->id)->where('slug', $site->slug)->delete();
+
         $site->forceFill([
+            'public_slug' => $site->slug,
             'published' => ['title' => $site->title, 'description' => $site->description, 'theme' => $this->theme($user, $site),
                 'noindex' => $site->noindex, 'pages' => $pages, 'media' => $ids, 'revision' => $site->revision],
             'is_published' => true, 'published_at' => now(), 'published_revision' => $site->revision,
@@ -572,12 +581,28 @@ class SiteService
         if ($name === '' || $message === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false || preg_match('/[\r\n]/', $email) === 1) {
             return false;
         }
-        if (DB::table('site_messages')->where('site_id', $site->id)->count() >= self::MAX_MESSAGES) {
-            return false;
-        }
         DB::table('site_messages')->insert(['site_id' => $site->id, 'page_key' => $pageKey, 'block_key' => $blockKey, 'name' => $name, 'email' => $email, 'message' => $message, 'created_at' => now()]);
 
+        // Tope FIFO: el formulario nunca se bloquea; al pasar del tope se descartan los mas antiguos y se avisa al propietario UNA vez.
+        $cut = DB::table('site_messages')->where('site_id', $site->id)->orderByDesc('id')->skip(self::MAX_MESSAGES)->value('id');
+        if ($cut !== null) {
+            DB::table('site_messages')->where('site_id', $site->id)->where('id', '<=', $cut)->delete();
+            if (DB::table('sites')->where('id', $site->id)->whereNull('messages_full_notified_at')->update(['messages_full_notified_at' => now()]) > 0) {
+                Site::withoutUserScope()->find($site->id)?->user?->notify(new SiteMessagesFull($site->id, $site->title, self::MAX_MESSAGES));
+            }
+        }
+
         return true;
+    }
+
+    /** Borra todos los mensajes (o solo los leidos) y rearma el aviso de tope. */
+    public function clearMessages(User $user, Site $site, bool $onlyRead): int
+    {
+        $this->own($user, $site);
+        $n = DB::table('site_messages')->where('site_id', $site->id)->when($onlyRead, fn ($q) => $q->whereNotNull('read_at'))->delete();
+        DB::table('sites')->where('id', $site->id)->update(['messages_full_notified_at' => null]);
+
+        return $n;
     }
 
     public static function optionsHash(array $options): string
@@ -622,7 +647,9 @@ class SiteService
         if (preg_match('/^'.SmartLink::SLUG_PATTERN.'$/', $slug) !== 1) {
             throw new PostValidationException(['slug' => ['Usa de 3 a 40 caracteres: minúsculas, números y guiones (sin guion al principio ni al final).']]);
         }
-        if (Site::withoutUserScope()->where('slug', $slug)->when($ignore, fn ($q) => $q->whereKeyNot($ignore))->exists()) {
+        $taken = Site::withoutUserScope()->where(fn ($q) => $q->where('slug', $slug)->orWhere('public_slug', $slug))->when($ignore, fn ($q) => $q->whereKeyNot($ignore))->exists()
+            || DB::table('site_slug_history')->where('slug', $slug)->when($ignore, fn ($q) => $q->where('site_id', '!=', $ignore))->exists();
+        if ($taken) {
             throw new PostValidationException(['slug' => ['Ese enlace ya está en uso.']]);
         }
     }

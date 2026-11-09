@@ -38,7 +38,7 @@ class Post extends Model
 
     public const APPROVAL_REJECTED = 'rechazado';
 
-    /** ¿Puede publicarse? Sin aprobacion requerida o aprobado. */
+    /** Â¿Puede publicarse? Sin aprobacion requerida o aprobado. */
     public function isPublishable(): bool
     {
         return $this->approval_status === null || $this->approval_status === self::APPROVAL_APPROVED;

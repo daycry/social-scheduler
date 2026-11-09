@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
+use App\Connectors\Exceptions\PermanentPublishException;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
@@ -64,10 +65,14 @@ class PublishRequestFactory
         $out = [];
         foreach ($items as $item) {
             $asset = $assets->get($item['id']);
+            // Una media efectiva que falta (borrada tras guardar) no se omite en silencio: se publicaria otra cosa.
             if ($asset === null) {
-                continue;
+                throw new PermanentPublishException("El archivo {$item['id']} de la media de este destino ya no existe: editalo y vuelve a elegir la media.", 'media_inexistente');
             }
             $cover = $item['cover_id'] !== null ? $assets->get($item['cover_id']) : null;
+            if ($item['cover_id'] !== null && $cover === null) {
+                throw new PermanentPublishException("La portada {$item['cover_id']} de este destino ya no existe: editalo y vuelve a elegir la portada.", 'media_inexistente');
+            }
             $out[] = $this->publishMedia($asset, $ttl, $item['alt'], $cover !== null ? $this->publishMedia($cover, $ttl) : null);
         }
 

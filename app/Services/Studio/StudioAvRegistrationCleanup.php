@@ -113,7 +113,7 @@ class StudioAvRegistrationCleanup
 
     private function referenced(MediaAsset $media): bool
     {
-        return $media->posts()->exists() || StudioAsset::withoutUserScope()->where('media_asset_id', $media->id)->exists();
+        return $media->usedByPosts() || StudioAsset::withoutUserScope()->where('media_asset_id', $media->id)->exists();
     }
 
     private function remote(StudioAvWorkspace $workspace, array $receipt, float $deadline): bool

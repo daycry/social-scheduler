@@ -337,7 +337,7 @@ class MediaUploadService
                     return; // ya borrada por otra peticion
                 }
 
-                if ($locked->posts()->exists()) {
+                if ($locked->usedByPosts()) {
                     throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
                 }
 

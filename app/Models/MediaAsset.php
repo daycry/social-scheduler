@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PostStatus;
 use App\Models\Concerns\BelongsToUser;
 use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -63,6 +64,23 @@ class MediaAsset extends Model
     public function posts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class, 'post_media')->withoutGlobalScope(UserScope::class);
+    }
+
+    /**
+     * Media que un destino sin publicar usa en su lista propia (`post_targets.media`, ids y portadas): no esta en `post_media`, asi que
+     * `posts()` no la ve (T-17). Comparacion en PHP para no depender del dialecto JSON de MySQL o SQLite.
+     */
+    public function usedByTargetMedia(): bool
+    {
+        return PostTarget::withoutUserScope()->where('user_id', $this->user_id)->whereNotNull('media')
+            ->where('status', '!=', PostStatus::Published->value)->get(['id', 'media'])
+            ->contains(fn (PostTarget $t) => collect($t->media)->contains(fn ($m) => ($m['id'] ?? null) === $this->id || ($m['cover_id'] ?? null) === $this->id));
+    }
+
+    /** ¿La usa alguna publicacion, por la media comun o por la propia de un destino? */
+    public function usedByPosts(): bool
+    {
+        return $this->posts()->exists() || $this->usedByTargetMedia();
     }
 
     public function isVideo(): bool

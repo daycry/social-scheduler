@@ -67,6 +67,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inbox/{comment}/read', [InboxController::class, 'read'])->whereNumber('comment')->name('inbox.read');
     Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.reply');
     Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
+    // T-20: triaje (cerrar, etiquetas, asignar, lotes) y respuestas guardadas.
+    Route::post('inbox/batch', [InboxController::class, 'batch'])->middleware('throttle:30,1')->name('inbox.batch');
+    Route::post('inbox/{comment}/close', [InboxController::class, 'close'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.close');
+    Route::post('inbox/{comment}/label', [InboxController::class, 'label'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.label');
+    Route::post('inbox/{comment}/assign', [InboxController::class, 'assign'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.assign');
+    Route::post('inbox/saved-replies', [InboxController::class, 'storeSavedReply'])->middleware('throttle:30,1')->name('inbox.saved-replies.store');
+    Route::delete('inbox/saved-replies/{reply}', [InboxController::class, 'destroySavedReply'])->middleware('throttle:30,1')->whereNumber('reply')->name('inbox.saved-replies.destroy');
     // Notas internas de los comentarios (C-04d).
     Route::post('inbox/{comment}/notes', [InboxNoteController::class, 'store'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.notes.store');
     Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('note')->name('inbox.notes.destroy');

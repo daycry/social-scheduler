@@ -742,6 +742,16 @@ export function seedInboxComment(brandId: number, ...texts: string[]) {
     );
 }
 
+/** Un comentario por red (Threads, Bluesky y YouTube) con cuenta sembrada con los permisos de lectura (T-20); nada toca la red. */
+export function seedInboxProviders(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`foreach (['threads' => 'e2e hilo threads', 'bluesky' => 'e2e respuesta bluesky', 'youtube' => 'e2e comentario youtube'] as $n => $t) { ` +
+            String.raw`$a = App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from($n), 'name' => 'e2e ' . $n, 'scopes' => ['threads_basic', 'threads_read_replies', 'threads_manage_replies', 'https://www.googleapis.com/auth/youtube.force-ssl']]); ` +
+            String.raw`App\Models\InboxComment::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $a->id, 'network' => $n, 'text' => $t, 'author_name' => 'e2e-' . $n, 'commented_at' => now()->subMinutes(3)]); }`,
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Vistas guardadas del calendario (C-03a): se borran las del usuario E2E (no cuelgan de la marca).
 // ---------------------------------------------------------------------------------------------------------------

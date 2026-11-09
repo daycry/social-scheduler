@@ -2,14 +2,21 @@
 
 namespace App\Services;
 
+use App\Connectors\Bluesky\BlueskyComments;
+use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Google\YouTubeComments;
 use App\Connectors\Meta\Comments;
 use App\Connectors\Network;
+use App\Connectors\Threads\ThreadsComments;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
+use App\Models\BrandCollaborator;
 use App\Models\InboxComment;
+use App\Models\InboxCommentLabel;
+use App\Models\InboxSavedReply;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -20,17 +27,54 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Buzon de comentarios de Instagram/Facebook (PA-10): sincroniza los comentarios de las publicaciones propias ya
+ * Buzon de comentarios de Instagram/Facebook (PA-10) y, desde T-20, de Threads, Bluesky y YouTube: sincroniza los comentarios de las publicaciones propias ya
  * publicadas, y permite responder y ocultar/mostrar. Cada operacion exige el usuario explicito (aislamiento).
  */
 class InboxService
 {
+    /** Redes con API oficial de comentarios y conector. TikTok no la tiene para terceros; los mensajes directos de Meta exigen revision de la app. */
+    public const NETWORKS = [Network::Instagram, Network::Facebook, Network::Threads, Network::Bluesky, Network::YouTube];
+
     public function __construct(private readonly Comments $comments, private readonly SocialAccountService $accounts) {}
+
+    /** Conector de comentarios de las redes no-Meta (null = Instagram/Facebook, que usan `Comments`). */
+    private function source(Network $network): ?CommentSource
+    {
+        return match ($network) {
+            Network::Threads => app(ThreadsComments::class),
+            Network::Bluesky => app(BlueskyComments::class),
+            Network::YouTube => app(YouTubeComments::class),
+            default => null,
+        };
+    }
+
+    /** ¿Tiene la cuenta el permiso de leer (o moderar/responder con `$write`)? */
+    public function hasScopes(SocialAccount $account, bool $write = false): bool
+    {
+        return $this->source($account->network)?->hasScopes($account, $write) ?? Comments::hasScopes($account, $write);
+    }
+
+    /**
+     * Cobertura del inbox por red (T-20): lo que se lee y responde y lo que queda fuera, con su motivo.
+     *
+     * @return list<array{network: string, label: string, read: bool, reply: bool, hide: bool, note: string}>
+     */
+    public static function coverage(): array
+    {
+        return [
+            ['network' => 'instagram', 'label' => 'Instagram', 'read' => true, 'reply' => true, 'hide' => true, 'note' => 'Comentarios de publicaciones propias. Los mensajes directos requieren la revisión de la app de Meta.'],
+            ['network' => 'facebook', 'label' => 'Facebook', 'read' => true, 'reply' => true, 'hide' => true, 'note' => 'Comentarios de la Página. Los mensajes directos requieren la revisión de la app de Meta.'],
+            ['network' => 'threads', 'label' => 'Threads', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus hilos (permisos threads_read_replies y threads_manage_replies).'],
+            ['network' => 'bluesky', 'label' => 'Bluesky', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus publicaciones; lectura pública y respuesta con la contraseña de aplicación.'],
+            ['network' => 'youtube', 'label' => 'YouTube', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Comentarios de tus videos (permiso youtube.force-ssl); cada respuesta gasta 50 unidades del cupo diario.'],
+            ['network' => 'tiktok', 'label' => 'TikTok', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: TikTok no ofrece una API pública de comentarios para terceros.'],
+        ];
+    }
 
     /** Cuentas del usuario que el buzon sabe leer (IG/FB). */
     public function accountsFor(User $user): Collection
     {
-        return SocialAccount::withoutUserScope()->where('user_id', $user->id)->whereIn('network', [Network::Instagram->value, Network::Facebook->value])
+        return SocialAccount::withoutUserScope()->where('user_id', $user->id)->whereIn('network', array_map(fn (Network $n) => $n->value, self::NETWORKS))
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->orderBy('network')->orderBy('name')->get();
     }
 
@@ -38,8 +82,8 @@ class InboxService
     public function syncable(SocialAccount $account): bool
     {
         return $account->isActive()
-            && in_array($account->network, [Network::Instagram, Network::Facebook], true)
-            && Comments::hasScopes($account);
+            && in_array($account->network, self::NETWORKS, true)
+            && $this->hasScopes($account);
     }
 
     /**
@@ -94,7 +138,8 @@ class InboxService
             $done++;
 
             try {
-                $rows = $this->comments->fetch($account, (string) $target->external_id, $budgetSeconds >= PHP_FLOAT_MAX / 2 ? null : $started + $budgetSeconds);
+                $deadline = $budgetSeconds >= PHP_FLOAT_MAX / 2 ? null : $started + $budgetSeconds;
+                $rows = ($this->source($account->network) ?? $this->comments)->fetch($account, (string) $target->external_id, $deadline);
             } catch (ReconnectRequiredException|TransientPublishException $e) {
                 throw $e;
             } catch (ConnectorException) {
@@ -153,7 +198,7 @@ class InboxService
     /**
      * Bandeja de comentarios de terceros del usuario, mas recientes primero.
      *
-     * @param  array{network?: ?string, unread?: bool, brand_id?: ?int, hidden?: ?bool, has_notes?: bool}  $filters
+     * @param  array{network?: ?string, unread?: bool, brand_id?: ?int, hidden?: ?bool, has_notes?: bool, status?: ?string, assigned?: int|string|null, label?: ?string}  $filters
      */
     public function query(User $user, array $filters = []): Builder
     {
@@ -162,6 +207,11 @@ class InboxService
             ->when(! empty($filters['brand_id']), fn (Builder $q) => $q->where('brand_id', $filters['brand_id']))
             ->when(! empty($filters['unread']), fn (Builder $q) => $q->whereNull('read_at'))
             ->when(! empty($filters['has_notes']), fn (Builder $q) => $q->whereHas('notes'))
+            ->when(($filters['status'] ?? null) === 'open', fn (Builder $q) => $q->whereNull('closed_at'))
+            ->when(($filters['status'] ?? null) === 'closed', fn (Builder $q) => $q->whereNotNull('closed_at'))
+            ->when(($filters['assigned'] ?? null) === 'none', fn (Builder $q) => $q->whereNull('assigned_user_id'))
+            ->when(is_numeric($filters['assigned'] ?? null), fn (Builder $q) => $q->where('assigned_user_id', (int) $filters['assigned']))
+            ->when(! empty($filters['label']), fn (Builder $q) => $q->whereHas('labels', fn (Builder $l) => $l->where('label', $filters['label'])))
             ->when(isset($filters['hidden']), fn (Builder $q) => $q->where('hidden', (bool) $filters['hidden']))
             ->orderByDesc('commented_at')->orderByDesc('id');
     }
@@ -200,7 +250,7 @@ class InboxService
 
         $account = $this->moderationAccount($comment);
 
-        $id = $this->call($account, fn () => $this->comments->reply($account, $comment->external_id, $text));
+        $id = $this->call($account, fn () => ($this->source($account->network) ?? $this->comments)->reply($account, $comment->external_id, $text));
 
         $comment->forceFill(['read_at' => $comment->read_at ?? now()])->save();
 
@@ -240,6 +290,9 @@ class InboxService
     public function setHidden(User $user, InboxComment $comment, bool $hidden): InboxComment
     {
         $this->assertOwns($user, $comment);
+        if ($this->source($comment->network) !== null) {
+            throw new PostValidationException(['account' => ['Ocultar comentarios solo está disponible en Instagram y Facebook.']]);
+        }
         $account = $this->moderationAccount($comment);
 
         $this->call($account, fn () => $this->comments->setHidden($account, $comment->external_id, $hidden));
@@ -255,8 +308,8 @@ class InboxService
         if (! $account || ! $account->isActive()) {
             throw new PostValidationException(['account' => ['La cuenta necesita reconectarse.']]);
         }
-        if (! Comments::hasScopes($account, write: true)) {
-            throw new PostValidationException(['account' => ['Falta el permiso para moderar comentarios: actívalo en los casos de uso de la app de Meta y reconecta la cuenta.']]);
+        if (! $this->hasScopes($account, write: true)) {
+            throw new PostValidationException(['account' => [in_array($account->network, [Network::Instagram, Network::Facebook], true) ? 'Falta el permiso para moderar comentarios: actívalo en los casos de uso de la app de Meta y reconecta la cuenta.' : 'Falta el permiso para responder comentarios: reconecta la cuenta aceptando los permisos de respuestas.']]);
         }
 
         return $account;
@@ -275,6 +328,147 @@ class InboxService
         } catch (ConnectorException $e) {
             throw new PostValidationException(['account' => [$e->getMessage()]]);
         }
+    }
+
+    // ------------------------------------------------------------------ triaje (T-20): estado, etiquetas, asignacion y lotes
+
+    /** Cierra (o reabre) un comentario: es estado interno, no toca la red. */
+    public function setClosed(User $user, InboxComment $comment, bool $closed = true): InboxComment
+    {
+        $this->assertOwns($user, $comment);
+        $comment->forceFill(['closed_at' => $closed ? ($comment->closed_at ?? now()) : null])->save();
+
+        return $comment;
+    }
+
+    /** Etiqueta normalizada (minusculas, espacios colapsados) o error de validacion. */
+    public function normalizeLabel(string $label): string
+    {
+        $label = mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $label)));
+        if ($label === '' || mb_strlen($label) > 40 || preg_match('/[\p{Cc}\p{Cf}<>]/u', $label) === 1) {
+            throw new PostValidationException(['label' => ['La etiqueta tiene de 1 a 40 caracteres, sin símbolos < o >.']]);
+        }
+
+        return $label;
+    }
+
+    public function addLabel(User $user, InboxComment $comment, string $label): InboxComment
+    {
+        $this->assertOwns($user, $comment);
+        $label = $this->normalizeLabel($label);
+        $labels = $comment->labels()->get();
+        if (! $labels->contains('label', $label)) {
+            if ($labels->count() >= (int) config('social.inbox.labels_max', 10)) {
+                throw new PostValidationException(['label' => ['Máximo '.(int) config('social.inbox.labels_max', 10).' etiquetas por comentario.']]);
+            }
+            $row = new InboxCommentLabel(['label' => $label]);
+            $row->user_id = $user->id;
+            $row->inbox_comment_id = $comment->id;
+            try {
+                $row->save();
+            } catch (UniqueConstraintViolationException) {
+                // carrera: ya estaba puesta
+            }
+        }
+
+        return $comment->unsetRelation('labels');
+    }
+
+    public function removeLabel(User $user, InboxComment $comment, string $label): InboxComment
+    {
+        $this->assertOwns($user, $comment);
+        $comment->labels()->where('label', mb_strtolower(trim($label)))->delete();
+
+        return $comment->unsetRelation('labels');
+    }
+
+    /**
+     * Personas a las que se puede asignar un comentario de la marca: el propietario y sus colaboradores.
+     *
+     * @return Collection<int, User>
+     */
+    public function assignees(User $owner, int $brandId): Collection
+    {
+        $ids = BrandCollaborator::query()->where('brand_id', $brandId)->where('owner_id', $owner->id)->pluck('user_id')->push($owner->id)->unique();
+
+        return User::query()->whereIn('id', $ids)->orderBy('name')->get(['id', 'name']);
+    }
+
+    public function assign(User $user, InboxComment $comment, ?int $assigneeId): InboxComment
+    {
+        $this->assertOwns($user, $comment);
+        if ($assigneeId !== null && ! $this->assignees($user, $comment->brand_id)->contains('id', $assigneeId)) {
+            throw new PostValidationException(['assigned_user_id' => ['Solo puedes asignar a ti o a un colaborador de la marca.']]);
+        }
+        $comment->forceFill(['assigned_user_id' => $assigneeId])->save();
+
+        return $comment;
+    }
+
+    /**
+     * Accion en lote sobre comentarios propios: `read`, `unread`, `close` o `reopen`. Un id ajeno o inexistente cuenta como
+     * `skipped` sin distinguirlos (no revela su existencia).
+     *
+     * @param  list<int>  $ids
+     * @return array{done: int, skipped: int}
+     */
+    public function batch(User $user, string $action, array $ids): array
+    {
+        if (! in_array($action, ['read', 'unread', 'close', 'reopen'], true)) {
+            throw new PostValidationException(['action' => ['Acción no válida.']]);
+        }
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if ($ids === [] || count($ids) > (int) config('social.inbox.batch_max', 100)) {
+            throw new PostValidationException(['ids' => ['Elige entre 1 y '.(int) config('social.inbox.batch_max', 100).' comentarios.']]);
+        }
+
+        $mine = InboxComment::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids);
+        $found = (clone $mine)->count();
+        match ($action) {
+            'read' => (clone $mine)->whereNull('read_at')->update(['read_at' => now()]),
+            'unread' => (clone $mine)->update(['read_at' => null]),
+            'close' => (clone $mine)->whereNull('closed_at')->update(['closed_at' => now()]),
+            'reopen' => (clone $mine)->update(['closed_at' => null]),
+        };
+
+        return ['done' => $found, 'skipped' => count($ids) - $found];
+    }
+
+    // ------------------------------------------------------------------ respuestas guardadas
+
+    /** @return Collection<int, InboxSavedReply> */
+    public function savedReplies(User $user): Collection
+    {
+        return InboxSavedReply::withoutUserScope()->where('user_id', $user->id)->orderBy('title')->orderBy('id')->get();
+    }
+
+    public function saveReply(User $user, string $title, string $body): InboxSavedReply
+    {
+        $title = trim($title);
+        $body = trim($body);
+        $errors = [];
+        if ($title === '' || mb_strlen($title) > InboxSavedReply::TITLE_MAX) {
+            $errors['title'][] = 'El título tiene de 1 a '.InboxSavedReply::TITLE_MAX.' caracteres.';
+        }
+        if ($body === '' || mb_strlen($body) > InboxSavedReply::BODY_MAX) {
+            $errors['body'][] = 'El texto tiene de 1 a '.InboxSavedReply::BODY_MAX.' caracteres.';
+        }
+        if (! $errors && InboxSavedReply::withoutUserScope()->where('user_id', $user->id)->count() >= (int) config('social.inbox.saved_replies_max', 30)) {
+            $errors['title'][] = 'Máximo '.(int) config('social.inbox.saved_replies_max', 30).' respuestas guardadas.';
+        }
+        if ($errors) {
+            throw new PostValidationException($errors);
+        }
+        $reply = new InboxSavedReply(['title' => $title, 'body' => $body]);
+        $reply->user_id = $user->id;
+        $reply->save();
+
+        return $reply;
+    }
+
+    public function deleteReply(User $user, int $id): void
+    {
+        InboxSavedReply::withoutUserScope()->where('user_id', $user->id)->whereKey($id)->delete();
     }
 
     private function assertOwns(User $user, InboxComment $comment): void

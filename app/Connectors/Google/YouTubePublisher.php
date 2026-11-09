@@ -349,6 +349,35 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     }
 
     /**
+     * Hilos de comentarios de un video propio (inbox, T-20): `commentThreads.list` con las primeras respuestas (1 ud de cupo).
+     *
+     * @return array<string, mixed>
+     */
+    public function commentThreads(SocialAccount $account, string $videoId, ?string $pageToken = null): array
+    {
+        $query = ['part' => 'snippet,replies', 'videoId' => $videoId, 'maxResults' => 100, 'order' => 'time', 'textFormat' => 'plainText'];
+
+        return $this->threadsPage($account, $pageToken === null ? $query : $query + ['pageToken' => $pageToken]);
+    }
+
+    /** Responde a un comentario (`comments.insert`, 50 ud, exige `youtube.force-ssl`) y devuelve el id de la respuesta. */
+    public function replyToComment(SocialAccount $account, string $parentId, string $text): string
+    {
+        if (! self::canComment($account)) {
+            throw new ReconnectRequiredException('Reconecta el canal de YouTube para poder responder (falta el permiso de comentarios).');
+        }
+        $this->quota->assertAvailable(self::COMMENT_COST);
+
+        $response = $this->send($account, fn (PendingRequest $http) => $http->post(self::API.'/comments?part=snippet', ['snippet' => ['parentId' => $parentId, 'textOriginal' => $text]]));
+        if (! $response->successful()) {
+            throw $this->exceptionFor($response);
+        }
+        $this->quota->charge(self::COMMENT_COST);
+
+        return (string) ($response->json('id') ?? '');
+    }
+
+    /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */

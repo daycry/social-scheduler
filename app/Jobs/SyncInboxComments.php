@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Connectors\Network;
 use App\Models\SocialAccount;
+use App\Services\InboxService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -36,7 +37,7 @@ class SyncInboxComments implements ShouldBeUnique, ShouldQueue
     {
         // Job sin usuario autenticado: opta explicitamente por salir del UserScope.
         SocialAccount::withoutUserScope()->where('status', SocialAccount::STATUS_ACTIVE)
-            ->whereIn('network', [Network::Instagram->value, Network::Facebook->value])
+            ->whereIn('network', array_map(fn (Network $n) => $n->value, InboxService::NETWORKS))
             ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
             ->chunkById(200, function ($accounts): void {
                 foreach ($accounts as $account) {

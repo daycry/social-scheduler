@@ -140,7 +140,7 @@ return [
         'graph_host' => env('THREADS_GRAPH_HOST', 'https://graph.threads.com'),
         /* Version de la API en las rutas (`/v1.0/...`); el canje de tokens va sin version. */
         'api_version' => env('THREADS_API_VERSION', 'v1.0'),
-        'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights'],
+        'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights', 'threads_read_replies', 'threads_manage_replies'],
         /* El token de las llamadas a la API va como documenta Meta (cuerpo en los POST, query en los GET). `true` lo manda en `Authorization: Bearer`
            (no documentado para Threads: probarlo en el smoke, T-64, y activarlo si funciona para sacar el token de la URL). */
         'token_in_header' => (bool) env('THREADS_TOKEN_HEADER', false),
@@ -332,6 +332,12 @@ return [
         'budget_seconds' => (float) env('SOCIAL_INBOX_BUDGET_SECONDS', 60),
         'sync_minutes' => (int) env('SOCIAL_INBOX_SYNC_MINUTES', 15),
         'reply_max_chars' => 2200,
+        /* Profundidad de respuestas que se lee de un hilo de Bluesky. */
+        'bluesky_depth' => (int) env('SOCIAL_INBOX_BLUESKY_DEPTH', 6),
+        /* Tope de acciones en lote (marcar leido / cerrar) por peticion. */
+        'batch_max' => 100,
+        'labels_max' => 10,
+        'saved_replies_max' => 30,
     ],
 
     /*

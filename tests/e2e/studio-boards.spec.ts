@@ -205,3 +205,46 @@ test('Studio: A4 document with reflowing text and a table reopens, exports PDF a
         await presenter.getByRole('button', { name: 'Cerrar presentación', exact: true }).click();
     } finally { cleanComposerBrands(user.email); }
 });
+
+test('Studio: a chart bound to a saved table is inserted, saved, reopened and exported', async ({ page }, info) => {
+    const user = e2eUser(info.project.name);
+    cleanComposerBrands(user.email);
+    const brand = seedComposerBrand(user.email, `studio-chart-${stamp()}-${info.project.name}`);
+    try {
+        await loginAs(page, user);
+        await page.goto(`/studio?brand_id=${brand.id}`);
+        await page.getByRole('button', { name: 'Nuevo diseño', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Nuevo diseño' }).getByRole('button', { name: 'Crear diseño', exact: true }).click();
+        await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
+        await expect(page.getByRole('button', { name: 'Añadir tabla', exact: true })).toBeEnabled();
+        const table = { columns: [{ id: 'category', label: 'Mes' }, { id: 's0', label: 'Ventas' }], rows: [
+            { id: 'r0', values: ['Enero', 10] }, { id: 'r1', values: ['Febrero', 25] }, { id: 'r2', values: ['Marzo', 18] }] };
+        const dataset = await page.evaluate(async ({ brandId, table }) => {
+            const token = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
+            const response = await fetch(`/brands/${brandId}/studio/datasets`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify({ name: 'Ventas mensuales', table }) });
+            return { status: response.status, data: await response.json() };
+        }, { brandId: brand.id, table });
+        expect(dataset.status).toBe(201);
+
+        await page.getByRole('button', { name: 'Añadir gráfico con datos', exact: true }).click();
+        const datasets = page.getByRole('dialog', { name: 'Tablas de datos de marca', exact: true });
+        await datasets.getByTestId(`dataset-open-${dataset.data.dataset.id}`).click();
+        await datasets.getByRole('button', { name: 'Usar revisión guardada para gráfico', exact: true }).click();
+        const chart = page.getByRole('dialog', { name: 'Diseñar gráfico', exact: true });
+        await chart.getByRole('button', { name: /^Insertar gráfico$/ }).click();
+        await expect(chart).not.toBeVisible();
+        await save(page);
+        await page.reload();
+        await expect(page.getByTestId('studio-layer')).toHaveCount(1);
+        const element = (await savedDocument(page)).pages[0].elements[0];
+        expect(element.type).toBe('chart');
+        expect(element.chart.binding.dataset.id).toBe(dataset.data.dataset.id);
+
+        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: 'Exportar diseño' });
+        await dialog.getByLabel('Formato', { exact: true }).selectOption('svg');
+        const svg = (await download(page, info.outputPath('chart.svg'))).toString();
+        expect(svg).toContain('<svg');
+        expect(svg).toContain('Febrero');
+    } finally { cleanComposerBrands(user.email); }
+});

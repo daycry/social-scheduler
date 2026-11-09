@@ -157,6 +157,19 @@ export function useComposer(props) {
             }
         }
     };
+    // Media propia (T-17): alt y portada que el tipo (o el archivo) no admite se limpian del estado, no solo se ocultan: lo oculto no se envia.
+    const pruneTargetMedia = (targets) => {
+        for (const t of targets) {
+            if (!Array.isArray(t.media)) continue;
+            const meta = props.mediaMeta?.[t.content_type] ?? { alt: false, cover: false };
+            for (const m of t.media) {
+                const kind = mediaById(m.id)?.kind;
+                if (!meta.alt || kind === 'video') m.alt = '';
+                if (!meta.cover || kind === 'image') m.cover_id = null;
+            }
+        }
+    };
+    pruneTargetMedia(form.targets);
     pruneOptions();
     // Los presets solo se aplican al destino que se activa o cuyo tipo cambia: los demás no se tocan.
     let seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
@@ -164,6 +177,7 @@ export function useComposer(props) {
         const changed = form.targets.filter((t) => seen.get(t.account_id) !== t.content_type);
         seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
         pruneOptions();
+        pruneTargetMedia(changed);
         applyPresets(changed);
         // Un tipo que no admite primer comentario (Story, TikTok) no arrastra el texto del tipo anterior.
         for (const t of changed) if (firstCommentMax.value[t.content_type] == null) t.first_comment = '';

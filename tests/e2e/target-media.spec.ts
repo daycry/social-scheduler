@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { artisan, axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, settle, stamp, watch } from './helpers';
+import { artisan, axeSeriousCritical, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, settle, stamp, watch } from './helpers';
 import { runRoot } from './isolated/runtime';
 
 /**
@@ -162,4 +162,22 @@ test('T-17 · el error de la media propia nombra la red y bloquea Programar', as
     expect(B.id).not.toBe(A.id);
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'compositor con error de media propia');
+});
+
+test('T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian', async ({ page }) => {
+    const { A } = s.assets;
+    await page.goto(`/posts/${s.post}/edit`);
+    await settle(page);
+    await page.getByRole('button', { name: 'Editar por red' }).click();
+    await page.getByTestId(`tab-${s.ig}`).click();
+    await page.getByTestId('target-media-customize').click();
+    await page.getByTestId(`target-media-alt-${A.id}`).fill('Alt que dejara de admitirse');
+
+    const validated = page.waitForRequest((r) => r.url().endsWith('/posts/validate') && r.postDataJSON().targets.some((t: any) => t.content_type === 'instagram_story'));
+    await chooseContentType(page, s.ig, 'Historia');
+    const sent = (await validated).postDataJSON().targets.find((t: any) => t.content_type === 'instagram_story');
+    expect(sent.media.map((m: any) => m.alt ?? '')).toEqual(['', '']);
+    expect(sent.media.every((m: any) => !m.cover_id)).toBe(true);
+    await expect(page.getByTestId(`target-media-alt-${A.id}`)).toHaveCount(0);
+    await expect(page.getByTestId('errors-panel')).not.toContainText('texto alternativo');
 });

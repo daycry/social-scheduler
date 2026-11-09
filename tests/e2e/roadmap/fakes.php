@@ -9,6 +9,7 @@ use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\SocialAccount;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeConnector;
 
 class T43Connector extends FakeConnector
@@ -73,7 +74,7 @@ class T43Publisher implements Publisher
             // T-17: lo que la red recibe de media (ids, orden, alt, portada y huella de los bytes) para comprobar la media efectiva del destino.
             $state['records'][$id]['media'] = array_map(fn ($m) => [
                 'id' => $m->id, 'alt' => $m->alt, 'cover_id' => $m->cover?->id,
-                'sha1' => $m->disk !== null && $m->path !== null ? sha1((string) \Illuminate\Support\Facades\Storage::disk($m->disk)->get($m->path)) : null,
+                'sha1' => $m->disk !== null && $m->path !== null ? sha1((string) Storage::disk($m->disk)->get($m->path)) : null,
             ], $request->media);
             if (str_contains((string) $request->text, 't43-timeout') && $state['calls'][$id] === 1) {
                 return 'timeout';

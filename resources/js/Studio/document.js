@@ -256,6 +256,25 @@ function normalizeElement(value, path, ids, count, depth) {
     return result;
 }
 
+export const MAX_TABLE_CELLS = 2000;
+
+export function tableCells(elements) {
+    return elements.reduce((sum, element) => sum + (element.type === 'table' ? element.table.rows.length * element.table.rows[0].length : element.type === 'group' ? tableCells(element.elements) : 0), 0);
+}
+
+/** A connector end must be another (non-connector) element of the same page; anything else is cleared. */
+export function linkConnectors(elements) {
+    const valid = new Set();
+    const collect = items => items.forEach(item => { if (item.type !== 'connector') valid.add(item.id); if (item.type === 'group') collect(item.elements); });
+    collect(elements);
+    const walk = items => items.forEach(item => {
+        if (item.type === 'connector') for (const key of ['from', 'to']) if (item[key] !== null && (item[key] === item.id || !valid.has(item[key]))) item[key] = null;
+        if (item.type === 'group') walk(item.elements);
+    });
+    walk(elements);
+    return elements;
+}
+
 export function validateDocument(document) {
     if (document?.schema_version === 2) {
         try { return normalizeTimelineDocument(document, validateDocument); }
@@ -273,7 +292,8 @@ export function validateDocument(document) {
         const id = identity(page.id, `${path}.id`, ids);
         if (!Array.isArray(page.elements)) fail(`${path}.elements`, 'debe ser una lista.');
         const count = { value: 0 };
-        const result = { id, name: text(page.name, 255, `${path}.name`, `Página ${i + 1}`), background: normalizeFill(page.background ?? '#ffffff', `${path}.background`), duration: number(page.duration, 0.1, 3600, `${path}.duration`, 5), elements: page.elements.map((element, j) => normalizeElement(element, `${path}.elements.${j}`, ids, count, 1)) };
+        const result = { id, name: text(page.name, 255, `${path}.name`, `Página ${i + 1}`), background: normalizeFill(page.background ?? '#ffffff', `${path}.background`), duration: number(page.duration, 0.1, 3600, `${path}.duration`, 5), elements: linkConnectors(page.elements.map((element, j) => normalizeElement(element, `${path}.elements.${j}`, ids, count, 1))) };
+        if (tableCells(result.elements) > MAX_TABLE_CELLS) fail(`${path}.elements`, `las tablas de la página superan las ${MAX_TABLE_CELLS} celdas. Reduce filas o columnas.`);
         if (Object.hasOwn(page, 'notes')) {
             if (typeof page.notes !== 'string') fail(`${path}.notes`, 'debe ser texto de hasta 20000 caracteres.');
             result.notes = text(page.notes, 20000, `${path}.notes`);

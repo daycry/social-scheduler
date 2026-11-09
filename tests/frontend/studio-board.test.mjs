@@ -58,3 +58,18 @@ test('deleting a shape detaches its end of the connector, the other end stays gl
     const both = rerouteConnector(base, undefined, undefined);
     assert.deepEqual([both.from, both.to], [null, null]);
 });
+
+test('connector ends must be other shapes of the same page, otherwise they are cleared', () => {
+    const shape = newElement('rect', { id: 'forma_1' });
+    const document = validateDocument({ ...page([shape, newElement('connector', { id: 'c_1', from: 'forma_1', to: 'c_1' }), newElement('connector', { id: 'c_2', from: 'fantasma', to: 'c_1' })]) });
+    const [, one, two] = document.pages[0].elements;
+    assert.deepEqual([one.from, one.to, two.from, two.to], ['forma_1', null, null, null]);
+    const crossed = validateDocument({ ...page([shape]), pages: [{ ...page([shape]).pages[0] }, { id: 'p2', name: 'Dos', background: '#fff', duration: 5, elements: [newElement('connector', { id: 'c_3', from: 'forma_1' })] }] });
+    assert.equal(crossed.pages[1].elements[0].from, null);
+});
+
+test('a page holds at most 2000 table cells', () => {
+    const big = id => newElement('table', { id, table: { ...newElement('table').table, rows: Array.from({ length: 30 }, () => Array(12).fill('x')) } });
+    assert.doesNotThrow(() => validateDocument(page(['a', 'b', 'c', 'd', 'e'].map(big))));
+    assert.throws(() => validateDocument(page(['a', 'b', 'c', 'd', 'e', 'f'].map(big))), /2000 celdas/);
+});

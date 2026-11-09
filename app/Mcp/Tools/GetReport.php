@@ -46,6 +46,7 @@ class GetReport extends SchedulerTool
             'status' => $report->status,
             'from' => $report->from->format('Y-m-d'),
             'to' => $report->to->format('Y-m-d'),
+            'blocks' => $report->blocks === null ? null : array_column($report->blocks, 'type'),
             'size' => $report->size,
             'error' => $report->error,
             'download_url' => $report->isReady() ? $report->signedDownloadUrl() : null,

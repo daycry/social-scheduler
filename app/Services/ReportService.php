@@ -14,6 +14,7 @@ use App\Models\Report;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\Reports\PdfRenderer;
+use App\Services\Reports\ReportBlocks;
 use App\Services\Reports\TooManyActiveReports;
 use App\Support\CsvWriter;
 use Illuminate\Support\Facades\DB;
@@ -36,23 +37,29 @@ class ReportService
 
     public const STUCK_ERROR = 'El informe no se completó a tiempo. Genera uno nuevo.';
 
-    public function __construct(private readonly AnalyticsService $analytics, private readonly PdfRenderer $pdf) {}
+    public function __construct(
+        private readonly AnalyticsService $analytics,
+        private readonly PdfRenderer $pdf,
+        private readonly CompetitorService $competitors,
+        private readonly AdsService $ads,
+    ) {}
 
     /**
      * Crea los informes pendientes de los formatos pedidos respetando el limite de informes en curso de forma atomica
      * (transaccion + bloqueo de la fila del usuario) y encola su generacion en la cola `reports`.
      *
      * @param  list<string>  $formats
+     * @param  ?list<array{type: string, title: ?string, text: ?string}>  $blocks  bloques del PDF ya normalizados (null = informe clasico)
      * @return list<Report>
      *
      * @throws TooManyActiveReports
      */
-    public function enqueue(User $user, Brand $brand, array $formats, Period $period, string $compare = 'none'): array
+    public function enqueue(User $user, Brand $brand, array $formats, Period $period, string $compare = 'none', ?array $blocks = null, ?int $scheduleId = null): array
     {
         $formats = array_values(array_unique($formats));
         $max = (int) config('reports.max_active', 5);
 
-        $reports = DB::transaction(function () use ($user, $brand, $formats, $period, $compare, $max) {
+        $reports = DB::transaction(function () use ($user, $brand, $formats, $period, $compare, $max, $blocks, $scheduleId) {
             User::query()->whereKey($user->id)->lockForUpdate()->first(); // serializa las altas del mismo usuario
 
             $active = Report::withoutUserScope()->where('user_id', $user->id)->active()->count();
@@ -61,7 +68,7 @@ class ReportService
                 throw new TooManyActiveReports;
             }
 
-            return array_map(fn (string $format) => $this->create($user, $brand, $format, $period, $compare), $formats);
+            return array_map(fn (string $format) => $this->create($user, $brand, $format, $period, $compare, $blocks, $scheduleId), $formats);
         });
 
         foreach ($reports as $report) {
@@ -72,7 +79,7 @@ class ReportService
     }
 
     /** Crea el registro pendiente (la generacion la hace el job `GenerateReport` en la cola `reports`). */
-    public function create(User $user, Brand $brand, string $format, Period $period, string $compare = 'none'): Report
+    public function create(User $user, Brand $brand, string $format, Period $period, string $compare = 'none', ?array $blocks = null, ?int $scheduleId = null): Report
     {
         if ($brand->user_id !== $user->id) {
             throw new InvalidArgumentException('La marca no pertenece al usuario.');
@@ -92,6 +99,7 @@ class ReportService
             'user_id' => $user->id, 'brand_id' => $brand->id, 'format' => $format,
             'from' => $period->from->format('Y-m-d'), 'to' => $period->to->format('Y-m-d'),
             'compare' => $compare, 'status' => Report::STATUS_PENDING,
+            'blocks' => $format === 'pdf' ? $blocks : null, 'schedule_id' => $scheduleId,
         ]);
     }
 
@@ -104,7 +112,7 @@ class ReportService
             $user = User::findOrFail($report->user_id);
             $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($report->brand_id);
             $period = Period::make($report->from->format('Y-m-d'), $report->to->format('Y-m-d'));
-            $data = $this->dataset($user, $brand, $period, $period->comparison($report->compare));
+            $data = $this->dataset($user, $brand, $period, $period->comparison($report->compare), $report->format === 'pdf' ? $report->blocks : null);
 
             $content = $report->format === 'pdf' ? $this->pdf->render($data) : $this->csv($data);
             $path = sprintf('reports/%d/%d.%s', $user->id, $report->id, $report->format);
@@ -131,7 +139,7 @@ class ReportService
      *
      * @return array<string, mixed>
      */
-    public function dataset(User $user, Brand $brand, Period $period, ?Period $compare = null): array
+    public function dataset(User $user, Brand $brand, Period $period, ?Period $compare = null, ?array $blocks = null): array
     {
         $summary = $this->analytics->summary($user, $brand, $period, $compare);
         $top = $this->topPosts($user, $brand, $period, max(1, (int) config('reports.top_posts', 5)));
@@ -155,7 +163,7 @@ class ReportService
             ];
         }
 
-        return [
+        $data = [
             'brand' => ['id' => $brand->id, 'name' => $brand->name],
             'period' => $summary['period'],
             'comparison' => $summary['comparison'],
@@ -164,6 +172,56 @@ class ReportService
             'timeline' => $this->timeline($summary['cards']),
             'networks' => $networks,
             'notes' => $notes,
+        ];
+
+        if ($blocks !== null) {
+            $data['blocks'] = $this->resolveBlocks($user, $brand, $period, $blocks, $data);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Datos de cada bloque, en el orden elegido. Competidores y Ads se piden SOLO si el bloque esta presente y siempre
+     * con la marca del informe (nunca otra del usuario); los estados «no disponible» se muestran, no se rellenan.
+     *
+     * @param  list<array{type: string, title: ?string, text: ?string}>  $blocks
+     * @param  array<string, mixed>  $data
+     * @return list<array<string, mixed>>
+     */
+    private function resolveBlocks(User $user, Brand $brand, Period $period, array $blocks, array $data): array
+    {
+        return array_map(function (array $b) use ($user, $brand, $period) {
+            $payload = match ($b['type']) {
+                ReportBlocks::COMPETITORS => $this->competitorsBlock($user, $brand, $period),
+                ReportBlocks::ADS => $this->adsBlock($user, $brand, $period),
+                default => [],
+            };
+
+            return $b + ['data' => $payload];
+        }, $blocks);
+    }
+
+    /** @return array<string, mixed> */
+    private function competitorsBlock(User $user, Brand $brand, Period $period): array
+    {
+        $cmp = $this->competitors->comparison($user, $brand, $period->from->format('Y-m-d'), $period->to->format('Y-m-d'));
+        $pick = fn (array $r) => ['username' => $r['username'], 'followers_end' => $r['followers_end'], 'growth' => $r['growth'], 'growth_pct' => $r['growth_pct'], 'avg_interactions' => $r['avg_interactions'], 'rank' => $r['rank'] ?? null];
+
+        return ['own' => $cmp['own'] ? $pick($cmp['own']) : null, 'competitors' => array_map($pick, $cmp['competitors'])];
+    }
+
+    /** @return array<string, mixed> */
+    private function adsBlock(User $user, Brand $brand, Period $period): array
+    {
+        $days = $period->from->diffInDays($period->to) + 1;
+        $window = collect(AdsService::PERIODS)->first(fn (int $p) => $p >= $days) ?? max(AdsService::PERIODS);
+        $o = $this->ads->overview($user, $brand, null, $window);
+
+        return [
+            'available' => $o['available'], 'message' => $o['message'], 'window_days' => $window,
+            'account' => $o['selected']['name'] ?? null, 'currency' => $o['selected']['currency'] ?? null, 'totals' => $o['totals'],
+            'campaigns' => array_map(fn (array $c) => ['name' => $c['name'], 'status' => $c['status'], 'insights' => $c['insights']], array_slice($o['campaigns'], 0, 10)),
         ];
     }
 

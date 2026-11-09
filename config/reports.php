@@ -30,6 +30,13 @@ return [
     // Minutos de validez del enlace firmado de descarga (solo firma, sin sesion: lo usan tambien los agentes MCP).
     'download_minutes' => 5,
 
+    // Constructor y envios programados (T-21): destinatarios por programacion, correos al dia por usuario, validez del
+    // enlace firmado del email (horas) y tamano maximo del PDF adjunto (si lo supera, solo va el enlace).
+    'max_recipients' => 5,
+    'mail_daily_limit' => 20,
+    'mail_link_hours' => 72,
+    'mail_attach_max_bytes' => 10_000_000,
+
     // CSV: `es` (Excel es-ES) separa con `;` y usa coma decimal; `en` separa con `,` y usa punto decimal.
     // Las celdas de texto van siempre entre comillas y las que empiezan por = + - @ se neutralizan (CWE-1236).
     'csv_locale' => env('REPORTS_CSV_LOCALE', 'es'),

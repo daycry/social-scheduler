@@ -119,12 +119,11 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                                 <th scope="col" class="px-3 py-3 text-right font-medium">30 días</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">Publicaciones</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">Interacc. medias</th>
-                                <th scope="col" class="px-3 py-3"><span class="sr-only">Acciones</span></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             <tr v-if="rows.length === 0">
-                                <td colspan="10" class="px-5 py-4 text-slate-600">Aún no sigues a ninguna cuenta.</td>
+                                <td colspan="9" class="px-5 py-4 text-slate-600">Aún no sigues a ninguna cuenta.</td>
                             </tr>
                             <tr v-for="r in rows" :key="r.id" data-testid="competitor-row">
                                 <td class="px-3 py-3 text-right tabular-nums" data-testid="rank">{{ r.rank ?? '—' }}</td>
@@ -134,6 +133,10 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                                         <div class="h-1.5 rounded bg-indigo-500" :style="{ width: `${((r.followers ?? 0) / maxFollowers) * 100}%` }"></div>
                                     </div>
                                     <p v-if="r.error" class="mt-1 text-xs text-red-600">{{ r.error }}</p>
+                                    <div v-if="!r.own" class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                                        <button type="button" class="text-xs font-medium text-indigo-700 underline" data-testid="show-posts" :aria-label="`Ver publicaciones de @${r.username}`" @click="showPosts(r)">Ver publicaciones</button>
+                                        <button type="button" class="text-xs font-medium text-red-700 underline" :aria-label="`Dejar de seguir a @${r.username}`" @click="remove(r)">Dejar de seguir</button>
+                                    </div>
                                 </td>
                                 <td class="px-3 py-3 text-right tabular-nums">{{ n(r.followers) }}</td>
                                 <td class="px-3 py-3 text-right tabular-nums" data-testid="range-growth">{{ delta(r.growth) }}</td>
@@ -142,10 +145,6 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                                 <td class="px-3 py-3 text-right tabular-nums">{{ delta(r.growth_30d) }}</td>
                                 <td class="px-3 py-3 text-right tabular-nums">{{ n(r.media) }}</td>
                                 <td class="px-3 py-3 text-right tabular-nums">{{ n(r.avg_interactions) }}</td>
-                                <td class="space-x-3 whitespace-nowrap px-3 py-3 text-right">
-                                    <button v-if="!r.own" type="button" class="text-xs font-medium text-indigo-700 underline" data-testid="show-posts" @click="showPosts(r)">Ver publicaciones</button>
-                                    <button v-if="!r.own" type="button" class="text-xs font-medium text-red-700 underline" @click="remove(r)">Dejar de seguir</button>
-                                </td>
                             </tr>
                         </tbody>
                     </table>

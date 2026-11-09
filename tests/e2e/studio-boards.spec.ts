@@ -145,3 +145,63 @@ test('Studio: whiteboard with a table, glued connectors and free drawing persist
         expect(Math.round(pdf.getPage(0).getWidth() / pdf.getPage(0).getHeight() * 100)).toBe(178);
     } finally { cleanComposerBrands(user.email); }
 });
+
+test('Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented', async ({ page }, info) => {
+    const user = e2eUser(info.project.name);
+    cleanComposerBrands(user.email);
+    const brand = seedComposerBrand(user.email, `studio-doc-${stamp()}-${info.project.name}`);
+    const paragraph = 'Informe mensual de resultados. '.repeat(14);
+    try {
+        await loginAs(page, user);
+        await page.goto(`/studio?brand_id=${brand.id}`);
+        await page.getByRole('button', { name: /^Documento A4/ }).click();
+        const creation = page.getByRole('dialog', { name: 'Nuevo diseño' });
+        await creation.getByLabel('Nombre', { exact: true }).fill('Informe de marca');
+        await creation.getByRole('button', { name: 'Crear diseño', exact: true }).click();
+        await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
+        await expect(page.getByRole('button', { name: 'Añadir texto', exact: true })).toBeEnabled();
+
+        await page.getByRole('button', { name: 'Añadir texto', exact: true }).click();
+        await page.getByRole('button', { name: 'Propiedades', exact: true }).click();
+        await page.getByLabel('Contenido del texto', { exact: true }).fill(paragraph);
+        await page.getByRole('button', { name: 'Capas', exact: true }).click();
+        await page.getByRole('button', { name: 'Añadir tabla', exact: true }).click();
+        await page.getByRole('button', { name: 'Añadir página', exact: true }).click();
+        await page.getByRole('button', { name: 'Añadir texto', exact: true }).click();
+        await page.getByRole('button', { name: 'Propiedades', exact: true }).click();
+        await page.getByLabel('Contenido del texto', { exact: true }).fill('Anexo con datos');
+        await save(page);
+
+        // Reopen: wrapped text keeps its multi-line height, the table keeps its cells, two pages remain.
+        await page.reload();
+        const document = await savedDocument(page);
+        expect(document.pages).toHaveLength(2);
+        const [text, table] = document.pages[0].elements;
+        expect(text.text).toBe(paragraph);
+        expect(text.width).toBeLessThan(document.width);
+        expect(text.height).toBeGreaterThan(text.fontSize * 3);
+        expect(table.table.rows[1][0]).toBe('Ventas');
+        expect(document.pages[1].elements[0].text).toBe('Anexo con datos');
+
+        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: 'Exportar diseño' });
+        await dialog.getByLabel('Escala', { exact: true }).selectOption('0.5');
+        await dialog.getByLabel('Formato', { exact: true }).selectOption('pdf');
+        const pdf = await PDFDocument.load(await download(page, info.outputPath('document.pdf')));
+        expect(pdf.getPageCount()).toBe(2);
+        expect(Math.round(pdf.getPage(0).getHeight() / pdf.getPage(0).getWidth() * 100)).toBe(141);
+        await dialog.getByLabel(/Página 1$/).uncheck();
+        await dialog.getByLabel('Formato', { exact: true }).selectOption('png');
+        const png = await download(page, info.outputPath('document.png'));
+        expect(png.readUInt32BE(16)).toBe(1240);
+        expect(png.readUInt32BE(20)).toBe(1754);
+        await page.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
+
+        await page.getByRole('button', { name: 'Presentar', exact: true }).click();
+        const presenter = page.getByRole('dialog', { name: 'Presentación', exact: true });
+        await expect(presenter.getByRole('button', { name: 'Reproducir presentación', exact: true })).toBeEnabled();
+        await presenter.getByRole('button', { name: 'Última diapositiva', exact: true }).click();
+        await expect(presenter.getByRole('img', { name: 'Diapositiva de audiencia', exact: true })).toBeVisible();
+        await presenter.getByRole('button', { name: 'Cerrar presentación', exact: true }).click();
+    } finally { cleanComposerBrands(user.email); }
+});

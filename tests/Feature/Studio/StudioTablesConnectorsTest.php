@@ -77,3 +77,29 @@ test('Studio: rejects malformed connectors', function (array $patch, string $fie
     'extremo con css' => [['from' => 'a b;'], 'document.pages.0.elements.1.from'],
     'clave desconocida' => [['label' => 'x'], 'document.pages.0.elements.1'],
 ]);
+
+test('Studio API: the same board document is accepted and returned through the bearer API', function () {
+    if (! Route::has('api.studio.designs.index') && is_file(base_path('routes/studio-api.php'))) {
+        Route::middleware('api')->group(base_path('routes/studio-api.php'));
+        Route::getRoutes()->refreshNameLookups();
+        Route::getRoutes()->refreshActionLookups();
+    }
+    $key = (new class
+    {
+        use Tests\Support\McpClient;
+
+        public function key(User $user, array $abilities): string
+        {
+            return $this->mcpKey($user, $abilities);
+        }
+    })->key($this->user, ['designs:read', 'designs:write']);
+    $headers = ['Authorization' => 'Bearer '.$key];
+    $document = boardDocument([boardTable(), boardConnector()]);
+    $created = $this->postJson('/api/v1/brands/'.$this->brand->id.'/designs', ['name' => 'Pizarra API', 'document' => $document], $headers)->assertCreated()->json();
+    app('auth')->forgetGuards();
+    $this->getJson('/api/v1/designs/'.$created['id'], $headers)->assertOk()->assertJsonPath('document', $document);
+    app('auth')->forgetGuards();
+    $bad = $document;
+    $bad['pages'][0]['elements'][1]['route'] = 'curved';
+    $this->postJson('/api/v1/brands/'.$this->brand->id.'/designs', ['name' => 'Mala', 'document' => $bad], $headers)->assertUnprocessable();
+});

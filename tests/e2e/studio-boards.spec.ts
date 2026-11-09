@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { PDFDocument } from 'pdf-lib';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
 
@@ -72,6 +73,16 @@ test('Studio: whiteboard with a table, glued connectors and free drawing persist
         await page.getByRole('button', { name: 'Propiedades', exact: true }).click();
         await expect(page.getByText('Unido a dos elementos: sigue sus movimientos.')).toBeVisible();
         await page.getByLabel('Flecha del conector', { exact: true }).selectOption('both');
+        // The new inspector sections (connector now, table below) pass axe without exclusions.
+        const connectorAxe = await new AxeBuilder({ page }).include('[aria-label="Propiedades del elemento"]').analyze();
+        expect(connectorAxe.violations).toEqual([]);
+
+        await page.getByRole('button', { name: 'Capas', exact: true }).click();
+        await layer(page, 3).click();
+        await page.getByRole('button', { name: 'Propiedades', exact: true }).click();
+        const tableAxe = await new AxeBuilder({ page }).include('[aria-label="Propiedades del elemento"]').analyze();
+        expect(tableAxe.violations).toEqual([]);
+        await page.getByRole('button', { name: 'Capas', exact: true }).click();
 
         // Free drawing.
         await page.getByRole('button', { name: 'Capas', exact: true }).click();

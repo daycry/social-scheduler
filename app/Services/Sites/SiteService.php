@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Site;
 use App\Models\SiteToken;
+use App\Models\SmartLink;
 use App\Models\Studio\DesignExport;
 use App\Models\User;
 use App\Services\SmartLinkService;
@@ -316,7 +317,7 @@ class SiteService
             $blocks = [];
             $contacts = 0;
             foreach (array_values($blocksIn) as $j => $b) {
-                [$attrs, $blockErrors] = $this->normalizeBlock((array) $b, $user, $site, $media, array_keys($keys));
+                [$attrs, $blockErrors] = $this->normalizeBlock((array) $b, $user, $site, $media, array_map(strval(...), array_keys($keys)));
                 foreach ($blockErrors as $field => $messages) {
                     $errors["pages.$i.blocks.$j.$field"] = $messages;
                 }
@@ -618,7 +619,7 @@ class SiteService
 
     private function assertSlug(string $slug, ?int $ignore): void
     {
-        if (preg_match('/^'.\App\Models\SmartLink::SLUG_PATTERN.'$/', $slug) !== 1) {
+        if (preg_match('/^'.SmartLink::SLUG_PATTERN.'$/', $slug) !== 1) {
             throw new PostValidationException(['slug' => ['Usa de 3 a 40 caracteres: minúsculas, números y guiones (sin guion al principio ni al final).']]);
         }
         if (Site::withoutUserScope()->where('slug', $slug)->when($ignore, fn ($q) => $q->whereKeyNot($ignore))->exists()) {

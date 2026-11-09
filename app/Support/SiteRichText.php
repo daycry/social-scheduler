@@ -16,7 +16,7 @@ final class SiteRichText
     public static function clean(mixed $value, int $max = self::MAX): string
     {
         $text = strip_tags((string) $value);
-        $text = str_replace(["\r\n", "\r", "\t"], ["\n", "\n", " "], $text);
+        $text = str_replace(["\r\n", "\r", "\t"], ["\n", "\n", ' '], $text);
         $text = (string) preg_replace('/[^\P{Cc}\n]|[\p{Cf}\p{Zl}\p{Zp}]/u', '', $text);
         $text = (string) preg_replace("/[ \t]+/u", ' ', $text);
         $text = (string) preg_replace("/\n{3,}/", "\n\n", $text);

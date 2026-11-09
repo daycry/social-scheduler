@@ -3,6 +3,7 @@
 namespace App\Services\Sites;
 
 use App\Models\Site;
+use App\Models\SiteToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -39,7 +40,7 @@ class SiteAccess
             return false;
         }
         if ($site->access_mode === Site::ACCESS_TOKEN) {
-            $token = $tokenId > 0 ? \App\Models\SiteToken::query()->where('site_id', $site->id)->find((int) $tokenId) : null;
+            $token = $tokenId > 0 ? SiteToken::query()->where('site_id', $site->id)->find((int) $tokenId) : null;
 
             return $token !== null && $token->isUsable();
         }

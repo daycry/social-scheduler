@@ -42,10 +42,10 @@ class SiteRenderer
 
         $response = response()->view('sites.show', [
             'doc' => $doc, 'page' => $page, 'view' => $view, 'preview' => $preview, 'nonce' => $nonce, 'polls' => $polls, 'state' => $state,
-            'showResults' => ($query['results'] ?? null) === '1', 'noindex' => $doc['noindex'] || $preview || $site->access_mode !== Site::ACCESS_PUBLIC,
+            'showResults' => ($query['results'] ?? null) === '1', 'noindex' => $site->noindex || $preview || $site->access_mode !== Site::ACCESS_PUBLIC,
         ]);
 
-        return $this->secure($response, $nonce, $preview, $site->access_mode !== Site::ACCESS_PUBLIC || $doc['noindex']);
+        return $this->secure($response, $nonce, $preview, $site->access_mode !== Site::ACCESS_PUBLIC || $site->noindex);
     }
 
     public function gate(Site $site, string $mode, ?string $error, int $status): Response

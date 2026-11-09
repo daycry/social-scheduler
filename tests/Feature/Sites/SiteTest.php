@@ -1,16 +1,18 @@
 <?php
 
+use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Site;
 use App\Models\SiteToken;
+use App\Models\Studio\Design;
+use App\Models\Studio\DesignExport;
 use App\Models\User;
 use App\Services\Sites\SiteService;
 use App\Support\SiteRichText;
 use App\Support\SiteView;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\McpClient;
 
@@ -60,12 +62,12 @@ function siteImage(User $user, array $over = []): MediaAsset
 test('crear un sitio deja una pagina de inicio, slug unico y limite por marca', function () {
     $site = siteMk($this);
     expect($site->draft['pages'])->toHaveCount(1)->and($site->is_published)->toBeFalse()->and($site->url())->toEndWith('/s/mi-sitio');
-    expect(fn () => siteMk($this))->toThrow(App\Exceptions\PostValidationException::class);
-    expect(fn () => $this->svc->create($this->user, $this->brand, 'x', 'AB'))->toThrow(App\Exceptions\PostValidationException::class);
+    expect(fn () => siteMk($this))->toThrow(PostValidationException::class);
+    expect(fn () => $this->svc->create($this->user, $this->brand, 'x', 'AB'))->toThrow(PostValidationException::class);
     foreach (range(2, 5) as $i) {
         siteMk($this, "sitio-$i");
     }
-    expect(fn () => siteMk($this, 'sitio-6'))->toThrow(App\Exceptions\PostValidationException::class);
+    expect(fn () => siteMk($this, 'sitio-6'))->toThrow(PostValidationException::class);
 });
 
 test('el borrador sanea texto, valida YouTube y URL, y rechaza imagenes ajenas', function () {
@@ -73,7 +75,7 @@ test('el borrador sanea texto, valida YouTube y URL, y rechaza imagenes ajenas',
     $alien = siteImage(User::factory()->create());
     $mine = siteImage($this->user, ['path' => 'media/test/m.png']);
 
-    $bad = fn (array $blocks) => expect(fn () => siteSave($this, $site, sitePages($blocks)))->toThrow(App\Exceptions\PostValidationException::class);
+    $bad = fn (array $blocks) => expect(fn () => siteSave($this, $site, sitePages($blocks)))->toThrow(PostValidationException::class);
     $bad([['type' => 'youtube', 'url' => 'https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ', 'title' => 'v']]);
     $bad([['type' => 'button', 'kind' => 'url', 'label' => 'x', 'url' => 'javascript:alert(1)']]);
     $bad([['type' => 'button', 'kind' => 'page', 'label' => 'x', 'page' => 'zzzzzzzz']]);
@@ -145,8 +147,8 @@ test('noindex opcional: meta y cabecera', function () {
 
 test('acceso con contraseña: hash, cookie firmada, y cierre de sesiones al cambiarla', function () {
     $site = siteMk($this);
-    expect(fn () => $this->svc->updateAccess($this->user, $site, 'password', null, false))->toThrow(App\Exceptions\PostValidationException::class);
-    expect(fn () => $this->svc->updateAccess($this->user, $site, 'password', 'corta', false))->toThrow(App\Exceptions\PostValidationException::class);
+    expect(fn () => $this->svc->updateAccess($this->user, $site, 'password', null, false))->toThrow(PostValidationException::class);
+    expect(fn () => $this->svc->updateAccess($this->user, $site, 'password', 'corta', false))->toThrow(PostValidationException::class);
     $this->svc->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
     $site->refresh();
     expect($site->password_hash)->not->toContain('una-clave-larga');
@@ -288,12 +290,12 @@ test('las imagenes solo se sirven si estan en lo publicado y con cabeceras de sa
 test('el estudio se incrusta como imagen exportada de la misma marca', function () {
     $site = siteMk($this);
     $m = siteImage($this->user);
-    $design = App\Models\Studio\Design::unguarded(fn () => App\Models\Studio\Design::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'name' => 'Cartel', 'document' => ['pages' => []], 'width' => 1, 'height' => 1, 'page_count' => 1, 'revision' => 1]));
-    $x = App\Models\Studio\DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id, 'revision' => 1, 'format' => 'png', 'pages' => ['p1'], 'media_ids' => [$m->id], 'status' => 'ready']);
+    $design = Design::unguarded(fn () => Design::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'name' => 'Cartel', 'document' => ['pages' => []], 'width' => 1, 'height' => 1, 'page_count' => 1, 'revision' => 1]));
+    $x = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id, 'revision' => 1, 'format' => 'png', 'pages' => ['p1'], 'media_ids' => [$m->id], 'status' => 'ready']);
     $saved = siteSave($this, $site, sitePages([['type' => 'design', 'export_id' => $x->id, 'page' => 0, 'alt' => 'Cartel']]));
     expect($saved->draft['pages'][0]['blocks'][0]['media_id'])->toBe($m->id);
-    expect(fn () => siteSave($this, $site, sitePages([['type' => 'design', 'export_id' => 99999, 'page' => 0, 'alt' => 'x']])))->toThrow(App\Exceptions\PostValidationException::class);
-    expect(fn () => siteSave($this, $site, sitePages([['type' => 'design', 'export_id' => $x->id, 'page' => 3, 'alt' => 'x']])))->toThrow(App\Exceptions\PostValidationException::class);
+    expect(fn () => siteSave($this, $site, sitePages([['type' => 'design', 'export_id' => 99999, 'page' => 0, 'alt' => 'x']])))->toThrow(PostValidationException::class);
+    expect(fn () => siteSave($this, $site, sitePages([['type' => 'design', 'export_id' => $x->id, 'page' => 3, 'alt' => 'x']])))->toThrow(PostValidationException::class);
 });
 
 test('el tema sale del kit de marca y fija un texto legible sobre el acento', function () {

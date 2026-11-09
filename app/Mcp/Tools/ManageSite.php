@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Abilities;
+use App\Models\Brand;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\Sites\SiteService;
@@ -51,7 +52,7 @@ class ManageSite extends SchedulerTool
         if ($action === 'list') {
             $query = Site::withoutUserScope()->where('user_id', $user->id)->orderBy('id');
             if (filled($request->get('brand_id'))) {
-                $brand = $this->owned(\App\Models\Brand::class, $user, $request->get('brand_id'), 'Marca');
+                $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
                 $query->where('brand_id', $brand->id);
             }
 

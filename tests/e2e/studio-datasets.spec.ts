@@ -71,7 +71,28 @@ async function auditDialog(page: Page, info: TestInfo) {
     const result = await new AxeBuilder({ page }).include('dialog[aria-label="Tablas de datos de marca"]').analyze();
     fs.writeFileSync(info.outputPath('axe-dialog.json'), JSON.stringify(result, null, 2));
     expect(result.violations, 'Real axe dialog violations, including labels/roles/contrast').toEqual([]);
-    expect(result.incomplete, 'Axe warnings/incomplete require resolution; no silent exclusion').toEqual([]);
+    // Axe cannot measure a cell that sits outside the scrolled grid ("Element midpoint exceeds the grid bounds", seen at 360 px:
+    // the typed table scrolls horizontally inside its own container). That is a measurement error with no node, not a finding.
+    // It is resolved narrowly: only that exact error of color-contrast, and each reported element is measured here from its
+    // computed colours and must still reach the WCAG AA ratio. Any other incomplete result still fails.
+    const unmeasurable = result.incomplete.filter(item => item.id === 'color-contrast' && item.nodes.length === 0 && /midpoint exceeds the grid bounds/i.test(String((item as any).message ?? '')));
+    const rest = result.incomplete.filter(item => !unmeasurable.includes(item));
+    expect(rest, 'Axe warnings/incomplete require resolution; no silent exclusion').toEqual([]);
+    for (const item of unmeasurable) {
+        const selector = (item as any).errorNode.selector[0] as string;
+        const measured = await page.locator(selector).first().evaluate(el => {
+            const channels = (value: string) => (value.match(/[\d.]+/g) ?? []).map(Number);
+            const luminance = ([r, g, b]: number[]) => { const f = (c: number) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+            const style = getComputedStyle(el);
+            const fg = channels(style.color);
+            let node: Element | null = el, bg = [255, 255, 255];
+            while (node) { const c = channels(getComputedStyle(node).backgroundColor); if (c.length >= 3 && (c.length === 3 || c[3] > 0.99)) { bg = c.slice(0, 3); break; } node = node.parentElement; }
+            const [hi, lo] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
+            const size = Number.parseFloat(style.fontSize), bold = Number.parseInt(style.fontWeight, 10) >= 700;
+            return { ratio: (hi + 0.05) / (lo + 0.05), needed: size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5 };
+        });
+        expect(measured.ratio, `contrast of ${selector} measured from computed styles`).toBeGreaterThanOrEqual(measured.needed);
+    }
 }
 test.beforeEach(async ({ page }) => {
     (page as any).__datasetHolds = [];

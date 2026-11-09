@@ -18,6 +18,8 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Competidores de Instagram (PA-08): alta con comprobacion inmediata en Business Discovery, snapshot diario y
@@ -161,6 +163,17 @@ class CompetitorService
     {
         if ($competitor->user_id !== $user->id) {
             throw new PostValidationException(['competitor' => ['El competidor no pertenece al usuario.']]);
+        }
+
+        // Topes (Graph API: 200 llamadas/h por app): un competidor cada 10 minutos y un maximo por hora y usuario.
+        $cooldown = (int) config('social.competitors.refresh_cooldown_minutes', 10);
+        if (! Cache::add('competitor-refresh:'.$competitor->id, 1, now()->addMinutes($cooldown))) {
+            throw new PostValidationException(['username' => ["Ya actualizaste a @{$competitor->username} hace poco: espera unos minutos (una vez cada $cooldown minutos)."]]);
+        }
+        $perHour = max(1, (int) config('social.competitors.refresh_per_hour', 60));
+        if (! RateLimiter::attempt('competitor-refresh-hour:'.$user->id, $perHour, fn () => true, 3600)) {
+            Cache::forget('competitor-refresh:'.$competitor->id);
+            throw new PostValidationException(['username' => ["Has alcanzado el máximo de $perHour actualizaciones por hora. Inténtalo más tarde."]]);
         }
 
         try {

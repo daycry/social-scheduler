@@ -6,6 +6,8 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\SocialAccount;
+use App\Support\SafeUrl;
+use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
 /**
@@ -66,5 +68,63 @@ class BusinessDiscovery
             'followers_count' => isset($data['followers_count']) ? (int) $data['followers_count'] : null,
             'media_count' => isset($data['media_count']) ? (int) $data['media_count'] : null,
         ];
+    }
+
+    /**
+     * Ultimas publicaciones PUBLICAS de la cuenta (`media.limit(N){...}`). `like_count` y `comments_count` llegan solo si la cuenta
+     * los muestra: si faltan se devuelven como null (nunca 0).
+     *
+     * @return list<array{external_id: string, caption: ?string, media_type: ?string, permalink: ?string, likes_count: ?int, comments_count: ?int, posted_at: ?CarbonImmutable}>
+     *
+     * @throws CompetitorNotFound
+     */
+    public function media(SocialAccount $account, string $username, int $limit = 25): array
+    {
+        $username = ltrim(trim($username), '@');
+        if (preg_match(self::USERNAME_PATTERN, $username) !== 1) {
+            throw new InvalidArgumentException('Nombre de usuario de Instagram no valido.');
+        }
+        $limit = max(1, min(50, $limit));
+
+        try {
+            $json = $this->graph->get(
+                $account->external_id,
+                ['fields' => "business_discovery.username($username){media.limit($limit){id,caption,media_type,permalink,like_count,comments_count,timestamp}}"],
+                (string) $account->access_token,
+                true,
+            );
+        } catch (QuotaExceededException|TransientPublishException $e) {
+            throw $e;
+        } catch (PermanentPublishException $e) {
+            if ($e->errorCode === 'permisos') {
+                throw $e;
+            }
+
+            throw new CompetitorNotFound('No encontramos esa cuenta o no es una cuenta profesional (Business/Creator) de Instagram.', previous: $e);
+        }
+
+        $out = [];
+        foreach ((array) ($json['business_discovery']['media']['data'] ?? []) as $m) {
+            if (empty($m['id'])) {
+                continue;
+            }
+            try {
+                $at = ! empty($m['timestamp']) ? CarbonImmutable::parse($m['timestamp'])->utc() : null;
+            } catch (\Throwable) {
+                $at = null;
+            }
+            $permalink = isset($m['permalink']) && SafeUrl::isSafe((string) $m['permalink']) ? mb_substr((string) $m['permalink'], 0, 500) : null;
+            $out[] = [
+                'external_id' => mb_substr((string) $m['id'], 0, 40),
+                'caption' => isset($m['caption']) ? mb_substr((string) $m['caption'], 0, 300) : null,
+                'media_type' => isset($m['media_type']) ? mb_substr((string) $m['media_type'], 0, 20) : null,
+                'permalink' => $permalink,
+                'likes_count' => isset($m['like_count']) ? (int) $m['like_count'] : null,
+                'comments_count' => isset($m['comments_count']) ? (int) $m['comments_count'] : null,
+                'posted_at' => $at,
+            ];
+        }
+
+        return $out;
     }
 }

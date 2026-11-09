@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\CollectCompetitorPosts;
 use App\Jobs\CollectCompetitorSnapshots;
 use App\Jobs\CollectSnapshots;
 use App\Jobs\DispatchDuePosts;
@@ -53,6 +54,7 @@ Schedule::command('posts:purge-trash')->dailyAt('04:30')->name('posts-purge-tras
 
 // Competidores de Instagram (PA-08): snapshot diario de seguidores y publicaciones (Business Discovery). Cola `metrics`.
 Schedule::job(new CollectCompetitorSnapshots)->dailyAt((string) config('social.competitors.daily_at', '13:00'))->name('collect-competitor-snapshots')->withoutOverlapping();
+Schedule::job(new CollectCompetitorPosts)->dailyAt((string) config('social.competitors.posts_at', '13:30'))->name('collect-competitor-posts')->withoutOverlapping();
 
 // Autolistas (PA-09): genera las publicaciones programadas de los proximos dias (idempotente). Cola `poll`.
 Schedule::job(new GenerateAutolistPosts)->dailyAt((string) config('social.autolists.daily_at', '02:00'))->name('generate-autolist-posts')->withoutOverlapping();

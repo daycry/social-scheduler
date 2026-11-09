@@ -49,6 +49,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Analytics · Competidores de Instagram (PA-08).
     Route::get('competitors', [CompetitorController::class, 'index'])->name('competitors.index');
     Route::post('competitors', [CompetitorController::class, 'store'])->middleware('throttle:20,1')->name('competitors.store');
+    // T-20: comparativa por rango, publicaciones del competidor y CSV.
+    Route::get('competitors/export.csv', [CompetitorController::class, 'export'])->middleware('throttle:30,1')->name('competitors.export');
+    Route::post('competitors/{competitor}/posts', [CompetitorController::class, 'refreshPosts'])->middleware('throttle:6,1')->whereNumber('competitor')->name('competitors.posts.refresh');
     Route::delete('competitors/{competitor}', [CompetitorController::class, 'destroy'])->whereNumber('competitor')->name('competitors.destroy');
 
     // Planificacion · Autolistas (PA-09).

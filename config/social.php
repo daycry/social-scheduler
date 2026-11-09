@@ -299,6 +299,8 @@ return [
     */
     'competitors' => [
         'daily_at' => env('SOCIAL_COMPETITORS_DAILY_AT', '13:00'),
+        'posts_limit' => (int) env('SOCIAL_COMPETITORS_POSTS_LIMIT', 25),
+        'posts_at' => env('SOCIAL_COMPETITORS_POSTS_AT', '13:30'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
     ],
 

@@ -829,3 +829,19 @@ export function seedHashtagHistory(brandId: number) {
             String.raw`Illuminate\Support\Facades\Cache::flush();`,
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Competidores (T-20): dos competidores con snapshots y publicaciones recogidas; ninguna llamada a Instagram.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Dos competidores con snapshots de los últimos 20 días y publicaciones; uno con un usuario que parece una fórmula. */
+export function seedCompetitors(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$rows = ['rival_grande' => [1000, 1100, [120, 10], 'e2e post grande'], 'rival_rapido' => [100, 160, [30, 5], 'e2e post rapido']]; ` +
+            String.raw`foreach ($rows as $u => [$a, $z, [$likes, $comments], $caption]) { ` +
+            String.raw`$c = new App\Models\Competitor(['username' => $u, 'name' => 'E2E ' . $u]); $c->user_id = $b->user_id; $c->brand_id = $b->id; $c->save(); ` +
+            String.raw`foreach ([[20, $a], [1, $z]] as [$ago, $f]) { App\Models\CompetitorSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'competitor_id' => $c->id, 'date' => now('UTC')->subDays($ago)->toDateString(), 'followers_count' => $f, 'media_count' => 10]); } ` +
+            String.raw`$p = new App\Models\CompetitorPost(['competitor_id' => $c->id, 'external_id' => $u . '-1', 'caption' => $caption, 'likes_count' => $likes, 'comments_count' => $comments, 'posted_at' => now()->subDays(3), 'permalink' => 'https://www.instagram.com/p/' . $u . '/']); $p->user_id = $b->user_id; $p->save(); }`,
+    );
+}

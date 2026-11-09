@@ -61,7 +61,11 @@ class ManageDesignCollaboration extends SchedulerTool
             'list_links' => ['links' => $collab->links($user, $design)],
             'list_comments' => ['comments' => $collab->comments($design)],
             'list_versions' => ['versions' => $studio->versions($user, $design), 'revision' => $design->revision],
-            'share' => ['share' => $collab->presentShare($collab->share($user, $design, $request->get('email'), $request->get('role')))],
+            'share' => (function () use ($collab, $user, $design, $request): array {
+                $collab->share($user, $design, $request->get('email'), $request->get('role'));
+
+                return ['message' => StudioCollab::SHARE_MESSAGE];
+            })(),
             'update_share' => ['share' => $collab->presentShare($collab->updateShare($user, $design, (int) $request->get('share_id'), $request->get('role')))],
             'revoke_share' => ['revoked' => $collab->revokeShare($user, $design, (int) $request->get('share_id')) ?? true],
             'create_link' => (function () use ($collab, $user, $design, $request): array {

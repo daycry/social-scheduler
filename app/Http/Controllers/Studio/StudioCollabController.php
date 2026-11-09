@@ -33,9 +33,9 @@ class StudioCollabController extends Controller
 
     public function share(Request $request, Design $design): JsonResponse
     {
-        $share = $this->collab->share($request->user(), $design, $request->input('email'), $request->input('role'));
+        $this->collab->share($request->user(), $design, $request->input('email'), $request->input('role'));
 
-        return response()->json(['share' => $this->collab->presentShare($share)], $share->wasRecentlyCreated ? 201 : 200);
+        return response()->json(['message' => StudioCollab::SHARE_MESSAGE], 202);
     }
 
     public function updateShare(Request $request, Design $design, int $share): JsonResponse

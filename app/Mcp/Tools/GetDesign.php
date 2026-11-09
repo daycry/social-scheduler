@@ -61,7 +61,7 @@ class GetDesign extends SchedulerTool
             $shared = app(StudioSharedFiles::class);
             $files = $shared->rewrite($design, $role, $files, [], $routes, true)['assets'];
             $presented['fonts'] = $shared->rewrite($design, $role, [], $presented['fonts'], $routes, true)['fonts'];
-            $kit = ['palette' => $kit['palette'], 'fonts' => $kit['fonts'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+            $kit = ['palette' => $role === 'editor' ? $kit['palette'] : [], 'fonts' => $role === 'editor' ? $kit['fonts'] : [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
             $list = [];
             $pagination = ['current_page' => 1, 'last_page' => 1, 'per_page' => 50, 'total' => 0, 'has_more' => false];
         }

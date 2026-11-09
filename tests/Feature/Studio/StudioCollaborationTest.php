@@ -77,15 +77,100 @@ test('Colaboración: el propietario comparte por email, cambia el rol y revoca c
     Mail::assertNothingSent();
 });
 
-test('Colaboración: valida el email, el rol y no deja compartir con quien no es usuario ni con uno mismo', function () {
+test('Colaboración: valida rol y email, y la respuesta no revela si una cuenta existe', function () {
     $this->actingAs($this->owner);
-    $this->postJson($this->base.'/shares', ['email' => 'nadie@example.test', 'role' => 'reader'])->assertUnprocessable()->assertJsonPath('errors.email.0', 'No hay ningún usuario registrado con ese email.');
-    $this->postJson($this->base.'/shares', ['email' => $this->owner->email, 'role' => 'reader'])->assertUnprocessable();
+    $message = 'Si existe una cuenta con ese email, tendrá acceso a este diseño.';
+    $missing = $this->postJson($this->base.'/shares', ['email' => 'nadie@example.test', 'role' => 'reader'])->assertStatus(202)->assertJsonPath('message', $message)->json();
+    $self = $this->postJson($this->base.'/shares', ['email' => $this->owner->email, 'role' => 'reader'])->assertStatus(202)->json();
+    expect(DB::table('studio_design_shares')->count())->toBe(0);
     $this->postJson($this->base.'/shares', ['email' => $this->reader->email, 'role' => 'admin'])->assertUnprocessable()->assertJsonValidationErrors('role');
     $this->postJson($this->base.'/shares', ['email' => 'no-es-email', 'role' => 'reader'])->assertUnprocessable();
-    $this->postJson($this->base.'/shares', ['email' => strtoupper($this->reader->email), 'role' => 'commenter'])->assertCreated();
-    $this->postJson($this->base.'/shares', ['email' => $this->reader->email, 'role' => 'editor'])->assertOk()->assertJsonPath('share.role', 'editor');
-    expect($this->design->fresh()->id)->toBe($this->design->id);
+    $existing = $this->postJson($this->base.'/shares', ['email' => strtoupper($this->reader->email), 'role' => 'commenter'])->assertStatus(202)->json();
+    expect($existing)->toBe($missing)->and($self)->toBe($missing);
+    expect(DB::table('studio_design_shares')->where('user_id', $this->reader->id)->value('role'))->toBe('commenter');
+    $this->postJson($this->base.'/shares', ['email' => $this->reader->email, 'role' => 'editor'])->assertStatus(202);
+    expect(DB::table('studio_design_shares')->where('user_id', $this->reader->id)->value('role'))->toBe('editor')->and(DB::table('studio_design_shares')->count())->toBe(1);
+});
+
+test('Colaboración: invitar tiene límite por usuario y copiar también', function () {
+    $this->actingAs($this->owner);
+    foreach (range(1, 10) as $i) {
+        $this->postJson($this->base.'/shares', ['email' => "nadie$i@example.test", 'role' => 'reader'])->assertStatus(202);
+    }
+    $this->postJson($this->base.'/shares', ['email' => 'otro@example.test', 'role' => 'reader'])->assertStatus(429);
+    foreach (range(1, 10) as $i) {
+        $this->postJson($this->base.'/copies', ['name' => "Copia $i"])->assertCreated();
+    }
+    $this->postJson($this->base.'/copies', ['name' => 'Una más'])->assertStatus(429);
+});
+
+test('Colaboración: tope de comentarios abiertos, lista con los más recientes y avisos agrupados', function () {
+    $now = now();
+    $rows = fn (int $count, ?object $resolved) => array_map(fn (int $i) => ['design_id' => $this->design->id, 'author_id' => $this->owner->id, 'author_name' => 'Olga', 'revision' => 1,
+        'body' => "c$i", 'resolved_at' => $resolved, 'created_at' => $now, 'updated_at' => $now], range(1, $count));
+    DB::table('studio_design_comments')->insert($rows(500, null));
+    $this->actingAs($this->owner);
+    $this->postJson($this->base.'/comments', ['body' => 'Uno más'])->assertUnprocessable()->assertJsonPath('errors.body.0', fn ($m) => str_contains($m, 'máximo de comentarios abiertos'));
+    DB::table('studio_design_comments')->update(['resolved_at' => $now]);
+    DB::table('studio_design_comments')->insert($rows(600, $now));
+    $new = $this->postJson($this->base.'/comments', ['body' => 'El más nuevo'])->assertCreated()->json('comment');
+    expect($new)->not->toBeNull()->and($new['body'])->toBe('El más nuevo');
+    $list = $this->getJson($this->base.'/comments')->json('comments');
+    expect($list)->toHaveCount(1000)->and(end($list)['body'])->toBe('El más nuevo');
+
+    // Avisos al propietario: uno por ventana, no uno por comentario.
+    $link = $this->postJson($this->base.'/links', ['role' => 'commenter'])->json('link.token');
+    auth()->logout();
+    app('auth')->forgetGuards();
+    foreach (range(1, 3) as $i) {
+        $this->postJson('/d/'.$link.'/comments', ['body' => "Visita $i", 'guest_name' => 'V'])->assertCreated();
+    }
+    expect($this->owner->notifications->filter(fn ($n) => $n->data['type'] === 'studio_design_comment')->count())->toBe(1);
+});
+
+test('Colaboración: los comentarios de un enlace tienen límite propio', function () {
+    $this->actingAs($this->owner);
+    $link = $this->postJson($this->base.'/links', ['role' => 'commenter'])->json('link.token');
+    auth()->logout();
+    app('auth')->forgetGuards();
+    foreach (range(1, 10) as $i) {
+        $this->postJson('/d/'.$link.'/comments', ['body' => "c$i", 'guest_name' => 'V'])->assertCreated();
+    }
+    $this->postJson('/d/'.$link.'/comments', ['body' => 'c11', 'guest_name' => 'V'])->assertStatus(429);
+});
+
+test('Colaboración: un editor invitado no cambia carpeta ni plantilla y no ve carpetas del propietario', function () {
+    $folder = $this->actingAs($this->owner)->postJson('/brands/'.$this->brand->id.'/studio/folders', ['name' => 'Secreta'])->json('folder.id');
+    $this->patchJson($this->base, ['name' => 'Con carpeta', 'document' => collabDocument(), 'revision' => 1, 'folder_id' => $folder])->assertOk();
+    collabShare($this, $this->editor, 'editor');
+    collabAs($this, $this->editor);
+    $res = $this->patchJson($this->base, ['name' => 'Del editor', 'document' => collabDocument('E'), 'revision' => 2, 'folder_id' => null, 'is_template' => true])->assertOk();
+    $res->assertJsonPath('design.folder_id', null)->assertJsonPath('design.is_template', false);
+    $stored = Design::withoutUserScope()->find($this->design->id);
+    expect($stored->folder_id)->toBe($folder)->and($stored->is_template)->toBeFalse()->and($stored->name)->toBe('Del editor');
+    $this->get($this->base.'/edit')->assertInertia(fn ($page) => $page->where('folders', [])->where('design.folder_id', null));
+});
+
+test('Colaboración: la página del enlace no filtra el token por Referer, caché ni buscadores', function () {
+    $this->actingAs($this->owner);
+    $token = $this->postJson($this->base.'/links', ['role' => 'commenter'])->json('link.token');
+    auth()->logout();
+    app('auth')->forgetGuards();
+    foreach (['/d/'.$token, '/d/'.$token.'/comments'] as $uri) {
+        $response = $this->get($uri, ['Accept' => 'text/html'])->assertOk();
+        expect($response->headers->get('Referrer-Policy'))->toBe('no-referrer')->and($response->headers->get('X-Robots-Tag'))->toBe('noindex')
+            ->and($response->headers->get('Cache-Control'))->toContain('no-store')->toContain('private');
+    }
+});
+
+test('Colaboración: lectores y comentaristas no reciben paleta ni tipografías del kit', function () {
+    collabShare($this, $this->reader, 'reader');
+    collabShare($this, $this->editor, 'editor');
+    collabAs($this, $this->reader);
+    $this->get($this->base.'/edit')->assertInertia(fn ($page) => $page->where('kit.palette', [])->where('kit.fonts', [])->where('fonts', []));
+    $this->getJson($this->base)->assertOk()->assertJsonPath('kit.palette', []);
+    collabAs($this, $this->editor);
+    $this->get($this->base.'/edit')->assertInertia(fn ($page) => $page->has('kit.palette', 3));
 });
 
 test('Colaboración: quien no es propietario no gestiona accesos ni enlaces', function () {
@@ -261,7 +346,7 @@ test('Colaboración: comentarios anclados con hilo, resolver, reabrir y permisos
     collabAs($this, $this->commenter);
     $this->deleteJson($this->base.'/comments/'.$root['id'])->assertOk();
     expect(DB::table('studio_design_comments')->where('design_id', $this->design->id)->count())->toBe(1);
-    expect($this->owner->notifications->filter(fn ($n) => $n->data['type'] === 'studio_design_comment')->count())->toBeGreaterThanOrEqual(2);
+    expect($this->owner->notifications->filter(fn ($n) => $n->data['type'] === 'studio_design_comment')->count())->toBe(1);
     expect($this->commenter->notifications->filter(fn ($n) => $n->data['type'] === 'studio_design_comment')->count())->toBeGreaterThanOrEqual(1);
 });
 
@@ -335,8 +420,8 @@ test('Colaboración API: roles, conflicto y revocación con tokens de dos usuari
     $api = '/api/v1/designs/'.$this->design->id;
     $headers = fn (string $key) => ['Authorization' => 'Bearer '.$key] + (app('auth')->forgetGuards() ? [] : []);
 
-    $this->postJson($api.'/shares', ['email' => $this->editor->email, 'role' => 'editor'], $headers($ownerKey))->assertCreated();
-    $this->postJson($api.'/shares', ['email' => $this->reader->email, 'role' => 'reader'], $headers($ownerKey))->assertCreated();
+    $this->postJson($api.'/shares', ['email' => $this->editor->email, 'role' => 'editor'], $headers($ownerKey))->assertStatus(202);
+    $this->postJson($api.'/shares', ['email' => $this->reader->email, 'role' => 'reader'], $headers($ownerKey))->assertStatus(202);
     $this->postJson($api.'/shares', ['email' => $this->reader->email, 'role' => 'reader'], $headers($readerKey))->assertForbidden();
     $this->getJson($api, $headers($strangerKey))->assertNotFound();
     $this->getJson($api.'/collab', $headers($strangerKey))->assertNotFound();
@@ -364,7 +449,7 @@ test('Colaboración MCP: get/update_design respetan el rol y manage_design_colla
     $id = $this->design->id;
 
     [$error, $data] = $this->callTool($ownerKey, 'manage_design_collaboration', ['design_id' => $id, 'action' => 'share', 'email' => $this->editor->email, 'role' => 'editor']);
-    expect($error)->toBeFalse()->and($data['share']['role'])->toBe('editor');
+    expect($error)->toBeFalse()->and($data['message'])->toContain('Si existe una cuenta');
     $this->callTool($ownerKey, 'manage_design_collaboration', ['design_id' => $id, 'action' => 'share', 'email' => $this->reader->email, 'role' => 'reader']);
     [$error, $data] = $this->callTool($strangerKey, 'get_design', ['design_id' => $id]);
     expect($error)->toBeTrue();

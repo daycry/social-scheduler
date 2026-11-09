@@ -16,7 +16,7 @@ Route::prefix('api/v1/designs/{design}')->name('api.')->whereNumber('design')->m
         Route::get('versions', [StudioCollabController::class, 'versions'])->name('studio.versions.index');
     });
     Route::middleware(RequireApiAbility::class.':designs:write')->group(function () {
-        Route::post('shares', [StudioCollabController::class, 'share'])->name('studio.shares.store');
+        Route::post('shares', [StudioCollabController::class, 'share'])->middleware('throttle:studio-shares')->name('studio.shares.store');
         Route::patch('shares/{share}', [StudioCollabController::class, 'updateShare'])->whereNumber('share')->name('studio.shares.update');
         Route::delete('shares/{share}', [StudioCollabController::class, 'revokeShare'])->whereNumber('share')->name('studio.shares.destroy');
         Route::post('links', [StudioCollabController::class, 'createLink'])->middleware('throttle:studio-links')->name('studio.links.store');
@@ -25,7 +25,7 @@ Route::prefix('api/v1/designs/{design}')->name('api.')->whereNumber('design')->m
         Route::post('comments/{comment}/resolve', [StudioCollabController::class, 'resolve'])->whereNumber('comment')->name('studio.comments.resolve');
         Route::post('comments/{comment}/reopen', [StudioCollabController::class, 'reopen'])->whereNumber('comment')->name('studio.comments.reopen');
         Route::delete('comments/{comment}', [StudioCollabController::class, 'deleteComment'])->whereNumber('comment')->name('studio.comments.destroy');
-        Route::post('copies', [StudioCollabController::class, 'copy'])->name('studio.copies.store');
+        Route::post('copies', [StudioCollabController::class, 'copy'])->middleware('throttle:studio-copies')->name('studio.copies.store');
         Route::post('versions/{version}/restore', [StudioCollabController::class, 'restoreVersion'])->whereNumber('version')->name('studio.versions.restore');
     });
 });

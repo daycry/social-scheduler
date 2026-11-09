@@ -70,6 +70,10 @@ class StudioService
         $user = $this->collab->authorize($actor, $design, 'edit');
         $current = $this->owned($user, $design);
         $data = $this->input($data, true);
+        if ($actor->id !== $user->id) {
+            // Carpeta y condición de plantilla son decisiones del propietario: un editor invitado no las cambia ni las ve.
+            unset($data['folder_id'], $data['is_template']);
+        }
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
@@ -118,13 +122,16 @@ class StudioService
         $owner = $this->collab->authorize($actor, $design, 'edit');
         $source = $this->owned($owner, $design);
         $brand = Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($source->brand_id);
-        $copy = $this->create($owner, $brand, ['name' => trim((string) ($data['name'] ?? '')) !== '' ? $data['name'] : mb_substr($source->name, 0, 240).' (copia)',
-            'document' => $data['document'] ?? $source->document, 'folder_id' => $source->folder_id, 'is_template' => false], $source->kit_reference ?? []);
-        if ($actor->id !== $owner->id) {
-            DesignShare::query()->create(['design_id' => $copy->id, 'owner_id' => $owner->id, 'user_id' => $actor->id, 'role' => 'editor']);
-        }
 
-        return $copy;
+        return DB::transaction(function () use ($actor, $owner, $brand, $source, $data): Design {
+            $copy = $this->create($owner, $brand, ['name' => trim((string) ($data['name'] ?? '')) !== '' ? $data['name'] : mb_substr($source->name, 0, 240).' (copia)',
+                'document' => $data['document'] ?? $source->document, 'folder_id' => $source->folder_id, 'is_template' => false], $source->kit_reference ?? []);
+            if ($actor->id !== $owner->id) {
+                DesignShare::query()->create(['design_id' => $copy->id, 'owner_id' => $owner->id, 'user_id' => $actor->id, 'role' => 'editor']);
+            }
+
+            return $copy;
+        });
     }
 
     public function archive(User $user, Design $design): void
@@ -161,6 +168,9 @@ class StudioService
         $data = $current->only(['id', 'user_id', 'brand_id', 'folder_id', 'name', 'document', 'revision', 'is_template', 'kit_reference', 'created_at', 'updated_at', 'deleted_at']);
         if ($data['kit_reference'] !== null) {
             $data['kit_reference'] = self::reference($data['kit_reference']);
+        }
+        if ($role !== 'owner') {
+            $data['folder_id'] = null;
         }
 
         return $data + ['role' => $role, 'template_fields' => StudioAutomation::fields($current->document), 'fonts' => app(StudioFonts::class)->neededFor($user, Brand::withoutUserScope()->findOrFail($current->brand_id), $current->document, $api)];

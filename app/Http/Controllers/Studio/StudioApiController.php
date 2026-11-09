@@ -60,7 +60,7 @@ class StudioApiController extends Controller
             $routes = ['asset' => fn (int $id) => route('api.studio.shared.asset', ['design' => $design->id, 'media' => $id], false), 'font' => fn (int $id) => route('api.studio.shared.font', ['design' => $design->id, 'font' => $id], false)];
             $assets = $this->shared->rewrite($design, $role, $assets, [], $routes, true)['assets'];
             $presented['fonts'] = $this->shared->rewrite($design, $role, [], $presented['fonts'], $routes, true)['fonts'];
-            $kit = ['palette' => $kit['palette'], 'fonts' => $kit['fonts'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+            $kit = ['palette' => $role === 'editor' ? $kit['palette'] : [], 'fonts' => $role === 'editor' ? $kit['fonts'] : [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
             $exports = [];
             $pagination = ['current_page' => 1, 'last_page' => 1, 'per_page' => 50, 'total' => 0, 'has_more' => false];
         }

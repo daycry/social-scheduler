@@ -9,6 +9,7 @@ use App\Models\Studio\DesignShare;
 use App\Models\User;
 use App\Notifications\StudioDesignActivity;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,12 @@ class StudioCollab
     public const MAX_LINKS = 20;
 
     public const MAX_SHARES = 50;
+
+    public const MAX_OPEN_COMMENTS = 500;
+
+    public const MAX_COMMENTS = 2000;
+
+    public const SHARE_MESSAGE = 'Si existe una cuenta con ese email, tendrá acceso a este diseño.';
 
     public function role(User $user, Design $design): ?string
     {
@@ -78,20 +85,20 @@ class StudioCollab
             ->map(fn (DesignShare $share) => $this->presentShare($share))->all();
     }
 
-    public function share(User $actor, Design $design, mixed $email, mixed $role): DesignShare
+    /** Respuesta uniforme: nada distingue un email registrado de uno que no lo está (devuelve null y no crea nada). */
+    public function share(User $actor, Design $design, mixed $email, mixed $role): ?DesignShare
     {
         $this->authorize($actor, $design, 'manage');
         $data = validator(['email' => $email, 'role' => $role], ['email' => ['required', 'string', 'email', 'max:255'], 'role' => ['required', 'in:'.implode(',', self::ROLES)]],
             ['email.required' => 'Indica el email de la persona.', 'email.email' => 'Indica un email válido.', 'role.in' => 'El rol debe ser lector, comentarista o editor.'])->validate();
         $guest = User::query()->where('email', Str::lower(trim($data['email'])))->first();
-        if ($guest === null) {
-            throw ValidationException::withMessages(['email' => ['No hay ningún usuario registrado con ese email.']]);
-        }
-        if ($guest->id === $actor->id) {
-            throw ValidationException::withMessages(['email' => ['Ya eres el propietario de este diseño.']]);
+        if ($guest === null || $guest->id === $actor->id) {
+            return null;
         }
 
         return DB::transaction(function () use ($actor, $design, $guest, $data): DesignShare {
+            // El bloqueo de la fila del diseño serializa invitaciones concurrentes: el tope y el unique se respetan.
+            Design::withoutUserScope()->whereKey($design->id)->lockForUpdate()->first();
             $existing = DesignShare::query()->where('design_id', $design->id)->where('user_id', $guest->id)->lockForUpdate()->first();
             if ($existing === null && DesignShare::query()->where('design_id', $design->id)->count() >= self::MAX_SHARES) {
                 throw ValidationException::withMessages(['email' => ['Este diseño ya está compartido con el máximo de personas.']]);
@@ -163,6 +170,7 @@ class StudioCollab
             ['role.in' => 'Un enlace solo puede ser de lectura o de comentario.', 'expires_at.after' => 'La caducidad debe ser futura.', 'expires_at.before' => 'La caducidad no puede superar un año.', 'expires_at.date' => 'Indica una fecha de caducidad válida.'])->validate();
 
         return DB::transaction(function () use ($actor, $design, $data): array {
+            Design::withoutUserScope()->whereKey($design->id)->lockForUpdate()->first();
             $active = DesignLink::query()->where('design_id', $design->id)->whereNull('revoked_at')->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->lockForUpdate()->count();
             if ($active >= self::MAX_LINKS) {
                 throw ValidationException::withMessages(['role' => ['Revoca algún enlace activo antes de crear otro.']]);
@@ -217,7 +225,8 @@ class StudioCollab
     public function comments(Design $design): array
     {
         $names = [];
-        $rows = DesignComment::query()->where('design_id', $design->id)->orderBy('id')->limit(1000)->get();
+        // Los 1000 más recientes, en orden cronológico: los comentarios nuevos nunca desaparecen de la lista.
+        $rows = DesignComment::query()->where('design_id', $design->id)->orderByDesc('id')->limit(1000)->get()->sortBy('id')->values();
         foreach ($rows->whereNotNull('resolved_by')->pluck('resolved_by')->unique() as $id) {
             $names[$id] = (string) User::query()->whereKey($id)->value('name');
         }
@@ -252,6 +261,7 @@ class StudioCollab
         if ($parent === null) {
             $this->assertAnchor($design, $pageId, $elementId);
         }
+        $this->assertRoom($design, $parent);
         $name = $author?->name ?? trim((string) ($data['guest_name'] ?? ''));
         if ($name === '') {
             throw ValidationException::withMessages(['guest_name' => ['Indica tu nombre para comentar.']]);
@@ -310,6 +320,17 @@ class StudioCollab
         return array_keys($ids);
     }
 
+    /** Tope de comentarios abiertos (y total) por diseño: un enlace público no puede llenar la tabla. */
+    private function assertRoom(Design $design, ?DesignComment $parent): void
+    {
+        $query = DesignComment::query()->where('design_id', $design->id);
+        $open = (clone $query)->whereNull('parent_id')->whereNull('resolved_at')->count();
+        $replies = (clone $query)->whereNotNull('parent_id')->whereIn('parent_id', (clone $query)->whereNull('parent_id')->whereNull('resolved_at')->select('id'))->count();
+        if ($open + $replies >= self::MAX_OPEN_COMMENTS || (clone $query)->count() >= self::MAX_COMMENTS) {
+            throw ValidationException::withMessages(['body' => ['Este diseño ya tiene el máximo de comentarios abiertos ('.self::MAX_OPEN_COMMENTS.'). Resuelve o elimina hilos antiguos antes de añadir más.']]);
+        }
+    }
+
     private function assertAnchor(Design $design, ?string $pageId, ?string $elementId): void
     {
         if ($pageId === null || $pageId === '') {
@@ -348,7 +369,8 @@ class StudioCollab
         }
         $ids = array_filter(array_unique($ids), fn (int $id) => $id > 0 && $id !== (int) $author?->id);
         foreach (User::query()->whereIn('id', $ids)->get() as $user) {
-            if ($this->role($user, $design) !== null) {
+            // Un aviso por destinatario, diseño y ventana de 10 minutos, no uno por comentario.
+            if ($this->role($user, $design) !== null && Cache::add('studio-comment-notice:'.$design->id.':'.$user->id, 1, now()->addMinutes(10))) {
                 $user->notify(new StudioDesignActivity('comment', $design->id, $design->name, $comment->author_name.' ha comentado en «'.$design->name.'»: '.Str::limit($comment->body, 80)));
             }
         }

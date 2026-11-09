@@ -110,8 +110,8 @@ const removeComment = comment => run(async () => {
 });
 
 const share = () => run(async () => {
-    await studioRequest('POST', url('shares.store'), { email: shareEmail.value, role: shareRole.value });
-    notice.value = `Diseño compartido con ${shareEmail.value}.`; shareEmail.value = '';
+    const result = await studioRequest('POST', url('shares.store'), { email: shareEmail.value, role: shareRole.value });
+    notice.value = result.message; shareEmail.value = '';
     await loadShare();
 });
 const changeRole = (item, role) => run(async () => {

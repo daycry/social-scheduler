@@ -260,10 +260,11 @@ class StudioController extends Controller
             $routes = ['asset' => fn (int $id) => route('studio.shared.asset', ['design' => $design->id, 'media' => $id], false), 'font' => fn (int $id) => route('studio.shared.font', ['design' => $design->id, 'font' => $id], false)];
             $rewritten = $this->shared->rewrite($design, $role, $props['assets'], $props['fonts'], $routes);
             $props['assets'] = $rewritten['assets'];
-            $props['fonts'] = $rewritten['fonts'];
+            $props['fonts'] = $role === 'editor' ? $rewritten['fonts'] : array_values(array_filter($rewritten['fonts'], fn (array $font) => in_array($font['id'], StudioFonts::idsFromDocument($design->document), true)));
             $presented['fonts'] = $this->shared->rewrite($design, $role, [], $presented['fonts'], $routes)['fonts'];
             $props['folders'] = [];
-            $props['kit'] = ['palette' => $props['kit']['palette'], 'fonts' => $props['kit']['fonts'], 'font_ids' => $props['kit']['font_ids'] ?? [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+            // Lectores y comentaristas no necesitan la paleta ni las tipografías del kit para ver el diseño.
+            $props['kit'] = ['palette' => $role === 'editor' ? $props['kit']['palette'] : [], 'fonts' => $role === 'editor' ? $props['kit']['fonts'] : [], 'font_ids' => $role === 'editor' ? ($props['kit']['font_ids'] ?? []) : [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
             $history = null;
         }
 

@@ -449,6 +449,14 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 | Aviso por correo de mensajes del formulario | Fuera de alcance | Los mensajes se leen y borran en el panel; sin correo ni terceros |
 | Edición colaborativa del sitio | Fuera de alcance | Solo el propietario de la marca |
 
+### T-16 — Integración externa oficial de Canva
+- **Estado**: borrador
+- **Verificación**: OAuth/scopes por marca/cuenta, contrato de retorno, capacidades del plan y job de exportación real; sin compra ni publicación automática. Pendiente de implementar/ejecutar.
+
+**Criterios de aceptación**
+
+- [ ] OAuth por cuenta/marca, capacidades por plan, diseños/retorno/exportación y vínculos externos explícitos.
+
 ## Revisión de dos lentes — intento 1: Fase 3 (T-15) — sitios publicados
 
 Revisión A+B+C del 2026-11-10, hallazgos corregidos con TDD (`SiteTest` 21/21) y commits por arreglo.
@@ -463,14 +471,6 @@ Revisión A+B+C del 2026-11-10, hallazgos corregidos con TDD (`SiteTest` 21/21) 
 | 6 | Fuera de lente | `SafeUrl` admitía espacios Unicode en el host | Rechaza cualquier `\p{Z}` en el host (NBSP, U+2003, U+3000) |
 
 Verificación: `php artisan test --compact` 3346 tests, 3337 passed, 9 skipped; Pint `--test` y `npm run build` en verde; E2E `sites.spec.ts` + `smartlinks-blocks.spec.ts` 3/3 en desktop, mobile y mobile-360.
-
-### T-16 — Integración externa oficial de Canva
-- **Estado**: borrador
-- **Verificación**: OAuth/scopes por marca/cuenta, contrato de retorno, capacidades del plan y job de exportación real; sin compra ni publicación automática. Pendiente de implementar/ejecutar.
-
-**Criterios de aceptación**
-
-- [ ] OAuth por cuenta/marca, capacidades por plan, diseños/retorno/exportación y vínculos externos explícitos.
 
 ## Revisión de dos lentes — intento 1: Fase 3 (T-13) — colaboración
 

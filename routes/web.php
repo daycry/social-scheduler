@@ -173,6 +173,8 @@ require __DIR__.'/auth.php';
 
 // Descarga de informes SOLO con firma (T-42 / Fase 9): sin sesion, para que la use tambien un agente MCP. La firma
 // (5 min) cubre el id del informe y su dueno; el controlador comprueba que coinciden, que el informe esta `ready` y audita.
+Route::match(['get', 'post'], 'report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'unsubscribe'])
+    ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe');
 Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
     ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');
 

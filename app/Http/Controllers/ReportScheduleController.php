@@ -7,6 +7,7 @@ use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /** Informes programados (T-21): PDF semanal o mensual por email. Aislados por usuario; la plantilla debe ser de la misma marca. */
 class ReportScheduleController extends Controller
@@ -78,6 +79,20 @@ class ReportScheduleController extends Controller
         $schedule->delete();
 
         return to_route('reports.index', ['brand_id' => $brandId])->with('success', 'Programacion eliminada.');
+    }
+
+    /** Baja con enlace firmado (sin sesion): quita a ESE destinatario de ESA programacion; si no queda ninguno, la pausa. Idempotente. */
+    public function unsubscribe(Request $request, int $schedule): Response
+    {
+        $email = mb_strtolower(trim((string) $request->query('email')));
+        $model = ReportSchedule::withoutUserScope()->find($schedule);
+
+        if ($model) {
+            $left = array_values(array_filter((array) $model->recipients, fn ($r) => $r !== $email));
+            $model->update($left === [] ? ['recipients' => [], 'active' => false] : ['recipients' => $left]);
+        }
+
+        return response('Listo: ya no recibirás este informe programado.', 200, ['Content-Type' => 'text/plain; charset=UTF-8', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     /**

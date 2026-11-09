@@ -286,7 +286,7 @@ test.describe('passkey · alta, login y avisos', () => {
 
         // CA-14: segunda passkey en OTRO autenticador (el primero deja de contestar para que responda el nuevo).
         await portatil.respond(false);
-        const movil = await virtualAuthenticator(context, page);
+        const movil = await virtualAuthenticator(context, page, 'usb');
         await addPasskey(page, 'Móvil', 'Añadir otra passkey');
         await expect(lista.getByRole('listitem')).toHaveCount(2);
         await expect(lista.getByText('Móvil', { exact: true })).toBeVisible();

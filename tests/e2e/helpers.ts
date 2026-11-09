@@ -248,13 +248,14 @@ export type VirtualAuthenticator = {
     remove: () => Promise<void>;
 };
 
-export async function virtualAuthenticator(context: BrowserContext, page: Page): Promise<VirtualAuthenticator> {
+/** Chromium admite UN solo autenticador `internal` por entorno: un segundo dispositivo se simula como llave `usb`. */
+export async function virtualAuthenticator(context: BrowserContext, page: Page, transport: 'internal' | 'usb' = 'internal'): Promise<VirtualAuthenticator> {
     const cdp = await context.newCDPSession(page);
     await cdp.send('WebAuthn.enable', { enableUI: false });
     const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
         options: {
             protocol: 'ctap2',
-            transport: 'internal',
+            transport,
             hasResidentKey: true,
             hasUserVerification: true,
             isUserVerified: true,

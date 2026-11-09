@@ -83,7 +83,7 @@ test('helper journal ignores foreign tokens', async () => {
 // Characterize evidence retention in the real hook with failures, without a browser.
 function afterEachHarness({ holds = [], fonts = [], network = { issues: [], expected_http: [], intentional_aborts: [] }, overflowError } = {}) {
     const source = readFileSync(new URL('../e2e/studio-charts.spec.ts', import.meta.url), 'utf8');
-    const hookSource = source.slice(source.indexOf('test.afterEach('), source.indexOf("test('E2E28.01"));
+    const hookSource = source.slice(source.indexOf('test.afterEach('), source.indexOf("test.fixme('E2E28.01"));
     let hook, cleaned = 0;
     const files = new Map(), page = { __chartHolds: holds, viewportSize: () => ({ width: 375, height: 812 }) };
     const policies = new WeakMap([[page, {}]]), fontReads = new WeakMap([[page, fonts]]);

@@ -65,7 +65,7 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 
             case ContentType::FacebookPhoto:
                 $this->requireMedia($media, 'image');
-                $res = $this->graph->post("$page/photos", ['url' => $media->url, 'published' => 'true'] + ($text !== '' ? ['caption' => $text] : []), $token);
+                $res = $this->graph->post("$page/photos", ['url' => $media->url, 'published' => 'true'] + ($text !== '' ? ['caption' => $text] : []) + ($media->alt !== null && $media->alt !== '' ? ['alt_text_custom' => $media->alt] : []), $token);
 
                 // `post_id` es el ID de la publicacion en el muro; `id` el de la foto.
                 return $this->published($res['post_id'] ?? $res['id'] ?? null, $account);

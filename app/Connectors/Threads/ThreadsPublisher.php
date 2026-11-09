@@ -286,7 +286,7 @@ class ThreadsPublisher implements Publisher, StatusPoller
     {
         return $media->isVideo()
             ? ['media_type' => 'VIDEO', 'video_url' => $media->url]
-            : ['media_type' => 'IMAGE', 'image_url' => $media->url];
+            : ['media_type' => 'IMAGE', 'image_url' => $media->url] + ($media->alt !== null && $media->alt !== '' ? ['alt_text' => $media->alt] : []);
     }
 
     /** @param array<string, string> $params */

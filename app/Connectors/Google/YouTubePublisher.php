@@ -25,6 +25,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Publicacion en YouTube con la Data API v3 (decision G1 = A) y cliente HTTP propio:
@@ -66,6 +67,8 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     private const API = 'https://www.googleapis.com/youtube/v3';
 
     private const UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/videos';
+
+    private const THUMBNAIL_UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/thumbnails/set';
 
     private const CATEGORY_PEOPLE_BLOGS = '22';
 
@@ -513,7 +516,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
             unset($data);
 
             if ($response !== null && in_array($response->status(), [200, 201], true)) {
-                return $this->uploaded($response, $request);
+                return $this->uploaded($response, $request, $account);
             }
 
             if ($response !== null && $response->status() === 308) {
@@ -617,7 +620,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
 
         if (in_array($response->status(), [200, 201], true)) {
             return ((string) $response->json('id')) !== ''
-                ? $this->uploaded($response, $request)
+                ? $this->uploaded($response, $request, $account)
                 : $this->uploadedOrFail($account, $request); // sin cuerpo util: ultimo recurso, la lista de subidas
         }
 
@@ -638,7 +641,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         return preg_match('/bytes=\d+-(\d+)/', (string) $response->header('Range'), $m) ? ((int) $m[1]) + 1 : 0;
     }
 
-    private function uploaded(Response $response, PublishRequest $request): PublishResult
+    private function uploaded(Response $response, PublishRequest $request, SocialAccount $account): PublishResult
     {
         $id = (string) ($response->json('id') ?? '');
 
@@ -649,9 +652,39 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         // Se guarda YA el ID: si el job muere ahora, el reintento sondea este video en vez de buscarlo o subirlo otra vez.
         $request->checkpoint($id);
         Cache::forget($this->sessionKey($request));
+        $this->setThumbnail($account, $request, $id);
 
         // El video existe pero YouTube aun lo procesa: se sondea `uploadStatus`.
         return PublishResult::processing($id);
+    }
+
+    /**
+     * Portada propia de este destino (T-17): `thumbnails.set` con los bytes de la imagen elegida, una sola vez al terminar la subida.
+     * El video ya existe, asi que un fallo de la miniatura NO falla ni repite la publicacion: queda en el log sin datos sensibles.
+     */
+    private function setThumbnail(SocialAccount $account, PublishRequest $request, string $videoId): void
+    {
+        $cover = $request->firstMedia()?->cover;
+        if ($cover === null || $cover->disk === null || $cover->path === null) {
+            return;
+        }
+
+        try {
+            $bytes = (string) Storage::disk($cover->disk)->get($cover->path);
+            if ($bytes === '') {
+                throw new \RuntimeException('portada vacia');
+            }
+            $this->quota->charge((int) config('social.youtube.thumbnail_cost', 50));
+            $response = Http::timeout($this->callTimeout((float) config('social.youtube.upload_timeout', 60)))
+                ->withToken((string) $account->access_token)
+                ->withBody($bytes, $cover->mime)
+                ->post(self::THUMBNAIL_UPLOAD.'?videoId='.rawurlencode($videoId).'&uploadType=media');
+            if (! $response->successful()) {
+                throw new \RuntimeException('HTTP '.$response->status());
+            }
+        } catch (\Throwable $e) {
+            Log::warning('YouTube: no se pudo fijar la portada del video.', ['target' => $request->targetId, 'error' => class_basename($e).': '.$e->getMessage()]);
+        }
     }
 
     /** La sesion esta completa pero no tenemos el recurso: se recupera por la lista de subidas del canal. */

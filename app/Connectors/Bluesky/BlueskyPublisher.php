@@ -345,7 +345,7 @@ class BlueskyPublisher implements Publisher, StatusPoller
         }
 
         return array_filter([
-            'alt' => '',
+            'alt' => (string) $media->alt, // texto alternativo propio de este destino (T-17); vacio si no lo hay
             'image' => $blob,
             'aspectRatio' => $width && $height ? ['width' => (int) $width, 'height' => (int) $height] : null,
         ], fn ($v) => $v !== null);

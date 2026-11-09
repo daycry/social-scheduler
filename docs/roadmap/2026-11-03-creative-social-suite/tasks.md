@@ -4178,3 +4178,15 @@ Corrección por TDD (RED observado antes del arreglo en los gaps de PHP; en los 
 | 9 | Regresión propia | `checked()` del canvas validaba el conector suelto en una página vacía y, con la validación nueva, anulaba sus extremos al añadirlo | T-12 | Detectada por el E2E de pizarra; `keepEnds` conserva `from`/`to` en `checked` | `studio-boards.spec.ts` 12/12 |
 
 **Verificación final:** `php artisan test --compact` 3141 tests, 3132 pass, 9 skipped, 19342 aserciones; `vendor/bin/pint --test` passed; `npm run build` ok; `node --test tests/frontend/*.test.mjs` con `--expose-gc` 647/653: los 6 fallos (`render.mjs` rechaza el directorio `0/0` de las pruebas de navegador aislado, y dos pruebas de fixtures de carga del arnés) se reproducen igual en `57b7b70`, previos. Playwright con servidor propio en desktop, mobile y mobile-360: `studio-boards` 12/12, `studio` + `studio-automation` + `studio-charts` 21 pass y 9 fixme-skipped, `studio-presentation-media` 15/15.
+
+## Revisión de dos lentes — intento 2: Fase 3 (T-12) — correcciones
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | Un conector libre rotado/escalado volvía a la identidad en cada `changed()` | T-12 | Aceptado: `rerouteConnector` devuelve null si no hay ningún extremo enlazado; la identidad solo se aplica al recalcular puntos | `studio-board.test.mjs` (RED observado, GREEN 9/9) |
+| N2 | Important | Fixme de E2E28.01/03 injustificado | T-12 | Rebatido con evidencia: quitado el fixme y ejecutado, 6/6 rojos (3 proyectos). E2E28.03 espera filas `hold-captured-real-response` (poll 0 vs 1) que solo escribe `isolated/charts/frontend-hooks.cjs`, que `serve.cjs` estándar no adjunta. E2E28.01 se queda colgado en un fetch/guardado ("Guardando…" 60 s) antes de llegar al observador; no reproducido como defecto de UI. Fixme restaurado con el motivo en el spec; solo E2E28.02 es plenamente del arnés. Deuda: reescribir 28.01/03 sin arnés | `studio-charts.spec.ts` comentario; ejecución 6 fallos |
+| N3 | Minor | `resize` no escalaba el `strokeWidth` del conector | T-12 | Aceptado: se multiplica por la misma escala que las formas | Pest `scales the stroke width` (RED, GREEN) |
+| N4 | Minor | `StudioTimeline` descartaba la validación espacial de los conectores en v2 | T-12 | Aceptado: aplica `linkConnectors` a las páginas del documento v2 | Pest `timeline document also clears connector ends` (RED, GREEN) |
+| 1-9 | — | Gaps del intento 1 | T-12 | Validados por la revisión; se mantienen | ver intento 1 |
+
+**Verificación:** Pest 3143 tests, 3134 pass, 9 skipped, 19347 aserciones; Pint passed; build ok; `node --test` de `studio-board` y `studio-chart-delay` 18/18; Playwright `studio-boards` + `studio-charts` en desktop, mobile y mobile-360: 15 pass, 9 fixme.

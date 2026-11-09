@@ -36,6 +36,13 @@ class PostRequest extends FormRequest
             'targets.*.text' => ['nullable', 'string', 'max:70000'],
             // Primer comentario del destino (C-01b): el maximo real por red lo pone PostService::plan() con `media_specs`.
             'targets.*.first_comment' => ['nullable', 'string', 'max:10000'],
+            // Media propia del destino (T-17): ausente o null = hereda la comun; lista = esos archivos en ese orden, con alt y portada propios.
+            // Los limites por red y tipo los pone PostService (los mismos validadores que la media comun).
+            'targets.*.media' => ['nullable', 'array', 'max:35'],
+            'targets.*.media.*' => ['array:id,alt,cover_id'],
+            'targets.*.media.*.id' => ['required', 'integer'],
+            'targets.*.media.*.alt' => ['nullable', 'string', 'max:5000'],
+            'targets.*.media.*.cover_id' => ['nullable', 'integer'],
             'targets.*.options' => ['nullable', 'array'],
             'targets.*.options.share_to_feed' => ['nullable', 'boolean'],
             'targets.*.options.collaborators' => ['nullable', 'array', 'max:3'],

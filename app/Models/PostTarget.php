@@ -25,7 +25,7 @@ class PostTarget extends Model
     protected $fillable = [
         'social_account_id', 'network', 'content_type', 'status', 'options', 'text', 'external_id', 'external_url',
         'external_reference', 'progress', 'status_note', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
-        'first_comment', 'first_comment_status', 'first_comment_attempts', 'first_comment_external_id', 'first_comment_error', 'first_comment_at', 'first_comment_sent_at',
+        'media', 'first_comment', 'first_comment_status', 'first_comment_attempts', 'first_comment_external_id', 'first_comment_error', 'first_comment_at', 'first_comment_sent_at',
     ];
 
     protected function casts(): array
@@ -35,6 +35,7 @@ class PostTarget extends Model
             'content_type' => ContentType::class,
             'status' => PostStatus::class,
             'options' => 'array',
+            'media' => 'array', // null = hereda la media comun; lista {id, alt, cover_id} = media propia (T-17)
             'progress' => 'array',
             'attempts' => 'integer',
             'first_comment_status' => FirstCommentStatus::class,

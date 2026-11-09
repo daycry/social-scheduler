@@ -23,6 +23,7 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\TargetMedia;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -41,6 +42,7 @@ use Throwable;
  *  - publish_now: bool (true = programada AHORA y se encola tras el commit: no exige fecha futura, la fecha la pone el servidor)
  *  - media: list<int> ids de MediaAsset (en orden de publicacion)
  *  - targets: list<array{account_id: int, content_type: string, options?: array, text?: ?string}> (`text` null/ausente = vinculado a la plantilla; texto propio = se publica ese)
+ *    y por destino `media`: null/ausente = hereda la media comun; lista de {id, alt?, cover_id?} = media propia en ese orden (T-17)
  */
 class PostService
 {
@@ -270,7 +272,7 @@ class PostService
             'text' => $post->text,
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
-                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment,
+                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment, 'media' => $t->media,
             ])->all(),
         ];
     }
@@ -531,6 +533,77 @@ class PostService
         return $errors;
     }
 
+    private function targetLabel(SocialAccount $account): string
+    {
+        return "Media propia de {$account->name} ({$account->network->label()})";
+    }
+
+    /**
+     * Media efectiva de un destino (T-17) y los errores de sus metadatos. `$own` null = hereda `$common`; con lista, se resuelven sus
+     * ids entre la media del usuario (en ese orden) y se validan alt y portada contra lo que admite el tipo de contenido.
+     *
+     * @param  ?list<array{id: int, alt: ?string, cover_id: ?int}>  $own
+     * @param  list<MediaAsset>  $common
+     * @return array{0: list<MediaAsset>, 1: list<string>}
+     */
+    private function effectiveTargetMedia(User $user, SocialAccount $account, ContentType $type, ?array $own, array $common): array
+    {
+        if ($own === null) {
+            return [$common, []];
+        }
+
+        $label = $this->targetLabel($account);
+        $errors = [];
+        $ids = array_values(array_unique(array_filter(array_merge(array_column($own, 'id'), array_column($own, 'cover_id')))));
+        $found = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get()->keyBy('id');
+
+        $assets = [];
+        $seen = [];
+        foreach ($own as $i => $item) {
+            $n = $i + 1;
+            $asset = $found->get($item['id']);
+            if ($asset === null) {
+                $errors[] = "$label: el archivo {$item['id']} no existe.";
+
+                continue;
+            }
+            if (isset($seen[$asset->id])) {
+                $errors[] = "$label: el archivo {$asset->id} esta repetido.";
+
+                continue;
+            }
+            $seen[$asset->id] = true;
+            $assets[] = $asset;
+
+            if ($item['alt'] !== null) {
+                if (! TargetMedia::supportsAlt($type)) {
+                    $errors[] = "$label: {$account->network->label()} no admite texto alternativo en {$type->label()}.";
+                } elseif ($asset->isVideo()) {
+                    $errors[] = "$label: el texto alternativo solo se aplica a imagenes (archivo $n).";
+                } elseif (mb_strlen($item['alt']) > TargetMedia::ALT_MAX) {
+                    $errors[] = "$label: el texto alternativo del archivo $n admite como maximo ".TargetMedia::ALT_MAX.' caracteres (tiene '.mb_strlen($item['alt']).').';
+                }
+            }
+
+            if ($item['cover_id'] !== null) {
+                $cover = $found->get($item['cover_id']);
+                if (! TargetMedia::supportsCover($type)) {
+                    $errors[] = "$label: {$account->network->label()} no admite portada en {$type->label()}.";
+                } elseif (! $asset->isVideo()) {
+                    $errors[] = "$label: la portada solo se aplica a videos (archivo $n).";
+                } elseif ($cover === null) {
+                    $errors[] = "$label: la portada {$item['cover_id']} no existe.";
+                } elseif ($cover->kind !== MediaAsset::KIND_IMAGE || ! $cover->isReady()) {
+                    $errors[] = "$label: la portada del archivo $n debe ser una imagen lista.";
+                } elseif ($account->network === Network::YouTube && (int) ($cover->size ?? $cover->declared_size) > TargetMedia::YOUTUBE_COVER_MAX_BYTES) {
+                    $errors[] = "$label: la portada del archivo $n pesa mas de 2 MB, el maximo de las miniaturas de YouTube.";
+                }
+            }
+        }
+
+        return [$assets, $errors];
+    }
+
     /**
      * Valida todo y devuelve el plan normalizado (sin tocar la BD).
      *
@@ -621,8 +694,14 @@ class PostService
             // Un texto propio vacio o solo con espacios es `null` (vinculado): publicaria vacio y `findPublished` no podria reconocerlo.
             // Igual que la web (`TrimStrings` + `ConvertEmptyStringsToNull`), y vale tambien para el MCP.
             $ownText = isset($raw['text']) && trim((string) $raw['text']) !== '' ? (string) $raw['text'] : null;
-            foreach ($this->validator->validate($type, $media, $ownText ?? $text) as $message) {
+            // Media del destino (T-17): la propia o, si hereda, la comun. Es la que se valida y la que se publicara.
+            $ownMedia = TargetMedia::normalize($raw['media'] ?? null);
+            [$effectiveMedia, $mediaErrors] = $this->effectiveTargetMedia($user, $account, $type, $ownMedia, $media);
+            foreach ($mediaErrors as $message) {
                 $errors[$key][] = $message;
+            }
+            foreach ($this->validator->validate($type, $effectiveMedia, $ownText ?? $text) as $message) {
+                $errors[$key][] = $ownMedia !== null ? $this->targetLabel($account).': '.$message : $message;
             }
 
             $options = self::normalizeOptions((array) ($raw['options'] ?? []));
@@ -646,7 +725,7 @@ class PostService
                 }
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment];
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment, 'media' => $ownMedia];
         }
 
         // Campaña (C-03, CA-12): null = quitarla; solo de esta marca y de este usuario. Omitida = no se toca (`false`).
@@ -677,15 +756,15 @@ class PostService
      * Sincroniza media y destinos con el plan. Los destinos existentes (ya bloqueados y editables) se actualizan;
      * los que sobran se borran; los nuevos se crean.
      *
-     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}  $plan
+     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string, media: ?list<array{id: int, alt: ?string, cover_id: ?int}>}>}  $plan
      * @param  Collection<string, PostTarget>|null  $existing
      * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
     private function fill(Post $post, array $plan, ?Collection $existing = null, ?array $before = null): void
     {
         $existing ??= new Collection;
-        // La media es comun a todos los destinos; el TEXTO se compara por destino (texto efectivo viejo frente al nuevo, ADR-005).
-        $mediaChanged = $before !== null && $before['media'] !== array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']);
+        // La media comun es la base de los destinos que heredan; texto y media EFECTIVOS se comparan por destino (ADR-005, T-17).
+        $commonIds = array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']);
         $post->media()->sync(collect($plan['media'])->mapWithKeys(fn (MediaAsset $m, int $i) => [$m->id => ['position' => $i]])->all());
 
         $kept = [];
@@ -701,6 +780,7 @@ class PostService
                     'status' => $plan['status'],
                     'options' => $t['options'] ?: null,
                     'text' => $t['text'],
+                    'media' => $t['media'],
                     'first_comment' => $t['first_comment'] ?? null,
                 ]);
                 $target->user_id = $post->user_id;
@@ -720,9 +800,10 @@ class PostService
             $newText = $t['text'] ?? ($plan['text'] ?? null);
             $textChanged = $before !== null && $oldText !== $newText;
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
+            $mediaChanged = $before !== null && TargetMedia::effective($current, $before['media']) != TargetMedia::effective($t['media'], $commonIds);
             $fresh = $current->status === PostStatus::Failed || $mediaChanged || $textChanged || $optionsChanged;
             // El primer comentario NO cuenta para `$fresh`: se publica despues del destino y no cambia lo que sale en la red.
-            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'first_comment' => $t['first_comment'] ?? null] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
+            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'media' => $t['media'], 'first_comment' => $t['first_comment'] ?? null] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
             }

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { PDFDocument } from 'pdf-lib';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
+import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
 
 const browserErrors = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
@@ -257,5 +257,71 @@ test('Studio: a chart bound to a saved table is inserted, saved, reopened and ex
         const svg = (await download(page, info.outputPath('chart.svg'))).toString();
         expect(svg).toContain('<svg');
         expect(svg).toContain('Febrero');
+    } finally { cleanComposerBrands(user.email); }
+});
+
+test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', async ({ page }, info) => {
+    test.setTimeout(180_000);
+    const user = e2eUser(info.project.name);
+    cleanComposerBrands(user.email);
+    const brand = seedComposerBrand(user.email, `studio-chart-server-${stamp()}-${info.project.name}`);
+    try {
+        await loginAs(page, user);
+        await page.goto(`/studio?brand_id=${brand.id}`);
+        await page.getByRole('button', { name: 'Nuevo diseño', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Nuevo diseño' }).getByRole('button', { name: 'Crear diseño', exact: true }).click();
+        await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
+        await expect(page.getByRole('button', { name: 'Añadir tabla', exact: true })).toBeEnabled();
+        const table = { columns: [{ id: 'category', label: 'Mes' }, { id: 's0', label: 'Ventas' }], rows: [
+            { id: 'r0', values: ['Enero', 10] }, { id: 'r1', values: ['Febrero', 25] }, { id: 'r2', values: ['Marzo', 18] }] };
+        const dataset = await page.evaluate(async ({ brandId, table }) => {
+            const token = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
+            const response = await fetch(`/brands/${brandId}/studio/datasets`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify({ name: 'Ventas servidor', table }) });
+            return { status: response.status, data: await response.json() };
+        }, { brandId: brand.id, table });
+        expect(dataset.status).toBe(201);
+        await page.getByRole('button', { name: 'Añadir gráfico con datos', exact: true }).click();
+        const datasets = page.getByRole('dialog', { name: 'Tablas de datos de marca', exact: true });
+        await datasets.getByTestId(`dataset-open-${dataset.data.dataset.id}`).click();
+        await datasets.getByRole('button', { name: 'Usar revisión guardada para gráfico', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Diseñar gráfico', exact: true }).getByRole('button', { name: /^Insertar gráfico$/ }).click();
+        await save(page);
+
+        // The real route: queue a render, run the job body in-process (no worker), then fetch the produced file.
+        const design = await page.evaluate(async () => {
+            const id = location.pathname.match(/designs\/(\d+)/)![1];
+            const read = (await (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).json()).design;
+            return { id, revision: read.revision, page: read.document.pages[0].id };
+        });
+        const queue = (format: string) => page.evaluate(async ({ design, format }) => {
+            const token = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
+            const response = await fetch(`/studio/designs/${design.id}/render`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify({ revision: design.revision, format, pages: [design.page], scale: 1 }) });
+            return { status: response.status, export: (await response.json()).export };
+        }, { design, format });
+        const status = (id: number) => page.evaluate(async id => (await (await fetch(`/studio/exports/${id}`, { headers: { Accept: 'application/json' } })).json()).export, id);
+        const fetched = async (url: string) => Buffer.from(await page.evaluate(async url => {
+            const response = await fetch(url);
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            let binary = '';
+            bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+            return btoa(binary);
+        }, url), 'base64');
+        const files: Record<string, Buffer> = {};
+        for (const format of ['svg', 'png', 'pdf']) {
+            const created = await queue(format);
+            expect(created.status).toBe(202);
+            artisan(`app(App\\Services\\Studio\\StudioRenderer::class)->render(${created.export.id});`);
+            const done = await status(created.export.id);
+            expect(done.status, done.error ?? `render ${format}`).toBe('ready');
+            files[format] = await fetched(done.download_url);
+            fs.writeFileSync(info.outputPath(`server-chart.${format}`), files[format]);
+        }
+        expect(files.svg.toString()).toContain('<svg');
+        expect(files.svg.toString()).toContain('Febrero');
+        expect(files.png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+        expect(files.png.length).toBeGreaterThan(2000);
+        expect(files.pdf.subarray(0, 5).toString()).toBe('%PDF-');
+        expect(files.pdf.length).toBeGreaterThan(1500);
+        expect((await PDFDocument.load(files.pdf)).getPageCount()).toBe(1);
     } finally { cleanComposerBrands(user.email); }
 });

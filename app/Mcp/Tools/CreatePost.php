@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('create_post')]
-#[Description('Crea una publicacion en una marca: borrador (schedule=false) o programada (schedule=true, fecha futura). Se valida igual que en la web (limites y media por red, tambien con el texto propio de cada destino en targets[].text).')]
+#[Description('Crea una publicacion en una marca: borrador (schedule=false) o programada (schedule=true, fecha futura). Se valida igual que en la web (limites y media por red, tambien con el texto propio de cada destino en targets[].text y su media propia en targets[].media).')]
 class CreatePost extends SchedulerTool
 {
     use PostPayload;

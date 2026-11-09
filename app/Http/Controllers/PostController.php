@@ -167,6 +167,9 @@ class PostController extends Controller
     public function validatePost(PostRequest $request, Brand $brand): JsonResponse
     {
         $this->authorize('update', $brand);
+        // Es una consulta en segundo plano: no debe gastar el aviso flash (p. ej. «Guardado en la biblioteca.») que una
+        // redirección acaba de dejar para la siguiente página, o el aviso se pierde si esta petición se cuela entre ambas.
+        $request->session()->reflash();
 
         return response()->json(['errors' => $this->posts->validate($request->user(), $brand, $request->validated())]);
     }

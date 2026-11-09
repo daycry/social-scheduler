@@ -1,7 +1,7 @@
 ---
 estado: en-progreso
 creado: 2026-11-03
-actualizado: 2026-11-09
+actualizado: 2026-11-10
 spec: spec.md
 plan: improvement-plan.md
 verificacion: obligatoria
@@ -17,10 +17,10 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 |---|---:|---:|---:|
 | Fase 1 | 1 | 3 | 33 % |
 | Fase 2 | 6 | 6 | 100 % |
-| Fase 3 | 3 | 7 | 43 % |
+| Fase 3 | 4 | 7 | 57 % |
 | Fase 4 | 4 | 5 | 80 % |
 | Fase 5 | 0 | 2 | 0 % |
-| **Total** | **14** | **23** | **61 %** |
+| **Total** | **15** | **23** | **65 %** |
 
 ## Fase 1 — Investigación y consistencia
 
@@ -415,12 +415,39 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - [ ] Generación/edición real mediante proveedor o modelo configurado, estados de trabajo y errores; sin botones simulados.
 
 ### T-15 — Publicación de sitios y contenido interactivo
-- **Estado**: borrador
-- **Verificación**: E2E de construcción y navegación responsive, preview y publicación en destino propio autorizado; revocación y acceso. Pendiente de implementar/ejecutar.
+- **Estado**: completado
+- **Cerrada**: 2026-11-10
+- **Changelog**: Nuevos «Sitios»: cada marca puede construir una web de varias páginas con menú, texto, imágenes, galería, video de YouTube, diseños del estudio, formulario de contacto, preguntas frecuentes y encuestas, con el tema de su kit de marca. Se previsualiza en móvil, tablet y escritorio, se publica en /s/{enlace} sin tocar lo publicado al editar, y se protege con contraseña o enlaces con token revocables.
+- **Archivos**: `database/migrations/2026_12_03_090000_create_sites_tables.php`, `app/Models/Site.php`, `app/Models/SiteToken.php`, `app/Support/SiteRichText.php`, `app/Support/SiteView.php`, `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SiteRenderer.php`, `app/Http/Controllers/SiteController.php`, `app/Http/Controllers/PublicSiteController.php`, `routes/sites.php`, `routes/web.php`, `resources/views/sites/**`, `resources/js/Pages/Sites/Index.vue`, `resources/js/Pages/Sites/Edit.vue`, `resources/js/navigation.js`, `app/Mcp/Abilities.php`, `app/Mcp/Tools/ManageSite.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Sites/SiteTest.php`, `tests/e2e/sites.spec.ts`
+- **Verificación**: Ejecutada 2026-11-10 con el método estándar. `SiteTest` 17/17 (172 aserciones); `php artisan test --compact` 3342 tests, 3333 passed, 9 skipped; Pint `--test` y `npm run build` en verde. E2E con servidor propio en el puerto 8080 (comprobado libre antes): `sites.spec.ts` + `smartlinks-blocks.spec.ts` en desktop, mobile y mobile-360 (3 de 3 por proyecto, axe serio/crítico sin hallazgos y 0 px de desbordamiento); `studio.spec.ts` 4/4, `studio-collab.spec.ts` 1/1 y `pages.spec.ts` 34/34 (33 + 1 omitido en móvil, como antes) en los 3 proyectos tras añadir «Sitios» a la navegación.
 
 **Criterios de aceptación**
 
-- [ ] Constructor, preview responsive, navegación y publicación propia con controles de acceso.
+- [x] Constructor, preview responsive, navegación y publicación propia con controles de acceso.
+
+### Cierre T-15 — 2026-11-10 (método estándar)
+
+- **Diseño elegido**: modelo propio `Site` (páginas con bloques en JSON, `draft` y `published` en el mismo registro) y no un documento del estudio ni una extensión de SmartLinks. Un documento del estudio es un lienzo exportable (su «página» es una lámina) y SmartLinks es una sola página plana con bloques en filas; un sitio necesita varias páginas, menú y una versión publicada inmutable. Se reutiliza lo ya seguro: `SmartLinkService::clean` y `youtubeId` (sin red), `SafeUrl`, las exportaciones del estudio (el diseño se incrusta como la imagen ya exportada y se congela su `media_id`), el kit de marca (tema) y el patrón de página pública sin sesión ni CSRF de `/l/{slug}`.
+- **Había**: SmartLinks (una página de enlaces) y el estudio (diseños y exportación); ningún sitio multipágina ni publicación propia.
+- **Añadido (constructor)**: tabla `sites` (+ `site_tokens`, `site_visits`, `site_messages`, `site_poll_votes`; migración portable MySQL/SQLite), hasta 5 sitios por marca, 12 páginas y 40 bloques por página, menú por página, reordenar páginas y bloques, tema del kit de marca (primer color de la paleta, texto sobre el acento elegido por contraste) o color propio. Bloques: título, texto enriquecido (marcado propio `**negrita**`, `*cursiva*`, `[texto](https://…)`, listas; nunca HTML), imagen, galería, botón o enlace (URL segura o página del sitio), YouTube (id de 11 caracteres de host exacto, `youtube-nocookie`), formulario de contacto, diseño del estudio, acordeón/FAQ (`<details>`, sin JS) y encuesta con resultados agregados.
+- **Añadido (vista previa)**: iframe del propio origen que pinta el borrador con `SiteRenderer`, el MISMO render que la ruta pública, en móvil (375), tablet (768) y escritorio (100 %), acotado al ancho de la ventana.
+- **Añadido (publicación)**: `/s/{slug}` y `/s/{slug}/{página}`; `publish` copia el borrador y el tema a una instantánea; editar solo cambia el borrador hasta volver a publicar (la UI muestra «con cambios sin publicar»); despublicar da 404 en la siguiente petición. Acceso: público, contraseña (hash, límite 5 intentos/5 min por hash de IP+sitio) o enlaces con token (SHA-256, caducidad, revocables). La contraseña y el token se canjean por una cookie propia firmada con HMAC (versión de acceso, token y caducidad); el token sale de la URL por redirección; revocar un enlace se comprueba en cada petición y cambiar modo/contraseña o «revocar todo» sube la versión y cierra todas las sesiones. `noindex` opcional (meta + `X-Robots-Tag`); los sitios con contraseña o token nunca se indexan. El modo de acceso y `noindex` se aplican al instante (no esperan a republicar).
+- **Mitigaciones y su prueba**: XSS: todo se escapa con `{{ }}` salvo el HTML que genera `SiteRichText` tras escapar (test con `<script>`, `<img onerror>` y `javascript:`), sin `v-html` en el editor, y la prueba E2E comprueba 0 `<script>`. CSP estricta: `default-src 'none'`, `style-src 'nonce-…'` (sin `unsafe-inline` ni estilos en línea), imágenes solo `'self'`, `frame-src` solo YouTube nocookie, `form-action 'self'`, `frame-ancestors 'none'` (`'self'` en la vista previa); el E2E exige 0 errores de consola/CSP. Cabeceras: `nosniff`, `Referrer-Policy` (`no-referrer` si es privado), `Permissions-Policy`, COOP, `Cache-Control: no-store`. Sin redirección abierta: ningún `next`/`url` de la petición se usa para redirigir (botones son enlaces directos a URLs guardadas y validadas; los redirects del sitio van a `/s/{slug}…`). Imágenes: se sirven por `/s/{slug}/_m/{id}` solo si están en la instantánea, con `CSP: sandbox` y tipo fijo. Abuso: contacto con campo trampa, marca de tiempo firmada (mínimo 2 s), límite de 5 envíos/10 min por hash de IP+sitio y tope de 500 mensajes; encuesta con un voto por bloque y hora; respuestas uniformes. Sin IP en base de datos: visitas solo por (sitio, página, día).
+- **Paridad MCP**: `manage_site` (`list`, `get_url`, `publish`, `unpublish`) con abilities nuevas `sites:read` y `sites:write`; nunca devuelve ni muestra tokens; sitios ajenos = error de recurso no encontrado. El contenido y el acceso se editan en la app.
+- **Cobertura y límites**:
+
+| Requisito | Estado | Nota |
+|---|---|---|
+| Constructor, páginas, menú, bloques, tema del kit | Cubierto | E2E y `SiteTest` |
+| Interactivo sin JS de terceros | Cubierto | Encuesta con resultados agregados y acordeón/FAQ, CSP sin scripts |
+| Preview responsive con el mismo render | Cubierto | iframe móvil/tablet/escritorio |
+| Publicación propia en `/s/{slug}`, versión separada, despublicar/revocar | Cubierto | E2E: editar sin cambiar lo publicado, republicar, 404 al despublicar |
+| Acceso público/contraseña/token, `noindex` | Cubierto | Revocación inmediata comprobada por HTTP y E2E |
+| Analítica sin IP | Cubierto | Visitas por página y día en el editor |
+| Paridad API/MCP | Cubierto en MCP | No hay REST de sitios: el patrón actual de paridad para esta suite es MCP |
+| Dominio propio del cliente | Fuera de alcance | Requiere DNS/TLS en el servidor |
+| Aviso por correo de mensajes del formulario | Fuera de alcance | Los mensajes se leen y borran en el panel; sin correo ni terceros |
+| Edición colaborativa del sitio | Fuera de alcance | Solo el propietario de la marca |
 
 ### T-16 — Integración externa oficial de Canva
 - **Estado**: borrador

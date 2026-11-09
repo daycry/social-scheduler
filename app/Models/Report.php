@@ -76,11 +76,11 @@ class Report extends Model
     }
 
     /** Enlace de descarga firmado SIN sesion: valido unos minutos y atado al informe y a su dueno (`owner` va en la firma). */
-    public function signedDownloadUrl(?int $minutes = null): string
+    public function signedDownloadUrl(?int $minutes = null, ?int $scheduleId = null): string
     {
         return URL::temporarySignedRoute('reports.download', now()->addMinutes($minutes ?? (int) config('reports.download_minutes', 5)), [
             'report' => $this->id, 'owner' => $this->user_id,
-        ]);
+        ] + ($scheduleId !== null ? ['schedule' => $scheduleId] : []));
     }
 
     public function deleteFile(): void

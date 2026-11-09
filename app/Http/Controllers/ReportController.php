@@ -157,8 +157,13 @@ class ReportController extends Controller
      * Descarga SOLO con firma (sin sesion, para web y agentes MCP). La firma cubre el id y el dueno; aqui se comprueba que el
      * informe es de ese dueno y esta `ready`, y la descarga queda auditada.
      */
-    public function download(int $report, int $owner): StreamedResponse
+    public function download(Request $request, int $report, int $owner): StreamedResponse
     {
+        // Un enlace enviado por email lleva su programacion en la firma: si se pauso o se borro, deja de valer.
+        if ($request->query('schedule') !== null) {
+            abort_unless(ReportSchedule::withoutUserScope()->whereKey((int) $request->query('schedule'))->where('user_id', $owner)->where('active', true)->exists(), 404);
+        }
+
         $model = Report::withoutUserScope()->find($report);
         $user = User::find($owner);
 

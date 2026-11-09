@@ -33,6 +33,8 @@ Object.assign(environment, {
     GOOGLE_CLIENT_ID: 'e2e-fake-google', GOOGLE_CLIENT_SECRET: 'e2e-fake-secret',
     META_APP_ID: 'e2e-fake-meta', META_APP_SECRET: 'e2e-fake-secret',
     TIKTOK_CLIENT_KEY: 'e2e-fake-tiktok', TIKTOK_CLIENT_SECRET: 'e2e-fake-secret',
+    // Fotos/carruseles de TikTok solo se ofrecen con un dominio verificado; dominio ficticio, nunca se contacta.
+    TIKTOK_VERIFIED_DOMAIN: 'https://media.example.test',
     GOOGLE_LOGIN_CLIENT_ID: 'e2e-fake-google-login', GOOGLE_LOGIN_CLIENT_SECRET: 'e2e-fake-secret',
     META_LOGIN_APP_ID: 'e2e-fake-meta-login', META_LOGIN_APP_SECRET: 'e2e-fake-secret',
     THREADS_APP_ID: 'e2e-fake-threads', THREADS_APP_SECRET: 'e2e-fake-secret',

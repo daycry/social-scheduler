@@ -86,6 +86,8 @@ const IDENTITY = Object.freeze({ scaleX: 1, scaleY: 1, rotation: 0, skewX: 0, sk
  * Returns null when nothing changes.
  */
 export function rerouteConnector(current, fromRect, toRect) {
+    // A free connector has nothing to follow: keep whatever transform the user gave it.
+    if (!fromRect && !toRect && current.from == null && current.to == null) return null;
     const next = { ...current, from: fromRect ? current.from : null, to: toRect ? current.to : null };
     const absolute = current.points.map(([x, y]) => ({ x: x + current.x, y: y + current.y }));
     let start = absolute[0];

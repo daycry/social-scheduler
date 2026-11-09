@@ -174,3 +174,20 @@ test('Studio automation: resizing scales connector points, not its transform', f
     $shape = $design['document']['pages'][0]['elements'][0];
     expect($shape['scaleX'])->toEqual(2);
 });
+
+test('Studio automation: resizing scales the stroke width of connectors like the shapes', function () {
+    $source = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Pizarra', 'document' => linkedBoard()]);
+    $design = $this->postJson('/studio/designs/'.$source->id.'/resize', ['revision' => 1, 'width' => 6400, 'height' => 3600])->assertOk()->json('design');
+    expect($design['document']['pages'][0]['elements'][2]['strokeWidth'])->toEqual(8);
+});
+
+test('Studio: a timeline document also clears connector ends that are missing or self-referencing', function () {
+    $document = linkedBoard();
+    $document['schema_version'] = 2;
+    $document['timeline'] = ['fps' => 24, 'audio_tracks' => []];
+    $document['pages'][0]['elements'][2]['from'] = 'conector_1';
+    $document['pages'][0]['elements'][2]['to'] = 'fantasma';
+    $id = $this->postJson($this->createUrl, ['name' => 'V2', 'document' => $document])->assertCreated()->json('design.id');
+    $connector = $this->getJson('/studio/designs/'.$id)->json('design.document.pages.0.elements.2');
+    expect($connector['from'])->toBeNull()->and($connector['to'])->toBeNull();
+});

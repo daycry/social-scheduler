@@ -73,3 +73,10 @@ test('a page holds at most 2000 table cells', () => {
     assert.doesNotThrow(() => validateDocument(page(['a', 'b', 'c', 'd', 'e'].map(big))));
     assert.throws(() => validateDocument(page(['a', 'b', 'c', 'd', 'e', 'f'].map(big))), /2000 celdas/);
 });
+
+test('a free connector the user rotated or scaled is left untouched', () => {
+    const free = { x: 0, y: 0, route: 'straight', arrow: 'end', strokeWidth: 4, points: [[0, 0], [100, 0]], from: null, to: null, rotation: 45, scaleX: 1.5 };
+    assert.equal(rerouteConnector(free, undefined, undefined), null);
+    const glued = rerouteConnector({ ...free, from: 'a' }, { left: 0, top: 0, width: 10, height: 10 }, undefined);
+    assert.deepEqual([glued.rotation, glued.scaleX], [0, 1]);
+});

@@ -35,6 +35,10 @@ class StudioTimeline
             unset($page);
         }
         $spatial->validate($user, $brand, $base);
+        // Same connector rule as the spatial validator (it returns a normalized copy; timing keys live only here).
+        foreach ($document['pages'] as $i => $page) {
+            $document['pages'][$i]['elements'] = StudioDocument::linkConnectors($page['elements']);
+        }
         $timeline = $document['timeline'] ?? null;
         $this->keys($timeline, ['fps', 'audio_tracks', 'captions'], 'timeline');
         $fps = $timeline['fps'] ?? null;

@@ -227,6 +227,7 @@ class StudioAutomation
                         // Its points are page geometry: scale them, never the transform.
                         $element['width'] *= $scale;
                         $element['height'] *= $scale;
+                        $element['strokeWidth'] = ($element['strokeWidth'] ?? 0) * $scale;
                         $element['points'] = array_map(fn (array $point) => [$point[0] * $scale, $point[1] * $scale], $element['points']);
 
                         continue;

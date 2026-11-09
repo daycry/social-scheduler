@@ -5,6 +5,9 @@ use App\Models\Studio\Design;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\McpClient;
+
+uses(McpClient::class);
 
 function boardDocument(array $elements): array
 {
@@ -84,15 +87,7 @@ test('Studio API: the same board document is accepted and returned through the b
         Route::getRoutes()->refreshNameLookups();
         Route::getRoutes()->refreshActionLookups();
     }
-    $key = (new class
-    {
-        use Tests\Support\McpClient;
-
-        public function key(User $user, array $abilities): string
-        {
-            return $this->mcpKey($user, $abilities);
-        }
-    })->key($this->user, ['designs:read', 'designs:write']);
+    $key = $this->mcpKey($this->user, ['designs:read', 'designs:write']);
     $headers = ['Authorization' => 'Bearer '.$key];
     $document = boardDocument([boardTable(), boardConnector()]);
     $created = $this->postJson('/api/v1/brands/'.$this->brand->id.'/designs', ['name' => 'Pizarra API', 'document' => $document], $headers)->assertCreated()->json();

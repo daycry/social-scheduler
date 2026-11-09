@@ -1,0 +1,198 @@
+{
+  "cases": 16,
+  "app_pass_claim": false,
+  "rows": [
+    {
+      "transport": "length",
+      "options": "default",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "default",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "signal-only",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "signal-only",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "redirect-error-only",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "redirect-error-only",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "full-registry",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "length",
+      "options": "full-registry",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "default",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "default",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 1,
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "signal-only",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "signal-only",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 1,
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "redirect-error-only",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "redirect-error-only",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 1,
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "full-registry",
+      "bodyMethod": "arrayBuffer",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 0,
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ]
+    },
+    {
+      "transport": "chunked",
+      "options": "full-registry",
+      "bodyMethod": "reader",
+      "complete": 1,
+      "data_valid": 1,
+      "failed": 1,
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ]
+    }
+  ]
+}

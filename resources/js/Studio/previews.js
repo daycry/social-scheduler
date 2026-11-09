@@ -11,15 +11,17 @@ const drain = () => {
 };
 
 /** Real document thumbnails, with two temporary canvases at most. */
-export function templatePreview(key, kit = {}) {
-    const styles = { palette: kit?.palette ?? [], fonts: kit?.fonts ?? [] };
-    const identity = JSON.stringify([key, styles]);
+export function templatePreview(key, kit = {}, fonts = []) {
+    const styles = { palette: kit?.palette ?? [], fonts: kit?.fonts ?? [], font_ids: kit?.font_ids ?? [] };
+    const referenced = new Set(styles.font_ids.filter(id => Number.isSafeInteger(id) && id > 0));
+    const fontResources = fonts.filter(font => referenced.has(Number(font.id)));
+    const identity = JSON.stringify([key, styles, fontResources.map(font => [font.id, font.brand_id, font.sha256])]);
     if (cache.has(identity)) return cache.get(identity);
     const pending = new Promise((resolve, reject) => {
         waiting.push({ resolve, reject, work: async () => {
             const { exportPage } = await import('./exports');
             const document = createFromTemplate(key, styles);
-            return exportPage(document, document.pages[0].id, [], { format: 'webp', scale: Math.max(0.1, Math.min(0.3, 360 / Math.max(document.width, document.height))), quality: 0.85 });
+            return exportPage(document, document.pages[0].id, [], { fonts: fontResources, format: 'webp', scale: Math.max(0.1, Math.min(0.3, 360 / Math.max(document.width, document.height))), quality: 0.85 });
         } });
         drain();
     });

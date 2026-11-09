@@ -1,0 +1,1403 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -21,6 +21,79 @@
+ /** Private audiovisual state. Queue/filesystem integration follows the generation and lease contract. */
+ class StudioAvState
+ {
++    public function failPosition(int $id, string $generation, int $position, string $code): bool
++    {
++        return DB::transaction(function () use ($id, $generation, $position, $code) {
++            $export = DesignExport::withoutUserScope()->whereKey($id)->lockForUpdate()->first();
++            if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ($export->render_state['generation'] ?? null) !== $generation
++                || ($export->render_state['position'] ?? null) !== $position) {
++                return false;
++            }
++            $state = $export->render_state;
++            if ($state['lease']) {
++                StudioAvLease::whereKey($state['lease'])->where('status', 'running')->update(['status' => 'failed']);
++            }
++            $state['lease'] = null;
++            $this->saveState($export, $state, ['status' => 'failed', 'error' => $this->failureMessage($code)]);
++
++            return true;
++        });
++    }
++
++    public function defer(object $lease): bool
++    {
++        return DB::transaction(function () use ($lease) {
++            [$export, $workspace, $current] = $this->activeLease($lease);
++            if (! $current) {
++                return false;
++            }
++            $current->update(['status' => 'abandoned', 'expires_at' => now()]);
++            $workspace->update(['active_until' => now()]);
++            $state = $export->render_state;
++            $state['lease'] = null;
++            $this->saveState($export, $state, ['status' => 'processing']);
++
++            return true;
++        });
++    }
++
++    public function workingExport(StudioAvLease $lease): DesignExport
++    {
++        return DB::transaction(function () use ($lease) {
++            [$export, , $current] = $this->activeLease($lease);
++            if (! $current) {
++                throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
++            }
++
++            return $export;
++        });
++    }
++
++    public function begin(string $id): ?StudioAvLease
++    {
++        return DB::transaction(function () use ($id) {
++            $candidate = StudioAvLease::find($id);
++            $allocation = $candidate ? StudioAvWorkspace::withoutUserScope()->select(self::WORKSPACE_COLUMNS)->find($candidate->workspace_id) : null;
++            $export = $allocation ? DesignExport::withoutUserScope()->whereKey($allocation->export_id)->lockForUpdate()->first() : null;
++            if (! $export || $export->status !== 'processing' || ($export->render_state['lease'] ?? null) !== $id
++                || ($export->render_state['generation'] ?? null) !== $candidate->generation) {
++                return null;
++            }
++            $workspace = $this->workspace($export);
++            $this->assertOwnership($export);
++            $current = StudioAvLease::whereKey($id)->lockForUpdate()->first();
++            $step = $this->step($export->render_state);
++            if (! $current || $current->status !== 'running' || $current->started_at !== null || ! $step
++                || $step->phase !== $current->phase || $step->item !== $current->item || $step->lease_id !== $id) {
++                return null;
++            }
++            $current->update(['started_at' => now(), 'expires_at' => now()->addSeconds(180)]);
++            $workspace->update(['active_until' => $current->expires_at]);
++
++            return $current;
++        });
++    }
++
+     public function rejectCheckpoint(object $lease): bool
+     {
+         return DB::transaction(function () use ($lease) {
+@@ -35,6 +108,7 @@
+                 return false;
+             }
+             $source->update(['status' => 'invalid']);
++            $workspace->update(['active_until' => $source->expires_at]);
+             $current->update(['status' => 'failed', 'actual_bytes' => 0]);
+             $step->update(['phase' => $source->phase, 'item' => $source->item, 'source_id' => null,
+                 'target_phase' => null, 'target_item' => null, 'lease_id' => null, 'result_lease_id' => null]);
+@@ -84,11 +158,12 @@
+         });
+     }
+ 
+-    public function claim(int $exportId, string $generation, int $bytes = 0): ?StudioAvLease
+-    {
+-        return DB::transaction(function () use ($exportId, $generation, $bytes) {
++    public function claim(int $exportId, string $generation, int $bytes = 0, ?int $position = null): ?StudioAvLease
++    {
++        return DB::transaction(function () use ($exportId, $generation, $bytes, $position) {
+             $export = DesignExport::withoutUserScope()->whereKey($exportId)->lockForUpdate()->first();
+-            if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ($export->render_state['generation'] ?? null) !== $generation) {
++            if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ($export->render_state['generation'] ?? null) !== $generation
++                || ($position !== null && ($export->render_state['position'] ?? null) !== $position)) {
+                 return null;
+             }
+             $workspace = $this->workspace($export);
+@@ -250,13 +325,7 @@
+             if (! $current) {
+                 return false;
+             }
+-            $message = match ($code) {
+-                'phase_timeout' => 'La fase superó su tiempo permitido. Reduce el tamaño o reintenta el trabajo.',
+-                'runtime_unavailable' => 'El entorno audiovisual no está disponible. Revisa Python, Node, Chromium, FFmpeg y los límites del worker Studio.',
+-                'missing_resource' => 'Un recurso o el diseño ya no está disponible en esta marca.',
+-                'output_budget', 'plan_budget' => 'El trabajo supera su presupuesto. Reduce la resolución o las páginas seleccionadas.',
+-                default => 'No se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.',
+-            };
++            $message = $this->failureMessage($code);
+             $current->update(['status' => 'failed']);
+             $state = $export->render_state;
+             $state['lease'] = null;
+@@ -266,6 +335,18 @@
+         });
+     }
+ 
++    private function failureMessage(string $code): string
++    {
++        return match ($code) {
++            'phase_timeout' => 'La fase superó su tiempo permitido. Reduce el tamaño o reintenta el trabajo.',
++            'runtime_unavailable' => 'El entorno audiovisual no está disponible. Revisa Python, Node, Chromium, FFmpeg y los límites del worker Studio.',
++            'missing_resource' => 'Un recurso o el diseño ya no está disponible en esta marca.',
++            'source_changed' => 'El recurso original cambió. Inicia una nueva exportación para no mezclar contenido anterior y nuevo.',
++            'output_budget', 'plan_budget' => 'El trabajo supera su presupuesto. Reduce la resolución o las páginas seleccionadas.',
++            default => 'No se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.',
++        };
++    }
++
+     private function fingerprint(DesignExport $export, string $documentHash): string
+     {
+         return hash('sha256', json_encode([$export->user_id, $export->brand_id, $export->design_id, $export->revision,
+@@ -279,7 +360,7 @@
+     }
+ 
+     /** Accepted native result references of this generation; optionally bounded to needed phases. */
+-    public function checkpoints(DesignExport $export, array $phases = []): Collection
++    public function checkpoints(DesignExport $export, array $phases = [], bool $unpublished = false): Collection
+     {
+         $state = $export->render_state;
+         if (! $state) {
+@@ -290,6 +371,9 @@
+             ->where('studio_av_leases.workspace_id', $state['allocation_id'])->where('studio_av_leases.status', 'accepted');
+         if ($phases !== []) {
+             $query->whereIn('studio_av_leases.phase', $phases);
++        }
++        if ($unpublished) {
++            $query->where('studio_av_leases.category', 'snapshot')->where('studio_av_leases.input_published', false)->limit(16);
+         }
+ 
+         return $query->select('studio_av_leases.*')->get()->keyBy(fn (StudioAvLease $lease) => $lease->phase.':'.$lease->item);
+--- a/app/Services/Studio/StudioAvFiles.php
++++ b/app/Services/Studio/StudioAvFiles.php
+@@ -16,14 +16,13 @@
+ 
+ class StudioAvFiles
+ {
+-    public function inspect(StudioAvLease $lease, array $result): array
+-    {
+-        return $this->locked($lease, fn () => $this->inspectResult($lease, $result));
+-    }
+-
+-    private function inspectResult(StudioAvLease $lease, array $result): array
+-    {
+-        $deadline = microtime(true) + 85;
++    public function inspect(StudioAvLease $lease, array $result, ?float $deadline = null): array
++    {
++        return $this->locked($lease, fn () => $this->inspectResult($lease, $result, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
++    }
++
++    private function inspectResult(StudioAvLease $lease, array $result, float $deadline): array
++    {
+         [$current, $workspace, $export] = $this->context($lease);
+         $this->validateResult($current, $export, $result, false);
+         $this->verifyPath($workspace, $result['file'], $result, $deadline);
+@@ -32,14 +31,13 @@
+         return $result;
+     }
+ 
+-    public function publishSource(StudioAvLease $lease): string
+-    {
+-        return $this->locked($lease, fn () => $this->promoteSource($lease));
+-    }
+-
+-    private function promoteSource(StudioAvLease $lease): string
+-    {
+-        $deadline = microtime(true) + 85;
++    public function publishSource(StudioAvLease $lease, ?float $deadline = null): string
++    {
++        return $this->locked($lease, fn () => $this->promoteSource($lease, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
++    }
++
++    private function promoteSource(StudioAvLease $lease, float $deadline): string
++    {
+         [$current, $workspace] = $this->context($lease, true);
+         if (! in_array($current->phase, ['asset', 'font'], true)) {
+             throw new RuntimeException('El checkpoint no es un origen del diseño.');
+@@ -55,13 +53,14 @@
+             }
+         }
+         $this->verifyPath($workspace, $relative, $result, $deadline);
++        StudioAvLease::whereKey($current->id)->where('status', 'accepted')->update(['input_published' => true]);
+ 
+         return $relative;
+     }
+ 
+-    public function verify(StudioAvLease $lease): array
+-    {
+-        return $this->locked($lease, fn () => $this->verifyCheckpoint($lease, microtime(true) + 85));
++    public function verify(StudioAvLease $lease, ?float $deadline = null): array
++    {
++        return $this->locked($lease, fn () => $this->verifyCheckpoint($lease, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
+     }
+ 
+     private function verifyCheckpoint(StudioAvLease $lease, float $deadline): array
+@@ -95,6 +94,9 @@
+ 
+     private function verifyPath(StudioAvWorkspace $workspace, string $relative, array $result, float $deadline): void
+     {
++        if (microtime(true) >= $deadline) {
++            throw new StudioAvProcessFailed('phase_timeout');
++        }
+         $path = app(StudioAvStorage::class)->checkedPath($workspace, $relative);
+         $stream = @fopen($path, 'rb');
+         if ($stream === false) {
+@@ -111,7 +113,7 @@
+             }
+             while (! feof($stream)) {
+                 if (microtime(true) >= $deadline) {
+-                    throw new RuntimeException('La verificación superó su tiempo permitido.');
++                    throw new StudioAvProcessFailed('phase_timeout');
+                 }
+                 $chunk = fread($stream, 1024 * 1024);
+                 if ($chunk === false || ($chunk === '' && ! feof($stream))) {
+@@ -123,6 +125,9 @@
+                 }
+                 hash_update($hash, $chunk);
+             }
++            if (microtime(true) >= $deadline) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
+             if ($size !== $result['size'] || ! hash_equals($result['sha256'], hash_final($hash))) {
+                 throw new StudioAvCheckpointCorrupt('El contenido del checkpoint privado fue alterado.');
+             }
+@@ -131,14 +136,13 @@
+         }
+     }
+ 
+-    public function snapshot(StudioAvLease $lease): array
+-    {
+-        return $this->locked($lease, fn () => $this->copySnapshot($lease));
+-    }
+-
+-    private function copySnapshot(StudioAvLease $lease): array
+-    {
+-        $deadline = microtime(true) + 85;
++    public function snapshot(StudioAvLease $lease, ?float $deadline = null): array
++    {
++        return $this->locked($lease, fn () => $this->copySnapshot($lease, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
++    }
++
++    private function copySnapshot(StudioAvLease $lease, float $deadline): array
++    {
+         [$current, $workspace] = $this->context($lease);
+         if (! in_array($current->phase, ['asset', 'font'], true)) {
+             throw new RuntimeException('La fase no admite una copia de origen.');
+@@ -151,8 +155,12 @@
+         $pinned = StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'snapshot')
+             ->where('phase', $current->phase)->where('item', $current->item)->whereIn('status', ['accepted', 'invalid', 'released'])
+             ->whereNotNull('result')->orderBy('created_at')->orderBy('id')->first(['result'])?->result;
++        $remaining = $deadline - microtime(true);
++        if ($remaining <= 0) {
++            throw new StudioAvProcessFailed('phase_timeout');
++        }
+         $reader = MediaChunkReader::for(new PublishMedia(id: $source->id, kind: 'file', mime: $source->mime ?? 'font/woff2',
+-            url: '', disk: $source->disk, path: $source->path), timeout: 5);
++            url: '', disk: $source->disk, path: $source->path), timeout: min(5, $remaining));
+         if ($reader->size < 1 || $reader->size !== $source->size || $reader->size > min($current->reserved_bytes, 2 * 1024 ** 3)) {
+             throw new RuntimeException('El origen no coincide con su tamaño o reserva.');
+         }
+@@ -169,7 +177,7 @@
+             for ($offset = 0; $offset < $reader->size;) {
+                 $remaining = $deadline - microtime(true);
+                 if ($remaining <= 0) {
+-                    throw new RuntimeException('La copia superó su tiempo permitido.');
++                    throw new StudioAvProcessFailed('phase_timeout');
+                 }
+                 $length = min(1024 * 1024, $reader->size - $offset);
+                 $chunk = $reader->chunk($offset, $length, min(5, $remaining));
+--- a/app/Services/Studio/StudioAvStorage.php
++++ b/app/Services/Studio/StudioAvStorage.php
+@@ -11,6 +11,42 @@
+ 
+ class StudioAvStorage
+ {
++    public function manifest(StudioAvWorkspace $workspace, string $leaseId, array $input): string
++    {
++        $this->assertHeld($workspace);
++        if (! preg_match('/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/D', $leaseId)) {
++            throw new RuntimeException('El lease del manifiesto no es válido.');
++        }
++        $json = json_encode($input, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
++        if (strlen($json) > 8 * 1024 ** 2) {
++            throw new RuntimeException('El manifiesto audiovisual supera 8MiB.');
++        }
++        $parts = ['studio-exports', (string) $workspace->user_id, (string) $workspace->export_id, $workspace->uuid, 'work', $leaseId.'.json'];
++        $file = $this->resolve($parts, true);
++        $stream = @fopen($file, 'x+b');
++        if ($stream === false) {
++            throw new RuntimeException('El manifiesto ya existe o no puede escribirse.');
++        }
++        try {
++            if (fwrite($stream, $json) !== strlen($json) || ! fflush($stream)) {
++                throw new RuntimeException('El manifiesto no se pudo completar.');
++            }
++        } finally {
++            fclose($stream);
++        }
++
++        return dirname(dirname($file));
++    }
++
++    public function removeManifest(StudioAvWorkspace $workspace, string $leaseId): void
++    {
++        $this->assertHeld($workspace);
++        $count = 0;
++        foreach (['json', 'cancel'] as $extension) {
++            $this->remove($this->workspacePath($workspace, 'work/'.$leaseId.'.'.$extension), microtime(true) + 3, $count);
++        }
++    }
++
+     private array $held = [];
+ 
+     public function locked(int $workspaceId, Closure $callback): mixed
+--- a/app/Services/Studio/StudioAvCleanup.php
++++ b/app/Services/Studio/StudioAvCleanup.php
+@@ -23,6 +23,9 @@
+                     StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
+                     $current = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($id)->lockForUpdate()->first();
+                     if (! $current || $current->expires_at->isFuture()) {
++                        return null;
++                    }
++                    if (app(StudioAvQueue::class)->pending($current)) {
+                         return null;
+                     }
+                     if ($current->status === 'running') {
+--- a/app/Services/Studio/StudioAvQueue.php
++++ b/app/Services/Studio/StudioAvQueue.php
+@@ -0,0 +1,88 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Jobs\Studio\ProcessStudioAvPhase;
++use App\Models\Brand;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Validation\ValidationException;
++use Throwable;
++
++class StudioAvQueue
++{
++    public function __construct(private readonly StudioAvState $state) {}
++
++    public function enqueue(int $exportId): bool
++    {
++        $export = DesignExport::withoutUserScope()->find($exportId);
++        if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ! $export->render_state) {
++            return false;
++        }
++        $old = isset($export->render_state['lease']) ? StudioAvLease::find($export->render_state['lease']) : null;
++        if ($old && $this->pending($old)) {
++            return false;
++        }
++        $task = $this->state->task($export);
++        if (! $task || $task['phase'] === 'register') {
++            return false;
++        }
++        $lease = $this->state->claim($exportId, $export->render_state['generation'], $this->bytes($export, $task), $export->render_state['position']);
++        if (! $lease) {
++            return false;
++        }
++        try {
++            $id = Queue::connection('database')->push(new ProcessStudioAvPhase($lease->id), queue: config('studio.av.queue', 'studio'));
++            if (is_scalar($id) && ctype_digit((string) $id) && (int) $id > 0) {
++                StudioAvLease::whereKey($lease->id)->update(['queue_job_id' => (int) $id]);
++            }
++        } catch (Throwable) {
++            $this->state->fail($lease, 'queue_unavailable');
++
++            return false;
++        }
++
++        return true;
++    }
++
++    public function pending(StudioAvLease $lease): bool
++    {
++        return $lease->status === 'running' && $lease->started_at === null && $lease->queue_job_id !== null
++            && DB::connection(config('queue.connections.database.connection'))->table(config('queue.connections.database.table', 'jobs'))
++                ->where('id', $lease->queue_job_id)->exists();
++    }
++
++    private function bytes(DesignExport $export, array $task): int
++    {
++        if (in_array($task['phase'], ['plan', 'verify', 'register'], true)) {
++            return 0;
++        }
++        if (in_array($task['phase'], ['asset', 'font', 'normalize'], true)) {
++            $user = User::findOrFail($export->user_id);
++            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->brand_id);
++            $source = $task['phase'] === 'font' ? app(StudioFonts::class)->owned($user, $brand, $task['index'])
++                : app(StudioAssets::class)->owned($user, $brand, $task['index']);
++            $bytes = $task['phase'] === 'normalize' ? (int) round($source->duration * 48000) * 8 : $source->size;
++            if (! is_int($bytes) || $bytes < 1 || $bytes > ($task['phase'] === 'normalize' ? 8 : 2) * 1024 ** 3) {
++                throw ValidationException::withMessages(['export' => ['El origen supera el presupuesto de esta fase.']]);
++            }
++
++            return $bytes;
++        }
++        if ($task['phase'] === 'render') {
++            return 512 * 1024 ** 2;
++        }
++        if ($task['phase'] === 'assemble') {
++            return 8 * 1024 ** 3;
++        }
++        $plan = StudioAvWorkspace::withoutUserScope()->whereKey($export->render_state['allocation_id'])->value('plan');
++        $plan = is_string($plan) ? json_decode($plan, true, flags: JSON_THROW_ON_ERROR) : $plan;
++        $frames = min($plan['segmentFrames'], $plan['frameCount'] - $task['index'] * $plan['segmentFrames']);
++
++        return 44 + (int) round($frames * 48000 / $plan['fps']) * 8;
++    }
++}
+--- a/app/Services/Studio/StudioAvProcess.php
++++ b/app/Services/Studio/StudioAvProcess.php
+@@ -0,0 +1,111 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\DesignRevision;
++use App\Models\Studio\StudioAsset;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\Studio\StudioFont;
++use Illuminate\Support\Facades\Process;
++
++class StudioAvProcess
++{
++    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage) {}
++
++    public function execute(StudioAvLease $lease, ?float $deadline = null): array
++    {
++        $deadline = min($deadline ?? microtime(true) + 85, microtime(true) + 85);
++
++        return $this->storage->locked($lease->workspace_id, function (StudioAvWorkspace $workspace) use ($lease, $deadline) {
++            $export = $this->state->workingExport($lease);
++            if (! in_array($lease->phase, ['plan', 'normalize', 'render', 'mix', 'assemble'], true)) {
++                throw new StudioAvProcessFailed('invalid_request');
++            }
++            $document = DesignRevision::withoutUserScope()->where('user_id', $export->user_id)->where('design_id', $export->design_id)
++                ->where('revision', $export->revision)->firstOrFail()->document;
++            if (hash('sha256', json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)) !== $export->render_state['document_hash']) {
++                throw new StudioAvProcessFailed('invalid_request');
++            }
++            $record = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->firstOrFail(['id', 'source_metadata']);
++            $metadata = $record->source_metadata ?? $this->metadata($export, $document);
++            $input = ['document' => $document, 'assets' => $metadata['assets'], 'fonts' => $metadata['fonts'], 'format' => $export->format,
++                'options' => ['pageIds' => $export->pages, 'scale' => (float) ($export->options['scale'] ?? 1), 'quality' => (float) ($export->options['quality'] ?? 0.94)],
++                'audioSources' => [], 'segments' => []];
++            if ($lease->phase === 'mix') {
++                $input['audioSources'] = $this->state->checkpoints($export, ['normalize'])->pluck('result')->values()->all();
++            } elseif ($lease->phase === 'assemble') {
++                $results = $this->state->checkpoints($export, ['render', 'mix']);
++                $plan = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->firstOrFail(['id', 'plan'])->plan;
++                for ($index = 0; $index < $plan['segmentCount']; $index++) {
++                    $input['segments'][] = ['video' => $results->get('render:'.$index)?->result, 'audio' => $results->get('mix:'.$index)?->result];
++                }
++            }
++            $directory = $this->storage->manifest($workspace, $lease->id, $input);
++            try {
++                $this->state->workingExport($lease);
++                $budget = (int) floor(($deadline - microtime(true)) * 1000);
++                if ($budget < 100) {
++                    throw new StudioAvProcessFailed('phase_timeout');
++                }
++                $process = Process::path(base_path())->timeout(min(92, (int) ceil($budget / 1000) + 6))
++                    ->env(['STUDIO_NODE_BINARY' => config('studio.node', 'node'), 'STUDIO_AV_BUDGET_MS' => (string) $budget])
++                    ->run([config('studio.python'), base_path('scripts/studio/av-runtime.py'), $directory, $lease->id, $lease->phase, (string) $lease->item]);
++                $raw = $process->output();
++                $output = strlen($raw) <= 8 * 1024 ** 2 ? json_decode($raw, true) : null;
++                if (! $process->successful() || ($output['ok'] ?? null) !== true) {
++                    $code = $output['error_code'] ?? '';
++                    throw new StudioAvProcessFailed(in_array($code, ['phase_timeout', 'runtime_unavailable', 'missing_resource', 'plan_budget', 'output_budget', 'phase_cancelled'], true) ? $code : 'phase_failed');
++                }
++                $memory = $output['memory'] ?? [];
++                if (($output['namespace'] ?? null) !== $lease->id || ($output['phase'] ?? null) !== $lease->phase || ($output['index'] ?? null) !== $lease->item
++                    || ! is_array($output['result'] ?? null) || ! is_int($memory['limit'] ?? null) || $memory['limit'] < 1 || $memory['limit'] > 3 * 1024 ** 3
++                    || ! in_array($memory['scope'] ?? null, ['job', 'cgroup'], true)
++                    || ($memory['scope'] === 'job' && (($memory['kill_on_close'] ?? null) !== true || ($memory['breakaway'] ?? null) !== false))) {
++                    throw new StudioAvProcessFailed('runtime_unavailable');
++                }
++                $this->state->workingExport($lease);
++                if ($record->source_metadata === null) {
++                    $record->update(['source_metadata' => $metadata]);
++                }
++
++                return $output['result'] + ['runtime_memory' => array_intersect_key($memory, array_flip(['scope', 'limit', 'peak_commit', 'kill_on_close', 'breakaway']))];
++            } finally {
++                $this->storage->removeManifest($workspace, $lease->id);
++            }
++        });
++    }
++
++    private function metadata(DesignExport $export, array $document): array
++    {
++        $ids = [];
++        $walk = function (array $elements) use (&$walk, &$ids): void {
++            foreach ($elements as $element) {
++                if (isset($element['asset_id'])) {
++                    $ids[$element['asset_id']] = true;
++                }
++                if ($element['type'] === 'group') {
++                    $walk($element['elements']);
++                }
++            }
++        };
++        foreach ($document['pages'] as $page) {
++            $walk($page['elements']);
++        }
++        foreach ($document['timeline']['audio_tracks'] ?? [] as $track) {
++            $ids[$track['asset_id']] = true;
++        }
++        $links = StudioAsset::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)
++            ->whereIn('media_asset_id', array_keys($ids))->with('media')->get();
++        $assets = $links->map(fn ($link) => $link->media)->filter(fn ($asset) => $asset && (int) $asset->user_id === (int) $export->user_id && $asset->status === MediaAsset::STATUS_READY)
++            ->sortBy('id')->map(fn ($asset) => $asset->only(['id', 'kind', 'mime', 'width', 'height', 'duration', 'audio_codec', 'size', 'fps', 'status']) + ['file' => 'assets/'.$asset->id.'.bin'])->values()->all();
++        $fonts = StudioFont::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)->where('status', 'ready')
++            ->whereIn('id', StudioFonts::idsFromDocument($document))->orderBy('id')->get()
++            ->map(fn ($font) => $font->only(['id', 'family', 'mime', 'size', 'sha256', 'style', 'weight', 'status'])
++                + ['file' => 'fonts/'.$font->id.'.woff2', 'css_family' => 'StudioFont_'.$font->id.'_'.substr($font->sha256, 0, 16)])->all();
++
++        return ['assets' => $assets, 'fonts' => $fonts];
++    }
++}
+--- a/app/Services/Studio/StudioAvProcessFailed.php
++++ b/app/Services/Studio/StudioAvProcessFailed.php
+@@ -0,0 +1,13 @@
++<?php
++
++namespace App\Services\Studio;
++
++use RuntimeException;
++
++class StudioAvProcessFailed extends RuntimeException
++{
++    public function __construct(public readonly string $errorCode)
++    {
++        parent::__construct('No se pudo completar la fase audiovisual.');
++    }
++}
+--- a/app/Services/Studio/StudioAvRunner.php
++++ b/app/Services/Studio/StudioAvRunner.php
+@@ -0,0 +1,87 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Studio\StudioAvLease;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Process\Exceptions\ProcessTimedOutException;
++use Illuminate\Validation\ValidationException;
++use Throwable;
++
++class StudioAvRunner
++{
++    public function __construct(private readonly StudioAvState $state, private readonly StudioAvQueue $queue,
++        private readonly StudioAvFiles $files, private readonly StudioAvProcess $process) {}
++
++    public function run(string $id, ?float $deadline = null): bool
++    {
++        $lease = $this->state->begin($id);
++        if (! $lease) {
++            return false;
++        }
++        $export = $this->state->workingExport($lease);
++        $deadline = min($deadline ?? microtime(true) + 85, microtime(true) + 85);
++        $advanced = false;
++        $source = null;
++        try {
++            if (microtime(true) >= $deadline) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
++            if (in_array($lease->phase, ['asset', 'font'], true)) {
++                $result = $this->files->snapshot($lease, $deadline);
++            } elseif ($lease->phase === 'verify') {
++                $task = $this->state->task($export);
++                $source = StudioAvLease::where('workspace_id', $lease->workspace_id)->findOrFail($task['source']);
++                try {
++                    $result = $this->files->verify($source, $deadline);
++                } catch (StudioAvCheckpointCorrupt) {
++                    $this->state->rejectCheckpoint($lease);
++
++                    return false;
++                }
++            } else {
++                $result = $this->process->execute($lease, $deadline);
++                if ($lease->phase !== 'plan') {
++                    $this->files->inspect($lease, $result, $deadline);
++                }
++            }
++            if (! $this->state->accept($lease, $result, $lease->category === 'none' ? 0 : $result['size'])) {
++                return false;
++            }
++            $advanced = true;
++            $input = $source ?? $lease;
++            if (in_array($input->phase, ['asset', 'font'], true)) {
++                $this->files->publishSource($input, $deadline);
++            }
++            $this->queue->enqueue($export->id);
++
++            return true;
++        } catch (StudioAvWorkspaceBusy $e) {
++            if (! $advanced) {
++                $this->state->defer($lease);
++
++                return false;
++            }
++            $code = 'phase_failed';
++        } catch (StudioAvProcessFailed $e) {
++            $code = $e->errorCode;
++        } catch (ProcessTimedOutException) {
++            $code = 'phase_timeout';
++        } catch (ModelNotFoundException) {
++            $code = 'missing_resource';
++        } catch (ValidationException) {
++            $code = 'output_budget';
++        } catch (StudioRenderFailure) {
++            $code = 'source_changed';
++        } catch (Throwable) {
++            $code = 'phase_failed';
++        }
++        if ($advanced) {
++            $this->state->failPosition($export->id, $lease->generation, $export->render_state['position'] + 1, $code);
++        } else {
++            $this->state->fail($lease, $code);
++        }
++
++        return false;
++    }
++}
+--- a/app/Services/Studio/StudioAvRecovery.php
++++ b/app/Services/Studio/StudioAvRecovery.php
+@@ -0,0 +1,119 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Validation\ValidationException;
++use Throwable;
++
++class StudioAvRecovery
++{
++    public function __construct(private readonly StudioAvQueue $queue, private readonly StudioAvCleanup $cleanup, private readonly StudioAvState $state) {}
++
++    public function run(int $limit = 25): array
++    {
++        $result = ['enqueued' => 0, 'leases_released' => 0, 'orphans_removed' => 0, 'deferred' => 0];
++        $limit = max(1, min(100, $limit));
++        $deadline = microtime(true) + 15;
++        $orphans = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id'))
++            ->orderBy('active_until')->limit($limit)->get(['id']);
++        foreach ($orphans as $workspace) {
++            if (microtime(true) >= $deadline) {
++                break;
++            }
++            try {
++                $this->cleanup->orphan($workspace->id) ? $result['orphans_removed']++ : $result['deferred']++;
++            } catch (Throwable) {
++                $result['deferred']++;
++            }
++        }
++        $terminal = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++            ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id')
++                ->whereIn('studio_design_exports.status', ['failed', 'cancelled']))
++            ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_av_leases')->whereColumn('studio_av_leases.workspace_id', 'studio_av_workspaces.id')
++                ->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])->where('expires_at', '<=', now()))
++            ->orderBy('active_until')->limit($limit)->get(['id']);
++        foreach ($terminal as $workspace) {
++            if (microtime(true) >= $deadline) {
++                break;
++            }
++            $leases = StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
++                ->where('expires_at', '<=', now())->orderBy('expires_at')->limit(32)->get(['id']);
++            foreach ($leases as $lease) {
++                if (microtime(true) >= $deadline) {
++                    break;
++                }
++                try {
++                    $this->cleanup->lease($lease->id) ? $result['leases_released']++ : $result['deferred']++;
++                } catch (Throwable) {
++                    $result['deferred']++;
++                }
++            }
++            StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->where('active_until', '<=', now())->update(['active_until' => now()->addSeconds(180)]);
++        }
++        $workspaces = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++            ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id')
++                ->whereIn('studio_design_exports.status', ['pending', 'processing'])->whereNotNull('render_state'))
++            ->orderBy('active_until')->limit($limit)->get(['id', 'export_id']);
++        foreach ($workspaces as $workspace) {
++            if (microtime(true) >= $deadline) {
++                break;
++            }
++            $export = DesignExport::withoutUserScope()->find($workspace->export_id);
++            if (! $export || ! $export->render_state) {
++                continue;
++            }
++            try {
++                $ready = true;
++                $old = StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
++                    ->where('expires_at', '<=', now())->orderBy('expires_at')->limit(32)->get();
++                foreach ($old as $lease) {
++                    if (microtime(true) >= $deadline || ! $this->cleanup->lease($lease->id)) {
++                        $ready = false;
++                        break;
++                    }
++                    $result['leases_released']++;
++                }
++                if ($ready) {
++                    $ready = ! StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
++                        ->where('expires_at', '<=', now())->exists();
++                }
++                if ($ready) {
++                    foreach ($this->state->checkpoints($export, ['asset', 'font'], true) as $source) {
++                        if (microtime(true) >= $deadline) {
++                            $ready = false;
++                            break;
++                        }
++                        app(StudioAvFiles::class)->publishSource($source);
++                    }
++                    $ready = $ready && $this->state->checkpoints($export, ['asset', 'font'], true)->isEmpty();
++                }
++                if ($ready && $this->queue->enqueue($export->id)) {
++                    $result['enqueued']++;
++                } else {
++                    $result['deferred']++;
++                }
++            } catch (StudioAvCheckpointCorrupt) {
++                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'phase_failed');
++                $result['deferred']++;
++            } catch (ModelNotFoundException) {
++                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'missing_resource');
++                $result['deferred']++;
++            } catch (ValidationException) {
++                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'output_budget');
++                $result['deferred']++;
++            } catch (Throwable) {
++                $result['deferred']++;
++            }
++            // A worker-down export must not monopolize every bounded pass ahead of other brands.
++            StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->where('active_until', '<=', now())
++                ->update(['active_until' => now()->addSeconds(180)]);
++        }
++
++        return $result;
++    }
++}
+--- a/app/Jobs/Studio/ProcessStudioAvPhase.php
++++ b/app/Jobs/Studio/ProcessStudioAvPhase.php
+@@ -0,0 +1,32 @@
++<?php
++
++namespace App\Jobs\Studio;
++
++use App\Services\Studio\StudioAvRunner;
++use App\Services\Studio\StudioAvState;
++use Illuminate\Contracts\Queue\ShouldQueue;
++use Illuminate\Foundation\Queue\Queueable;
++
++class ProcessStudioAvPhase implements ShouldQueue
++{
++    use Queueable;
++
++    public int $tries = 1;
++
++    public int $timeout = 100;
++
++    public function __construct(public readonly string $leaseId)
++    {
++        $this->onConnection('database')->onQueue(config('studio.av.queue', 'studio'));
++    }
++
++    public function handle(StudioAvRunner $runner): void
++    {
++        $runner->run($this->leaseId);
++    }
++
++    public function failed(?\Throwable $exception): void
++    {
++        app(StudioAvState::class)->fail((object) ['id' => $this->leaseId], 'phase_failed');
++    }
++}
+--- a/app/Console/Commands/RecoverStudioExports.php
++++ b/app/Console/Commands/RecoverStudioExports.php
+@@ -0,0 +1,26 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Services\Studio\StudioAvRecovery;
++use Illuminate\Console\Command;
++
++class RecoverStudioExports extends Command
++{
++    protected $signature = 'studio:recover {--limit=25}';
++
++    protected $description = 'Recover private audiovisual leases and orphan workspaces.';
++
++    public function handle(StudioAvRecovery $recovery): int
++    {
++        $limit = (string) $this->option('limit');
++        if (! ctype_digit($limit) || (int) $limit < 1 || (int) $limit > 100) {
++            $this->error('El límite debe estar entre 1 y 100.');
++
++            return self::INVALID;
++        }
++        $this->line(json_encode($recovery->run((int) $limit), JSON_THROW_ON_ERROR));
++
++        return self::SUCCESS;
++    }
++}
+--- a/app/Models/Studio/StudioAvLease.php
++++ b/app/Models/Studio/StudioAvLease.php
+@@ -15,10 +15,10 @@
+ 
+     protected $guarded = [];
+ 
+-    protected $hidden = ['workspace_id', 'generation', 'phase', 'item', 'category', 'reserved_bytes', 'actual_bytes', 'status', 'result', 'expires_at', 'created_at', 'updated_at'];
++    protected $hidden = ['workspace_id', 'generation', 'phase', 'item', 'category', 'reserved_bytes', 'actual_bytes', 'status', 'result', 'expires_at', 'started_at', 'queue_job_id', 'input_published', 'created_at', 'updated_at'];
+ 
+     protected function casts(): array
+     {
+-        return ['workspace_id' => 'integer', 'item' => 'integer', 'reserved_bytes' => 'integer', 'actual_bytes' => 'integer', 'result' => 'array', 'expires_at' => 'immutable_datetime'];
++        return ['workspace_id' => 'integer', 'item' => 'integer', 'reserved_bytes' => 'integer', 'actual_bytes' => 'integer', 'queue_job_id' => 'integer', 'input_published' => 'boolean', 'result' => 'array', 'expires_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime'];
+     }
+ }
+--- a/app/Models/Studio/StudioAvWorkspace.php
++++ b/app/Models/Studio/StudioAvWorkspace.php
+@@ -14,10 +14,10 @@
+ 
+     protected $guarded = ['id'];
+ 
+-    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'media_id', 'active_until', 'created_at', 'updated_at'];
++    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'source_metadata', 'media_id', 'active_until', 'created_at', 'updated_at'];
+ 
+     protected function casts(): array
+     {
+-        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'active_until' => 'immutable_datetime', 'plan' => 'array'];
++        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'active_until' => 'immutable_datetime', 'plan' => 'array', 'source_metadata' => 'array'];
+     }
+ }
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -21,6 +21,7 @@
+             $table->uuid('uuid')->unique();
+             $table->string('fingerprint', 64);
+             $table->json('plan')->nullable();
++            $table->json('source_metadata')->nullable();
+             $table->unsignedBigInteger('media_id')->nullable();
+             $table->timestamp('active_until')->index();
+             $table->timestamps();
+@@ -37,8 +38,12 @@
+             $table->string('status', 20)->default('running');
+             $table->json('result')->nullable();
+             $table->timestamp('expires_at')->index();
++            $table->timestamp('started_at')->nullable();
++            $table->unsignedBigInteger('queue_job_id')->nullable();
++            $table->boolean('input_published')->default(false);
+             $table->timestamps();
+             $table->index(['workspace_id', 'category', 'status']);
++            $table->index(['workspace_id', 'category', 'status', 'input_published'], 'studio_av_input_promotion');
+             $table->index(['workspace_id', 'phase', 'item', 'created_at', 'id'], 'studio_av_lease_source_pin');
+         });
+         Schema::create('studio_av_steps', function (Blueprint $table) {
+--- a/routes/console.php
++++ b/routes/console.php
+@@ -27,6 +27,9 @@
+ 
+ // Limpia subidas de media abandonadas (pendientes/invalidas) y aborta sus multiparts abiertos (T-17).
+ Schedule::command('app:media-prune')->hourly()->name('media-prune')->withoutOverlapping();
++
++// Bounded private Studio recovery; native work stays on its dedicated queue.
++Schedule::command('studio:recover --limit=25')->everyMinute()->name('studio-av-recovery')->withoutOverlapping(2);
+ 
+ // Renueva tokens de redes sociales antes de caducar; si falla marca la cuenta y avisa (T-16).
+ Schedule::job(new RefreshTokens)->everyThirtyMinutes()->name('refresh-social-tokens')->withoutOverlapping();
+--- a/tests/Feature/Studio/StudioAvQueueTest.php
++++ b/tests/Feature/Studio/StudioAvQueueTest.php
+@@ -0,0 +1,347 @@
++<?php
++
++use App\Jobs\Studio\ProcessStudioAvPhase;
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use App\Services\Studio\StudioAssets;
++use App\Services\Studio\StudioAvCleanup;
++use App\Services\Studio\StudioAvFiles;
++use App\Services\Studio\StudioAvQueue;
++use App\Services\Studio\StudioAvRecovery;
++use App\Services\Studio\StudioAvRunner;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvStorage;
++use App\Services\Studio\StudioRenderFailure;
++use App\Services\Studio\StudioService;
++use Illuminate\Console\Scheduling\Schedule;
++use Illuminate\Contracts\Queue\ShouldBeUnique;
++use Illuminate\Support\Facades\Artisan;
++use Illuminate\Support\Facades\Process;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Support\Facades\Storage;
++
++beforeEach(function () {
++    $this->realQueue = Queue::getFacadeRoot();
++    Queue::fake();
++    Storage::fake('local');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $document = ['schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'AV queue', 'document' => $document]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $this->state = app(StudioAvState::class);
++    $this->export = $this->state->initialize($this->user, $export);
++});
++
++test('AV queue delivery begins its reserved lease exactly once and may renew a still-current queued lease', function () {
++    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $this->travel(181)->seconds();
++    $started = $this->state->begin($lease->id);
++    expect($started)->not->toBeNull();
++    expect($started->started_at)->not->toBeNull()->and($started->expires_at->isFuture())->toBeTrue();
++    expect($this->state->begin($lease->id))->toBeNull();
++    $this->travel(181)->seconds();
++    expect($this->state->begin($lease->id))->toBeNull();
++});
++
++test('AV queue delivery cannot begin a cancelled or replaced generation', function () {
++    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $this->state->cancel($this->user, $this->export);
++    $this->state->retry($this->user, $this->export);
++    expect($this->state->begin($lease->id))->toBeNull();
++});
++
++test('AV queue schedules one private lease delivery on the dedicated queue without a handoff unique lock', function () {
++    $queue = app(StudioAvQueue::class);
++    expect($queue->enqueue($this->export->id))->toBeTrue();
++    expect($queue->enqueue($this->export->id))->toBeFalse();
++    $lease = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    expect($lease->phase)->toBe('plan')->and($lease->reserved_bytes)->toBe(0)->and($lease->started_at)->toBeNull();
++    Queue::assertPushed(ProcessStudioAvPhase::class, 1);
++    Queue::assertPushed(ProcessStudioAvPhase::class, fn ($job) => $job->leaseId === $lease->id
++        && $job->connection === 'database' && $job->queue === 'studio' && $job->tries === 1 && $job->timeout === 100
++        && ! $job instanceof ShouldBeUnique);
++});
++
++test('AV recovery recognizes a database message still waiting for a worker and cannot prune its lease', function () {
++    Queue::swap($this->realQueue);
++    $queue = app(StudioAvQueue::class);
++    expect($queue->enqueue($this->export->id))->toBeTrue();
++    $lease = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    expect($lease->queue_job_id)->toBeGreaterThan(0)->and($queue->pending($lease))->toBeTrue();
++    $this->travel(181)->seconds();
++    expect($queue->enqueue($this->export->id))->toBeFalse();
++    expect(app(StudioAvCleanup::class)->lease($lease->id))->toBeFalse();
++    expect($this->state->begin($lease->id))->not->toBeNull();
++    expect($queue->pending($lease->refresh()))->toBeFalse();
++});
++
++test('AV enqueue cannot apply a stale phase reservation after another delivery advances the cursor', function () {
++    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $real = $this->state;
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $state = Mockery::mock(StudioAvState::class)->makePartial();
++    $state->shouldReceive('claim')->once()->andReturnUsing(function ($id, $generation, $bytes, ...$position) use ($real, $planLease, $plan) {
++        $real->accept($planLease, $plan);
++
++        return $real->claim($id, $generation, $bytes, ...$position);
++    });
++    expect((new StudioAvQueue($state))->enqueue($this->export->id))->toBeFalse();
++    expect($this->state->task($this->export->refresh()))->toBe(['phase' => 'render', 'index' => 0]);
++    Queue::assertNothingPushed();
++});
++
++test('AV worker accepts a plan and hands off the next phase exactly once when the same job is delivered twice', function () {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $job = null;
++    Queue::assertPushed(ProcessStudioAvPhase::class, function ($queued) use (&$job) {
++        $job = $queued;
++
++        return true;
++    });
++    Process::fake(function ($process) {
++        $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++            'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++            'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++
++        return Process::result(output: json_encode(['ok' => true, 'namespace' => $process->command[3], 'phase' => 'plan', 'index' => 0,
++            'result' => $plan, 'memory' => ['scope' => 'job', 'limit' => 3 * 1024 ** 3, 'kill_on_close' => true, 'breakaway' => false]]));
++    });
++    $job->handle(app(StudioAvRunner::class));
++    expect($this->export->refresh()->render_state['position'])->toBe(1);
++    expect($this->state->task($this->export))->toBe(['phase' => 'render', 'index' => 0]);
++    Queue::assertPushed(ProcessStudioAvPhase::class, 2);
++    $job->handle(app(StudioAvRunner::class));
++    Process::assertRanTimes(fn () => true, 1);
++    Queue::assertPushed(ProcessStudioAvPhase::class, 2);
++    $next = $this->export->refresh()->render_state['lease'];
++    $job->failed(new RuntimeException('late private worker error'));
++    expect($this->export->refresh()->status)->toBe('processing')->and($this->export->render_state['lease'])->toBe($next);
++});
++
++test('AV worker stores a safe failure instead of handing off an invalid native response', function () {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $id = $this->export->refresh()->render_state['lease'];
++    Process::fake(['*' => Process::result(exitCode: 1, output: '{"ok":false,"error_code":"C:/private/secret"}')]);
++    (new ProcessStudioAvPhase($id))->handle(app(StudioAvRunner::class));
++    expect($this->export->refresh()->status)->toBe('failed')->and($this->export->error)->not->toContain('private', 'secret');
++    Queue::assertPushed(ProcessStudioAvPhase::class, 1);
++});
++
++test('AV worker reports source replacement as requiring a new export and never leaks its raw error', function () {
++    $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin', 'size' => 5,
++        'declared_size' => 5, 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
++    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($planLease, $plan);
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $files = Mockery::mock(StudioAvFiles::class)->makePartial();
++    $files->shouldReceive('snapshot')->once()->andThrow(new StudioRenderFailure('secret filesystem path'));
++    $this->app->instance(StudioAvFiles::class, $files);
++    app(StudioAvRunner::class)->run($this->export->refresh()->render_state['lease']);
++    expect($this->export->refresh()->status)->toBe('failed')->and($this->export->error)->toContain('nueva exportación')->not->toContain('secret', 'filesystem');
++});
++
++test('AV snapshot worker respects the caller deadline rather than opening a new phase budget', function () {
++    Storage::disk('local')->put('source.bin', 'bytes');
++    $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin',
++        'size' => 5, 'declared_size' => 5, 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
++    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($planLease, $plan);
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    expect(app(StudioAvRunner::class)->run($this->export->refresh()->render_state['lease'], microtime(true) - 1))->toBeFalse();
++    expect($this->export->refresh()->status)->toBe('failed');
++    $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
++    expect(Storage::disk('local')->allFiles($root.'/imports'))->toBe([]);
++});
++
++test('AV recovery releases an interrupted delivery and schedules a fresh lease without reviving the old one', function () {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    $this->state->begin($old->id);
++    $this->travel(181)->seconds();
++    $result = app(StudioAvRecovery::class)->run();
++    expect($result['enqueued'])->toBe(1)->and($result['leases_released'])->toBe(1);
++    expect($old->refresh()->status)->toBe('released');
++    expect($this->export->refresh()->render_state['lease'])->not->toBe($old->id);
++    expect($this->state->begin($old->id))->toBeNull();
++    Queue::assertPushed(ProcessStudioAvPhase::class, 2);
++});
++
++test('AV recovery publishes an accepted snapshot left by a crash before enqueueing its next phase', function () {
++    Storage::disk('local')->put('source.bin', 'snapshot bytes');
++    $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin',
++        'size' => 14, 'declared_size' => 14, 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
++    $generation = $this->export->render_state['generation'];
++    $planLease = $this->state->claim($this->export->id, $generation);
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($planLease, $plan);
++    $source = $this->state->claim($this->export->id, $generation, 14);
++    $files = app(StudioAvFiles::class);
++    $snapshot = $files->snapshot($source);
++    $this->state->accept($source, $snapshot, $snapshot['size']);
++    // Crash boundary: no publishSource call happened after the accepted checkpoint.
++    $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
++    Storage::disk('local')->assertMissing($root.'/assets/'.$media->id.'.bin');
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRecovery::class)->run()['enqueued'])->toBe(1);
++    expect(Storage::disk('local')->get($root.'/assets/'.$media->id.'.bin'))->toBe('snapshot bytes');
++});
++
++test('AV recovery cleans expired partials from failed or cancelled exports while preserving their status', function (string $status) {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $lease = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
++    $partial = $root.'/audio-sources/'.$lease->id.'/partial.pcm';
++    Storage::disk('local')->put($partial, 'unaccepted partial');
++    if ($status === 'failed') {
++        $this->state->fail($lease, 'phase_failed');
++    } else {
++        $this->state->cancel($this->user, $this->export);
++    }
++    $this->travel(181)->seconds();
++    $result = app(StudioAvRecovery::class)->run();
++    expect($result['leases_released'])->toBe(1)->and($result['enqueued'])->toBe(0);
++    expect($lease->refresh()->status)->toBe('released')->and($this->export->refresh()->status)->toBe($status);
++    Storage::disk('local')->assertMissing($partial);
++})->with(['failed', 'cancelled']);
++
++test('AV recovery does not duplicate a database message while its worker is stopped', function () {
++    Queue::swap($this->realQueue);
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    $this->travel(181)->seconds();
++    $result = app(StudioAvRecovery::class)->run();
++    expect($result['enqueued'])->toBe(0)->and($result['leases_released'])->toBe(0);
++    expect($old->refresh()->status)->toBe('running')->and($this->export->refresh()->render_state['lease'])->toBe($old->id);
++});
++
++test('AV busy work is deferred without losing accounting and can be recovered after the mutex is released', function () {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    app(StudioAvStorage::class)->locked($old->workspace_id, function () use ($old) {
++        expect(app(StudioAvRunner::class)->run($old->id))->toBeFalse();
++    });
++    expect($this->export->refresh()->status)->toBe('processing')->and($this->export->render_state['lease'])->toBeNull();
++    expect($old->refresh()->status)->toBe('abandoned');
++    $result = app(StudioAvRecovery::class)->run();
++    expect($result['enqueued'])->toBe(1)->and($old->refresh()->status)->toBe('released');
++});
++
++test('AV recovery removes expired orphan journals after their brand is deleted', function () {
++    $workspaceId = $this->export->render_state['allocation_id'];
++    $this->brand->delete();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRecovery::class)->run()['orphans_removed'])->toBe(1);
++    expect(StudioAvWorkspace::withoutUserScope()->find($workspaceId))->toBeNull();
++});
++
++test('AV bounded recovery does not starve another brand behind a worker-down export', function () {
++    Queue::swap($this->realQueue);
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $brand = Brand::factory()->for($this->user)->create();
++    $design = app(StudioService::class)->create($this->user, $brand, ['name' => 'Other brand', 'document' => [
++        'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]],
++    ]]);
++    $other = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $other = $this->state->initialize($this->user, $other);
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRecovery::class)->run(1)['enqueued'])->toBe(0);
++    expect(app(StudioAvRecovery::class)->run(1)['enqueued'])->toBe(1);
++    expect($other->refresh()->render_state['lease'])->not->toBeNull();
++});
++
++test('AV recovery command runs a bounded pass and is scheduled without overlapping existing maintenance', function () {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    $this->state->begin($old->id);
++    $this->travel(181)->seconds();
++    expect(Artisan::call('studio:recover', ['--limit' => 1]))->toBe(0);
++    expect(json_decode(Artisan::output(), true)['enqueued'] ?? null)->toBe(1);
++    $event = collect(app(Schedule::class)->events())->first(fn ($event) => str_contains($event->command ?? '', 'studio:recover'));
++    expect($event)->not->toBeNull();
++    expect($event->expression)->toBe('* * * * *')->and($event->withoutOverlapping)->toBeTrue();
++    expect(Artisan::call('studio:recover', ['--limit' => 1000]))->toBe(2);
++});
++
++test('AV actual database worker processes native deliveries through assembly and stops before pending media registration', function (string $format) {
++    Queue::swap($this->realQueue);
++    $export = DesignExport::create($this->export->only(['user_id', 'brand_id', 'design_id', 'revision', 'pages', 'options']) + ['format' => $format, 'status' => 'pending']);
++    $export = $this->state->initialize($this->user, $export);
++    expect(app(StudioAvQueue::class)->enqueue($export->id))->toBeTrue();
++    foreach (['plan', 'render', 'assemble'] as $phase) {
++        $lease = StudioAvLease::findOrFail($export->refresh()->render_state['lease']);
++        expect($lease->phase)->toBe($phase);
++        $exit = Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'studio', '--once' => true, '--tries' => 1, '--timeout' => 100, '--sleep' => 0]);
++        expect($exit)->toBe(0)->and($lease->refresh()->status)->toBe('accepted', $export->refresh()->error ?? '');
++        expect($lease->started_at)->not->toBeNull()->and($lease->result['runtime_memory']['limit'])->toBeGreaterThan(0)->toBeLessThanOrEqual(3 * 1024 ** 3);
++    }
++    expect($this->state->task($export->refresh()))->toBe(['phase' => 'register', 'index' => 0]);
++    expect($export->status)->toBe('processing')->and($export->render_state['lease'])->toBeNull()->and($export->media_ids)->toBeNull();
++})->with(['mp4', 'gif'])->skip(fn () => getenv('STUDIO_AV_NATIVE_TEST') !== '1', 'Explicit managed native runtime opt-in; no ONNX.');
++
++test('AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music', function (string $format) {
++    Queue::swap($this->realQueue);
++    $samples = '';
++    for ($n = 0; $n < 48000; $n++) {
++        $value = pack('g', 0.125 * sin(2 * M_PI * 440 * $n / 48000));
++        $samples .= $value.$value;
++    }
++    $wav = 'RIFF'.pack('V', 36 + strlen($samples)).'WAVEfmt '.pack('VvvVVvv', 16, 3, 2, 48000, 384000, 8, 32).'data'.pack('V', strlen($samples)).$samples;
++    Storage::disk('local')->put('tone.wav', $wav);
++    $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'audio', 'mime' => 'audio/wav', 'disk' => 'local', 'path' => 'tone.wav',
++        'size' => strlen($wav), 'declared_size' => strlen($wav), 'duration' => 1, 'audio_codec' => 'pcm_f32le', 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
++    $document = ['schema_version' => 2, 'width' => 100, 'height' => 80,
++        'timeline' => ['fps' => 12, 'audio_tracks' => [['id' => 'music', 'asset_id' => $media->id, 'start' => 0, 'duration' => 1]]],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ff0000', 'elements' => []]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Tone', 'document' => $document]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => $format, 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $export = $this->state->initialize($this->user, $export);
++    app(StudioAvQueue::class)->enqueue($export->id);
++    foreach ($format === 'mp4' ? ['plan', 'asset', 'normalize', 'render', 'mix', 'assemble'] : ['plan', 'render', 'assemble'] as $phase) {
++        $lease = StudioAvLease::findOrFail($export->refresh()->render_state['lease']);
++        expect($lease->phase)->toBe($phase);
++        Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'studio', '--once' => true, '--tries' => 1, '--timeout' => 100, '--sleep' => 0]);
++        expect($lease->refresh()->status)->toBe('accepted', $export->refresh()->error ?? '');
++    }
++    $final = $this->state->checkpoints($export->refresh(), ['assemble'])->first()->result;
++    expect($final['frameCount'])->toBe(12)->and($final['audioCodec'])->toBe($format === 'mp4' ? 'aac' : null);
++    $root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$export->render_state['workspace'];
++    expect(Storage::disk('local')->allFiles($root.'/work'))->toBe([]);
++    if ($format === 'mp4') {
++        $decode = new Symfony\Component\Process\Process(['ffmpeg', '-v', 'error', '-i', Storage::disk('local')->path($root.'/'.$final['file']), '-vn', '-ac', '1', '-ar', '48000', '-f', 'f32le', 'pipe:1']);
++        $decode->mustRun();
++        $values = array_values(unpack('g*', $decode->getOutput()));
++        $real = 0;
++        $imaginary = 0;
++        for ($n = 4800; $n < 43200; $n++) {
++            $real += $values[$n] * cos(2 * M_PI * 440 * $n / 48000);
++            $imaginary += $values[$n] * sin(2 * M_PI * 440 * $n / 48000);
++        }
++        expect(hypot($real, $imaginary) * 2 / 38400)->toBeGreaterThan(0.07);
++    } else {
++        expect(Storage::disk('local')->allFiles($root.'/imports'))->toBe([]);
++    }
++})->with(['mp4', 'gif'])->skip(fn () => getenv('STUDIO_AV_NATIVE_TEST') !== '1', 'Explicit managed native runtime opt-in; no ONNX.');
+--- a/tests/Feature/Studio/StudioAvProcessTest.php
++++ b/tests/Feature/Studio/StudioAvProcessTest.php
+@@ -0,0 +1,108 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\Studio\DesignExport;
++use App\Models\User;
++use App\Services\Studio\StudioAvFiles;
++use App\Services\Studio\StudioAvProcess;
++use App\Services\Studio\StudioAvProcessFailed;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\Process;
++use Illuminate\Support\Facades\Storage;
++
++beforeEach(function () {
++    Storage::fake('local');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->document = ['schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Native bridge', 'document' => $this->document]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $this->state = app(StudioAvState::class);
++    $this->export = $this->state->initialize($this->user, $export);
++    $this->lease = $this->state->claim($export->id, $this->export->render_state['generation']);
++    $this->root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'];
++});
++
++function studioProcessPlan(): array
++{
++    return ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++}
++
++test('AV native bridge writes a private generated manifest invokes the managed supervisor and removes work files', function () {
++    Process::fake(function ($process) {
++        expect($process->command[1])->toBe(base_path('scripts/studio/av-runtime.py'));
++        expect(array_slice($process->command, 3))->toBe([$this->lease->id, 'plan', '0']);
++        $manifest = json_decode(file_get_contents($process->command[2].'/work/'.$this->lease->id.'.json'), true);
++        expect($manifest['document'])->toBe($this->document)->and($manifest['options']['pageIds'])->toBe(['one']);
++        expect($manifest['assets'])->toBe([])->and($manifest['fonts'])->toBe([])->and($manifest['audioSources'])->toBe([])->and($manifest['segments'])->toBe([]);
++        expect($process->timeout)->toBeLessThan(100);
++
++        return Process::result(output: json_encode(['ok' => true, 'namespace' => $this->lease->id, 'phase' => 'plan', 'index' => 0,
++            'result' => studioProcessPlan(), 'memory' => ['scope' => 'job', 'limit' => 3 * 1024 ** 3, 'kill_on_close' => true, 'breakaway' => false]]));
++    });
++    $result = app(StudioAvProcess::class)->execute($this->lease);
++    expect($result['frameCount'] ?? null)->toBe(12);
++    expect(Storage::disk('local')->allFiles($this->root.'/work'))->toBe([]);
++    expect($this->state->accept($this->lease, $result))->toBeTrue();
++});
++
++test('AV native bridge rejects forged phase or OS proof and cleans its private manifest on every failure', function (string $fault) {
++    Process::fake(function ($process) use ($fault) {
++        $output = ['ok' => true, 'namespace' => $this->lease->id, 'phase' => 'plan', 'index' => 0, 'result' => studioProcessPlan(),
++            'memory' => ['scope' => 'job', 'limit' => 3 * 1024 ** 3, 'kill_on_close' => true, 'breakaway' => false]];
++        if ($fault === 'namespace') {
++            $output['namespace'] = 'other';
++        }
++        if ($fault === 'index') {
++            $output['index'] = 1;
++        }
++        if ($fault === 'memory') {
++            $output['memory']['limit'] = 8 * 1024 ** 3;
++        }
++        if ($fault === 'breakaway') {
++            $output['memory']['breakaway'] = true;
++        }
++        if ($fault === 'cancel') {
++            $this->state->cancel($this->user, $this->export);
++        }
++
++        return Process::result(output: json_encode($output));
++    });
++    expect(fn () => app(StudioAvProcess::class)->execute($this->lease))->toThrow(RuntimeException::class);
++    expect(Storage::disk('local')->allFiles($this->root.'/work'))->toBe([]);
++})->with(['namespace', 'index', 'memory', 'breakaway', 'cancel']);
++
++test('AV native bridge shares a finite deadline and never starts heavy work with an exhausted budget', function () {
++    Process::fake();
++    expect(fn () => app(StudioAvProcess::class)->execute($this->lease, microtime(true) - 1))->toThrow(StudioAvProcessFailed::class);
++    Process::assertNothingRan();
++    expect(Storage::disk('local')->allFiles($this->root.'/work'))->toBe([]);
++});
++
++test('AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit', function () {
++    $bridge = app(StudioAvProcess::class);
++    $plan = $bridge->execute($this->lease);
++    expect($plan['runtime_memory']['limit'])->toBeLessThanOrEqual(3 * 1024 ** 3)->toBeGreaterThan(0);
++    expect($this->state->accept($this->lease, $plan))->toBeTrue();
++    $generation = $this->export->render_state['generation'];
++    $render = $this->state->claim($this->export->id, $generation, 512 * 1024 ** 2);
++    $deadline = microtime(true) + 85;
++    $segment = $bridge->execute($render, $deadline);
++    app(StudioAvFiles::class)->inspect($render, $segment, $deadline);
++    expect($this->state->accept($render, $segment, $segment['size']))->toBeTrue();
++    $assemble = $this->state->claim($this->export->id, $generation, 8 * 1024 ** 3);
++    $deadline = microtime(true) + 85;
++    $final = $bridge->execute($assemble, $deadline);
++    app(StudioAvFiles::class)->inspect($assemble, $final, $deadline);
++    expect($this->state->accept($assemble, $final, $final['size']))->toBeTrue();
++    expect($final['videoCodec'])->toBe('h264')->and($final['frameCount'])->toBe(12)
++        ->and($final['width'])->toBe(100)->and($final['height'])->toBe(80)->and($final['audioCodec'])->toBeNull();
++    expect($this->state->task($this->export->refresh()))->toBe(['phase' => 'register', 'index' => 0]);
++    expect($this->export->status)->toBe('processing');
++    expect(Storage::disk('local')->allFiles($this->root.'/work'))->toBe([]);
++})->skip(fn () => getenv('STUDIO_AV_NATIVE_TEST') !== '1', 'Explicit managed native runtime opt-in; no ONNX.');
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -60,6 +60,22 @@
+ 
+ La cola de estudio y su configuración de despliegue se documentarán al implementarse. Las pruebas locales usan su entorno desechable y no modifican cron, workers ni servicios del VPS. Los límites de almacenamiento son los del contrato T-11 y se contabilizan antes de asignar derivados grandes. Nunca se recorta el documento silenciosamente para completar una fase.
+ 
++### Entregas de cola
++
++Cada entrega privada transporta solamente el ID de un lease ya reservado; no acepta documento, paths ni opciones del consumidor. Un arranque atómico fija started_at una sola vez. Duplicados y leases cancelados/reemplazados no ejecutan fases ni crean medios. Una entrega todavía pendiente en la cola de BD no se confunde con un encoder vencido: al arrancar puede renovar su TTL si sigue siendo la asignación vigente. El recibo queue_job_id permite al recuperador comprobar que el mensaje existe sin duplicarlo periódicamente cuando no hay worker.
++
++No se usa ShouldBeUnique para el export completo: el resultado aceptado permite reservar y despachar el paso siguiente sin perderlo por un lock anterior. El job audiovisual tiene un intento ytimeout100s, menor que worker120/retry_after180. Su callback de fallo solo afecta a su propio lease vigente. Si el despacho se interrumpe, el journal conserva la asignación y su TTL para recuperarla; una respuesta tardía nunca revive otra generación. El runner invocará las fases nativas bajo el mutex, con manifiestos generados yretirados al terminar; no mantendrá transaccionesBD durante procesos. Los nuevos jobs/recuperación están en desarrollo y aún no habilitan exportación pública.
++
++El puente `StudioAvProcess` ya invoca av-runtime desde Laravel con manifiesto privado generado yprueba de límite OS validada. Fija metadata de recursos propios en el workspace tras el primer proceso válido; las fases siguientes usan esa metadata yla revisión original. El presupuesto de85s se comparte entre invocación nativa einspección posterior de bytes; la salida debe coincidir con namespace/fase/índice. Los workmanifests se retiran al finalizar para no acumular una copia completa del proyecto por cada tramo.
++
++El handler ya encadena plan/snapshot/normalize/render/mix/assemble yverificación de checkpoints. Contención del mutex difiere el lease sin liberar su reserva anticipadamente; los errores posteriores al avance se cercan también por posición. `studio:recover --limit=1..100` hace una pasada local acotada, limpia asignaciones vencidas antes dereencolar yse registra cada minuto sin solapamiento. Reprogramar la fecha del workspace diferido evita que un export sinworker monopolice todos los lotes delante de otras marcas. Esto prepara el scheduler de aplicación, no instala cron ni servicios en el VPS.
++
++La integración actual se detiene explícitamente ante register: no encola esa fase todavía ni marca ready. Registro de medio/descarga/borrador, señal de cancelación del proceso ycontroles web/API/MCP siguen pendientes. Las muestras con queue:work real prueban hastaassemble, no el flujo público completo. No se publican redes sociales al ejecutar estos jobs.
++
++El journal de cada snapshot distingue aceptación de publicación del input fijo mediante input_published. Si el proceso muere entre esos dos pasos, recovery repara la promoción antes de encolar el trabajo siguiente. Solo consulta promociones pendientes de la generación actual, con índice ybatch de16; no vuelve a verificar todos los recursos ya publicados en cada pasada. Los parciales vencidos de exports failed/cancelled también se limpian periódicamente, conservando su estado terminal ylos checkpoints aceptados. En mantenimiento se comprueba un plazo de15s entre operaciones; una promoción individual puede consumir hasta85s yuna limpieza hasta30s, de modo que no se afirma un límite duro de15s para la pasada completa. El mutex del scheduler dura2min yno reservaRAM.
++
++El runner transmite el mismo deadline a snapshot, verificación, promoción ypuente nativo; ninguna de esas operaciones abre otro plazo85s dentro del mismo job. Una prueba con presupuesto ya agotado comprueba rechazo antes decopiar. No se presenta como una medición de una transferencia lenta de85s.
++
+ ## Cancelación, errores y recuperación
+ 
+ Cancelar pending/processing cambia el estado de forma atómica y señala al proceso del intento. El proceso aborta sus hijos y elimina parciales; una respuesta tardía no puede marcar ready ni registrar medios. Cancelar un resultado ya ready no borra el recurso: devuelve conflicto o conserva el resultado existente.

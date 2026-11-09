@@ -1,0 +1,9 @@
+{
+  "secret_patterns_found": [],
+  "raw_results_auth_config_sqlite_request_headers_not_in_deliverable": true,
+  "localhost8080_bind_ipv4_ipv6": "free",
+  "supervisor_terminal_exit": 0,
+  "no_rerun": true,
+  "php_allocator_metric": null,
+  "php_profile_command_line_observed": true
+}

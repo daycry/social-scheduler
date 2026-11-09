@@ -1,0 +1,12 @@
+{
+  "kind": "root metadata-only pointer correction",
+  "original_manifest_sha256": "b41ee36fe089a82e29934fc50113ee8175ec3585a50dc4851ea9a492185c3d6b",
+  "original_previous_verdict": "../review1/verdict.md",
+  "current_previous_verdict": "../review2/verdict.md",
+  "previous_verdict_sha256": "0198a61ffb5a17ef1245f88593dbe007a91932665c7c53e0d94073e4eeb5bd19",
+  "reason": "Template carried a literal review1 pointer while attempt3 hash/evidence correctly refer to review2. Original frozen manifest preserved.",
+  "source_or_test_changes": false,
+  "budget_changes": false,
+  "evidence_changes": false,
+  "current_manifest_sha256": "b52d52cc00706574ddb4c42f4f0ab00bfee067c0a78bba3a9c4f92d343de45d0"
+}

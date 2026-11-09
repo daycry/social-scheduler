@@ -9,7 +9,9 @@ use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
+use App\Services\Studio\StudioAvControl;
 use App\Services\Studio\StudioExports;
+use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use Illuminate\Http\JsonResponse;
@@ -35,7 +37,7 @@ class StudioApiController extends Controller
 
     public function store(Request $request, Brand $brand): JsonResponse
     {
-        return response()->json($this->studio->present($request->user(), $this->studio->create($request->user(), $brand, $request->all())), 201);
+        return response()->json($this->studio->present($request->user(), $this->studio->create($request->user(), $brand, $request->all()), true), 201);
     }
 
     public function show(Request $request, Design $design): JsonResponse
@@ -45,14 +47,14 @@ class StudioApiController extends Controller
         $brand = Brand::withoutUserScope()->where('user_id', $request->user()->id)->findOrFail($design->brand_id);
         $history = $this->exports->paginated($request->user(), $design, (int) ($data['exports_page'] ?? 1));
 
-        return response()->json($this->studio->present($request->user(), $design) + ['kit' => $this->studio->kit($request->user(), $brand),
+        return response()->json($this->studio->present($request->user(), $design, true) + ['kit' => $this->studio->kit($request->user(), $brand),
             'assets' => $this->assetData($request, $brand), 'exports' => $this->exports->presentMany($request->user(), $history->getCollection()),
             'exports_pagination' => $this->exports->pageMetadata($history)]);
     }
 
     public function update(Request $request, Design $design): JsonResponse
     {
-        return response()->json($this->studio->present($request->user(), $this->studio->update($request->user(), $design, $request->all())));
+        return response()->json($this->studio->present($request->user(), $this->studio->update($request->user(), $design, $request->all()), true));
     }
 
     public function destroy(Request $request, Design $design): JsonResponse
@@ -66,17 +68,17 @@ class StudioApiController extends Controller
     {
         $data = $request->validate(['name' => ['nullable', 'string', 'max:255']]);
 
-        return response()->json($this->studio->present($request->user(), $this->studio->duplicate($request->user(), $design, $data['name'] ?? null)), 201);
+        return response()->json($this->studio->present($request->user(), $this->studio->duplicate($request->user(), $design, $data['name'] ?? null), true), 201);
     }
 
     public function restore(Request $request, Design $design): JsonResponse
     {
-        return response()->json($this->studio->present($request->user(), $this->studio->restore($request->user(), $design)));
+        return response()->json($this->studio->present($request->user(), $this->studio->restore($request->user(), $design), true));
     }
 
     public function automation(Request $request, Design $design, string $operation): JsonResponse
     {
-        return response()->json(app(StudioAutomation::class)->perform($request->user(), $design, $operation, $request->all()),
+        return response()->json(app(StudioAutomation::class)->perform($request->user(), $design, $operation, $request->all(), true),
             in_array($operation, ['resize', 'apply-kit'], true) ? 200 : 201);
     }
 
@@ -137,6 +139,7 @@ class StudioApiController extends Controller
 
     public function export(Request $request, Design $design): JsonResponse
     {
+        app(StudioFrames::class)->assertJsonList($request);
         $export = app(StudioRenderer::class)->export($request->user(), $design, $request->all());
 
         return response()->json($this->exports->present($request->user(), $export), 202);
@@ -145,6 +148,28 @@ class StudioApiController extends Controller
     public function showExport(Request $request, DesignExport $export): JsonResponse
     {
         return response()->json($this->exports->present($request->user(), $export));
+    }
+
+    public function cancelExport(Request $request, DesignExport $export): JsonResponse
+    {
+        $current = app(StudioAvControl::class)->cancel($request->user(), $export);
+
+        return response()->json($this->exports->present($request->user(), $current));
+    }
+
+    public function retryExport(Request $request, DesignExport $export): JsonResponse
+    {
+        $current = app(StudioAvControl::class)->retry($request->user(), $export);
+
+        return response()->json($this->exports->present($request->user(), $current), 202);
+    }
+
+    public function createPost(Request $request, DesignExport $export): JsonResponse
+    {
+        validator(['payload' => $request->all()], ['payload' => ['array:text,targets']])->validate();
+        $post = $this->exports->createPost($request->user(), $export, $request->all());
+
+        return response()->json(['post' => ['id' => $post->id, 'status' => $post->status->value, 'edit_url' => route('posts.edit', $post, absolute: false)]], 201);
     }
 
     private function assetData(Request $request, Brand $brand): array

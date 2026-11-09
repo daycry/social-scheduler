@@ -1,0 +1,529 @@
+{
+  "files": 87,
+  "failed": 0,
+  "source": "QA observer functions only, extracted without importing spec/product/Playwright",
+  "rows": [
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop/new.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop/reopen.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop/editor-entry.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile/new.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile/reopen.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile/editor-entry.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile-360/new.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile-360/reopen.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile-360/editor-entry.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop/safe.csv",
+      "format": "csv",
+      "parsed": true,
+      "rows": 44
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop/faithful.csv",
+      "format": "csv",
+      "parsed": true,
+      "rows": 44
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop/faithful.tsv",
+      "format": "tsv",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop/safe.tsv",
+      "format": "tsv",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop/typed-import.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop/after-invalid.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile/safe.csv",
+      "format": "csv",
+      "parsed": true,
+      "rows": 44
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile/faithful.csv",
+      "format": "csv",
+      "parsed": true,
+      "rows": 44
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile/faithful.tsv",
+      "format": "tsv",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile/safe.tsv",
+      "format": "tsv",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile/typed-import.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile/after-invalid.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360/safe.csv",
+      "format": "csv",
+      "parsed": true,
+      "rows": 44
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360/faithful.csv",
+      "format": "csv",
+      "parsed": true,
+      "rows": 44
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360/faithful.tsv",
+      "format": "tsv",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360/safe.tsv",
+      "format": "tsv",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360/typed-import.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360/after-invalid.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/before-conversion.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/invalid-conversion.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/before-transpose.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/removed-row.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/undo-remove-row.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/removed-column.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/undo-remove-column.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/undo-transpose.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/transposed.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/duplicate.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/limit-rows-unchanged.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1000
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop/limit-columns-unchanged.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/before-conversion.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/invalid-conversion.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/before-transpose.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/removed-row.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/undo-remove-row.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/removed-column.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/undo-remove-column.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/undo-transpose.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/transposed.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/duplicate.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/limit-rows-unchanged.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1000
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile/limit-columns-unchanged.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/before-conversion.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/invalid-conversion.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/before-transpose.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/removed-row.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 3
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/undo-remove-row.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/removed-column.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/undo-remove-column.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/undo-transpose.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/transposed.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/duplicate.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 4
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/limit-rows-unchanged.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1000
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360/limit-columns-unchanged.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-desktop/conflict-draft.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-desktop/pinned-r1.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-desktop/cancel-reload.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-desktop/history-r1.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-desktop/restored.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile/conflict-draft.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile/pinned-r1.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile/cancel-reload.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile/history-r1.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile/restored.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile-360/conflict-draft.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile-360/pinned-r1.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile-360/cancel-reload.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile-360/history-r1.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile-360/restored.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-desktop/late-read-B.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-desktop/late-write-B.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-desktop/cancel-close.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile/late-read-B.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile/late-write-B.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile/cancel-close.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile-360/late-read-B.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile-360/late-write-B.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    },
+    {
+      "artifact": "raw/artifacts/studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile-360/cancel-close.json",
+      "format": "json",
+      "parsed": true,
+      "rows": 1
+    }
+  ]
+}

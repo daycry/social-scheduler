@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+ok 1 - page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+  ---
+  duration_ms: 3.2598
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 19.7352

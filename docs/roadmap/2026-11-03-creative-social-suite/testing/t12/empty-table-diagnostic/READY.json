@@ -1,0 +1,27 @@
+{
+  "state": "SOURCES_READY_FROZEN",
+  "native_executed": false,
+  "cases": 3,
+  "source_count_before_ready": 23,
+  "pure_checks": [
+    "Python AST prepare.py/run.py OK",
+    "Node512 --check probe.cjs exit0",
+    "23 source SHA256 matched",
+    "static tbody rows baseline0/candidate0/control1; footer colspan3 message verified"
+  ],
+  "limits": {
+    "deadline_seconds": 90,
+    "browser_seconds": 80,
+    "node_supervisor_seconds": 85,
+    "node_heap_mib": 512,
+    "job_gib": 3,
+    "preflight_gib": 6,
+    "physical_floor_gib": 3,
+    "sample_ms": 100
+  },
+  "candidate_is_proposal": true,
+  "exact_live_outerHTML_available": false,
+  "full_axe_pass_claim": false,
+  "app_pass_claim": false,
+  "approval": "revision T12 empty table diagnosis1 aprobada; ejecuta una pasada local"
+}

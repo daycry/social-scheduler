@@ -1,0 +1,13 @@
+{
+  "mode": "unit",
+  "exit": 0,
+  "terminal": true,
+  "sources_match": true,
+  "verification": {
+    "exit": 0,
+    "sha256": "3bba210397eb2df7aa202b55687af4f720ee7d4366162c35dcf34b0b83b87005",
+    "mode": "0644 validation-only copy",
+    "stdout": "",
+    "stderr": ""
+  }
+}

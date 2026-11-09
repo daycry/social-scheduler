@@ -1,0 +1,751 @@
+{
+  "summaries": [
+    {
+      "format": "mp4",
+      "plan": {
+        "frameCount": 30,
+        "fps": 12,
+        "duration": 2.5,
+        "sampleRate": 48000,
+        "segmentCount": 5,
+        "segmentFrames": 6,
+        "selection": [
+          "a",
+          "c"
+        ],
+        "render": {
+          "scale": 1.5,
+          "quality": 0.8,
+          "width": 480,
+          "height": 288,
+          "paddedWidth": 480,
+          "paddedHeight": 288,
+          "crf": 21,
+          "paletteColors": 128
+        },
+        "assetIds": [
+          1,
+          2
+        ],
+        "fontIds": [
+          7
+        ],
+        "audioAssetIds": [
+          1,
+          2
+        ]
+      },
+      "result": {
+        "file": "outputs/fde485ac-4c71-4e02-a5a3-7abcd7afa0db/project.mp4",
+        "namespace": "fde485ac-4c71-4e02-a5a3-7abcd7afa0db",
+        "size": 141787,
+        "sha256": "87c5938b6190379b857249586e6908c11846349eee7522638e180ee807c39b08",
+        "frameCount": 30,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "duration": 2.5,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 480,
+            "height": 288,
+            "avg_frame_rate": "12/1",
+            "nb_read_frames": "30"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "avg_frame_rate": "0/0",
+            "nb_read_frames": "118"
+          }
+        ],
+        "format": {
+          "duration": "2.500000",
+          "size": "141787"
+        }
+      }
+    },
+    {
+      "format": "gif",
+      "plan": {
+        "frameCount": 30,
+        "fps": 12,
+        "duration": 2.5,
+        "sampleRate": 48000,
+        "segmentCount": 5,
+        "segmentFrames": 6,
+        "selection": [
+          "a",
+          "c"
+        ],
+        "render": {
+          "scale": 1.5,
+          "quality": 0.8,
+          "width": 480,
+          "height": 288,
+          "paddedWidth": 480,
+          "paddedHeight": 288,
+          "crf": 21,
+          "paletteColors": 128
+        },
+        "assetIds": [
+          1
+        ],
+        "fontIds": [
+          7
+        ],
+        "audioAssetIds": []
+      },
+      "result": {
+        "file": "outputs/6af8fff3-6177-418c-b5b8-89231f52a97b/project.gif",
+        "namespace": "6af8fff3-6177-418c-b5b8-89231f52a97b",
+        "size": 798208,
+        "sha256": "aeeb11e116e75d9828a1a184f8c6176a8e2178d496c73d3ce9db27def5db9ff2",
+        "frameCount": 30,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "duration": 2.5,
+        "videoCodec": "gif",
+        "audioCodec": null,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "gif",
+            "codec_type": "video",
+            "width": 480,
+            "height": 288,
+            "avg_frame_rate": "25/2",
+            "nb_read_frames": "30"
+          }
+        ],
+        "format": {
+          "duration": "2.500000",
+          "size": "798208"
+        }
+      }
+    }
+  ],
+  "calls": [
+    {
+      "action": "plan",
+      "index": 0,
+      "milliseconds": 499.65240000000006,
+      "ok": true,
+      "phase": "plan",
+      "namespace": "09e63071-755a-4012-9b95-4c9d12ed212d",
+      "result": {
+        "frameCount": 30,
+        "fps": 12,
+        "duration": 2.5,
+        "sampleRate": 48000,
+        "segmentCount": 5,
+        "segmentFrames": 6,
+        "selection": [
+          "a",
+          "c"
+        ],
+        "render": {
+          "scale": 1.5,
+          "quality": 0.8,
+          "width": 480,
+          "height": 288,
+          "paddedWidth": 480,
+          "paddedHeight": 288,
+          "crf": 21,
+          "paletteColors": 128
+        },
+        "assetIds": [
+          1,
+          2
+        ],
+        "fontIds": [
+          7
+        ],
+        "audioAssetIds": [
+          1,
+          2
+        ]
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 136007680,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "normalize",
+      "index": 1,
+      "milliseconds": 720.1381,
+      "ok": true,
+      "phase": "normalize",
+      "namespace": "54b64ca2-c5f9-4278-890e-180f5032ace5",
+      "result": {
+        "id": 1,
+        "file": "audio-sources/54b64ca2-c5f9-4278-890e-180f5032ace5/1.pcm",
+        "namespace": "54b64ca2-c5f9-4278-890e-180f5032ace5",
+        "size": 960000,
+        "frames": 120000,
+        "sampleRate": 48000,
+        "channels": 2,
+        "codec": "pcm_f32le",
+        "sha256": "3d691dfd3bb8efd0682c8297bceec4b8a57d8f1ce0439dce04929d2957f49d6b",
+        "sourceSize": 73786,
+        "sourceMtimeMs": 1793880542449.0005
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 159506432,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "normalize",
+      "index": 2,
+      "milliseconds": 517.9412,
+      "ok": true,
+      "phase": "normalize",
+      "namespace": "54c55236-91b4-46af-a9b6-2cb51f24187a",
+      "result": {
+        "id": 2,
+        "file": "audio-sources/54c55236-91b4-46af-a9b6-2cb51f24187a/2.pcm",
+        "namespace": "54c55236-91b4-46af-a9b6-2cb51f24187a",
+        "size": 1536000,
+        "frames": 192000,
+        "sampleRate": 48000,
+        "channels": 2,
+        "codec": "pcm_f32le",
+        "sha256": "53310e5a799fe27751a51d282736b6bbad263457363415dfc45011f39ab546c6",
+        "sourceSize": 1536044,
+        "sourceMtimeMs": 1793880542469.527
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 159932416,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 0,
+      "milliseconds": 1106.4154,
+      "ok": true,
+      "phase": "render",
+      "namespace": "5c64fc42-54bf-46d1-a2bb-b96ec9923d1e",
+      "result": {
+        "file": "segments/5c64fc42-54bf-46d1-a2bb-b96ec9923d1e/video-000000.mp4",
+        "namespace": "5c64fc42-54bf-46d1-a2bb-b96ec9923d1e",
+        "size": 24816,
+        "sha256": "286224613b60e0aa80332bb6239c07052cdf260fd5efe33f8e49e7c562578ed0",
+        "frameStart": 0,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 293023744,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "mix",
+      "index": 0,
+      "milliseconds": 451.16250000000036,
+      "ok": true,
+      "phase": "mix",
+      "namespace": "0d11c414-fa43-4b53-b00e-1da415669a1c",
+      "result": {
+        "file": "segments/0d11c414-fa43-4b53-b00e-1da415669a1c/audio-000000.wav",
+        "namespace": "0d11c414-fa43-4b53-b00e-1da415669a1c",
+        "size": 192044,
+        "sha256": "17f9f2cf4b4ad577f25f5dd057972bfa9e6d288beeb3ceebdc4ebef68a76057f",
+        "sampleCount": 24000,
+        "sampleStart": 0
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 144277504,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 1,
+      "milliseconds": 1171.5753,
+      "ok": true,
+      "phase": "render",
+      "namespace": "ef85d5c2-5616-46fd-98c2-7a174d5429b6",
+      "result": {
+        "file": "segments/ef85d5c2-5616-46fd-98c2-7a174d5429b6/video-000001.mp4",
+        "namespace": "ef85d5c2-5616-46fd-98c2-7a174d5429b6",
+        "size": 26707,
+        "sha256": "505442953320a3f1e324507b08f0e88bfbe8920f31d3121700ff1c2f2f130fe4",
+        "frameStart": 6,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 293703680,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "mix",
+      "index": 1,
+      "milliseconds": 462.52480000000014,
+      "ok": true,
+      "phase": "mix",
+      "namespace": "a637ff20-9c53-48f5-b997-fdab283b4769",
+      "result": {
+        "file": "segments/a637ff20-9c53-48f5-b997-fdab283b4769/audio-000001.wav",
+        "namespace": "a637ff20-9c53-48f5-b997-fdab283b4769",
+        "size": 192044,
+        "sha256": "b43477c2aff51c67f17cebbd2f2958826447d594cc1f9deb7933ab73f25f1310",
+        "sampleCount": 24000,
+        "sampleStart": 24000
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 147636224,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 2,
+      "milliseconds": 1146.1373000000003,
+      "ok": true,
+      "phase": "render",
+      "namespace": "3c90ca64-b431-4cb0-9656-a5150cc50cf3",
+      "result": {
+        "file": "segments/3c90ca64-b431-4cb0-9656-a5150cc50cf3/video-000002.mp4",
+        "namespace": "3c90ca64-b431-4cb0-9656-a5150cc50cf3",
+        "size": 36866,
+        "sha256": "18724f8b592a71355683d4961eb68d5e2291abb95e269d19bd68213fba780d8e",
+        "frameStart": 12,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 294866944,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "mix",
+      "index": 2,
+      "milliseconds": 435.9213,
+      "ok": true,
+      "phase": "mix",
+      "namespace": "80bb8292-da01-48fb-ade6-42fb8fcc749e",
+      "result": {
+        "file": "segments/80bb8292-da01-48fb-ade6-42fb8fcc749e/audio-000002.wav",
+        "namespace": "80bb8292-da01-48fb-ade6-42fb8fcc749e",
+        "size": 192044,
+        "sha256": "50e483ef14f500c3fba4ea5a85b6130276561b6ef693c0a6989cda16a5d68cff",
+        "sampleCount": 24000,
+        "sampleStart": 48000
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 149913600,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 3,
+      "milliseconds": 993.0316999999995,
+      "ok": true,
+      "phase": "render",
+      "namespace": "80661583-ccb9-48a2-bdd4-206408de94c9",
+      "result": {
+        "file": "segments/80661583-ccb9-48a2-bdd4-206408de94c9/video-000003.mp4",
+        "namespace": "80661583-ccb9-48a2-bdd4-206408de94c9",
+        "size": 5189,
+        "sha256": "2bb2f77ef98593d7cd89b4e10b05034c0e29761450dd789034b9716f1e3268b5",
+        "frameStart": 18,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 275750912,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "mix",
+      "index": 3,
+      "milliseconds": 466.4863000000005,
+      "ok": true,
+      "phase": "mix",
+      "namespace": "30619f62-a121-4068-8d04-51768226dd1f",
+      "result": {
+        "file": "segments/30619f62-a121-4068-8d04-51768226dd1f/audio-000003.wav",
+        "namespace": "30619f62-a121-4068-8d04-51768226dd1f",
+        "size": 192044,
+        "sha256": "a53eedf876321fdad7aeb7a3d8d1e29d9974173446e59324f605986ce337de75",
+        "sampleCount": 24000,
+        "sampleStart": 72000
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 144257024,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 4,
+      "milliseconds": 1186.3117000000002,
+      "ok": true,
+      "phase": "render",
+      "namespace": "f442de13-f5db-428a-bb80-4ca6787fc344",
+      "result": {
+        "file": "segments/f442de13-f5db-428a-bb80-4ca6787fc344/video-000004.mp4",
+        "namespace": "f442de13-f5db-428a-bb80-4ca6787fc344",
+        "size": 5189,
+        "sha256": "2bb2f77ef98593d7cd89b4e10b05034c0e29761450dd789034b9716f1e3268b5",
+        "frameStart": 24,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 275988480,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "mix",
+      "index": 4,
+      "milliseconds": 470.01929999999993,
+      "ok": true,
+      "phase": "mix",
+      "namespace": "8d88438a-bd7f-4b26-aac8-51e5e7d240bb",
+      "result": {
+        "file": "segments/8d88438a-bd7f-4b26-aac8-51e5e7d240bb/audio-000004.wav",
+        "namespace": "8d88438a-bd7f-4b26-aac8-51e5e7d240bb",
+        "size": 192044,
+        "sha256": "ea4b5ab98c907befeb66fd4b74435f624b1d72d48bb14387bfceade42b77ab38",
+        "sampleCount": 24000,
+        "sampleStart": 96000
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 144171008,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "assemble",
+      "index": 0,
+      "milliseconds": 653.2922999999992,
+      "ok": true,
+      "phase": "assemble",
+      "namespace": "fde485ac-4c71-4e02-a5a3-7abcd7afa0db",
+      "result": {
+        "file": "outputs/fde485ac-4c71-4e02-a5a3-7abcd7afa0db/project.mp4",
+        "namespace": "fde485ac-4c71-4e02-a5a3-7abcd7afa0db",
+        "size": 141787,
+        "sha256": "87c5938b6190379b857249586e6908c11846349eee7522638e180ee807c39b08",
+        "frameCount": 30,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "duration": 2.5,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 164212736,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "plan",
+      "index": 0,
+      "milliseconds": 417.84779999999955,
+      "ok": true,
+      "phase": "plan",
+      "namespace": "c441d6d3-1d9a-41e9-a506-0f11d1580ae9",
+      "result": {
+        "frameCount": 30,
+        "fps": 12,
+        "duration": 2.5,
+        "sampleRate": 48000,
+        "segmentCount": 5,
+        "segmentFrames": 6,
+        "selection": [
+          "a",
+          "c"
+        ],
+        "render": {
+          "scale": 1.5,
+          "quality": 0.8,
+          "width": 480,
+          "height": 288,
+          "paddedWidth": 480,
+          "paddedHeight": 288,
+          "crf": 21,
+          "paletteColors": 128
+        },
+        "assetIds": [
+          1
+        ],
+        "fontIds": [
+          7
+        ],
+        "audioAssetIds": []
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 135643136,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 0,
+      "milliseconds": 1282.1111,
+      "ok": true,
+      "phase": "render",
+      "namespace": "8f5a260d-d6fd-46e3-bb0c-52bb9ad79c3a",
+      "result": {
+        "file": "segments/8f5a260d-d6fd-46e3-bb0c-52bb9ad79c3a/video-000000.gif",
+        "namespace": "8f5a260d-d6fd-46e3-bb0c-52bb9ad79c3a",
+        "size": 231288,
+        "sha256": "16ee46d81bab28bc59459eb5ce9ba02c3f3372cbea8e9d5736b4762e76bb984a",
+        "frameStart": 0,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 289849344,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 1,
+      "milliseconds": 1496.7510000000002,
+      "ok": true,
+      "phase": "render",
+      "namespace": "72c5cd2d-4795-474d-8245-c77b4bd3a0f2",
+      "result": {
+        "file": "segments/72c5cd2d-4795-474d-8245-c77b4bd3a0f2/video-000001.gif",
+        "namespace": "72c5cd2d-4795-474d-8245-c77b4bd3a0f2",
+        "size": 248535,
+        "sha256": "ffbeac7ad9d227b3550510f927ea4d5369d1725942b0a009772858bb866d0e56",
+        "frameStart": 6,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 294256640,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 2,
+      "milliseconds": 1349.2904999999992,
+      "ok": true,
+      "phase": "render",
+      "namespace": "11faf9bb-4aee-4f42-9808-236f6f43cdcb",
+      "result": {
+        "file": "segments/11faf9bb-4aee-4f42-9808-236f6f43cdcb/video-000002.gif",
+        "namespace": "11faf9bb-4aee-4f42-9808-236f6f43cdcb",
+        "size": 254623,
+        "sha256": "4f7ee1f9b320db96fe924014d6ca2c1371869de249ae6fb299a6995b2ecde7b5",
+        "frameStart": 12,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 292118528,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 3,
+      "milliseconds": 967.5828999999994,
+      "ok": true,
+      "phase": "render",
+      "namespace": "521a3ac7-6b15-4492-8e54-8a4cd4f61d23",
+      "result": {
+        "file": "segments/521a3ac7-6b15-4492-8e54-8a4cd4f61d23/video-000003.gif",
+        "namespace": "521a3ac7-6b15-4492-8e54-8a4cd4f61d23",
+        "size": 28107,
+        "sha256": "f2c58f858c950929e88a607c76d721baa59f748e8b79f8a328a6096ac3486b2d",
+        "frameStart": 18,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 269025280,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "render",
+      "index": 4,
+      "milliseconds": 996.3649000000005,
+      "ok": true,
+      "phase": "render",
+      "namespace": "1781f6e1-a50b-40ce-9ca8-12e39d83be34",
+      "result": {
+        "file": "segments/1781f6e1-a50b-40ce-9ca8-12e39d83be34/video-000004.gif",
+        "namespace": "1781f6e1-a50b-40ce-9ca8-12e39d83be34",
+        "size": 28107,
+        "sha256": "f2c58f858c950929e88a607c76d721baa59f748e8b79f8a328a6096ac3486b2d",
+        "frameStart": 24,
+        "frameCount": 6,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 269553664,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    },
+    {
+      "action": "assemble",
+      "index": 0,
+      "milliseconds": 523.0039999999972,
+      "ok": true,
+      "phase": "assemble",
+      "namespace": "6af8fff3-6177-418c-b5b8-89231f52a97b",
+      "result": {
+        "file": "outputs/6af8fff3-6177-418c-b5b8-89231f52a97b/project.gif",
+        "namespace": "6af8fff3-6177-418c-b5b8-89231f52a97b",
+        "size": 798208,
+        "sha256": "aeeb11e116e75d9828a1a184f8c6176a8e2178d496c73d3ce9db27def5db9ff2",
+        "frameCount": 30,
+        "fps": 12,
+        "width": 480,
+        "height": 288,
+        "duration": 2.5,
+        "videoCodec": "gif",
+        "audioCodec": null,
+        "scale": 1.5,
+        "quality": 0.8
+      },
+      "memory": {
+        "scope": "job",
+        "limit": 3221225472,
+        "peak_commit": 164311040,
+        "kill_on_close": true,
+        "breakaway": false
+      }
+    }
+  ]
+}

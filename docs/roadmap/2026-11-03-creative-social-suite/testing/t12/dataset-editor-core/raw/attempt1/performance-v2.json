@@ -1,0 +1,19 @@
+{
+  "rows": 1000,
+  "columns": 100,
+  "edits": 31,
+  "history_depth": 30,
+  "untouched_last_row_shared": true,
+  "columns_shared": true,
+  "bytes": 728368,
+  "max_edit_ms": 26.76729999999999,
+  "mean_edit_ms": 17.037964516129033,
+  "duration_ms": 582.3566000000001,
+  "memory": {
+    "rss": 58585088,
+    "heapTotal": 18190336,
+    "heapUsed": 10922360,
+    "external": 2568840,
+    "arrayBuffers": 738879
+  }
+}

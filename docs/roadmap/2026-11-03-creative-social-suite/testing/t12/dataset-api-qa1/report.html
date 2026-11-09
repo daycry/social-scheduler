@@ -1,0 +1,218 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 datasets — transporte intento1</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre {white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt} h2,h3 {break-after:avoid} table {font-size:8pt;table-layout:fixed;width:100%;break-inside:auto} td,th {overflow-wrap:anywhere} tr {break-inside:avoid} </style><body><main class="doc"><h1>T12 datasets — QA de transporte, intento1</h1>
+<p>2026-11-06. <strong>NO-VERDE: 6/13 pasan, 7 fallan, 0 flaky, 0 skipped, 0 retries y 0 errores globales del runner.</strong> Playwright terminó con exit1. No se repite este intento ni se modifica su fixture. T12 y la iniciativa siguen abiertas; no hay aceptación de UI ni cierre de las23tareas.</p>
+<h2>Ejecución y aislamiento</h2>
+<p>Una pasada HTTP/TCP real, sin navegador para los tests, SQLite/storage/cuentas/token ficticios y UUIDpropio. Servidor exclusivo localhost8080, puerto libre comprobado antes del seed y proof de aislamiento del storage. Supervisor34608/sesión41360 terminales; servidor cerrado después. No se accedió a .env real, MySQL, redes sociales, VPS, R2 ni ONNX.</p>
+<p>PHP512MiB, post_max_size192MiB, upload_max_filesize64MiB; configuración exclusiva del runner. WindowsJob3GiB <strong>COMMIT agregado</strong>, killOnClose=true, breakaway=false y deadline; picoCOMMIT <strong>1,292,562,432B</strong>. Pico asignadorPHP separado <strong>465,567,744B</strong>. Ninguna de estas cifras se presenta comoRSS ni como medidaLinux/producción. DuraciónPlaywright 256.97s.</p>
+<p>Manifiesto aprobado31SHA comprobado antes de correr; 51 fuentes/contratos/harness en snapshots antes/después: <strong>0 cambios</strong>. Ledger-lint: exit0, cero incoherencias y15avisos. Coverage-check: exit0, cero referencias rotas y cero criterios huérfanos;10tareas futuras sinmapeo declaradas fuera de estaQA. Guardrail canónico local ejecutado antes del seed. Raw de las puertas conservado.</p>
+<h2>Casos reales</h2>
+<table>
+<thead>
+<tr>
+<th>Caso</th>
+<th>Resultado</th>
+<th>Duración</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E2E-26.01</td>
+<td>FAIL harness</td>
+<td>2.04s</td>
+</tr>
+<tr>
+<td>E2E-26.02</td>
+<td>FAIL harness</td>
+<td>0.20s</td>
+</tr>
+<tr>
+<td>E2E-26.03</td>
+<td>FAIL harness</td>
+<td>2.88s</td>
+</tr>
+<tr>
+<td>E2E-26.04</td>
+<td>FAIL harness</td>
+<td>0.19s</td>
+</tr>
+<tr>
+<td>E2E-26.05</td>
+<td>PASS</td>
+<td>14.53s</td>
+</tr>
+<tr>
+<td>E2E-26.06</td>
+<td>PASS</td>
+<td>1.25s</td>
+</tr>
+<tr>
+<td>E2E-26.07 missing</td>
+<td>FAIL harness</td>
+<td>0.17s</td>
+</tr>
+<tr>
+<td>E2E-26.07 corrupt</td>
+<td>FAIL harness</td>
+<td>0.23s</td>
+</tr>
+<tr>
+<td>E2E-26.08 con CL</td>
+<td>PASS</td>
+<td>11.61s</td>
+</tr>
+<tr>
+<td>E2E-26.08 sin CL</td>
+<td>PASS</td>
+<td>130.10s</td>
+</tr>
+<tr>
+<td>E2E-26.09</td>
+<td>PASS</td>
+<td>0.89s</td>
+</tr>
+<tr>
+<td>E2E-26.10</td>
+<td>FAIL harness</td>
+<td>0.20s</td>
+</tr>
+<tr>
+<td>E2E-26.11</td>
+<td>PASS</td>
+<td>89.79s</td>
+</tr>
+</tbody>
+</table>
+<p>Los7FAIL se detienen al crear la tabla pequeña que se pretendía válida: seis ramas HTTP/MCP esperan éxito y obtienen422/isError; el caso03 falla en su create legítimo MIME. La fixture contieneCR en <code>literal\r\né</code>, mientras <code>StudioChartData::text</code> admiteLF/TAB y rechazaCR. <strong>Es un error del harness identificado por inspección de fixture y validador, no un defecto acreditado del producto ni un RED deTDD.</strong> Los tests no capturaron el body de validación y no se lanzó una llamada extra para reconstruirlo. El gate conserva los7fallos reales.</p>
+<p>Por ese corte no quedan acreditadas las cadenas completas de permisos/marca de01, replace/historial/409/archivo de02, los3MIME completos de03, descargas seguras/text/JSONtyped de04, snapshots503 de07, ni CRUD/pin/floats0.0/1.0/-0.0/auditoría de10. No se transforma ninguna de ellas enPASS por la existencia de los FeatureKernel previos. Es necesaria una futura corrección de fixture revisada y una nueva autorización de intento, conservando éste intacto.</p>
+<h2>Evidencia válida de esta pasada</h2>
+<p>CSV <strong>25.000.000B</strong> multipart real:50filas,100columnas, extremos leídos porAPI; descargaCSVtext exacta y parserCSV independiente. SHA entrada=salida <code>f7978554e54fdbae62559f374c8371a23e4b1788cc46f0fb1a9b336e69a14d33</code>. Metadatos de importación pequeños, sin devolución de segunda tabla completa.</p>
+<p>Paginación6MiB:9IDs exactos en2páginas, sin saltos ni celdas truncadas, cada arrayJSON de filas dentro del presupuesto. Cuerpos HTTP53MiB+1 →413 con Content-Length y tambiénchunked sinContent-Length. MCPtext/plain <strong>167.772.161B</strong> stream64KiB, chunked sinContent-Length →413. No se generó un buffer600MB.</p>
+<p>Catálogo MCP real del SDK: <strong>42herramientas en2páginas</strong>, IDs/nombres únicos, nueva <code>manage_studio_dataset</code> y smoke <code>list_brands</code> correctos. No se infiere un catálogo más grande.</p>
+<p>ImportMCP: JSONcanónico <strong>52.000.000B</strong>, envelopeJSON-RPC con encoderensure_ascii normal <strong>155,970,107B</strong>; transporteTCP real aceptado, sinHTTPKernel/TestCase. PerfilPHP512MiB explícito. DescargaJSON privada streamed comprobada por headers, filenameID/revisión, parser propio,52IDs/100columnas/textoUnicode y SHA idéntico <code>5916851043bee9de3bc8e9c159d915eb9dd423b5dc013cbd98b91b8b5b39c1a5</code>. Esta prueba acredita ese envelope; no afirma haber enviado160MiB exactos ni serializaciones arbitrariamente infladas.</p>
+<h2>Gate canónico literal</h2>
+<pre><code class="language-json">{
+  &quot;verdict&quot;: &quot;NO-VERDE&quot;,
+  &quot;counts&quot;: {
+    &quot;passed&quot;: 6,
+    &quot;failed&quot;: 7,
+    &quot;flaky&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;interrupted&quot;: 0
+  },
+  &quot;flaky_sin_justificar&quot;: [],
+  &quot;flaky_justificados&quot;: {},
+  &quot;threshold&quot;: &quot;verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado&quot;
+}
+</code></pre>
+<p>El recuento independiente coincide con lasstats del JSON real y rechaza faltantes/retries/flaky/errors/skips/cambioSHA. <code>raw/recount.json</code> y <code>raw/case-results-sanitized.json</code> conservan cada caso y mensaje de error sin headers de autorización.</p>
+<h2>Manuales pendientes</h2>
+<ul>
+<li>[ ] M-01 — Usuario: scheduler/workerVPS, heartbeat y capturas del periodo cerrado.</li>
+<li>[ ] M-02 — Usuario: publicación real porred y smokesBluesky/Threads pendientes.</li>
+<li>[ ] M-03 — Desarrollo+usuario: rendererLinux/Node/Chromium/fuentes/cola y artefactos reales conR2.</li>
+<li>[ ] M-04 — Usuario: ClaudeDesktop sigue aplazado; no se reabre autorización.</li>
+<li>[ ] Editor/tablas/gráficos responsive, interacción y accesibilidad: pendientes del alcance integralT12.</li>
+</ul>
+<p>Informe sólo local. Publicar únicamente evidencia saneada seleccionada; no copiar SQLite, auth/private.json, configcache, cookies, tokens, traces ni logsHTTP sin revisión. Se generaPDF por flujo to-pdf con League/CommonMark+temaCSS existente y ChromiumPlaywright ya instalado, en Job3GiB separado después de cerrar el servidor. La rasterizaciónPyMuPDF del PDFreal se inspecciona aparte; no es una screenshot deUI.</p>
+</main></body></html>

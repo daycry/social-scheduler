@@ -1,0 +1,124 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 C3charts QA</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:8pt;table-layout:fixed;width:100%;break-inside:auto}td,th{overflow-wrap:anywhere}tr{break-inside:avoid}img{max-height:235mm;object-fit:contain}h2,h3{break-after:avoid}</style><body><main class="doc"><h1>T12: gráficos densos, validación focal</h1>
+<p><strong>FOCAL-PASS, 3/3 casos reales</strong> a 1440, 375 y 768 px. Cada caso conserva 12.000 barras semánticas: 36.000 en total. Cero fallos, omitidos, flaky, reintentos, interrupciones o errores del runner. T12 sigue abierta y el roadmap mantiene 8/23 tareas cerradas.</p>
+<h2>Qué acredita esta ejecución</h2>
+<p>E2E28.04 completo, un worker, cero retries, fail-fast 1. Tres descargas SVG y tres PNG reales del navegador; bytes y SHA contrastados con sus recibos. Cada SVG conserva 12.000 barras más tres formas de ejes, y el XML independiente coincide con las matrices del observador DOM. No se simulan cabeceras HTTP en entregas Blob ni se hace un GET auxiliar.</p>
+<p>Los tres PNG son idénticos byte a byte: 75.550 bytes y 1080 por 1080 px. Se conserva cada original, pero se presenta una sola figura representativa. El verificador PNG usa cobertura fraccional de rectángulos y composición source-over sobre el fondo configurado. Por caso compara 18.408 canales; error medio 4,496686 y percentil 95 de 11, dentro de los límites originales de 6 y 18. Hay 4.895 píxeles de color predichos y 672 coincidencias exactas de paleta. A esta densidad las barras subpíxel no son distinguibles individualmente: el recuento semántico corresponde al SVG, y la imagen acredita cobertura raster agregada.</p>
+<p>Se rechazan seis entradas por presupuesto con HTTP 422 (dos por viewport), preservando documento y capas. Red, fuentes, alcance, viewport y limpieza se contrastan con los recibos originales. Los observadores independientes se ejecutaron una sola vez; el cierre y este informe leen sus resultados y SHA, sin rerasterizar ni reconstruir JSON.</p>
+<h2>Recursos y cierre</h2>
+<p>Datos ficticios, runtime aislado y loopback; sin .env ni servicios reales. Build7 vigente, 62 fuentes y 77 assets, sin recompilar. Job Windows de 3 GiB COMMIT agregado, preflight físico de 6 GiB y piso de 3 GiB cada 100 ms; Node 512 MiB y PHP 256 MiB. Presupuesto de 900 segundos incluyendo inicio, observadores y cierre.</p>
+<p>Núcleo: 67.176 s; pico COMMIT 2380132352 bytes; mínimo físico 6874886144 bytes. Clausura: 0.782 s; pico 107319296 bytes. Tiempo global: 68.126 s. Sin fallos de recursos. PID 20344 terminado, lista de procesos propios vacía y puerto 8080 libre en IPv4 e IPv6. 837 fuentes protegidas comprobadas antes y después, con control adicional tras el PDF y su inspección. El informe PDF se genera después en un Job separado.</p>
+<h2>Límites y evidencia conservada</h2>
+<p>Esta ejecución acredita únicamente el escenario denso. No se atribuyen comprobaciones de preview píxel, fuentes privadas, axe, PDF de diseño, materialización de datos, otras familias o configuraciones, audiovisual ni el producto completo. El PDF adjunto es el informe de QA, distinto de una exportación PDF del diseño. Los resultados anteriores permanecen inmutables. La revisión completa con Claude Code y la entrega Git siguen pendientes.</p>
+<p>Se conservan los cuatro inputs originales de cada oráculo (SVG, PNG, observador DOM y recibo de entregas), sus SHA, capturas, presupuestos, red, resultados independientes y procedencia del JSON/blob original. La inspección visual posterior acredita las figuras mostradas y las páginas del informe; no convierte las 12.000 barras en elementos separables en pantalla.</p>
+<h2>Evidencias visuales</h2>
+<h3>images/1440-dense-screen.png</h3>
+<p><img src="images/1440-dense-screen.png" alt="images/1440-dense-screen.png" /></p>
+<h3>images/375-dense-screen.png</h3>
+<p><img src="images/375-dense-screen.png" alt="images/375-dense-screen.png" /></p>
+<h3>images/768-dense-screen.png</h3>
+<p><img src="images/768-dense-screen.png" alt="images/768-dense-screen.png" /></p>
+<h3>images/dense-export-identical-three-viewports.png</h3>
+<p><img src="images/dense-export-identical-three-viewports.png" alt="images/dense-export-identical-three-viewports.png" /></p>
+</main></body></html>

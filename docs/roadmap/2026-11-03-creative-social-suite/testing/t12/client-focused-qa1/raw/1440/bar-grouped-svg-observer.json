@@ -1,0 +1,1445 @@
+{
+  "width": 1080,
+  "height": 1080,
+  "items": [
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:background:0",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(244, 247, 250)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        440,
+        290
+      ],
+      "x": 40,
+      "y": 40,
+      "width": 800,
+      "height": 500
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:title:1",
+      "tag": "text",
+      "text": "QA 2026 é Ω",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "QA 2026 é Ω",
+          "x": -51.615,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        104.114990234375,
+        62.66999816894531
+      ],
+      "x": 52.4999885559082,
+      "y": 50.32449817657471,
+      "width": 102.984375,
+      "height": 23,
+      "ink": {
+        "x": 52.499990234375,
+        "y": 55.32449816894531,
+        "width": 103.06993103027344,
+        "height": 16,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:subtitle:2",
+      "tag": "text",
+      "text": "Datos originales",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Datos originales",
+          "x": -69.381,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        121.88101196289062,
+        89.66999816894531
+      ],
+      "x": 52.50001525878906,
+      "y": 77.3244981765747,
+      "width": 138.765625,
+      "height": 23,
+      "ink": {
+        "x": 52.500011962890625,
+        "y": 82.32449816894531,
+        "width": 138.25787353515625,
+        "height": 17,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:source:3",
+      "tag": "text",
+      "text": "Fixture propia",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Fixture propia",
+          "x": -60.525,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        113.02499389648438,
+        512.4700012207031
+      ],
+      "x": 52.49999237060547,
+      "y": 500.1245012283325,
+      "width": 121.71788024902344,
+      "height": 23,
+      "ink": {
+        "x": 53.499993896484376,
+        "y": 505.1245012207031,
+        "width": 120.71788024902344,
+        "height": 17,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:x-title:4",
+      "tag": "text",
+      "text": "Categorías",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Categorías",
+          "x": -46.746,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        223.24600219726562,
+        482.02000427246094
+      ],
+      "x": 176.50000381469727,
+      "y": 469.67450428009033,
+      "width": 93.5,
+      "height": 23,
+      "ink": {
+        "x": 176.50000219726562,
+        "y": 474.6745042724609,
+        "width": 92.98791503906253,
+        "height": 17,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:y-title:5",
+      "tag": "text",
+      "text": "Valores",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Valores",
+          "x": -31.401,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        0,
+        -1,
+        1,
+        0,
+        67.3800048828125,
+        260.8999996185303
+      ],
+      "x": 55.034504890441895,
+      "y": 229.48849868774414,
+      "width": 23,
+      "height": 62.8125,
+      "ink": {
+        "x": 60.0345048828125,
+        "y": 230.00307176208497,
+        "width": 14,
+        "height": 62.29792785644531,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:0",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        177,
+        261.3999996185303
+      ],
+      "x": 177,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:0",
+      "tag": "text",
+      "text": "-100",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "-100",
+          "x": -19.296,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        173.79598999023438,
+        425.4700012207031
+      ],
+      "x": 154.49999046325684,
+      "y": 413.1245012283325,
+      "width": 38.59375,
+      "height": 23,
+      "ink": {
+        "x": 155.49998999023438,
+        "y": 418.1245012207031,
+        "width": 37.10797119140625,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:1",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        255.5,
+        261.3999996185303
+      ],
+      "x": 255.5,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:1",
+      "tag": "text",
+      "text": "-66.7",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "-66.7",
+          "x": -22.05,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        0.997700035572052,
+        0,
+        0,
+        0.997700035572052,
+        255,
+        425.4468994140625
+      ],
+      "x": 233.00071497682097,
+      "y": 413.08839374710567,
+      "width": 43.984373951338966,
+      "height": 22.999999350240387,
+      "ink": {
+        "x": 233.99841425120832,
+        "y": 418.118293802768,
+        "width": 42.77736334159272,
+        "height": 13.967800498008728,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:2",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        334,
+        261.3999996185303
+      ],
+      "x": 334,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:2",
+      "tag": "text",
+      "text": "-33.3",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "-33.3",
+          "x": -22.563,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        0.9750000238418579,
+        0,
+        0,
+        0.9750000238418579,
+        333.5,
+        425.21620178222656
+      ],
+      "x": 311.5010747298479,
+      "y": 413.72933955713756,
+      "width": 44.00000031300078,
+      "height": 22.00000015650039,
+      "ink": {
+        "x": 312.47607448589804,
+        "y": 418.0543391070962,
+        "width": 43.16515951805013,
+        "height": 13.65000033378601,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:3",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        412.5,
+        261.3999996185303
+      ],
+      "x": 412.5,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:3",
+      "tag": "text",
+      "text": "0",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "0",
+          "x": -5.742,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        395.742000579834,
+        425.4700012207031
+      ],
+      "x": 390.00000047683716,
+      "y": 413.1245012283325,
+      "width": 11.484375,
+      "height": 23,
+      "ink": {
+        "x": 390.00000057983397,
+        "y": 418.1245012207031,
+        "width": 11,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:4",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        491,
+        261.3999996185303
+      ],
+      "x": 491,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:4",
+      "tag": "text",
+      "text": "33.3",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "33.3",
+          "x": -18.387,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        486.88700103759766,
+        425.4700012207031
+      ],
+      "x": 468.50000190734863,
+      "y": 413.1245012283325,
+      "width": 36.91996765136719,
+      "height": 23,
+      "ink": {
+        "x": 468.50000103759766,
+        "y": 418.1245012207031,
+        "width": 36.91996765136719,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:5",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        569.5,
+        261.3999996185303
+      ],
+      "x": 569.5,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:5",
+      "tag": "text",
+      "text": "66.7",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "66.7",
+          "x": -17.874,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        564.8740005493164,
+        425.4700012207031
+      ],
+      "x": 547,
+      "y": 413.1245012283325,
+      "width": 35.75,
+      "height": 23,
+      "ink": {
+        "x": 547.0000005493164,
+        "y": 418.1245012207031,
+        "width": 35.52398681640625,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:grid:6",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        648,
+        261.3999996185303
+      ],
+      "x": 648,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:tick:6",
+      "tag": "text",
+      "text": "100",
+      "fill": "rgb(80, 96, 112)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "100",
+          "x": -15.12,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        640.6199951171875,
+        425.4700012207031
+      ],
+      "x": 625.4999952316284,
+      "y": 413.1245012283325,
+      "width": 30.25,
+      "height": 23,
+      "ink": {
+        "x": 625.4999951171875,
+        "y": 418.1245012207031,
+        "width": 29.7559814453125,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:axis:x",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        412.5,
+        415.8000030517578
+      ],
+      "x": 177,
+      "y": 415.8000030517578,
+      "width": 471,
+      "height": 0
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:axis:y",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        177,
+        261.3999996185303
+      ],
+      "x": 177,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:axis:zero",
+      "tag": "line",
+      "text": "",
+      "fill": "none",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        412.5,
+        261.3999996185303
+      ],
+      "x": 412.5,
+      "y": 107.0000057220459,
+      "width": 0,
+      "height": 308.79998779296875
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:bar:r0:s0",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(208, 32, 48)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        423.7749996185303,
+        130.625
+      ],
+      "x": 412,
+      "y": 118.32124996185303,
+      "width": 23.549999237060547,
+      "height": 24.607500076293945
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:value:r0:s0",
+      "tag": "text",
+      "text": "10",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "10",
+          "x": -9.378,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        444.9279999732971,
+        128.49130249023438
+      ],
+      "x": 435.5499997138977,
+      "y": 116.14580249786377,
+      "width": 18.765625,
+      "height": 23,
+      "ink": {
+        "x": 435.54999997329713,
+        "y": 121.14580249023437,
+        "width": 18.271987915039062,
+        "height": 14.000000000000014,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:bar:r0:s1",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(22, 128, 71)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        435.55000019073486,
+        159.5749969482422
+      ],
+      "x": 412.0000009536743,
+      "y": 147.27124691009521,
+      "width": 47.099998474121094,
+      "height": 24.607500076293945
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:value:r0:s1",
+      "tag": "text",
+      "text": "20",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "20",
+          "x": -11.196,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        470.29599952697754,
+        157.44119262695312
+      ],
+      "x": 459.0999994277954,
+      "y": 145.09569263458252,
+      "width": 22.40625,
+      "height": 23,
+      "ink": {
+        "x": 459.0999995269775,
+        "y": 150.09569262695314,
+        "width": 21.907989501953125,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:bar:r1:s0",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(208, 32, 48)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        435.55000019073486,
+        207.8249969482422
+      ],
+      "x": 412.0000009536743,
+      "y": 195.52124691009521,
+      "width": 47.099998474121094,
+      "height": 24.607500076293945
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:value:r1:s0",
+      "tag": "text",
+      "text": "20",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "20",
+          "x": -11.196,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        470.29599952697754,
+        205.69129943847656
+      ],
+      "x": 459.0999994277954,
+      "y": 193.34579944610596,
+      "width": 22.40625,
+      "height": 23,
+      "ink": {
+        "x": 459.0999995269775,
+        "y": 198.34579943847658,
+        "width": 21.907989501953125,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:bar:r1:s1",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(22, 128, 71)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        459.1000003814697,
+        236.7750015258789
+      ],
+      "x": 412.00000190734863,
+      "y": 224.47125148773193,
+      "width": 94.19999694824219,
+      "height": 24.607500076293945
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:value:r1:s1",
+      "tag": "text",
+      "text": "40",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "40",
+          "x": -11.322,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        517.5220031738281,
+        234.6412010192871
+      ],
+      "x": 506.2000036239624,
+      "y": 222.2957010269165,
+      "width": 22.65625,
+      "height": 23,
+      "ink": {
+        "x": 506.2000031738281,
+        "y": 227.29570101928712,
+        "width": 22.159988403320312,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:bar:r3:s0",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(208, 32, 48)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        412,
+        362.2249984741211
+      ],
+      "x": 412,
+      "y": 349.9212484359741,
+      "width": 0,
+      "height": 24.607500076293945
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:value:r3:s0",
+      "tag": "text",
+      "text": "0",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "0",
+          "x": -5.742,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        417.742000579834,
+        360.09120178222656
+      ],
+      "x": 412.00000047683716,
+      "y": 347.74570178985596,
+      "width": 11.484375,
+      "height": 23,
+      "ink": {
+        "x": 412.00000057983397,
+        "y": 352.74570178222655,
+        "width": 11,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:bar:r3:s1",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(22, 128, 71)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        412,
+        391.1750030517578
+      ],
+      "x": 412,
+      "y": 378.87125301361084,
+      "width": 0,
+      "height": 24.607500076293945
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:value:r3:s1",
+      "tag": "text",
+      "text": "0",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "0",
+          "x": -5.742,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        417.742000579834,
+        389.04129791259766
+      ],
+      "x": 412.00000047683716,
+      "y": 376.69579792022705,
+      "width": 11.484375,
+      "height": 23,
+      "ink": {
+        "x": 412.00000057983397,
+        "y": 381.69579791259764,
+        "width": 11,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:category:r0",
+      "tag": "text",
+      "text": "Año 2020 é",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Año 2020 é",
+          "x": -49.158,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        0.8828999400138855,
+        0,
+        0,
+        0.8828999400138855,
+        126.89999389648438,
+        115.47880554199219
+      ],
+      "x": 83.49839781001879,
+      "y": 104.47116236573413,
+      "width": 86.79687381245958,
+      "height": 21.000000594241556,
+      "ink": {
+        "x": 83.49839864528178,
+        "y": 108.9934640326202,
+        "width": 86.12858931272876,
+        "height": 12.360599160194397,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:category:r1",
+      "tag": "text",
+      "text": "Año 2020 é",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Año 2020 é",
+          "x": -49.158,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        0.8828999400138855,
+        0,
+        0,
+        0.8828999400138855,
+        126.89999389648438,
+        192.67880249023438
+      ],
+      "x": 83.49839781001879,
+      "y": 181.67115931397632,
+      "width": 86.79687381245958,
+      "height": 21.000000594241556,
+      "ink": {
+        "x": 83.49839864528178,
+        "y": 186.19346098086237,
+        "width": 86.12858931272876,
+        "height": 12.360599160194397,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:category:r2",
+      "tag": "text",
+      "text": "Año 2022 é",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Año 2022 é",
+          "x": -48.87,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        0.8881000280380249,
+        0,
+        0,
+        0.8881000280380249,
+        126.89999389648438,
+        269.9316997528076
+      ],
+      "x": 83.49854647485927,
+      "y": 258.9534599155161,
+      "width": 86.78125336765243,
+      "height": 21.00000132426453,
+      "ink": {
+        "x": 83.4985455262661,
+        "y": 263.4081609968543,
+        "width": 86.12431871937952,
+        "height": 12.433400392532349,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:category:r3",
+      "tag": "text",
+      "text": "2026",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "2026",
+          "x": -22.14,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        105.6400146484375,
+        348.2700004577637
+      ],
+      "x": 83.50001525878906,
+      "y": 335.92450046539307,
+      "width": 44.29997253417969,
+      "height": 23,
+      "ink": {
+        "x": 83.5000146484375,
+        "y": 340.92450045776366,
+        "width": 44.29997253417969,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:legend-swatch:s0",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(208, 32, 48)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        664,
+        110.5
+      ],
+      "x": 660,
+      "y": 106.5,
+      "width": 8,
+      "height": 8
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:legend:s0",
+      "tag": "text",
+      "text": "Serie 1",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Serie 1",
+          "x": -27.711,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        697.7109985351562,
+        116.66999816894531
+      ],
+      "x": 669.9999980926514,
+      "y": 104.3244981765747,
+      "width": 55.4375,
+      "height": 23,
+      "ink": {
+        "x": 669.9999985351562,
+        "y": 109.32449816894531,
+        "width": 54.14996337890625,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:legend-swatch:s1",
+      "tag": "rect",
+      "text": "",
+      "fill": "rgb(22, 128, 71)",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "fontStyle": "normal",
+      "spans": [],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        664,
+        264.8999996185303
+      ],
+      "x": 660,
+      "y": 260.8999996185303,
+      "width": 8,
+      "height": 8
+    },
+    {
+      "id": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d:legend:s1",
+      "tag": "text",
+      "text": "Serie 2",
+      "fill": "rgb(23, 33, 51)",
+      "fontFamily": "StudioFont_1_85e184adef31c8e8",
+      "fontSize": "18px",
+      "fontWeight": "300",
+      "fontStyle": "normal",
+      "spans": [
+        {
+          "text": "Serie 2",
+          "x": -29.529,
+          "y": 5.6545
+        }
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        1,
+        699.5289916992188,
+        271.0699996948242
+      ],
+      "x": 669.9999923706055,
+      "y": 258.7244997024536,
+      "width": 59.14996337890625,
+      "height": 23,
+      "ink": {
+        "x": 669.9999916992188,
+        "y": 263.7244996948242,
+        "width": 59.14996337890625,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "bar:r0:s0",
+      "row": "r0",
+      "column": "s0",
+      "value": 10,
+      "start": 0,
+      "end": 10,
+      "color": "#d02030",
+      "horizontal": true
+    },
+    {
+      "id": "bar:r0:s1",
+      "row": "r0",
+      "column": "s1",
+      "value": 20,
+      "start": 0,
+      "end": 20,
+      "color": "#168047",
+      "horizontal": true
+    },
+    {
+      "id": "bar:r1:s0",
+      "row": "r1",
+      "column": "s0",
+      "value": 20,
+      "start": 0,
+      "end": 20,
+      "color": "#d02030",
+      "horizontal": true
+    },
+    {
+      "id": "bar:r1:s1",
+      "row": "r1",
+      "column": "s1",
+      "value": 40,
+      "start": 0,
+      "end": 40,
+      "color": "#168047",
+      "horizontal": true
+    },
+    {
+      "id": "bar:r3:s0",
+      "row": "r3",
+      "column": "s0",
+      "value": 0,
+      "start": 0,
+      "end": 0,
+      "color": "#d02030",
+      "horizontal": true
+    },
+    {
+      "id": "bar:r3:s1",
+      "row": "r3",
+      "column": "s1",
+      "value": 0,
+      "start": 0,
+      "end": 0,
+      "color": "#168047",
+      "horizontal": true
+    }
+  ],
+  "layer": "chart_66c5e9b4-ed69-4539-b967-c3a94c2b936d",
+  "kind": "bar-grouped",
+  "background": "#f4f7fa",
+  "proportional": false
+}

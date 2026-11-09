@@ -1,0 +1,38 @@
+{
+  "scope": "pure exact-entry fixture validation with actual prepareBarChart/createBarChartScene; renderer sentinel; NO metrics/native/render proof",
+  "negativeControl": false,
+  "valid": 6,
+  "total": 6,
+  "rows": [
+    {
+      "id": "column",
+      "reachedRendererSentinel": true,
+      "error": "Error: FIXTURE_VALIDATED_RENDERER_SENTINEL"
+    },
+    {
+      "id": "bar",
+      "reachedRendererSentinel": true,
+      "error": "Error: FIXTURE_VALIDATED_RENDERER_SENTINEL"
+    },
+    {
+      "id": "proportional",
+      "reachedRendererSentinel": true,
+      "error": "Error: FIXTURE_VALIDATED_RENDERER_SENTINEL"
+    },
+    {
+      "id": "root-transform",
+      "reachedRendererSentinel": true,
+      "error": "Error: FIXTURE_VALIDATED_RENDERER_SENTINEL"
+    },
+    {
+      "id": "long-private-font",
+      "reachedRendererSentinel": true,
+      "error": "Error: FIXTURE_VALIDATED_RENDERER_SENTINEL"
+    },
+    {
+      "id": "tiny160",
+      "reachedRendererSentinel": true,
+      "error": "Error: FIXTURE_VALIDATED_RENDERER_SENTINEL"
+    }
+  ]
+}

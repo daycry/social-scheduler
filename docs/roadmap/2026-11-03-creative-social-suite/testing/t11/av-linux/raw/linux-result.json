@@ -1,0 +1,14 @@
+{
+  "mode": "linux",
+  "exit": 0,
+  "terminal": true,
+  "sources_match": true,
+  "passed": 10,
+  "skipped": 2,
+  "summary": [
+    "----------------------------------------------------------------------",
+    "Ran 12 tests in 4.843s",
+    "",
+    "OK (skipped=2)"
+  ]
+}

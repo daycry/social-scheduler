@@ -1,0 +1,13 @@
+{
+  "source": "first failed Playwright context; no extra requests",
+  "guard_blocked_external": [
+    "Unexpected external request host: fonts.googleapis.com",
+    "Unexpected external request host: fonts.googleapis.com"
+  ],
+  "browser_resource_diagnostics": [
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  ],
+  "other_recorded_errors": []
+}

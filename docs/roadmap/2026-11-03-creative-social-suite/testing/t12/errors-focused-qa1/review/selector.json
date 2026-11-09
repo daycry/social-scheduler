@@ -1,0 +1,31 @@
+{
+  "lente_c": true,
+  "motivos_c": [
+    {
+      "tipo": "contenido",
+      "fichero": "storage/framework/testing/t12-chart-errors-qa1/probe-pure.py",
+      "patron": "exec",
+      "linea": 97
+    }
+  ],
+  "lente_d": true,
+  "motivos_d": [
+    {
+      "tipo": "ruta",
+      "fichero": "storage/framework/testing/t12-chart-download-fix/report-focal-server.py",
+      "patron": "repo"
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "storage/framework/testing/t12-chart-errors-qa1/probe-ast.cjs",
+      "patron": "read-file-sync",
+      "linea": 3
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "storage/framework/testing/t12-chart-errors-qa1/run.py",
+      "patron": "sleep-bloqueante",
+      "linea": 94
+    }
+  ]
+}

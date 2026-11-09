@@ -1,0 +1,20 @@
+{
+  "reviewer": "root: direct inspection of all three actual screenshots and all five PDF pages",
+  "issues": [],
+  "scope": "Failed-run evidence and report layout only; no complete E2E/product acceptance",
+  "known_product_followups": [
+    "Empty historical table axe th-has-data-cells incomplete1; violations0; fix requires diagnosis",
+    "Small Y-axis title remains pending"
+  ],
+  "pdf_sha256": "65e487d6f5fca40bee4d2a9b870cbe5ed7b90250561d9acf78f6352dbb135f18",
+  "inspected": {
+    "images/1440-errors-table-modal.png": "3e804dde28442578c488ce1b6ea354f7d7a66b3021009e01cdc20b08e8ef9fea",
+    "images/1440-inspector.png": "edf35a7c7ed1f74d218b70489c48f6106ee078fe240c9f38ba2407d7201dddb4",
+    "images/1440-test-failed-1.png": "79fb6ed763bcca8732a1030db758a296005a1ff18a6ba0e80283e4ded85da30f",
+    "pdf-pages/page-001.png": "5b8c73865ec1ab6c4cc4b0f1d5f666008183fe806f3aaf49414b177acdce9123",
+    "pdf-pages/page-002.png": "0b2254bf1448f00e02fbbfc1c924deb56653e984c9b911a23ea55cd2a9ef66a3",
+    "pdf-pages/page-003.png": "d1e31d7160d724fb28e568d36c6672bf93018fc81f1cea6c1c68f06454031060",
+    "pdf-pages/page-004.png": "78054967420c60e95164ab16d1433d2468b31e1353e7ad0f8ea903086a0942cc",
+    "pdf-pages/page-005.png": "05a5ab3ff3242ff00f7ae49d61b6f6f7706f4095d0ae2579f897fb3fa166733d"
+  }
+}

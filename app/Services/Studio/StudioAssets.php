@@ -18,8 +18,9 @@ class StudioAssets
     {
         $this->assertBrand($user, $brand);
         $asset = MediaAsset::withoutUserScope()->where('user_id', $user->id)->findOrFail($mediaId);
-        if (! $asset->isReady() || ! in_array($asset->kind, [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO], true)) {
-            throw ValidationException::withMessages(['media_id' => ['El archivo debe ser una imagen o vídeo propio listo.']]);
+        if (! $asset->isReady() || ! in_array($asset->kind, [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO, MediaAsset::KIND_AUDIO], true)
+            || ($asset->kind === MediaAsset::KIND_AUDIO && (! filled($asset->audio_codec) || ! is_finite((float) $asset->duration) || $asset->duration <= 0))) {
+            throw ValidationException::withMessages(['media_id' => ['El archivo debe ser una imagen, vídeo o audio propio validado y listo.']]);
         }
         StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $brand->id, 'media_asset_id' => $asset->id], ['user_id' => $user->id]);
 
@@ -62,7 +63,8 @@ class StudioAssets
 
     public function present(Brand $brand, MediaAsset $asset): array
     {
-        return array_replace($asset->toPublicArray(), ['preview_url' => route('studio.assets.file', ['brand' => $brand->id, 'media' => $asset->id], absolute: false)]);
+        return array_replace($asset->toPublicArray(), ['preview_url' => route('studio.assets.file', ['brand' => $brand->id, 'media' => $asset->id], absolute: false)])
+            + ($asset->kind === MediaAsset::KIND_AUDIO ? ['audio_codec' => $asset->audio_codec] : []);
     }
 
     /** Same-origin private proxy works for local and R2 assets without exposing bucket credentials or relying on CORS. */

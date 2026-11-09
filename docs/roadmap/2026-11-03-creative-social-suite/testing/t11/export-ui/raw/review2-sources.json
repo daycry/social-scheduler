@@ -1,0 +1,12 @@
+{
+  "resources/js/Studio/export-jobs.js": "e940b3852c631b7fe146d97cf0b519dd10c1503925a395c8fe1554be0226d76c",
+  "resources/js/Components/Studio/ExportDialog.vue": "a0e8ce21b16527dcb733c36e0c398606f5599f9fb0ddbee527912c6c41a060c7",
+  "resources/js/Components/Studio/NativeExportJobs.vue": "5be2517dd6affdf887a927c6faee00d4d040968d88a388c864486239d2d1315f",
+  "tests/frontend/studio-export-jobs.test.mjs": "e81e61e6f098e8d253df67ebdb82f0fd4f4d52778a7cce40157da175265d83d8",
+  "tests/e2e/studio-native-export.spec.ts": "14f917bd59f17d7ec5dcd53c347982ce04feaa807bda02f2c507186e4c671439",
+  "docs/guias/estudio-api-mcp.md": "8c804d3d80220232e60e9243077a97a84241395605d8ffe60a60e2c9c45f8eb6",
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-contract.md": "a828a332b314bd252f19d654fba42b71ba6ae95a16caff7e74edd0b7e87f13ad",
+  "docs/roadmap/2026-11-03-creative-social-suite/test-plan.md": "6d561397ce8bc06c62e63f6c8e054a3d5c48852b3c9c3ffbd1b27cf1863ecff0",
+  "resources/js/Studio/api.js": "1e7e439a7edb164af42987a66a75dc5c0d30e33927701c664d220c930136daf1",
+  "tests/frontend/studio-export-job-panel.test.mjs": "609b1d9a3e422af6a4e264f8e3cb3694ea84b9f9bbec555c6385dbbf9068040f"
+}

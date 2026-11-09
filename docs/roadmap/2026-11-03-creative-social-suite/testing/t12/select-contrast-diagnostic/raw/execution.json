@@ -1,0 +1,29 @@
+{
+  "state": "regression_finished",
+  "app_pass_claim": false,
+  "supervisor_pid": 30560,
+  "node_pid": 24808,
+  "node_terminal": true,
+  "pixel_pid": 21840,
+  "pixel_terminal": true,
+  "node_exit_code": 0,
+  "unchanged_sources": true,
+  "job_members_before_final_sample": [
+    30560
+  ],
+  "listening_server_created": false,
+  "network_profile": "offline_about_blank_all_requests_aborted",
+  "resource": {
+    "physical_minimum_observed_bytes": 9118531584,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 1.7642238000116777,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 274415616,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  }
+}

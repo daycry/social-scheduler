@@ -1,0 +1,14 @@
+{
+  "storage/framework/testing/t12-chart-http-probe2/launch.py": "1119bc23158893f679cd3e3a3118c14549b14e5dee402b7fc96530a27a1e0bf1",
+  "storage/framework/testing/t12-chart-http-probe2/probe.mjs": "60315ecdf388989504255db4e28d3144cd4652310357d80c8ed7b286cc2f1efe",
+  "storage/framework/testing/t12-chart-http-probe2/browser.mjs": "110f01c11a84f0f881908780ab03bf3cf2bf44546af76be5b76630966c34c93d",
+  "storage/framework/testing/t12-chart-final-qa1/resource-guard.py": "8482f686f854ceff4c661e24ab837d3e3b4dff132b489d4548a31bb2ab9612c0",
+  "storage/framework/testing/t12-chart-final-qa1/process-proof.py": "4a935e88a74305d08895e19f5eccba3e3c323129e8ff74190dd99b4078f78885",
+  "scripts/studio/av-runtime.py": "2be81a22850c9336ba59dc4013810933825b9e1ec4da38db6c9c6ad048d0652b",
+  "resources/js/Studio/chart-resources.js": "2cf35da3a99b5383d28531dc5868cc9b0877edfdf27658635743a294780c3526",
+  "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+  "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+  "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3",
+  "package.json": "9038fdb5bac0171aafa0945c84f83e206acda8b5167dc5d1727c60a6e08073c3",
+  "package-lock.json": "d679c1ba4d6dd50dc2c438152be2d481a34d1724b471117de5bc09a6e67db0cf"
+}

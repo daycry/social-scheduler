@@ -1,0 +1,20 @@
+{
+  "reviewer": "root: direct inspection of all three actual screenshots and all five rendered PDF pages",
+  "issues": [],
+  "scope": "Failed-run evidence and report layout only; no product or complete E2E acceptance",
+  "known_product_followups": [
+    "Screenshot shows Cannot read properties of undefined (reading select) after reload/layer selection; root-cause investigation pending",
+    "Small Y-axis title remains pending"
+  ],
+  "pdf_sha256": "de68e095eaaa03319cbebd85fa41b44d0f934385e22ed5b658cb0e67ca3049ce",
+  "inspected": {
+    "images/1440-errors-table-modal.png": "3e804dde28442578c488ce1b6ea354f7d7a66b3021009e01cdc20b08e8ef9fea",
+    "images/1440-inspector.png": "cf8bbea394b32c10e95f7c00df50b9b3b563e49c0e4dacaaaa1d1fff603dcbca",
+    "images/1440-test-failed-1.png": "a8382d99a68d586efcc86d01bf169af65e51407875a97347333a4fc0f3bee36e",
+    "pdf-pages/page-001.png": "83d1427a63c498a8b5f7c59f3935da04c4466e29e6565f8e57413a6537d68a21",
+    "pdf-pages/page-002.png": "4563d80201eeae803e74bfb106b69dcc2d0ada4e0ba050e15a65388e6b9143d1",
+    "pdf-pages/page-003.png": "45ce9dc09142787c64b040e138498c7633f0fdac3408829dc11931eebb9fd560",
+    "pdf-pages/page-004.png": "208e2d58d09bc3d2b57c24544d0d7170dc5070d190534e9801e0837147efda59",
+    "pdf-pages/page-005.png": "18645f1c1b176e3190273cd808985c0fa291d99e28022eace046ce9966b7bc6b"
+  }
+}

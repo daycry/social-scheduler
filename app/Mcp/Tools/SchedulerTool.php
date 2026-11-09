@@ -52,7 +52,7 @@ abstract class SchedulerTool extends Tool
         $audit = app(AuditLog::class);
         $user = $request->user();
         $action = $this->name();
-        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('design_id') ?? $request->get('export_id') ?? $request->get('brand_id');
+        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('design_id') ?? $request->get('export_id') ?? $request->get('dataset_id') ?? $request->get('brand_id');
 
         if (! $user instanceof User) {
             return Response::error('No autenticado.');
@@ -83,7 +83,7 @@ abstract class SchedulerTool extends Tool
             $status = $e->getStatusCode();
             $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status);
 
-            return Response::error($status === 409 ? '409: '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : 'No se pudo completar la operación.'));
+            return Response::error($status === 409 ? '409: '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : ($status === 503 && $this->resource() === 'studio_dataset' ? '503: Dataset snapshot unavailable.' : 'No se pudo completar la operación.')));
         } catch (PostValidationException $e) {
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 
@@ -100,8 +100,13 @@ abstract class SchedulerTool extends Tool
             return Response::error('Error interno al ejecutar la herramienta. Intentalo de nuevo.');
         }
 
-        $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $resourceId);
+        $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $result['dataset']['id'] ?? $resourceId);
 
+        return $this->resultResponse($result);
+    }
+
+    protected function resultResponse(array $result): Response
+    {
         return Response::json($result);
     }
 

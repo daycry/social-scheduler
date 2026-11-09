@@ -1,0 +1,1200 @@
+{
+  "events": [
+    {
+      "event": "call:pause",
+      "id": 1,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 694.5
+    },
+    {
+      "event": "call:pause",
+      "id": 1,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 695.2999999821186
+    },
+    {
+      "event": "call:load",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 702
+    },
+    {
+      "event": "emptied",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 707.5999999940395
+    },
+    {
+      "event": "loadedmetadata",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 869.1999999880791
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 895.1999999880791
+    },
+    {
+      "event": "call:load",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 895.5999999940395
+    },
+    {
+      "event": "loadeddata",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 895.5999999940395
+    },
+    {
+      "event": "emptied",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 895.6999999880791
+    },
+    {
+      "event": "loadedmetadata",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 896.1999999880791
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 897.1999999880791
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 897.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 897.5999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 897.5999999940395
+    },
+    {
+      "event": "loadeddata",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 898.1999999880791
+    },
+    {
+      "event": "frame",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 906.0999999940395,
+      "mediaTime": 0,
+      "presentedFrames": 1
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 943.6999999880791
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 943.6999999880791
+    },
+    {
+      "event": "call:play",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 943.9000000059605
+    },
+    {
+      "event": "play",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0127,
+      "paused": false,
+      "at": 956.9000000059605
+    },
+    {
+      "event": "playing",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0128,
+      "paused": false,
+      "at": 956.9000000059605
+    },
+    {
+      "event": "call:play",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 963.6999999880791
+    },
+    {
+      "event": "play",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": false,
+      "at": 964.4000000059605
+    },
+    {
+      "event": "playing",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": false,
+      "at": 964.4000000059605
+    },
+    {
+      "event": "frame",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0957,
+      "paused": false,
+      "at": 1039.699999988079,
+      "mediaTime": 0.1,
+      "presentedFrames": 2
+    },
+    {
+      "event": "frame",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.1951,
+      "paused": false,
+      "at": 1139.0999999940395,
+      "mediaTime": 0.2,
+      "presentedFrames": 3
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": false,
+      "at": 1195.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233962,
+      "paused": false,
+      "at": 1195.5
+    },
+    {
+      "event": "timeupdate",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": true,
+      "at": 1206.699999988079
+    },
+    {
+      "event": "pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": true,
+      "at": 1206.699999988079
+    },
+    {
+      "event": "timeupdate",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233966,
+      "paused": true,
+      "at": 1206.699999988079
+    },
+    {
+      "event": "pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233966,
+      "paused": true,
+      "at": 1206.699999988079
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": true,
+      "at": 1510.0999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233966,
+      "paused": true,
+      "at": 1510.0999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": true,
+      "at": 1510.2999999821186
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233966,
+      "paused": true,
+      "at": 1510.2999999821186
+    },
+    {
+      "event": "call:pause",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": true,
+      "at": 1510.2999999821186
+    },
+    {
+      "event": "call:load",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.2514,
+      "paused": true,
+      "at": 1510.2999999821186
+    },
+    {
+      "event": "call:pause",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233966,
+      "paused": true,
+      "at": 1510.9000000059605
+    },
+    {
+      "event": "call:load",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.233966,
+      "paused": true,
+      "at": 1510.9000000059605
+    },
+    {
+      "event": "emptied",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1523.7999999821186
+    },
+    {
+      "event": "timeupdate",
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1523.7999999821186
+    },
+    {
+      "event": "emptied",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1523.9000000059605
+    },
+    {
+      "event": "timeupdate",
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1523.9000000059605
+    },
+    {
+      "event": "call:load",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1628
+    },
+    {
+      "event": "emptied",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1639.5
+    },
+    {
+      "event": "loadedmetadata",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1640.699999988079
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1642
+    },
+    {
+      "event": "call:load",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1642.2999999821186
+    },
+    {
+      "event": "loadeddata",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1642.2999999821186
+    },
+    {
+      "event": "emptied",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1642.2999999821186
+    },
+    {
+      "event": "loadedmetadata",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1642.7999999821186
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1643.5
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1643.5999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1643.5999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1643.5999999940395
+    },
+    {
+      "event": "loadeddata",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1643.7999999821186
+    },
+    {
+      "event": "frame",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1655.7999999821186,
+      "mediaTime": 0,
+      "presentedFrames": 1
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1659.5999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1659.5999999940395
+    },
+    {
+      "event": "call:play",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1659.7999999821186
+    },
+    {
+      "event": "play",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0139,
+      "paused": false,
+      "at": 1673.7999999821186
+    },
+    {
+      "event": "playing",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0139,
+      "paused": false,
+      "at": 1673.7999999821186
+    },
+    {
+      "event": "call:play",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1674.0999999940395
+    },
+    {
+      "event": "play",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": false,
+      "at": 1674.4000000059605
+    },
+    {
+      "event": "playing",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": false,
+      "at": 1674.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0506,
+      "paused": false,
+      "at": 1710.5999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.032,
+      "paused": false,
+      "at": 1710.5999999940395
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0506,
+      "paused": true,
+      "at": 1714.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.032,
+      "paused": true,
+      "at": 1714.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0506,
+      "paused": true,
+      "at": 1714.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.032,
+      "paused": true,
+      "at": 1714.4000000059605
+    },
+    {
+      "event": "call:pause",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.032,
+      "paused": true,
+      "at": 1714.5
+    },
+    {
+      "event": "call:load",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0.032,
+      "paused": true,
+      "at": 1714.5
+    },
+    {
+      "event": "call:pause",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0506,
+      "paused": true,
+      "at": 1715.5
+    },
+    {
+      "event": "call:load",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0.0506,
+      "paused": true,
+      "at": 1715.5
+    },
+    {
+      "event": "emptied",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1723.199999988079
+    },
+    {
+      "event": "timeupdate",
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "time": 0,
+      "paused": true,
+      "at": 1723.199999988079
+    },
+    {
+      "event": "emptied",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1723.199999988079
+    },
+    {
+      "event": "timeupdate",
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "time": 0,
+      "paused": true,
+      "at": 1723.199999988079
+    }
+  ],
+  "draws": [
+    {
+      "event": "drawImage",
+      "target": 3,
+      "source": 4,
+      "at": 703.2999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 5,
+      "source": 3,
+      "at": 703.4000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 897.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 897.5
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 897.5
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 897.6999999880791
+    },
+    {
+      "event": "drawImage",
+      "target": 3,
+      "source": 4,
+      "at": 898
+    },
+    {
+      "event": "drawImage",
+      "target": 5,
+      "source": 3,
+      "at": 898
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 957
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 957
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 964.5
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 973.6999999880791
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 973.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 973.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 989.4000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 989.5
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 989.5
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1006.1999999880791
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1006.2999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1006.2999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1022.6999999880791
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1022.6999999880791
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1022.6999999880791
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1039.9000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1039.9000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1039.9000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1055.9000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1056
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1056
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1072.5
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1072.5
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1072.5999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1091.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1091.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1091.199999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1106
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1106
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1106.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1122.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1122.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1122.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1139.2999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1139.2999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1139.4000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1157.199999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1157.199999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1157.2999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1173.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1173.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1173.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 7,
+      "source": 6,
+      "at": 1190.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 7,
+      "at": 1190.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1190.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 10,
+      "at": 1511.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1511.699999988079
+    },
+    {
+      "event": "drawImage",
+      "target": 13,
+      "source": 12,
+      "at": 1643.4000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 13,
+      "source": 12,
+      "at": 1643.5999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 13,
+      "at": 1643.5999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1643.5999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 13,
+      "source": 12,
+      "at": 1673.7999999821186
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 13,
+      "at": 1673.9000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1674.4000000059605
+    },
+    {
+      "event": "drawImage",
+      "target": 13,
+      "source": 12,
+      "at": 1689
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 13,
+      "at": 1689.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1689.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 13,
+      "source": 12,
+      "at": 1706
+    },
+    {
+      "event": "drawImage",
+      "target": 8,
+      "source": 13,
+      "at": 1706.0999999940395
+    },
+    {
+      "event": "drawImage",
+      "target": 9,
+      "source": 8,
+      "at": 1706.0999999940395
+    }
+  ],
+  "media": [
+    {
+      "id": 1,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "paused": true,
+      "time": 0,
+      "readyState": 4,
+      "duration": 3,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": 2,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "paused": true,
+      "time": 0,
+      "readyState": 0,
+      "duration": null,
+      "width": null,
+      "height": null
+    },
+    {
+      "id": 6,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "paused": true,
+      "time": 0,
+      "readyState": 0,
+      "duration": null,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "id": 11,
+      "kind": "AUDIO",
+      "src": "http://localhost:8080/brands/1/studio/assets/2/file",
+      "paused": true,
+      "time": 0,
+      "readyState": 0,
+      "duration": null,
+      "width": null,
+      "height": null
+    },
+    {
+      "id": 12,
+      "kind": "VIDEO",
+      "src": "http://localhost:8080/brands/1/studio/assets/1/file",
+      "paused": true,
+      "time": 0,
+      "readyState": 0,
+      "duration": null,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "fonts": []
+}

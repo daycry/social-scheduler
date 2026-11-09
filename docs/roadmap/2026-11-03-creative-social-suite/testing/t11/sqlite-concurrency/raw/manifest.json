@@ -1,0 +1,146 @@
+{
+  "sources": {
+    "app/Services/Studio/StudioAvState.php": "2ef28c5a0df1e3b57f0bc5f644aa466be97ce8fac3ac97906aae05fa376033b5",
+    "app/Services/Studio/StudioAvTransfer.php": "02aeb065a4c22d93f95d4b90beb1c7400aa373c44ca00726d63b2dbbc6062ad9",
+    "app/Services/Studio/StudioAvRunner.php": "8c852a64d015deb2fd8576b0293a8444f5ca08d7a5bb85ac73c82c50d55bd274",
+    "tests/Feature/Studio/StudioAvTransferTest.php": "d46693bd7ec956f7ae7b3e1f7f6e06590a4696b72e3a71572f32741eba615d79",
+    "tests/Feature/Studio/StudioAvQueueTest.php": "d7f4e94c3dc491ad0fafe7e339769d3a4c2282e821e5335f21b3d4df041bfc57"
+  },
+  "baseline": {
+    "app/Services/Studio/StudioAvState.php": {
+      "snapshot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-register-debug\\baseline\\StudioAvState.php",
+      "sha256": "4aa9aac214818cea35ed3b1324e011089ec642fd77b3dfd115edb0237599eb87"
+    },
+    "app/Services/Studio/StudioAvTransfer.php": {
+      "snapshot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-register-debug\\baseline\\StudioAvTransfer.php",
+      "sha256": "0365ca0b6cf75109a2bfb2e7955b351dd1898bc817af7c793afb735ab857995f"
+    },
+    "app/Services/Studio/StudioAvRunner.php": {
+      "snapshot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-register-debug\\baseline\\StudioAvRunner.php",
+      "sha256": "8c852a64d015deb2fd8576b0293a8444f5ca08d7a5bb85ac73c82c50d55bd274"
+    },
+    "tests/Feature/Studio/StudioAvTransferTest.php": {
+      "snapshot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-register-debug\\baseline\\StudioAvTransferTest.php",
+      "sha256": "f544df3644000e3acbc5aa65614893420aed4153b9783e716dbd673c6cdd18ab"
+    },
+    "tests/Feature/Studio/StudioAvQueueTest.php": {
+      "snapshot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-register-debug\\baseline\\StudioAvQueueTest.php",
+      "sha256": "a55fcfaef2468ffbd756608f6e656c51ac56ab7bc4d0f4b7deb5ca234de7c777"
+    }
+  },
+  "evidence": {
+    "budget-green-output.txt": "131cfa349b1d04ca07f2c6dadf8954c29f8bc6bbbe24e78032fc10beb3861b2e",
+    "budget-red-output.txt": "c9cf547095c34374ab303d09afc38035dc2bcb58f679d2e0c0afa6283c06c7ea",
+    "budget-red2-output.txt": "51d08c30291a122181baf1ff205b4438caa92fca630d00fbd704fe39e64d8043",
+    "claim-green-output.txt": "19ebf5d8a2a16cfca1212fdde31bf98f1c77afbdeed41b93962cc7bc023e62b5",
+    "claim-red-output.txt": "01280ec45be4c37e4aadab6592ce8a071234096fd9d806bb331713331d24c713",
+    "commit-green-output.txt": "1ab20ee80cfbfaed60ecae513e8e81780f19acde09607a340ff618e318aff3ad",
+    "commit-probe-b00f784d51.sqlite": "164b0a0bf75c03c851f9e0b4ec2edf75f539d623c7191b6cbaaff9a45f10ab37",
+    "commit-probe-output.txt": "eb93deb1dee501f9d4ea9ada29f09c93836c295f1557b8512f165fca3419bb0c",
+    "commit-red-output.txt": "fb7db43e267ac2e2f74c830446953a171c5186b2964ef5ad637f9dbda5090226",
+    "deadline-green-output.txt": "037128b2aed17b8bbe989a15e1da016b2bf68b1d9f044020782a836b06a2db76",
+    "deadline-red-output.txt": "00c4b62ec7803e939a0c441d7984fd2bb7a94272a5a58b78418156b9b12f65eb",
+    "diagnostic-Runner.php": "38337f868f0fd243b38a075a4296e8eed5fe42efcf13761530275d56fe60503e",
+    "diagnostic-Transfer.php": "59632a766d5a243f2e98fd8a858f3afad6b6d032fad421596e5f0e9330430720",
+    "final-neighbors-output.txt": "75b48d4adfbcf3e93b40fa1b6b600ebaee11d073bad4ee92156ec238569ae319",
+    "final-neighbors.xml": "614a53932cd251c5ff3ab08751cd15816c1dd0cde294f0a65c7e0824a5858864",
+    "findings.md": "170694ff4529afe0693cb14f63854296ffd701b86126e02a894aa0d0c68e2b82",
+    "fix.diff": "5580a3f309229d49f4e4e426aa694203be80bdee6043faf2ecdcc44e0cfb8550",
+    "fixed-State.php": "6333f36d467a22b1c78de8ee6f57a79ea5da4cbfa041140277496de808268c24",
+    "freeze.py": "e77f0b0f1dd909958ba98e19e2e7a5c9323c12bf248df76f95b8fce7f61357e9",
+    "green-output.txt": "9e58f7cef802866656fd56101d04caea1f9e0ee8646405ecc6e5b61cb4a3d081",
+    "green2-output.txt": "296c9c099e8c1ac7473ef77d927988869e6d78417d7ffe345a9fa5a4aa656cc0",
+    "initialize-green-output.txt": "e67e5f9d6b482022e4b4dfaaa1440fb323b2ef0838b7432d875e9282367623dc",
+    "initialize-red-output.txt": "7149f7a38b5d54a0fa2b494b687cede57715855c3bad38eedc1ec91f2ab17cb6",
+    "mutations-green-output.txt": "77cd1b687ac29b5d487753dc98a7a167be4df440de4a66c9c0a85b8096e53955",
+    "mutations-red-output.txt": "5e5c8c516bc21a7752e3863dfdbf7c63e7968ea7c81fff26bfebff660f91f3bc",
+    "mutators-green-all-output.txt": "c3474bd3543c4b69435fa0a641dc99c686e3b026579eac099f2e6c4870959054",
+    "neighbors-output.txt": "4ff7acf7282d3bb0c882b331e529de1e262eee40587f1ea48c7009f1335be65b",
+    "neighbors.xml": "ee90ac244a46cd8f15299aabb7f726ce905072c7c96036dc27d930697530c0fd",
+    "neighbors2-output.txt": "1f70e37204b24a0db994e90fc2708c42cdbc3113282a9d0f54c45c8526020a38",
+    "neighbors2.xml": "e9da1489e6dc18b1eeb3b09bb2c9adbc5e18ff8117406cd7383ebac4b120514f",
+    "nesting-output.txt": "dfe2ea1182cec49576c57a4ea7545879ab9377f378e045bd1eee020dae76acc9",
+    "passive-Runner.php": "04b91962cd3d6c402db8089a08331a68c8e606165d6251f774c2749048bd7cb4",
+    "probe-commit.php": "e1df49cb0026cca217facd5e2357c617df633955f70e8f98bad4d1475f361dac",
+    "red-output.txt": "410970257b2a2e1aa583f105ae34aa814e88666ba223b07cd57773aaaa45e07b",
+    "red2-output.txt": "4d505228b1d63e2e42a050c54206c299fc72b8ff679250b5970647063770237f",
+    "registration-mutations-green-output.txt": "059219fd269fafbdbdee963fceb01afad6ad490c00fd3dcec6477b46ade1eb83",
+    "registration-mutations-red-output.txt": "23bf404554868a3c871229d0e3268de659d6430d4cdf33a512a7723a527e350c",
+    "reject-red-output.txt": "451eb4b260fe6e4f10c39dbc7d1cd256ec4350ad9a425405a969400b6791500d",
+    "run1-output.txt": "99dd96b492734b50e62f992c772087cfc7fb4952b274d93fd77cc22c9cdbd11d",
+    "run1-root.txt": "d6fb67dd63a6304897f53ab822f9d39785118d30cd0b760ca2db049f098b7143",
+    "run2-output.txt": "26e2df82a123882cb76b87eca6195346982e726c238d626fd8caa8b6504f6b83",
+    "run2-root.txt": "1eabe6b6380cf95925af7ba5531d9d69565c671f211e77f0b3892c3b35ac7d1a",
+    "run3-output.txt": "926a8fe45286dfa007c7af41b99f5350b8977fd3a6a07562d873c1e11c94d885",
+    "run3-root.txt": "4d7d78e3800ace5cf0f5909b0500e4a2c8ea4389d56c06452065e0bda5b38fde",
+    "run4-output.txt": "956b2e73228a9d999a0f04675250b749adbd33798a13ffa714048055d89b0472",
+    "run4-root.txt": "7cb8de64e8b327a60f3c1e2118a492546a043d0fcc0a6de558057ca42c2cab32",
+    "run5-output.txt": "ecdc42419f93828e9eab08ecc5e19049b18e007827cb6fb91c039b89b1a28a96",
+    "run5-root.txt": "0a7329fd7240d77781c317e5dd63209e24aa101b5f1821fe3a3174b906ab0326",
+    "run6-output.txt": "0d61a78b3900144198f2d1bfead71d6cb984a691f4cac351e26c0a70fc0a3f73",
+    "run6-root.txt": "dbdd1b1e283a30c5c967077ed64c02ce11b2063e61c92018965bb6cdc80dd52c"
+  },
+  "runs": {
+    "run2": {
+      "root": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-99ee87de-1ae7-458d-a927-542c11ef8a8c",
+      "stats": {
+        "startTime": "2026-11-05T19:52:24.032Z",
+        "duration": 53675.455,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "results_sha256": "e63fdbd8667ffeb9a3b5745b68e4071b337f5d405bb5370555a9e82f442245e2"
+    },
+    "run3": {
+      "root": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-61ee6014-cf13-44a7-8b68-c11e93e97ccd",
+      "stats": {
+        "startTime": "2026-11-05T19:53:39.478Z",
+        "duration": 115474.346,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "results_sha256": "2108cf34db0aa44f050ce8c39cf741c5877f0a43b64d3c5711cc4b5fe816ee9a"
+    },
+    "run4": {
+      "root": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-07687ab1-d5de-426a-969d-595014807499",
+      "stats": {
+        "startTime": "2026-11-05T19:55:51.353Z",
+        "duration": 46259.285,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "results_sha256": "83b4bdb45dd8413f81fdde25e8969be0a931af0d7944103f19197c21f80d9ae8",
+      "exception_sha256": "72a613fdd080486c8cd638a5d5712f785bab91408478a64aa9ba86b9d8ac4802"
+    },
+    "run5": {
+      "root": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-402f58b2-7398-46cf-99b7-043e313a3581",
+      "stats": {
+        "startTime": "2026-11-05T20:00:45.093Z",
+        "duration": 60390.115000000005,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "results_sha256": "9f884a257d0bfc9cd105341f10d545c8fa0dd8c0a0d5a138b67b5815b3e835ff"
+    },
+    "run6": {
+      "root": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-9f398d64-f6e1-4b50-b29e-b2b82f801bb8",
+      "stats": {
+        "startTime": "2026-11-05T20:02:19.930Z",
+        "duration": 55029.076,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "results_sha256": "eb03a2701f8d8bcb9d9df00f637fdc54c6e800ee239d2d27e427483dd3d32703"
+    }
+  }
+}

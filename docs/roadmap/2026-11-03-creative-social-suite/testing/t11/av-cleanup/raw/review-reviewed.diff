@@ -1,0 +1,800 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -21,6 +21,30 @@
+ /** Private audiovisual state. Queue/filesystem integration follows the generation and lease contract. */
+ class StudioAvState
+ {
++    public function rejectCheckpoint(object $lease): bool
++    {
++        return DB::transaction(function () use ($lease) {
++            [$export, $workspace, $current] = $this->activeLease($lease);
++            if (! $current || $current->phase !== 'verify') {
++                return false;
++            }
++            $state = $export->render_state;
++            $step = $this->step($state);
++            $source = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($step->source_id)->where('status', 'accepted')->lockForUpdate()->first();
++            if (! $source || $source->phase !== $step->target_phase || $source->item !== $step->target_item) {
++                return false;
++            }
++            $source->update(['status' => 'invalid']);
++            $current->update(['status' => 'failed', 'actual_bytes' => 0]);
++            $step->update(['phase' => $source->phase, 'item' => $source->item, 'source_id' => null,
++                'target_phase' => null, 'target_item' => null, 'lease_id' => null, 'result_lease_id' => null]);
++            $state['lease'] = null;
++            $this->saveState($export, $state, ['status' => 'processing', 'error' => null]);
++
++            return true;
++        });
++    }
++
+     private const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'active_until', 'created_at', 'updated_at'];
+ 
+     public function initialize(User $user, DesignExport $export): DesignExport
+@@ -85,6 +109,11 @@
+             $category = match ($task['phase']) {
+                 'asset', 'font' => 'snapshot', 'normalize' => 'pcm', 'render', 'mix' => 'segment', 'assemble' => 'output', default => 'none',
+             };
++            // Keep the fixed source path unavailable until physical retirement, even after another retry.
++            if ($category !== 'none' && StudioAvLease::where('workspace_id', $workspace->id)->where('category', $category)
++                ->where('status', 'invalid')->where('phase', $task['phase'])->where('item', $task['index'])->exists()) {
++                return null;
++            }
+             if ($bytes < 0 || ($category === 'none' ? $bytes !== 0 : $bytes < 1)) {
+                 throw ValidationException::withMessages(['export' => ['La fase necesita una reserva de disco válida.']]);
+             }
+--- a/app/Services/Studio/StudioAvFiles.php
++++ b/app/Services/Studio/StudioAvFiles.php
+@@ -10,12 +10,18 @@
+ use App\Models\Studio\StudioAvLease;
+ use App\Models\Studio\StudioAvWorkspace;
+ use App\Models\User;
++use Closure;
+ use Illuminate\Support\Facades\Storage;
+ use RuntimeException;
+ 
+ class StudioAvFiles
+ {
+     public function inspect(StudioAvLease $lease, array $result): array
++    {
++        return $this->locked($lease, fn () => $this->inspectResult($lease, $result));
++    }
++
++    private function inspectResult(StudioAvLease $lease, array $result): array
+     {
+         $deadline = microtime(true) + 85;
+         [$current, $workspace, $export] = $this->context($lease);
+@@ -27,6 +33,11 @@
+     }
+ 
+     public function publishSource(StudioAvLease $lease): string
++    {
++        return $this->locked($lease, fn () => $this->promoteSource($lease));
++    }
++
++    private function promoteSource(StudioAvLease $lease): string
+     {
+         $deadline = microtime(true) + 85;
+         [$current, $workspace] = $this->context($lease, true);
+@@ -50,7 +61,7 @@
+ 
+     public function verify(StudioAvLease $lease): array
+     {
+-        return $this->verifyCheckpoint($lease, microtime(true) + 85);
++        return $this->locked($lease, fn () => $this->verifyCheckpoint($lease, microtime(true) + 85));
+     }
+ 
+     private function verifyCheckpoint(StudioAvLease $lease, float $deadline): array
+@@ -78,22 +89,25 @@
+             || ! is_int($result['size'] ?? null) || $result['size'] < 1 || $result['size'] > 8 * 1024 ** 3
+             || ($accepted ? $result['size'] !== $current->actual_bytes : $result['size'] > $current->reserved_bytes)
+             || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1) {
+-            throw new RuntimeException('El checkpoint privado no coincide con su fase.');
++            throw new StudioAvCheckpointCorrupt('El checkpoint privado no coincide con su fase.');
+         }
+     }
+ 
+     private function verifyPath(StudioAvWorkspace $workspace, string $relative, array $result, float $deadline): void
+     {
+-        $path = $this->path($workspace, $relative);
++        $path = app(StudioAvStorage::class)->checkedPath($workspace, $relative);
+         $stream = @fopen($path, 'rb');
+         if ($stream === false) {
++            if (! file_exists($path)) {
++                throw new StudioAvCheckpointCorrupt('Falta el archivo del checkpoint privado.');
++            }
+             throw new RuntimeException('Falta el archivo del checkpoint privado.');
+         }
+         $hash = hash_init('sha256');
+         $size = 0;
+         try {
+             if (fstat($stream)['size'] !== $result['size']) {
+-                throw new RuntimeException('El checkpoint privado cambió de tamaño.');
++                throw new StudioAvCheckpointCorrupt('El checkpoint privado cambió de tamaño.');
+             }
+             while (! feof($stream)) {
+                 if (microtime(true) >= $deadline) {
+@@ -105,12 +119,12 @@
+                 }
+                 $size += strlen($chunk);
+                 if ($size > $result['size']) {
+-                    throw new RuntimeException('El checkpoint privado creció durante su lectura.');
++                    throw new StudioAvCheckpointCorrupt('El checkpoint privado creció durante su lectura.');
+                 }
+                 hash_update($hash, $chunk);
+             }
+             if ($size !== $result['size'] || ! hash_equals($result['sha256'], hash_final($hash))) {
+-                throw new RuntimeException('El contenido del checkpoint privado fue alterado.');
++                throw new StudioAvCheckpointCorrupt('El contenido del checkpoint privado fue alterado.');
+             }
+         } finally {
+             fclose($stream);
+@@ -118,6 +132,11 @@
+     }
+ 
+     public function snapshot(StudioAvLease $lease): array
++    {
++        return $this->locked($lease, fn () => $this->copySnapshot($lease));
++    }
++
++    private function copySnapshot(StudioAvLease $lease): array
+     {
+         $deadline = microtime(true) + 85;
+         [$current, $workspace] = $this->context($lease);
+@@ -129,6 +148,9 @@
+         $source = $current->phase === 'asset'
+             ? app(StudioAssets::class)->owned($user, $brand, $current->item)
+             : app(StudioFonts::class)->owned($user, $brand, $current->item);
++        $pinned = StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'snapshot')
++            ->where('phase', $current->phase)->where('item', $current->item)->whereIn('status', ['accepted', 'invalid', 'released'])
++            ->whereNotNull('result')->orderBy('created_at')->orderBy('id')->first(['result'])?->result;
+         $reader = MediaChunkReader::for(new PublishMedia(id: $source->id, kind: 'file', mime: $source->mime ?? 'font/woff2',
+             url: '', disk: $source->disk, path: $source->path), timeout: 5);
+         if ($reader->size < 1 || $reader->size !== $source->size || $reader->size > min($current->reserved_bytes, 2 * 1024 ** 3)) {
+@@ -166,6 +188,10 @@
+             if ($current->phase === 'font' && (! is_string($source->sha256) || ! hash_equals($source->sha256, $digest))) {
+                 throw new RuntimeException('La fuente normalizada cambió desde su validación.');
+             }
++            if ($pinned !== null && (($pinned['size'] ?? null) !== $reader->size || ! is_string($pinned['sha256'] ?? null)
++                || ! hash_equals($pinned['sha256'], $digest))) {
++                throw new StudioRenderFailure('El recurso de esta revisión cambió. Inicia una exportación nueva para no mezclar contenido.');
++            }
+             // A cancellation/deletion during transport must not publish the finished snapshot.
+             $this->context($current);
+             $destination = $this->path($workspace, $relative, true);
+@@ -185,6 +211,13 @@
+                 throw new RuntimeException('La limpieza de la copia privada queda pendiente.');
+             }
+         }
++    }
++
++    private function locked(StudioAvLease $lease, Closure $callback): mixed
++    {
++        $current = StudioAvLease::findOrFail($lease->id);
++
++        return app(StudioAvStorage::class)->locked($current->workspace_id, $callback);
+     }
+ 
+     /** Reread journal identity; no caller-supplied path or model attributes are trusted. */
+--- a/app/Services/Studio/StudioAvStorage.php
++++ b/app/Services/Studio/StudioAvStorage.php
+@@ -0,0 +1,165 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use Closure;
++use FilesystemIterator;
++use Illuminate\Support\Facades\Storage;
++use RuntimeException;
++
++class StudioAvStorage
++{
++    private array $held = [];
++
++    public function locked(int $workspaceId, Closure $callback): mixed
++    {
++        $workspace = StudioAvWorkspace::withoutUserScope()->select(['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'active_until'])->findOrFail($workspaceId);
++        $file = $this->resolve(['studio-av-locks', $workspace->uuid.'.lock'], true);
++        $stream = @fopen($file, 'c+b');
++        if ($stream === false) {
++            throw new RuntimeException('No se pudo abrir el bloqueo privado del trabajo.');
++        }
++        $acquired = false;
++        try {
++            if (! flock($stream, LOCK_EX | LOCK_NB)) {
++                throw new StudioAvWorkspaceBusy('El espacio audiovisual está en uso; vuelve a intentarlo.');
++            }
++            $acquired = true;
++            $this->held[$workspaceId] = true;
++
++            return $callback($workspace);
++        } finally {
++            if ($acquired) {
++                unset($this->held[$workspaceId]);
++                flock($stream, LOCK_UN);
++            }
++            fclose($stream);
++        }
++    }
++
++    /** Called only while holding this workspace's filesystem lock. */
++    public function removeLease(StudioAvWorkspace $workspace, StudioAvLease $lease): void
++    {
++        $this->assertHeld($workspace);
++        if ($lease->workspace_id !== $workspace->id || ! in_array($lease->status, ['abandoned', 'failed', 'invalid'], true) || $lease->expires_at->isFuture()) {
++            throw new RuntimeException('La asignación todavía no admite limpieza.');
++        }
++        $deadline = microtime(true) + 30;
++        $count = 0;
++        foreach (['imports', 'audio-sources', 'segments', 'outputs'] as $folder) {
++            $this->remove($this->workspacePath($workspace, $folder.'/'.$lease->id), $deadline, $count);
++        }
++        foreach (['json', 'cancel', 'json.part'] as $extension) {
++            $this->remove($this->workspacePath($workspace, 'work/'.$lease->id.'.'.$extension), $deadline, $count);
++        }
++        $root = $this->workspacePath($workspace);
++        if (is_dir($root)) {
++            $pattern = '/^'.preg_quote($lease->id, '/').'-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(video|audio)\.txt$/D';
++            foreach (new FilesystemIterator($root, FilesystemIterator::SKIP_DOTS) as $entry) {
++                if (++$count > 65536 || microtime(true) >= $deadline) {
++                    throw new RuntimeException('La limpieza parcial continúa pendiente; vuelve a intentarlo.');
++                }
++                if (preg_match($pattern, $entry->getFilename())) {
++                    $this->remove($entry->getPathname(), $deadline, $count);
++                }
++            }
++        }
++        if ($lease->status === 'invalid' && in_array($lease->phase, ['asset', 'font'], true)) {
++            $relative = $lease->phase === 'asset' ? 'assets/'.$lease->item.'.bin' : 'fonts/'.$lease->item.'.woff2';
++            $this->remove($this->workspacePath($workspace, $relative), $deadline, $count);
++        }
++    }
++
++    /** The owner/export may already be gone; use only the surviving allocation journal. */
++    public function removeWorkspace(StudioAvWorkspace $workspace): void
++    {
++        $this->assertHeld($workspace);
++        $count = 0;
++        $this->remove($this->workspacePath($workspace), microtime(true) + 30, $count);
++    }
++
++    private function workspacePath(StudioAvWorkspace $workspace, string $relative = ''): string
++    {
++        return $this->resolve(array_merge(['studio-exports', (string) $workspace->user_id, (string) $workspace->export_id, $workspace->uuid],
++            $relative === '' ? [] : explode('/', $relative)));
++    }
++
++    /** Validate every existing ancestor even when the expected checkpoint itself has disappeared. */
++    public function checkedPath(StudioAvWorkspace $workspace, string $relative): string
++    {
++        return $this->workspacePath($workspace, $relative);
++    }
++
++    private function resolve(array $parts, bool $create = false): string
++    {
++        $base = rtrim(Storage::disk('local')->path(''), '/\\');
++        if (is_link($base) || ! is_dir($base) || ($path = realpath($base)) === false) {
++            throw new RuntimeException('La raíz privada audiovisual no está disponible.');
++        }
++        foreach ($parts as $index => $part) {
++            if (! is_string($part) || ! preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/D', $part) || in_array($part, ['.', '..'], true)) {
++                throw new RuntimeException('La ruta del journal audiovisual no es válida.');
++            }
++            $path .= DIRECTORY_SEPARATOR.$part;
++            clearstatcache(true, $path);
++            if (is_link($path)) {
++                throw new RuntimeException('La limpieza no admite enlaces de archivos o directorios.');
++            }
++            if ($index < count($parts) - 1) {
++                if (! file_exists($path) && $create && ! @mkdir($path, 0700) && ! is_dir($path)) {
++                    throw new RuntimeException('No se pudo crear el directorio de bloqueo privado.');
++                }
++                if (file_exists($path) && ! is_dir($path)) {
++                    throw new RuntimeException('Un componente del journal no es un directorio.');
++                }
++                if (is_dir($path) && (! is_readable($path) || (PHP_OS_FAMILY !== 'Windows' && ! is_executable($path)))) {
++                    throw new RuntimeException('No se puede comprobar el contenido del directorio privado.');
++                }
++            }
++        }
++
++        return $path;
++    }
++
++    private function assertHeld(StudioAvWorkspace $workspace): void
++    {
++        if (! ($this->held[$workspace->id] ?? false)) {
++            throw new StudioAvWorkspaceBusy('La limpieza necesita el bloqueo del espacio audiovisual.');
++        }
++    }
++
++    private function remove(string $path, float $deadline, int &$count, int $depth = 0): void
++    {
++        if (++$count > 65536 || $depth > 32 || microtime(true) >= $deadline) {
++            throw new RuntimeException('La limpieza parcial continúa pendiente; vuelve a intentarlo.');
++        }
++        clearstatcache(true, $path);
++        if (is_link($path)) {
++            throw new RuntimeException('La limpieza no admite enlaces de archivos o directorios.');
++        }
++        $stat = @lstat($path);
++        if ($stat === false) {
++            if (file_exists($path)) {
++                throw new RuntimeException('No se pudo consultar un archivo privado.');
++            }
++
++            return;
++        }
++        if (is_dir($path)) {
++            foreach (new FilesystemIterator($path, FilesystemIterator::SKIP_DOTS) as $entry) {
++                $this->remove($entry->getPathname(), $deadline, $count, $depth + 1);
++            }
++            if (! @rmdir($path)) {
++                throw new RuntimeException('No se pudo terminar la limpieza del directorio privado.');
++            }
++        } elseif (is_file($path)) {
++            if (! @unlink($path)) {
++                throw new RuntimeException('No se pudo retirar un archivo privado.');
++            }
++        } else {
++            throw new RuntimeException('El journal contiene un tipo de archivo no compatible.');
++        }
++    }
++}
+--- a/app/Services/Studio/StudioAvCleanup.php
++++ b/app/Services/Studio/StudioAvCleanup.php
+@@ -0,0 +1,88 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use Illuminate\Support\Facades\DB;
++
++class StudioAvCleanup
++{
++    public function __construct(private readonly StudioAvStorage $storage) {}
++
++    public function lease(string $id): bool
++    {
++        $lease = StudioAvLease::find($id);
++        if (! $lease) {
++            return false;
++        }
++        try {
++            return $this->storage->locked($lease->workspace_id, function (StudioAvWorkspace $workspace) use ($id) {
++                $candidate = DB::transaction(function () use ($workspace, $id) {
++                    StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++                    $current = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($id)->lockForUpdate()->first();
++                    if (! $current || $current->expires_at->isFuture()) {
++                        return null;
++                    }
++                    if ($current->status === 'running') {
++                        $current->update(['status' => 'abandoned']);
++                    }
++
++                    return in_array($current->status, ['abandoned', 'failed', 'invalid'], true) ? $current : null;
++                });
++                if (! $candidate) {
++                    return false;
++                }
++                $this->storage->removeLease($workspace, $candidate);
++
++                return DB::transaction(function () use ($workspace, $candidate) {
++                    StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++                    $current = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($candidate->id)->lockForUpdate()->firstOrFail();
++                    if ($current->status !== $candidate->status) {
++                        return false;
++                    }
++                    $current->update(['status' => 'released', 'actual_bytes' => 0]);
++
++                    return true;
++                });
++            });
++        } catch (StudioAvWorkspaceBusy) {
++            return false;
++        }
++    }
++
++    public function orphan(int $id): bool
++    {
++        if (! StudioAvWorkspace::withoutUserScope()->whereKey($id)->exists()) {
++            return false;
++        }
++        try {
++            return $this->storage->locked($id, function (StudioAvWorkspace $workspace) {
++                $eligible = DB::transaction(function () use ($workspace) {
++                    $current = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++
++                    return ! DesignExport::withoutUserScope()->whereKey($current->export_id)->exists()
++                        && ! $current->active_until->isFuture()
++                        && ! StudioAvLease::where('workspace_id', $current->id)->where('expires_at', '>', now())->exists();
++                });
++                if (! $eligible) {
++                    return false;
++                }
++                $this->storage->removeWorkspace($workspace);
++
++                return DB::transaction(function () use ($workspace) {
++                    $current = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++                    if (DesignExport::withoutUserScope()->whereKey($current->export_id)->exists()) {
++                        return false;
++                    }
++                    $current->delete();
++
++                    return true;
++                });
++            });
++        } catch (StudioAvWorkspaceBusy) {
++            return false;
++        }
++    }
++}
+--- a/app/Services/Studio/StudioAvWorkspaceBusy.php
++++ b/app/Services/Studio/StudioAvWorkspaceBusy.php
+@@ -0,0 +1,7 @@
++<?php
++
++namespace App\Services\Studio;
++
++use RuntimeException;
++
++class StudioAvWorkspaceBusy extends RuntimeException {}
+--- a/app/Services/Studio/StudioAvCheckpointCorrupt.php
++++ b/app/Services/Studio/StudioAvCheckpointCorrupt.php
+@@ -0,0 +1,7 @@
++<?php
++
++namespace App\Services\Studio;
++
++use RuntimeException;
++
++class StudioAvCheckpointCorrupt extends RuntimeException {}
+--- a/tests/Feature/Studio/StudioAvCleanupTest.php
++++ b/tests/Feature/Studio/StudioAvCleanupTest.php
+@@ -0,0 +1,275 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use App\Services\Studio\StudioAssets;
++use App\Services\Studio\StudioAvCheckpointCorrupt;
++use App\Services\Studio\StudioAvCleanup;
++use App\Services\Studio\StudioAvFiles;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvStorage;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use Symfony\Component\Process\Process;
++
++beforeEach(function () {
++    Storage::fake('local');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $bytes = 'private snapshot';
++    Storage::disk('local')->put('source.bin', $bytes);
++    $this->media = MediaAsset::factory()->for($this->user)->create(['disk' => 'local', 'path' => 'source.bin',
++        'size' => strlen($bytes), 'declared_size' => strlen($bytes), 'kind' => 'image', 'mime' => 'image/png', 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $this->media->id);
++    $document = ['schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'AV cleanup', 'document' => $document]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $this->state = app(StudioAvState::class);
++    $this->export = $this->state->initialize($this->user, $export);
++    $this->plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 12, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [$this->media->id], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->generation = $this->export->render_state['generation'];
++    $this->state->accept($this->state->claim($export->id, $this->generation), $this->plan);
++    $this->lease = $this->state->claim($export->id, $this->generation, strlen($bytes));
++    $this->result = app(StudioAvFiles::class)->snapshot($this->lease);
++    $this->workspace = StudioAvWorkspace::withoutUserScope()->findOrFail($this->export->render_state['allocation_id']);
++    $this->root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->workspace->uuid;
++});
++
++test('AV cleanup releases abandoned reservations only after their private files are deleted', function () {
++    $cleanup = app(StudioAvCleanup::class);
++    expect($cleanup->lease($this->lease->id))->toBeFalse();
++    Storage::disk('local')->assertExists($this->root.'/'.$this->result['file']);
++    $this->state->cancel($this->user, $this->export);
++    expect($cleanup->lease($this->lease->id))->toBeFalse();
++    $this->travel(181)->seconds();
++    expect($cleanup->lease($this->lease->id))->toBeTrue();
++    expect($this->lease->refresh()->status)->toBe('released')->and($this->lease->actual_bytes)->toBe(0);
++    Storage::disk('local')->assertMissing($this->root.'/'.$this->result['file']);
++    Storage::disk('local')->assertExists('source.bin');
++    expect($cleanup->lease($this->lease->id))->toBeFalse();
++});
++
++test('AV cleanup removes concat controls from its own lease while preserving controls of other deliveries', function () {
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    $own = $this->root.'/'.$this->lease->id.'-'.Str::uuid().'.video.txt';
++    $other = $this->root.'/'.Str::uuid().'-'.Str::uuid().'.audio.txt';
++    Storage::disk('local')->put($own, 'private concat input');
++    Storage::disk('local')->put($other, 'another delivery');
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++    Storage::disk('local')->assertMissing($own);
++    Storage::disk('local')->assertExists($other);
++});
++
++test('AV orphan cleanup preserves live allocations then removes only the vanished export workspace', function () {
++    $cleanup = app(StudioAvCleanup::class);
++    expect($cleanup->orphan($this->workspace->id))->toBeFalse();
++    $this->brand->delete();
++    expect($cleanup->orphan($this->workspace->id))->toBeFalse();
++    $this->travel(181)->seconds();
++    Storage::disk('local')->put('studio-exports/unrelated/keep.txt', 'preserved');
++    expect($cleanup->orphan($this->workspace->id))->toBeTrue();
++    expect(StudioAvWorkspace::withoutUserScope()->find($this->workspace->id))->toBeNull();
++    expect(StudioAvLease::find($this->lease->id))->toBeNull();
++    expect(Storage::disk('local')->exists($this->root))->toBeFalse();
++    Storage::disk('local')->assertExists('studio-exports/unrelated/keep.txt');
++    Storage::disk('local')->assertExists('source.bin');
++});
++
++test('AV filesystem mutex refuses a second holder and protects snapshot readers from cleanup', function () {
++    $storage = app(StudioAvStorage::class);
++    expect(fn () => $storage->locked($this->workspace->id, fn () => $storage->locked($this->workspace->id, fn () => true)))
++        ->toThrow(RuntimeException::class);
++    $this->state->accept($this->lease, $this->result, $this->result['size']);
++    $storage->locked($this->workspace->id, function () {
++        expect(fn () => app(StudioAvFiles::class)->verify($this->lease))->toThrow(RuntimeException::class);
++    });
++    expect(app(StudioAvFiles::class)->verify($this->lease))->toBe($this->result);
++});
++
++test('AV corrupt checkpoint recovery blocks every generation until physical retirement then restores the source', function () {
++    $files = app(StudioAvFiles::class);
++    $this->state->accept($this->lease, $this->result, $this->result['size']);
++    $files->publishSource($this->lease);
++    Storage::disk('local')->put($this->root.'/'.$this->result['file'], str_repeat('x', $this->result['size']));
++    $this->state->cancel($this->user, $this->export);
++    $retry = $this->state->retry($this->user, $this->export);
++    $generation = $retry->render_state['generation'];
++    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
++    $verification = $this->state->claim($retry->id, $generation);
++    expect($verification->phase)->toBe('verify');
++    expect(fn () => $files->verify($this->lease))->toThrow(RuntimeException::class);
++    $position = $retry->refresh()->render_state['position'];
++    expect($this->state->rejectCheckpoint($verification))->toBeTrue();
++    expect($this->lease->refresh()->status)->toBe('invalid');
++    expect($retry->refresh()->render_state['position'])->toBe($position);
++    expect($this->state->task($retry))->toBe(['phase' => 'asset', 'index' => $this->media->id]);
++    expect($this->state->claim($retry->id, $generation, $this->result['size']))->toBeNull();
++    expect($this->state->rejectCheckpoint($verification))->toBeFalse();
++    // A second explicit retry must not bypass the source-retirement barrier.
++    $this->state->cancel($this->user, $retry);
++    $retry = $this->state->retry($this->user, $retry);
++    $generation = $retry->render_state['generation'];
++    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
++    expect($this->state->claim($retry->id, $generation, $this->result['size']))->toBeNull();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++    Storage::disk('local')->assertMissing($this->root.'/assets/'.$this->media->id.'.bin');
++    $replacement = $this->state->claim($retry->id, $generation, $this->result['size']);
++    $result = $files->snapshot($replacement);
++    expect($result['sha256'])->toBe($this->result['sha256']);
++    expect($this->state->accept($replacement, $result, $result['size']))->toBeTrue();
++    $files->publishSource($replacement);
++    expect(Storage::disk('local')->get($this->root.'/assets/'.$this->media->id.'.bin'))->toBe('private snapshot');
++});
++
++test('AV corruption has a distinct failure from a busy workspace so only damaged checkpoints are retired', function () {
++    $this->state->accept($this->lease, $this->result, $this->result['size']);
++    Storage::disk('local')->put($this->root.'/'.$this->result['file'], str_repeat('x', $this->result['size']));
++    expect(fn () => app(StudioAvFiles::class)->verify($this->lease))->toThrow(StudioAvCheckpointCorrupt::class);
++});
++
++test('AV recovery cannot mix a changed original resource with segments already pinned to its previous bytes', function () {
++    $this->state->accept($this->lease, $this->result, $this->result['size']);
++    $this->state->cancel($this->user, $this->export);
++    $retry = $this->state->retry($this->user, $this->export);
++    $generation = $retry->render_state['generation'];
++    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
++    $verification = $this->state->claim($retry->id, $generation);
++    expect($this->state->rejectCheckpoint($verification))->toBeTrue();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++    Storage::disk('local')->put('source.bin', str_repeat('z', $this->result['size']));
++    $replacement = $this->state->claim($retry->id, $generation, $this->result['size']);
++    expect(fn () => app(StudioAvFiles::class)->snapshot($replacement))->toThrow(RuntimeException::class);
++    expect($replacement->refresh()->status)->toBe('running');
++    Storage::disk('local')->assertMissing($this->root.'/imports/'.$replacement->id.'/asset-'.$this->media->id.'.bin');
++});
++
++test('AV cleanup preserves accepted inputs and cannot reclaim a workspace whose export still exists', function () {
++    $this->state->accept($this->lease, $this->result, $this->result['size']);
++    app(StudioAvFiles::class)->publishSource($this->lease);
++    $this->travel(181)->seconds();
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeFalse();
++    expect(app(StudioAvCleanup::class)->orphan($this->workspace->id))->toBeFalse();
++    expect($this->lease->refresh()->status)->toBe('accepted');
++    expect(app(StudioAvFiles::class)->verify($this->lease))->toBe($this->result);
++    Storage::disk('local')->assertExists($this->root.'/assets/'.$this->media->id.'.bin');
++});
++
++test('AV source pin lookup uses resource-specific index keys rather than scanning the snapshot category', function () {
++    $this->state->accept($this->lease, $this->result, $this->result['size']);
++    $this->state->cancel($this->user, $this->export);
++    $retry = $this->state->retry($this->user, $this->export);
++    $generation = $retry->render_state['generation'];
++    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
++    $verify = $this->state->claim($retry->id, $generation);
++    $this->state->rejectCheckpoint($verify);
++    $this->travel(181)->seconds();
++    app(StudioAvCleanup::class)->lease($this->lease->id);
++    $replacement = $this->state->claim($retry->id, $generation, $this->result['size']);
++    DB::enableQueryLog();
++    try {
++        app(StudioAvFiles::class)->snapshot($replacement);
++        $query = collect(DB::getQueryLog())->first(fn ($q) => str_contains($q['query'], 'studio_av_leases') && str_contains($q['query'], '"result" is not null'));
++        expect($query)->not->toBeNull();
++        $plan = DB::select('EXPLAIN QUERY PLAN '.$query['query'], $query['bindings']);
++        $details = implode(' ', array_map(fn ($row) => $row->detail, $plan));
++        expect($details)->toContain('workspace_id=? AND phase=? AND item=?');
++    } finally {
++        DB::disableQueryLog();
++        DB::flushQueryLog();
++    }
++});
++
++test('AV cleanup refuses a busy workspace then reclaims an expired running delivery without accepting its late reply', function () {
++    $this->travel(181)->seconds();
++    app(StudioAvStorage::class)->locked($this->workspace->id, function () {
++        expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeFalse();
++        expect($this->lease->refresh()->status)->toBe('running');
++        Storage::disk('local')->assertExists($this->root.'/'.$this->result['file']);
++    });
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++    expect($this->state->accept($this->lease, $this->result, $this->result['size']))->toBeFalse();
++    expect($this->state->claim($this->export->id, $this->generation, $this->result['size']))->not->toBeNull();
++});
++
++test('AV cleanup retains accounting after an I/O error and never holds database locks across file removal', function () {
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    $storage = Mockery::mock(StudioAvStorage::class)->makePartial();
++    $storage->shouldReceive('removeLease')->once()->andReturnUsing(function ($workspace, $lease) {
++        expect(DB::transactionLevel())->toBe(1); // RefreshDatabase owns the outer test transaction; no service transaction remains.
++        expect($lease->refresh()->status)->toBe('abandoned')->and($lease->reserved_bytes)->toBe($this->result['size']);
++        throw new RuntimeException('simulated local I/O failure');
++    });
++    $this->app->instance(StudioAvStorage::class, $storage);
++    expect(fn () => app(StudioAvCleanup::class)->lease($this->lease->id))->toThrow(RuntimeException::class, 'simulated local I/O failure');
++    expect($this->lease->refresh()->status)->toBe('abandoned')->and($this->lease->actual_bytes)->toBeNull();
++    Storage::disk('local')->assertExists($this->root.'/'.$this->result['file']);
++    $this->app->forgetInstance(StudioAvStorage::class);
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++});
++
++test('AV workspace lock is enforced by a second PHP process and remains the same file after release', function () {
++    $path = Storage::disk('local')->path('studio-av-locks/'.$this->workspace->uuid.'.lock');
++    $code = '$h=fopen($argv[1],"c+b");echo flock($h,LOCK_EX|LOCK_NB)?"acquired":"busy";fclose($h);';
++    app(StudioAvStorage::class)->locked($this->workspace->id, function () use ($path, $code) {
++        $process = new Process([PHP_BINARY, '-r', $code, $path]);
++        $process->mustRun();
++        expect($process->getOutput())->toBe('busy');
++    });
++    expect(is_file($path))->toBeTrue();
++    $process = new Process([PHP_BINARY, '-r', $code, $path]);
++    $process->mustRun();
++    expect($process->getOutput())->toBe('acquired');
++});
++
++test('AV a refused nested filesystem lock cannot revoke the original holders cleanup capability', function () {
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    $storage = app(StudioAvStorage::class);
++    expect(fn () => $storage->removeLease($this->workspace, $this->lease->refresh()))->toThrow(RuntimeException::class);
++    $storage->locked($this->workspace->id, function ($workspace) use ($storage) {
++        expect(fn () => $storage->locked($workspace->id, fn () => true))->toThrow(RuntimeException::class);
++        $storage->removeLease($workspace, $this->lease->refresh());
++        Storage::disk('local')->assertMissing($this->root.'/'.$this->result['file']);
++    });
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++});
++
++test('AV cleanup refuses linked descendants and retains the journal until a safe retry completes', function () {
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    Storage::disk('local')->put('outside/keep.txt', 'do not delete');
++    $target = Storage::disk('local')->path('outside');
++    $link = Storage::disk('local')->path($this->root.'/imports/'.$this->lease->id.'/foreign');
++    $created = @symlink($target, $link);
++    if (! $created && PHP_OS_FAMILY === 'Windows') {
++        $process = new Process(['cmd.exe', '/c', 'mklink', '/J', str_replace('/', '\\', $link), str_replace('/', '\\', $target)]);
++        $process->run();
++        $created = $process->isSuccessful();
++    }
++    if (! $created) {
++        $this->markTestSkipped('Host cannot create directory links.');
++    }
++    try {
++        expect(fn () => app(StudioAvCleanup::class)->lease($this->lease->id))->toThrow(RuntimeException::class);
++        expect($this->lease->refresh()->status)->toBe('abandoned')->and($this->lease->actual_bytes)->toBeNull();
++        expect(Storage::disk('local')->get('outside/keep.txt'))->toBe('do not delete');
++    } finally {
++        PHP_OS_FAMILY === 'Windows' ? rmdir($link) : unlink($link);
++    }
++    expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
++    Storage::disk('local')->assertExists('outside/keep.txt');
++});
+--- a/scripts/studio/av-finalize.mjs
++++ b/scripts/studio/av-finalize.mjs
+@@ -22,7 +22,9 @@
+     if (!['mp4', 'gif'].includes(format) || !Array.isArray(segments) || segments.length !== plan.segments.length) throw new Error('Selecciona todos los tramos ordenados y un formato admitido.');
+     const folder = namespace ? await outputFolder(directory, 'outputs', namespace) : directory;
+     const id = randomUUID(), temporary = path.join(folder, `${id}.part.${format}`), target = path.join(folder, `project.${format}`);
+-    const videoList = path.join(directory, `${id}.video.txt`), audioList = path.join(directory, `${id}.audio.txt`);
++    // Keep concat paths relative to the workspace (-safe 1) and attributable after a killed process.
++    const control = namespace ? `${namespace}-${id}` : id;
++    const videoList = path.join(directory, `${control}.video.txt`), audioList = path.join(directory, `${control}.audio.txt`);
+     const render = audiovisualRenderOptions(plan.document, plan.options), width = render.paddedWidth, height = render.paddedHeight;
+     try {
+         const videos = [], audio = [];
+--- a/tests/frontend/studio-audiovisual-checkpoints.test.mjs
++++ b/tests/frontend/studio-audiovisual-checkpoints.test.mjs
+@@ -78,6 +78,22 @@
+     }
+ });
+ 
++test('assembly concat controls remain attributable to their lease after an interrupted process', async () => {
++    const compiled = plan('#0055ff'), namespace = randomUUID();
++    const video = await renderVisualSegment({ directory, plan: compiled, segment: compiled.segments[0], namespace: randomUUID() });
++    const profile = await prepareAudioSource({ directory, asset, namespace: randomUUID() });
++    const audio = await mixAudioSegment({ directory, plan: compiled, segment: compiled.segments[0], audioSources: [profile], namespace: randomUUID() });
++    const writeFile = fs.writeFile, written = [];
++    fs.writeFile = async function (file, ...args) {
++        if (/\.(?:video|audio)\.txt$/.test(String(file))) written.push(path.basename(file));
++        return writeFile.call(this, file, ...args);
++    };
++    try { await assembleProject({ directory, plan: compiled, segments: [{ video, audio }], format: 'mp4', namespace }); }
++    finally { fs.writeFile = writeFile; }
++    assert.equal(written.length, 2);
++    for (const name of written) assert.ok(name.startsWith(namespace + '-'), `Untraceable concat control: ${name}`);
++});
++
+ test('a different lease cleaning its temporary during PCM accounting cannot abort valid normalisation', async () => {
+     const other = randomUUID(), current = randomUUID();
+     const folder = path.join(directory, 'audio-sources', other), temporary = path.join(folder, `${randomUUID()}.part.pcm`);
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -68,6 +68,14 @@
+ 
+ Los parciales y namespaces no referenciados se eliminan solo después de comprobar propietario, raíz canónica y ausencia de lease vivo. Si una marca/usuario se borra durante la ejecución, no se publica nada; el limpiador conserva una vía rastreable para esos directorios aunque la FK haya eliminado la fila. Ninguna limpieza sigue enlaces ni acepta un path enviado por el usuario.
+ 
++La limpieza interna toma un bloqueo de archivo exclusivo por workspace, fuera del directorio que puede borrar. No caduca mientras vive el proceso y se libera al cerrar o morir; los snapshots, promociones y lecturas físicas comparten ese bloqueo. Un proceso que no lo obtiene falla de forma explícita, sin esperar. Así un limpiador no libera bytes todavía abiertos por otra operación. Se conserva el pequeño archivo de bloqueo para que dos procesos nunca bloqueen inodos distintos por recreación del mismo nombre.
++
++Los controles concat del modo administrado se llaman `{lease}-{uuid}.video.txt` y `{lease}-{uuid}.audio.txt` en la raíz privada del workspace. Mantienen entradas relativas y `-safe 1`, sin rutas del consumidor; el prefijo permite retirarlos después de un kill sin adivinar a qué lease pertenecían. El modo interno antiguo sin namespace conserva sus nombres anteriores. La limpieza no borra controles de otros leases.
++
++Un lease fallido/abandonado/vencido conserva su reserva hasta borrar sus namespaces y confirmar el resultado; los aceptados no se limpian como basura. Una verificación que detecta corrupción invalida su origen y repone el paso original sin avanzar el cursor. Mientras exista ese origen inválido sin limpiar, ninguna generación puede reclamar otro paso del mismo tipo/índice. La limpieza retira también su input fijo si es un asset/font, bajo el mismo bloqueo, y solo entonces marca released y permite rehacerlo. La eliminación completa del workspace exige exportación inexistente y vencimiento de todas las asignaciones. Es una operación local acotada, con journal conservado ante errores o enlaces; no se mantienen locks de BD durante recorridos/borrados de archivos. Este bloque aún no está conectado al scheduler de recuperación ni al flujo público.
++
++El hash de un origen ya aceptado sigue fijado aunque se retire su copia corrupta. El journal conserva la metadata original al liberar bytes. La nueva copia debe coincidir con ese hash y tamaño; si también cambió el archivo de la biblioteca, se falla de forma explícita y se exige una exportación nueva. No se mezclan segmentos válidos del contenido anterior con bytes nuevos del mismo ID de recurso.
++
+ ## Superficie pública prevista
+ 
+ Web y API comparten inicio/consulta/cancelación/reintento y los mismos servicios. El contrato OpenAPI se ampliará antes de implementar sus handlers. Las herramientas MCP conservan el inicio de exportación y añaden gestión del trabajo con abilities de lectura/escritura según acción. Las rutas verifican propietario/marca incluso si el ID de diseño/exportación existe.
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -39,6 +39,7 @@
+             $table->timestamp('expires_at')->index();
+             $table->timestamps();
+             $table->index(['workspace_id', 'category', 'status']);
++            $table->index(['workspace_id', 'phase', 'item', 'created_at', 'id'], 'studio_av_lease_source_pin');
+         });
+         Schema::create('studio_av_steps', function (Blueprint $table) {
+             $table->id();

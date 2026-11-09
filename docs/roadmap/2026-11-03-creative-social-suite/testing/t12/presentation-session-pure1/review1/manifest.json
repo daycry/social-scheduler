@@ -1,0 +1,44 @@
+{
+  "scope": "P1 presentation session and tests only; new files versus /dev/null, not imported into Editor, no native/UI acceptance and no task closed.",
+  "files": {
+    "resources/js/Studio/presentation.js": "da13bf7c2765d5a658533da046ad5217c533840efe94276f523641ffc2b60b54",
+    "tests/frontend/studio-presentation.test.mjs": "408e467d36efa366d6ba3d3149c3857e4076480534ed3666a487bb0ca36763b4",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-presentation-session-contract.md": "478e402fa902770af31f8ebd81bfc5be388f360cd39612274074d802b15d5ef1",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md": "3c7fcae14329fbab1e6a609bf2fac0cd5c48bb37afdc83bd5aa45ceeb1df92f7",
+    "docs/roadmap/2026-11-03-creative-social-suite/improvement-plan.md": "3d6e34df94f2ad61b0ab346f2469e07c91d52b379fca7dc8828fbbe155c49106",
+    "docs/roadmap/2026-11-03-creative-social-suite/spec.md": "c67273767127151edf733857765c69be2e0e950ef6e96751dd6c3b46b25fefcf",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-reference-refresh-2026-11-07.md": "cfe6d48c45b830532b964270fdd721412ce3df8ae0d41badcad68023af83eb48",
+    "CLAUDE.md": "e8e8efb2412a670d5cf381eddca81de0c1cc6d2c8e321153410df9225f81836d"
+  },
+  "changed_files": [
+    "resources/js/Studio/presentation.js",
+    "tests/frontend/studio-presentation.test.mjs"
+  ],
+  "context_only": [
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-presentation-session-contract.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/improvement-plan.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/spec.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-reference-refresh-2026-11-07.md",
+    "CLAUDE.md"
+  ],
+  "protected_dependencies": {
+    "resources/js/Studio/presentation.js": "da13bf7c2765d5a658533da046ad5217c533840efe94276f523641ffc2b60b54",
+    "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+    "resources/js/Studio/timeline.js": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+    "resources/js/Studio/captions.js": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5",
+    "resources/js/Studio/chart-spec.js": "03812080e151fb76dfe91eb0c1e939927c149e3f4cfc6f790f8df8d5cc2a5cc3",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3"
+  },
+  "evidence": {
+    "evidence/green-initial.txt": "18e354fe0fa7b9a747210fac01171b6accefbd9f0c7b5d21b3a35e046b6e77d2",
+    "evidence/green-neighbors.txt": "4cf297d196de46793f7ef2f072a188729fb8b6b7141e00f3c1eb40a47d0013b9",
+    "evidence/red-initial.txt": "84bee855b3d4ba7f9f1b8b62eb7eea6803b4db4bb1f27bb95befb2ed8b517929",
+    "evidence/SOURCE_DONE.json": "3d7c53157a68d9f9ed4ed6bab1eb039e48cbe46425784c1900cb4ff7ef35b6c0"
+  },
+  "build": "Unchanged build7; P1 not imported/built, no compiled P1 claim",
+  "native_cases": 0,
+  "global_acceptance": false
+}

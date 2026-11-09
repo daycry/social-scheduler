@@ -1,5 +1,8 @@
+import { normalizeTimelineDocument } from './timeline.js';
+import { normalizeChartSpec } from './chart-spec.js';
+
 /** The persisted document is application data, never executable Fabric JSON. */
-export const ELEMENT_TYPES = Object.freeze(['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group']);
+export const ELEMENT_TYPES = Object.freeze(['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart']);
 export const DOCUMENT_LIMITS = Object.freeze({ bytes: 2 * 1024 * 1024, pages: 100, elements: 500, depth: 8, minSize: 40, maxSize: 8000 });
 const copy = value => JSON.parse(JSON.stringify(value));
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value) && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -35,6 +38,7 @@ export function newElement(type = 'rect', patch = {}) {
     if (type === 'path') element.path = [['M', 0, 0], ['L', 260, 180]];
     if (type === 'image' || type === 'video') Object.assign(element, { asset_id: null, cropX: 0, cropY: 0, filters: {} });
     if (type === 'video') Object.assign(element, { trimStart: 0, trimEnd: null, volume: 1, muted: false });
+    if (type === 'chart') Object.assign(element, { name: 'Gráfico', width: 800, height: 500 });
     return Object.assign(element, patch);
 }
 
@@ -130,9 +134,9 @@ export function normalizeFill(value, path = 'color') {
 
 const commonKeys = ['id', 'type', 'name', 'x', 'y', 'width', 'height', 'scaleX', 'scaleY', 'rotation', 'skewX', 'skewY', 'opacity', 'locked', 'visible', 'fill', 'stroke', 'strokeWidth', 'flipX', 'flipY', 'shadow'];
 const typeKeys = {
-    text: ['text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign', 'underline', 'lineHeight', 'charSpacing'],
-    rect: ['radius'], ellipse: [], triangle: [], line: ['x1', 'y1', 'x2', 'y2'], path: ['path'],
-    image: ['asset_id', 'cropX', 'cropY', 'filters'], video: ['asset_id', 'cropX', 'cropY', 'filters', 'trimStart', 'trimEnd', 'volume', 'muted'], group: ['elements'],
+    text: ['text', 'fontFamily', 'font_id', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign', 'underline', 'lineHeight', 'charSpacing'],
+    rect: ['radius'], ellipse: [], triangle: [], line: ['x1', 'y1', 'x2', 'y2'], path: ['path'], chart: ['chart'],
+    image: ['asset_id', 'cropX', 'cropY', 'filters', 'mask'], video: ['asset_id', 'cropX', 'cropY', 'filters', 'trimStart', 'trimEnd', 'volume', 'muted'], group: ['elements'],
 };
 
 function normalizeElement(value, path, ids, count, depth) {
@@ -143,7 +147,7 @@ function normalizeElement(value, path, ids, count, depth) {
     const result = {
         id: identity(value.id, `${path}.id`, ids), type, name: text(value.name, 255, `${path}.name`, defaults.name),
         x: number(value.x, -32000, 32000, `${path}.x`, defaults.x), y: number(value.y, -32000, 32000, `${path}.y`, defaults.y),
-        width: number(value.width, 0, 32000, `${path}.width`, defaults.width), height: number(value.height, 0, 32000, `${path}.height`, defaults.height),
+        width: number(value.width, type === 'chart' ? 160 : 0, type === 'chart' ? 8000 : 32000, `${path}.width`, defaults.width), height: number(value.height, type === 'chart' ? 160 : 0, type === 'chart' ? 8000 : 32000, `${path}.height`, defaults.height),
         scaleX: number(value.scaleX, 0.01, 100, `${path}.scaleX`, 1), scaleY: number(value.scaleY, 0.01, 100, `${path}.scaleY`, 1),
         rotation: number(value.rotation, -360, 360, `${path}.rotation`, 0), skewX: number(value.skewX, -89, 89, `${path}.skewX`, 0), skewY: number(value.skewY, -89, 89, `${path}.skewY`, 0),
         opacity: number(value.opacity, 0, 1, `${path}.opacity`, 1), locked: bool(value.locked, `${path}.locked`), visible: bool(value.visible, `${path}.visible`, true),
@@ -156,8 +160,16 @@ function normalizeElement(value, path, ids, count, depth) {
     }
     if (type === 'text') {
         const family = text(value.fontFamily, 100, `${path}.fontFamily`, 'Arial');
-        if (!family || /[;{}<>\\]|url\s*\(/i.test(family)) fail(`${path}.fontFamily`, 'familia tipográfica inválida.');
+        if (!/^[\p{L}\p{N}][\p{L}\p{N} .,_-]{0,99}$/u.test(family) || /[\r\n]/.test(family)) fail(`${path}.fontFamily`, 'familia tipográfica inválida.');
+        if (/(?:^|,)\s*StudioFont_/i.test(family)) fail(`${path}.fontFamily`, 'la familia privada interna está reservada.');
         Object.assign(result, { text: text(value.text, 10000, `${path}.text`, ''), fontFamily: family, fontSize: number(value.fontSize, 1, 1000, `${path}.fontSize`, 64), fontWeight: oneOf(value.fontWeight, ['normal', 'bold'], `${path}.fontWeight`, 'normal'), fontStyle: oneOf(value.fontStyle, ['normal', 'italic'], `${path}.fontStyle`, 'normal'), textAlign: oneOf(value.textAlign, ['left', 'center', 'right', 'justify'], `${path}.textAlign`, 'left'), underline: bool(value.underline, `${path}.underline`), lineHeight: number(value.lineHeight, 0.5, 5, `${path}.lineHeight`, 1.2), charSpacing: number(value.charSpacing, -200, 2000, `${path}.charSpacing`, 0) });
+        if (value.font_id != null) result.font_id = integer(value.font_id, 1, Number.MAX_SAFE_INTEGER, `${path}.font_id`);
+    }
+    if (type === 'chart') {
+        const descriptor = Object.getOwnPropertyDescriptor(value, 'chart');
+        if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) fail(`${path}.chart`, 'configuración propia requerida.');
+        try { result.chart = normalizeChartSpec(descriptor.value); }
+        catch (error) { fail(`${path}.chart`, error.message); }
     }
     if (type === 'rect') result.radius = number(value.radius, 0, 16000, `${path}.radius`, 0);
     if (type === 'line') for (const [key, fallback] of Object.entries({ x1: 0, y1: 0, x2: result.width, y2: result.height })) result[key] = number(value[key], -32000, 32000, `${path}.${key}`, fallback);
@@ -173,9 +185,11 @@ function normalizeElement(value, path, ids, count, depth) {
         result.asset_id = integer(value.asset_id, 1, Number.MAX_SAFE_INTEGER, `${path}.asset_id`);
         result.cropX = number(value.cropX, 0, 32000, `${path}.cropX`, 0);
         result.cropY = number(value.cropY, 0, 32000, `${path}.cropY`, 0);
-        keys(value.filters ?? {}, ['brightness', 'contrast', 'saturation', 'blur', 'grayscale', 'sepia', 'invert'], `${path}.filters`);
+        // PHP's associative JSON roundtrip represents an empty filter object as an empty list.
+        const filters = Array.isArray(value.filters) && value.filters.length === 0 && Object.keys(value.filters).length === 0 ? {} : value.filters ?? {};
+        keys(filters, ['brightness', 'contrast', 'saturation', 'blur', 'grayscale', 'sepia', 'invert'], `${path}.filters`);
         result.filters = {};
-        for (const [key, filter] of Object.entries(value.filters ?? {})) result.filters[key] = ['grayscale', 'sepia', 'invert'].includes(key) ? bool(filter, `${path}.filters.${key}`) : number(filter, key === 'blur' ? 0 : -1, 1, `${path}.filters.${key}`);
+        for (const [key, filter] of Object.entries(filters)) result.filters[key] = ['grayscale', 'sepia', 'invert'].includes(key) ? bool(filter, `${path}.filters.${key}`) : number(filter, key === 'blur' ? 0 : -1, 1, `${path}.filters.${key}`);
     }
     if (type === 'video') {
         result.trimStart = number(value.trimStart, 0, 86400, `${path}.trimStart`, 0);
@@ -183,6 +197,12 @@ function normalizeElement(value, path, ids, count, depth) {
         if (result.trimEnd !== null && result.trimEnd <= result.trimStart) fail(`${path}.trimEnd`, 'el final debe ser posterior al inicio.');
         result.volume = number(value.volume, 0, 1, `${path}.volume`, 1);
         result.muted = bool(value.muted, `${path}.muted`);
+    }
+    if (type === 'image' && value.mask != null) {
+        keys(value.mask, ['type', 'radius'], `${path}.mask`);
+        const shape = oneOf(value.mask.type, ['ellipse', 'rounded_rect'], `${path}.mask.type`);
+        if (shape === 'ellipse' && Object.hasOwn(value.mask, 'radius')) fail(`${path}.mask.radius`, 'solo se admite en la máscara rectangular.');
+        result.mask = shape === 'ellipse' ? { type: shape } : { type: shape, radius: number(value.mask.radius, 0, 16000, `${path}.mask.radius`, 0) };
     }
     if (type === 'group') {
         if (!Array.isArray(value.elements) || value.elements.length === 0) fail(`${path}.elements`, 'el grupo debe contener elementos.');
@@ -192,6 +212,10 @@ function normalizeElement(value, path, ids, count, depth) {
 }
 
 export function validateDocument(document) {
+    if (document?.schema_version === 2) {
+        try { return normalizeTimelineDocument(document, validateDocument); }
+        catch (error) { if (error instanceof StudioDocumentError) throw error; throw new StudioDocumentError(error.message); }
+    }
     keys(document, ['schema_version', 'width', 'height', 'pages'], 'document');
     if (document.schema_version !== 1) fail('schema_version', 'versión no admitida.');
     const width = integer(document.width, DOCUMENT_LIMITS.minSize, DOCUMENT_LIMITS.maxSize, 'width');
@@ -200,11 +224,16 @@ export function validateDocument(document) {
     const ids = new Set();
     const pages = document.pages.map((page, i) => {
         const path = `pages.${i}`;
-        keys(page, ['id', 'name', 'background', 'duration', 'elements'], path);
+        keys(page, ['id', 'name', 'background', 'duration', 'elements', 'notes'], path);
         const id = identity(page.id, `${path}.id`, ids);
         if (!Array.isArray(page.elements)) fail(`${path}.elements`, 'debe ser una lista.');
         const count = { value: 0 };
-        return { id, name: text(page.name, 255, `${path}.name`, `Página ${i + 1}`), background: normalizeFill(page.background ?? '#ffffff', `${path}.background`), duration: number(page.duration, 0.1, 3600, `${path}.duration`, 5), elements: page.elements.map((element, j) => normalizeElement(element, `${path}.elements.${j}`, ids, count, 1)) };
+        const result = { id, name: text(page.name, 255, `${path}.name`, `Página ${i + 1}`), background: normalizeFill(page.background ?? '#ffffff', `${path}.background`), duration: number(page.duration, 0.1, 3600, `${path}.duration`, 5), elements: page.elements.map((element, j) => normalizeElement(element, `${path}.elements.${j}`, ids, count, 1)) };
+        if (Object.hasOwn(page, 'notes')) {
+            if (typeof page.notes !== 'string') fail(`${path}.notes`, 'debe ser texto de hasta 20000 caracteres.');
+            result.notes = text(page.notes, 20000, `${path}.notes`);
+        }
+        return result;
     });
     const result = { schema_version: 1, width, height, pages };
     if (new TextEncoder().encode(JSON.stringify(result)).byteLength > DOCUMENT_LIMITS.bytes) fail('document', 'supera el tamaño máximo de 2 MiB.');

@@ -1,0 +1,20 @@
+{
+  "pages": 4,
+  "rendered_from_pdf": true,
+  "visually_inspected": true,
+  "job_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 626110464,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "pdf_sha256": "0fa00d1e50ffb9e241cd213f4a6c47288eefe5b58ac62404c69d8a1e16984f44",
+  "all_pages_inspected": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "observation": "All four PDF pages rendered and inspected; text/table/gate and screenshot legible, no clipped evidence."
+}

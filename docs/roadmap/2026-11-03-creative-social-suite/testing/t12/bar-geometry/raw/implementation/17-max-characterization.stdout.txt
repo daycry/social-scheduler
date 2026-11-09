@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: characterization maximum table projects twelve thousand unique bars without mutating the source
+ok 1 - characterization maximum table projects twelve thousand unique bars without mutating the source
+  ---
+  duration_ms: 64.4426
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 82.8677

@@ -6,12 +6,14 @@ import Icon from '@/Components/Icon.vue';
 import TemplatePreview from '@/Components/Studio/TemplatePreview.vue';
 import StudioDialog from '@/Components/Studio/StudioDialog.vue';
 import TemplateInstanceDialog from '@/Components/Studio/TemplateInstanceDialog.vue';
+import StudioFontsDialog from '@/Components/Studio/StudioFontsDialog.vue';
+import StudioDatasetsDialog from '@/Components/Studio/StudioDatasetsDialog.vue';
 import { blankDocument } from '@/Studio/document';
 import { STUDIO_TEMPLATES, createFromTemplate } from '@/Studio/templates';
 import { studioRequest } from '@/Studio/api';
 import { STUDIO_FORMAT_PRESETS } from '@/Studio/format-presets';
 
-const props = defineProps({ brand: Object, designs: Object, kit: Object, assets: Array, folders: Array, filters: Object });
+const props = defineProps({ brand: Object, designs: Object, kit: Object, assets: Array, folders: Array, filters: Object, fonts: { type: Array, default: () => [] } });
 const createOpen = ref(false);
 const kitOpen = ref(!!props.brand && new URLSearchParams(location.search).get('tab') === 'brand');
 const error = ref('');
@@ -27,6 +29,11 @@ const instanceOpen = ref(false);
 const instanceTemplate = ref(null);
 const paletteText = ref((props.kit?.palette ?? ['#7c3aed', '#111827', '#ffffff']).join(', '));
 const fontsText = ref((props.kit?.fonts ?? ['Arial']).join(', '));
+const fontsOpen = ref(false);
+const datasetsOpen = ref(false);
+const localFonts = ref([...props.fonts]);
+const selectedKitFonts = ref((props.kit?.font_ids ?? []).filter(id => Number.isInteger(id) && id > 0));
+const kitFontChoices = computed(() => localFonts.value.filter(font => !font.archived_at || selectedKitFonts.value.includes(font.id)));
 const selectedLogos = ref([...(props.kit?.logos ?? [])]);
 const logoAssets = computed(() => (props.assets ?? []).filter(asset => asset.kind === 'image'));
 const guidelines = ref(props.kit?.guidelines ?? '');
@@ -81,13 +88,29 @@ const instantiateTemplate = async payload => {
 const saveKit = async () => {
     busy.value = true; error.value = '';
     try {
+        const families = fontsText.value.split(',').map(s => s.trim()).filter(Boolean);
         await studioRequest('PUT', route('studio.kit.update', props.brand.id), {
-            palette: paletteText.value.split(',').map(s => s.trim()).filter(Boolean), fonts: fontsText.value.split(',').map(s => s.trim()).filter(Boolean),
+            palette: paletteText.value.split(',').map(s => s.trim()).filter(Boolean), fonts: families,
+            font_ids: families.map(family => localFonts.value.find(font => font.family === family && selectedKitFonts.value.includes(font.id))?.id ?? null),
             logos: selectedLogos.value, guidelines: guidelines.value, voice: voice.value,
         });
         kitOpen.value = false; router.reload({ only: ['kit'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
 };
+function updateFonts({ fonts = [], deletedIds = [] }) {
+    const next = new Map(localFonts.value.map(font => [font.id, font]));
+    fonts.forEach(font => next.set(font.id, font)); deletedIds.forEach(id => next.delete(id));
+    localFonts.value = [...next.values()];
+    selectedKitFonts.value = selectedKitFonts.value.filter(id => !deletedIds.includes(id));
+}
+function toggleKitFont(font, checked) {
+    const familyIds = localFonts.value.filter(item => item.family === font.family).map(item => item.id);
+    selectedKitFonts.value = selectedKitFonts.value.filter(id => !familyIds.includes(id));
+    let families = fontsText.value.split(',').map(value => value.trim()).filter(Boolean);
+    if (checked) { selectedKitFonts.value.push(font.id); if (!families.includes(font.family)) families.push(font.family); }
+    else families = families.filter(family => family !== font.family);
+    fontsText.value = families.join(', ');
+}
 const createFolder = async () => {
     if (!newFolder.value.trim() || busy.value) return;
     busy.value = true; error.value = '';
@@ -119,7 +142,7 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
             <p v-if="error" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ error }}</p>
             <template v-if="brand">
                 <section class="space-y-4" aria-label="Formatos de diseño">
-                    <div class="flex items-center justify-between"><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2><button type="button" class="text-sm font-medium text-violet-700" @click="kitOpen = true">Identidad de marca <span aria-hidden="true">↗</span></button></div>
+                    <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2><div class="flex flex-wrap gap-4"><button type="button" class="text-sm font-medium text-violet-700" @click="datasetsOpen = true">Tablas de datos</button><button type="button" class="text-sm font-medium text-violet-700" @click="fontsOpen = true">Tipografías de marca</button><button type="button" class="text-sm font-medium text-violet-700" @click="kitOpen = true">Identidad de marca <span aria-hidden="true">↗</span></button></div></div>
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                         <button v-for="preset in presets" :key="preset.label" type="button" class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-sm" @click="width = preset.w; height = preset.h; createOpen = true">
                             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 group-hover:bg-violet-50"><span class="block max-h-8 max-w-8 rounded border-2 border-violet-500 bg-violet-100" :style="{ width: preset.w >= preset.h ? '28px' : `${28 * preset.w / preset.h}px`, height: preset.h >= preset.w ? '28px' : `${28 * preset.h / preset.w}px` }" /></span>
@@ -157,7 +180,7 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                     <nav v-if="(designs?.last_page ?? 1) > 1" class="flex flex-wrap justify-center gap-2" aria-label="Paginación de diseños"><template v-for="(link, i) in designs.links" :key="i"><Link v-if="link.url" :href="link.url" class="rounded-lg border px-3 py-2 text-xs" :class="link.active ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white'">{{ i === 0 ? 'Anterior' : i === designs.links.length - 1 ? 'Siguiente' : i }}</Link></template></nav>
                 </section>
 
-                <section v-if="!archived" class="space-y-4" aria-labelledby="studio-templates-title"><div><h2 id="studio-templates-title" class="text-xl font-semibold tracking-tight">Una idea para empezar</h2><p class="mt-1 text-sm text-slate-500">Plantillas editables que puedes adaptar a tu marca.</p></div><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"><button v-for="template in STUDIO_TEMPLATES" :key="template.key" type="button" class="text-left transition hover:-translate-y-1" :disabled="busy" @click="create(template)"><TemplatePreview :template="template" :kit="kit" /><span class="mt-2 block text-sm font-semibold">{{ template.name }}</span><span class="mt-1 block text-xs text-slate-500">{{ template.category }} · {{ template.width }} × {{ template.height }}</span></button></div></section>
+                <section v-if="!archived" class="space-y-4" aria-labelledby="studio-templates-title"><div><h2 id="studio-templates-title" class="text-xl font-semibold tracking-tight">Una idea para empezar</h2><p class="mt-1 text-sm text-slate-500">Plantillas editables que puedes adaptar a tu marca.</p></div><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"><button v-for="template in STUDIO_TEMPLATES" :key="template.key" type="button" class="text-left transition hover:-translate-y-1" :disabled="busy" @click="create(template)"><TemplatePreview :template="template" :kit="kit" :fonts="localFonts" /><span class="mt-2 block text-sm font-semibold">{{ template.name }}</span><span class="mt-1 block text-xs text-slate-500">{{ template.category }} · {{ template.width }} × {{ template.height }}</span></button></div></section>
             </template>
         </div>
 
@@ -166,13 +189,16 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
         </StudioDialog>
         <StudioDialog v-model="folderOpen" title="Nueva carpeta"><form class="space-y-4" @submit.prevent="createFolder"><label class="block text-sm font-medium">Nombre de la carpeta<input v-model="newFolder" class="field mt-1" maxlength="255" required autofocus /></label><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><button type="submit" class="btn-primary" :disabled="busy">Crear carpeta</button></form></StudioDialog>
         <TemplateInstanceDialog v-model="instanceOpen" :template="instanceTemplate" :busy="busy" :error="error" @create="instantiateTemplate" />
+        <StudioFontsDialog v-if="brand" v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
+        <StudioDatasetsDialog v-if="brand" v-model="datasetsOpen" :brand-id="brand.id" :brand-name="brand.name" />
         <StudioDialog v-model="kitOpen" title="Identidad de marca">
             <form class="space-y-4" @submit.prevent="saveKit">
                 <p class="text-sm text-slate-500">Los estilos pertenecen a {{ brand?.name }} y se aplican a los diseños de esta marca.</p>
                 <fieldset class="min-w-0 space-y-4" :disabled="busy">
                     <label class="block text-sm font-medium">Paleta de colores<input v-model="paletteText" class="field mt-1" placeholder="#7c3aed, #111827, #ffffff" /><span class="mt-1 block text-xs font-normal text-slate-500">Colores hexadecimales separados por comas.</span></label>
                     <div class="flex flex-wrap gap-2"><span v-for="color in paletteText.split(',').map(s => s.trim()).filter(s => /^#[0-9a-f]{3,8}$/i.test(s))" :key="color" class="h-8 w-8 rounded-full border border-slate-200" :style="{ background: color }" /></div>
-                    <label class="block text-sm font-medium">Tipografías<input v-model="fontsText" class="field mt-1" /><span class="mt-1 block text-xs font-normal text-slate-500">Familias disponibles en tu equipo, separadas por comas.</span></label>
+                    <label class="block text-sm font-medium">Tipografías<input v-model="fontsText" aria-label="Tipografías" class="field mt-1" /><span class="mt-1 block text-xs font-normal text-slate-500">Familias locales separadas por comas. Selecciona debajo los archivos propios de esta marca.</span></label>
+                    <fieldset class="space-y-2 rounded-xl border border-slate-200 p-3"><legend class="px-1 text-sm font-medium">Archivos tipográficos del kit</legend><label v-for="font in kitFontChoices" :key="font.id" class="flex min-w-0 items-start gap-2 text-sm"><input type="checkbox" class="mt-1" :checked="selectedKitFonts.includes(font.id)" :aria-label="`Incluir tipografía ${font.name} en la identidad`" @change="toggleKitFont(font,$event.target.checked)" /><span class="min-w-0 break-words">{{ font.name }}<span class="block text-xs text-slate-500">{{ font.family }} · {{ font.style }} · {{ font.weight }}{{ font.archived_at ? ' · Archivada, ya vinculada' : '' }}</span></span></label><p v-if="!kitFontChoices.length" class="text-xs leading-relaxed text-slate-500">Sube una tipografía desde Tipografías de marca para vincular el archivo a tu identidad.</p><p v-else class="text-xs leading-relaxed text-slate-500">Un archivo por familia en la identidad; puedes elegir otras variantes en cada texto del editor.</p></fieldset>
                     <fieldset class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Logotipos de marca">
                         <legend class="px-1 text-sm font-medium">Logotipos de marca</legend>
                         <p class="text-xs leading-relaxed text-slate-500">Selecciona hasta 30 imágenes de esta marca, en el orden en que quieras vincularlas al kit. Puedes subirlas desde Recursos en cualquier diseño.</p>

@@ -1,10 +1,20 @@
 <?php
 
 use App\Http\Controllers\Studio\StudioController;
+use App\Http\Controllers\Studio\StudioFontController;
 use Illuminate\Support\Facades\Route;
+
+require __DIR__.'/studio-datasets.php';
 
 // Loaded by routes/web.php and inherits its web middleware.
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('brands/{brand}/studio/fonts', [StudioFontController::class, 'index'])->whereNumber('brand')->name('studio.fonts.index');
+    Route::post('brands/{brand}/studio/fonts', [StudioFontController::class, 'store'])->whereNumber('brand')->name('studio.fonts.store');
+    Route::get('brands/{brand}/studio/fonts/{font}', [StudioFontController::class, 'show'])->whereNumber(['brand', 'font'])->name('studio.fonts.show');
+    Route::delete('brands/{brand}/studio/fonts/{font}', [StudioFontController::class, 'destroy'])->whereNumber(['brand', 'font'])->name('studio.fonts.destroy');
+    Route::post('brands/{brand}/studio/fonts/{font}/archive', [StudioFontController::class, 'archive'])->whereNumber(['brand', 'font'])->name('studio.fonts.archive');
+    Route::post('brands/{brand}/studio/fonts/{font}/restore', [StudioFontController::class, 'restore'])->whereNumber(['brand', 'font'])->name('studio.fonts.restore');
+    Route::get('brands/{brand}/studio/fonts/{font}/file', [StudioFontController::class, 'file'])->whereNumber(['brand', 'font'])->name('studio.fonts.file');
     Route::get('studio', [StudioController::class, 'index'])->name('studio.index');
     Route::get('brands/{brand}/studio/designs', [StudioController::class, 'indexBrand'])->whereNumber('brand')->name('studio.designs.index');
     Route::post('brands/{brand}/studio/designs', [StudioController::class, 'store'])->whereNumber('brand')->name('studio.designs.store');
@@ -28,6 +38,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('studio/folders/{folder}', [StudioController::class, 'destroyFolder'])->whereNumber('folder')->name('studio.folders.destroy');
     Route::get('studio/designs/{design}/exports', [StudioController::class, 'exports'])->whereNumber('design')->name('studio.exports.index');
     Route::post('studio/designs/{design}/exports', [StudioController::class, 'registerExport'])->whereNumber('design')->name('studio.exports.store');
+    Route::post('studio/designs/{design}/render', [StudioController::class, 'renderExport'])->whereNumber('design')->name('studio.exports.render');
     Route::get('studio/exports/{export}', [StudioController::class, 'showExport'])->whereNumber('export')->name('studio.exports.show');
     Route::post('studio/exports/{export}/post', [StudioController::class, 'createPost'])->whereNumber('export')->name('studio.exports.post');
+    Route::post('studio/exports/{export}/cancel', [StudioController::class, 'cancelExport'])->whereNumber('export')->name('studio.exports.cancel');
+    Route::post('studio/exports/{export}/retry', [StudioController::class, 'retryExport'])->whereNumber('export')->name('studio.exports.retry');
 });
+
+require __DIR__.'/studio-images.php';
+require __DIR__.'/studio-audio.php';
+require __DIR__.'/studio-captions.php';

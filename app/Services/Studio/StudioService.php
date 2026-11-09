@@ -7,6 +7,7 @@ use App\Models\Studio\BrandKit;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignFolder;
 use App\Models\Studio\DesignRevision;
+use App\Models\Studio\StudioFont;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -49,7 +50,7 @@ class StudioService
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, $data['folder_id'] ?? null);
 
-        $kitReference ??= array_intersect_key($this->kit($user, $brand), array_flip(['palette', 'fonts', 'logos']));
+        $kitReference ??= array_intersect_key($this->kit($user, $brand), array_flip(['palette', 'fonts', 'font_ids', 'logos']));
         $kitReference = self::reference($kitReference);
 
         return DB::transaction(function () use ($user, $brand, $data, $document, $folderId, $kitReference): Design {
@@ -126,7 +127,7 @@ class StudioService
         return $current;
     }
 
-    public function present(User $user, Design $design): array
+    public function present(User $user, Design $design, bool $api = false): array
     {
         $current = $this->owned($user, $design, $design->trashed());
 
@@ -135,13 +136,13 @@ class StudioService
             $data['kit_reference'] = self::reference($data['kit_reference']);
         }
 
-        return $data + ['template_fields' => StudioAutomation::fields($current->document)];
+        return $data + ['template_fields' => StudioAutomation::fields($current->document), 'fonts' => app(StudioFonts::class)->neededFor($user, Brand::withoutUserScope()->findOrFail($current->brand_id), $current->document, $api)];
     }
 
     /** Preserve legacy meaning without recapturing a newer brand kit or serializing an empty list. */
     public static function reference(?array $reference): array
     {
-        return ['palette' => $reference['palette'] ?? [], 'fonts' => $reference['fonts'] ?? [], 'logos' => $reference['logos'] ?? []];
+        return ['palette' => $reference['palette'] ?? [], 'fonts' => $reference['fonts'] ?? [], 'logos' => $reference['logos'] ?? []] + (isset($reference['font_ids']) ? ['font_ids' => $reference['font_ids']] : []);
     }
 
     public function folders(User $user, Brand $brand): Collection
@@ -174,7 +175,7 @@ class StudioService
         $this->assets->assertBrand($user, $brand);
         $kit = BrandKit::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
 
-        return $kit?->only(['palette', 'fonts', 'logos', 'guidelines', 'voice']) ?? ['palette' => ['#7c3aed', '#111827', '#ffffff'], 'fonts' => ['Arial'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+        return $kit?->only(['palette', 'fonts', 'font_ids', 'logos', 'guidelines', 'voice']) ?? ['palette' => ['#7c3aed', '#111827', '#ffffff'], 'fonts' => ['Arial'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
     }
 
     public function updateKit(User $user, Brand $brand, array $data): array
@@ -182,6 +183,7 @@ class StudioService
         $this->assets->assertBrand($user, $brand);
         $data = Validator::make($data, ['palette' => ['sometimes', 'array', 'max:50'], 'palette.*' => ['required', 'string'],
             'fonts' => ['sometimes', 'array', 'max:50'], 'fonts.*' => ['required', 'string', 'max:100'],
+            'font_ids' => ['sometimes', 'array', 'max:50'], 'font_ids.*' => ['nullable', 'integer', 'min:1'],
             'logos' => ['sometimes', 'array', 'max:30'], 'logos.*' => ['required', 'integer', 'min:1', 'distinct'],
             'guidelines' => ['sometimes', 'nullable', 'string', 'max:10000'], 'voice' => ['sometimes', 'nullable', 'string', 'max:5000']])->validate();
         foreach ($data['palette'] ?? [] as $color) {
@@ -204,7 +206,31 @@ class StudioService
                 throw ValidationException::withMessages(['logos' => ['Los logos deben ser imágenes.']]);
             }
         }
-        BrandKit::withoutUserScope()->updateOrCreate(['user_id' => $user->id, 'brand_id' => $brand->id], array_replace($this->kit($user, $brand), $data));
+        $current = $this->kit($user, $brand);
+        if (! array_key_exists('font_ids', $data) && isset($data['fonts']) && $data['fonts'] !== $current['fonts']) {
+            $data['font_ids'] = array_fill(0, count($data['fonts']), null);
+        }
+        $merged = array_replace($current, $data);
+        if (isset($merged['font_ids']) && count($merged['font_ids']) !== count($merged['fonts'])) {
+            throw ValidationException::withMessages(['font_ids' => ['Los identificadores deben estar alineados con las familias.']]);
+        }
+        $ids = array_values(array_unique(array_filter($merged['font_ids'] ?? [], fn ($id) => $id !== null)));
+        DB::transaction(function () use ($user, $brand, $merged, $ids): void {
+            $fonts = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $ids)->lockForUpdate()->get()->keyBy('id');
+            if ($fonts->count() !== count($ids)) {
+                throw ValidationException::withMessages(['font_ids' => ['Las tipografías deben pertenecer a esta marca.']]);
+            }
+            foreach ($merged['font_ids'] ?? [] as $index => $id) {
+                if ($id !== null && $fonts[$id]->family !== $merged['fonts'][$index]) {
+                    throw ValidationException::withMessages(['font_ids' => ['La familia debe corresponder a la tipografía seleccionada.']]);
+                }
+            }
+            $kit = BrandKit::withoutUserScope()->updateOrCreate(['user_id' => $user->id, 'brand_id' => $brand->id], $merged);
+            DB::table('studio_brand_kit_fonts')->where('kit_id', $kit->id)->delete();
+            foreach ($ids as $id) {
+                DB::table('studio_brand_kit_fonts')->insert(['kit_id' => $kit->id, 'font_id' => $id]);
+            }
+        });
 
         return $this->kit($user, $brand);
     }
@@ -238,6 +264,12 @@ class StudioService
 
     private function snapshot(Design $design): void
     {
-        DesignRevision::create(['user_id' => $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
+        $ids = array_values(array_unique(array_merge(StudioFonts::idsFromDocument($design->document), array_filter($design->kit_reference['font_ids'] ?? [], fn ($id) => $id !== null))));
+        $fonts = StudioFont::withoutUserScope()->where('user_id', $design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
+        abort_unless($fonts->count() === count($ids), 422, 'Las tipografías deben pertenecer a esta marca.');
+        $revision = DesignRevision::create(['user_id' => $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
+        foreach ($ids as $id) {
+            DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
+        }
     }
 }

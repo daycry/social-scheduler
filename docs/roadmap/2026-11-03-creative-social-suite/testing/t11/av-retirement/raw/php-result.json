@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 39,
+  "native_optin": true,
+  "tests": 349,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": 1841
+}

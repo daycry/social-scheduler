@@ -1,0 +1,226 @@
+{
+  "scope": "Review attempt3 only B2 correction; preserve all prior criteria/n-a/pending, reopening only with new evidence.",
+  "files": {
+    "resources/js/Studio/presentation.js": "e1b8ee85bf18258f8ab9e1fb1e7c577a0c5e931659a07379565471e23396699e",
+    "tests/frontend/studio-presentation.test.mjs": "6d913ed4a0d4535cdf1acdf54e4a96c3b23f87bde4fc1fafdfde60337c9a09c8",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-presentation-session-contract.md": "478e402fa902770af31f8ebd81bfc5be388f360cd39612274074d802b15d5ef1",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md": "22573379e812db99ff84125347c36483df704b4cf6f98f4f8db43e78aa5107f0",
+    "docs/roadmap/2026-11-03-creative-social-suite/improvement-plan.md": "3d6e34df94f2ad61b0ab346f2469e07c91d52b379fca7dc8828fbbe155c49106",
+    "docs/roadmap/2026-11-03-creative-social-suite/spec.md": "c67273767127151edf733857765c69be2e0e950ef6e96751dd6c3b46b25fefcf",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-reference-refresh-2026-11-07.md": "cfe6d48c45b830532b964270fdd721412ce3df8ae0d41badcad68023af83eb48",
+    "CLAUDE.md": "e8e8efb2412a670d5cf381eddca81de0c1cc6d2c8e321153410df9225f81836d"
+  },
+  "changed_files": [
+    "resources/js/Studio/presentation.js",
+    "tests/frontend/studio-presentation.test.mjs"
+  ],
+  "context_only": [
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-presentation-session-contract.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/improvement-plan.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/spec.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-reference-refresh-2026-11-07.md",
+    "CLAUDE.md"
+  ],
+  "protected_dependencies": {
+    "resources/js/Studio/presentation.js": "e1b8ee85bf18258f8ab9e1fb1e7c577a0c5e931659a07379565471e23396699e",
+    "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+    "resources/js/Studio/timeline.js": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+    "resources/js/Studio/captions.js": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5",
+    "resources/js/Studio/chart-spec.js": "03812080e151fb76dfe91eb0c1e939927c149e3f4cfc6f790f8df8d5cc2a5cc3",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3"
+  },
+  "evidence": {
+    "evidence/correction2/SOURCE_DONE.json": "3929746227f18c560c38ad59e1d076f26953697cf578aa1d9f55f12a48e27685",
+    "evidence/correction2/red-total-boundary.txt": "459d29b9570ce23f0f7de7be7cf6e0882e0020fbb27d8633390671a194e4611c",
+    "evidence/correction2/red-forward-boundaries.txt": "630a8e5c50593048f59a07d313b7a40c46c275145107f0f733f238839e94ef45",
+    "evidence/correction2/red-forward-boundaries-valid.txt": "553db0c2355832c1b0cf81364b83a9deb29dfffa3c4d639425bb9f3f4e94c5fa",
+    "evidence/correction2/green-focal.txt": "12f087fe2b222b27b6e28ec6e95d8e39df7742e1b01fa35ed21326d3344f3612",
+    "evidence/correction2/green-neighbors.txt": "a98fe671b5a0710cda61c15f7abbf9a5b08cfb51b8754d048355f29e692c97e4",
+    "evidence/SOURCE_DONE.json": "3d7c53157a68d9f9ed4ed6bab1eb039e48cbe46425784c1900cb4ff7ef35b6c0",
+    "evidence/red-initial.txt": "84bee855b3d4ba7f9f1b8b62eb7eea6803b4db4bb1f27bb95befb2ed8b517929",
+    "evidence/green-initial.txt": "18e354fe0fa7b9a747210fac01171b6accefbd9f0c7b5d21b3a35e046b6e77d2",
+    "evidence/green-neighbors.txt": "4cf297d196de46793f7ef2f072a188729fb8b6b7141e00f3c1eb40a47d0013b9",
+    "evidence/review2/verdict.md": "0198a61ffb5a17ef1245f88593dbe007a91932665c7c53e0d94073e4eeb5bd19",
+    "evidence/review2/result.json": "01a5ae38b7ffe4ca86087b4c6a9baf3da79a0d5086286f7a12c1101573c91eda",
+    "evidence/correction1/SOURCE_DONE.json": "9aa6c5c8e05db6c1c9c35309e600947227f5f62a1fb8631ed85eec300cb8d52c",
+    "evidence/correction1/red-fractional-clock.txt": "1f6a2075d52043224227975adbe6215d6d6aa8b2232e7228672cd6fcd129beba",
+    "evidence/correction1/red-zero-delta.txt": "b13aa6f9d36fda8b1653ed3c96195600cd06865add4992ca511d05ab6b6fba5e",
+    "evidence/correction1/red-exact-boundary.txt": "3fceaab6d5a11a5be639335c9212333aec6f69835e4c7a2b84f12fdeedf30165",
+    "evidence/correction1/green-focal.txt": "e8cf68d8c55f45086a0f963cd003fe5e07d5cf48042111d41b43dff7c87c453b",
+    "evidence/correction1/green-neighbors.txt": "d3a87341a882c4683c47b1d007408535a2aadd3da2a1ad6eb3a777eef48c3ff3"
+  },
+  "previous_verdict": "../review2/verdict.md",
+  "previous_verdict_sha256": "0198a61ffb5a17ef1245f88593dbe007a91932665c7c53e0d94073e4eeb5bd19",
+  "previous_result": {
+    "lenses": [
+      "A",
+      "B"
+    ],
+    "critical": 0,
+    "important": 1,
+    "minor": 0,
+    "gaps": [
+      {
+        "id": "B1",
+        "state": "corrected"
+      },
+      {
+        "id": "B2",
+        "severity": "Important",
+        "state": "pending",
+        "file": "resources/js/Studio/presentation.js",
+        "line": 87
+      }
+    ],
+    "previous_verdict_sha256": "425c7504139db531163a4201e20813bdde39bbc7d7848a2a4ab921b0b515c575",
+    "delta_sha256": "b12f0db34fd47838d2cf7b20b6b037e3d3e7785304d185073bbdbf907ac639c4",
+    "native_cases": 0,
+    "global_acceptance": false
+  },
+  "SOURCE_DONE": {
+    "schema": "presentation-session-correction-source-done-v1",
+    "state": "SOURCE_DONE_PENDING_FRESH_REVIEW_ATTEMPT3",
+    "captured_utc": "2026-11-06T23:21:50.457844+00:00",
+    "task": "T-12/P1 correction2 B2 cumulative fractional clock boundary",
+    "sources": {
+      "resources/js/Studio/presentation.js": "e1b8ee85bf18258f8ab9e1fb1e7c577a0c5e931659a07379565471e23396699e",
+      "tests/frontend/studio-presentation.test.mjs": "6d913ed4a0d4535cdf1acdf54e4a96c3b23f87bde4fc1fafdfde60337c9a09c8"
+    },
+    "loaded_static_dependencies": {
+      "resources/js/Studio/presentation.js": "e1b8ee85bf18258f8ab9e1fb1e7c577a0c5e931659a07379565471e23396699e",
+      "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+      "resources/js/Studio/timeline.js": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+      "resources/js/Studio/captions.js": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5",
+      "resources/js/Studio/chart-spec.js": "03812080e151fb76dfe91eb0c1e939927c149e3f4cfc6f790f8df8d5cc2a5cc3",
+      "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+      "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+      "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3"
+    },
+    "baseline": {
+      "correction1_source_done_sha256": "9aa6c5c8e05db6c1c9c35309e600947227f5f62a1fb8631ed85eec300cb8d52c",
+      "initial_source_done_sha256": "3d7c53157a68d9f9ed4ed6bab1eb039e48cbe46425784c1900cb4ff7ef35b6c0",
+      "files": {
+        "presentation.js": "d86ad0f70b68f36ddf32c2316dfe476dcf67eebe86c5d4b6d3208e7bc21d41cc",
+        "SOURCE_DONE.json": "9aa6c5c8e05db6c1c9c35309e600947227f5f62a1fb8631ed85eec300cb8d52c",
+        "studio-presentation.test.mjs": "57f9ce2865ce5540ded078822b7146abbcb0b7210fdeb5fbe0f065e6691d0e2f"
+      }
+    },
+    "tdd": {
+      "valid_red_exit_codes": [
+        1,
+        1
+      ],
+      "valid_red_cases": 3,
+      "red": [
+        "advance(323.4) on durations [0.1,0.1234,0.1] yields final elapsed99.99999999999999 instead of100",
+        "Remaining totals from noninitial pages/local offsets fail completion",
+        "Exact forward intermediate boundary remains p1 instead ofp2"
+      ],
+      "red_date": "2026-11-07",
+      "red_sequence": "New three test bodies and both valid RED logs precede the correction2 production edit. All sixteen prior test bodies remain an identical prefix.",
+      "fixture_correction": "Initial red-forward-boundaries.txt used literal223.4 as exact intermediate boundary, while100+0.1234*1000 evaluates223.39999999999998. Before production change, replaced literal with forward sum of the actual validated page durations and recaptured red-forward-boundaries-valid.txt. Original flawed log retained, not counted as independent valid RED.",
+      "green_focal_cases": 19,
+      "green_neighbor_cases": 32,
+      "failures": 0,
+      "skips": 0,
+      "cancellations": 0,
+      "coverage": "Original16 cases unchanged; explicit B2v1/v2;4fractional triples x2schemas x3startpages x3offsets=72remaining-span cases; exact intermediate cumulative boundary.",
+      "commands": [
+        "node --max-old-space-size=512 --test --experimental-test-isolation=none --test-name-pattern=fractional total duration reaches tests/frontend/studio-presentation.test.mjs",
+        "node --max-old-space-size=512 --test --experimental-test-isolation=none --test-name-pattern=forward cumulative boundaries|fractional cumulative crossing tests/frontend/studio-presentation.test.mjs",
+        "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-presentation.test.mjs",
+        "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-presentation.test.mjs tests/frontend/studio-document.test.mjs tests/frontend/studio-timeline.test.mjs"
+      ],
+      "syntax_checks": "node --max-old-space-size=512 --check on both current sources, exit0"
+    },
+    "fix": "After modulo full cycles, compare unchanged delta against cumulative forward durations from current page minus originElapsed. The previous boundary identifies the local residual. No repeated subtraction from delta, no sums of preceding pages, no epsilon, no delta-proportional iteration.",
+    "reasoning": [
+      "A zero delta/full loop returns the existing state exactly.",
+      "For each crossed page the boundary is accumulated forward from the current page, with the same initial local offset subtracted once.",
+      "At equality the original delta crosses that boundary; after a nonterminal crossing subtracting that exact previous boundary gives elapsed0.",
+      "Nonloop terminal equality uses the full forward boundary instead of a succession of rounded delta remainders.",
+      "Cycle modulo bounds the forward scan to O(selected pages); original fractional elapsed is never added to a huge delta."
+    ],
+    "evidence": {
+      "red-total-boundary.txt": {
+        "sha256": "459d29b9570ce23f0f7de7be7cf6e0882e0020fbb27d8633390671a194e4611c",
+        "bytes": 2182
+      },
+      "red-forward-boundaries.txt": {
+        "sha256": "630a8e5c50593048f59a07d313b7a40c46c275145107f0f733f238839e94ef45",
+        "bytes": 4660
+      },
+      "red-forward-boundaries-valid.txt": {
+        "sha256": "553db0c2355832c1b0cf81364b83a9deb29dfffa3c4d639425bb9f3f4e94c5fa",
+        "bytes": 4542
+      },
+      "green-focal.txt": {
+        "sha256": "12f087fe2b222b27b6e28ec6e95d8e39df7742e1b01fa35ed21326d3344f3612",
+        "bytes": 9164
+      },
+      "green-neighbors.txt": {
+        "sha256": "a98fe671b5a0710cda61c15f7abbf9a5b08cfb51b8754d048355f29e692c97e4",
+        "bytes": 15264
+      }
+    },
+    "preserved_correction1_evidence": {
+      "red-fractional-clock.txt": {
+        "sha256": "1f6a2075d52043224227975adbe6215d6d6aa8b2232e7228672cd6fcd129beba",
+        "bytes": 2174
+      },
+      "red-zero-delta.txt": {
+        "sha256": "b13aa6f9d36fda8b1653ed3c96195600cd06865add4992ca511d05ab6b6fba5e",
+        "bytes": 4254
+      },
+      "red-exact-boundary.txt": {
+        "sha256": "3fceaab6d5a11a5be639335c9212333aec6f69835e4c7a2b84f12fdeedf30165",
+        "bytes": 2086
+      },
+      "green-focal.txt": {
+        "sha256": "e8cf68d8c55f45086a0f963cd003fe5e07d5cf48042111d41b43dff7c87c453b",
+        "bytes": 7624
+      },
+      "green-neighbors.txt": {
+        "sha256": "d3a87341a882c4683c47b1d007408535a2aadd3da2a1ad6eb3a777eef48c3ff3",
+        "bytes": 13722
+      }
+    },
+    "preserved_initial_evidence": {
+      "red-initial.txt": {
+        "sha256": "84bee855b3d4ba7f9f1b8b62eb7eea6803b4db4bb1f27bb95befb2ed8b517929",
+        "bytes": 2428
+      },
+      "green-initial.txt": {
+        "sha256": "18e354fe0fa7b9a747210fac01171b6accefbd9f0c7b5d21b3a35e046b6e77d2",
+        "bytes": 5732
+      },
+      "green-neighbors.txt": {
+        "sha256": "4cf297d196de46793f7ef2f072a188729fb8b6b7141e00f3c1eb40a47d0013b9",
+        "bytes": 11826
+      }
+    },
+    "limits": [
+      "No Editor integration or imports from existing files.",
+      "No presenter/audience UI, notes persistence, fullscreen, recording or Office acceptance.",
+      "No build7 mutation or chart native execution.",
+      "T12 and full roadmap stay open; root sole ledger writer."
+    ],
+    "measurement": "No measured hours/tokens claimed. PureNode512, each command <1s, no browser/build/DB/env/network/models."
+  },
+  "native_cases": 0,
+  "global_acceptance": false,
+  "metadata_revision": {
+    "kind": "root metadata-only pointer correction",
+    "original_manifest_sha256": "b41ee36fe089a82e29934fc50113ee8175ec3585a50dc4851ea9a492185c3d6b",
+    "original_previous_verdict": "../review1/verdict.md",
+    "current_previous_verdict": "../review2/verdict.md",
+    "previous_verdict_sha256": "0198a61ffb5a17ef1245f88593dbe007a91932665c7c53e0d94073e4eeb5bd19",
+    "reason": "Template carried a literal review1 pointer while attempt3 hash/evidence correctly refer to review2. Original frozen manifest preserved.",
+    "source_or_test_changes": false,
+    "budget_changes": false,
+    "evidence_changes": false
+  }
+}

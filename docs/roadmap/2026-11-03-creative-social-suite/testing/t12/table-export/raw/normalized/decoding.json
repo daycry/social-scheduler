@@ -1,0 +1,146 @@
+[
+  {
+    "file": "01-green.log",
+    "original_sha256": "708af87f71aaf0d8dab1cc2f907c8472fc78dbdb96504a647606ae913f8e2399",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": null
+  },
+  {
+    "file": "01-red.log",
+    "original_sha256": "e3bcb402f68d2a0574af4f44531b53a8266cacd416f023163e4f4e76782dbeac",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "failed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": "Failed asserting that two strings are identical.\n--- Expected\n+++ Actual\n@@ @@\n-''label_1,'label_2,'label_3,'label_4,'label_5,'label_6,'label_7,'label_8,'label_9,'label_10\r\n-'plain,''already,' =SUM(A1),\"'\t+2\n-\u96ea\",'\ufeff=2,',0,0.0,-2.5,\r\n-'\n+''"
+  },
+  {
+    "file": "02-green.log",
+    "original_sha256": "fabddcca5a411d14952e25013528c9f9a20bcc9d1e2e4414c36939f1ff78cc9b",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": null
+  },
+  {
+    "file": "02-red.log",
+    "original_sha256": "ce4182fd913156b39254c65e410d4101998ba5d0d6d45a6a00496414e146a347",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "failed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": "Exception \"InvalidArgumentException\" not thrown."
+  },
+  {
+    "file": "03-green.log",
+    "original_sha256": "dbd3b0b3c9ab64a8030a213a5bf3b49020c3ab61a61a695b8e97d8e975ba31f0",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 5,
+    "reason": null
+  },
+  {
+    "file": "03-red.log",
+    "original_sha256": "7da97305ac1ddb131ad41a14a7802824a7926a1da84f549a51881599e7deda4e",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "failed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": "Exception \"InvalidArgumentException\" not thrown."
+  },
+  {
+    "file": "04-green.log",
+    "original_sha256": "5bf74f0045f892834d76f00cfb5db69ec31d9464b78ba4d5571e792b0479a3c1",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 8,
+    "reason": null
+  },
+  {
+    "file": "04-red.log",
+    "original_sha256": "0f355d2543a844a46da8ff406b77f1ff8e61cf309a7318da95a42c21bb0e13ce",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "failed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": "Exception \"InvalidArgumentException\" not thrown."
+  },
+  {
+    "file": "05-green.log",
+    "original_sha256": "ed9a51c636be063afca7db42f34afc30248b3f5b311d1e3193707bec9ff055de",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 4,
+    "reason": null
+  },
+  {
+    "file": "05-red.log",
+    "original_sha256": "fcbe804b8beae65dfb1cc143894f73966fd478f56098a0d5349bdfd8987686dd",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "failed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": "Failed asserting that two strings are identical.\n--- Expected\n+++ Actual\n@@ @@\n-'\"\ufefflabel\",label_2,label_3,label_4,label_5,label_6\r\n-\"\ufeffliteral\",=SUM(A1),001,\"a,\"\"b\t\u96ea\n+''\ufefflabel,'label_2,'label_3,'label_4,'label_5,'label_6\r\n+'\ufeffliteral,'=SUM(A1),'001,\"'a,\"\"b\t\u96ea\n next\",,0.0\r\n '"
+  },
+  {
+    "file": "06-green.log",
+    "original_sha256": "233e13555c180285a33af5b3669f34c2d0bdfb84cc7264bcc97a41517fbbe30a",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 4,
+    "reason": null
+  },
+  {
+    "file": "06-red.log",
+    "original_sha256": "d6bde53ea528a52a0841ce73ce0ab90889177051c4bac047c092379d83349d90",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "failed",
+    "tests": 1,
+    "assertions": 1,
+    "reason": "Failed asserting that two strings are identical.\n--- Expected\n+++ Actual\n@@ @@\n-'{\"columns\":[{\"id\":\"c_1\",\"label\":\"label_1\"},{\"id\":\"c_2\",\"label\":\"label_2\"},{\"id\":\"c_3\",\"label\":\"label_3\"},{\"id\":\"c_4\",\"label\":\"label_4\"},{\"id\":\"c_5\",\"label\":\"label_5\"},{\"id\":\"c_6\",\"label\":\"label_6\"}],\"rows\":[{\"id\":\"row_custom\",\"values\":[\"001\",\"=2\",\"\u96ea/\\t\\n\",0.0,42,null]},{\"id\":\"other_row\",\"values\":[\"x\",\"\",\"a/b\",-0.0,-1,null]}]}'\n+''label_1,'label_2,'label_3,'label_4,'label_5,'label_6\r\n+'001,'=2,\"'\u96ea/\t\n+\",0.0,42,\r\n+'x,','a/b,-0.0,-1,\r\n+'"
+  },
+  {
+    "file": "07-characterization.log",
+    "original_sha256": "7b46dfc4a6d1340b6a7a42c13ba3a67491a52b6cb06400e77a34b91f047a9154",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 4,
+    "reason": null
+  },
+  {
+    "file": "08-characterization.log",
+    "original_sha256": "070cb84f7c4283b08861311c60afd1c92e9b6b4730e3a017ab8b31e8c0f65bd9",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 1,
+    "assertions": 1007,
+    "reason": null
+  },
+  {
+    "file": "final-suite.log",
+    "original_sha256": "8db2fa3a2d6bad14a920b886e6cb16a1aaa6c78efe013cfca9faf81baa2096f1",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "passed",
+    "tests": 8,
+    "assertions": 1034,
+    "reason": null
+  },
+  {
+    "file": "pint.log",
+    "original_sha256": "92f476e17de5d622bfb49d5f4c7e747fbbb4a663c3742ae792e41c5b7689b4b1",
+    "decoding": "UTF-8 command line followed by UTF-16LE append",
+    "result": "fixed",
+    "tests": null,
+    "assertions": null,
+    "reason": null
+  }
+]

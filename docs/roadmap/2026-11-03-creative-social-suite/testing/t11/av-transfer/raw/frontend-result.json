@@ -1,0 +1,15 @@
+{
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 37,
+  "mode": "frontend",
+  "summary": [
+    "# tests 153",
+    "# pass 153",
+    "# fail 0",
+    "# cancelled 0",
+    "# skipped 0",
+    "# duration_ms 37390.6685"
+  ]
+}

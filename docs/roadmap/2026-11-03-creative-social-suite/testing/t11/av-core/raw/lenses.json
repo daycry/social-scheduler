@@ -1,0 +1,97 @@
+{
+  "lente_c": true,
+  "modo": "auto",
+  "motivos": [
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-server.mjs",
+      "patron": "exec",
+      "linea": 48
+    }
+  ],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/timeline-preview.js",
+      "patron": "await-en-bucle",
+      "linea": 60
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/timeline-preview.js",
+      "patron": "await-en-bucle",
+      "linea": 68
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/timeline-preview.js",
+      "patron": "await-en-bucle",
+      "linea": 77
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-audio.mjs",
+      "patron": "await-en-bucle",
+      "linea": 36
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-audio.mjs",
+      "patron": "await-en-bucle",
+      "linea": 56
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-finalize.mjs",
+      "patron": "await-en-bucle",
+      "linea": 26
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-gif.mjs",
+      "patron": "await-en-bucle",
+      "linea": 21
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-gif.mjs",
+      "patron": "await-en-bucle",
+      "linea": 45
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-gif.mjs",
+      "patron": "await-en-bucle",
+      "linea": 52
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-pcm.mjs",
+      "patron": "await-en-bucle",
+      "linea": 28
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-server.mjs",
+      "patron": "await-en-bucle",
+      "linea": 13
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-server.mjs",
+      "patron": "await-en-bucle",
+      "linea": 23
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-video.mjs",
+      "patron": "await-en-bucle",
+      "linea": 31
+    }
+  ],
+  "base": "--files",
+  "ficheros": 16,
+  "avisos": []
+}

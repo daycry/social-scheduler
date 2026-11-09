@@ -1,0 +1,253 @@
+{
+  "schema_version": 2,
+  "width": 400,
+  "height": 240,
+  "timeline": {
+    "fps": 12,
+    "audio_tracks": [
+      {
+        "id": "global_music",
+        "asset_id": 2,
+        "start": 0.5,
+        "duration": 2,
+        "volume": 0.3,
+        "gainPoints": [
+          {
+            "time": 0,
+            "value": 0
+          },
+          {
+            "time": 0.2,
+            "value": 1
+          },
+          {
+            "time": 1.8,
+            "value": 1
+          },
+          {
+            "time": 2,
+            "value": 0
+          }
+        ]
+      }
+    ]
+  },
+  "pages": [
+    {
+      "id": "motion",
+      "duration": 1.5,
+      "background": "#171b38",
+      "transition": {
+        "type": "fade",
+        "duration": 0.5
+      },
+      "elements": [
+        {
+          "id": "clip",
+          "type": "video",
+          "name": "Vídeo",
+          "x": 0,
+          "y": 0,
+          "width": 128,
+          "height": 96,
+          "scaleX": 3.125,
+          "scaleY": 2.5,
+          "rotation": 0,
+          "skewX": 0,
+          "skewY": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fill": "#7c3aed",
+          "stroke": "",
+          "strokeWidth": 0,
+          "flipX": false,
+          "flipY": false,
+          "asset_id": 1,
+          "cropX": 0,
+          "cropY": 0,
+          "filters": {},
+          "trimStart": 0,
+          "trimEnd": 1.5,
+          "volume": 0.6,
+          "muted": false,
+          "gainPoints": [
+            {
+              "time": 0,
+              "value": 0
+            },
+            {
+              "time": 0.25,
+              "value": 1
+            },
+            {
+              "time": 1.25,
+              "value": 1
+            },
+            {
+              "time": 1.5,
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "card",
+          "type": "rect",
+          "name": "Elemento",
+          "x": 12,
+          "y": 166,
+          "width": 376,
+          "height": 62,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "skewX": 0,
+          "skewY": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fill": "#ffffffee",
+          "stroke": "",
+          "strokeWidth": 0,
+          "flipX": false,
+          "flipY": false,
+          "radius": 8,
+          "timing": {
+            "start": 0.25,
+            "duration": 1
+          }
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "name": "Texto",
+          "x": 24,
+          "y": 180,
+          "width": 352,
+          "height": 48,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "skewX": 0,
+          "skewY": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fill": "#111827",
+          "stroke": "",
+          "strokeWidth": 0,
+          "flipX": false,
+          "flipY": false,
+          "text": "Marca · render audiovisual",
+          "fontFamily": "Space Grotesk",
+          "fontSize": 22,
+          "fontWeight": "normal",
+          "fontStyle": "normal",
+          "textAlign": "left",
+          "underline": false,
+          "lineHeight": 1.2,
+          "charSpacing": 0,
+          "font_id": 7,
+          "timing": {
+            "start": 0.25,
+            "duration": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "brand",
+      "duration": 1.5,
+      "background": "#0b1223",
+      "elements": [
+        {
+          "id": "title2",
+          "type": "text",
+          "name": "Texto",
+          "x": 24,
+          "y": 72,
+          "width": 352,
+          "height": 48,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "skewX": 0,
+          "skewY": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fill": "#ffffff",
+          "stroke": "",
+          "strokeWidth": 0,
+          "flipX": false,
+          "flipY": false,
+          "text": "Capas, audio y transiciones",
+          "fontFamily": "Space Grotesk",
+          "fontSize": 22,
+          "fontWeight": "normal",
+          "fontStyle": "normal",
+          "textAlign": "left",
+          "underline": false,
+          "lineHeight": 1.2,
+          "charSpacing": 0,
+          "font_id": 7
+        },
+        {
+          "id": "accent",
+          "type": "rect",
+          "name": "Elemento",
+          "x": 24,
+          "y": 132,
+          "width": 352,
+          "height": 6,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "skewX": 0,
+          "skewY": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fill": "#8b5cf6",
+          "stroke": "",
+          "strokeWidth": 0,
+          "flipX": false,
+          "flipY": false,
+          "radius": 0
+        },
+        {
+          "id": "subtitle",
+          "type": "text",
+          "name": "Texto",
+          "x": 24,
+          "y": 156,
+          "width": 352,
+          "height": 48,
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "skewX": 0,
+          "skewY": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fill": "#cbd5e1",
+          "stroke": "",
+          "strokeWidth": 0,
+          "flipX": false,
+          "flipY": false,
+          "text": "Fotogramas y mezcla por tramos",
+          "fontFamily": "Space Grotesk",
+          "fontSize": 16,
+          "fontWeight": "normal",
+          "fontStyle": "normal",
+          "textAlign": "left",
+          "underline": false,
+          "lineHeight": 1.2,
+          "charSpacing": 0,
+          "font_id": 7
+        }
+      ]
+    }
+  ]
+}

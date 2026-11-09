@@ -1,0 +1,186 @@
+[
+  {
+    "path": "app/Services/Studio/StudioAvState.php",
+    "same": true
+  },
+  {
+    "path": "app/Models/Studio/StudioAvWorkspace.php",
+    "same": true
+  },
+  {
+    "path": "app/Models/Studio/StudioAvLease.php",
+    "same": true
+  },
+  {
+    "path": "app/Models/Studio/DesignExport.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioExports.php",
+    "same": true
+  },
+  {
+    "path": "config/studio.php",
+    "same": true
+  },
+  {
+    "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvStateTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Models/Studio/StudioAvStep.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvFiles.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvFilesTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvStorage.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvCleanup.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvWorkspaceBusy.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvCheckpointCorrupt.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvCleanupTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvQueue.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvProcess.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvProcessFailed.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvRunner.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvRecovery.php",
+    "same": true
+  },
+  {
+    "path": "app/Jobs/Studio/ProcessStudioAvPhase.php",
+    "same": true
+  },
+  {
+    "path": "app/Console/Commands/RecoverStudioExports.php",
+    "same": true
+  },
+  {
+    "path": "routes/console.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvQueueTest.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvProcessTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/MediaUploadService.php",
+    "same": true
+  },
+  {
+    "path": "app/Http/Controllers/MediaController.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvRegistrationTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvTransfer.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvTransferTest.php",
+    "same": true
+  },
+  {
+    "path": "tests/Support/StudioAvR2.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvRegistrationCleanup.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvRetirementTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioRenderer.php",
+    "same": true
+  },
+  {
+    "path": "app/Http/Controllers/Studio/StudioController.php",
+    "same": true
+  },
+  {
+    "path": "app/Http/Controllers/Studio/StudioApiController.php",
+    "same": true
+  },
+  {
+    "path": "app/Mcp/Tools/ExportDesign.php",
+    "same": true
+  },
+  {
+    "path": "app/Mcp/Servers/SchedulerServer.php",
+    "same": true
+  },
+  {
+    "path": "routes/studio.php",
+    "same": true
+  },
+  {
+    "path": "routes/studio-api.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioApiMcpTest.php",
+    "same": true
+  },
+  {
+    "path": "app/Services/Studio/StudioAvControl.php",
+    "same": true
+  },
+  {
+    "path": "app/Mcp/Tools/ManageDesignExport.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvDeliveryTest.php",
+    "same": true
+  },
+  {
+    "path": "tests/Feature/Studio/StudioAvPublicTest.php",
+    "same": true
+  }
+]

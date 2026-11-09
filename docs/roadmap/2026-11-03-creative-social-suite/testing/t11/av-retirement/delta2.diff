@@ -1,0 +1,92 @@
+--- a/app/Services/Studio/StudioAvRecovery.php
++++ b/app/Services/Studio/StudioAvRecovery.php
+@@ -33,10 +33,10 @@
+             } catch (Throwable) {
+                 $result['deferred']++;
+             }
+-            StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->where('media_retiring', true)
+-                ->update(['media_cleanup_after' => now()->addSeconds(180)]);
++            $this->deferRetirement($workspace->id);
+         }
+-        $orphans = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++        // All already-retiring copies belong exclusively to the due-time pass above.
++        $orphans = StudioAvWorkspace::withoutUserScope()->where('media_retiring', false)->where('active_until', '<=', now())
+             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id'))
+             ->orderBy('active_until')->limit($limit)->get(['id']);
+         foreach ($orphans as $workspace) {
+@@ -48,8 +48,11 @@
+             } catch (Throwable) {
+                 $result['deferred']++;
+             }
++            $this->deferRetirement($workspace->id);
++            StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->where('active_until', '<=', now())
++                ->update(['active_until' => now()->addSeconds(180)]);
+         }
+-        $terminal = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++        $terminal = StudioAvWorkspace::withoutUserScope()->where('media_retiring', false)->where('active_until', '<=', now())
+             ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id')
+                 ->whereIn('studio_design_exports.status', ['failed', 'cancelled']))
+             ->where(fn ($q) => $q->where('media_reserved_bytes', '>', 0)->orWhereExists(fn ($leases) => $leases->selectRaw('1')->from('studio_av_leases')->whereColumn('studio_av_leases.workspace_id', 'studio_av_workspaces.id')
+@@ -66,6 +69,7 @@
+             } catch (Throwable) {
+                 $result['deferred']++;
+             }
++            $this->deferRetirement($workspace->id);
+             $leases = StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
+                 ->where('expires_at', '<=', now())->orderBy('expires_at')->limit(32)->get(['id']);
+             foreach ($leases as $lease) {
+@@ -141,4 +145,10 @@
+ 
+         return $result;
+     }
++
++    private function deferRetirement(int $id): void
++    {
++        StudioAvWorkspace::withoutUserScope()->whereKey($id)->where('media_retiring', true)
++            ->update(['media_cleanup_after' => now()->addSeconds(180)]);
++    }
+ }
+--- a/tests/Feature/Studio/StudioAvRetirementTest.php
++++ b/tests/Feature/Studio/StudioAvRetirementTest.php
+@@ -261,3 +261,30 @@
+     expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id, microtime(true) - 1))->toThrow(RuntimeException::class);
+     expect($this->workspace->refresh()->media_retiring)->toBeFalse();
+ });
++
++test('AV scheduled retirement backoff is respected by every recovery branch', function (bool $orphan) {
++    $r2 = new StudioAvR2;
++    $result = null;
++    for ($pass = 0; $pass < 6 && $result === null; $pass++) {
++        $result = app(StudioAvTransfer::class)->run($this->lease);
++    }
++    if ($orphan) {
++        $this->user->delete();
++    } else {
++        $this->state->cancel($this->user, $this->export);
++    }
++    $this->travel(181)->seconds();
++    $r2->after = function ($name) {
++        if ($name === 'DeleteObject') {
++            throw new RuntimeException('fixture persistently unavailable');
++        }
++    };
++    expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toThrow(RuntimeException::class);
++    $count = fn () => collect($r2->calls->getArrayCopy())->where('name', 'DeleteObject')->count();
++    $before = $count();
++    app(StudioAvRecovery::class)->run();
++    expect($count() - $before)->toBe(1);
++    expect($this->workspace->refresh()->media_cleanup_after->isFuture())->toBeTrue();
++    app(StudioAvRecovery::class)->run();
++    expect($count() - $before)->toBe(1)->and($this->workspace->refresh()->media_reserved_bytes)->toBe(5);
++})->with(['terminal' => false, 'orphan' => true]);
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -68,7 +68,7 @@
+ 
+ Cada pasada tiene presupuesto≤25s, con comprobación previa al token, HTTP≤5s/connect≤2s y retries0. En local se retiran solo los archivos generados final/part, bajo la raíz original comprobada, sin recorrer ni seguir enlaces. En S3/R2 se usa el bucket/key/endpoint originales. Se aborta el UploadId conocido y se consulta ListParts: mientras el ID siga consultable, la reserva permanece pendiente. Después se buscan UploadIds desconocidos por Key exacta, paginando16entradas con marcadores persistidos; una pasada descubre como máximo otro ID para abortarlo en la siguiente. El borrado del objeto se confirma con HEAD404. Fallos o respuestas perdidas conservan recibo y reserva para otra pasada. Las reglas de abortar/listar se contrastan con [AbortMultipartUpload](https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html) y [ListMultipartUploads](https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html).
+ 
+-Solo tras retirar físicamente el destino se borra el MediaAsset pendiente, se libera media_reserved_bytes y se marca released. Un nuevo intento podrá crear una nueva reserva activa; nunca se mantienen dos medios activos para el mismo workspace ni se elimina un medio ya listo. El retiro de huérfanos precede al borrado del journal y del árbol temporal. El recuperador incluye reservas terminales aunque todos los leases hayan sido liberados, y usa media_cleanup_after/index propio para continuar retiring independientemente del active_until de una generación nueva. Conserva estados y leases de esa generación; los fallos se difieren180s. El presupuesto15s del recuperador se comprueba entre operaciones, no es un límite duro que interrumpa una pasada física ya comenzada.
++Solo tras retirar físicamente el destino se borra el MediaAsset pendiente, se libera media_reserved_bytes y se marca released. Un nuevo intento podrá crear una nueva reserva activa; nunca se mantienen dos medios activos para el mismo workspace ni se elimina un medio ya listo. El retiro de huérfanos precede al borrado del journal y del árbol temporal. El recuperador incluye reservas terminales aunque todos los leases hayan sido liberados, y usa media_cleanup_after/index propio para continuar retiring independientemente del active_until de una generación nueva. Conserva estados y leases de esa generación. La pasada de vencimientos es la única que procesa retiring; las ramas terminal/orphan omiten esos registros. Todo intento programado incompleto o fallido se difiere180s, y los huérfanos no resueltos también atrasan active_until para no monopolizar el lote. Las llamadas internas explícitas al limpiador pueden continuar una pasada sin esperar ese reloj del scheduler. El presupuesto15s del recuperador se comprueba entre operaciones, no es un límite duro que interrumpa una pasada física ya comenzada.
+ 
+ El bloque de retiro está pendiente de revisión/regresión. Las pruebas usan SQLite y almacenamiento desechables/simulador SDK; no acreditan R2 real ni VPS. Queue.enqueue(register) continúa deshabilitado. Todavía falta conectar la transferencia por partes al runner/queue, señal de cancelación nativa y flujo público web/API/MCP con QA integral.
+ 

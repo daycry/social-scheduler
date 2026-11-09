@@ -1,0 +1,44 @@
+{
+    "empty": {
+        "before": {
+            "query": "",
+            "page": "1",
+            "per_page": "20"
+        },
+        "studioJsonSkip": false,
+        "after": {
+            "query": null,
+            "page": "1",
+            "per_page": "20"
+        },
+        "textTypeAccepted": false
+    },
+    "omitted": {
+        "before": {
+            "page": "1",
+            "per_page": "20"
+        },
+        "studioJsonSkip": false,
+        "after": {
+            "page": "1",
+            "per_page": "20"
+        },
+        "textTypeAccepted": true
+    },
+    "literal": {
+        "before": {
+            "query": "Libre",
+            "page": "1",
+            "per_page": "20"
+        },
+        "studioJsonSkip": false,
+        "after": {
+            "query": "Libre",
+            "page": "1",
+            "per_page": "20"
+        },
+        "textTypeAccepted": true
+    },
+    "scope": "Pure middleware reproduction; no Application boot, Dotenv, DB or HTTP. Text-type condition mirrors StudioDatasetInput::text before any container-dependent exception.",
+    "bootstrap_sha256": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9"
+}

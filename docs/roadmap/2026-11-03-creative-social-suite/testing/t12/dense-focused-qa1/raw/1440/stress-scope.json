@@ -1,0 +1,8 @@
+{
+  "rows": 1000,
+  "series": 12,
+  "bars": 12000,
+  "fixture_json_bytes": 64316,
+  "large_52MB_stress": false,
+  "quota_lru_scaled_policy_only": true
+}

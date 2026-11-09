@@ -3,6 +3,10 @@ import {
     FabricImage, Gradient, Shadow, PencilBrush, Point, LayoutManager, FixedLayout, util, filters,
 } from 'fabric';
 import { blankDocument, cloneDocument, findPage, newElement, newId, normalizeFill, validateDocument, StudioDocumentError } from './document.js';
+import { createStudioFontRegistry, ensureStudioFonts, studioFontFamily } from './fonts.js';
+import { clipMediaState, restrictElementWindow } from './timeline.js';
+import { createChartFabric } from './chart-renderer.js';
+import { assertChartDocumentBudget } from './chart-scene.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const round = value => Math.round((Number(value) || 0) * 1e6) / 1e6;
@@ -16,12 +20,12 @@ export function videoPlaybackRange(video, options = {}) {
     return { start, end };
 }
 
-export async function seekVideoFrame(video, seconds, { timeout = 10000, signal } = {}) {
+export async function seekVideoFrame(video, seconds, { timeout = 10000, signal, positionTolerance = 0.01, endTolerance = 0.01 } = {}) {
     if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
     const value = Number(seconds);
     if (!Number.isFinite(value)) throw new StudioDocumentError('Selecciona un tiempo de vídeo válido.');
-    const seek = Math.min(Math.max(0, value), Number.isFinite(video.duration) ? Math.max(0, video.duration - 0.01) : value);
-    if (Math.abs(video.currentTime - seek) < 0.01 && !video.seeking) return;
+    const seek = Math.min(Math.max(0, value), Number.isFinite(video.duration) ? Math.max(0, video.duration - endTolerance) : value);
+    if (Math.abs(video.currentTime - seek) < positionTolerance && !video.seeking) return;
     await new Promise((resolve, reject) => {
         const cleanup = () => { clearTimeout(timer); video.removeEventListener('seeked', ready); video.removeEventListener('error', failed); signal?.removeEventListener('abort', cancelled); };
         const ready = () => { cleanup(); resolve(); };
@@ -71,14 +75,22 @@ function setIdentity(object, element) {
     object.studioId = element.id;
     object.studioType = element.type;
     object.studioName = element.name ?? '';
+    object.studioTiming = element.timing == null ? null : clone(element.timing);
     object.studioAssetId = element.asset_id;
+    object.studioFontId = element.font_id;
+    object.studioFontFamily = element.fontFamily;
+    object.studioMask = element.mask == null ? null : clone(element.mask);
     object.studioFilters = clone(element.filters ?? {});
     object.studioLocked = Boolean(element.locked);
     object.studioVideoOptions = element.type === 'video' ? { trimStart: element.trimStart ?? 0, trimEnd: element.trimEnd ?? null, volume: element.volume ?? 1, muted: Boolean(element.muted) } : null;
+    if (object.studioVideoOptions) for (const key of ['playbackRate', 'sourceOffset', 'loop', 'gainPoints']) {
+        if (Object.hasOwn(element, key)) object.studioVideoOptions[key] = clone(element[key]);
+    }
     if (object.studioVideo) {
         object.studioVideo.studioVideoOptions = object.studioVideoOptions;
         object.studioVideo.volume = object.studioVideoOptions.volume;
         object.studioVideo.muted = object.studioVideoOptions.muted;
+        object.studioVideo.playbackRate = object.studioVideoOptions.playbackRate ?? 1;
     }
     setLock(object, element.locked);
     return object;
@@ -108,12 +120,16 @@ export function studioObjectToElement(object, { absolute = false } = {}) {
         fill: objectFill(object), stroke: object.stroke || '', strokeWidth: round(object.strokeWidth), locked: Boolean(object.studioLocked),
     });
     if (object.shadow) element.shadow = { color: object.shadow.color, blur: object.shadow.blur, offsetX: object.shadow.offsetX, offsetY: object.shadow.offsetY };
+    if (object.studioTiming != null) element.timing = clone(object.studioTiming);
     if (type === 'text') Object.assign(element, { text: object.text, fontFamily: object.fontFamily, fontSize: object.fontSize, fontWeight: String(object.fontWeight) === 'bold' || Number(object.fontWeight) >= 600 ? 'bold' : 'normal', fontStyle: object.fontStyle === 'italic' ? 'italic' : 'normal', textAlign: object.textAlign, underline: Boolean(object.underline), lineHeight: object.lineHeight, charSpacing: object.charSpacing });
+    if (type === 'text' && object.studioFontId != null) { element.font_id = object.studioFontId; element.fontFamily = object.studioFontFamily; }
     if (type === 'rect') element.radius = object.rx ?? 0;
     if (type === 'line') Object.assign(element, { x1: object.x1, y1: object.y1, x2: object.x2, y2: object.y2 });
     if (type === 'path') element.path = clone(object.path);
     if (type === 'image' || type === 'video') Object.assign(element, { asset_id: object.studioAssetId, cropX: object.cropX ?? 0, cropY: object.cropY ?? 0, filters: clone(object.studioFilters ?? {}) });
+    if (type === 'image' && object.studioMask != null) element.mask = clone(object.studioMask);
     if (type === 'video') Object.assign(element, object.studioVideoOptions);
+    if (type === 'chart') element.chart = clone(object.studioChart);
     if (type === 'group') element.elements = object.getObjects().map(child => studioObjectToElement(child));
     return element;
 }
@@ -139,6 +155,20 @@ function filterObjects(values = {}) {
     return output;
 }
 
+function imageMask(element) {
+    if (!element.mask) return undefined;
+    const options = { originX: 'center', originY: 'center', left: 0, top: 0, width: element.width, height: element.height, fill: '#000000', strokeWidth: 0 };
+    if (element.mask.type === 'ellipse') return new Ellipse({ ...options, rx: element.width / 2, ry: element.height / 2 });
+    const radius = Math.min(element.mask.radius ?? 0, element.width / 2, element.height / 2);
+    return new Rect({ ...options, rx: radius, ry: radius });
+}
+
+function checkMediaCrop(element, source) {
+    const width = source?.naturalWidth || source?.videoWidth || source?.width;
+    const height = source?.naturalHeight || source?.videoHeight || source?.height;
+    if (((element.cropX ?? 0) > 0 && element.cropX >= width) || ((element.cropY ?? 0) > 0 && element.cropY >= height)) throw new StudioDocumentError('El origen del recorte debe estar dentro del recurso original.');
+}
+
 async function videoElement(asset, element, signal) {
     const video = document.createElement('video');
     video.preload = 'auto';
@@ -157,7 +187,15 @@ async function videoElement(asset, element, signal) {
         if (signal?.aborted) cancelled();
         else video.load();
     });
-    try { if (element.trimStart > 0) await seekVideoFrame(video, element.trimStart, { signal }); }
+    try {
+        let poster = element.trimStart ?? 0;
+        if (Object.hasOwn(element, 'playbackRate') || Object.hasOwn(element, 'sourceOffset')) {
+            const source = clipMediaState(element, element.timing?.start ?? 0, video.duration, element.timing?.duration ?? video.duration);
+            const end = element.trimEnd ?? video.duration;
+            poster = Math.min(source.sourceTime, Math.max(element.trimStart ?? 0, end - 0.01));
+        }
+        if (poster > 0) await seekVideoFrame(video, poster, { signal });
+    }
     catch (error) { video.pause(); video.removeAttribute('src'); video.load(); throw error; }
     video.volume = element.volume ?? 1;
     video.muted = Boolean(element.muted);
@@ -167,16 +205,20 @@ async function videoElement(asset, element, signal) {
 }
 
 /** No enlivenObjects/fromJSON: callers cannot select a Fabric class or execute serialized options. */
-export async function elementToFabric(element, { assets = new Map(), signal, videos = [] } = {}) {
+export async function elementToFabric(element, { assets = new Map(), signal, videos = [], fontRegistry, chartResources } = {}) {
     const options = commonOptions(element);
     let object;
     switch (element.type) {
+        case 'chart': object = await createChartFabric(element, { chartResources, fontRegistry, signal, options }); break;
         case 'rect': object = new Rect({ ...options, rx: element.radius ?? 0, ry: element.radius ?? 0 }); break;
         case 'ellipse': object = new Ellipse({ ...options, rx: element.width / 2, ry: element.height / 2 }); break;
         case 'triangle': object = new Triangle(options); break;
         case 'line': object = new Line([element.x1 ?? 0, element.y1 ?? 0, element.x2 ?? element.width, element.y2 ?? element.height], options); break;
         case 'path': object = new Path(element.path, { ...options, strokeLineCap: 'round', strokeLineJoin: 'round' }); break;
-        case 'text': object = new Textbox(element.text ?? '', { ...options, fontFamily: element.fontFamily ?? 'Arial', fontSize: element.fontSize ?? 64, fontWeight: element.fontWeight ?? 'normal', fontStyle: element.fontStyle ?? 'normal', textAlign: element.textAlign ?? 'left', underline: Boolean(element.underline), lineHeight: element.lineHeight ?? 1.2, charSpacing: element.charSpacing ?? 0, splitByGrapheme: false }); break;
+        case 'text': {
+            if (element.font_id != null && !fontRegistry) throw new StudioDocumentError(`Prepara la fuente privada ${element.font_id} antes de dibujar el texto.`);
+            object = new Textbox(element.text ?? '', { ...options, fontFamily: fontRegistry ? fontRegistry.family(element) : element.fontFamily ?? 'Arial', fontSize: element.fontSize ?? 64, fontWeight: element.fontWeight ?? 'normal', fontStyle: element.fontStyle ?? 'normal', textAlign: element.textAlign ?? 'left', underline: Boolean(element.underline), lineHeight: element.lineHeight ?? 1.2, charSpacing: element.charSpacing ?? 0, splitByGrapheme: false }); break;
+        }
         case 'image':
         case 'video': {
             const asset = assetMap(assets).get(Number(element.asset_id));
@@ -195,15 +237,22 @@ export async function elementToFabric(element, { assets = new Map(), signal, vid
                 catch (error) { if (signal?.aborted) throw error; throw new StudioDocumentError(`No se pudo cargar la imagen ${asset.name ?? asset.id}.`); }
                 finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); }
             }
+            try { checkMediaCrop(element, object.getElement()); }
+            catch (error) { object.dispose(); throw error; }
             object.set({ width: element.width, height: element.height, cropX: element.cropX ?? 0, cropY: element.cropY ?? 0 });
+            if (element.type === 'image') object.set({ clipPath: imageMask(element) });
             object.filters = filterObjects(element.filters);
             if (object.filters.length) object.applyFilters();
             break;
         }
         case 'group': {
             const children = [];
-            for (const child of element.elements) children.push(await elementToFabric(child, { assets, signal, videos }));
+            for (const child of element.elements) children.push(await elementToFabric(child, { assets, signal, videos, fontRegistry, chartResources }));
+            const positions = children.map(child => ({ left: child.left, top: child.top }));
             object = new Group(children, { ...options, layoutManager: new LayoutManager(new FixedLayout()), subTargetCheck: false, interactive: false });
+            // Persisted children are already in the group's local coordinate plane. Initial Fabric
+            // layout recenters a partial temporal set; restore its declared positions after grouping.
+            children.forEach((child, index) => { child.set(positions[index]); child.setCoords(); });
             break;
         }
         default: throw new StudioDocumentError(`El tipo ${element.type} no está admitido.`);
@@ -212,11 +261,17 @@ export async function elementToFabric(element, { assets = new Map(), signal, vid
     return setIdentity(object, element);
 }
 
-export async function waitForStudioFonts(elements, { timeout = 20000, signal } = {}) {
+export async function waitForStudioFonts(elements, { timeout = 20000, signal, fonts = [], registry } = {}) {
+    await (registry ? registry.ensure(elements, { signal, timeout }) : ensureStudioFonts(elements, fonts, { signal, timeout }));
     if (!globalThis.document?.fonts) return;
     const fontDeclarations = new Set();
     const collect = items => items.forEach(element => {
-        if (element.type === 'text') fontDeclarations.add(`${element.fontStyle ?? 'normal'} ${element.fontWeight ?? 'normal'} ${element.fontSize ?? 64}px "${element.fontFamily ?? 'Arial'}"`);
+        if (element.type === 'text' || element.type === 'chart') {
+            const ownStyle = element.type === 'chart' ? element.chart.style ?? {} : element;
+            const resolved = registry?.style(element) ?? ownStyle;
+            const family = registry ? registry.family(element) : ownStyle.font_id == null ? ownStyle.fontFamily ?? 'Arial' : studioFontFamily(assetMap(fonts).get(Number(ownStyle.font_id)));
+            fontDeclarations.add(`${resolved.fontStyle ?? 'normal'} ${resolved.fontWeight ?? 'normal'} ${ownStyle.fontSize ?? (element.type === 'chart' ? 16 : 64)}px "${family}"`);
+        }
         if (element.type === 'group') collect(element.elements);
     });
     collect(elements);
@@ -232,33 +287,48 @@ export async function waitForStudioFonts(elements, { timeout = 20000, signal } =
 
 const cleanVideos = videos => videos.splice(0).forEach(video => { video.pause(); video.removeAttribute('src'); video.load(); });
 
-export async function renderStudioPage(documentData, pageId, assets = []) {
+export async function renderStudioPage(documentData, pageId, assets = [], fonts = [], { renderScale = 1, chartResources, signal } = {}) {
+    if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
     const doc = validateDocument(documentData);
     const page = findPage(doc, pageId);
     if (!page) throw new StudioDocumentError('La página no está disponible.');
-    await waitForStudioFonts(page.elements);
+    // Export contexts materialize only selected pages. Count only this drawn page;
+    // exportDesign owns the one-time aggregate preflight of the selected work.
+    await assertChartDocumentBudget({ ...doc, pages: [page] }, chartResources, { signal });
+    const width = Math.round(doc.width * renderScale), height = Math.round(doc.height * renderScale);
+    if (!Number.isFinite(renderScale) || renderScale < 0.1 || renderScale > 4 || width < 1 || height < 1 || width > 16000 || height > 16000
+        || width * height > 64000000) throw new StudioDocumentError('La escala o resolución de render no está admitida.');
+    const fontRegistry = createStudioFontRegistry(fonts);
+    try { await waitForStudioFonts(page.elements, { registry: fontRegistry, signal }); }
+    catch (error) { fontRegistry.dispose(); throw error; }
     const element = document.createElement('canvas');
-    const canvas = new StaticCanvas(element, { width: doc.width, height: doc.height, enableRetinaScaling: false, renderOnAddRemove: false, backgroundColor: toFabricFill(page.background, doc.width, doc.height) });
+    const canvas = new StaticCanvas(element, { width, height, enableRetinaScaling: false, renderOnAddRemove: false, backgroundColor: toFabricFill(page.background, doc.width, doc.height) });
+    canvas.setViewportTransform([renderScale, 0, 0, renderScale, 0, 0]);
     const videos = [];
     try {
-        for (const layer of page.elements) canvas.add(await elementToFabric(layer, { assets, videos }));
+        for (const layer of page.elements) canvas.add(await elementToFabric(layer, { assets, videos, fontRegistry, chartResources, signal }));
+        if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
         canvas.renderAll();
-        return { canvas, dispose: async () => { cleanVideos(videos); await canvas.dispose(); } };
+        return { canvas, fontFaces: () => fontRegistry.svgFaces(), dispose: async () => { cleanVideos(videos); await canvas.dispose(); fontRegistry.dispose(); } };
     } catch (error) {
         cleanVideos(videos);
         await canvas.dispose();
+        fontRegistry.dispose();
         throw error;
     }
 }
 
-export async function createStudioCanvas(canvasElement, { document: initialDocument, pageId, assets = [], onChange = () => {}, onSelection = () => {} } = {}) {
+export async function createStudioCanvas(canvasElement, { document: initialDocument, pageId, assets = [], fonts = [], chartResources, onChange = () => {}, onSelection = () => {} } = {}) {
     let documentData = validateDocument(initialDocument ?? blankDocument());
     let currentPage = findPage(documentData, pageId) ?? documentData.pages[0];
     let resources = assetMap(assets);
+    const fontRegistry = createStudioFontRegistry(fonts);
     let scale = 1;
     let loading = false;
     let destroyed = false;
     let generation = 0;
+    let mutationVersion = 0;
+    const editEpochs = new WeakMap();
     let controller = null;
     let clipboard = [];
     let playback = null;
@@ -283,6 +353,9 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
     const changed = reason => {
         if (loading || destroyed) return;
         currentPage.elements = serialize();
+        documentData.pages = documentData.pages.map(page => page.id === currentPage.id ? clone(currentPage) : page);
+        mutationVersion++;
+        fontRegistry.releaseUnused(currentPage.elements);
         onChange(clone(currentPage.elements), { pageId: currentPage.id, background: clone(currentPage.background), width: documentData.width, height: documentData.height, reason });
         notifySelection();
     };
@@ -294,7 +367,37 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
         canvas.requestRenderAll();
         notifySelection();
     };
-    const checked = element => validateDocument({ schema_version: 1, width: documentData.width, height: documentData.height, pages: [{ id: newId('validation_page'), background: '#ffffff', elements: [element] }] }).pages[0].elements[0];
+    const checked = element => validateDocument({ schema_version: documentData.schema_version, width: documentData.width, height: documentData.height,
+        ...(documentData.schema_version === 2 ? { timeline: { fps: documentData.timeline.fps, audio_tracks: [] } } : {}),
+        pages: [{ id: newId('validation_page'), background: '#ffffff', duration: currentPage.duration ?? 5, elements: [element] }] }).pages[0].elements[0];
+
+    async function commitNextBudget(nextElements, request, commit, live = () => true) {
+        // The callback publishes in THIS continuation after the last version check.
+        // Returning a permit to an awaiting caller would reopen a microtask race.
+        let version;
+        do {
+            if (destroyed || request !== generation || !live()) return false;
+            version = mutationVersion;
+            const snapshot = { ...documentData, pages: documentData.pages.map(page => page.id === currentPage.id ? { ...currentPage, elements: nextElements() } : page) };
+            await assertChartDocumentBudget(validateDocument(snapshot), chartResources, { signal: controller?.signal });
+        } while (version !== mutationVersion);
+        if (destroyed || request !== generation || !live()) return false;
+        commit();
+        return true;
+    }
+
+    function applyObjectPatch(object, candidate) {
+        const options = commonOptions(candidate);
+        if (object instanceof Textbox) Object.assign(options, { text: candidate.text, fontFamily: fontRegistry.family(candidate), fontSize: candidate.fontSize, fontWeight: candidate.fontWeight, fontStyle: candidate.fontStyle, textAlign: candidate.textAlign, underline: candidate.underline, lineHeight: candidate.lineHeight, charSpacing: candidate.charSpacing });
+        if (object instanceof Ellipse) Object.assign(options, { rx: candidate.width / 2, ry: candidate.height / 2 });
+        if (candidate.type === 'rect') Object.assign(options, { rx: candidate.radius ?? 0, ry: candidate.radius ?? 0 });
+        if (object instanceof FabricImage) {
+            Object.assign(options, { cropX: candidate.cropX, cropY: candidate.cropY });
+            if (candidate.type === 'image') options.clipPath = imageMask(candidate);
+            object.filters = filterObjects(candidate.filters); object.applyFilters();
+        }
+        object.set(options); setIdentity(object, candidate); object.setCoords();
+    }
 
     async function loadPage(pageOrId) {
         if (destroyed) return;
@@ -307,22 +410,27 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
         loading = true;
         adapter.pause();
         const nextVideos = [];
+        const nextObjects = [];
         try {
-            await waitForStudioFonts(page.elements, { signal });
-            const nextObjects = [];
-            for (const element of page.elements) nextObjects.push(await elementToFabric(element, { assets: resources, signal, videos: nextVideos }));
-            if (request !== generation || destroyed) { cleanVideos(nextVideos); return; }
+            await assertChartDocumentBudget(documentData, chartResources, { signal });
+            await waitForStudioFonts(page.elements, { signal, registry: fontRegistry });
+            for (const element of page.elements) nextObjects.push(await elementToFabric(element, { assets: resources, signal, videos: nextVideos, fontRegistry, chartResources }));
+            if (request !== generation || destroyed) { cleanVideos(nextVideos); nextObjects.forEach(object => object.dispose()); return; }
             canvas.discardActiveObject();
             cleanVideos(videos);
             videos.push(...nextVideos);
-            canvas.remove(...objects());
+            const previousObjects = objects();
+            canvas.remove(...previousObjects);
+            previousObjects.forEach(object => object.dispose());
             currentPage = clone(page);
             canvas.backgroundColor = toFabricFill(page.background, documentData.width, documentData.height);
             canvas.add(...nextObjects);
+            fontRegistry.releaseUnused(page.elements);
             adapter.zoom(scale);
             canvas.renderAll();
         } catch (error) {
             cleanVideos(nextVideos);
+            nextObjects.forEach(object => object.dispose());
             if (request === generation && !destroyed) throw error;
         } finally {
             if (request === generation) { loading = false; notifySelection(); }
@@ -338,16 +446,33 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             return loadPage(findPage(documentData, nextPageId ?? currentPage.id) ?? documentData.pages[0]);
         },
         setAssets(next) { resources = assetMap(next); },
+        setFonts(next) { fontRegistry.setFonts(next); },
         serializePage: serialize,
         selection,
         layers: serialize,
         select(ids) { ready(); const wanted = new Set(Array.isArray(ids) ? ids : [ids]); choose(objects().filter(object => wanted.has(object.studioId))); },
         deselect() { choose([]); },
-        addText(value = 'Escribe tu texto', patch = {}) {
+        async addChart(chart, patch = {}) {
+            ready();
+            const request = generation;
+            const element = checked(newElement('chart', { x: 40, y: 40, ...patch, chart }));
+            await waitForStudioFonts([element], { registry: fontRegistry, signal: controller?.signal });
+            if (destroyed || request !== generation) return;
+            const object = await elementToFabric(element, { fontRegistry, chartResources, signal: controller?.signal });
+            try { if (!await commitNextBudget(() => [...serialize(), element], request, () => { canvas.add(object); choose([object]); changed('add'); })) { object.dispose(); return; } }
+            catch (error) { object.dispose(); throw error; }
+            return element.id;
+        },
+        async addText(value = 'Escribe tu texto', patch = {}) {
             ready();
             const element = checked(newElement('text', { x: 80, y: 80, width: Math.max(120, documentData.width - 160), text: value, ...patch }));
-            const object = setIdentity(new Textbox(element.text, { ...commonOptions(element), fontFamily: element.fontFamily, fontSize: element.fontSize, fontWeight: element.fontWeight, fontStyle: element.fontStyle, textAlign: element.textAlign, underline: element.underline, lineHeight: element.lineHeight, charSpacing: element.charSpacing }), element);
-            canvas.add(object); choose([object]); changed('add'); return element.id;
+            const request = generation;
+            await waitForStudioFonts([element], { registry: fontRegistry, signal: controller?.signal });
+            if (destroyed || request !== generation) return;
+            const object = await elementToFabric(element, { fontRegistry });
+            try { if (!await commitNextBudget(() => [...serialize(), element], request, () => { canvas.add(object); choose([object]); changed('add'); })) { object.dispose(); return; } }
+            catch (error) { object.dispose(); throw error; }
+            return element.id;
         },
         async addShape(type = 'rect', patch = {}) {
             ready();
@@ -355,8 +480,9 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             if (!['rect', 'ellipse', 'triangle', 'line', 'path'].includes(type)) throw new StudioDocumentError('Selecciona una forma admitida.');
             const element = checked(newElement(type, patch));
             const object = await elementToFabric(element);
-            if (destroyed || request !== generation) { object.dispose(); return; }
-            canvas.add(object); choose([object]); changed('add'); return element.id;
+            try { if (!await commitNextBudget(() => [...serialize(), element], request, () => { canvas.add(object); choose([object]); changed('add'); })) { object.dispose(); return; } }
+            catch (error) { object.dispose(); throw error; }
+            return element.id;
         },
         async addAsset(asset, patch = {}) {
             ready(); resources.set(Number(asset.id), asset);
@@ -370,31 +496,51 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             try { object = await elementToFabric(element, { assets: resources, videos: nextVideos, signal: controller?.signal }); }
             catch (error) { cleanVideos(nextVideos); if (destroyed || request !== generation) return; throw error; }
             if (destroyed || request !== generation) { cleanVideos(nextVideos); object.dispose(); return; }
-            videos.push(...nextVideos);
-            canvas.add(object); choose([object]); changed('add'); return element.id;
+            try { if (!await commitNextBudget(() => [...serialize(), element], request, () => { videos.push(...nextVideos); canvas.add(object); choose([object]); changed('add'); })) { cleanVideos(nextVideos); object.dispose(); return; } }
+            catch (error) { cleanVideos(nextVideos); object.dispose(); throw error; }
+            return element.id;
         },
-        updateSelection(patch) {
+        async updateSelection(patch) {
             ready();
             const selected = selectedObjects();
-            // ActiveSelection stores temporary relative coordinates; commit its world transform first.
-            canvas.discardActiveObject();
-            for (const object of selected) {
-                if (object.studioLocked && patch.locked !== false) continue;
-                const candidate = checked({ ...studioObjectToElement(object), ...patch });
-                const options = commonOptions(candidate);
-                if (object instanceof Textbox) Object.assign(options, { text: candidate.text, fontFamily: candidate.fontFamily, fontSize: candidate.fontSize, fontWeight: candidate.fontWeight, fontStyle: candidate.fontStyle, textAlign: candidate.textAlign, underline: candidate.underline, lineHeight: candidate.lineHeight, charSpacing: candidate.charSpacing });
-                if (object instanceof Ellipse) Object.assign(options, { rx: candidate.width / 2, ry: candidate.height / 2 });
-                if (candidate.type === 'rect') Object.assign(options, { rx: candidate.radius ?? 0, ry: candidate.radius ?? 0 });
-                if (object instanceof FabricImage) {
-                    Object.assign(options, { cropX: candidate.cropX, cropY: candidate.cropY });
-                    object.filters = filterObjects(candidate.filters);
-                    object.applyFilters();
+            const request = generation;
+            const epochs = selected.map(object => { const epoch = (editEpochs.get(object) ?? 0) + 1; editEpochs.set(object, epoch); return epoch; });
+            const editable = object => selected.includes(object) && (!object.studioLocked || patch.locked === false);
+            const live = () => selected.every((object, index) => objects().includes(object) && editEpochs.get(object) === epochs[index]);
+            const candidateFor = object => checked({ ...studioObjectToElement(object, { absolute: true }), ...patch });
+            const candidates = selected.map(candidateFor);
+            selected.forEach((object, index) => { if (object instanceof FabricImage) checkMediaCrop(candidates[index], object.getElement()); });
+            const replacements = new Map();
+            try {
+                await waitForStudioFonts(candidates, { registry: fontRegistry, signal: controller?.signal });
+                for (let i = 0; i < selected.length; i++) {
+                    const object = selected[i];
+                    // Common edits retain non-chart objects and their media lifetimes.
+                    if (editable(object) && object.studioType === 'chart') replacements.set(object, await elementToFabric(candidates[i], { assets: resources, fontRegistry, chartResources, signal: controller?.signal }));
                 }
-                object.set(options);
-                setIdentity(object, candidate);
-                object.setCoords();
+                const committed = await commitNextBudget(() => objects().map(object => editable(object) ? candidateFor(object) : studioObjectToElement(object, { absolute: true })), request, () => {
+                    // Read latest transforms before publication; no awaits can split this commit.
+                    const latest = new Map(selected.filter(editable).map(object => [object, candidateFor(object)]));
+                    const keepSelection = selectedObjects().length === selected.length && selected.every(object => selectedObjects().includes(object));
+                    const previousSelection = selectedObjects();
+                    canvas.discardActiveObject();
+                    const next = selected.map(object => {
+                        if (!latest.has(object)) return object;
+                        const replacement = replacements.get(object);
+                        if (!replacement) { applyObjectPatch(object, latest.get(object)); return object; }
+                        applyObjectPatch(replacement, latest.get(object));
+                        const position = objects().indexOf(object);
+                        canvas.remove(object); canvas.insertAt(position, replacement); object.dispose(); return replacement;
+                    });
+                    choose(keepSelection ? next : previousSelection.map(object => replacements.get(object) ?? object));
+                    canvas.requestRenderAll(); changed('update');
+                }, live);
+                if (!committed) replacements.forEach(object => object.dispose());
+            } catch (error) {
+                replacements.forEach(object => object.dispose());
+                if (destroyed || request !== generation) return;
+                throw error;
             }
-            choose(selected); canvas.requestRenderAll(); changed('update');
         },
         delete() {
             ready(); const selected = selectedObjects().filter(object => !object.studioLocked);
@@ -407,19 +553,21 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             const request = generation;
             const nextVideos = [];
             const clones = clone(elements);
+            await waitForStudioFonts(clones, { registry: fontRegistry, signal: controller?.signal });
             const rename = element => { element.id = newId(element.type); if (element.elements) element.elements.forEach(rename); };
             for (const element of clones) { rename(element); element.x += 24; element.y += 24; }
             const additions = [];
             try {
-                for (const element of clones) additions.push(await elementToFabric(checked(element), { assets: resources, videos: nextVideos, signal: controller?.signal }));
+                for (const element of clones) additions.push(await elementToFabric(checked(element), { assets: resources, videos: nextVideos, signal: controller?.signal, fontRegistry, chartResources }));
             } catch (error) {
                 cleanVideos(nextVideos); additions.forEach(object => object.dispose());
                 if (destroyed || request !== generation) return;
                 throw error;
             }
             if (destroyed || request !== generation) { cleanVideos(nextVideos); additions.forEach(object => object.dispose()); return; }
-            videos.push(...nextVideos);
-            canvas.add(...additions); choose(additions); changed('paste'); return clones.map(element => element.id);
+            try { if (!await commitNextBudget(() => [...serialize(), ...clones], request, () => { videos.push(...nextVideos); canvas.add(...additions); choose(additions); changed('paste'); })) { cleanVideos(nextVideos); additions.forEach(object => object.dispose()); return; } }
+            catch (error) { cleanVideos(nextVideos); additions.forEach(object => object.dispose()); throw error; }
+            return clones.map(element => element.id);
         },
         async duplicate() { return adapter.paste(selection()); },
         group() {
@@ -433,14 +581,37 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             canvas.add(group); canvas.moveObjectTo(group, position); choose([group]); changed('group'); return group.studioId;
         },
         ungroup() {
-            ready(); const groups = selectedObjects().filter(object => object instanceof Group && !(object instanceof ActiveSelection) && !object.studioLocked);
+            ready(); const groups = selectedObjects().filter(object => object.studioType === 'group' && object instanceof Group && !(object instanceof ActiveSelection) && !object.studioLocked);
             if (!groups.length) return false;
+            const restricted = new Map();
+            for (const group of groups) if (documentData.schema_version === 2 && group.studioTiming) {
+                for (const child of group.getObjects()) restricted.set(child, checked(restrictElementWindow(studioObjectToElement(child), group.studioTiming,
+                    { pageDuration: currentPage.duration, sourceDuration: child.studioVideo?.duration })));
+            }
             canvas.discardActiveObject(); const released = [];
             for (const group of groups) {
                 const position = objects().indexOf(group);
                 const children = group.removeAll();
                 canvas.remove(group); canvas.insertAt(position, ...children); released.push(...children);
-                children.forEach(child => { setLock(child, child.studioLocked); child.setCoords(); });
+                children.forEach(child => {
+                    if (restricted.has(child)) {
+                        const bounded = restricted.get(child);
+                        child.set('visible', bounded.visible !== false);
+                        setIdentity(child, bounded);
+                        if (child.studioVideo) {
+                            try {
+                                const source = clipMediaState(bounded, bounded.timing?.start ?? 0, child.studioVideo.duration, currentPage.duration);
+                                const end = bounded.trimEnd ?? child.studioVideo.duration;
+                                const poster = Math.min(source.sourceTime, Math.max(bounded.trimStart ?? 0, end - 0.01));
+                                if (Math.abs(child.studioVideo.currentTime - poster) > 1e-6) {
+                                    child.studioVideo.addEventListener('seeked', () => child.canvas?.requestRenderAll(), { once: true });
+                                    child.studioVideo.currentTime = poster;
+                                }
+                            } catch (error) { canvas.fire('studio:error', { error }); }
+                        }
+                    } else setLock(child, child.studioLocked);
+                    child.setCoords();
+                });
             }
             choose(released); changed('ungroup'); return true;
         },
@@ -517,7 +688,7 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             canvas.renderAll();
         },
         exportCanvas() { return canvas; },
-        async destroy() { destroyed = true; ++generation; controller?.abort(); adapter.pause(); cleanVideos(videos); canvas.upperCanvasEl.removeEventListener('keydown', onKey); canvas.off(); await canvas.dispose(); },
+        async destroy() { destroyed = true; ++generation; controller?.abort(); adapter.pause(); cleanVideos(videos); canvas.upperCanvasEl.removeEventListener('keydown', onKey); canvas.off(); await canvas.dispose(); fontRegistry.dispose(); },
     };
 
     const onKey = event => {

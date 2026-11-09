@@ -1,0 +1,11 @@
+{
+  "database": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-b9a48de5-cd17-4a17-8890-830f9812d38c\\db.sqlite",
+  "environment": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-b9a48de5-cd17-4a17-8890-830f9812d38c",
+  "storage": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-b9a48de5-cd17-4a17-8890-830f9812d38c",
+  "cache": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-b9a48de5-cd17-4a17-8890-830f9812d38c/cache",
+  "limiter": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-b9a48de5-cd17-4a17-8890-830f9812d38c/cache",
+  "locks": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-b9a48de5-cd17-4a17-8890-830f9812d38c/cache",
+  "config": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-b9a48de5-cd17-4a17-8890-830f9812d38c\\config.php",
+  "packages": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-b9a48de5-cd17-4a17-8890-830f9812d38c\\packages.php",
+  "services": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-b9a48de5-cd17-4a17-8890-830f9812d38c\\services.php"
+}

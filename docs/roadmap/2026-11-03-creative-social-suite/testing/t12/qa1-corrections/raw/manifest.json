@@ -1,0 +1,20 @@
+{
+  "files": {
+    "resources/js/Studio/dataset-client.js": "3ac5aee3dc974478aad68f425933c5dde25118710c02c6705e1a24677846a09e",
+    "tests/frontend/studio-dataset-client.test.mjs": "90a32dd6a5c4859ca32dead7cd6ced35210b62f2873c49c8e9aaa29f94036cc8",
+    "tests/e2e/studio-datasets.spec.ts": "9be969c257649431016fb51fe934f385880c3de0448e1cf7b311347de57aa536",
+    "storage/framework/testing/t12-dataset-editor-qa2/isolation.cjs": "17692b20d1919cbd56d7974b81f0a0ebfa9329cc919ce40fb4ef36e2995cfa87",
+    "storage/framework/testing/t12-dataset-editor-qa2/global-setup.ts": "9fb3bbf915e8425f3147907287acd28af2c79ec68f42fcefaaf43f5ed5fd3571",
+    "storage/framework/testing/t12-dataset-editor-qa2/playwright.config.ts": "ba1bb48a8656e55a17eebba436671148d5823cd6b536200dece1fd6698100d98",
+    "storage/framework/testing/t12-dataset-editor-qa2/run.py": "645f626ad9c3a7ce948d40a4337dee9091b758fd9a9f9f797a9fff4aa60aceb5",
+    "storage/framework/testing/t12-dataset-editor-qa2/recount.py": "2631a2f6c7dd5e55c4a27b5540383eb84a6674e2d0af818e43362d10f902ca48",
+    "storage/framework/testing/t12-dataset-editor-qa2/postprocess.py": "66f9904f13ce76d5bc7ecfbbf3b1184c5938e47b7869f328691190ef98d32920",
+    "storage/framework/testing/t12-dataset-editor-qa2/serve.cjs": "367ee4449f061789a2fecbba37cb0420524e3e18a9b67813ee1c7adbc10b08e2",
+    "storage/framework/testing/t12-dataset-editor-qa2/router.php": "0bbb2af3a28cc36515749521e87e4485a1d0e3c439a986fd69b5edb272a80cd0",
+    "storage/framework/testing/t12-dataset-editor-qa2/fixtures/google-inter-empty.css": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+    "storage/framework/testing/t12-dataset-editor-qa2/templates/render-report.mjs": "b02c95178ee3a40f4c255a5b65318f2745823c560b1bf88eca1e6573e1a599f3",
+    "storage/framework/testing/t12-dataset-editor-qa2/templates/render-report.php": "4455b12163601480e04c55220878a7d4a2f7a4906eef729791960944c8be440a"
+  },
+  "scope": "QA1 corrections: client2 + spec + operational QA2 helper inputs; code approvals UI2/core preserved; no native QA2 run",
+  "build": "storage/framework/testing/t12-dataset-editor-build5/result.json"
+}

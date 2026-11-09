@@ -1,0 +1,56 @@
+{
+  "scope": "T12 approved cores only,notHTTP/editor",
+  "sources": {
+    "app/Services/Studio/StudioChartData.php": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+    "tests/Feature/Studio/StudioChartDataTest.php": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+    "app/Services/Studio/StudioDatasets.php": "52df3c869b3993c2cb27f3bf245062d8b2872356cd62adcc1f65b1ca091e6411",
+    "app/Models/Studio/StudioDataset.php": "b2e7eb6d865df56db94fac4b051e4b2c7a0b273bfddd6a9c5d639cf4462033dc",
+    "app/Models/Studio/StudioDatasetRevision.php": "49d41e524b4c90205ae1f566422aca64bfd07745b5f068cfd4500c5ac61a4890",
+    "database/migrations/2026_11_06_010000_create_studio_datasets.php": "90a7b7ed206946a13c41d0ce56b0d18a9ffb78b4c3d5c3df9cc259c5472b2efd",
+    "tests/Feature/Studio/StudioDatasetsTest.php": "c33ef6edaf092d45d96df7e94d8cb6f54f8f30ac52d3e70e224b94be626cf770",
+    "app/Services/Studio/StudioTableExport.php": "cdcfb37bcf22f2e55e3d402cc93a61ed7c416d9ca6787cab45c3d2cfec4b1049",
+    "tests/Feature/Studio/StudioTableExportTest.php": "4a778e19f79fb5c3ccbc52f8040df02443bc009071233a1fcb41eb47207179d0"
+  },
+  "artifacts": [
+    {
+      "path": "after.json",
+      "sha256": "abd4585cac77edbfe415e03e0d3cde84a6869486636e63dc745f0f5ed58c5a74",
+      "bytes": 1071
+    },
+    {
+      "path": "before.json",
+      "sha256": "abd4585cac77edbfe415e03e0d3cde84a6869486636e63dc745f0f5ed58c5a74",
+      "bytes": 1071
+    },
+    {
+      "path": "command.json",
+      "sha256": "9b7fae597bb0274144eb35850588d69ff52f54e3ffa24ba081489de52377e34e",
+      "bytes": 520
+    },
+    {
+      "path": "junit.xml",
+      "sha256": "76efb9af10adbe1a91bf9f285a622961845e2723b85a6db3b3fb4db40be1c295",
+      "bytes": 38817
+    },
+    {
+      "path": "report.md",
+      "sha256": "fa675c7a057ad0dcebc43b33ab71721a8ac9140e525b2546a25fae42e372de51",
+      "bytes": 1318
+    },
+    {
+      "path": "result.json",
+      "sha256": "8849d742b7f10247a3017805f09f6bb21b2f49a07cacfe27842017d8bf6613a0",
+      "bytes": 91
+    },
+    {
+      "path": "stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "stdout.txt",
+      "sha256": "8fcc580ea6d3addbdf5f0eb726cae6ec93dbc7ef8960a3f26b1511fa73667f58",
+      "bytes": 162
+    }
+  ]
+}

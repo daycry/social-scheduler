@@ -1,0 +1,29 @@
+{
+  "automatic_verdict": "NO-PASS",
+  "planned_cases": 3,
+  "actual_cases": 1,
+  "recorded_cases": 3,
+  "global_acceptance": false,
+  "figure_count": 1,
+  "source_count": 394,
+  "visual_review_pending": false,
+  "pdf_generated": true,
+  "scope": "E2E28.03 only; no exports, dense, AV, other families or whole roadmap acceptance",
+  "resource": {
+    "physical_minimum_observed_bytes": 8928854016,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 17.548827199992957,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 669831168,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  }
+}

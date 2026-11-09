@@ -1,0 +1,13 @@
+{
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern",
+    "regression inherited array",
+    "tests/frontend/studio-dataset-table.test.mjs"
+  ],
+  "exit_code": 1,
+  "duration_seconds": 0.07016630000725854
+}

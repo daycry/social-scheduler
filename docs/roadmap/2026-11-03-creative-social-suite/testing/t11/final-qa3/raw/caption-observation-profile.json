@@ -1,0 +1,446 @@
+{
+  "media": [
+    {
+      "path": "samples/captions/desktop/captions-mp4.mp4",
+      "frames": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        9,
+        14,
+        15,
+        17
+      ],
+      "compare_frames": [
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          14
+        ]
+      ],
+      "expected_window": {
+        "fps": 12,
+        "start": 0.25,
+        "end": 1.25,
+        "text": "Hola",
+        "background": "black"
+      }
+    },
+    {
+      "path": "samples/captions/desktop/captions-gif.gif",
+      "frames": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        9,
+        14,
+        15,
+        17
+      ],
+      "compare_frames": [
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          14
+        ]
+      ],
+      "expected_window": {
+        "fps": 12,
+        "start": 0.25,
+        "end": 1.25,
+        "text": "Hola",
+        "background": "black"
+      }
+    },
+    {
+      "path": "samples/captions/desktop/captions-selection-a.mp4",
+      "frames": [
+        0,
+        53,
+        54,
+        55,
+        58,
+        59
+      ],
+      "expected_selection": "a",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/desktop/captions-selection-c-a.mp4",
+      "frames": [
+        0,
+        8,
+        9,
+        10,
+        14,
+        15,
+        113,
+        114,
+        115,
+        117,
+        118,
+        119
+      ],
+      "expected_selection": "c-a",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/desktop/captions-selection-a-c.mp4",
+      "frames": [
+        0,
+        50,
+        52,
+        53,
+        54,
+        55,
+        56,
+        59,
+        60,
+        104
+      ],
+      "expected_selection": "a-c",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile/captions-mp4.mp4",
+      "frames": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        9,
+        14,
+        15,
+        17
+      ],
+      "compare_frames": [
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          14
+        ]
+      ],
+      "expected_window": {
+        "fps": 12,
+        "start": 0.25,
+        "end": 1.25,
+        "text": "Hola",
+        "background": "black"
+      }
+    },
+    {
+      "path": "samples/captions/mobile/captions-gif.gif",
+      "frames": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        9,
+        14,
+        15,
+        17
+      ],
+      "compare_frames": [
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          14
+        ]
+      ],
+      "expected_window": {
+        "fps": 12,
+        "start": 0.25,
+        "end": 1.25,
+        "text": "Hola",
+        "background": "black"
+      }
+    },
+    {
+      "path": "samples/captions/mobile/captions-selection-a.mp4",
+      "frames": [
+        0,
+        53,
+        54,
+        55,
+        58,
+        59
+      ],
+      "expected_selection": "a",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile/captions-selection-c-a.mp4",
+      "frames": [
+        0,
+        8,
+        9,
+        10,
+        14,
+        15,
+        113,
+        114,
+        115,
+        117,
+        118,
+        119
+      ],
+      "expected_selection": "c-a",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile/captions-selection-a-c.mp4",
+      "frames": [
+        0,
+        50,
+        52,
+        53,
+        54,
+        55,
+        56,
+        59,
+        60,
+        104
+      ],
+      "expected_selection": "a-c",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-mp4.mp4",
+      "frames": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        9,
+        14,
+        15,
+        17
+      ],
+      "compare_frames": [
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          14
+        ]
+      ],
+      "expected_window": {
+        "fps": 12,
+        "start": 0.25,
+        "end": 1.25,
+        "text": "Hola",
+        "background": "black"
+      }
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-gif.gif",
+      "frames": [
+        0,
+        2,
+        3,
+        4,
+        6,
+        9,
+        14,
+        15,
+        17
+      ],
+      "compare_frames": [
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          14
+        ]
+      ],
+      "expected_window": {
+        "fps": 12,
+        "start": 0.25,
+        "end": 1.25,
+        "text": "Hola",
+        "background": "black"
+      }
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-selection-a.mp4",
+      "frames": [
+        0,
+        53,
+        54,
+        55,
+        58,
+        59
+      ],
+      "expected_selection": "a",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-selection-c-a.mp4",
+      "frames": [
+        0,
+        8,
+        9,
+        10,
+        14,
+        15,
+        113,
+        114,
+        115,
+        117,
+        118,
+        119
+      ],
+      "expected_selection": "c-a",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-selection-a-c.mp4",
+      "frames": [
+        0,
+        50,
+        52,
+        53,
+        54,
+        55,
+        56,
+        59,
+        60,
+        104
+      ],
+      "expected_selection": "a-c",
+      "expected_source_cues": [
+        {
+          "text": "AA",
+          "start": 1.8,
+          "end": 1.95
+        },
+        {
+          "text": "CCCCCCCC",
+          "start": 3.8,
+          "end": 4
+        }
+      ]
+    }
+  ],
+  "svg_archives": [
+    "samples/captions/desktop/captions-svg.zip",
+    "samples/captions/mobile/captions-svg.zip",
+    "samples/captions/mobile-360/captions-svg.zip"
+  ],
+  "expected_font_sha256": [
+    "5deb5f3883fc5c4bade65d9c447344b6fdf97a07e16d195439d21b38d3cc8464",
+    "90a9e2372e2f1642ef0b2a59f8b250436a0ee351bd0e87b7cee1873b65f09df7",
+    "fb5cf1036657820524e73bafe428ca7493d47cbb5205d2897f05bb2c9599c08a"
+  ]
+}

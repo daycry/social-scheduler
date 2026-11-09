@@ -1,0 +1,9 @@
+{
+    "status":  "SOURCE_DONE",
+    "source":  "resources/js/Components/Studio/PresentationDialog.vue",
+    "baseline_sha256":  "EA9413C3A6DA7EE43F98AE94311D1276843B3BBC0B7BFED69B02636ABA78430C",
+    "source_sha256":  "8E4F8013EBE4830057AC41BFCFF8FD36660E9B96152CA3394F9924BA4CC550D6",
+    "change":  "Replace grid min-h-0 with shrink-0 to retain intrinsic stacked grid height within scrolling dialog",
+    "verification":  "Exact source replacement verified; root native CSS probe established footer interception before fix and canvas hit after fix; existing full native run is RED; full native regression GREEN remains pending",
+    "test_added":  false
+}

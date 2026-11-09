@@ -5,9 +5,9 @@ export class StudioApiError extends Error {
 }
 
 /** Same-origin JSON transport; bearer URLs from storage never receive the application's CSRF token. */
-export async function studioRequest(method, url, body) {
+export async function studioRequest(method, url, body, { signal } = {}) {
     const response = await fetch(url, {
-        method, credentials: 'same-origin',
+        method, credentials: 'same-origin', signal,
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-XSRF-TOKEN': csrf(), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
         body: body === undefined ? undefined : JSON.stringify(body),
     });

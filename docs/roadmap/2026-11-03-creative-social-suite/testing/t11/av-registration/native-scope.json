@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "AV actual database worker processes native deliveries through assembly and stops before pending media registration with data set \"('mp4')\"",
+      "assertions": 26,
+      "seconds": 2.616748
+    },
+    {
+      "name": "AV actual database worker processes native deliveries through assembly and stops before pending media registration with data set \"('gif')\"",
+      "assertions": 26,
+      "seconds": 2.396691
+    },
+    {
+      "name": "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('mp4')\"",
+      "assertions": 16,
+      "seconds": 4.177535
+    },
+    {
+      "name": "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('gif')\"",
+      "assertions": 10,
+      "seconds": 2.204018
+    },
+    {
+      "name": "AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit",
+      "assertions": 14,
+      "seconds": 2.545603
+    }
+  ],
+  "scope": "Native phase/queue regression until assemble only; no durable transfer or public registration acceptance."
+}

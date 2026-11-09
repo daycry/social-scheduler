@@ -1,0 +1,14 @@
+{
+  "box": {
+    "x": 52.4999885559082,
+    "y": 50.32449817657471,
+    "width": 102.984375,
+    "height": 23
+  },
+  "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+  "exported_woff2_sha256": "35682e17834a217becc4c331f62daa12926aaa51d33ed771f28df30075b68050",
+  "svg_embedded_match": true,
+  "min_iou": 0.8,
+  "min_fallback_margin": 0.03,
+  "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+}

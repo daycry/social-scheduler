@@ -1,0 +1,517 @@
+--- a/resources/js/Studio/audiovisual-plan.js
++++ b/resources/js/Studio/audiovisual-plan.js
+@@ -4,10 +4,62 @@
+ const clamp = value => Math.max(0, Math.min(1, value));
+ const fail = message => { throw new Error(message); };
+ 
++export function audiovisualRenderOptions(document, { scale = 1, quality = 0.94 } = {}) {
++    if (!Number.isFinite(scale) || scale < 0.1 || scale > 4) fail('La escala audiovisual debe estar entre 0,1 y 4.');
++    if (!Number.isFinite(quality) || quality < 0.1 || quality > 1) fail('La calidad audiovisual debe estar entre 0,1 y 1.');
++    const width = Math.round(document.width * scale), height = Math.round(document.height * scale);
++    const paddedWidth = Math.ceil(width / 2) * 2, paddedHeight = Math.ceil(height / 2) * 2;
++    if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 || paddedWidth > 16000 || paddedHeight > 16000
++        || paddedWidth * paddedHeight > 16000000) fail('La resolución audiovisual supera el límite de 16 megapíxeles.');
++    return { scale, quality, width, height, paddedWidth, paddedHeight, crf: Math.round(40 - (quality - 0.1) * 24 / 0.9),
++        paletteColors: 2 ** Math.round(4 + (quality - 0.1) * 4 / 0.9) };
++}
++
++function selectedPages(document, value) {
++    const ids = new Set(document.pages.map(page => page.id));
++    if (value === undefined) return [...ids];
++    if (!Array.isArray(value) || !value.length || value.length > 100 || new Set(value).size !== value.length
++        || Array.from(value).some(id => typeof id !== 'string' || !ids.has(id))) fail('Selecciona una lista de páginas existentes sin repeticiones.');
++    return [...value];
++}
++
++function legacyTimeline(document, selection, resources) {
++    if (document.schema_version === 2) return document;
++    const walk = elements => elements.map(element => {
++        if (element.type === 'group') return { ...element, elements: walk(element.elements) };
++        if (element.type !== 'video') return element;
++        const asset = resources.get(element.asset_id);
++        if (!asset || asset.kind !== 'video' || asset.status !== 'listo' || !Number.isFinite(asset.duration) || asset.duration <= 0) fail('Falta un recurso de vídeo listo para convertir el póster antiguo.');
++        if ((element.trimStart ?? 0) < asset.duration) return element;
++        return { ...element, trimStart: Math.max(0, asset.duration - 0.0001), trimEnd: asset.duration, muted: true };
++    });
++    const wanted = new Set(selection);
++    return validateDocument({ ...document, schema_version: 2, timeline: { fps: 30, audio_tracks: [] },
++        pages: document.pages.map(page => wanted.has(page.id) ? { ...page, elements: walk(page.elements) } : page) });
++}
++
+ /** One integer frame/sample clock, also when resuming in the middle of a page or transition. */
+-export function compileAudiovisual(input, assets = [], { segmentFrames } = {}) {
+-    const document = validateDocument(input), timeline = compileTimeline(document);
+-    const size = segmentFrames ?? timeline.fps * 2;
++export function compileAudiovisual(input, assets = [], options = {}) {
++    if (!options || typeof options !== 'object' || Array.isArray(options) || ![Object.prototype, null].includes(Object.getPrototypeOf(options))
++        || Object.keys(options).some(key => !['segmentFrames', 'pageIds', 'scale', 'quality'].includes(key))) fail('Opciones de exportación audiovisual no admitidas.');
++    const original = validateDocument(input), selection = selectedPages(original, options.pageIds);
++    const resources = new Map();
++    if (!Array.isArray(assets)) fail('Indica una lista de recursos de audio.');
++    for (const asset of assets) {
++        if (!asset || !Number.isSafeInteger(asset.id) || asset.id < 1 || resources.has(asset.id)) fail('ID de recurso inválido o duplicado.');
++        resources.set(asset.id, asset);
++    }
++    const source = legacyTimeline(original, selection, resources), sourceTimeline = compileTimeline(source);
++    const fullSelection = selection.length === source.pages.length && selection.every((id, index) => id === source.pages[index].id);
++    const pagesById = new Map(source.pages.map(page => [page.id, page]));
++    const selected = selection.map((id, index) => {
++        const page = { ...pagesById.get(id) };
++        if (index === selection.length - 1) delete page.transition;
++        return page;
++    });
++    const document = fullSelection ? source : validateDocument({ ...source, timeline: { fps: source.timeline.fps, audio_tracks: [] }, pages: selected });
++    const timeline = compileTimeline(document), render = audiovisualRenderOptions(document, options);
++    const size = options.segmentFrames ?? timeline.fps * 2;
+     if (!Number.isInteger(size) || size < 1 || size > timeline.fps * 2) throw new Error('El tramo debe contener entre 1 y dos segundos de fotogramas.');
+     const sampleRate = 48000, segments = [];
+     for (let first = 0; first < timeline.frameCount; first += size) {
+@@ -17,14 +69,8 @@
+             start: first / timeline.fps, end: (first + count) / timeline.fps, sampleStart,
+             sampleCount: Math.round((first + count) * sampleRate / timeline.fps) - sampleStart });
+     }
+-    const resources = new Map();
+-    if (!Array.isArray(assets)) fail('Indica una lista de recursos de audio.');
+-    for (const asset of assets) {
+-        if (!asset || !Number.isSafeInteger(asset.id) || asset.id < 1 || resources.has(asset.id)) fail('ID de recurso inválido o duplicado.');
+-        resources.set(asset.id, asset);
+-    }
+     const audio = [];
+-    const add = (clip, origin, start, end, page = null, video = false) => {
++    const add = (clip, origin, start, end, page = null, video = false, identity = clip.id) => {
+         if (clip.muted || clip.volume === 0 || start >= end) return;
+         const asset = resources.get(clip.asset_id);
+         if (!asset || asset.status !== 'listo' || !['audio', 'video'].includes(asset.kind)
+@@ -32,7 +78,7 @@
+         if (!asset.audio_codec) { if (video) return; fail('El recurso no contiene audio.'); }
+         const from = clip.trimStart ?? 0, to = clip.trimEnd ?? asset.duration;
+         if (from >= to || to > asset.duration + 1e-9 || (clip.sourceOffset ?? 0) > to - from + 1e-9) fail('El recorte de audio supera el origen.');
+-        audio.push({ id: clip.id, assetId: clip.asset_id, sourceDuration: asset.duration, origin, start, end,
++        audio.push({ id: identity, sourceId: clip.id, assetId: clip.asset_id, sourceDuration: asset.duration, origin, start, end,
+             clip: { ...clip, timing: { start: 0, duration: clip.timing?.duration ?? clip.duration } },
+             fadeIn: page ? timeline.pages[page.index - 1]?.transition ?? null : null, fadeOut: page?.transition ?? null });
+     };
+@@ -50,8 +96,25 @@
+         };
+         walk(page.source.elements, 0, Math.min(page.source.duration, page.end - page.start));
+     }
+-    for (const track of document.timeline.audio_tracks) add(track, track.start, track.start, Math.min(track.start + track.duration, timeline.duration));
+-    return { document, timeline, fps: timeline.fps, frameCount: timeline.frameCount, duration: timeline.duration, sampleRate, segments, audio };
++    if (fullSelection) {
++        for (const track of source.timeline.audio_tracks) add(track, track.start, track.start, Math.min(track.start + track.duration, timeline.duration));
++    } else {
++        // A contiguous source run shares ONE offset even when recompiled fractional boundaries round differently.
++        // Only the joins between disjoint/reordered runs crossfade global music; internal page fades never double it.
++        const sourceIndices = new Map(source.pages.map((page, index) => [page.id, index])), runs = [];
++        for (const page of timeline.pages) {
++            const sourceIndex = sourceIndices.get(page.id), previous = runs.at(-1);
++            if (previous && sourceIndex === previous.lastSourceIndex + 1) { previous.last = page; previous.lastSourceIndex = sourceIndex; }
++            else runs.push({ first: page, last: page, sourceStart: sourceTimeline.pages[sourceIndex].start, lastSourceIndex: sourceIndex });
++        }
++        for (const [index, run] of runs.entries()) for (const track of source.timeline.audio_tracks) {
++            const origin = run.first.start + track.start - run.sourceStart;
++            add(track, origin, Math.max(run.first.start, origin), Math.min(run.last.end, origin + track.duration),
++                { index: run.first.index, transition: run.last.transition }, false, `audio:${index}:${track.id}`);
++        }
++    }
++    return { document, timeline, fps: timeline.fps, frameCount: timeline.frameCount, duration: timeline.duration, sampleRate, segments, audio,
++        selection, sourceVersion: original.schema_version, render, options: { scale: render.scale, quality: render.quality, segmentFrames: size, pageIds: selection } };
+ }
+ 
+ /** Reference sampler shared by native mix acceptance tests; source phase never resets at a segment. */
+--- a/resources/js/Studio/project-render-entry.js
++++ b/resources/js/Studio/project-render-entry.js
+@@ -2,13 +2,13 @@
+ import { createTimelinePreview } from './timeline-preview.js';
+ 
+ let renderer = null, plan = null, output = null;
+-globalThis.prepareStudioProject = async ({ document, assets = [], fonts = [] }) => {
++globalThis.prepareStudioProject = async ({ document, assets = [], fonts = [], renderScale = 1 }) => {
+     if (renderer) throw new Error('El render de este intento ya está preparado.');
+     output = globalThis.document.createElement('canvas'); output.id = 'studio-project-output';
+     globalThis.document.body.append(output);
+-    renderer = await createTimelinePreview(output, { document, assets, fonts, offline: true });
++    renderer = await createTimelinePreview(output, { document, assets, fonts, offline: true, renderScale });
+     plan = compileTimeline(document);
+-    return { fps: plan.fps, frameCount: plan.frameCount };
++    return { fps: plan.fps, frameCount: plan.frameCount, width: output.width, height: output.height };
+ };
+ globalThis.paintStudioProjectFrame = async frame => {
+     if (!renderer || !Number.isSafeInteger(frame) || frame < 0 || frame >= plan.frameCount) throw new Error('Fotograma fuera del proyecto.');
+--- a/resources/js/Studio/timeline-preview.js
++++ b/resources/js/Studio/timeline-preview.js
+@@ -4,13 +4,14 @@
+ import { createTimelineAudio } from './timeline-audio.js';
+ 
+ /** A separate, disposable scene: preview state can never leak into saved Fabric objects. */
+-export async function createTimelinePreview(output, { document: input, assets = [], fonts = [], offline = false } = {}) {
++export async function createTimelinePreview(output, { document: input, assets = [], fonts = [], offline = false, renderScale = 1 } = {}) {
+     if (typeof offline !== 'boolean') throw new Error('El modo offline debe ser booleano.');
++    if (!Number.isFinite(renderScale) || renderScale < 0.1 || renderScale > 4 || (!offline && renderScale !== 1)) throw new Error('La escala de render solo se admite en la exportación offline.');
+     const document = validateDocument(input);
+     const plan = compileTimeline(document);
+     const context = output.getContext('2d');
+     if (!context) throw new Error('No se pudo preparar la previsualización.');
+-    output.width = document.width; output.height = document.height;
++    output.width = Math.round(document.width * renderScale); output.height = Math.round(document.height * renderScale);
+     const cache = new Map();
+     let disposed = false, playing = false, generation = 0, tail = Promise.resolve(), media = [];
+     const walk = (objects, visit) => objects.forEach(object => { visit(object); if (object.getObjects) walk(object.getObjects(), visit); });
+@@ -46,7 +47,7 @@
+         const started = performance.now();
+         if (cached) { cache.delete(page.id); await cached.scene.dispose(); }
+         const { transition: ignored, ...source } = page;
+-        const scene = await renderStudioPage({ ...document, timeline: { fps: plan.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, page.id, assets, fonts);
++        const scene = await renderStudioPage({ ...document, timeline: { fps: plan.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, page.id, assets, fonts, { renderScale });
+         if (disposed) { await scene.dispose(); return null; }
+         const entry = { scene, signature, elements };
+         cache.set(page.id, entry);
+@@ -118,7 +119,7 @@
+         context.globalCompositeOperation = 'lighter';
+         for (const { scene, sample } of scenes) {
+             context.globalAlpha = sample.opacity;
+-            context.drawImage(scene.canvas.lowerCanvasEl, sample.translateX, 0);
++            context.drawImage(scene.canvas.lowerCanvasEl, sample.translateX * renderScale, 0);
+         }
+         context.restore();
+         context.save(); context.globalCompositeOperation = 'destination-over'; context.fillStyle = '#000000';
+--- a/resources/js/Studio/canvas.js
++++ b/resources/js/Studio/canvas.js
+@@ -281,15 +281,19 @@
+ 
+ const cleanVideos = videos => videos.splice(0).forEach(video => { video.pause(); video.removeAttribute('src'); video.load(); });
+ 
+-export async function renderStudioPage(documentData, pageId, assets = [], fonts = []) {
++export async function renderStudioPage(documentData, pageId, assets = [], fonts = [], { renderScale = 1 } = {}) {
+     const doc = validateDocument(documentData);
+     const page = findPage(doc, pageId);
+     if (!page) throw new StudioDocumentError('La página no está disponible.');
++    const width = Math.round(doc.width * renderScale), height = Math.round(doc.height * renderScale);
++    if (!Number.isFinite(renderScale) || renderScale < 0.1 || renderScale > 4 || width < 1 || height < 1 || width > 16000 || height > 16000
++        || width * height > 64000000) throw new StudioDocumentError('La escala o resolución de render no está admitida.');
+     const fontRegistry = createStudioFontRegistry(fonts);
+     try { await waitForStudioFonts(page.elements, { registry: fontRegistry }); }
+     catch (error) { fontRegistry.dispose(); throw error; }
+     const element = document.createElement('canvas');
+-    const canvas = new StaticCanvas(element, { width: doc.width, height: doc.height, enableRetinaScaling: false, renderOnAddRemove: false, backgroundColor: toFabricFill(page.background, doc.width, doc.height) });
++    const canvas = new StaticCanvas(element, { width, height, enableRetinaScaling: false, renderOnAddRemove: false, backgroundColor: toFabricFill(page.background, doc.width, doc.height) });
++    canvas.setViewportTransform([renderScale, 0, 0, renderScale, 0, 0]);
+     const videos = [];
+     try {
+         for (const layer of page.elements) canvas.add(await elementToFabric(layer, { assets, videos, fontRegistry }));
+--- a/scripts/studio/av-video.mjs
++++ b/scripts/studio/av-video.mjs
+@@ -5,13 +5,13 @@
+ import { chromium } from 'playwright';
+ import { attemptDirectory, checkedSegment, segmentFolder, boundedProcess } from './av-files.mjs';
+ import { openResourceServer } from './av-server.mjs';
++import { audiovisualRenderOptions } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
+ const project = fileURLToPath(new URL('../../', import.meta.url));
+ export async function renderVisualSegment({ directory, plan, assets = [], fonts = [], segment, signal, format = 'mp4' }) {
+     directory = await attemptDirectory(directory); checkedSegment(plan, segment); signal?.throwIfAborted();
+     if (!['mp4', 'gif'].includes(format)) throw new Error('Formato audiovisual no admitido.');
+-    const width = plan.document.width, height = plan.document.height;
+-    if (width * height > 16000000) throw new Error('El render audiovisual admite hasta 16 megapíxeles por fotograma.');
++    const render = audiovisualRenderOptions(plan.document, plan.options), { width, height } = render;
+     const folder = await segmentFolder(directory), name = `video-${String(segment.index).padStart(6, '0')}.${format}`;
+     const temporary = path.join(folder, `${randomUUID()}.part.${format}`), target = path.join(folder, name);
+     let browser, server;
+@@ -25,8 +25,8 @@
+         const page = await context.newPage(); page.setDefaultTimeout(20000);
+         await page.goto(server.url);
+         await page.addScriptTag({ path: path.join(project, 'public/build/studio-project-renderer.js') });
+-        const prepared = await page.evaluate(input => globalThis.prepareStudioProject(input), { document: plan.document, assets: server.assets, fonts: server.fonts });
+-        if (prepared.frameCount !== plan.frameCount || prepared.fps !== plan.fps) throw new Error('El navegador y el servidor no comparten el reloj de fotogramas.');
++        const prepared = await page.evaluate(input => globalThis.prepareStudioProject(input), { document: plan.document, assets: server.assets, fonts: server.fonts, renderScale: render.scale });
++        if (prepared.frameCount !== plan.frameCount || prepared.fps !== plan.fps || prepared.width !== width || prepared.height !== height) throw new Error('El navegador y el servidor no comparten el reloj o tamaño de render.');
+         async function* frames() {
+             for (let frame = segment.frameStart; frame < segment.frameStart + segment.frameCount; frame++) {
+                 signal?.throwIfAborted();
+@@ -37,8 +37,8 @@
+             }
+         }
+         const encoding = format === 'mp4' ? ['-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2:color=black', '-filter_threads', '1',
+-            '-c:v', 'libx264', '-threads', '2', '-preset', 'fast', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart']
+-            : ['-filter_complex', 'pad=ceil(iw/2)*2:ceil(ih/2)*2:color=black,split[a][b];[a]palettegen=stats_mode=single[p];[b][p]paletteuse=new=1',
++            '-c:v', 'libx264', '-threads', '2', '-preset', 'fast', '-crf', String(render.crf), '-pix_fmt', 'yuv420p', '-movflags', '+faststart']
++            : ['-filter_complex', `pad=ceil(iw/2)*2:ceil(ih/2)*2:color=black,split[a][b];[a]palettegen=stats_mode=single:max_colors=${render.paletteColors}[p];[b][p]paletteuse=new=1`,
+                 '-filter_complex_threads', '1', '-threads', '1', '-gifflags', '0', '-loop', '0'];
+         await boundedProcess(process.env.STUDIO_FFMPEG_BINARY ?? 'ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-n',
+             '-f', 'image2pipe', '-framerate', String(plan.fps), '-vcodec', 'png', '-i', 'pipe:0', '-an',
+@@ -59,7 +59,7 @@
+         const hash = createHash('sha256');
+         const file = await fs.open(target, 'r'); try { for await (const bytes of file.createReadStream()) hash.update(bytes); } finally { await file.close(); }
+         return { file: `segments/${name}`, size: stat.size, sha256: hash.digest('hex'), frameStart: segment.frameStart,
+-            frameCount: segment.frameCount, fps: plan.fps, width: paddedWidth, height: paddedHeight };
++            frameCount: segment.frameCount, fps: plan.fps, width: paddedWidth, height: paddedHeight, scale: render.scale, quality: render.quality };
+     } finally {
+         signal?.removeEventListener('abort', abort); await browser?.close().catch(() => {}); await server?.close(); await fs.rm(temporary, { force: true });
+     }
+--- a/scripts/studio/av-finalize.mjs
++++ b/scripts/studio/av-finalize.mjs
+@@ -4,6 +4,7 @@
+ import { createHash, randomUUID } from 'node:crypto';
+ import { attemptDirectory, boundedProcess } from './av-files.mjs';
+ import { joinGifSegments } from './av-gif.mjs';
++import { audiovisualRenderOptions } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
+ async function hashFile(file) { const hash = createHash('sha256'); for await (const bytes of createReadStream(file)) hash.update(bytes); return hash.digest('hex'); }
+ async function verifiedFile(directory, result, expected) {
+@@ -20,12 +21,13 @@
+     if (!['mp4', 'gif'].includes(format) || !Array.isArray(segments) || segments.length !== plan.segments.length) throw new Error('Selecciona todos los tramos ordenados y un formato admitido.');
+     const id = randomUUID(), temporary = path.join(directory, `${id}.part.${format}`), target = path.join(directory, `project.${format}`);
+     const videoList = path.join(directory, `${id}.video.txt`), audioList = path.join(directory, `${id}.audio.txt`);
+-    const width = Math.ceil(plan.document.width / 2) * 2, height = Math.ceil(plan.document.height / 2) * 2;
++    const render = audiovisualRenderOptions(plan.document, plan.options), width = render.paddedWidth, height = render.paddedHeight;
+     try {
+         const videos = [], audio = [];
+         for (const [index, item] of segments.entries()) {
+             signal?.throwIfAborted();
+             const segment = plan.segments[index], suffix = String(index).padStart(6, '0');
++            if (item.video?.scale !== render.scale || item.video?.quality !== render.quality) throw new Error('Los tramos usan opciones de escala o calidad distintas.');
+             if (item.video?.frameStart !== segment.frameStart || item.video?.frameCount !== segment.frameCount || item.video?.fps !== plan.fps || item.video?.width !== width || item.video?.height !== height) throw new Error('Los tramos no siguen el reloj y las dimensiones del proyecto.');
+             videos.push(await verifiedFile(directory, item.video, `segments/video-${suffix}.${format}`));
+             if (format === 'mp4' && plan.audio.length) {
+@@ -54,6 +56,6 @@
+         if (size < 1 || size > 8 * 1024 ** 3) throw new Error('El archivo final supera su presupuesto de disco.');
+         const sha256 = await hashFile(temporary); signal?.throwIfAborted(); await fs.rename(temporary, target);
+         return { file: `project.${format}`, size, sha256, frameCount: plan.frameCount, fps: plan.fps, width, height, duration,
+-            videoCodec: video.codec_name, audioCodec: audioStream?.codec_name ?? null };
++            videoCodec: video.codec_name, audioCodec: audioStream?.codec_name ?? null, scale: render.scale, quality: render.quality };
+     } finally { await Promise.all([temporary, videoList, audioList].map(file => fs.rm(file, { force: true }))); }
+ }
+--- a/tests/frontend/studio-audiovisual-selection.test.mjs
++++ b/tests/frontend/studio-audiovisual-selection.test.mjs
+@@ -0,0 +1,90 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { newElement } from '../../resources/js/Studio/document.js';
++import { compileAudiovisual, audioStateAt } from '../../resources/js/Studio/audiovisual-plan.js';
++
++const page = (id, duration = 2, transition) => ({ id, duration, background: '#ffffff', elements: [], ...(transition ? { transition } : {}) });
++const doc = (pages, tracks = [], fps = 30) => ({ schema_version: 2, width: 100, height: 100, pages, timeline: { fps, audio_tracks: tracks } });
++const asset = (id, duration = 20, kind = 'audio') => ({ id, duration, kind, status: 'listo', audio_codec: 'pcm_f32le' });
++const music = duration => ({ id: 'music', asset_id: 1, start: 0, duration });
++
++test('audiovisual selection preserves explicit order, removes only the final transition and leaves the source intact', () => {
++    const input = doc([page('a', 2, { type: 'fade', duration: 0.5 }), page('b'), page('c')]);
++    const before = JSON.stringify(input), plan = compileAudiovisual(input, [], { pageIds: ['c', 'a'] });
++    assert.deepEqual(plan.document.pages.map(page => page.id), ['c', 'a']);
++    assert.equal(plan.frameCount, 120); assert.equal(plan.document.pages[1].transition, undefined);
++    assert.equal(JSON.stringify(input), before);
++});
++
++test('audiovisual page selection rejects unknown, duplicate, empty, sparse and mistyped IDs and impossible new adjacency', () => {
++    const input = doc([page('a', 4, { type: 'fade', duration: 1 }), page('b', 4), page('short', 0.5)]);
++    for (const pageIds of [[], null, {}, ['missing'], ['a', 'a'], ['a', null], [1], new Array(1), ['a', 'short']]) {
++        assert.throws(() => compileAudiovisual(input, [], { pageIds }), /página|pages|transici|selecci/i, JSON.stringify(pageIds));
++    }
++});
++
++test('global music follows a selected source interval while preserving envelope, trim and phase', () => {
++    const input = doc([page('a'), page('b'), page('c')], [{ ...music(6), trimStart: 1, trimEnd: 11, sourceOffset: 0.2,
++        playbackRate: 1.5, volume: 0.5, gainPoints: [{ time: 0, value: 0 }, { time: 6, value: 1 }] }]);
++    const before = JSON.stringify(input), plan = compileAudiovisual(input, [asset(1)], { pageIds: ['b'] });
++    assert.equal(plan.duration, 2); assert.equal(plan.audio.length, 1);
++    const [sample] = audioStateAt(plan, 0.5);
++    assert.ok(Math.abs(sample.sourceTime - (1 + 0.2 + 2.5 * 1.5)) < 1e-9);
++    assert.ok(Math.abs(sample.gain - 0.5 * 2.5 / 6) < 1e-9);
++    assert.equal(JSON.stringify(input), before);
++});
++
++test('contiguous fractional pages use a single source clock without duplicating music in their internal transition', () => {
++    const input = doc([page('omitted', 0.137), page('a', 0.537, { type: 'fade', duration: 0.137 }), page('b', 0.537)], [music(1.074)]);
++    const full = compileAudiovisual(input, [asset(1)]), selected = compileAudiovisual(input, [asset(1)], { pageIds: ['a', 'b'] });
++    assert.equal(selected.audio.length, 1);
++    const sourceStart = full.timeline.pages[1].start;
++    for (let frame = 0; frame < selected.frameCount; frame++) {
++        const time = frame / selected.fps, states = audioStateAt(selected, time);
++        if (time + sourceStart >= 1.074) continue;
++        assert.equal(states.length, 1); assert.ok(Math.abs(states[0].sourceTime - time - sourceStart) < 1e-9);
++        assert.equal(states[0].gain, 1, `internal transition changed global gain at ${time}`);
++    }
++});
++
++test('reordered source intervals crossfade only their boundary and retain native video audio on selected pages', () => {
++    const a = page('a', 2, { type: 'fade', duration: 1 }); a.elements = [newElement('video', { id: 'video_a', asset_id: 2 })];
++    const input = doc([a, page('b'), page('c')], [music(5)]);
++    const plan = compileAudiovisual(input, [asset(1), asset(2, 10, 'video')], { pageIds: ['a', 'c'] });
++    assert.equal(plan.duration, 3);
++    const states = audioStateAt(plan, 1.5), global = states.filter(sample => sample.assetId === 1), native = states.find(sample => sample.id === 'video_a');
++    assert.equal(global.length, 2);
++    assert.deepEqual(global.map(sample => sample.gain), [0.5, 0.5]);
++    assert.deepEqual(global.map(sample => sample.sourceTime), [1.5, 3.5]);
++    assert.equal(native.gain, 0.5); assert.equal(native.sourceTime, 1.5);
++});
++
++test('legacy audiovisual conversion stays in memory and preserves an exhausted poster without audio', () => {
++    const input = { schema_version: 1, width: 100, height: 100, pages: [page('old'), page('other')] };
++    input.pages[0].elements = [newElement('video', { id: 'v', asset_id: 1, trimStart: 100 })];
++    input.pages[1].elements = [newElement('video', { id: 'unused', asset_id: 99, trimStart: 100 })];
++    const before = JSON.stringify(input), plan = compileAudiovisual(input, [asset(1, 4, 'video')], { pageIds: ['old'] });
++    assert.equal(plan.document.schema_version, 2); assert.equal(plan.fps, 30);
++    const video = plan.document.pages[0].elements[0];
++    assert.ok(video.trimStart < 4 && video.trimStart > 3.9); assert.equal(video.muted, true);
++    assert.deepEqual(plan.audio, []); assert.equal(JSON.stringify(input), before);
++});
++
++test('render settings preserve default quality and scale geometry without changing timeline duration', () => {
++    const input = doc([page('p')]), normal = compileAudiovisual(input), half = compileAudiovisual(input, [], { scale: 0.5, quality: 0.1 });
++    assert.equal(normal.render.crf, 18); assert.equal(normal.render.paletteColors, 256);
++    assert.equal(half.render.width, 50); assert.equal(half.render.height, 50); assert.equal(half.render.crf, 40); assert.equal(half.render.paletteColors, 16);
++    assert.equal(half.frameCount, normal.frameCount); assert.equal(half.document.width, 100);
++    const odd = compileAudiovisual({ ...input, width: 101, height: 103 }, [], { scale: 0.5, quality: 1 });
++    assert.equal(odd.render.width, 51); assert.equal(odd.render.height, 52); assert.equal(odd.render.paddedWidth, 52); assert.equal(odd.render.crf, 16);
++});
++
++test('render settings reject non-numeric options and an oversized result including even padding', () => {
++    for (const bad of [null, '1', NaN, Infinity, 0, -1, 5]) {
++        assert.throws(() => compileAudiovisual(doc([page('p')]), [], { scale: bad }), /escala|scale/i);
++    }
++    for (const bad of [null, '1', NaN, Infinity, 0, 1.1]) {
++        assert.throws(() => compileAudiovisual(doc([page('p')]), [], { quality: bad }), /calidad|quality/i);
++    }
++    assert.throws(() => compileAudiovisual({ ...doc([page('p')]), width: 4001, height: 3999 }), /resoluci|megap|límite/i);
++});
+--- a/tests/frontend/studio-audiovisual-options-render.test.mjs
++++ b/tests/frontend/studio-audiovisual-options-render.test.mjs
+@@ -0,0 +1,85 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import { execFileSync } from 'node:child_process';
++import { newElement } from '../../resources/js/Studio/document.js';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { renderVisualSegment } from '../../scripts/studio/av-video.mjs';
++import { assembleProject } from '../../scripts/studio/av-finalize.mjs';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0');
++let directory, assets;
++before(async () => {
++    directory = path.join(base, crypto.randomUUID()); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    const file = path.join(directory, 'assets/1.bin');
++    execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=64x64:rate=12:duration=1', '-c:v', 'libx264', '-threads', '1',
++        '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-f', 'mp4', file], { timeout: 15000 });
++    assets = [{ id: 1, file: 'assets/1.bin', mime: 'video/mp4', kind: 'video', duration: 1, status: 'listo', audio_codec: null, size: (await fs.stat(file)).size }];
++});
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++const page = (id, background) => ({ id, background, duration: 0.25, elements: [] });
++const doc = pages => ({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12, audio_tracks: [] }, pages });
++const decode = file => execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-fps_mode', 'passthrough', '-an', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'], { timeout: 15000, maxBuffer: 4 * 1024 ** 2 });
++
++test('native selected page export applies scale to the real pixels and keeps explicit order', async () => {
++    const first = page('a', '#ff0000'); first.elements = [newElement('rect', { id: 'shape', x: 20, y: 20, width: 20, height: 20, fill: '#00ff00' })];
++    const input = doc([first, page('b', '#00ff00'), page('c', '#0000ff')]), before = JSON.stringify(input);
++    const plan = compileAudiovisual(input, [], { pageIds: ['c', 'a'], scale: 0.5 });
++    const video = await renderVisualSegment({ directory, plan, segment: plan.segments[0] });
++    assert.equal(video.width, 50); assert.equal(video.height, 50);
++    const raw = decode(path.join(directory, video.file)); assert.equal(raw.length, 6 * 50 * 50 * 3);
++    const pixel = frame => Array.from(raw.subarray(frame * 7500, frame * 7500 + 3));
++    assert.ok(pixel(0)[2] > 230 && pixel(0)[0] < 20, JSON.stringify(pixel(0)));
++    assert.ok(pixel(3)[0] > 230 && pixel(3)[2] < 20, JSON.stringify(pixel(3)));
++    const inside = Array.from(raw.subarray(3 * 7500 + (15 * 50 + 15) * 3, 3 * 7500 + (15 * 50 + 15) * 3 + 3));
++    assert.ok(inside[1] > 230 && inside[0] < 20, `scaled vector geometry: ${inside}`);
++    assert.equal(JSON.stringify(input), before);
++});
++
++test('native quality changes H264 size and the real GIF colour palette', async () => {
++    const input = doc([{ ...page('p', '#ffffff'), duration: 0.5, elements: [newElement('video', { id: 'v', asset_id: 1, x: 0, y: 0, width: 64, height: 64, muted: true })] }]);
++    const outputs = {};
++    for (const quality of [1, 0.1]) for (const format of ['mp4', 'gif']) {
++        const plan = compileAudiovisual(input, assets, { quality });
++        const result = await renderVisualSegment({ directory, plan, assets, segment: plan.segments[0], format });
++        const raw = decode(path.join(directory, result.file));
++        const colours = new Set(); for (let offset = 0; offset < 30000; offset += 3) colours.add(raw.subarray(offset, offset + 3).toString('hex'));
++        outputs[`${quality}/${format}`] = { result, colours: colours.size };
++    }
++    assert.ok(outputs['0.1/mp4'].result.size < outputs['1/mp4'].result.size, JSON.stringify(outputs));
++    assert.ok(outputs['0.1/gif'].colours <= 16, JSON.stringify(outputs));
++    assert.ok(outputs['1/gif'].colours > outputs['0.1/gif'].colours + 32, JSON.stringify(outputs));
++});
++
++test('native assembly rejects segments made with different render options', async () => {
++    const input = doc([page('a', '#ff0000'), page('b', '#0000ff')]);
++    const high = compileAudiovisual(input, [], { quality: 1, segmentFrames: 3 }), low = compileAudiovisual(input, [], { quality: 0.1, segmentFrames: 3 });
++    const first = await renderVisualSegment({ directory, plan: high, segment: high.segments[0] });
++    const second = await renderVisualSegment({ directory, plan: low, segment: low.segments[1] });
++    await assert.rejects(assembleProject({ directory, plan: high, segments: [{ video: first }, { video: second }], format: 'mp4' }), /opciones|calidad|escala/i);
++});
++
++test('native scaled slide transitions translate in scaled coordinates', async () => {
++    const input = { ...doc([{ ...page('a', '#ff0000'), duration: 1, transition: { type: 'slide_left', duration: 0.5 } },
++        { ...page('b', '#0000ff'), duration: 1 }]), width: 200 };
++    const plan = compileAudiovisual(input, [], { scale: 0.5 });
++    const result = await renderVisualSegment({ directory, plan, segment: plan.segments[0] });
++    const raw = decode(path.join(directory, result.file)); assert.equal(raw.length, 18 * 100 * 50 * 3);
++    const pixel = x => Array.from(raw.subarray(9 * 15000 + (25 * 100 + x) * 3, 9 * 15000 + (25 * 100 + x) * 3 + 3));
++    assert.ok(pixel(25)[0] > 230 && pixel(25)[2] < 20, JSON.stringify(pixel(25)));
++    assert.ok(pixel(75)[2] > 230 && pixel(75)[0] < 20, JSON.stringify(pixel(75)));
++});
++
++test('native legacy export holds an exhausted poster without mutating the saved v1 document', async () => {
++    const input = { schema_version: 1, width: 100, height: 100, pages: [{ ...page('p', '#ffffff'), elements: [
++        newElement('video', { id: 'old', asset_id: 1, x: 0, y: 0, width: 64, height: 64, trimStart: 100 }),
++    ] }] }, before = JSON.stringify(input);
++    const plan = compileAudiovisual(input, assets), result = await renderVisualSegment({ directory, plan, assets, segment: plan.segments[0] });
++    const raw = decode(path.join(directory, result.file)); assert.equal(raw.length, 8 * 30000);
++    let squared = 0;
++    for (let i = 0; i < 30000; i++) squared += (raw[i] - raw[7 * 30000 + i]) ** 2;
++    assert.ok(Math.sqrt(squared / 30000) < 2, 'the held source poster must not advance');
++    assert.equal(plan.audio.length, 0); assert.equal(JSON.stringify(input), before);
++});
+--- a/tests/frontend/studio-audiovisual-options-audio.test.mjs
++++ b/tests/frontend/studio-audiovisual-options-audio.test.mjs
+@@ -0,0 +1,50 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { prepareAudioSources } from '../../scripts/studio/av-pcm.mjs';
++import { mixAudioSegment } from '../../scripts/studio/av-audio.mjs';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0');
++let directory, source;
++const asset = { id: 1, file: 'assets/1.bin', kind: 'audio', status: 'listo', duration: 4, audio_codec: 'pcm_f32le' };
++before(async () => {
++    directory = path.join(base, crypto.randomUUID()); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    source = Buffer.alloc(44 + 4 * 48000 * 8); source.write('RIFF'); source.writeUInt32LE(source.length - 8, 4); source.write('WAVEfmt ', 8);
++    source.writeUInt32LE(16, 16); source.writeUInt16LE(3, 20); source.writeUInt16LE(2, 22); source.writeUInt32LE(48000, 24);
++    source.writeUInt32LE(384000, 28); source.writeUInt16LE(8, 32); source.writeUInt16LE(32, 34); source.write('data', 36); source.writeUInt32LE(source.length - 44, 40);
++    for (let n = 0; n < 4 * 48000; n++) { const time = n / 48000, value = 0.08 * Math.sin(2 * Math.PI * (300 * time + 50 * time * time));
++        source.writeFloatLE(value, 44 + n * 8); source.writeFloatLE(value, 48 + n * 8); }
++    await fs.writeFile(path.join(directory, asset.file), source);
++});
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++const document = () => ({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12,
++    audio_tracks: [{ id: 'music', asset_id: 1, start: 0, duration: 2.75 }] }, pages: [
++    { id: 'a', duration: 1, background: '#ff0000', transition: { type: 'fade', duration: 0.25 }, elements: [] },
++    { id: 'b', duration: 1, background: '#00ff00', elements: [] },
++    { id: 'c', duration: 1, background: '#0000ff', elements: [] },
++] });
++const at = seconds => source.readFloatLE(44 + Math.round(seconds * 48000) * 8);
++
++for (const pageIds of [['c', 'a'], ['a', 'c']]) test(`native selected music matches its original source and join envelope: ${pageIds.join(',')}`, async () => {
++    const input = document(), before = JSON.stringify(input), plan = compileAudiovisual(input, [asset], { pageIds, segmentFrames: 5 });
++    const audioSources = await prepareAudioSources({ directory, plan, assets: [asset] });
++    let squared = 0, count = 0;
++    for (const segment of plan.segments) {
++        const result = await mixAudioSegment({ directory, plan, audioSources, segment }); const bytes = await fs.readFile(path.join(directory, result.file));
++        for (let n = 0; n < segment.sampleCount; n++) {
++            const time = (segment.sampleStart + n) / 48000;
++            let expected;
++            if (pageIds[0] === 'c') expected = time < 1 ? at(1.75 + time) : at(time - 1);
++            else if (time < 0.75) expected = at(time);
++            else if (time < 1) expected = at(time) * (1 - time) / 0.25 + at(time + 1) * (time - 0.75) / 0.25;
++            else expected = at(time + 1);
++            squared += (bytes.readFloatLE(44 + n * 8) - expected) ** 2; count++;
++        }
++    }
++    assert.equal(count, Math.round(plan.duration * 48000));
++    assert.ok(Math.sqrt(squared / count) < 1e-7, `selected source-clock RMS=${Math.sqrt(squared / count)}`);
++    assert.equal(JSON.stringify(input), before);
++});

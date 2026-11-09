@@ -1,0 +1,11 @@
+{
+  "exit_code": 0,
+  "job": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 219877376,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "scope": "Own disposable loopback HTTP attachment diagnosis; not app QA"
+}

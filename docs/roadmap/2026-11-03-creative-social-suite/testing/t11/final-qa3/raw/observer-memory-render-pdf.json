@@ -1,0 +1,22 @@
+{
+  "script": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa3\\render-pdf.py",
+  "arguments": [],
+  "pid": 28752,
+  "started": "2026-11-05T23:08:50.332631+00:00",
+  "memory_before": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 12263424,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "exit_code": 0,
+  "finished": "2026-11-05T23:08:54.886591+00:00",
+  "memory_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 639504384,
+    "kill_on_close": true,
+    "breakaway": false
+  }
+}

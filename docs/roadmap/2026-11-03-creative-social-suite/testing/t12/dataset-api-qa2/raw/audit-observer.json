@@ -1,0 +1,80 @@
+[
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "denied",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "denied",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "denied",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "error",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  },
+  {
+    "action": "manage_studio_dataset",
+    "outcome": "ok",
+    "resource": "studio_dataset",
+    "resource_id": 11
+  }
+]

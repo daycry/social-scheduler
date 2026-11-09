@@ -4,6 +4,39 @@
 docs/roadmap/2026-11-03-creative-social-suite/testing/t09/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # The exact terminal transcript includes native trailing spaces on wrapped output.
 docs/roadmap/2026-11-03-creative-social-suite/testing/t09/qa/raw/playwright-console.txt whitespace=-blank-at-eol,cr-at-eol
+# T-10 evidence is also hashed before delivery; preserve the captured bytes.
+docs/roadmap/2026-11-03-creative-social-suite/testing/t10/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/audio/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Empty context lines in a unified patch have one required space.
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/audio/raw/reviewed.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/audio-ui/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/audio-ui/raw/reviewed.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/audio-ui/raw/review-supplement.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/frames/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/frames/raw/reviewed.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/frames/raw/review-supplement.diff whitespace=-blank-at-eol,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-core/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-core/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-options/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-options/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-managed/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-managed/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-linux/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-linux/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-application/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-application/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-cleanup/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-cleanup/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/*.diff whitespace=-blank-at-eol,cr-at-eol
 
 *.blade.php diff=html
 *.css diff=css

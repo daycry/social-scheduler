@@ -5,6 +5,7 @@ use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\StudioAsset;
+use App\Models\Studio\StudioFont;
 use App\Models\User;
 use App\Services\Studio\StudioExports;
 use App\Services\Studio\StudioRenderer;
@@ -155,4 +156,34 @@ test('server export rejects foreign owners, invented pages and excessive raster 
     }
     expect(DesignExport::withoutUserScope()->count())->toBe(0);
     Queue::assertNothingPushed();
+});
+
+test('renderer packages only referenced private fonts with verified bytes and no storage path', function () {
+    $bytes = file_get_contents(base_path('tests/Fixtures/fonts/SpaceGrotesk-Variable.woff2'));
+    $font = StudioFont::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id,
+        'name' => 'Space', 'family' => 'Space Grotesk', 'style' => 'normal', 'weight' => 400, 'format' => 'woff2', 'mime' => 'font/woff2',
+        'size' => strlen($bytes), 'sha256' => hash('sha256', $bytes), 'source_sha256' => hash('sha256', $bytes), 'disk' => 'local', 'path' => 'private-font.woff2', 'status' => 'ready']);
+    Storage::disk('local')->put($font->path, $bytes);
+    $document = $this->document;
+    $document['pages'][0]['elements'] = [['id' => 'caption', 'type' => 'text', 'x' => 0, 'y' => 0, 'width' => 100, 'height' => 30,
+        'text' => 'Marca', 'fontFamily' => $font->family, 'font_id' => $font->id]];
+    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Font render', 'document' => $document]);
+    $export = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 1, 'format' => 'svg', 'pages' => ['page_one']]);
+    $packet = null;
+    Process::fake(function ($process) use (&$packet) {
+        $packet = json_decode($process->input, true);
+        file_put_contents($process->command[2].DIRECTORY_SEPARATOR.'page-001.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+
+        return Process::result(output: '{"files":[{"name":"page-001.svg","mime":"image/svg+xml"}]}');
+    });
+    app(StudioRenderer::class)->render($export->id);
+    expect($export->refresh()->status)->toBe('ready', $export->error ?? '')
+        ->and($packet['fonts'] ?? [])->toHaveCount(1)
+        ->and($packet['fonts'][0]['file_url'])->toBe('data:font/woff2;base64,'.base64_encode($bytes))
+        ->and($packet['fonts'][0])->not->toHaveKey('path')->not->toHaveKey('disk');
+    Storage::disk('local')->put($font->path, str_repeat('x', strlen($bytes)));
+    $failed = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 1, 'format' => 'svg', 'pages' => ['page_one']]);
+    app(StudioRenderer::class)->render($failed->id);
+    expect($failed->refresh()->status)->toBe('failed');
+    Process::assertRanTimes(fn () => true, 1);
 });

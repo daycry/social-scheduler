@@ -1,0 +1,931 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -89,6 +89,12 @@
+ 
+                 return $media;
+             }
++            $used = (int) StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'output')->where('status', '!=', 'released')
++                ->sum(DB::raw('COALESCE(actual_bytes, reserved_bytes)'));
++            $limit = config('studio.av.disk.output', 8 * 1024 ** 3);
++            if (! is_int($limit) || $limit < 1 || $limit > 8 * 1024 ** 3 || $result['size'] > $limit - $used - $workspace->media_reserved_bytes) {
++                throw ValidationException::withMessages(['export' => ['La copia final supera el presupuesto de almacenamiento del trabajo.']]);
++            }
+             $disk = (string) config('filesystems.media', 'local');
+             $media = new MediaAsset;
+             $media->forceFill(['user_id' => $export->user_id, 'disk' => $disk,
+@@ -98,9 +104,39 @@
+                 'declared_size' => $result['size'], 'status' => MediaAsset::STATUS_PENDING,
+                 'import_state' => ['studio_av' => $workspace->uuid, 'disk' => $disk, 'sha256' => $result['sha256'], 'total' => $result['size'],
+                     'bytes' => 0, 'verified_bytes' => 0, 'complete' => false, 'parts' => []]])->save();
+-            $workspace->update(['media_id' => $media->id]);
++            $workspace->update(['media_id' => $media->id, 'media_reserved_bytes' => $result['size']]);
+ 
+             return $media;
++        });
++    }
++
++    /** Persist transfer receipts only; no I/O and no visibility change. */
++    public function checkpointRegistration(StudioAvLease $lease, array $progress, ?string $uploadId = null): bool
++    {
++        return DB::transaction(function () use ($lease, $progress, $uploadId) {
++            [$export, $workspace, $current] = $this->activeLease($lease);
++            if (! $current || $current->phase !== 'register') {
++                return false;
++            }
++            $media = MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($workspace->media_id)->lockForUpdate()->firstOrFail();
++            $this->assertRegistrationPin($workspace, $media, $this->registrationSource($export)->result);
++            $allowed = ['stage', 'bytes', 'verified_bytes', 'complete', 'parts', 'object_etag'];
++            if (array_diff(array_keys($progress), $allowed) !== []) {
++                throw ValidationException::withMessages(['export' => ['El progreso no puede cambiar la identidad de la transferencia.']]);
++            }
++            $journal = array_replace($media->import_state, $progress);
++            if (! is_int($journal['bytes']) || ! is_int($journal['verified_bytes']) || ! is_bool($journal['complete'])
++                || $journal['bytes'] < $media->import_state['bytes'] || $journal['bytes'] > $journal['total']
++                || $journal['verified_bytes'] < $media->import_state['verified_bytes'] || $journal['verified_bytes'] > $journal['bytes']
++                || ! in_array($journal['stage'] ?? 'allocated', ['allocated', 'creating', 'copying', 'completing', 'verifying', 'done'], true)
++                || ! is_array($journal['parts']) || ! array_is_list($journal['parts']) || count($journal['parts']) > 512
++                || ($journal['complete'] && ($journal['bytes'] !== $journal['total'] || $journal['verified_bytes'] !== $journal['total']))
++                || strlen(json_encode($journal, JSON_THROW_ON_ERROR)) > 256 * 1024 || ($uploadId !== null && (strlen($uploadId) > 1024 || $uploadId === ''))) {
++                throw ValidationException::withMessages(['export' => ['El progreso de la transferencia no es válido.']]);
++            }
++            $media->update(['import_state' => $journal, 'upload_id' => $uploadId]);
++
++            return true;
+         });
+     }
+ 
+@@ -196,7 +232,7 @@
+         });
+     }
+ 
+-    private const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'active_until', 'created_at', 'updated_at'];
++    private const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'media_reserved_bytes', 'active_until', 'created_at', 'updated_at'];
+ 
+     public function initialize(User $user, DesignExport $export): DesignExport
+     {
+@@ -273,6 +309,7 @@
+                 $limit = config('studio.av.disk.'.$category, 8 * 1024 ** 3);
+                 $used = (int) StudioAvLease::where('workspace_id', $workspace->id)->where('category', $category)->where('status', '!=', 'released')
+                     ->sum(DB::raw('COALESCE(actual_bytes, reserved_bytes)'));
++                $used += $category === 'output' ? $workspace->media_reserved_bytes : 0;
+                 if (! is_int($limit) || $limit < 1 || $limit > 8 * 1024 ** 3 || $bytes > $limit - $used) {
+                     throw ValidationException::withMessages(['export' => ['El trabajo supera su presupuesto de almacenamiento; limpia o reduce los recursos antes de reintentar.']]);
+                 }
+@@ -333,6 +370,7 @@
+                     'codec' => $output['videoCodec'], 'audio_codec' => $output['audioCodec'], 'upload_id' => null, 'error' => null])->save();
+                 StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $export->brand_id, 'media_asset_id' => $mediaId], ['user_id' => $export->user_id]);
+                 $export->media_ids = [$mediaId];
++                $workspace->update(['media_reserved_bytes' => 0]);
+                 $export->disk = 'local';
+                 $export->path = 'studio-exports/'.$export->user_id.'/'.$export->id.'/'.$workspace->uuid.'/'.$output['file'];
+             } else {
+--- a/app/Services/Studio/StudioAvTransfer.php
++++ b/app/Services/Studio/StudioAvTransfer.php
+@@ -0,0 +1,326 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\MediaAsset;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use Aws\Exception\AwsException;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Filesystem\AwsS3V3Adapter;
++use Illuminate\Support\Facades\Storage;
++use RuntimeException;
++
++class StudioAvTransfer
++{
++    private const PART_BYTES = 16 * 1024 ** 2;
++
++    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage) {}
++
++    public function run(StudioAvLease $lease, ?float $deadline = null): ?array
++    {
++        $deadline = min($deadline ?? microtime(true) + 85, microtime(true) + 85);
++        $this->remaining($deadline);
++
++        return $this->storage->locked($lease->workspace_id, function (StudioAvWorkspace $workspace) use ($lease, $deadline) {
++            $export = $this->state->workingExport($lease);
++            $source = $this->state->checkpoints($export, ['assemble'])->sole();
++            $proof = $source->result;
++            if (($proof['chunk_size'] ?? null) !== self::PART_BYTES || ! is_array($proof['chunk_sha256'] ?? null)
++                || ! array_is_list($proof['chunk_sha256']) || count($proof['chunk_sha256']) !== (int) ceil($proof['size'] / self::PART_BYTES)
++                || count($proof['chunk_sha256']) > 512) {
++                throw new StudioAvCheckpointCorrupt('El render necesita un manifiesto de integridad por partes.');
++            }
++            foreach ($proof['chunk_sha256'] as $hash) {
++                if (! is_string($hash) || ! preg_match('/^[a-f0-9]{64}$/D', $hash)) {
++                    throw new StudioAvCheckpointCorrupt('El manifiesto de integridad está incompleto.');
++                }
++            }
++            $media = $this->state->allocateRegistration($lease);
++            $disk = Storage::disk($media->disk);
++            if ($disk instanceof AwsS3V3Adapter) {
++                return $this->remote($lease, $workspace, $source, $media, $disk, $deadline);
++            }
++
++            return $this->local($lease, $workspace, $source, $media, $deadline);
++        });
++    }
++
++    private function remote(StudioAvLease $lease, StudioAvWorkspace $workspace, StudioAvLease $source, MediaAsset $media, AwsS3V3Adapter $disk, float $deadline): ?array
++    {
++        $journal = $media->import_state;
++        $client = $disk->getClient();
++        $address = ['Bucket' => $disk->getConfig()['bucket'], 'Key' => $disk->path($media->path)];
++        $head = null;
++        if (! $media->upload_id || $journal['bytes'] === $journal['total']) {
++            try {
++                $head = $client->headObject($address + $this->http($deadline))->toArray();
++            } catch (AwsException $error) {
++                if ($error->getStatusCode() !== 404) {
++                    throw $error;
++                }
++            }
++        }
++        if ($head !== null) {
++            $this->assertHead($media, $head);
++            if (($journal['stage'] ?? '') !== 'verifying' && ! $journal['complete']) {
++                $this->save($lease, $media, ['bytes' => $journal['total'], 'stage' => 'verifying', 'object_etag' => $head['ETag']], deadline: $deadline);
++                $journal = $media->import_state;
++            }
++        } elseif (in_array($journal['stage'] ?? '', ['verifying', 'done'], true) || $journal['complete']) {
++            throw new StudioAvCheckpointCorrupt('El objeto final verificado ya no existe.');
++        } elseif (! $media->upload_id) {
++            // A creation response may have been lost. Reuse the upload with this exact generated key.
++            $this->save($lease, $media, ['stage' => 'creating'], deadline: $deadline);
++            $listed = $client->listMultipartUploads(['Bucket' => $address['Bucket'], 'Prefix' => $address['Key'], 'MaxUploads' => 10] + $this->http($deadline));
++            $matches = array_values(array_filter($listed['Uploads'] ?? [], fn ($upload) => ($upload['Key'] ?? null) === $address['Key']));
++            if (($listed['IsTruncated'] ?? false) || count($matches) > 1) {
++                throw new RuntimeException('La recuperación de multipart necesita limpiar asignaciones adicionales.');
++            }
++            $id = $matches[0]['UploadId'] ?? null;
++            if ($id === null) {
++                $created = $client->createMultipartUpload($address + ['ContentType' => $media->mime,
++                    'Metadata' => ['studio-sha256' => $journal['sha256'], 'studio-workspace' => $journal['studio_av']]] + $this->http($deadline));
++                $id = $created['UploadId'];
++            }
++            $this->save($lease, $media, ['stage' => 'copying'], $id, deadline: $deadline);
++
++            return null;
++        }
++        if (($journal['stage'] ?? '') !== 'verifying' && ! $journal['complete']) {
++            if ($journal['bytes'] < $journal['total']) {
++                $bytes = $this->sourcePart($workspace, $source, $journal['bytes'], $deadline);
++                $number = intdiv($journal['bytes'], self::PART_BYTES) + 1;
++                $uploaded = $client->uploadPart($address + ['UploadId' => $media->upload_id, 'PartNumber' => $number,
++                    'Body' => $bytes, 'ContentLength' => strlen($bytes), 'ContentMD5' => base64_encode(md5($bytes, true))] + $this->http($deadline));
++                $etag = $uploaded['ETag'];
++                if (! is_string($etag) || $etag === '' || strlen($etag) > 256) {
++                    throw new RuntimeException('El almacenamiento no confirmó la parte subida.');
++                }
++                $parts = $journal['parts'];
++                $parts[] = ['PartNumber' => $number, 'ETag' => $etag];
++                $this->save($lease, $media, ['bytes' => $journal['bytes'] + strlen($bytes), 'parts' => $parts], $media->upload_id, deadline: $deadline);
++
++                return null;
++            }
++            if (count($journal['parts']) !== count($source->result['chunk_sha256'])) {
++                throw new StudioAvCheckpointCorrupt('Faltan recibos de partes para completar la transferencia.');
++            }
++            $this->save($lease, $media, ['stage' => 'completing'], $media->upload_id, deadline: $deadline);
++            $client->completeMultipartUpload($address + ['UploadId' => $media->upload_id, 'MultipartUpload' => ['Parts' => $journal['parts']]] + $this->http($deadline));
++            $head = $client->headObject($address + $this->http($deadline))->toArray();
++            $this->assertHead($media, $head);
++            $this->save($lease, $media, ['stage' => 'verifying', 'object_etag' => $head['ETag']], deadline: $deadline);
++            $journal = $media->import_state;
++        }
++        if ($head === null) {
++            throw new StudioAvCheckpointCorrupt('Falta el objeto final de la transferencia.');
++        }
++        if ($head['ETag'] !== ($journal['object_etag'] ?? null)) {
++            throw new StudioAvCheckpointCorrupt('El objeto cambió durante la verificación.');
++        }
++        if ($journal['verified_bytes'] < $journal['total']) {
++            $start = $journal['verified_bytes'];
++            $length = min(self::PART_BYTES, $journal['total'] - $start);
++            $result = $client->getObject($address + ['Range' => 'bytes='.$start.'-'.($start + $length - 1),
++                'IfMatch' => $head['ETag']] + $this->http($deadline, streamed: true));
++            $body = $result['Body'];
++            try {
++                if ((int) $result['ContentLength'] !== $length || $result['ContentRange'] !== 'bytes '.$start.'-'.($start + $length - 1).'/'.$journal['total']) {
++                    throw new StudioAvCheckpointCorrupt('El almacenamiento no respetó el rango solicitado.');
++                }
++                $bytes = '';
++                while (strlen($bytes) < $length && ! $body->eof()) {
++                    $this->remaining($deadline);
++                    $piece = $body->read(min(1024 ** 2, $length - strlen($bytes)));
++                    if ($piece === '') {
++                        throw new RuntimeException('La lectura remota se interrumpió.');
++                    }
++                    $bytes .= $piece;
++                }
++                $this->remaining($deadline);
++                if (strlen($bytes) !== $length) {
++                    throw new StudioAvCheckpointCorrupt('La parte remota está incompleta.');
++                }
++                $this->assertPart($source, $start, $bytes);
++            } finally {
++                $body->close();
++            }
++            $this->save($lease, $media, ['verified_bytes' => $start + $length], deadline: $deadline);
++            $journal = $media->import_state;
++        }
++        if ($journal['verified_bytes'] !== $journal['total']) {
++            return null;
++        }
++        $this->save($lease, $media, ['stage' => 'done', 'complete' => true], deadline: $deadline);
++
++        return ['media_id' => $media->id];
++    }
++
++    private function assertHead(MediaAsset $media, array $head): void
++    {
++        $journal = $media->import_state;
++        if ((int) ($head['ContentLength'] ?? 0) !== $journal['total'] || ($head['Metadata']['studio-sha256'] ?? null) !== $journal['sha256']
++            || ($head['Metadata']['studio-workspace'] ?? null) !== $journal['studio_av'] || ! is_string($head['ETag'] ?? null) || $head['ETag'] === '') {
++            throw new StudioAvCheckpointCorrupt('El objeto final no coincide con la asignación privada.');
++        }
++    }
++
++    private function http(float $deadline, bool $streamed = false): array
++    {
++        $seconds = min(20, $this->remaining($deadline));
++
++        return ['@retries' => 0, '@http' => ['timeout' => $seconds, 'connect_timeout' => min(5, $seconds)]
++            + ($streamed ? ['stream' => true, 'read_timeout' => min(5, $seconds)] : [])];
++    }
++
++    private function local(StudioAvLease $lease, StudioAvWorkspace $workspace, StudioAvLease $source, MediaAsset $media, float $deadline): ?array
++    {
++        $journal = $media->import_state;
++        $part = $this->localPath($media, true);
++        $final = $this->localPath($media, false);
++        if ((in_array($journal['stage'] ?? '', ['verifying', 'done'], true) || $journal['complete'])
++            && (! is_file($final) || filesize($final) !== $journal['total'])) {
++            throw new StudioAvCheckpointCorrupt('La copia final verificada ya no está completa.');
++        }
++        if ($journal['bytes'] < $journal['total']) {
++            if (file_exists($final)) {
++                throw new StudioAvCheckpointCorrupt('El destino final apareció antes de completar su transferencia.');
++            }
++            $bytes = $this->sourcePart($workspace, $source, $journal['bytes'], $deadline);
++            $stream = @fopen($part, 'c+b');
++            if ($stream === false) {
++                throw new RuntimeException('No se pudo abrir la copia parcial privada.');
++            }
++            try {
++                // The durable journal wins over an unacknowledged tail after a worker crash.
++                if (fstat($stream)['size'] < $journal['bytes'] || ! ftruncate($stream, $journal['bytes']) || fseek($stream, $journal['bytes']) !== 0) {
++                    throw new StudioAvCheckpointCorrupt('La copia parcial perdió bytes ya registrados.');
++                }
++                for ($offset = 0; $offset < strlen($bytes);) {
++                    $this->remaining($deadline);
++                    $written = fwrite($stream, substr($bytes, $offset, min(1024 ** 2, strlen($bytes) - $offset)));
++                    if ($written === false || $written === 0) {
++                        throw new RuntimeException('La copia parcial no pudo escribirse.');
++                    }
++                    $offset += $written;
++                }
++                if (! fflush($stream) || (function_exists('fsync') && ! fsync($stream))) {
++                    throw new RuntimeException('No se pudo confirmar la copia parcial en disco.');
++                }
++            } finally {
++                fclose($stream);
++            }
++            $this->save($lease, $media, ['bytes' => $journal['bytes'] + strlen($bytes), 'stage' => 'copying'], deadline: $deadline);
++
++            return null;
++        }
++        if (($journal['stage'] ?? '') !== 'verifying' && ! $journal['complete']) {
++            if (! file_exists($final) && ! @link($part, $final) && ! file_exists($final)) {
++                throw new RuntimeException('No se pudo publicar la copia privada de biblioteca.');
++            }
++            $this->save($lease, $media, ['stage' => 'verifying'], deadline: $deadline);
++
++            return null;
++        }
++        if ($journal['verified_bytes'] < $journal['total']) {
++            $bytes = $this->readLocal($final, $journal['verified_bytes'], $journal['total'], $deadline);
++            $this->assertPart($source, $journal['verified_bytes'], $bytes);
++            $this->save($lease, $media, ['verified_bytes' => $journal['verified_bytes'] + strlen($bytes)], deadline: $deadline);
++            $journal = $media->import_state;
++        }
++        if ($journal['verified_bytes'] !== $journal['total']) {
++            return null;
++        }
++        if (file_exists($part) && ! @unlink($part)) {
++            throw new RuntimeException('La retirada del parcial de biblioteca sigue pendiente.');
++        }
++        $this->save($lease, $media, ['stage' => 'done', 'complete' => true], deadline: $deadline);
++
++        return ['media_id' => $media->id];
++    }
++
++    private function sourcePart(StudioAvWorkspace $workspace, StudioAvLease $source, int $offset, float $deadline): string
++    {
++        $path = $this->storage->checkedPath($workspace, $source->result['file']);
++        $bytes = $this->readLocal($path, $offset, $source->result['size'], $deadline);
++        $this->assertPart($source, $offset, $bytes);
++
++        return $bytes;
++    }
++
++    private function readLocal(string $path, int $offset, int $total, float $deadline): string
++    {
++        $this->remaining($deadline);
++        $stream = @fopen($path, 'rb');
++        if ($stream === false) {
++            throw new StudioAvCheckpointCorrupt('Falta un archivo privado de la transferencia.');
++        }
++        try {
++            $length = min(self::PART_BYTES, $total - $offset);
++            if (fstat($stream)['size'] !== $total || $offset < 0 || $offset % self::PART_BYTES !== 0 || $length < 1 || fseek($stream, $offset) !== 0) {
++                throw new StudioAvCheckpointCorrupt('El archivo no coincide con el tamaño o desplazamiento registrado.');
++            }
++            $bytes = stream_get_contents($stream, $length);
++            $this->remaining($deadline);
++            if ($bytes === false || strlen($bytes) !== $length) {
++                throw new StudioAvCheckpointCorrupt('La lectura de la parte quedó incompleta.');
++            }
++
++            return $bytes;
++        } finally {
++            fclose($stream);
++        }
++    }
++
++    private function assertPart(StudioAvLease $source, int $offset, string $bytes): void
++    {
++        $expected = $source->result['chunk_sha256'][intdiv($offset, self::PART_BYTES)] ?? '';
++        if (! hash_equals($expected, hash('sha256', $bytes))) {
++            throw new StudioAvCheckpointCorrupt('La parte no coincide con el hash del render aceptado.');
++        }
++    }
++
++    private function save(StudioAvLease $lease, MediaAsset $media, array $progress, ?string $uploadId = null, float $deadline = 0): void
++    {
++        $this->remaining($deadline);
++        if (! $this->state->checkpointRegistration($lease, $progress, $uploadId)) {
++            throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
++        }
++        $media->refresh();
++    }
++
++    private function remaining(float $deadline): float
++    {
++        $seconds = $deadline - microtime(true);
++        if (! is_finite($seconds) || $seconds <= 0) {
++            throw new StudioAvProcessFailed('phase_timeout');
++        }
++
++        return $seconds;
++    }
++
++    private function localPath(MediaAsset $media, bool $part): string
++    {
++        $root = rtrim(Storage::disk($media->disk)->path(''), '/\\');
++        if (is_link($root) || ! is_dir($root) || ($path = realpath($root)) === false) {
++            throw new RuntimeException('La raíz privada de biblioteca no está disponible.');
++        }
++        $pieces = explode('/', $media->path.($part ? '.part' : ''));
++        foreach ($pieces as $index => $piece) {
++            if (! preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/D', $piece) || in_array($piece, ['.', '..'], true)) {
++                throw new RuntimeException('El destino de biblioteca no es válido.');
++            }
++            $path .= DIRECTORY_SEPARATOR.$piece;
++            clearstatcache(true, $path);
++            if (is_link($path)) {
++                throw new RuntimeException('La copia no admite enlaces de archivos o directorios.');
++            }
++            if ($index < count($pieces) - 1 && ! is_dir($path) && ! @mkdir($path, 0700) && ! is_dir($path)) {
++                throw new RuntimeException('No se pudo crear el directorio privado de biblioteca.');
++            }
++        }
++
++        return $path;
++    }
++}
+--- a/app/Models/Studio/StudioAvWorkspace.php
++++ b/app/Models/Studio/StudioAvWorkspace.php
+@@ -14,10 +14,10 @@
+ 
+     protected $guarded = ['id'];
+ 
+-    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'source_metadata', 'media_id', 'active_until', 'created_at', 'updated_at'];
++    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'source_metadata', 'media_id', 'media_reserved_bytes', 'active_until', 'created_at', 'updated_at'];
+ 
+     protected function casts(): array
+     {
+-        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'active_until' => 'immutable_datetime', 'plan' => 'array', 'source_metadata' => 'array'];
++        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'media_reserved_bytes' => 'integer', 'active_until' => 'immutable_datetime', 'plan' => 'array', 'source_metadata' => 'array'];
+     }
+ }
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -23,6 +23,7 @@
+             $table->json('plan')->nullable();
+             $table->json('source_metadata')->nullable();
+             $table->unsignedBigInteger('media_id')->nullable();
++            $table->unsignedBigInteger('media_reserved_bytes')->default(0);
+             $table->timestamp('active_until')->index();
+             $table->timestamps();
+         });
+--- a/scripts/studio/av-finalize.mjs
++++ b/scripts/studio/av-finalize.mjs
+@@ -6,7 +6,25 @@
+ import { joinGifSegments } from './av-gif.mjs';
+ import { audiovisualRenderOptions } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
+-async function hashFile(file) { const hash = createHash('sha256'); for await (const bytes of createReadStream(file)) hash.update(bytes); return hash.digest('hex'); }
++export async function outputIntegrity(file, { signal, maxBytes = 8 * 1024 ** 3 } = {}) {
++    signal?.throwIfAborted();
++    const chunk_size = 16 * 1024 ** 2, chunk_sha256 = [], hash = createHash('sha256');
++    let part = createHash('sha256'), partBytes = 0, total = 0;
++    for await (const bytes of createReadStream(file, { highWaterMark: 1024 ** 2 })) {
++        signal?.throwIfAborted(); total += bytes.length;
++        if (total > maxBytes) throw new Error('El archivo final supera su presupuesto de integridad.');
++        hash.update(bytes);
++        for (let offset = 0; offset < bytes.length;) {
++            const length = Math.min(chunk_size - partBytes, bytes.length - offset);
++            part.update(bytes.subarray(offset, offset + length)); partBytes += length; offset += length;
++            if (partBytes === chunk_size) { chunk_sha256.push(part.digest('hex')); part = createHash('sha256'); partBytes = 0; }
++        }
++    }
++    signal?.throwIfAborted();
++    if (total < 1) throw new Error('El archivo final está vacío.');
++    if (partBytes) chunk_sha256.push(part.digest('hex'));
++    return { sha256: hash.digest('hex'), chunk_size, chunk_sha256 };
++}
+ async function verifiedFile(directory, result, expected) {
+     if (!result || result.file !== expected || !/^[a-f0-9]{64}$/.test(result.sha256 ?? '') || !Number.isSafeInteger(result.size) || result.size < 1) throw new Error('El manifiesto de tramos está incompleto.');
+     const file = path.join(directory, expected), real = await fs.realpath(file);
+@@ -58,8 +76,8 @@
+             || probe.streams?.length !== (audioExpected ? 2 : 1) || (audioExpected && (audioStream?.codec_name !== 'aac' || Number(audioStream.sample_rate) !== 48000 || audioStream.channels !== 2))) throw new Error('El archivo final no coincide con sus pistas, duración, dimensiones o fotogramas.');
+         const size = (await fs.stat(temporary)).size;
+         if (size < 1 || size > 8 * 1024 ** 3) throw new Error('El archivo final supera su presupuesto de disco.');
+-        const sha256 = await hashFile(temporary); signal?.throwIfAborted(); await publishCheckpoint(temporary, target, namespace);
+-        return { file: namespace ? checkpointRelative('outputs', `project.${format}`, namespace) : `project.${format}`, namespace, size, sha256, frameCount: plan.frameCount, fps: plan.fps, width, height, duration,
++        const integrity = await outputIntegrity(temporary, { signal }); signal?.throwIfAborted(); await publishCheckpoint(temporary, target, namespace);
++        return { file: namespace ? checkpointRelative('outputs', `project.${format}`, namespace) : `project.${format}`, namespace, size, ...integrity, frameCount: plan.frameCount, fps: plan.fps, width, height, duration,
+             videoCodec: video.codec_name, audioCodec: audioStream?.codec_name ?? null, scale: render.scale, quality: render.quality };
+     } finally { await Promise.all([temporary, videoList, audioList].map(file => fs.rm(file, { force: true }))); }
+ }
+--- a/tests/Feature/Studio/StudioAvTransferTest.php
++++ b/tests/Feature/Studio/StudioAvTransferTest.php
+@@ -0,0 +1,214 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use App\Services\Studio\StudioAvCheckpointCorrupt;
++use App\Services\Studio\StudioAvProcessFailed;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvTransfer;
++use App\Services\Studio\StudioService;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Support\Facades\Storage;
++use Tests\Support\StudioAvR2;
++
++beforeEach(function () {
++    Storage::fake('local');
++    config(['filesystems.media' => 'local']);
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->state = app(StudioAvState::class);
++    $this->prepare = function (string $bytes) {
++        $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Transfer', 'document' => [
++            'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++            'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]]]);
++        $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++            'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++        $this->export = $this->state->initialize($this->user, $export);
++        $generation = $this->export->render_state['generation'];
++        $this->state->accept($this->state->claim($export->id, $generation), [
++            'frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++            'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++            'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]]);
++        $render = $this->state->claim($export->id, $generation, 1);
++        $this->state->accept($render, ['file' => 'segments/'.$render->id.'/video-000000.mp4', 'namespace' => $render->id,
++            'size' => 1, 'sha256' => hash('sha256', 'x')], 1);
++        $this->source = $this->state->claim($export->id, $generation, strlen($bytes));
++        $this->result = ['file' => 'outputs/'.$this->source->id.'/project.mp4', 'namespace' => $this->source->id,
++            'size' => strlen($bytes), 'sha256' => hash('sha256', $bytes), 'width' => 100, 'height' => 80, 'duration' => 1,
++            'fps' => 12, 'frameCount' => 12, 'videoCodec' => 'h264', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94,
++            'chunk_size' => 16 * 1024 ** 2, 'chunk_sha256' => array_map(fn ($part) => hash('sha256', $part), str_split($bytes, 16 * 1024 ** 2))];
++        $this->state->accept($this->source, $this->result, strlen($bytes));
++        $this->root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'];
++        Storage::disk('local')->put($this->root.'/'.$this->result['file'], $bytes);
++        $this->lease = $this->state->claim($export->id, $generation);
++    };
++    $this->finish = function (int $passes = 12) {
++        $result = null;
++        for ($i = 0; $i < $passes && $result === null; $i++) {
++            $result = app(StudioAvTransfer::class)->run($this->lease);
++        }
++
++        return $result;
++    };
++});
++
++test('AV local transfer publishes a separately durable verified copy before accepting the medium', function () {
++    ($this->prepare)('rendered bytes');
++    $result = ($this->finish)();
++    expect($result)->toHaveKey('media_id');
++    $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
++    expect($media->status)->toBe(MediaAsset::STATUS_PENDING)->and($media->import_state['verified_bytes'])->toBe(14);
++    expect(Storage::disk('local')->get($media->path))->toBe('rendered bytes');
++    expect($this->state->accept($this->lease, $result))->toBeTrue();
++    expect(StudioAvWorkspace::withoutUserScope()->findOrFail($this->lease->workspace_id)->media_reserved_bytes)->toBe(0);
++    Storage::disk('local')->deleteDirectory($this->root);
++    expect(Storage::disk('local')->get($media->path))->toBe('rendered bytes')->and($media->refresh()->isReady())->toBeTrue();
++});
++
++test('AV local transfer resumes one 16MiB part per call without copying or exposing a second medium', function () {
++    $first = str_repeat('a', 16 * 1024 ** 2);
++    ($this->prepare)($first.'tail');
++    expect(app(StudioAvTransfer::class)->run($this->lease))->toBeNull();
++    $media = MediaAsset::withoutUserScope()->sole();
++    expect($media->import_state['bytes'])->toBe(strlen($first))->and($media->isReady())->toBeFalse();
++    $this->state->defer($this->lease);
++    $this->lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $result = ($this->finish)();
++    expect($result)->toBe(['media_id' => $media->id])->and(MediaAsset::withoutUserScope()->count())->toBe(1);
++    expect(hash_file('sha256', Storage::disk('local')->path($media->path)))->toBe($this->result['sha256']);
++});
++
++test('AV transfer rejects source bytes that do not match their native part proof', function () {
++    ($this->prepare)('rendered bytes');
++    Storage::disk('local')->put($this->root.'/'.$this->result['file'], 'tampered bytes');
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(StudioAvCheckpointCorrupt::class);
++    expect(MediaAsset::withoutUserScope()->sole()->isReady())->toBeFalse();
++});
++
++test('AV transfer refuses an exhausted deadline before allocating a copy', function () {
++    ($this->prepare)('rendered bytes');
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease, microtime(true) - 1))->toThrow(StudioAvProcessFailed::class);
++    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
++});
++
++test('AV R2 transfer resumes bounded multipart and verifies actual ranged bytes on the pinned disk', function () {
++    ($this->prepare)(str_repeat('b', 16 * 1024 ** 2).'tail');
++    $r2 = new StudioAvR2;
++    expect(app(StudioAvTransfer::class)->run($this->lease))->toBeNull();
++    $media = MediaAsset::withoutUserScope()->sole();
++    config(['filesystems.media' => 'local']);
++    $result = ($this->finish)();
++    expect($result)->toBe(['media_id' => $media->id])->and($media->refresh()->import_state['complete'])->toBeTrue()
++        ->and($media->status)->toBe(MediaAsset::STATUS_PENDING)->and($media->disk)->toBe('studio-transfer-r2');
++    expect(hash('sha256', $r2->objects['tenant/'.$media->path]['bytes']))->toBe($this->result['sha256']);
++    $calls = collect($r2->calls->getArrayCopy());
++    expect($calls->where('name', 'CreateMultipartUpload'))->toHaveCount(1)
++        ->and($calls->where('name', 'UploadPart'))->toHaveCount(2)->and($calls->where('name', 'GetObject'))->toHaveCount(2);
++    foreach ($calls as $call) {
++        expect($call['args']['@retries'])->toBe(0)->and($call['args']['@http']['timeout'])->toBeGreaterThan(0)->toBeLessThanOrEqual(20);
++        if (isset($call['args']['Key'])) {
++            expect($call['args']['Key'])->toBe('tenant/'.$media->path);
++        }
++    }
++});
++
++test('AV R2 transfer recovers a lost storage acknowledgement without duplicating allocation or upload', function (string $operation) {
++    ($this->prepare)('rendered bytes');
++    $r2 = new StudioAvR2;
++    $r2->after = function ($name) use ($operation, $r2) {
++        if ($name === $operation) {
++            $r2->after = null;
++            throw new RuntimeException('fixture lost acknowledgement');
++        }
++    };
++    expect(fn () => ($this->finish)())->toThrow(RuntimeException::class, 'fixture lost acknowledgement');
++    expect(($this->finish)())->toHaveKey('media_id');
++    expect(MediaAsset::withoutUserScope()->count())->toBe(1)->and($r2->uploads)->toBe([]);
++    expect(collect($r2->calls->getArrayCopy())->where('name', 'CreateMultipartUpload'))->toHaveCount(1);
++})->with(['CreateMultipartUpload', 'CompleteMultipartUpload']);
++
++test('AV R2 verification refuses corrupt object bytes even if metadata and size claim the expected source', function () {
++    ($this->prepare)('rendered bytes');
++    $r2 = new StudioAvR2;
++    $r2->after = function ($name, $args) use ($r2) {
++        if ($name === 'CompleteMultipartUpload') {
++            $r2->objects[$args['Key']]['bytes'] = 'tampered bytes';
++        }
++    };
++    expect(fn () => ($this->finish)())->toThrow(StudioAvCheckpointCorrupt::class);
++    expect(MediaAsset::withoutUserScope()->sole()->isReady())->toBeFalse();
++});
++
++test('AV R2 transfer never creates a new multipart when its already verified object disappears', function () {
++    ($this->prepare)('rendered bytes');
++    $r2 = new StudioAvR2;
++    $result = ($this->finish)();
++    $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
++    unset($r2->objects['tenant/'.$media->path]);
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(StudioAvCheckpointCorrupt::class);
++    expect(collect($r2->calls->getArrayCopy())->where('name', 'CreateMultipartUpload'))->toHaveCount(1);
++});
++
++test('AV R2 verification rejects a response that ignores the requested range', function () {
++    ($this->prepare)(str_repeat('b', 16 * 1024 ** 2).'tail');
++    $r2 = new StudioAvR2;
++    $r2->ignoreRange = true;
++    expect(fn () => ($this->finish)())->toThrow(StudioAvCheckpointCorrupt::class);
++    expect(MediaAsset::withoutUserScope()->sole()->import_state['verified_bytes'])->toBe(0);
++});
++
++test('AV cancellation during an R2 part cannot checkpoint or publish a late acknowledgement', function () {
++    ($this->prepare)('rendered bytes');
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    $r2->after = function ($name) {
++        if ($name === 'UploadPart') {
++            $this->state->cancel($this->user, $this->export);
++        }
++    };
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(ModelNotFoundException::class);
++    $media = MediaAsset::withoutUserScope()->sole();
++    expect($media->import_state['bytes'])->toBe(0)->and($media->upload_id)->not->toBeNull()->and($media->isReady())->toBeFalse();
++});
++
++test('AV local transfer discards an unacknowledged tail without duplicating its medium', function () {
++    ($this->prepare)(str_repeat('a', 16 * 1024 ** 2).'tail');
++    app(StudioAvTransfer::class)->run($this->lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    file_put_contents(Storage::disk('local')->path($media->path.'.part'), 'unacknowledged', FILE_APPEND);
++    expect(($this->finish)())->toBe(['media_id' => $media->id]);
++    expect(hash_file('sha256', Storage::disk('local')->path($media->path)))->toBe($this->result['sha256']);
++});
++
++test('AV transfer never checkpoints a storage acknowledgement after the caller deadline', function () {
++    ($this->prepare)('rendered bytes');
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    $r2->after = function ($name) {
++        if ($name === 'UploadPart') {
++            usleep(100000);
++        }
++    };
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease, microtime(true) + 0.05))->toThrow(StudioAvProcessFailed::class);
++    expect(MediaAsset::withoutUserScope()->sole()->import_state['bytes'])->toBe(0);
++});
++
++test('AV local transfer refuses a vanished completed copy before its medium can be accepted', function () {
++    ($this->prepare)('rendered bytes');
++    $result = ($this->finish)();
++    $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
++    Storage::disk('local')->delete($media->path);
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(StudioAvCheckpointCorrupt::class);
++});
++
++test('AV local transfer verifies actual destination bytes after copying', function () {
++    ($this->prepare)('rendered bytes');
++    app(StudioAvTransfer::class)->run($this->lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    Storage::disk('local')->put($media->path.'.part', 'tampered bytes');
++    expect(fn () => ($this->finish)())->toThrow(StudioAvCheckpointCorrupt::class);
++    expect($media->refresh()->import_state['verified_bytes'])->toBe(0)->and($media->isReady())->toBeFalse();
++});
+--- a/tests/Feature/Studio/StudioAvRegistrationTest.php
++++ b/tests/Feature/Studio/StudioAvRegistrationTest.php
+@@ -48,6 +48,22 @@
+     expect($this->export->refresh()->status)->toBe('processing')->and($this->export->media_ids)->toBeNull();
+ });
+ 
++test('AV library copy reserves output bytes before allocating its pending medium', function () {
++    config(['studio.av.disk.output' => 9]);
++    expect(fn () => $this->state->allocateRegistration($this->lease))->toThrow(ValidationException::class);
++    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
++});
++
++test('AV transfer progress is fenced and cannot publish or change its immutable identity', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    expect($this->state->checkpointRegistration($this->lease, ['bytes' => 5, 'stage' => 'verifying'], 'private-upload'))->toBeTrue();
++    expect($media->refresh()->import_state['bytes'])->toBe(5)->and($media->isReady())->toBeFalse();
++    expect(fn () => $this->state->checkpointRegistration($this->lease, ['sha256' => str_repeat('0', 64)]))->toThrow(ValidationException::class);
++    $this->state->cancel($this->user, $this->export);
++    expect($this->state->checkpointRegistration($this->lease, ['verified_bytes' => 5, 'complete' => true]))->toBeFalse();
++    expect($media->refresh()->import_state['verified_bytes'])->toBe(0)->and($media->upload_id)->toBe('private-upload');
++});
++
+ test('AV registration allocation is private idempotent and pinned to its accepted assembly', function () {
+     $first = $this->state->allocateRegistration($this->lease);
+     $second = $this->state->allocateRegistration($this->lease);
+--- a/tests/Feature/Studio/StudioAvProcessTest.php
++++ b/tests/Feature/Studio/StudioAvProcessTest.php
+@@ -1,12 +1,14 @@
+ <?php
+ 
+ use App\Models\Brand;
++use App\Models\MediaAsset;
+ use App\Models\Studio\DesignExport;
+ use App\Models\User;
+ use App\Services\Studio\StudioAvFiles;
+ use App\Services\Studio\StudioAvProcess;
+ use App\Services\Studio\StudioAvProcessFailed;
+ use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvTransfer;
+ use App\Services\Studio\StudioService;
+ use Illuminate\Support\Facades\Process;
+ use Illuminate\Support\Facades\Storage;
+@@ -105,4 +107,16 @@
+     expect($this->state->task($this->export->refresh()))->toBe(['phase' => 'register', 'index' => 0]);
+     expect($this->export->status)->toBe('processing');
+     expect(Storage::disk('local')->allFiles($this->root.'/work'))->toBe([]);
++    expect($final['chunk_size'])->toBe(16 * 1024 ** 2)->and($final['chunk_sha256'])->toBe([$final['sha256']]);
++    config(['filesystems.media' => 'local']);
++    $registration = $this->state->claim($this->export->id, $generation);
++    $result = null;
++    for ($pass = 0; $pass < 5 && $result === null; $pass++) {
++        $result = app(StudioAvTransfer::class)->run($registration);
++    }
++    expect($result)->toHaveKey('media_id');
++    $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
++    expect(hash_file('sha256', Storage::disk('local')->path($media->path)))->toBe($final['sha256']);
++    expect($this->state->accept($registration, $result))->toBeTrue();
++    expect($this->export->refresh()->status)->toBe('ready')->and($this->export->media_ids)->toBe([$media->id]);
+ })->skip(fn () => getenv('STUDIO_AV_NATIVE_TEST') !== '1', 'Explicit managed native runtime opt-in; no ONNX.');
+--- a/tests/Support/StudioAvR2.php
++++ b/tests/Support/StudioAvR2.php
+@@ -0,0 +1,116 @@
++<?php
++
++namespace Tests\Support;
++
++use ArrayObject;
++use Aws\CommandInterface;
++use Aws\MockHandler;
++use Aws\Result;
++use Aws\S3\Exception\S3Exception;
++use Aws\S3\S3Client;
++use Closure;
++use GuzzleHttp\Psr7\Response;
++use GuzzleHttp\Psr7\Utils;
++use Illuminate\Filesystem\AwsS3V3Adapter;
++use Illuminate\Support\Facades\Storage;
++use League\Flysystem\AwsS3V3\AwsS3V3Adapter as Adapter;
++use League\Flysystem\Filesystem;
++use RuntimeException;
++
++/** Isolated in-memory protocol fixture. No network or real bucket/credentials. */
++class StudioAvR2
++{
++    public ArrayObject $calls;
++
++    public array $uploads = [];
++
++    public array $objects = [];
++
++    public ?Closure $after = null;
++
++    public bool $ignoreRange = false;
++
++    public function __construct(string $prefix = 'tenant')
++    {
++        $this->calls = new ArrayObject;
++        $handler = function (CommandInterface $command): Result {
++            $name = $command->getName();
++            $args = $command->toArray();
++            $this->calls[] = ['name' => $name, 'args' => $args];
++            $key = $args['Key'] ?? '';
++            $id = $args['UploadId'] ?? '';
++            if ($name === 'HeadObject') {
++                $object = $this->objects[$key] ?? null;
++                if (! $object) {
++                    throw new S3Exception('fixture missing', $command, ['response' => new Response(404)]);
++                }
++                $result = new Result(['ContentLength' => strlen($object['bytes']), 'Metadata' => $object['metadata'], 'ETag' => $object['etag']]);
++            } elseif ($name === 'ListMultipartUploads') {
++                $uploads = [];
++                foreach ($this->uploads as $uploadId => $upload) {
++                    if (str_starts_with($upload['key'], $args['Prefix'])) {
++                        $uploads[] = ['Key' => $upload['key'], 'UploadId' => $uploadId];
++                    }
++                }
++                $result = new Result(['Uploads' => $uploads, 'IsTruncated' => false]);
++            } elseif ($name === 'CreateMultipartUpload') {
++                $id = 'fixture-upload-'.(count($this->uploads) + 1);
++                $this->uploads[$id] = ['key' => $key, 'metadata' => $args['Metadata'], 'parts' => []];
++                $result = new Result(['UploadId' => $id]);
++            } elseif ($name === 'UploadPart') {
++                if (! isset($this->uploads[$id]) || $this->uploads[$id]['key'] !== $key) {
++                    throw new S3Exception('fixture no upload', $command, ['response' => new Response(404), 'code' => 'NoSuchUpload']);
++                }
++                $bytes = (string) $args['Body'];
++                if ($args['ContentMD5'] !== base64_encode(md5($bytes, true))) {
++                    throw new RuntimeException('Wrong fixture Content-MD5');
++                }
++                $etag = '"'.md5($bytes).'"';
++                $this->uploads[$id]['parts'][$args['PartNumber']] = ['bytes' => $bytes, 'etag' => $etag];
++                $result = new Result(['ETag' => $etag]);
++            } elseif ($name === 'CompleteMultipartUpload') {
++                $upload = $this->uploads[$id] ?? null;
++                if (! $upload) {
++                    throw new S3Exception('fixture consumed upload', $command, ['response' => new Response(404), 'code' => 'NoSuchUpload']);
++                }
++                $bytes = '';
++                foreach ($args['MultipartUpload']['Parts'] as $part) {
++                    $stored = $upload['parts'][$part['PartNumber']];
++                    if ($stored['etag'] !== $part['ETag']) {
++                        throw new RuntimeException('Wrong fixture completion receipt');
++                    }
++                    $bytes .= $stored['bytes'];
++                }
++                $etag = '"'.md5($bytes).'-'.count($upload['parts']).'"';
++                $this->objects[$key] = ['bytes' => $bytes, 'metadata' => $upload['metadata'], 'etag' => $etag];
++                unset($this->uploads[$id]);
++                $result = new Result(['ETag' => $etag]);
++            } elseif ($name === 'GetObject') {
++                $object = $this->objects[$key];
++                if (($args['IfMatch'] ?? null) !== $object['etag']) {
++                    throw new S3Exception('fixture object changed', $command, ['response' => new Response(412)]);
++                }
++                preg_match('/^bytes=(\d+)-(\d+)$/D', $args['Range'], $matches);
++                $start = (int) $matches[1];
++                $end = (int) $matches[2];
++                $bytes = $this->ignoreRange ? $object['bytes'] : substr($object['bytes'], $start, $end - $start + 1);
++                $result = new Result(['Body' => Utils::streamFor($bytes), 'ContentLength' => strlen($bytes),
++                    'ContentRange' => $this->ignoreRange ? null : 'bytes '.$start.'-'.$end.'/'.strlen($object['bytes'])]);
++            } else {
++                throw new RuntimeException('Unexpected fixture S3 command '.$name);
++            }
++            if ($this->after) {
++                ($this->after)($name, $args);
++            }
++
++            return $result;
++        };
++        $client = new S3Client(['version' => 'latest', 'region' => 'auto', 'endpoint' => 'https://studio-transfer.invalid',
++            'use_path_style_endpoint' => true, 'credentials' => ['key' => 'fixture-key', 'secret' => 'fixture-secret'],
++            'handler' => new MockHandler(array_fill(0, 1000, $handler))]);
++        $config = ['bucket' => 'fixture-bucket', 'root' => $prefix];
++        $adapter = new Adapter($client, 'fixture-bucket', $prefix);
++        Storage::set('studio-transfer-r2', new AwsS3V3Adapter(new Filesystem($adapter), $adapter, $config, $client));
++        config(['filesystems.media' => 'studio-transfer-r2', 'filesystems.disks.studio-transfer-r2' => $config]);
++    }
++}
+--- a/tests/frontend/studio-output-integrity.test.mjs
++++ b/tests/frontend/studio-output-integrity.test.mjs
+@@ -0,0 +1,33 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { randomUUID, createHash } from 'node:crypto';
++import * as finalize from '../../scripts/studio/av-finalize.mjs';
++
++const digest = value => createHash('sha256').update(value).digest('hex');
++
++test('final output pins SHA256 for the whole file and each fixed 16MiB transfer part', async () => {
++    const folder = path.resolve('storage/framework/testing/integrity-' + randomUUID());
++    await fs.mkdir(folder, { recursive: true });
++    const first = Buffer.alloc(16 * 1024 ** 2, 0x37), last = Buffer.from('tail');
++    const file = path.join(folder, 'output.bin');
++    try {
++        await fs.writeFile(file, Buffer.concat([first, last]));
++        const result = await finalize.outputIntegrity(file);
++        assert.equal(result.sha256, digest(Buffer.concat([first, last])));
++        assert.equal(result.chunk_size, 16 * 1024 ** 2);
++        assert.deepEqual(result.chunk_sha256, [digest(first), digest(last)]);
++    } finally { await fs.rm(folder, { recursive: true, force: true }); }
++});
++
++test('final output hashing respects cancellation and refuses files beyond its byte budget', async () => {
++    const folder = path.resolve('storage/framework/testing/integrity-' + randomUUID());
++    await fs.mkdir(folder, { recursive: true });
++    const file = path.join(folder, 'output.bin');
++    try {
++        await fs.writeFile(file, 'too large');
++        await assert.rejects(finalize.outputIntegrity(file, { signal: AbortSignal.abort() }), { name: 'AbortError' });
++        await assert.rejects(finalize.outputIntegrity(file, { maxBytes: 4 }), /presupuesto/i);
++    } finally { await fs.rm(folder, { recursive: true, force: true }); }
++});
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -44,7 +44,21 @@
+ 
+ La metadata final debe coincidir con el plan: dimensiones padded (también GIF), reloj, fotogramas, duración y codecs. Se aplica el límite real de la biblioteca (imagen/vídeo), aunque el presupuesto interno del encoder permita archivos mayores. `accept(register)` exige esa reserva y un journal de transferencia completo con todos los bytes verificados. Medio listo, vínculo a marca y exportación descargable se guardan en una sola transacción, bajo fencing del lease/generación. Cancelar antes de aceptar o fallar al crear el vínculo revierte toda visibilidad. La descarga del export conserva la copia local aceptada; el medio de biblioteca necesita su propia copia durable fuera del árbol temporal.
+ 
+-Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. Las rutas HTTP upload/complete rechazan la reserva con409 antes de escribir bytes o finalizar el objeto; no basta un rechazo posterior en finalize. El borrado normal de un medio ya listo conserva sus reglas actuales de referencias a publicaciones. La transferencia física, su recuperación/aborto y la conexión de register al runner todavía no están implementadas; los tests de esta capa fabrican explícitamente el journal verificado y no acreditan copia local ni R2.
++Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. Las rutas HTTP upload/complete rechazan la reserva con409 antes de escribir bytes o finalizar el objeto; no basta un rechazo posterior en finalize. El borrado normal de un medio ya listo conserva las reglas actuales de referencias a publicaciones. Los tests anteriores de aceptaciónBD fabricaban explícitamente el journal verificado; la nueva transferencia física se verifica por separado a continuación. Su aborto/limpieza y la conexión de register al runner siguen pendientes.
++
++### Transferencia física privada
++
++El assemble nativo añade `chunk_size=16777216` y `chunk_sha256`, una lista de SHA256 por cada16MiB, a su SHA256 global. Ambos se calculan en una sola lectura con buffers de1MiB, cancelación y presupuesto total8GiB; como máximo512 hashes. El copiador exige esa prueba nativa y comprueba cada parte contra ella. No deriva la integridad esperada de los bytes que acaba de copiar. Los checkpoints antiguos sin esta prueba no pueden transferirse como si estuvieran verificados.
++
++`StudioAvTransfer::run` adquiere el mutex de workspace y procesa como máximo una parte o un paso de control por invocación. Tiene deadline compartido≤85s; todos sus checkpoints de journal pasan por la validación del lease/generación actual y no se aceptan tras el deadline. `media_reserved_bytes` reserva la copia completa dentro del presupuesto output antes del I/O, persiste durante cancelaciones/reintentos y cuenta también al reservar otro assemble. Solo se libera al aceptar el medio listo; aborto/limpieza deberán liberarla después de retirar físicamente los derivados. El journal y el ID del medio persisten entre leases; la aplicación todavía no entrega esa fase desde la cola.
++
++En local se escribe `.part`, se confirma con fflush/fsync, y un cursor durable decide el desplazamiento. Una cola no reconocida tras un crash se trunca hasta el cursor antes de continuar. Al terminar la copia se crea un enlace exclusivo al destino privado, sin sustituir un archivo existente; se verifican sus partes reales en pasadas posteriores. El parcial se retira antes de completar el journal. El medio queda pendiente hasta la aceptaciónBD atómica. El destino de biblioteca está fuera del árbol temporal del render.
++
++En S3/R2 se usa el disco fijado en el medio, incluido su prefijo; nunca el valor global nuevo después de iniciar la transferencia. Se recupera un UploadId cuya respuesta de creación se perdió mediante ListMultipartUploads del prefijo y coincidencia exacta de Key; truncamiento o múltiples coincidencias requieren limpieza explícita. Cada parte lleva Content-MD5 y su recibo ETag; sus bytes se validan con SHA256 antes de enviarse. Un HeadObject con tamaño/metadata de workspace/SHA correctos permite recuperar un completado cuya respuesta se perdió. Después se descargan rangos reales con If-Match sobre el ETag fijado y se valida cada SHA256. Tamaño/metadata/ETag no sustituyen esa lectura. Un objeto desaparecido en verificación no crea otro multipart.
++
++Las llamadas S3 llevan retries0 y timeout≤20s, connect≤5s y presupuesto restante compartido. GetObject usa stream y read_timeout≤5s; se comprueban ContentLength y ContentRange antes de leer hasta16MiB, y el cuerpo siempre se cierra. La cuenta de almacenamiento debe poder listar multipart del destino además de crear/subir/completar, leer HEAD/rangos y, cuando se conecte la limpieza, abortar/borrar. Sin permisos se conserva el journal y falla explícitamente. Estos requisitos se contrastan con [R2 multipart](https://developers.cloudflare.com/r2/objects/upload-objects/), [UploadPart S3](https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html) y [stream/read_timeout de Guzzle](https://docs.guzzlephp.org/en/stable/request-options.html#stream).
++
++El bloque está en verificación: tests de disco real desechable y simulador S3 con respuestas HTTP404/412 y fallos después del efecto remoto, sin cuentas ni red real. No acreditan un bucket R2 real ni despliegue. Cancelación durante I/O impide confirmar el recibo tardío o publicar el medio; la reserva conserva los bytes/UploadId conocidos para el futuro aborto. Todavía faltan recuperación/aborto/limpieza de reservas terminales/huérfanas, integración de register en runner/queue y flujo público completo.
+ 
+ Una fase nativa tiene un presupuesto total inferior al timeout del job; el job queda por debajo del worker y del retry_after. El límite cubre preparación, navegador, FFmpeg, probes, hashes y cierre de hijos. Los timeouts aislados de FFmpeg del motor no bastan para acreditar esta propiedad.
+ 

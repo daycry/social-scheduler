@@ -1,0 +1,367 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -69,6 +69,83 @@
+         });
+     }
+ 
++    /** Reserve one private library object before transfer; no network or filesystem I/O under DB locks. */
++    public function allocateRegistration(StudioAvLease $lease): MediaAsset
++    {
++        return DB::transaction(function () use ($lease) {
++            [$export, $workspace, $current] = $this->activeLease($lease);
++            if (! $current || $current->phase !== 'register') {
++                throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
++            }
++            $source = $this->registrationSource($export);
++            $result = $source->result;
++            $kind = $export->format === 'mp4' ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE;
++            if ($result['size'] > (int) config('media.max_bytes.'.$kind, 0)) {
++                throw ValidationException::withMessages(['export' => ['El render supera el tamaño admitido en la biblioteca.']]);
++            }
++            if ($workspace->media_id !== null) {
++                $media = MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->findOrFail($workspace->media_id);
++                $this->assertRegistrationPin($workspace, $media, $result);
++
++                return $media;
++            }
++            $disk = (string) config('filesystems.media', 'local');
++            $media = new MediaAsset;
++            $media->forceFill(['user_id' => $export->user_id, 'disk' => $disk,
++                'path' => 'media/'.$export->user_id.'/studio-'.$workspace->uuid.'.'.$export->format,
++                'original_name' => 'studio-'.$export->id.'.'.$export->format,
++                'mime' => $export->format === 'mp4' ? 'video/mp4' : 'image/gif', 'kind' => $kind,
++                'declared_size' => $result['size'], 'status' => MediaAsset::STATUS_PENDING,
++                'import_state' => ['studio_av' => $workspace->uuid, 'disk' => $disk, 'sha256' => $result['sha256'], 'total' => $result['size'],
++                    'bytes' => 0, 'verified_bytes' => 0, 'complete' => false, 'parts' => []]])->save();
++            $workspace->update(['media_id' => $media->id]);
++
++            return $media;
++        });
++    }
++
++    private function registrationSource(DesignExport $export): StudioAvLease
++    {
++        $sources = $this->checkpoints($export, ['assemble']);
++        if ($sources->count() !== 1) {
++            throw ValidationException::withMessages(['export' => ['Falta un único render final aceptado.']]);
++        }
++        $source = $sources->first();
++        $result = $source->result;
++        $plan = StudioAvWorkspace::withoutUserScope()->findOrFail($source->workspace_id)->plan;
++        $mp4 = $export->format === 'mp4';
++        $width = $plan['render']['paddedWidth'] ?? null;
++        $height = $plan['render']['paddedHeight'] ?? null;
++        if (! is_int($result['size'] ?? null) || $result['size'] < 1 || $result['size'] !== $source->actual_bytes
++            || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1
++            || ($result['file'] ?? null) !== 'outputs/'.$source->id.'/project.'.$export->format || ($result['namespace'] ?? null) !== $source->id
++            || ! is_int($width) || ! is_int($height) || $width < 1 || $height < 1
++            || ($result['width'] ?? null) !== $width || ($result['height'] ?? null) !== $height
++            || ($result['fps'] ?? null) !== ($plan['fps'] ?? null) || ($result['frameCount'] ?? null) !== ($plan['frameCount'] ?? null)
++            || ! is_numeric($result['duration'] ?? null) || ! is_finite((float) $result['duration'])
++            || abs($result['duration'] - $plan['duration']) > ($mp4 ? 1 / $plan['fps'] : 0.011)
++            || ($result['videoCodec'] ?? null) !== ($mp4 ? 'h264' : 'gif')
++            || ($result['audioCodec'] ?? null) !== ($mp4 && ($plan['audioAssetIds'] ?? []) !== [] ? 'aac' : null)) {
++            throw ValidationException::withMessages(['export' => ['Los metadatos finales no coinciden con el plan aceptado.']]);
++        }
++
++        return $source;
++    }
++
++    private function assertRegistrationPin(StudioAvWorkspace $workspace, MediaAsset $media, array $result): void
++    {
++        $journal = $media->import_state;
++        $mp4 = $result['videoCodec'] === 'h264';
++        if ($media->status !== MediaAsset::STATUS_PENDING || ($journal['studio_av'] ?? null) !== $workspace->uuid
++            || ($journal['sha256'] ?? null) !== $result['sha256'] || ($journal['total'] ?? null) !== $result['size']
++            || $media->declared_size !== $result['size'] || $media->disk !== ($journal['disk'] ?? null)
++            || $media->path !== 'media/'.$workspace->user_id.'/studio-'.$workspace->uuid.($mp4 ? '.mp4' : '.gif')
++            || $media->mime !== ($mp4 ? 'video/mp4' : 'image/gif') || $media->kind !== ($mp4 ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE)
++            || $result['size'] > (int) config('media.max_bytes.'.$media->kind, 0)) {
++            throw ValidationException::withMessages(['export' => ['La transferencia no pertenece al render final pendiente.']]);
++        }
++    }
++
+     public function begin(string $id): ?StudioAvLease
+     {
+         return DB::transaction(function () use ($id) {
+@@ -238,12 +315,26 @@
+                 $resultLease = $source->id;
+             } elseif ($current->phase === 'register') {
+                 $mediaId = $result['media_id'] ?? null;
+-                $ready = is_int($mediaId) && MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($mediaId)->where('status', MediaAsset::STATUS_READY)->exists()
+-                    && StudioAsset::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)->where('media_asset_id', $mediaId)->exists();
+-                if (! $ready) {
+-                    throw ValidationException::withMessages(['export' => ['El recurso final no está listo en la marca del trabajo.']]);
+-                }
++                $media = is_int($mediaId) && $workspace->media_id === $mediaId
++                    ? MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($mediaId)->lockForUpdate()->first() : null;
++                if (! $media) {
++                    throw ValidationException::withMessages(['export' => ['El recurso final no pertenece al trabajo.']]);
++                }
++                $source = $this->registrationSource($export);
++                $output = $source->result;
++                $this->assertRegistrationPin($workspace, $media, $output);
++                $journal = $media->import_state;
++                if (($journal['complete'] ?? null) !== true || ($journal['bytes'] ?? null) !== $output['size']
++                    || ($journal['verified_bytes'] ?? null) !== $output['size']) {
++                    throw ValidationException::withMessages(['export' => ['La transferencia final aún no está verificada.']]);
++                }
++                $media->forceFill(['status' => MediaAsset::STATUS_READY, 'size' => $output['size'], 'width' => $output['width'],
++                    'height' => $output['height'], 'duration' => $output['duration'], 'fps' => $output['fps'],
++                    'codec' => $output['videoCodec'], 'audio_codec' => $output['audioCodec'], 'upload_id' => null, 'error' => null])->save();
++                StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $export->brand_id, 'media_asset_id' => $mediaId], ['user_id' => $export->user_id]);
+                 $export->media_ids = [$mediaId];
++                $export->disk = 'local';
++                $export->path = 'studio-exports/'.$export->user_id.'/'.$export->id.'/'.$workspace->uuid.'/'.$output['file'];
+             } else {
+                 $expected = match ($current->phase) {
+                     'asset' => "imports/{$current->id}/asset-{$current->item}.bin",
+--- a/app/Services/MediaUploadService.php
++++ b/app/Services/MediaUploadService.php
+@@ -224,6 +224,7 @@
+      */
+     public function complete(MediaAsset $asset, array $parts = [], ?float $timeout = null): MediaAsset
+     {
++        $this->guardStudioRender($asset);
+         if ($asset->status !== MediaAsset::STATUS_PENDING) {
+             return $asset;
+         }
+@@ -262,6 +263,7 @@
+     /** Lee el objeto ya subido y rellena tamano y metadatos; deja `invalido` si no es lo declarado. */
+     public function finalize(MediaAsset $asset): MediaAsset
+     {
++        $this->guardStudioRender($asset);
+         if ($asset->kind === MediaAsset::KIND_AUDIO) {
+             return app(StudioAudioFiles::class)->finalize($asset);
+         }
+@@ -321,6 +323,7 @@
+      */
+     public function delete(MediaAsset $asset): void
+     {
++        $this->guardStudioRender($asset, pendingOnly: true);
+         if ($asset->kind === MediaAsset::KIND_AUDIO && ! $asset->isReady()) {
+             app(StudioAudioFiles::class)->deletePending($asset);
+ 
+@@ -379,6 +382,15 @@
+         return $n;
+     }
+ 
++    /** Studio owns its pending allocation through cancellation/retry; only its registrar may publish it. */
++    private function guardStudioRender(MediaAsset $asset, bool $pendingOnly = false): void
++    {
++        $current = MediaAsset::withoutUserScope()->select(['id', 'status', 'import_state'])->find($asset->id);
++        if (isset($current?->import_state['studio_av']) && (! $pendingOnly || ! $current->isReady())) {
++            throw new \DomainException('Este archivo pertenece a una exportación de Studio; gestiona el trabajo desde su diseño.');
++        }
++    }
++
+     /**
+      * Borra los parciales de importacion (`media/{user}/*.part`) abandonados: de mas de `$hours` horas y sin un asset
+      * `pendiente` que los siga usando. Solo disco local (en S3/R2 no hay parciales).
+--- a/tests/Feature/Studio/StudioAvRegistrationTest.php
++++ b/tests/Feature/Studio/StudioAvRegistrationTest.php
+@@ -0,0 +1,187 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAsset;
++use App\Models\User;
++use App\Services\MediaUploadService;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioService;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Validation\ValidationException;
++
++beforeEach(function () {
++    Storage::fake('local');
++    config(['filesystems.media' => 'local']);
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $document = ['schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Registration', 'document' => $document]);
++    $this->export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $this->state = app(StudioAvState::class);
++    $this->export = $this->state->initialize($this->user, $this->export);
++    $generation = $this->export->render_state['generation'];
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($this->state->claim($this->export->id, $generation), $plan);
++    $segment = $this->state->claim($this->export->id, $generation, 5);
++    $this->state->accept($segment, ['namespace' => $segment->id, 'file' => 'segments/'.$segment->id.'/video-000000.mp4',
++        'size' => 5, 'sha256' => hash('sha256', 'video')], 5);
++    $this->source = $this->state->claim($this->export->id, $generation, 5);
++    $this->result = ['namespace' => $this->source->id, 'file' => 'outputs/'.$this->source->id.'/project.mp4',
++        'size' => 5, 'sha256' => hash('sha256', 'video'), 'width' => 100, 'height' => 80,
++        'duration' => 1, 'fps' => 12, 'frameCount' => 12, 'videoCodec' => 'h264', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94];
++    $this->state->accept($this->source, $this->result, 5);
++    $this->lease = $this->state->claim($this->export->id, $generation);
++});
++
++test('AV registration refuses an unrelated ready library asset even in the same brand', function () {
++    $media = MediaAsset::factory()->for($this->user)->video()->create();
++    StudioAsset::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'media_asset_id' => $media->id]);
++    expect(fn () => $this->state->accept($this->lease, ['media_id' => $media->id]))->toThrow(ValidationException::class);
++    expect($this->export->refresh()->status)->toBe('processing')->and($this->export->media_ids)->toBeNull();
++});
++
++test('AV registration allocation is private idempotent and pinned to its accepted assembly', function () {
++    $first = $this->state->allocateRegistration($this->lease);
++    $second = $this->state->allocateRegistration($this->lease);
++    expect($second->id)->toBe($first->id)->and(MediaAsset::withoutUserScope()->count())->toBe(1);
++    expect($first->status)->toBe(MediaAsset::STATUS_PENDING)->and($first->disk)->toBe('local')
++        ->and($first->path)->toBe('media/'.$this->user->id.'/studio-'.$this->export->render_state['workspace'].'.mp4')
++        ->and($first->import_state['sha256'])->toBe($this->result['sha256'])->and($first->import_state['bytes'])->toBe(0);
++    expect(StudioAsset::withoutUserScope()->count())->toBe(0)->and($first->toPublicArray())->not->toHaveKey('import_state');
++    expect($this->export->refresh()->status)->toBe('processing');
++});
++
++test('AV registration cannot publish an incomplete durable transfer', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    expect(fn () => $this->state->accept($this->lease, ['media_id' => $media->id]))->toThrow(ValidationException::class);
++    expect($media->refresh()->isReady())->toBeFalse()->and(StudioAsset::withoutUserScope()->count())->toBe(0);
++});
++
++test('AV registration atomically exposes one verified media and the signed download source', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    $journal = $media->import_state;
++    $media->update(['import_state' => array_replace($journal, ['bytes' => 5, 'verified_bytes' => 5, 'complete' => true])]);
++    expect($this->state->accept($this->lease, ['media_id' => $media->id]))->toBeTrue();
++    expect($media->refresh()->isReady())->toBeTrue()->and($media->size)->toBe(5)->and($media->codec)->toBe('h264')
++        ->and($media->width)->toBe(100)->and($media->height)->toBe(80);
++    $export = $this->export->refresh();
++    expect($export->status)->toBe('ready')->and($export->media_ids)->toBe([$media->id])->and($export->disk)->toBe('local')
++        ->and($export->path)->toBe('studio-exports/'.$this->user->id.'/'.$export->id.'/'.$export->render_state['workspace'].'/'.$this->result['file']);
++    expect(StudioAsset::withoutUserScope()->where('brand_id', $this->brand->id)->where('media_asset_id', $media->id)->count())->toBe(1);
++    expect($this->state->accept($this->lease, ['media_id' => $media->id]))->toBeFalse();
++});
++
++test('AV cancellation after transfer leaves no ready media or brand attachment', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    $media->update(['import_state' => array_replace($media->import_state, ['bytes' => 5, 'verified_bytes' => 5, 'complete' => true])]);
++    $this->state->cancel($this->user, $this->export);
++    expect($this->state->accept($this->lease, ['media_id' => $media->id]))->toBeFalse();
++    expect($media->refresh()->isReady())->toBeFalse()->and(StudioAsset::withoutUserScope()->count())->toBe(0);
++    expect(fn () => $this->state->allocateRegistration($this->lease))->toThrow(ModelNotFoundException::class);
++});
++
++test('AV pending render allocation cannot be completed by the generic upload endpoint', function (string $method) {
++    $media = $this->state->allocateRegistration($this->lease);
++    Storage::disk('local')->put($media->path, 'video');
++    expect(fn () => app(MediaUploadService::class)->{$method}($media))->toThrow(DomainException::class);
++    expect($media->refresh()->status)->toBe(MediaAsset::STATUS_PENDING);
++    Storage::disk('local')->assertExists($media->path);
++})->with(['complete', 'finalize']);
++
++test('AV generic deletion preserves a pending render allocation and its recovery journal', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    Storage::disk('local')->put($media->path, 'video');
++    expect(fn () => app(MediaUploadService::class)->delete($media))->toThrow(DomainException::class);
++    expect($media->refresh()->status)->toBe(MediaAsset::STATUS_PENDING);
++    Storage::disk('local')->assertExists($media->path);
++});
++
++test('AV registration fences an expired delivery and reuses its allocation in the next lease', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    $this->travel(181)->seconds();
++    expect(fn () => $this->state->allocateRegistration($this->lease))->toThrow(ModelNotFoundException::class);
++    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    expect($this->state->allocateRegistration($lease)->id)->toBe($media->id);
++    expect(MediaAsset::withoutUserScope()->count())->toBe(1);
++});
++
++test('AV generic finalization cannot bypass render ownership using a stale model', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    $media->setAttribute('import_state', null);
++    Storage::disk('local')->put($media->path, 'video');
++    expect(fn () => app(MediaUploadService::class)->finalize($media))->toThrow(DomainException::class);
++    expect($media->refresh()->status)->toBe(MediaAsset::STATUS_PENDING);
++});
++
++test('AV registration rolls back media visibility if the brand attachment fails', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    $media->update(['import_state' => array_replace($media->import_state, ['bytes' => 5, 'verified_bytes' => 5, 'complete' => true])]);
++    $event = 'eloquent.creating: '.StudioAsset::class;
++    Event::listen($event, fn () => throw new RuntimeException('test interrupted registration'));
++    try {
++        expect(fn () => $this->state->accept($this->lease, ['media_id' => $media->id]))->toThrow(RuntimeException::class);
++    } finally {
++        Event::forget($event);
++    }
++    expect($media->refresh()->status)->toBe(MediaAsset::STATUS_PENDING)->and($this->export->refresh()->status)->toBe('processing')
++        ->and($this->export->media_ids)->toBeNull()->and($this->lease->refresh()->status)->toBe('running');
++    expect($this->state->accept($this->lease, ['media_id' => $media->id]))->toBeTrue();
++    expect(MediaAsset::withoutUserScope()->count())->toBe(1);
++});
++
++test('AV registration refuses changing the generated library destination after allocation', function () {
++    $media = $this->state->allocateRegistration($this->lease);
++    $media->update(['path' => 'media/another.mp4', 'import_state' => array_replace($media->import_state,
++        ['bytes' => 5, 'verified_bytes' => 5, 'complete' => true])]);
++    expect(fn () => $this->state->accept($this->lease, ['media_id' => $media->id]))->toThrow(ValidationException::class);
++    expect($media->refresh()->isReady())->toBeFalse();
++});
++
++test('AV registration enforces a lowered library budget when resuming an allocation', function () {
++    $this->state->allocateRegistration($this->lease);
++    config(['media.max_bytes.video' => 4]);
++    expect(fn () => $this->state->allocateRegistration($this->lease))->toThrow(ValidationException::class);
++    expect(MediaAsset::withoutUserScope()->count())->toBe(1);
++});
++
++test('AV registration validates the native output metadata against its pinned plan', function (string $key, mixed $value) {
++    $this->source->update(['result' => array_replace($this->result, [$key => $value])]);
++    expect(fn () => $this->state->allocateRegistration($this->lease))->toThrow(ValidationException::class);
++    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
++})->with([['videoCodec', 'vp9'], ['audioCodec', 'aac'], ['width', 101], ['frameCount', 11], ['duration', 0], ['fps', 30]]);
++
++test('AV registration uses the actual padded GIF dimensions for an odd canvas', function () {
++    $document = ['schema_version' => 2, 'width' => 101, 'height' => 81, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'odd', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Odd GIF', 'document' => $document]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'gif', 'pages' => ['odd'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $export = $this->state->initialize($this->user, $export);
++    $generation = $export->render_state['generation'];
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['odd'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 101, 'height' => 81, 'paddedWidth' => 102, 'paddedHeight' => 82, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($this->state->claim($export->id, $generation), $plan);
++    foreach (['render', 'assemble'] as $phase) {
++        $lease = $this->state->claim($export->id, $generation, 5);
++        $result = ['file' => $phase === 'render' ? 'segments/'.$lease->id.'/video-000000.gif' : 'outputs/'.$lease->id.'/project.gif',
++            'namespace' => $lease->id, 'size' => 5, 'sha256' => hash('sha256', 'gif'),
++            'width' => 102, 'height' => 82, 'fps' => 12, 'frameCount' => 12, 'duration' => 1,
++            'videoCodec' => 'gif', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94];
++        $this->state->accept($lease, $result, 5);
++    }
++    $registration = $this->state->claim($export->id, $generation);
++    $media = $this->state->allocateRegistration($registration);
++    $media->update(['import_state' => array_replace($media->import_state, ['bytes' => 5, 'verified_bytes' => 5, 'complete' => true])]);
++    expect($this->state->accept($registration, ['media_id' => $media->id]))->toBeTrue();
++    expect($media->refresh()->kind)->toBe(MediaAsset::KIND_IMAGE)->and($media->mime)->toBe('image/gif')
++        ->and($media->width)->toBe(102)->and($media->height)->toBe(82)->and($media->audio_codec)->toBeNull();
++});
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -37,6 +37,14 @@
+ El contrato privado del proceso admite solo fases conocidas y un manifiesto generado dentro del intento. No acepta código, argumentos FFmpeg, rutas o URLs del consumidor. El manifiesto conserva documento original y opciones; cada fase recompila el mismo plan, en lugar de confiar en una declaración de frames del cliente. Los nombres de recursos y resultados se generan mediante IDs/UUID controlados por el servidor.
+ 
+ ## Tiempo, memoria y cola
++
++### Reserva y aceptación del medio final
++
++La capa de estado dispone de `allocateRegistration(lease)`: un lease vigente de fase register reserva un único MediaAsset pendiente por workspace, con ruta independiente `media/{user}/studio-{workspaceUUID}.mp4|gif`. El journal privado fija disco, SHA256 y tamaño del assemble aceptado; ninguna reserva es todavía un archivo copiado ni un recurso listo. Un nuevo lease reutiliza la misma reserva. Un medio borrado, destino cambiado o hash incompatible produce un error; no se crea silenciosamente otra reserva.
++
++La metadata final debe coincidir con el plan: dimensiones padded (también GIF), reloj, fotogramas, duración y codecs. Se aplica el límite real de la biblioteca (imagen/vídeo), aunque el presupuesto interno del encoder permita archivos mayores. `accept(register)` exige esa reserva y un journal de transferencia completo con todos los bytes verificados. Medio listo, vínculo a marca y exportación descargable se guardan en una sola transacción, bajo fencing del lease/generación. Cancelar antes de aceptar o fallar al crear el vínculo revierte toda visibilidad. La descarga del export conserva la copia local aceptada; el medio de biblioteca necesita su propia copia durable fuera del árbol temporal.
++
++Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. El borrado normal de un medio ya listo conserva sus reglas actuales de referencias a publicaciones. La transferencia física, su recuperación/aborto y la conexión de register al runner todavía no están implementadas; los tests de esta capa fabrican explícitamente el journal verificado y no acreditan copia local ni R2.
+ 
+ Una fase nativa tiene un presupuesto total inferior al timeout del job; el job queda por debajo del worker y del retry_after. El límite cubre preparación, navegador, FFmpeg, probes, hashes y cierre de hijos. Los timeouts aislados de FFmpeg del motor no bastan para acreditar esta propiedad.
+ 

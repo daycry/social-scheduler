@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-06T11:57:55.838887",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern=^binding normalizes a fixed identity",
+    "tests/frontend/studio-chart-binding.test.mjs"
+  ],
+  "exit_code": 1,
+  "sha256_before": {
+    "resources/js/Studio/chart-binding.js": "4cf168a2c2b16e7b533a569bb8a49440e8e6a03c6adc932020db1bf55119dedc",
+    "tests/frontend/studio-chart-binding.test.mjs": "f57710b6b376543e15ae7eb614364cdcd30548313d8a1076b14ac49bce945857",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  },
+  "sha256_after": {
+    "resources/js/Studio/chart-binding.js": "4cf168a2c2b16e7b533a569bb8a49440e8e6a03c6adc932020db1bf55119dedc",
+    "tests/frontend/studio-chart-binding.test.mjs": "f57710b6b376543e15ae7eb614364cdcd30548313d8a1076b14ac49bce945857",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  }
+}

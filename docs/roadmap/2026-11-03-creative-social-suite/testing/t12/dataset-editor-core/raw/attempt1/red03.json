@@ -1,0 +1,13 @@
+{
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern",
+    "JSON parser rejects duplicate",
+    "tests/frontend/studio-dataset-table.test.mjs"
+  ],
+  "exit_code": 1,
+  "duration_seconds": 0.07388959999661893
+}

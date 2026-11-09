@@ -1,0 +1,6 @@
+{
+  "ProcessId": 26948,
+  "ParentProcessId": 29616,
+  "Name": "php.exe",
+  "CommandLine": "php -d memory_limit=512M -d post_max_size=192M -d upload_max_filesize=64M -d auto_prepend_file=C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-dataset-editor-qa3\\php-peaks.php -S 127.0.0.1:64859 -t public tests/e2e/isolated/server.php"
+}

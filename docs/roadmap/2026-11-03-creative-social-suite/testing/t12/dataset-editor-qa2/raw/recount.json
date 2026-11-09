@@ -1,0 +1,185 @@
+{
+  "verdict": "NO-PASS",
+  "declared_case_count": 15,
+  "executed_case_count": 1,
+  "actual_case_count": 1,
+  "counts": {
+    "unexpected": 1,
+    "skipped": 14
+  },
+  "issues": [
+    "Runner errors",
+    "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes / desktop",
+    "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file / desktop",
+    "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo / desktop",
+    "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation / desktop",
+    "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus / desktop",
+    "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes / mobile",
+    "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file / mobile",
+    "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo / mobile",
+    "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation / mobile",
+    "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus / mobile",
+    "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes / mobile-360",
+    "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file / mobile-360",
+    "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo / mobile-360",
+    "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation / mobile-360",
+    "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus / mobile-360",
+    "Viewport artifacts incomplete",
+    "Axe dialog missing/violations/incomplete; no warnings excluded",
+    "Network/isolation evidence missing or unexpected errors"
+  ],
+  "qa_gate_exit": 1,
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "project": "desktop",
+      "case": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+    }
+  ],
+  "axe": [
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop\\axe-dialog.json",
+      "violations": 1,
+      "incomplete": 2
+    }
+  ],
+  "network": [
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 4
+    }
+  ],
+  "cases": [
+    {
+      "id": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes",
+      "project": "desktop",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "id": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    }
+  ]
+}

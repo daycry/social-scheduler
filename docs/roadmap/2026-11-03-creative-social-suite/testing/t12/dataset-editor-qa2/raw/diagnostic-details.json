@@ -1,0 +1,139 @@
+{
+  "global_errors_literal": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ],
+  "axe": {
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".hover\\:border-violet-400 > .mt-1.text-slate-500"
+            ],
+            "html": "<span data-v-9865591a=\"\" class=\"mt-1 block text-xs text-slate-500\">Revisión 1 · 3 filas × 4 columnas</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.33 (foreground color: #64748b, background color: #f5f3ff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+            "checks": [
+              {
+                "id": "color-contrast",
+                "message": "Element has insufficient color contrast of 4.33 (foreground color: #64748b, background color: #f5f3ff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+                "data": {
+                  "fgColor": "#64748b",
+                  "bgColor": "#f5f3ff",
+                  "contrastRatio": 4.33,
+                  "fontSize": "9.0pt (12px)",
+                  "fontWeight": "normal",
+                  "messageKey": null,
+                  "expectedContrastRatio": "4.5:1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-prohibited-attr",
+        "impact": "serious",
+        "description": "Ensure ARIA attributes are not prohibited for an element's role",
+        "nodes": [
+          {
+            "target": [
+              ".overflow-x-auto.rounded-xl.border"
+            ],
+            "html": "<div data-v-9865591a=\"\" class=\"min-w-0 overflow-x-auto rounded-xl border border-slate-200\" tabindex=\"0\" aria-label=\"Desplazamiento horizontal de la tabla\">",
+            "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on a div with no valid role attribute.",
+            "checks": [
+              {
+                "id": "aria-prohibited-attr",
+                "message": "aria-label attribute is not well supported on a div with no valid role attribute.",
+                "data": {
+                  "role": null,
+                  "nodeName": "div",
+                  "messageKey": "noRoleSingular",
+                  "prohibited": [
+                    "aria-label"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              "section[aria-label=\"Descargas de datos\"] > .sm\\:grid-cols-2.grid.gap-3 > label > select"
+            ],
+            "html": "<select data-v-9865591a=\"\" class=\"data-input mt-1 w-full\"><option data-v-9865591a=\"\" value=\"csv\">CSV</option><option data-v-9865591a=\"\" value=\"tsv\">TSV</option><option data-v-9865591a=\"\" value=\"json\">JSON tipado</option></select>",
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background image",
+            "checks": [
+              {
+                "id": "color-contrast",
+                "message": "Element's background color could not be determined due to a background image",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": "bgImage",
+                  "expectedContrastRatio": "4.5:1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "downloads": [
+    {
+      "name": "new.json",
+      "bytes": 303,
+      "sha256": "64dc1cb065ec2cece8f4a7ae344edfe4fc20b60aab4dca97834c8312495cedd0",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=UTF-8",
+        "cache-control": "no-store, private",
+        "x-content-type-options": "nosniff",
+        "content-disposition": "attachment; filename=dataset-1-r1.json"
+      },
+      "matches_passive_delivery": true
+    },
+    {
+      "name": "reopen.json",
+      "bytes": 303,
+      "sha256": "64dc1cb065ec2cece8f4a7ae344edfe4fc20b60aab4dca97834c8312495cedd0",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=UTF-8",
+        "cache-control": "no-store, private",
+        "x-content-type-options": "nosniff",
+        "content-disposition": "attachment; filename=dataset-1-r1.json"
+      },
+      "matches_passive_delivery": true
+    },
+    {
+      "name": "editor-entry.json",
+      "bytes": 303,
+      "sha256": "64dc1cb065ec2cece8f4a7ae344edfe4fc20b60aab4dca97834c8312495cedd0",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=UTF-8",
+        "cache-control": "no-store, private",
+        "x-content-type-options": "nosniff",
+        "content-disposition": "attachment; filename=dataset-1-r1.json"
+      },
+      "matches_passive_delivery": true
+    }
+  ],
+  "acceptance": "NO-VERDE; one executed failed, fourteen skipped by configured maxFailures1; no whole-case acceptance"
+}

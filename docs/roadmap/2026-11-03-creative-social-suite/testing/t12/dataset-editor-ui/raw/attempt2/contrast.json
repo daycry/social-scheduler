@@ -1,0 +1,31 @@
+{
+  "method": "WCAG relative sRGB luminance, installed Tailwind colors; static, not rendered axe acceptance",
+  "before": {
+    "color": "#94a3b8",
+    "sizePx": 9,
+    "ratios": {
+      "white": 2.5640413904962034,
+      "violet50": 2.3377625764312446
+    }
+  },
+  "after": {
+    "color": "#475569",
+    "fontSize": [
+      "0.75rem",
+      {
+        "lineHeight": "1rem"
+      }
+    ],
+    "nominalDefaultRootSizePx": 12,
+    "ratios": {
+      "white": 7.577663953533317,
+      "violet50": 6.908928722057012
+    }
+  },
+  "backgrounds": {
+    "white": "#fff",
+    "violet50": "#f5f3ff"
+  },
+  "threshold": 4.5,
+  "pass": true
+}

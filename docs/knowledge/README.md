@@ -20,6 +20,15 @@
 
 | Entrada | Tipo | Área | Estado |
 |---|---|---|---|
+| [Marca de cierre en el gesto real de Playwright](candidates/pending/2026-11-07-playwright-close-gesture-boundary.md) | GOTCHA | Studio / Playwright / observación | propuesta, pendiente de curación |
+| [Filtros vacíos tras roundtrip JSON de PHP](candidates/pending/2026-11-07-studio-empty-filters-php-json-roundtrip.md) | GOTCHA | Studio / PHP / JSON | propuesta, pendiente de curación |
+| [Capacidad de ajuste del título vertical de un gráfico](candidates/pending/2026-11-06-chart-vertical-title-fit-capacity.md) | GOTCHA | Studio / Fabric / tipografía | propuesta, pendiente de curación |
+| [Footer accesible en tablas de gráficos vacías](candidates/pending/2026-11-06-empty-chart-table-footer-header-associations.md) | GOTCHA | Studio / Chromium / accesibilidad | propuesta, pendiente de curación |
+| [Selección de capas antes de que exista el lienzo](candidates/pending/2026-11-06-editor-layer-selection-before-canvas-ready.md) | GOTCHA | Studio / Vue / inicialización | propuesta, pendiente de curación |
+| [Fondos de controles y datos para contraste comprobable](candidates/pending/2026-11-06-chart-control-data-contrast-backgrounds.md) | GOTCHA | Studio / Chromium / accesibilidad | propuesta, pendiente de curación |
+| [Cancelaciones independientes para preview y tabla](candidates/pending/2026-11-06-chart-preview-data-request-lifetimes.md) | GOTCHA | Studio / Vue / concurrencia | propuesta, pendiente de curación |
+| [Origen seguro para SHA en el render estático](candidates/pending/2026-11-06-static-renderer-webcrypto-origen-seguro.md) | GOTCHA | Studio / Chromium / Web Crypto | propuesta, pendiente de curación |
+| [Seek cero y fase AAC al renderizar por tramos](candidates/pending/2026-11-05-ffmpeg-aac-seek-zero-phase.md) | GOTCHA | Studio / FFmpeg / audio | propuesta, pendiente de curación |
 | [Generación de credenciales y consumo atómico de OAuth](candidates/pending/2026-11-04-reconnection-generation-and-oauth-state.md) | GOTCHA | Conexiones / OAuth / concurrencia | propuesta, pendiente de curación |
 | [Loopback y keep-alive en el runner PHP/Chromium](candidates/pending/2026-11-03-playwright-php-loopback-keepalive.md) | GOTCHA | Pruebas / Windows / transporte local | propuesta, pendiente de curación |
 | [Un error de creator_info puede realimentar el watchEffect](candidates/pending/2026-10-31-tiktok-creator-reintento-reactivo.md) | GOTCHA | Frontend / TikTok | propuesta, pendiente de curación |

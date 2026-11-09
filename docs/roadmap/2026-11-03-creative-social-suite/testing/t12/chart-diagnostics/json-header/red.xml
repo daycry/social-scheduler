@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Studio\StudioDatasetContentLengthTest" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.361967">
+    <testcase name="test_json_content_length_matches_delivered_pinned_canonical_bytes" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php" line="70" class="Tests\Feature\Studio\StudioDatasetContentLengthTest" classname="Tests.Feature.Studio.StudioDatasetContentLengthTest" assertions="2" time="0.361967">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Studio\StudioDatasetContentLengthTest::test_json_content_length_matches_delivered_pinned_canonical_bytes&#13;
+Failed asserting that null is identical to '208'.
+&#13;
+C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php:78</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

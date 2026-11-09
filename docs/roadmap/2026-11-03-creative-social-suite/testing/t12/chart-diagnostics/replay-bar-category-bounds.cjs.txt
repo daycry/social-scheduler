@@ -1,0 +1,91 @@
+// Read-only diagnosis. Run from repository root:
+// node --max-old-space-size=512 storage/framework/testing/t12-chart-bar-label-diagnosis/replay-bar-category-bounds.cjs
+// This is NOT a browser measurement, product render, E2E pass, or source change.
+const fs = require('node:fs'), assert = require('node:assert/strict'), crypto = require('node:crypto');
+const { check } = require('../../../../tests/e2e/isolated/charts/svg-oracle.cjs');
+const fixtures = require('../../../../tests/e2e/isolated/charts/fixtures.cjs');
+const path = 'storage/framework/testing/t12-chart-final-qa1/runs/attempt2/raw/artifacts/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop/';
+const sha = b => crypto.createHash('sha256').update(b).digest('hex');
+const svgBytes = fs.readFileSync(path + 'bar.svg');
+assert.equal(sha(svgBytes), '5a106604aa7e2a1fd0ad09585ee887c9f74121193ab286501e4d19b32a8df8b0');
+const xml = svgBytes.toString('utf8'), colBytes = fs.readFileSync(path + 'column-svg-observer.json');
+assert.equal(sha(colBytes), 'a00a86cf0ecb3c8798e855204ccce3461f94e82eb7edc681f2ff5654fd3de6f2');
+const col = JSON.parse(colBytes);
+const font = fs.readFileSync('tests/Fixtures/fonts/SpaceGrotesk-Variable.ttf');
+assert.equal(sha(font), 'acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72');
+const embedded = Buffer.from(xml.match(/data:font\/woff2;base64,([A-Za-z0-9+/=]+)/)[1], 'base64');
+assert.equal(sha(embedded), '30f911cd49c393f18dfbc3b65f43fd1c5f24f581b870e5af42bb1eaec059d1e6');
+// Minimal sfnt reader: bounds from glyph headers at the uploaded font's default
+// instance, which is weight 300, matching the SVG's actual weight and metadata.
+const u16 = o => font.readUInt16BE(o), i16 = o => font.readInt16BE(o), u32 = o => font.readUInt32BE(o);
+const tables = {};
+for (let o = 12; o < 12 + u16(4) * 16; o += 16) tables[font.toString('ascii', o, o + 4)] = u32(o + 8);
+const head = tables.head, upem = u16(head + 18), longLoca = i16(head + 50), fvar = tables.fvar;
+const axis = fvar + u16(fvar + 4);
+assert.equal(font.toString('ascii', axis, axis + 4), 'wght');
+assert.equal(font.readInt32BE(axis + 8) / 65536, 300);
+let cmap;
+for (let o = tables.cmap + 4; o < tables.cmap + 4 + u16(tables.cmap + 2) * 8; o += 8) {
+ const sub = tables.cmap + u32(o + 4);
+ if (u16(sub) === 4) { cmap = sub; break; }
+}
+assert(cmap);
+const segments = u16(cmap + 6) / 2, ends = cmap + 14, starts = ends + 2 * segments + 2, deltas = starts + 2 * segments, ranges = deltas + 2 * segments;
+function glyphId(code) {
+ for (let j = 0; j < segments; j++) if (u16(starts + 2 * j) <= code && code <= u16(ends + 2 * j)) {
+  const range = u16(ranges + 2 * j), value = range ? u16(ranges + 2 * j + range + 2 * (code - u16(starts + 2 * j))) : code;
+  return (value + i16(deltas + 2 * j)) & 65535;
+ }
+ return 0;
+}
+function glyphInk(text) {
+ const bounds = [];
+ for (const ch of text) {
+  const g = glyphId(ch.codePointAt(0)), offset = k => tables.glyf + (longLoca ? u32(tables.loca + 4 * k) : u16(tables.loca + 2 * k) * 2);
+  const o = offset(g);
+  if (offset(g + 1) > o) bounds.push([i16(o + 4), i16(o + 8)]);
+ }
+ return [Math.min(...bounds.map(b => b[0])), Math.max(...bounds.map(b => b[1]))];
+}
+const attr = (s, n) => s.match(new RegExp('(?:^|\\s)' + n + '="([^"]*)"'))?.[1];
+const num = (s, n) => Number(attr(s, n));
+let chartId;
+const items = [];
+for (const match of xml.matchAll(/<g\b([^>]*\bid="[^"]+"[^>]*)>([\s\S]*?)<\/g>/g)) {
+ const id = attr(match[1], 'id'); chartId ??= id.split(':')[0];
+ const matrix = attr(match[1], 'transform').match(/matrix\(([^)]+)\)/)[1].split(/\s+/).map(Number);
+ const [a, b, c, d, e, f] = matrix; assert(b === 0 && c === 0);
+ const shape = match[2].match(/<(rect|line|text)\b([^>]*)>([\s\S]*?)<\/text>|<(rect|line)\b([^>]*)\/>/);
+ assert(shape, id);
+ const tag = shape[1] ?? shape[4], attrs = shape[2] ?? shape[5];
+ let x, y, width, height, text = '', baseline;
+ if (tag === 'rect') { x = num(attrs, 'x'); y = num(attrs, 'y'); width = num(attrs, 'width'); height = num(attrs, 'height'); }
+ else if (tag === 'line') { x = Math.min(num(attrs, 'x1'), num(attrs, 'x2')); y = Math.min(num(attrs, 'y1'), num(attrs, 'y2')); width = Math.abs(num(attrs, 'x2') - num(attrs, 'x1')); height = Math.abs(num(attrs, 'y2') - num(attrs, 'y1')); }
+ else {
+  text = shape[3].replace(/<[^>]*>/g, '').trim();
+  const ref = col.items.find(i => i.tag === 'text' && i.text === text); assert(ref, text);
+  assert.equal(num(attrs, 'font-size'), 18); assert.equal(num(attrs, 'font-weight'), 300);
+  const span = shape[3].match(/<tspan\b([^>]*)>/)[1]; baseline = num(span, 'y');
+  // Transfer ONLY the same native glyph-local getBBox from existing measurement.
+  // Every exported bar text has the same native family/style/weight/font size.
+  x = (ref.x - ref.matrix[4]) / ref.matrix[0] + num(span, 'x') - ref.spans[0].x;
+  y = (ref.y - ref.matrix[5]) / ref.matrix[3] + baseline - ref.spans[0].y;
+  width = ref.width / ref.matrix[0]; height = ref.height / ref.matrix[3];
+ }
+ const fill = (attr(attrs, 'style')?.match(/(?:^|;\s*)fill: ([^;]+)/)?.[1] ?? 'none').replace(/,/g, ', ');
+ items.push({ id, tag, text, fill, x: 440 + e + a * x, y: 290 + f + d * y, width: a * width, height: d * height, matrix: [a, b, c, d, 440 + e, 290 + f], baseline });
+}
+const observed = { width: 1080, height: 1080, items };
+const layer = { id: chartId, chart: { options: { kind: 'bar', domain_min: -100, domain_max: 100, band_gap: .25, series_gap: .15 }, binding: { series_columns: ['s0'], category_column: 'category' }, style: { category_label_limit: 12, fontSize: 18, legend: true } } };
+const table = fixtures.fixture(), rows = [];
+assert.throws(() => check(observed, layer, table), /Category text outside its semantic row band/);
+const categories = items.filter(i => i.id.includes(':category:'));
+for (const i of categories) {
+ const original = { y: i.y, height: i.height }, [low, high] = glyphInk(i.text), scale = i.matrix[3], baseline = i.matrix[5] + scale * i.baseline;
+ i.y = baseline - scale * 18 * high / upem; i.height = scale * 18 * (high - low) / upem;
+ rows.push({ row: i.id.split(':').at(-1), native_getBBox_transferred: original, source_default300_glyph_bounds: [low, high], ink_y: i.y, ink_bottom: i.y + i.height });
+}
+check(observed, layer, table);
+categories[0].y += 77.2;
+assert.throws(() => check(observed, layer, table), /Category text outside its semantic row band/);
+console.log(JSON.stringify({ scope: 'Pure read-only replay of actual SVG with existing native column bbox; no new browser observation, E2E run or product render', original_oracle_with_transferred_native_bbox: 'REJECTED: Category text outside its semantic row band', unchanged_oracle_with_glyph_ink_bounds: 'ACCEPTED with original .75 px tolerance', control_shift_ink_one_band: 'REJECTED', rows }, null, 2));

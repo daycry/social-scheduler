@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LimitStudioDatasetPayload;
 use App\Http\Middleware\McpGuard;
 use App\Http\Middleware\TrustProxiesFromConfig;
 use App\Support\CrossUserAccessLogger;
@@ -26,10 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(LimitStudioDatasetPayload::class);
         // Design documents are typed data: whitespace and empty text/strokes carry visual meaning.
         $studioJson = static fn (Request $request): bool => $request->isJson()
             && ($request->is('studio*', 'brands/*/studio*', 'api/v1/*')
-                || ($request->is('mcp*') && (is_array($request->input('params.arguments.document'))
+                || ($request->is('mcp*') && ($request->input('params.name') === 'manage_studio_dataset' || is_array($request->input('params.arguments.document'))
                     || is_array($request->input('params.arguments.fields')))));
         $middleware->trimStrings(except: [$studioJson]);
         $middleware->convertEmptyStringsToNull(except: [$studioJson]);

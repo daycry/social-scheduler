@@ -1,0 +1,1019 @@
+--- baseline/app/Services/Studio/StudioAvQueue.php
++++ app/Services/Studio/StudioAvQueue.php
+@@ -28,7 +28,7 @@
+             return false;
+         }
+         $task = $this->state->task($export);
+-        if (! $task || $task['phase'] === 'register') {
++        if (! $task) {
+             return false;
+         }
+         $lease = $this->state->claim($exportId, $export->render_state['generation'], $this->bytes($export, $task), $export->render_state['position']);
+--- baseline/app/Services/Studio/StudioAvRunner.php
++++ app/Services/Studio/StudioAvRunner.php
+@@ -11,7 +11,7 @@
+ class StudioAvRunner
+ {
+     public function __construct(private readonly StudioAvState $state, private readonly StudioAvQueue $queue,
+-        private readonly StudioAvFiles $files, private readonly StudioAvProcess $process) {}
++        private readonly StudioAvFiles $files, private readonly StudioAvProcess $process, private readonly StudioAvTransfer $transfer) {}
+ 
+     public function run(string $id, ?float $deadline = null): bool
+     {
+@@ -27,7 +27,17 @@
+             if (microtime(true) >= $deadline) {
+                 throw new StudioAvProcessFailed('phase_timeout');
+             }
+-            if (in_array($lease->phase, ['asset', 'font'], true)) {
++            if ($lease->phase === 'register') {
++                $result = $this->transfer->run($lease, $deadline);
++                if ($result === null) {
++                    if (! $this->state->defer($lease)) {
++                        return false;
++                    }
++                    $this->queue->enqueue($export->id);
++
++                    return true;
++                }
++            } elseif (in_array($lease->phase, ['asset', 'font'], true)) {
+                 $result = $this->files->snapshot($lease, $deadline);
+             } elseif ($lease->phase === 'verify') {
+                 $task = $this->state->task($export);
+--- baseline/app/Services/Studio/StudioRenderer.php
++++ app/Services/Studio/StudioRenderer.php
+@@ -26,11 +26,18 @@
+         $design = $this->studio->owned($user, $design);
+         $data = Validator::make($data, [
+             'revision' => ['required', 'integer', 'min:1'],
+-            'format' => ['required', Rule::in(['png', 'jpeg', 'webp', 'svg', 'pdf'])],
++            'format' => ['required', Rule::in(['png', 'jpeg', 'webp', 'svg', 'pdf', 'mp4', 'gif'])],
+             'pages' => ['required', 'array', 'min:1', 'max:100'], 'pages.*' => ['required', 'string', 'max:64', 'distinct'],
+             'frame_times' => ['sometimes', 'array', 'max:100'],
+             'scale' => ['sometimes', 'numeric', 'min:0.1', 'max:4'], 'quality' => ['sometimes', 'numeric', 'min:0.1', 'max:1'], 'transparent' => ['sometimes', 'boolean'],
+         ])->validate();
++        $native = in_array($data['format'], ['mp4', 'gif'], true);
++        if ($native && ($data['frame_times'] ?? []) !== []) {
++            throw ValidationException::withMessages(['frame_times' => ['MP4 y GIF exportan la secuencia completa; no admiten fotogramas estáticos.']]);
++        }
++        if ($native && ($data['transparent'] ?? false)) {
++            throw ValidationException::withMessages(['transparent' => ['La exportación audiovisual no admite transparencia.']]);
++        }
+         $revision = $this->exports->revision($user, $design, (int) $data['revision']);
+         if (! array_is_list($data['pages']) || array_diff($data['pages'], array_column($revision->document['pages'], 'id')) !== []) {
+             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes en la revisión indicada.']]);
+@@ -40,15 +47,23 @@
+         $scale = (float) ($data['scale'] ?? 1);
+         $width = (int) round($revision->document['width'] * $scale);
+         $height = (int) round($revision->document['height'] * $scale);
+-        if ($width > 16000 || $height > 16000 || $width * $height * count($data['pages']) > 64000000) {
++        if ($native && ((int) ceil($width / 2) * 2 * (int) ceil($height / 2) * 2 > 16000000 || $width > 16000 || $height > 16000)) {
++            throw ValidationException::withMessages(['scale' => ['El fotograma audiovisual admite hasta 16 megapíxeles y 16000 píxeles por lado.']]);
++        }
++        if (! $native && ($width > 16000 || $height > 16000 || $width * $height * count($data['pages']) > 64000000)) {
+             throw ValidationException::withMessages(['scale' => ['El trabajo completo admite hasta 64 megapíxeles y 16000 píxeles por lado. Exporta menos páginas o reduce la escala.']]);
+         }
+ 
+-        return DB::transaction(function () use ($user, $design, $data, $frameOptions): DesignExport {
++        return DB::transaction(function () use ($user, $design, $data, $frameOptions, $native): DesignExport {
+             $export = DesignExport::create(['user_id' => $user->id, 'brand_id' => $design->brand_id, 'design_id' => $design->id,
+                 'revision' => $data['revision'], 'format' => $data['format'], 'pages' => $data['pages'], 'status' => 'pending',
+                 'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)] + $frameOptions]);
+-            RenderStudioDesign::dispatch($export->id)->afterCommit();
++            if ($native) {
++                app(StudioAvState::class)->initialize($user, $export);
++                DB::afterCommit(fn () => app(StudioAvQueue::class)->enqueue($export->id));
++            } else {
++                RenderStudioDesign::dispatch($export->id)->afterCommit();
++            }
+ 
+             return $export->refresh();
+         });
+--- baseline/app/Services/Studio/StudioAvStorage.php
++++ app/Services/Studio/StudioAvStorage.php
+@@ -2,6 +2,7 @@
+ 
+ namespace App\Services\Studio;
+ 
++use App\Models\Studio\DesignExport;
+ use App\Models\Studio\StudioAvLease;
+ use App\Models\Studio\StudioAvWorkspace;
+ use Closure;
+@@ -11,6 +12,38 @@
+ 
+ class StudioAvStorage
+ {
++    /** Cancellation cannot acquire the mutex held by the native process it must interrupt. */
++    public function signalCancellation(DesignExport $export): bool
++    {
++        $id = $export->render_state['cancelled_lease'] ?? null;
++        if (! is_string($id) || ! preg_match('/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/D', $id)) {
++            return false;
++        }
++        $workspace = StudioAvWorkspace::withoutUserScope()->where('export_id', $export->id)->where('user_id', $export->user_id)
++            ->where('brand_id', $export->brand_id)->where('uuid', $export->render_state['workspace'])->first();
++        if (! $workspace || ! StudioAvLease::whereKey($id)->where('workspace_id', $workspace->id)->where('generation', $export->render_state['generation'])->exists()) {
++            return false;
++        }
++        $manifest = $this->checkedPath($workspace, 'work/'.$id.'.json');
++        if (! is_file($manifest)) {
++            return false;
++        }
++        $flag = $this->checkedPath($workspace, 'work/'.$id.'.cancel');
++        if (is_file($flag)) {
++            return true;
++        }
++        $stream = @fopen($flag, 'x+b');
++        if ($stream === false) {
++            if (! is_file($manifest) || is_file($flag)) {
++                return false; // The worker can finish and remove its manifest concurrently.
++            }
++            throw new RuntimeException('No se pudo escribir la señal privada de cancelación.');
++        }
++        fclose($stream);
++
++        return true;
++    }
++
+     public function manifest(StudioAvWorkspace $workspace, string $leaseId, array $input): string
+     {
+         $this->assertHeld($workspace);
+--- baseline/app/Http/Controllers/Studio/StudioController.php
++++ app/Http/Controllers/Studio/StudioController.php
+@@ -9,9 +9,11 @@
+ use App\Models\Studio\DesignFolder;
+ use App\Services\Studio\StudioAssets;
+ use App\Services\Studio\StudioAutomation;
++use App\Services\Studio\StudioAvControl;
+ use App\Services\Studio\StudioExports;
+ use App\Services\Studio\StudioFonts;
+ use App\Services\Studio\StudioFrames;
++use App\Services\Studio\StudioRenderer;
+ use App\Services\Studio\StudioService;
+ use App\Support\CurrentBrand;
+ use Illuminate\Http\JsonResponse;
+@@ -169,6 +171,28 @@
+         return response()->json(['export' => $this->exports->present($request->user(), $export)]);
+     }
+ 
++    public function renderExport(Request $request, Design $design): JsonResponse
++    {
++        app(StudioFrames::class)->assertJsonList($request);
++        $export = app(StudioRenderer::class)->export($request->user(), $design, $request->all());
++
++        return response()->json(['export' => $this->exports->present($request->user(), $export)], 202);
++    }
++
++    public function cancelExport(Request $request, DesignExport $export): JsonResponse
++    {
++        $current = app(StudioAvControl::class)->cancel($request->user(), $export);
++
++        return response()->json(['export' => $this->exports->present($request->user(), $current)]);
++    }
++
++    public function retryExport(Request $request, DesignExport $export): JsonResponse
++    {
++        $current = app(StudioAvControl::class)->retry($request->user(), $export);
++
++        return response()->json(['export' => $this->exports->present($request->user(), $current)], 202);
++    }
++
+     public function createPost(Request $request, DesignExport $export): JsonResponse|RedirectResponse
+     {
+         $post = $this->exports->createPost($request->user(), $export, $request->all());
+--- baseline/app/Http/Controllers/Studio/StudioApiController.php
++++ app/Http/Controllers/Studio/StudioApiController.php
+@@ -9,6 +9,7 @@
+ use App\Models\Studio\DesignFolder;
+ use App\Services\Studio\StudioAssets;
+ use App\Services\Studio\StudioAutomation;
++use App\Services\Studio\StudioAvControl;
+ use App\Services\Studio\StudioExports;
+ use App\Services\Studio\StudioFrames;
+ use App\Services\Studio\StudioRenderer;
+@@ -149,6 +150,28 @@
+         return response()->json($this->exports->present($request->user(), $export));
+     }
+ 
++    public function cancelExport(Request $request, DesignExport $export): JsonResponse
++    {
++        $current = app(StudioAvControl::class)->cancel($request->user(), $export);
++
++        return response()->json($this->exports->present($request->user(), $current));
++    }
++
++    public function retryExport(Request $request, DesignExport $export): JsonResponse
++    {
++        $current = app(StudioAvControl::class)->retry($request->user(), $export);
++
++        return response()->json($this->exports->present($request->user(), $current), 202);
++    }
++
++    public function createPost(Request $request, DesignExport $export): JsonResponse
++    {
++        validator(['payload' => $request->all()], ['payload' => ['array:text,targets']])->validate();
++        $post = $this->exports->createPost($request->user(), $export, $request->all());
++
++        return response()->json(['post' => ['id' => $post->id, 'status' => $post->status->value, 'edit_url' => route('posts.edit', $post, absolute: false)]], 201);
++    }
++
+     private function assetData(Request $request, Brand $brand): array
+     {
+         return $this->assets->list($request->user(), $brand)->map(fn ($asset) => $this->assets->present($brand, $asset)
+--- baseline/app/Mcp/Tools/ExportDesign.php
++++ app/Mcp/Tools/ExportDesign.php
+@@ -30,7 +30,7 @@
+     public function schema(JsonSchema $schema): array
+     {
+         return ['design_id' => $schema->integer()->required(), 'revision' => $schema->integer()->min(1)->required(),
+-            'format' => $schema->string()->enum(['png', 'jpeg', 'webp', 'svg', 'pdf'])->required(),
++            'format' => $schema->string()->enum(['png', 'jpeg', 'webp', 'svg', 'pdf', 'mp4', 'gif'])->required(),
+             'pages' => $schema->array()->items($schema->string())->required(), 'scale' => $schema->number()->min(0.1)->max(4),
+             'frame_times' => $schema->array()->items($schema->object(['page_id' => $schema->string()->required(), 'time' => $schema->number()->min(0)->max(3600)->required()]))
+                 ->description('Solo documento v2: segundos locales por página seleccionada, sin repetir; time menor que su duración. Páginas omitidas usan0.'),
+--- baseline/app/Mcp/Servers/SchedulerServer.php
++++ app/Mcp/Servers/SchedulerServer.php
+@@ -28,6 +28,7 @@
+ use App\Mcp\Tools\ListMedia;
+ use App\Mcp\Tools\ManageBrandKit;
+ use App\Mcp\Tools\ManageDesign;
++use App\Mcp\Tools\ManageDesignExport;
+ use App\Mcp\Tools\ManageDesignFolder;
+ use App\Mcp\Tools\ManageStudioAudio;
+ use App\Mcp\Tools\ManageStudioFont;
+@@ -53,7 +54,7 @@
+ #[Icon('/favicon.svg', 'image/svg+xml', ['any'])]
+ #[Name('Social Scheduler')]
+ #[Version('1.0.0')]
+-#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads (list_accounts dice cuales estan disponibles en esta instalacion y sus tipos de contenido; cada red cuenta el texto a su manera: Bluesky 300 grafemas, Threads 500 con el conteo conservador de emojis y 1 etiqueta de tema). Audio de Instagram Reels: search_instagram_audio busca pistas autorizadas de Meta para account_id; get_instagram_audio consulta la pista y renueva su preescucha temporal. create_post/update_post aceptan targets[].options.instagram_audio={audio_id, audio_volume, video_volume}; solo Reels elegibles mediante Facebook, volumenes 1-100 y null quita la pista. list_accounts anuncia instagram_audio.available. Nunca inventes un audio_id ni lo obtengas de una URL de Reel; la preescucha no es la mezcla final. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente: list_media con status=pendiente da su progreso y con status=invalido el motivo del fallo; solo la media «listo» se usa en un post) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) y update_post_campaign asigna o quita la campana, ambas aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; list_calendar_views lista las vistas guardadas del calendario (usa su id en get_calendar view=<id>); get_best_times da el engagement medio por dia y hora para elegir cuando publicar; suggest_hashtags propone hashtags del historico propio de la marca (sin IA). Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB; Bluesky y Threads no tienen buzon, filtros network/unread) reply_comment y add_comment_note (nota interna que nunca se publica) (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Disenos nativos por marca: list_designs -> get_design (documento tipado v1/v2, revision, kit, assets y exports) -> create_design/update_design (revision esperada; 409 exige recargar). Media: import_media_from_url -> list_media listo -> attach_design_asset -> asset_id en el documento; nunca URLs arbitrarias en elementos. manage_brand_kit edita colores, fuentes, logos y voz; font_ids alinea las fuentes privadas con fonts. manage_studio_font lista, sube, archiva, restaura y elimina tipografias privadas por marca; usa font_id en texto y la familia devuelta, nunca inventes IDs ni URLs de fuentes. manage_studio_audio start devuelve ticket binario de audio propio por marca; transfiere por HTTP sin enviar Bearer a URLs de almacenamiento y complete valida contenido/duracion/codec; list/get consultan recursos privados. process_studio_image start encola remove_background para media_id propio registrado en la marca; get consulta queued/processing/ready/failed hasta obtener output_asset nuevo, conservando el original. Estas herramientas requieren designs:read para consultas y designs:write para cambios. manage_design duplica, archiva y restaura sin perder revisiones/exportaciones. manage_design_folder lista, crea o elimina carpetas de una marca; list requiere designs:read, mutaciones designs:write. get_design pagina exports de 50 en 50 con exports_page y exports_pagination. export_design renderiza PNG/JPEG/WebP/SVG/PDF; consulta get_design para el estado y download_url temporal real. El documento v2 conserva timeline.fps/audio_tracks, timing y metadatos de clip; nunca lo rebajes a v1 ni borres sus campos al actualizar. Los formatos disponibles son los anunciados por export_design; no inventes MP4/GIF antes de que el contrato los incluya. Estas herramientas no publican. Permisos designs:read/designs:write. tools/list esta paginado: sigue nextCursor hasta que desaparezca, conservando todas las herramientas. Solo ves y modificas los datos del usuario dueno de la API key.')]
++#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads (list_accounts dice cuales estan disponibles en esta instalacion y sus tipos de contenido; cada red cuenta el texto a su manera: Bluesky 300 grafemas, Threads 500 con el conteo conservador de emojis y 1 etiqueta de tema). Audio de Instagram Reels: search_instagram_audio busca pistas autorizadas de Meta para account_id; get_instagram_audio consulta la pista y renueva su preescucha temporal. create_post/update_post aceptan targets[].options.instagram_audio={audio_id, audio_volume, video_volume}; solo Reels elegibles mediante Facebook, volumenes 1-100 y null quita la pista. list_accounts anuncia instagram_audio.available. Nunca inventes un audio_id ni lo obtengas de una URL de Reel; la preescucha no es la mezcla final. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente: list_media con status=pendiente da su progreso y con status=invalido el motivo del fallo; solo la media «listo» se usa en un post) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) y update_post_campaign asigna o quita la campana, ambas aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; list_calendar_views lista las vistas guardadas del calendario (usa su id en get_calendar view=<id>); get_best_times da el engagement medio por dia y hora para elegir cuando publicar; suggest_hashtags propone hashtags del historico propio de la marca (sin IA). Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB; Bluesky y Threads no tienen buzon, filtros network/unread) reply_comment y add_comment_note (nota interna que nunca se publica) (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Disenos nativos por marca: list_designs -> get_design (documento tipado v1/v2, revision, kit, assets y exports) -> create_design/update_design (revision esperada; 409 exige recargar). Media: import_media_from_url -> list_media listo -> attach_design_asset -> asset_id en el documento; nunca URLs arbitrarias en elementos. manage_brand_kit edita colores, fuentes, logos y voz; font_ids alinea las fuentes privadas con fonts. manage_studio_font lista, sube, archiva, restaura y elimina tipografias privadas por marca; usa font_id en texto y la familia devuelta, nunca inventes IDs ni URLs de fuentes. manage_studio_audio start devuelve ticket binario de audio propio por marca; transfiere por HTTP sin enviar Bearer a URLs de almacenamiento y complete valida contenido/duracion/codec; list/get consultan recursos privados. process_studio_image start encola remove_background para media_id propio registrado en la marca; get consulta queued/processing/ready/failed hasta obtener output_asset nuevo, conservando el original. Estas herramientas requieren designs:read para consultas y designs:write para cambios. manage_design duplica, archiva y restaura sin perder revisiones/exportaciones. manage_design_folder lista, crea o elimina carpetas de una marca; list requiere designs:read, mutaciones designs:write. get_design pagina exports de 50 en 50 con exports_page y exports_pagination. export_design renderiza PNG/JPEG/WebP/SVG/PDF y MP4/GIF por cola studio. manage_design_export get consulta estado/progress/download_url; cancel/retry gestionan el trabajo nativo conservando revision/opciones y post crea solo un borrador en su marca (requiere designs:write y posts:write). MP4/GIF no admiten frame_times no vacio ni transparencia; escala/calidad y paginas se conservan. Consulta get_design o manage_design_export para estado real; no inventes archivos. El documento v2 conserva timeline.fps/audio_tracks, timing y metadatos de clip; nunca lo rebajes a v1 ni borres sus campos al actualizar. Los formatos disponibles son los anunciados por export_design; no inventes MP4/GIF antes de que el contrato los incluya. Estas herramientas no publican. Permisos designs:read/designs:write. tools/list esta paginado: sigue nextCursor hasta que desaparezca, conservando todas las herramientas. Solo ves y modificas los datos del usuario dueno de la API key.')]
+ class SchedulerServer extends Server
+ {
+     /** Clients follow nextCursor after each page; studio tools bring the catalog above 30 entries. */
+@@ -95,6 +96,7 @@
+         ManageBrandKit::class,
+         AttachDesignAsset::class,
+         ManageDesign::class,
++        ManageDesignExport::class,
+         ManageDesignFolder::class,
+         ManageStudioFont::class,
+         ProcessStudioImage::class,
+--- baseline/routes/studio.php
++++ routes/studio.php
+@@ -36,8 +36,11 @@
+     Route::delete('studio/folders/{folder}', [StudioController::class, 'destroyFolder'])->whereNumber('folder')->name('studio.folders.destroy');
+     Route::get('studio/designs/{design}/exports', [StudioController::class, 'exports'])->whereNumber('design')->name('studio.exports.index');
+     Route::post('studio/designs/{design}/exports', [StudioController::class, 'registerExport'])->whereNumber('design')->name('studio.exports.store');
++    Route::post('studio/designs/{design}/render', [StudioController::class, 'renderExport'])->whereNumber('design')->name('studio.exports.render');
+     Route::get('studio/exports/{export}', [StudioController::class, 'showExport'])->whereNumber('export')->name('studio.exports.show');
+     Route::post('studio/exports/{export}/post', [StudioController::class, 'createPost'])->whereNumber('export')->name('studio.exports.post');
++    Route::post('studio/exports/{export}/cancel', [StudioController::class, 'cancelExport'])->whereNumber('export')->name('studio.exports.cancel');
++    Route::post('studio/exports/{export}/retry', [StudioController::class, 'retryExport'])->whereNumber('export')->name('studio.exports.retry');
+ });
+ 
+ require __DIR__.'/studio-images.php';
+--- baseline/routes/studio-api.php
++++ routes/studio-api.php
+@@ -40,6 +40,10 @@
+         Route::delete('design-folders/{folder}', [StudioApiController::class, 'destroyFolder'])->whereNumber('folder')->name('studio.folders.destroy');
+         Route::post('brands/{brand}/design-assets', [StudioApiController::class, 'attachAsset'])->name('studio.assets.store');
+         Route::post('designs/{design}/exports', [StudioApiController::class, 'export'])->name('studio.exports.store');
++        Route::post('design-exports/{export}/cancel', [StudioApiController::class, 'cancelExport'])->whereNumber('export')->name('studio.exports.cancel');
++        Route::post('design-exports/{export}/retry', [StudioApiController::class, 'retryExport'])->whereNumber('export')->name('studio.exports.retry');
++        Route::post('design-exports/{export}/post', [StudioApiController::class, 'createPost'])->whereNumber('export')
++            ->middleware(RequireApiAbility::class.':posts:write')->name('studio.exports.post');
+     });
+     Route::get('brands/{brand}/analytics', AnalyticsApiController::class)->middleware(RequireApiAbility::class.':stats:read')->name('analytics');
+ });
+--- baseline/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -28,6 +28,7 @@
+             $table->boolean('media_retiring')->default(false);
+             $table->timestamp('media_cleanup_after')->nullable();
+             $table->index(['media_retiring', 'media_cleanup_after'], 'studio_av_media_retirement');
++            $table->index(['media_retiring', 'active_until'], 'studio_av_recovery_due');
+             $table->timestamp('active_until')->index();
+             $table->timestamps();
+         });
+--- baseline/tests/Feature/Studio/StudioAvQueueTest.php
++++ tests/Feature/Studio/StudioAvQueueTest.php
+@@ -29,6 +29,7 @@
+     $this->realQueue = Queue::getFacadeRoot();
+     Queue::fake();
+     Storage::fake('local');
++    config(['filesystems.media' => 'local']);
+     $this->user = User::factory()->create();
+     $this->brand = Brand::factory()->for($this->user)->create();
+     $document = ['schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
+@@ -300,7 +301,7 @@
+     expect(Artisan::call('studio:recover', ['--limit' => 1000]))->toBe(2);
+ });
+ 
+-test('AV actual database worker processes native deliveries through assembly and stops before pending media registration', function (string $format) {
++test('AV actual database worker processes native deliveries through assembly and durable media registration', function (string $format) {
+     Queue::swap($this->realQueue);
+     $export = DesignExport::create($this->export->only(['user_id', 'brand_id', 'design_id', 'revision', 'pages', 'options']) + ['format' => $format, 'status' => 'pending']);
+     $export = $this->state->initialize($this->user, $export);
+@@ -313,7 +314,13 @@
+         expect($lease->started_at)->not->toBeNull()->and($lease->result['runtime_memory']['limit'])->toBeGreaterThan(0)->toBeLessThanOrEqual(3 * 1024 ** 3);
+     }
+     expect($this->state->task($export->refresh()))->toBe(['phase' => 'register', 'index' => 0]);
+-    expect($export->status)->toBe('processing')->and($export->render_state['lease'])->toBeNull()->and($export->media_ids)->toBeNull();
++    expect($export->status)->toBe('processing')->and($export->render_state['lease'])->not->toBeNull()->and($export->media_ids)->toBeNull();
++    for ($pass = 0; $pass < 8 && $export->refresh()->status === 'processing'; $pass++) {
++        expect(StudioAvLease::findOrFail($export->render_state['lease'])->phase)->toBe('register');
++        Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'studio', '--once' => true, '--tries' => 1, '--timeout' => 100, '--sleep' => 0]);
++    }
++    expect($export->refresh()->status)->toBe('ready', $export->error ?? '')->and($export->media_ids)->toHaveCount(1);
++    expect(MediaAsset::withoutUserScope()->findOrFail($export->media_ids[0])->isReady())->toBeTrue();
+ })->with(['mp4', 'gif'])->skip(fn () => getenv('STUDIO_AV_NATIVE_TEST') !== '1', 'Explicit managed native runtime opt-in; no ONNX.');
+ 
+ test('AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music', function (string $format) {
+--- baseline/tests/Feature/Studio/StudioApiMcpTest.php
++++ tests/Feature/Studio/StudioApiMcpTest.php
+@@ -83,7 +83,7 @@
+         $names = [...$names, ...array_column($page['tools'], 'name')];
+         $cursor = $page['nextCursor'] ?? null;
+     } while ($cursor !== null);
+-    expect($names)->toHaveCount(39)->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_folder', 'manage_studio_font', 'process_studio_image', 'manage_studio_audio')
++    expect($names)->toHaveCount(40)->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_export', 'manage_design_folder', 'manage_studio_font', 'process_studio_image', 'manage_studio_audio')
+         ->and(count($names))->toBe(count(array_unique($names)))->and(array_count_values($names)['get_stats'])->toBe(1);
+     $instructions = $this->rpc($this->key, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'test', 'version' => '1']])->assertOk()->json('result.instructions');
+     expect($instructions)->toContain('list_designs', 'attach_design_asset', 'nextCursor', 'manage_studio_font', 'process_studio_image', 'font_id');
+--- baseline/docs/api/creative-suite.openapi.yaml
++++ docs/api/creative-suite.openapi.yaml
+@@ -298,7 +298,7 @@
+         '404': { $ref: '#/components/responses/NotFound' }
+     post:
+       operationId: exportStudioDesign
+-      description: Exporta una revisión inmutable. MP4/GIF generan un archivo del proyecto con páginas en el orden indicado; frame_times no vacío y transparencia no se admiten para esos formatos. El diálogo los ofrece cuando el flujo completo está disponible. La implementación audiovisual de esta ampliación está en desarrollo en T-11.
++      description: Exporta una revisión inmutable. MP4/GIF generan un archivo del proyecto con páginas en el orden indicado; frame_times no vacío y transparencia no se admiten para esos formatos. Los handlers audiovisuales del árbol de trabajo usan la cola studio; el diálogo del editor y la QA integral de T-11 siguen pendientes.
+       requestBody:
+         required: true
+         content:
+@@ -338,22 +338,58 @@
+       - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
+     post:
+       operationId: cancelStudioExport
+-      description: Requiere designs:write y propiedad de exportación/marca. Cancela pending/processing audiovisual y señala su proceso; repetir cancelled es idempotente. Ready devuelve409 y conserva sus medios. Formatos estáticos devuelven422. Contrato previo a implementación de T-11.
++      description: Requiere designs:write y propiedad de exportación/marca. Cancela pending/processing audiovisual y señala su proceso; repetir cancelled es idempotente. Ready devuelve409 y conserva sus medios. Formatos estáticos devuelven422.
+       responses:
+         '200': { description: Estado cancelado sin aceptar respuestas tardías, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+         '404': { $ref: '#/components/responses/NotFound' }
+         '409': { description: El resultado listo se conserva; no admite cancelación }
+         '422': { $ref: '#/components/responses/ValidationError' }
++        '503': { description: Cancelación registrada pero no se pudo señalizar el proceso; consultar estado y reintentar la señalización }
+   /design-exports/{export}/retry:
+     parameters:
+       - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
+     post:
+       operationId: retryStudioExport
+-      description: Requiere designs:write y propiedad de exportación/marca. Solo failed/cancelled audiovisual; conserva revisión/opciones, crea generación nueva y valida los checkpoints antes de reutilizarlos. El ID público no cambia. Pending/processing/ready devuelve409; estáticos422. Contrato previo a implementación de T-11.
++      description: Requiere designs:write y propiedad de exportación/marca. Solo failed/cancelled audiovisual; conserva revisión/opciones, crea generación nueva y valida los checkpoints antes de reutilizarlos. El ID público no cambia. Pending/processing/ready devuelve409; estáticos422.
+       responses:
+         '202': { description: Nueva generación aceptada, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+         '404': { $ref: '#/components/responses/NotFound' }
+         '409': { description: El estado actual no admite reintento }
++        '422': { $ref: '#/components/responses/ValidationError' }
++  /design-exports/{export}/post:
++    parameters:
++      - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
++    post:
++      operationId: createPostFromStudioExport
++      description: Requiere designs:write y posts:write. Crea solo un borrador en la marca de la exportación propia ready, usando todos sus medios realmente listos. Nunca programa ni publica. SVG/PDF no son medios publicables.
++      requestBody:
++        required: false
++        content:
++          application/json:
++            schema:
++              type: object
++              additionalProperties: false
++              properties:
++                text: { type: string, nullable: true, maxLength: 100000 }
++                targets: { type: array, items: { type: object } }
++      responses:
++        '201':
++          description: Borrador propio creado sin publicar
++          content:
++            application/json:
++              schema:
++                type: object
++                required: [post]
++                properties:
++                  post:
++                    type: object
++                    required: [id, status, edit_url]
++                    properties:
++                      id: { type: integer }
++                      status: { type: string, enum: [borrador] }
++                      edit_url: { type: string }
++        '403': { description: Falta alguno de los permisos requeridos }
++        '404': { $ref: '#/components/responses/NotFound' }
+         '422': { $ref: '#/components/responses/ValidationError' }
+   /brands/{brand}/analytics:
+     parameters:
+--- baseline/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -1,6 +1,6 @@
+ # Contrato de integración de los jobs audiovisuales
+ 
+-2026-11-05. Desarrollo pendiente de T-11, posterior al motor y sus opciones. Este documento concreta cómo conectar el motor a web/API/MCP; **no declara esas rutas ni jobs implementados**. No cambia la autorización pendiente de la prueba ONNX de T-10 ni las pruebas del VPS a cargo del usuario.
++2026-11-05. Contrato de T-11 y estado del árbol de trabajo: jobs, transferencia por partes y handlers web/API/MCP implementados, pendientes de revisión/regresión del nuevo bloque público. El diálogo del editor todavía ofrece solo los cinco formatos estáticos; la integración audiovisual UI y QA integral siguen pendientes. No cambia la autorización pendiente de la prueba ONNX de T-10 ni las pruebas del VPS a cargo del usuario.
+ 
+ ## Identidad y recursos
+ 
+@@ -8,7 +8,7 @@
+ 
+ Los medios y fuentes se autorizan contra la misma marca antes de copiarlos. Se preparan únicamente los recursos visuales seleccionados y los utilizados por el plan de audio; recursos omitidos no se descargan. Las copias se escriben por streams con tamaño verificado, hash y publicación atómica en el intento privado. Ninguna de esas claves tiene una URL de subida. No se mantienen transacciones de BD durante red o procesos.
+ 
+-La capa interna `StudioAvFiles` prepara copias en `studio-exports/{usuario}/{export}/{workspace}/imports/{lease}/`, con lecturas de hasta1MiB, timeout por petición de hasta5s sin reintentos de transporte y presupuesto total de85s por operación. Comprueba la vigencia del lease antes y después del transporte. Una fuente WOFF2 debe conservar además el hash de su normalización. Los inputs fijos `assets/{id}.bin` y `fonts/{id}.woff2` se enlazan únicamente desde checkpoints aceptados y verificados, sin reemplazo; las verificaciones de esa operación comparten el mismo presupuesto. El path se deriva del journal y rechaza enlaces en sus componentes. `inspect` comprueba tamaño/hash de resultados físicos antes de aceptar; no sustituye los probes de codec, frames y audio del motor. Esta capa todavía no está conectada a jobs, limpieza, handlers o registro de medios.
++La capa interna `StudioAvFiles` prepara copias en `studio-exports/{usuario}/{export}/{workspace}/imports/{lease}/`, con lecturas de hasta1MiB, timeout por petición de hasta5s sin reintentos de transporte y presupuesto total de85s por operación. Comprueba la vigencia del lease antes y después del transporte. Una fuente WOFF2 debe conservar además el hash de su normalización. Los inputs fijos `assets/{id}.bin` y `fonts/{id}.woff2` se enlazan únicamente desde checkpoints aceptados y verificados, sin reemplazo; las verificaciones de esa operación comparten el mismo presupuesto. El path se deriva del journal y rechaza enlaces en sus componentes. `inspect` comprueba tamaño/hash de resultados físicos antes de aceptar; no sustituye los probes de codec, frames y audio del motor. Esta capa está conectada al runner, snapshots y recuperación; el registro durable usa una copia separada de biblioteca.
+ 
+ Cada inicio/reintento tiene un UUID de intento. Cada fase reclamada obtiene además un lease y un namespace de salida UUID único. Un worker antiguo solo puede terminar dentro de su namespace: nunca sobrescribe los checkpoints aceptados por otro worker. La aceptación de un resultado compara bajo lock usuario/exportación, intento, fase y lease. Los jobs de intentos anteriores se descartan; no reactivan una cancelación o resultado nuevo.
+ 
+@@ -18,7 +18,7 @@
+ 
+ El estado que se actualiza por avance es pequeño: generación, asignación, fingerprint, posición, total y lease. El plan se conserva una vez en el workspace; los pasos ordenados y sus referencias a leases se guardan en filas indexadas por workspace/generación/posición. No se vuelve a escribir un array de miles de tareas/checkpoints en cada claim/accept. Al reintentar, la generación anterior identifica los checkpoints candidatos; se consultan en lote para construir pasos de verificación. El resumen público sigue siendo independiente de esos datos privados.
+ 
+-Contrato interno de archivos: `segments/{lease}/video-{indice}.mp4|gif`, `segments/{lease}/audio-{indice}.wav`, `audio-sources/{lease}/{id}.pcm` y `outputs/{lease}/project.mp4|gif`. El namespace es UUID canónico en minúscula, no un path libre. Se publica con creación exclusiva, nunca reemplazo; el enlace duro temporal para publicación atómica se elimina inmediatamente, sin seguir enlaces simbólicos. Los checkpoints llevan ese namespace y la unión comprueba su correspondencia con cada ruta, permitiendo referencias aceptadas de leases diferentes. El modo interno anterior sin namespace conserva sus rutas para compatibilidad; los futuros jobs siempre exigirán namespace. La identidad/autorización y aceptación del lease se comprobarán en el servicio de jobs, aún pendiente.
++Contrato interno de archivos: `segments/{lease}/video-{indice}.mp4|gif`, `segments/{lease}/audio-{indice}.wav`, `audio-sources/{lease}/{id}.pcm` y `outputs/{lease}/project.mp4|gif`. El namespace es UUID canónico en minúscula, no un path libre. Se publica con creación exclusiva, nunca reemplazo; el enlace duro temporal para publicación atómica se elimina inmediatamente, sin seguir enlaces simbólicos. Los checkpoints llevan ese namespace y la unión comprueba su correspondencia con cada ruta, permitiendo referencias aceptadas de leases diferentes. El modo interno anterior sin namespace conserva sus rutas para compatibilidad; los jobs exigen namespace. El servicio de estado comprueba identidad, autorización y vigencia al arrancar y aceptar el lease.
+ 
+ ## Fases y checkpoints
+ 
+@@ -44,7 +44,7 @@
+ 
+ La metadata final debe coincidir con el plan: dimensiones padded (también GIF), reloj, fotogramas, duración y codecs. Se aplica el límite real de la biblioteca (imagen/vídeo), aunque el presupuesto interno del encoder permita archivos mayores. `accept(register)` exige esa reserva y un journal de transferencia completo con todos los bytes verificados. Medio listo, vínculo a marca y exportación descargable se guardan en una sola transacción, bajo fencing del lease/generación. Cancelar antes de aceptar o fallar al crear el vínculo revierte toda visibilidad. La descarga del export conserva la copia local aceptada; el medio de biblioteca necesita su propia copia durable fuera del árbol temporal.
+ 
+-Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. Las rutas HTTP upload/complete rechazan la reserva con409 antes de escribir bytes o finalizar el objeto; no basta un rechazo posterior en finalize. El borrado normal de un medio ya listo conserva las reglas actuales de referencias a publicaciones. Los tests anteriores de aceptaciónBD fabricaban explícitamente el journal verificado; la nueva transferencia física se verifica por separado a continuación. Su aborto/limpieza y la conexión de register al runner siguen pendientes.
++Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. Las rutas HTTP upload/complete rechazan la reserva con409 antes de escribir bytes o finalizar el objeto; no basta un rechazo posterior en finalize. El borrado normal de un medio ya listo conserva las reglas actuales de referencias a publicaciones. Los tests anteriores de aceptaciónBD fabricaban explícitamente el journal verificado; la nueva transferencia física se verifica por separado a continuación. El retiro físico y la conexión de register al runner se describen en los apartados siguientes.
+ 
+ ### Transferencia física privada
+ 
+@@ -58,7 +58,7 @@
+ 
+ Las llamadas S3 llevan retries0 y timeout≤20s, connect≤5s y presupuesto restante compartido. GetObject usa stream y read_timeout≤5s; se comprueban ContentLength y ContentRange antes de leer hasta16MiB, y el cuerpo siempre se cierra. La cuenta de almacenamiento debe poder listar multipart del destino además de crear/subir/completar, leer HEAD/rangos y, cuando se conecte la limpieza, abortar/borrar. Sin permisos se conserva el journal y falla explícitamente. Estos requisitos se contrastan con [R2 multipart](https://developers.cloudflare.com/r2/objects/upload-objects/), [UploadPart S3](https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html) y [stream/read_timeout de Guzzle](https://docs.guzzlephp.org/en/stable/request-options.html#stream).
+ 
+-El bloque de transferencia está revisado con tests de disco real desechable y simulador S3 con respuestas HTTP404/412 y fallos después del efecto remoto, sin cuentas ni red real. No acreditan un bucket R2 real ni despliegue. Cancelación durante I/O impide confirmar el recibo tardío o publicar el medio; la reserva conserva los bytes/UploadId conocidos para el retiro descrito a continuación. La integración de register en runner/queue y el flujo público completo siguen pendientes.
++El bloque de transferencia está revisado con tests de disco real desechable y simulador S3 con respuestas HTTP404/412 y fallos después del efecto remoto, sin cuentas ni red real. No acreditan un bucket R2 real ni despliegue. Cancelación durante I/O impide confirmar el recibo tardío o publicar el medio; la reserva conserva los bytes/UploadId conocidos para el retiro descrito a continuación. El runner ejecuta register por partes: si aún falta copia/verificación abandona el lease mediante defer y encola otro para la misma posición. Solo un recibo completo pasa a accept y ready.
+ 
+ ### Retiro y recuperación del medio pendiente
+ 
+@@ -70,7 +70,7 @@
+ 
+ Solo tras retirar físicamente el destino se borra el MediaAsset pendiente, se libera media_reserved_bytes y se marca released. Un nuevo intento podrá crear una nueva reserva activa; nunca se mantienen dos medios activos para el mismo workspace ni se elimina un medio ya listo. El retiro de huérfanos precede al borrado del journal y del árbol temporal. El recuperador incluye reservas terminales aunque todos los leases hayan sido liberados, y usa media_cleanup_after/index propio para continuar retiring independientemente del active_until de una generación nueva. Conserva estados y leases de esa generación. La pasada de vencimientos es la única que procesa retiring; las ramas terminal/orphan omiten esos registros. Todo intento programado incompleto o fallido se difiere180s, y los huérfanos no resueltos también atrasan active_until para no monopolizar el lote. Las llamadas internas explícitas al limpiador pueden continuar una pasada sin esperar ese reloj del scheduler. El presupuesto15s del recuperador se comprueba entre operaciones, no es un límite duro que interrumpa una pasada física ya comenzada.
+ 
+-El bloque de retiro está pendiente de revisión/regresión. Las pruebas usan SQLite y almacenamiento desechables/simulador SDK; no acreditan R2 real ni VPS. Queue.enqueue(register) continúa deshabilitado. Todavía falta conectar la transferencia por partes al runner/queue, señal de cancelación nativa y flujo público web/API/MCP con QA integral.
++El retiro tiene revisión/regresión en testing/t11/av-retirement. Las pruebas usan SQLite y almacenamiento desechable/simulador SDK; no acreditan R2 real ni VPS. Queue.enqueue(register) está habilitado y la señal nativa no espera al mutex del worker. El nuevo bloque público sigue pendiente de revisión y QA; el padre T-11 continúa abierto.
+ 
+ Una fase nativa tiene un presupuesto total inferior al timeout del job; el job queda por debajo del worker y del retry_after. El límite cubre preparación, navegador, FFmpeg, probes, hashes y cierre de hijos. Los timeouts aislados de FFmpeg del motor no bastan para acreditar esta propiedad.
+ 
+@@ -104,7 +104,7 @@
+ 
+ El handler ya encadena plan/snapshot/normalize/render/mix/assemble yverificación de checkpoints. Contención del mutex difiere el lease sin liberar su reserva anticipadamente; los errores posteriores al avance se cercan también por posición. `studio:recover --limit=1..100` hace una pasada local acotada, limpia asignaciones vencidas antes dereencolar yse registra cada minuto sin solapamiento. Reprogramar la fecha del workspace diferido evita que un export sinworker monopolice todos los lotes delante de otras marcas. Esto prepara el scheduler de aplicación, no instala cron ni servicios en el VPS.
+ 
+-La integración actual se detiene explícitamente ante register: no encola esa fase todavía ni marca ready. Registro de medio/descarga/borrador, señal de cancelación del proceso ycontroles web/API/MCP siguen pendientes. Las muestras con queue:work real prueban hastaassemble, no el flujo público completo. No se publican redes sociales al ejecutar estos jobs.
++La integración incluye register hasta ready. StudioAvDeliveryTest comprueba defer, duplicados y recuperación entre checkpoint/reencolado. StudioAvPublicTest cruza API MP4/GIF y MCP MP4 por queue:work real hasta descarga firmada con SHA coincidente y borrador de la marca (3 casos/82 aserciones). No publica en redes sociales ni acredita el VPS. La nueva revisión/regresión y la interfaz audiovisual siguen pendientes.
+ 
+ El journal de cada snapshot distingue aceptación de publicación del input fijo mediante input_published. Si el proceso muere entre esos dos pasos, recovery repara la promoción antes de encolar el trabajo siguiente. Solo consulta promociones pendientes de la generación actual, con índice ybatch de16; no vuelve a verificar todos los recursos ya publicados en cada pasada. Los parciales vencidos de exports failed/cancelled también se limpian periódicamente, conservando su estado terminal ylos checkpoints aceptados. En mantenimiento se comprueba un plazo de15s entre operaciones; una promoción individual puede consumir hasta85s yuna limpieza hasta30s, de modo que no se afirma un límite duro de15s para la pasada completa. El mutex del scheduler dura2min yno reservaRAM.
+ 
+@@ -141,3 +141,11 @@
+ - Límite OS y presupuesto total efectivos, hijos cerrados en cancel/error y checkpoints válidos al reintentar.
+ - Paridad web/API/MCP, permisos y registro/borrador sin publicación externa, en escritorio y dos móviles.
+ - Revisión adversarial y QA del flujo completo antes de cerrar T-11. Los informes de motor/opciones anteriores no sustituyen estas comprobaciones.
++
++## Entradas públicas y controles audiovisuales
++
++API POST /designs/{design}/exports y MCP export_design aceptan MP4/GIF además de los formatos estáticos. Web POST /studio/designs/{design}/render reutiliza el mismo servicio. frame_times no vacío y transparent=true devuelven422 antes de crear trabajo audiovisual. La revisión, páginas y opciones quedan fijadas; cambiar el diseño después no modifica ese trabajo.
++
++GET /design-exports/{export} permite consultar progress/can_cancel/can_retry/download_url con designs:read. POST /design-exports/{export}/cancel y /retry requieren designs:write y propiedad; estáticos422, estados incompatibles409. Cancelar es idempotente: cerca primero la generación en BD y después crea exclusivamente work/{lease}.cancel si existe el manifiesto propio. Si falla la señal devuelve503 seguro, manteniendo la cancelación registrada. Repetir puede reparar la señal. Nunca recibe rutas ni leases del consumidor. Retry conserva ID/revisión/opciones y encola una generación nueva tras commit.
++
++POST /design-exports/{export}/post exige designs:write y posts:write, acepta solo text/targets y crea un borrador con medios ready de la marca original, sin programación. manage_design_export ofrece get/cancel/retry/post con los mismos permisos. Web dispone de controles equivalentes con sesión autenticada. El catálogo MCP contiene40herramientas; su paginación se conserva. Las rutas internas, hashes, journal y estado de leases no forman parte del DTO.
+--- baseline/docs/guias/estudio-api-mcp.md
++++ docs/guias/estudio-api-mcp.md
+@@ -1,6 +1,6 @@
+ # Estudio nativo: API, MCP y render en servidor
+ 
+-Actualizado: 2026-11-05. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; los formatos MP4/GIF siguen pendientes.
++Actualizado: 2026-11-05. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; API/MCP incorporan MP4/GIF en el árbol de trabajo; su interfaz y QA integral siguen pendientes.
+ 
+ Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
+ 
+@@ -32,7 +32,7 @@
+ 
+ Pulsa «Añadir» en el recurso listo para crear una pista global. La línea de tiempo permite mover su inicio, cambiar duración, recortar origen, ajustar velocidad/volumen, repetir, silenciar y aplicar fundidos. El cabezal sirve para dividirla; deshacer/rehacer y guardar/reabrir conservan sus valores. Varias pistas se mezclan con el vídeo durante play/pausa/seek. Las pistas globales siguen el reloj completo del diseño, sin reiniciarse al cambiar de página.
+ 
+-El preview no modifica la revisión guardada. Exportar MP4/GIF con esa mezcla es parte del trabajo pendiente deT-11; la opción de exportación audiovisual todavía no se anuncia como disponible.
++El preview no modifica la revisión guardada. API/MCP pueden solicitar MP4/GIF con la mezcla guardada; el diálogo audiovisual del editor sigue pendiente de T-11.
+ 
+ ## Fotogramas en exportaciones estáticas
+ 
+@@ -52,11 +52,11 @@
+ }
+ ```
+ 
+-Estos son fotogramas locales de páginas. Las transiciones entre páginas y la mezcla de sonido corresponden a la exportación audiovisual del proyecto completo, todavía pendiente.
++Estos son fotogramas locales de páginas. Las transiciones entre páginas y la mezcla de sonido corresponden a MP4 del proyecto completo; GIF conserva solo imagen.
+ 
+ ## API: rutas y respuestas
+ 
+-El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP actual del árbol de trabajo:39herramientas.
++El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP actual del árbol de trabajo:40herramientas.
+ 
+ Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve el paginador en el nivel superior: `.data`, `.current_page`, `.last_page`, `.total`. Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
+ 
+@@ -97,7 +97,10 @@
+ | `GET /brands/{brand}/image-jobs/{job}` | `designs:read` | `{job}` con estado real y `output_asset` cuando termina. |
+ | `GET /designs/{design}/exports` | `designs:read` | Historial de exportaciones, `page` y `per_page` (50 por defecto, máximo 100). |
+ | `POST /designs/{design}/exports` | `designs:write` | `202`, trabajo de render con su estado real. |
+-| `GET /design-exports/{export}` | `designs:read` | Estado, resultados y descarga temporal si está lista. |
++| `GET /design-exports/{export}` | `designs:read` | Estado, progreso y descarga temporal si está lista. |
++| `POST /design-exports/{export}/cancel` | `designs:write` | Cancelación audiovisual idempotente; 409 ready/failed, 422 estático, 503 si queda pendiente la señal nativa. |
++| `POST /design-exports/{export}/retry` | `designs:write` | 202 desde failed/cancelled; conserva ID, revisión y opciones, generación nueva. |
++| `POST /design-exports/{export}/post` | `designs:write` + `posts:write` | 201, borrador de la marca con medios ready; solo text/targets, nunca programa. |
+ | `GET /brands/{brand}/analytics` | `stats:read` | Métricas del mismo servicio que el dashboard. |
+ 
+ El listado de diseños acepta `query` —búsqueda literal, también para `%` y `_`—, `folder_id`, `templates`, `archived` y `page`. `archived=true` lista únicamente archivados. Los booleanos de query admiten `true`/`false` y `1`/`0`.
+@@ -212,7 +215,7 @@
+ 
+ Para redimensionar, envía `revision`, `width`, `height` y `mode` (`canvas`, `contain` o `cover`). Para variantes, envía `revision` y `variants: [{name,width,height,mode}]`; añade `fields` si la fuente contiene campos y `apply_brand_kit` si corresponde. Se permiten hasta doce variantes, con un máximo acumulado de 8 MiB de documentos y 20000 elementos. Si falla una variante no se crea ninguna.
+ 
+-MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo actual contiene39herramientas, incluidas las ampliaciones de fuentes, imagen y audio. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
++MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo actual contiene40herramientas, incluidas las ampliaciones de fuentes, imagen y audio. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
+ 
+ Al restaurar desde el historial un documento anterior a un cambio de kit, `PATCH /designs/{design}` y MCP `update_design` admiten `kit_revision`: número de una revisión guardada del mismo diseño. El servidor recupera de ella la referencia del kit; no acepta referencias de otro diseño o usuario. El editor conserva ese dato en undo/redo, guardado y recuperación para que las aplicaciones posteriores del kit reconozcan los estilos restaurados. Sin ese argumento, una actualización conserva la referencia actual.
+ 
+@@ -303,11 +306,11 @@
+ - Recursos de entrada seleccionados: hasta 64000000 bytes en conjunto. Cada archivo de salida también se limita a 64000000 bytes; el proceso Node limita la entrada JSON a 90 MB.
+ - El proceso tiene límite PHP de 100 s; el render del navegador, 80 s; el job, 120 s y un intento. Reduce páginas, escala o recursos si falla por capacidad o tiempo.
+ 
+-MP4 y GIF no están implementados como formatos de exportación. Los elementos de vídeo disponibles en el documento/editor no convierten esta entrega en un exportador de animación ni garantizan una pista de audio en los cinco formatos estáticos. Las extensiones futuras se siguen en el [roadmap de la suite](../roadmap/2026-11-03-creative-social-suite/tasks.md).
+-
+-## MCP: nueve herramientas y flujo completo
+-
+-El servidor del árbol de trabajo anuncia39herramientas en total. `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las nueve herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
++MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, desde la revisión guardada y con las páginas en el orden indicado. MP4 incluye audio; GIF es silencioso. No aceptan frame_times no vacío ni transparencia. El diálogo del editor conserva los cinco formatos estáticos hasta completar la integración UI. El trabajo público nuevo aún requiere revisión/regresión y no acredita despliegue; T-11 sigue abierta en el [roadmap](../roadmap/2026-11-03-creative-social-suite/tasks.md).
++
++## MCP: herramientas de diseño y flujo de trabajo
++
++El servidor del árbol de trabajo anuncia40herramientas en total. `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
+ 
+ ```bash
+ curl --fail "$BASE/mcp" \
+@@ -324,7 +327,8 @@
+ | `get_design` | `design_id`, `exports_page` opcional. Documento completo, revisión, kit, recursos con `file_url` e historial `exports` de 50 por página con `exports_pagination`. `designs:read`. |
+ | `create_design` | Marca, `name`, `document`, opcionales `folder_id`/`is_template`. Diseño con revisión 1. `designs:write`. |
+ | `update_design` | `design_id`, `name`, `document`, `revision`, opcionales `folder_id`/`is_template`. Nueva revisión o conflicto 409. `designs:write`. |
+-| `export_design` | `design_id`, `revision`, `format`, `pages`, opcionales `scale`/`quality`/`transparent`. Trabajo real; consultar `get_design` para seguimiento. `designs:write`. |
++| `export_design` | `design_id`, `revision`, `format`, `pages`, opcionales `scale`/`quality`/`transparent`. MP4/GIF requieren transparencia false. `designs:write`. |
++| `manage_design_export` | `export_id`, `action`: get (designs:read), cancel/retry (designs:write), post (designs:write y posts:write). Devuelve progreso/descarga o borrador; no publica. |
+ | `manage_brand_kit` | Marca; `kit` omitido consulta y, si está presente, actualiza sus campos. Requiere `designs:write` en ambos casos; `get_design` permite leer el kit con `designs:read`. |
+ | `attach_design_asset` | Marca y `media_id` propio listo. Registra el recurso y devuelve sus metadatos. `designs:write`. |
+ | `manage_design` | `design_id`, `action: duplicate\|archive\|restore`; `name` opcional para duplicar. Copia independiente o archivado/restauración conservando snapshots y exportaciones. `designs:write`. |
+@@ -341,7 +345,7 @@
+ 
+ La respuesta de la herramienta está en `result.content[].text` como JSON serializado; revisa también `result.isError`. Un HTTP `200` de MCP puede contener un error de herramienta. No trates ese caso como un guardado correcto.
+ 
+-Flujo reproducible de las nueve herramientas, adaptando los IDs a cada respuesta:
++Flujo reproducible de las herramientas de diseño, adaptando los IDs a cada respuesta:
+ 
+ 1. `list_designs({"brand_id":12,"page":1})` para consultar los diseños existentes; continúa con `page=2` si corresponde.
+ 2. `manage_brand_kit({"brand_id":12,"kit":{"palette":["#7c3aed","#ffffff"],"fonts":["Arial"],"voice":"Clara"}})` para preparar la marca. Repetir sin `kit` consulta el resultado.
+@@ -386,7 +390,7 @@
+ 
+ En el editor, **Tipografías de marca** permite subir, buscar, previsualizar, archivar/restaurar y eliminar fuentes sin referencias. El selector de texto y la identidad de marca utilizan los archivos de esa marca. `font_id` positivo en texto identifica el archivo, mientras `fontFamily` conserva su familia; `font_ids` en el kit se alinea con `fonts`. No inventes IDs ni uses una URL externa: `get_design` devuelve la metadata necesaria y el renderer recibe los bytes verificados. Una fuente archivada usada por un diseño continúa cargándose. Un archivo ausente o corrupto produce un error explícito.
+ 
+-MCP incorpora `manage_studio_font` (`list/get/upload/archive/restore/delete`; upload `file_base64` y `name` opcional) y `process_studio_image` (`start/get`). Con la ampliación posterior de audio, el catálogo total contiene39herramientas: sigue `nextCursor`. Para quitar fondo, registra primero el `media_id` como recurso de la marca; `start` devuelve `{job}` y `get` devuelve `queued`, `processing`, `ready` o `failed`. `ready` incluye una nueva `output_asset`, que se puede añadir con su ID al diseño; conserva el original. Errores de instalación o procesamiento incluyen `error_code` y mensaje, sin rutas privadas. La interfaz consulta periódicamente hasta cinco minutos y permite volver a consultar después. Ocultar el panel no cancela el worker.
++MCP incorpora `manage_studio_font` (`list/get/upload/archive/restore/delete`; upload `file_base64` y `name` opcional) y `process_studio_image` (`start/get`). Con la ampliación posterior de audio, el catálogo total contiene40herramientas: sigue `nextCursor`. Para quitar fondo, registra primero el `media_id` como recurso de la marca; `start` devuelve `{job}` y `get` devuelve `queued`, `processing`, `ready` o `failed`. `ready` incluye una nueva `output_asset`, que se puede añadir con su ID al diseño; conserva el original. Errores de instalación o procesamiento incluyen `error_code` y mensaje, sin rutas privadas. La interfaz consulta periódicamente hasta cinco minutos y permite volver a consultar después. Ocultar el panel no cancela el worker.
+ 
+ Las imágenes admiten `mask: {type: "ellipse"}` o `mask: {type: "rounded_rect", radius: 24}` además de los filtros y el recorte tipados del documento. La máscara y el archivo de fuente se conservan al guardar/reabrir y al exportar PNG/JPEG/WebP/SVG/PDF.
+ 
+@@ -440,8 +444,8 @@
+ | HTTP `409` | Recargar y resolver el conflicto de revisión. |
+ | HTTP `422` | Revisar `errors`: documento tipado, recurso no listo, formato, páginas, dimensiones o periodo de métricas. |
+ | HTTP `429` | Respetar `Retry-After`; las rutas API usan el throttle configurado de 120 solicitudes/minuto. MCP tiene sus límites propios. |
+-| Exportación `pending` persistente | Comprobar el worker de `media` y su conexión de cola. |
+-| Exportación `failed` | Leer `error`; comprobar `studio-renderer.js`, Node, Playwright/Chromium, permisos de Storage, fuentes y límites. Corregir la causa y solicitar un trabajo nuevo. |
++| Exportación `pending` persistente | Comprobar `media` para estáticos y `database/studio` para MP4/GIF; revisar también el scheduler studio:recover. |
++| Exportación `failed` | Leer `error`; comprobar `studio-renderer.js`, Node, Playwright/Chromium, permisos de Storage, fuentes y límites. Corregir la causa; en MP4/GIF puede usarse retry desde failed/cancelled, conservando la revisión. |
+ | Tipografía distinta | Comparar las fuentes realmente instaladas en cliente y worker. |
+ | Descarga caducada | Obtener otra `download_url` consultando el estado autenticado. |
+ 
+--- baseline/app/Services/Studio/StudioAvControl.php
++++ app/Services/Studio/StudioAvControl.php
+@@ -0,0 +1,33 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Studio\DesignExport;
++use App\Models\User;
++use Illuminate\Support\Facades\DB;
++use Throwable;
++
++class StudioAvControl
++{
++    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage, private readonly StudioAvQueue $queue) {}
++
++    public function cancel(User $user, DesignExport $export): DesignExport
++    {
++        $current = $this->state->cancel($user, $export);
++        try {
++            $this->storage->signalCancellation($current);
++        } catch (Throwable) {
++            abort(503, 'La cancelación está registrada, pero no se pudo señalizar el proceso. Consulta el estado o repite la solicitud.');
++        }
++
++        return $current;
++    }
++
++    public function retry(User $user, DesignExport $export): DesignExport
++    {
++        $current = $this->state->retry($user, $export);
++        DB::afterCommit(fn () => $this->queue->enqueue($current->id));
++
++        return $current->refresh();
++    }
++}
+--- baseline/app/Mcp/Tools/ManageDesignExport.php
++++ app/Mcp/Tools/ManageDesignExport.php
+@@ -0,0 +1,68 @@
++<?php
++
++namespace App\Mcp\Tools;
++
++use App\Mcp\Abilities;
++use App\Models\Studio\DesignExport;
++use App\Models\User;
++use App\Services\Studio\StudioAvControl;
++use App\Services\Studio\StudioExports;
++use Illuminate\Contracts\JsonSchema\JsonSchema;
++use Laravel\Mcp\Request;
++use Laravel\Mcp\Server\Attributes\Description;
++use Laravel\Mcp\Server\Attributes\Name;
++
++#[Name('manage_design_export')]
++#[Description('Consulta una exportación propia con get; cancela/reintenta trabajos MP4/GIF con cancel/retry, manteniendo revisión y opciones. post crea solo un borrador con sus medios listos en su marca. get requiere designs:read; cancel/retry designs:write; post exige designs:write y posts:write. Consulta progress y download_url reales; no inventa archivos ni publica. Una exportación ready se conserva y no admite cancel/retry.')]
++class ManageDesignExport extends SchedulerTool
++{
++    protected function ability(): string
++    {
++        return Abilities::DESIGNS_WRITE;
++    }
++
++    protected function abilityFor(Request $request): string
++    {
++        if ($request->get('action') === 'get') {
++            return Abilities::DESIGNS_READ;
++        }
++        // Return the missing permission so the shared gate denies/audits either missing capability.
++        if ($request->get('action') === 'post' && ! $request->user()->tokenCan(Abilities::POSTS_WRITE)) {
++            return Abilities::POSTS_WRITE;
++        }
++
++        return Abilities::DESIGNS_WRITE;
++    }
++
++    protected function resource(): ?string
++    {
++        return 'design_export';
++    }
++
++    public function schema(JsonSchema $schema): array
++    {
++        return ['action' => $schema->string()->enum(['get', 'cancel', 'retry', 'post'])->required(),
++            'export_id' => $schema->integer()->min(1)->required(), 'text' => $schema->string()->max(100000),
++            'targets' => $schema->array()->items($schema->object())];
++    }
++
++    protected function run(Request $request, User $user): array
++    {
++        $data = $request->validate(['action' => ['required', 'in:get,cancel,retry,post'], 'export_id' => ['required', 'integer', 'min:1'],
++            'text' => ['nullable', 'string', 'max:100000'], 'targets' => ['sometimes', 'array']]);
++        $export = $this->owned(DesignExport::class, $user, $data['export_id'], 'Exportación');
++        $exports = app(StudioExports::class);
++        if ($data['action'] === 'post') {
++            $post = $exports->createPost($user, $export, array_intersect_key($data, array_flip(['text', 'targets'])));
++
++            return ['post' => ['id' => $post->id, 'status' => $post->status->value, 'edit_url' => route('posts.edit', $post, absolute: false)]];
++        }
++        $current = match ($data['action']) {
++            'cancel' => app(StudioAvControl::class)->cancel($user, $export),
++            'retry' => app(StudioAvControl::class)->retry($user, $export),
++            default => $export,
++        };
++
++        return $exports->present($user, $current);
++    }
++}
+--- baseline/tests/Feature/Studio/StudioAvDeliveryTest.php
++++ tests/Feature/Studio/StudioAvDeliveryTest.php
+@@ -0,0 +1,94 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvLease;
++use App\Models\User;
++use App\Services\Studio\StudioAvQueue;
++use App\Services\Studio\StudioAvRecovery;
++use App\Services\Studio\StudioAvRunner;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvTransfer;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Process;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Support\Facades\Storage;
++
++beforeEach(function () {
++    Queue::fake();
++    Storage::fake('local');
++    config(['filesystems.media' => 'local']);
++    Process::fake();
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Delivery', 'document' => [
++        'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]]]);
++    $this->state = app(StudioAvState::class);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $this->export = $this->state->initialize($this->user, $export);
++    $generation = $this->export->render_state['generation'];
++    $this->state->accept($this->state->claim($export->id, $generation), [
++        'frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]]);
++    $segment = $this->state->claim($export->id, $generation, 1);
++    $this->state->accept($segment, ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id,
++        'size' => 1, 'sha256' => hash('sha256', 'x')], 1);
++    $source = $this->state->claim($export->id, $generation, 5);
++    $this->sourceResult = ['file' => 'outputs/'.$source->id.'/project.mp4', 'namespace' => $source->id,
++        'size' => 5, 'sha256' => hash('sha256', 'video'), 'width' => 100, 'height' => 80, 'duration' => 1,
++        'fps' => 12, 'frameCount' => 12, 'videoCodec' => 'h264', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94,
++        'chunk_size' => 16 * 1024 ** 2, 'chunk_sha256' => [hash('sha256', 'video')]];
++    $this->state->accept($source, $this->sourceResult, 5);
++    Storage::disk('local')->put('studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'].'/'.$this->sourceResult['file'], 'video');
++});
++
++test('AV registration worker checkpoints and requeues each part until one ready medium exists', function () {
++    expect(app(StudioAvQueue::class)->enqueue($this->export->id))->toBeTrue();
++    $first = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    expect($first->phase)->toBe('register');
++    expect(app(StudioAvRunner::class)->run($first->id))->toBeTrue();
++    $next = $this->export->refresh()->render_state['lease'];
++    expect($first->refresh()->status)->toBe('abandoned')->and($next)->not->toBe($first->id);
++    expect($this->export->status)->toBe('processing')->and(MediaAsset::withoutUserScope()->sole()->isReady())->toBeFalse();
++    expect(app(StudioAvRunner::class)->run($first->id))->toBeFalse();
++    for ($pass = 0; $pass < 6 && $this->export->refresh()->status !== 'ready'; $pass++) {
++        app(StudioAvRunner::class)->run($this->export->render_state['lease']);
++    }
++    expect($this->export->refresh()->status)->toBe('ready')->and($this->export->media_ids)->toHaveCount(1)
++        ->and(MediaAsset::withoutUserScope()->count())->toBe(1)->and($this->export->render_progress['percent'])->toEqual(100);
++    Process::assertNothingRan();
++});
++
++test('AV recovery resumes a register part after a crash between checkpoint and handoff', function () {
++    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $this->state->begin($lease->id);
++    app(StudioAvTransfer::class)->run($lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    $this->state->defer($lease);
++    expect(app(StudioAvRecovery::class)->run()['enqueued'])->toBe(1);
++    expect(MediaAsset::withoutUserScope()->sole()->id)->toBe($media->id);
++    expect($this->export->refresh()->render_state['lease'])->not->toBeNull();
++    for ($pass = 0; $pass < 6 && $this->export->refresh()->status !== 'ready'; $pass++) {
++        app(StudioAvRunner::class)->run($this->export->render_state['lease']);
++    }
++    expect($this->export->refresh()->status)->toBe('ready')->and($this->export->media_ids)->toBe([$media->id]);
++    Process::assertNothingRan();
++});
++
++test('AV nonretiring recovery selection keeps its ordered index without a temporary sort', function () {
++    DB::enableQueryLog();
++    try {
++        app(StudioAvRecovery::class)->run();
++        $query = collect(DB::getQueryLog())->first(fn ($row) => str_contains($row['query'], 'not exists') && str_contains($row['query'], 'studio_design_exports'));
++        $plan = DB::select('EXPLAIN QUERY PLAN '.$query['query'], $query['bindings']);
++        expect(implode(' ', array_map(fn ($row) => $row->detail, $plan)))->not->toContain('TEMP B-TREE');
++    } finally {
++        DB::disableQueryLog();
++        DB::flushQueryLog();
++    }
++});
+--- baseline/tests/Feature/Studio/StudioAvPublicTest.php
++++ tests/Feature/Studio/StudioAvPublicTest.php
+@@ -0,0 +1,213 @@
++<?php
++
++use App\Jobs\Studio\ProcessStudioAvPhase;
++use App\Jobs\Studio\RenderStudioDesign;
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Post;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAsset;
++use App\Models\Studio\StudioAvLease;
++use App\Models\User;
++use App\Services\Studio\StudioAvQueue;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvStorage;
++use App\Services\Studio\StudioExports;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\Artisan;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Support\Facades\Route;
++use Illuminate\Support\Facades\Storage;
++use Tests\Support\McpClient;
++
++uses(McpClient::class);
++
++beforeEach(function () {
++    if (! Route::has('api.studio.designs.index')) {
++        Route::middleware('api')->group(base_path('routes/studio-api.php'));
++        Route::getRoutes()->refreshNameLookups();
++        Route::getRoutes()->refreshActionLookups();
++    }
++    $this->realQueue = Queue::getFacadeRoot();
++    Queue::fake();
++    Storage::fake('local');
++    config(['filesystems.media' => 'local']);
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Public native', 'document' => [
++        'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]]]);
++    $this->key = $this->mcpKey($this->user, ['designs:read', 'designs:write', 'posts:write']);
++    $this->payload = ['revision' => 1, 'format' => 'mp4', 'pages' => ['one']];
++    $this->headers = function (?string $key = null) {
++        app('auth')->forgetGuards();
++
++        return ['Authorization' => 'Bearer '.($key ?? $this->key)];
++    };
++    $this->native = function () {
++        $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $this->design->id,
++            'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++
++        return app(StudioAvState::class)->initialize($this->user, $export);
++    };
++});
++
++test('AV public API submits MP4 and GIF to the dedicated resumable queue without a static renderer job', function (string $format) {
++    $response = $this->postJson('/api/v1/designs/'.$this->design->id.'/exports', array_replace($this->payload, ['format' => $format]), ($this->headers)())->assertAccepted();
++    $export = DesignExport::withoutUserScope()->findOrFail($response->json('id'));
++    expect($export->format)->toBe($format)->and($export->render_state)->toBeArray();
++    Queue::assertPushed(ProcessStudioAvPhase::class, 1);
++    Queue::assertNotPushed(RenderStudioDesign::class);
++    expect($response->json())->not->toHaveKey('render_state')->not->toHaveKey('path');
++})->with(['mp4', 'gif']);
++
++test('AV public controls cancel idempotently and retry the pinned revision with a new generation', function () {
++    $export = ($this->native)();
++    app(StudioAvQueue::class)->enqueue($export->id);
++    $before = $export->refresh()->render_state;
++    $this->postJson('/api/v1/design-exports/'.$export->id.'/cancel', [], ($this->headers)())->assertOk()->assertJsonPath('status', 'cancelled');
++    $this->postJson('/api/v1/design-exports/'.$export->id.'/cancel', [], ($this->headers)())->assertOk()->assertJsonPath('status', 'cancelled');
++    $this->postJson('/api/v1/design-exports/'.$export->id.'/retry', [], ($this->headers)())->assertAccepted();
++    expect($export->refresh()->render_state['generation'])->not->toBe($before['generation'])->and($export->revision)->toBe(1);
++});
++
++test('AV public mutation controls require design write and hide another owners export', function () {
++    $export = ($this->native)();
++    $read = $this->mcpKey($this->user, ['designs:read']);
++    $other = $this->mcpKey(User::factory()->create(), ['*']);
++    foreach (['cancel', 'retry'] as $action) {
++        $url = '/api/v1/design-exports/'.$export->id.'/'.$action;
++        $this->postJson($url, [], ($this->headers)($read))->assertForbidden();
++        $this->postJson($url, [], ($this->headers)($other))->assertNotFound();
++    }
++    expect($export->refresh()->status)->toBe('pending');
++});
++
++test('AV MCP renders native formats and manages one export without exposing internal state', function () {
++    [$error, $created] = $this->callTool($this->key, 'export_design', ['design_id' => $this->design->id] + $this->payload);
++    expect($error)->toBeFalse()->and($created['format'])->toBe('mp4');
++    [$error, $cancelled] = $this->callTool($this->key, 'manage_design_export', ['action' => 'cancel', 'export_id' => $created['id']]);
++    expect($error)->toBeFalse()->and($cancelled['status'])->toBe('cancelled')->and($cancelled)->not->toHaveKey('render_state');
++    [$error, $retried] = $this->callTool($this->key, 'manage_design_export', ['action' => 'retry', 'export_id' => $created['id']]);
++    expect($error)->toBeFalse()->and($retried['id'])->toBe($created['id']);
++});
++
++test('AV native request rejects static frame snapshots and transparency before creating work', function (array $extra, string $field) {
++    $this->postJson('/api/v1/designs/'.$this->design->id.'/exports', array_replace($this->payload, $extra), ($this->headers)())
++        ->assertUnprocessable()->assertJsonValidationErrors($field);
++    expect(DesignExport::withoutUserScope()->count())->toBe(0);
++})->with([[['frame_times' => [['page_id' => 'one', 'time' => 0]]], 'frame_times'], [['transparent' => true], 'transparent']]);
++
++test('AV web cancellation can signal its own native manifest while the worker holds the workspace lock', function () {
++    $export = ($this->native)();
++    app(StudioAvQueue::class)->enqueue($export->id);
++    $leaseId = $export->refresh()->render_state['lease'];
++    $storage = app(StudioAvStorage::class);
++    $storage->locked($export->render_state['allocation_id'], function ($workspace) use ($storage, $leaseId, $export) {
++        $storage->manifest($workspace, $leaseId, ['test' => true]);
++        $this->actingAs($this->user)->postJson('/studio/exports/'.$export->id.'/cancel', ['workspace' => '../other', 'lease_id' => 'other'])
++            ->assertOk()->assertJsonPath('export.status', 'cancelled');
++        expect(is_file($storage->checkedPath($workspace, 'work/'.$leaseId.'.cancel')))->toBeTrue();
++    });
++});
++
++test('AV export draft requires both capabilities and stays in the export brand without scheduling', function () {
++    $media = MediaAsset::factory()->for($this->user)->video(1, 100, 80, 12)->create();
++    StudioAsset::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'media_asset_id' => $media->id]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $this->design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => [], 'status' => 'ready', 'media_ids' => [$media->id]]);
++    $writeOnly = $this->mcpKey($this->user, ['designs:write']);
++    $postOnly = $this->mcpKey($this->user, ['posts:write']);
++    foreach ([$writeOnly, $postOnly] as $key) {
++        $this->postJson('/api/v1/design-exports/'.$export->id.'/post', [], ($this->headers)($key))->assertForbidden();
++        [$error] = $this->callTool($key, 'manage_design_export', ['action' => 'post', 'export_id' => $export->id]);
++        expect($error)->toBeTrue();
++    }
++    $response = $this->postJson('/api/v1/design-exports/'.$export->id.'/post', ['text' => 'Draft'], ($this->headers)())
++        ->assertCreated()->assertJsonPath('post.status', 'borrador');
++    $this->assertDatabaseHas('posts', ['id' => $response->json('post.id'), 'user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'status' => 'borrador']);
++    [$error, $draft] = $this->callTool($this->key, 'manage_design_export', ['action' => 'post', 'export_id' => $export->id, 'text' => 'MCP draft']);
++    expect($error)->toBeFalse()->and($draft['post']['status'])->toBe('borrador');
++});
++
++test('AV public request crosses the actual database worker to native download and draft', function (string $format, string $transport) {
++    Queue::swap($this->realQueue);
++    $payload = array_replace($this->payload, ['format' => $format]);
++    if ($transport === 'api') {
++        $dto = $this->postJson('/api/v1/designs/'.$this->design->id.'/exports', $payload, ($this->headers)())->assertAccepted()->json();
++    } else {
++        [$error, $dto] = $this->callTool($this->key, 'export_design', ['design_id' => $this->design->id] + $payload);
++        expect($error)->toBeFalse();
++    }
++    $export = DesignExport::withoutUserScope()->findOrFail($dto['id']);
++    for ($delivery = 0; $delivery < 12 && in_array($export->refresh()->status, ['pending', 'processing'], true); $delivery++) {
++        expect($export->render_state['lease'])->not->toBeNull();
++        $id = $export->render_state['lease'];
++        expect(Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'studio', '--once' => true, '--tries' => 1, '--timeout' => 100, '--sleep' => 0]))->toBe(0);
++        expect(StudioAvLease::findOrFail($id)->status)->toBeIn(['accepted', 'abandoned']);
++    }
++    expect($export->refresh()->status)->toBe('ready', $export->error ?? '')->and($export->media_ids)->toHaveCount(1);
++    $dto = app(StudioExports::class)->present($this->user, $export);
++    $download = $this->get($dto['download_url'])->assertOk();
++    $hash = app(StudioAvState::class)->checkpoints($export, ['assemble'])->sole()->result['sha256'];
++    expect(hash('sha256', $download->streamedContent()))->toBe($hash);
++    $draft = $this->postJson('/api/v1/design-exports/'.$export->id.'/post', ['text' => 'Native draft'], ($this->headers)())
++        ->assertCreated()->assertJsonPath('post.status', 'borrador')->json('post.id');
++    $this->assertDatabaseHas('posts', ['id' => $draft, 'brand_id' => $this->brand->id, 'status' => 'borrador']);
++    expect(Post::withoutUserScope()->findOrFail($draft)->media->pluck('id')->all())->toBe($export->media_ids);
++})->with([['mp4', 'api'], ['gif', 'api'], ['mp4', 'mcp']])->skip(fn () => getenv('STUDIO_AV_NATIVE_TEST') !== '1', 'Explicit managed native runtime opt-in; no ONNX.');
++
++test('AV MCP read capability polls but cannot mutate or inspect another owners work', function () {
++    $export = ($this->native)();
++    $read = $this->mcpKey($this->user, ['designs:read']);
++    [$error, $dto] = $this->callTool($read, 'manage_design_export', ['action' => 'get', 'export_id' => $export->id]);
++    expect($error)->toBeFalse()->and($dto['id'])->toBe($export->id)->and($dto)->not->toHaveKey('render_state');
++    foreach (['cancel', 'retry'] as $action) {
++        [$error] = $this->callTool($read, 'manage_design_export', ['action' => $action, 'export_id' => $export->id]);
++        expect($error)->toBeTrue();
++    }
++    [$error] = $this->callTool($this->mcpKey(User::factory()->create(), ['*']), 'manage_design_export', ['action' => 'get', 'export_id' => $export->id]);
++    expect($error)->toBeTrue()->and($export->refresh()->status)->toBe('pending');
++});
++
++test('AV public controls preserve ready output and reject static or active retry', function () {
++    $native = ($this->native)();
++    $this->postJson('/api/v1/design-exports/'.$native->id.'/retry', [], ($this->headers)())->assertConflict();
++    $native->update(['status' => 'ready']);
++    foreach (['cancel', 'retry'] as $action) {
++        $this->postJson('/api/v1/design-exports/'.$native->id.'/'.$action, [], ($this->headers)())->assertConflict();
++    }
++    $native->update(['format' => 'png']);
++    foreach (['cancel', 'retry'] as $action) {
++        $this->postJson('/api/v1/design-exports/'.$native->id.'/'.$action, [], ($this->headers)())->assertUnprocessable();
++    }
++    expect($native->refresh()->status)->toBe('ready');
++});
++
++test('AV public cancellation commits fencing even if native signalling is unavailable and hides internal errors', function () {
++    $export = ($this->native)();
++    app(StudioAvQueue::class)->enqueue($export->id);
++    $lease = $export->refresh()->render_state['lease'];
++    $this->partialMock(StudioAvStorage::class, function ($mock) {
++        $mock->shouldReceive('signalCancellation')->once()->andThrow(new RuntimeException('private/path secret-bucket'));
++    });
++    $response = $this->postJson('/api/v1/design-exports/'.$export->id.'/cancel', [], ($this->headers)())->assertStatus(503);
++    expect($response->getContent())->not->toContain('private/path')->not->toContain('secret-bucket');
++    expect($export->refresh()->status)->toBe('cancelled')->and(StudioAvLease::findOrFail($lease)->status)->toBe('abandoned');
++});
++
++test('AV web submission uses the shared native queue and exposes only the public export', function () {
++    $response = $this->actingAs($this->user)->postJson('/studio/designs/'.$this->design->id.'/render', $this->payload)->assertAccepted();
++    expect($response->json('export.format'))->toBe('mp4')->and($response->json('export'))->not->toHaveKey('render_state');
++    Queue::assertPushed(ProcessStudioAvPhase::class, 1);
++    Queue::assertNotPushed(RenderStudioDesign::class);
++});
++
++test('AV draft API rejects publication controls and never creates a post for unfinished output', function () {
++    $export = ($this->native)();
++    $before = Post::withoutUserScope()->count();
++    $this->postJson('/api/v1/design-exports/'.$export->id.'/post', ['schedule' => true, 'brand_id' => $this->brand->id], ($this->headers)())
++        ->assertUnprocessable();
++    $this->postJson('/api/v1/design-exports/'.$export->id.'/post', [], ($this->headers)())->assertUnprocessable();
++    expect(Post::withoutUserScope()->count())->toBe($before);
++});

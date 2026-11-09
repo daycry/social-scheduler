@@ -37,12 +37,12 @@ class StudioAutomation
     }
 
     /** @return array{design?: array, designs?: array} */
-    public function perform(User $user, Design $design, string $action, array $data): array
+    public function perform(User $user, Design $design, string $action, array $data, bool $api = false): array
     {
         $source = $this->studio->owned($user, $design);
         $data = $this->input($action, $data);
 
-        return DB::transaction(function () use ($user, $source, $action, $data): array {
+        return DB::transaction(function () use ($user, $source, $action, $data, $api): array {
             $source = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($source->id);
             abort_if($source->revision !== (int) $data['revision'], 409, 'El diseño cambió en otra sesión. Guarda o recarga la versión actual antes de continuar.');
             $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($source->brand_id);
@@ -57,7 +57,7 @@ class StudioAutomation
                 $document = $this->substitute($document, $data['fields'] ?? []);
             }
             if ($action === 'apply-kit' || ($data['apply_brand_kit'] ?? false)) {
-                $kit = array_intersect_key($this->studio->kit($user, $brand), array_flip(['palette', 'fonts', 'logos']));
+                $kit = array_intersect_key($this->studio->kit($user, $brand), array_flip(['palette', 'fonts', 'font_ids', 'logos']));
                 if (($kit['palette'] ?? []) === [] && ($kit['fonts'] ?? []) === [] && ($kit['logos'] ?? []) === []) {
                     throw ValidationException::withMessages(['apply_brand_kit' => ['Añade colores, fuentes o logos al kit de esta marca.']]);
                 }
@@ -70,7 +70,7 @@ class StudioAutomation
             if (in_array($action, ['resize', 'apply-kit'], true)) {
                 $updated = $this->studio->update($user, $source, ['revision' => $source->revision, 'name' => $source->name, 'document' => $document], $reference);
 
-                return ['design' => $this->studio->present($user, $updated)];
+                return ['design' => $this->studio->present($user, $updated, $api)];
             }
             $variants = $action === 'variants' ? $data['variants'] : [null];
             $prepared = [];
@@ -94,7 +94,7 @@ class StudioAutomation
                 };
                 $prepared[] = ['name' => $name, 'document' => $copy, 'is_template' => $action === 'template', 'folder_id' => $source->folder_id];
             }
-            $created = array_map(fn (array $copy) => $this->studio->present($user, $this->studio->create($user, $brand, $copy, $reference)), $prepared);
+            $created = array_map(fn (array $copy) => $this->studio->present($user, $this->studio->create($user, $brand, $copy, $reference), $api), $prepared);
 
             return $action === 'variants' ? ['designs' => $created] : ['design' => $created[0]];
         });
@@ -266,7 +266,7 @@ class StudioAutomation
         }
         foreach ($fonts as $index => $font) {
             if (isset($kit['fonts'][$index])) {
-                $fontMap[$font] = $kit['fonts'][$index];
+                $fontMap[$font] = ['family' => $kit['fonts'][$index], 'id' => $kit['font_ids'][$index] ?? null];
             }
         }
         foreach ($reference['logos'] ?? [] as $index => $id) {
@@ -289,7 +289,12 @@ class StudioAutomation
                 $element['shadow']['color'] = $this->mapPaint($element['shadow']['color'], $colorMap);
             }
             if ($element['type'] === 'text' && isset($fontMap[$element['fontFamily'] ?? 'Arial'])) {
-                $element['fontFamily'] = $fontMap[$element['fontFamily'] ?? 'Arial'];
+                $target = $fontMap[$element['fontFamily'] ?? 'Arial'];
+                $element['fontFamily'] = $target['family'];
+                unset($element['font_id']);
+                if ($target['id'] !== null) {
+                    $element['font_id'] = $target['id'];
+                }
             }
             if ($element['type'] === 'image' && isset($logoMap[$element['asset_id']])) {
                 $asset = $logoMap[$element['asset_id']];

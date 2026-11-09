@@ -1,0 +1,13 @@
+{
+  "lenses": [
+    "A",
+    "B"
+  ],
+  "critical": 0,
+  "important": 0,
+  "minor": 0,
+  "sources": 8,
+  "actual_errors2_cases": 0,
+  "global_acceptance": false,
+  "delta_sha256": "6b1bdbef6a5b214b32b8324e625ca5124069897a1fc8b1c2fd0995cc5988980f"
+}

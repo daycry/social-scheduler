@@ -38,6 +38,6 @@ class UpdateDesign extends SchedulerTool
         $data = $request->validate(['design_id' => ['required', 'integer', 'min:1']]);
         $studio = app(StudioService::class);
 
-        return $studio->present($user, $studio->update($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño'), $request->all()));
+        return $studio->present($user, $studio->update($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño'), $request->all()), true);
     }
 }

@@ -1,0 +1,26 @@
+{
+  "failed": 0,
+  "pdf_provenance": [
+    {
+      "file": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-chart-focused-qa1\\out\\server-execution1\\raw\\artifacts\\studio-charts-E2E28-02-ser-e09d4--pages-actor-brand-boundary-desktop\\server-pdf-observer.json",
+      "pages": 1,
+      "pixel_rgb_sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+      "all_pixels_equal": true,
+      "glyphs": "Verified separately against original TTF and Arial on identical delivered PNG"
+    },
+    {
+      "file": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-chart-focused-qa1\\out\\server-execution1\\raw\\artifacts\\studio-charts-E2E28-02-ser-e09d4--pages-actor-brand-boundary-mobile\\server-pdf-observer.json",
+      "pages": 1,
+      "pixel_rgb_sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+      "all_pixels_equal": true,
+      "glyphs": "Verified separately against original TTF and Arial on identical delivered PNG"
+    },
+    {
+      "file": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-chart-focused-qa1\\out\\server-execution1\\raw\\artifacts\\studio-charts-E2E28-02-ser-e09d4--pages-actor-brand-boundary-mobile-360\\server-pdf-observer.json",
+      "pages": 1,
+      "pixel_rgb_sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+      "all_pixels_equal": true,
+      "glyphs": "Verified separately against original TTF and Arial on identical delivered PNG"
+    }
+  ]
+}

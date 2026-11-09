@@ -1,0 +1,9 @@
+{
+  "lenses": ["A", "B"],
+  "critical": 0,
+  "important": 1,
+  "minor": 0,
+  "gaps": [{"id":"B1","state":"pending","severity":"Important","file":"resources/js/Studio/presentation.js","line":90,"scenario":"Decimal durations cause backward navigation at advance(0) and failure of an exact next boundary","root_reproduced":true}],
+  "native_cases": 0,
+  "global_acceptance": false
+}

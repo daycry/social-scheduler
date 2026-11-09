@@ -1,0 +1,17 @@
+[
+  {
+    "id": "QA2-V01",
+    "severity": "Important",
+    "status": "open",
+    "criterion": "Caption preview text remains readable with allowed style settings",
+    "scenario": "UI import/edit/reopen at fontSize22, default white fill, black strokeWidth2, two lines over black canvas",
+    "observed": "Both text lines are practically illegible; colored emoji remains visible",
+    "evidence": "raw/mobile-preview-detail.png",
+    "source_original": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile/captions-editor.png",
+    "crop": {"x": 0, "y": 900, "width": 375, "height": 600},
+    "confirmed_by": "Independent QA and root visual inspection during the same QA2 run",
+    "root_cause": "Unproven; paint order/outline covering narrow glyph strokes is a hypothesis only",
+    "wcag_ratio": null,
+    "action": "No source edits, retries or extra native tests by QA; root diagnoses after exclusive QA slot is released"
+  }
+]

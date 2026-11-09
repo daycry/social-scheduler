@@ -1,0 +1,53 @@
+{
+  "state": "finished",
+  "pid": 20344,
+  "started_monotonic": 166718.2442072,
+  "group": "dense",
+  "mode": "dense",
+  "resource": {
+    "physical_minimum_observed_bytes": 6874886144,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 67.17579089998617,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 2380132352,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "json_fabricated": false,
+  "global_acceptance_claim": false,
+  "dense_observer_exit_code": 0,
+  "exit_code": 0,
+  "error": null,
+  "job_pids_before_exit": [
+    20344
+  ],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "cleanup_proved": true,
+  "terminal": {
+    "alive_owned_pids": [],
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true,
+    "core_job_closed_by_supervisor_exit": true
+  },
+  "closure_resource": {
+    "physical_minimum_observed_bytes": 8889503744,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 0.782115599984536,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 107319296,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "global_wall_seconds": 68.126014199981
+}

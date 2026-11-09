@@ -1,0 +1,201 @@
+{
+  "cases": 3,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "wrong-table",
+      "passed": true,
+      "control": {
+        "method": "GET",
+        "path": "/brands/1/studio/datasets/2/table",
+        "token": "e172c792-4b95-463f-a815-4ced592d10e6"
+      },
+      "capabilities": {
+        "secure": true,
+        "subtle": "object"
+      },
+      "listenerCountBefore": 2,
+      "listenerCountAttached": 3,
+      "actual_request_targets": [
+        "/brands/1/studio/datasets/2/export?format=json&revision=1"
+      ],
+      "consumer": {
+        "status": "resolved",
+        "row_count": 4,
+        "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054"
+      },
+      "cache": {
+        "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "stats": {
+          "brandId": 1,
+          "disposed": false,
+          "offline": false,
+          "descriptors": 0,
+          "resources": 1,
+          "projections": 0,
+          "metadata": 1,
+          "bytes": 289
+        }
+      },
+      "hook_events": [],
+      "browserFailures": [],
+      "scope": "Transport/resource semantics only; no app UI/noLateApply acceptance."
+    },
+    {
+      "name": "sole-consumer",
+      "passed": true,
+      "control": {
+        "method": "GET",
+        "path": "/brands/1/studio/datasets/2/export",
+        "token": "5293bb02-4e17-4c1d-9e47-f7fb79c09ba0"
+      },
+      "capabilities": {
+        "secure": true,
+        "subtle": "object"
+      },
+      "listenerCountBefore": 2,
+      "listenerCountAttached": 3,
+      "actual_request_targets": [
+        "/brands/1/studio/datasets/2/export?format=json&revision=1"
+      ],
+      "consumer": {
+        "status": "rejected",
+        "name": "AbortError",
+        "message": "Chart resource operation aborted."
+      },
+      "after": {
+        "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "row_count": 4,
+        "first_consumer": {
+          "status": "rejected",
+          "name": "AbortError",
+          "message": "Chart resource operation aborted."
+        },
+        "stats": {
+          "brandId": 1,
+          "disposed": false,
+          "offline": false,
+          "descriptors": 0,
+          "resources": 1,
+          "projections": 0,
+          "metadata": 1,
+          "bytes": 289
+        }
+      },
+      "cache": null,
+      "hook_events": [
+        {
+          "kind": "hold-captured-real-response",
+          "token": "5293bb02-4e17-4c1d-9e47-f7fb79c09ba0",
+          "method": "GET",
+          "path": "/brands/1/studio/datasets/2/export",
+          "status": 200,
+          "upstream_status": 200,
+          "bytes": 289,
+          "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+          "headers": {
+            "content-type": "application/json"
+          }
+        },
+        {
+          "kind": "hold-released",
+          "token": "5293bb02-4e17-4c1d-9e47-f7fb79c09ba0",
+          "cancelled_delivery": false,
+          "unchanged_bytes": 289,
+          "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+          "deadline_release": false
+        }
+      ],
+      "browserFailures": [],
+      "scope": "Transport/resource semantics only; no app UI/noLateApply acceptance."
+    },
+    {
+      "name": "registry-dispose",
+      "passed": true,
+      "control": {
+        "method": "GET",
+        "path": "/brands/1/studio/datasets/2/export",
+        "token": "a6a62b15-3ff5-4af3-bfce-96e78aa1b915"
+      },
+      "capabilities": {
+        "secure": true,
+        "subtle": "object"
+      },
+      "listenerCountBefore": 2,
+      "listenerCountAttached": 3,
+      "actual_request_targets": [
+        "/brands/1/studio/datasets/2/export?format=json&revision=1"
+      ],
+      "consumer": {
+        "status": "rejected",
+        "name": "AbortError",
+        "message": "Chart resource operation aborted."
+      },
+      "cache": null,
+      "hook_events": [
+        {
+          "kind": "hold-captured-real-response",
+          "token": "a6a62b15-3ff5-4af3-bfce-96e78aa1b915",
+          "method": "GET",
+          "path": "/brands/1/studio/datasets/2/export",
+          "status": 200,
+          "upstream_status": 200,
+          "bytes": 289,
+          "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+          "headers": {
+            "content-type": "application/json"
+          }
+        },
+        {
+          "kind": "hold-client-cancelled",
+          "token": "a6a62b15-3ff5-4af3-bfce-96e78aa1b915",
+          "real_response_captured": true
+        },
+        {
+          "kind": "hold-released",
+          "token": "a6a62b15-3ff5-4af3-bfce-96e78aa1b915",
+          "cancelled_delivery": true,
+          "unchanged_bytes": 289,
+          "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+          "deadline_release": false
+        }
+      ],
+      "browserFailures": [
+        {
+          "url": "http://localhost:62974/brands/1/studio/datasets/2/export?format=json&revision=1",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "scope": "Transport/resource semantics only; no app UI/noLateApply acceptance."
+    }
+  ],
+  "requests": [
+    {
+      "name": "wrong-table",
+      "method": "GET",
+      "request_target": "/brands/1/studio/datasets/2/export?format=json&revision=1"
+    },
+    {
+      "name": "sole-consumer",
+      "method": "GET",
+      "request_target": "/brands/1/studio/datasets/2/export?format=json&revision=1"
+    },
+    {
+      "name": "registry-dispose",
+      "method": "GET",
+      "request_target": "/brands/1/studio/datasets/2/export?format=json&revision=1"
+    }
+  ],
+  "unexpected": [],
+  "timedOut": false,
+  "cleanup": {
+    "browser_closed": true,
+    "frontend_port_free": true,
+    "backend_port_free": true
+  },
+  "frontendPort": 62974,
+  "backendPort": 62973,
+  "app_pass_claim": false,
+  "scope": "Actual frontend/hook/registry/parser with289B fixture backend. Wrong path/cache versus sole-consumer and owner dispose distinguished. No app/noLateApply proof or QA authorization."
+}

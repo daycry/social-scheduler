@@ -1,0 +1,146 @@
+{
+  "verdict": "NO-PASS",
+  "planned_cases": 12,
+  "declared_cases": 12,
+  "actual_cases": 1,
+  "counts": {
+    "unexpected": 1,
+    "skipped": 11
+  },
+  "qa_gate_exit": 1,
+  "issues": [
+    "Runner errors",
+    "E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font / desktop",
+    "E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary / desktop",
+    "E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility / desktop",
+    "E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded / desktop",
+    "E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font / mobile",
+    "E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary / mobile",
+    "E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility / mobile",
+    "E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded / mobile",
+    "E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font / mobile-360",
+    "E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary / mobile-360",
+    "E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility / mobile-360",
+    "E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded / mobile-360",
+    "viewport.json: 1/12 artifacts",
+    "network-observer.json: 1/12 artifacts",
+    "actor-network-observer.json: 0/3 artifacts",
+    "axe-chart-modal.json: 0/3 artifacts",
+    "axe-inspector.json: 0/3 artifacts",
+    "axe-empty-historic.json: 0/3 artifacts",
+    "empty-historic.json: 0/3 artifacts",
+    "delayed-real-response.json: 0/3 artifacts",
+    "native-materialization.json: 0/3 artifacts",
+    "budget-negative.json: 0/3 artifacts",
+    "stress-scope.json: 0/3 artifacts",
+    "Independent observer absent/incomplete svg-xml-observer.json",
+    "Independent observer absent/incomplete pdf-provenance.json",
+    "Independent PNG/glyph/preview observer absent",
+    "Core/independent observer process failed or unexecuted"
+  ],
+  "cases": [
+    {
+      "id": "E2E28.01",
+      "title": "E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font",
+      "project": "desktop",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "id": "E2E28.02",
+      "title": "E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.03",
+      "title": "E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.04",
+      "title": "E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded",
+      "project": "desktop",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.01",
+      "title": "E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.02",
+      "title": "E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.03",
+      "title": "E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.04",
+      "title": "E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded",
+      "project": "mobile",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.01",
+      "title": "E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.02",
+      "title": "E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.03",
+      "title": "E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    },
+    {
+      "id": "E2E28.04",
+      "title": "E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded",
+      "project": "mobile-360",
+      "outcome": "skipped",
+      "expected": "passed",
+      "results": []
+    }
+  ],
+  "scope": "Only this attempt, no historical smoke/AV/ONNX/52 MB stress credit"
+}

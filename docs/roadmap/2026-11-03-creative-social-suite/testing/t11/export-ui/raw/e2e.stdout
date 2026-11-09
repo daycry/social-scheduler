@@ -1,0 +1,65 @@
+
+Running 48 tests using 1 worker
+
+  ✓   1 [desktop] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (7.9s)
+  ✓   2 [desktop] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (5.0s)
+  ✓   3 [desktop] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (8.0s)
+  ✓   4 [desktop] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (11.8s)
+  ✓   5 [desktop] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (5.5s)
+
+  ✓   6 [desktop] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (15.2s)
+  ✓   7 [desktop] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (4.5s)
+  ✓   8 [desktop] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (5.3s)
+
+  ✓   9 [desktop] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (6.6s)
+  ✓  10 [desktop] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (4.3s)
+
+  ✓  11 [desktop] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (6.9s)
+
+  ✓  12 [desktop] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (7.1s)
+  ✓  13 [desktop] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (5.4s)
+  ✓  14 [desktop] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (6.5s)
+  ✓  15 [desktop] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (5.0s)
+  ✓  16 [desktop] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (4.8s)
+  ✓  17 [mobile] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (7.3s)
+  ✓  18 [mobile] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (4.6s)
+  ✓  19 [mobile] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (7.6s)
+  ✓  20 [mobile] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (11.2s)
+  ✓  21 [mobile] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (5.7s)
+
+  ✓  22 [mobile] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (15.6s)
+  ✓  23 [mobile] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (4.4s)
+  ✓  24 [mobile] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (5.1s)
+
+  ✓  25 [mobile] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (6.4s)
+  ✓  26 [mobile] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (4.2s)
+
+  ✓  27 [mobile] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (6.9s)
+
+  ✓  28 [mobile] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (8.1s)
+  ✓  29 [mobile] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (5.3s)
+  ✓  30 [mobile] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (5.9s)
+  ✓  31 [mobile] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (4.9s)
+  ✓  32 [mobile] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (5.9s)
+  ✓  33 [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (10.1s)
+  ✓  34 [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (7.4s)
+  ✓  35 [mobile-360] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (10.1s)
+  ✓  36 [mobile-360] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (15.6s)
+  ✓  37 [mobile-360] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (8.5s)
+
+  ✓  38 [mobile-360] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (21.3s)
+  ✓  39 [mobile-360] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (7.0s)
+  ✓  40 [mobile-360] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (8.1s)
+
+  ✓  41 [mobile-360] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (8.4s)
+  ✓  42 [mobile-360] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (6.1s)
+
+  ✓  43 [mobile-360] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (9.7s)
+
+  ✓  44 [mobile-360] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (9.4s)
+  ✓  45 [mobile-360] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (7.8s)
+  ✓  46 [mobile-360] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (8.4s)
+  ✓  47 [mobile-360] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (6.9s)
+  ✓  48 [mobile-360] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (7.6s)
+
+  48 passed (6.5m)

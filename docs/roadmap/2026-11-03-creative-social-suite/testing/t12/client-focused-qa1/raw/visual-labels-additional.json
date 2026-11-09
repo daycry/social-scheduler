@@ -1,0 +1,63 @@
+{
+  "finding": "VL2",
+  "severity": "Important",
+  "state": "pending",
+  "scope": "Posthoc original exported PNG and DOM inspection; no native rerun",
+  "observations": [
+    {
+      "kind": "column-proportional",
+      "text": "66.66666666666667%",
+      "effective_font_px": 8.247600138187408,
+      "native_ink": {
+        "x": 191.21734886014463,
+        "y": 89.79399032993615,
+        "width": 88.31343703876155,
+        "height": 6.4148001074790955,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      },
+      "legend_ink": {
+        "x": 669.9999985351562,
+        "y": 109.32449816894531,
+        "width": 54.14996337890625,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      },
+      "legend_intersection_area_px2": 0,
+      "input_sha256": "b6495260527729d2d747bff7095d93024259460eb50dbbeb025c93b0554e764c"
+    },
+    {
+      "kind": "bar-proportional",
+      "text": "66.66666666666667%",
+      "effective_font_px": 5.603399634361267,
+      "native_ink": {
+        "x": 647.4993983576297,
+        "y": 117.02924870917201,
+        "width": 59.999936044539936,
+        "height": 4.358199715614319,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      },
+      "legend_ink": {
+        "x": 669.9999985351562,
+        "y": 109.32449816894531,
+        "width": 54.14996337890625,
+        "height": 14,
+        "empty": false,
+        "fonts": [
+          "normal 300 18px StudioFont_1_85e184adef31c8e8"
+        ]
+      },
+      "legend_intersection_area_px2": 163.42959491134374,
+      "input_sha256": "93c5198d1ab5bdc5887c0fda3e385c3a836084771b0d54c21125519bd902b952"
+    }
+  ],
+  "issue": "Percentage strings expose long binary-decimal representations, causing very small fitted text in ordinary800x500/font18 fixtures; horizontal outside value ink overlaps the legend. Preserve underlying percentages/raw values while correcting display/layout."
+}

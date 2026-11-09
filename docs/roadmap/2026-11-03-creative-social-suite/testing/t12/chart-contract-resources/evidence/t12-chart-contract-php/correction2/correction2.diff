@@ -1,0 +1,71 @@
+--- before/app/Services/Studio/StudioCharts.php
++++ after/app/Services/Studio/StudioCharts.php
+@@ -112,9 +112,6 @@
+         }
+         if (! $proportional) {
+             self::check(($options['domain_min'] === null || $options['domain_min'] <= $min) && ($options['domain_max'] === null || $options['domain_max'] >= $max), $path.'.options', 'El dominio debe incluir cero y todos los extremos.');
+-            $domainMin = $options['domain_min'] ?? $min;
+-            $domainMax = $options['domain_max'] ?? $max;
+-            self::check(is_finite((float) ($domainMax - $domainMin)), $path.'.options', 'El intervalo del dominio debe ser finito.');
+         }
+     }
+ 
+--- before/tests/Feature/Studio/StudioChartsTest.php
++++ after/tests/Feature/Studio/StudioChartsTest.php
+@@ -15,6 +15,7 @@
+ use Illuminate\Support\Facades\Schema;
+ use Illuminate\Support\Facades\Storage;
+ use Illuminate\Validation\ValidationException;
++use PHPUnit\Framework\Attributes\DataProvider;
+ use Symfony\Component\HttpKernel\Exception\HttpException;
+ use Tests\TestCase;
+ 
+@@ -218,7 +219,47 @@
+         $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
+         $chart['chart']['options'] = ['kind' => 'bar', 'domain_min' => -PHP_FLOAT_MAX, 'domain_max' => PHP_FLOAT_MAX];
+         $chart['chart']['binding']['series_columns'] = ['value'];
+-        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        $document = $this->document([$chart]);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++    }
++
++    public static function finiteWideDomains(): array
++    {
++        return ['maximum finite endpoints' => [PHP_FLOAT_MAX], 'decimal exponent endpoints' => [1e308]];
++    }
++
++    #[DataProvider('finiteWideDomains')]
++    public function test_save_accepts_finite_domain_endpoints_even_when_their_difference_overflows(float $endpoint): void
++    {
++        $chart = $this->chart([1], ['kind' => 'column', 'domain_min' => -$endpoint, 'domain_max' => $endpoint]);
++        // JSON transport has only finite endpoints; the same JSON options are valid input to G5.
++        $document = json_decode(json_encode($this->document([$chart]), JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++    }
++
++    public function test_real_stacked_overflow_and_incompatible_domains_still_return_422(): void
++    {
++        $chart = $this->chart([PHP_FLOAT_MAX], ['kind' => 'column-stacked']);
++        $id = $chart['chart']['binding']['dataset']['id'];
++        $table = $this->datasets->read(1, 1, $id, 1);
++        $table['columns'][] = ['id' => 'second', 'label' => 'Second'];
++        $table['rows'][0]['values'][] = PHP_FLOAT_MAX;
++        $this->datasets->replace(1, 1, $id, 1, 'Overflow', $table);
++        $chart['chart']['binding']['dataset']['revision'] = 2;
++        $chart['chart']['binding']['dataset']['sha256'] = DB::table('studio_dataset_revisions')->where('dataset_id', $id)->where('revision', 2)->value('sha256');
++        $chart['chart']['binding']['series_columns'] = ['value', 'second'];
++        $chart['chart']['binding']['precision'] = 'approximate';
++        try {
++            app(StudioDocument::class)->validate($this->user, $this->brand, $this->document([$chart]));
++            $this->fail('Expected a real stacked accumulation overflow to be rejected.');
++        } catch (ValidationException $error) {
++            $this->assertSame(422, $error->status);
++            $this->assertSame(['document.pages.0.elements.0.chart.options' => ['Acumulado no finito.']], $error->errors());
++        }
++        foreach ([['domain_min' => 0, 'domain_max' => 0], ['domain_min' => 1, 'domain_max' => 10], ['domain_min' => -10, 'domain_max' => 0]] as $domain) {
++            $chart = $this->chart([1], ['kind' => 'column'] + $domain);
++            $this->assertHttpStatus(422, fn () => app(StudioDocument::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        }
+     }
+ 
+     public function test_characterization_unique_reference_and_aggregate_document_budgets(): void

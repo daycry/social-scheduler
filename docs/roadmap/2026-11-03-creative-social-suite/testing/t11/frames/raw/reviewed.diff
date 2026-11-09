@@ -1,0 +1,900 @@
+--- a/resources/js/Studio/exports.js
++++ b/resources/js/Studio/exports.js
+@@ -1,7 +1,8 @@
+ import { PDFDocument } from 'pdf-lib';
+ import { FabricImage, Group } from 'fabric';
+ import { selectPages, validateDocument, StudioDocumentError } from './document.js';
+-import { renderStudioPage } from './canvas.js';
++import { renderStudioFrame } from './frame-renderer.js';
++import { frameElements, frameTimes } from './frames.js';
+ import { createStudioFontRegistry } from './fonts.js';
+ 
+ export const EXPORT_FORMATS = Object.freeze([
+@@ -87,9 +88,10 @@
+     const document = validateDocument(documentData);
+     const format = options.format ?? 'png';
+     const target = metadata(format);
++    const times = frameTimes(document, [pageId], options.frame_times);
+     if (format === 'pdf') return exportPdf(document, [pageId], assets, options);
+     const { scale, quality, width, height } = rasterOptions(document, options);
+-    const rendering = await renderStudioPage(document, pageId, assets, options.fonts ?? []);
++    const rendering = await renderStudioFrame(document, pageId, times.get(pageId), assets, options.fonts ?? []);
+     try {
+         if (options.transparent) {
+             rendering.canvas.backgroundColor = '#ffffff00';
+@@ -128,14 +130,16 @@
+ export async function exportPdf(documentData, pageIds, assets = [], options = {}) {
+     const document = validateDocument(documentData);
+     const pages = selectPages(document, pageIds);
+-    return withExportFonts(pages, options.fonts ?? [], async () => {
++    const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
++    const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
++    return withExportFonts(sampled, options.fonts ?? [], async () => {
+         const pdf = await PDFDocument.create();
+         pdf.setTitle(options.title || 'Diseño');
+         pdf.setCreator('Creative Social Suite');
+         const pageWidth = document.width * 72 / 96;
+         const pageHeight = document.height * 72 / 96;
+         for (let i = 0; i < pages.length; i++) {
+-            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png' });
++            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png', frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined });
+             const bitmap = await pdf.embedPng(await image.arrayBuffer());
+             const page = pdf.addPage([pageWidth, pageHeight]);
+             page.drawImage(bitmap, { x: 0, y: 0, width: pageWidth, height: pageHeight });
+@@ -149,11 +153,13 @@
+     const document = validateDocument(documentData);
+     const pages = selectPages(document, pageIds);
+     const target = metadata(format);
+-    return withExportFonts(pages, options.fonts ?? [], async () => {
++    const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
++    const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
++    return withExportFonts(sampled, options.fonts ?? [], async () => {
+         if (format === 'pdf') return [{ blob: await exportPdf(document, pages.map(page => page.id), assets, options), pageId: null, extension: target.extension, mime: target.mime }];
+         const output = [];
+         for (let i = 0; i < pages.length; i++) {
+-            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
++            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format, frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
+             options.onProgress?.({ completed: i + 1, total: pages.length });
+         }
+         return output;
+--- a/resources/js/Studio/canvas.js
++++ b/resources/js/Studio/canvas.js
+@@ -18,12 +18,12 @@
+     return { start, end };
+ }
+ 
+-export async function seekVideoFrame(video, seconds, { timeout = 10000, signal } = {}) {
++export async function seekVideoFrame(video, seconds, { timeout = 10000, signal, positionTolerance = 0.01, endTolerance = 0.01 } = {}) {
+     if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
+     const value = Number(seconds);
+     if (!Number.isFinite(value)) throw new StudioDocumentError('Selecciona un tiempo de vídeo válido.');
+-    const seek = Math.min(Math.max(0, value), Number.isFinite(video.duration) ? Math.max(0, video.duration - 0.01) : value);
+-    if (Math.abs(video.currentTime - seek) < 0.01 && !video.seeking) return;
++    const seek = Math.min(Math.max(0, value), Number.isFinite(video.duration) ? Math.max(0, video.duration - endTolerance) : value);
++    if (Math.abs(video.currentTime - seek) < positionTolerance && !video.seeking) return;
+     await new Promise((resolve, reject) => {
+         const cleanup = () => { clearTimeout(timer); video.removeEventListener('seeked', ready); video.removeEventListener('error', failed); signal?.removeEventListener('abort', cancelled); };
+         const ready = () => { cleanup(); resolve(); };
+@@ -244,7 +244,11 @@
+         case 'group': {
+             const children = [];
+             for (const child of element.elements) children.push(await elementToFabric(child, { assets, signal, videos, fontRegistry }));
++            const positions = children.map(child => ({ left: child.left, top: child.top }));
+             object = new Group(children, { ...options, layoutManager: new LayoutManager(new FixedLayout()), subTargetCheck: false, interactive: false });
++            // Persisted children are already in the group's local coordinate plane. Initial Fabric
++            // layout recenters a partial temporal set; restore its declared positions after grouping.
++            children.forEach((child, index) => { child.set(positions[index]); child.setCoords(); });
+             break;
+         }
+         default: throw new StudioDocumentError(`El tipo ${element.type} no está admitido.`);
+--- a/resources/js/Pages/Studio/Editor.vue
++++ b/resources/js/Pages/Studio/Editor.vue
+@@ -607,7 +607,7 @@
+                 </aside>
+             </div>
+         </div>
+-        <ExportDialog ref="exporter" v-model="exportOpen" :document="documentData" :assets="localAssets" :fonts="localFonts" :design-id="design.id" :prepare="prepareExport" @busy="exportBusy = $event" />
++        <ExportDialog ref="exporter" v-model="exportOpen" :document="documentData" :assets="localAssets" :fonts="localFonts" :design-id="design.id" :prepare="prepareExport" :playhead="timeline" @busy="exportBusy = $event" />
+         <StudioFontsDialog v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
+         <StudioDialog :model-value="templateSaveOpen" title="Guardar como plantilla" @update:model-value="value => { if (!automationBusy) templateSaveOpen = value; }">
+             <div v-if="templateCreated" class="space-y-5"><p role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">Plantilla guardada en {{ brand.name }}. Tu diseño original se conserva.</p><div class="flex flex-wrap justify-end gap-2"><button type="button" class="btn-secondary" @click="templateSaveOpen = false">Cerrar plantilla</button><Link :href="route('studio.designs.edit', templateCreated.id)" class="btn-primary bg-violet-700">Ver plantilla</Link></div></div>
+--- a/resources/js/Components/Studio/ExportDialog.vue
++++ b/resources/js/Components/Studio/ExportDialog.vue
+@@ -4,20 +4,31 @@
+ import StudioDialog from './StudioDialog.vue';
+ import { EXPORT_FORMATS, exportDesign } from '@/Studio/exports';
+ import { studioRequest, uploadStudioFile, downloadStudioBlob } from '@/Studio/api';
++import { compileTimeline } from '@/Studio/timeline';
+ 
+-const props = defineProps({ modelValue: Boolean, document: Object, assets: Array, fonts: { type: Array, default: () => [] }, designId: Number, prepare: Function });
++const props = defineProps({ modelValue: Boolean, document: Object, assets: Array, fonts: { type: Array, default: () => [] }, designId: Number, prepare: Function, playhead: { type: Number, default: 0 } });
+ const emit = defineEmits(['update:modelValue', 'busy', 'registered']);
+ const format = ref('png');
+ const scale = ref(1);
+ const quality = ref(0.94);
+ const transparent = ref(false);
+ const selectedPages = ref(props.document.pages.map(page => page.id));
++const pageFrameTimes = ref(Object.create(null));
+ const busy = ref(false);
+ const status = ref('');
+ const error = ref('');
+ const raster = computed(() => ['png', 'jpeg', 'webp'].includes(format.value));
+ const outputSize = computed(() => `${Math.round(props.document.width * scale.value)} × ${Math.round(props.document.height * scale.value)} px`);
+ watch(() => props.document.pages.map(page => page.id).join(','), () => { selectedPages.value = props.document.pages.map(page => page.id); });
++function initializeFrames() {
++    const times = Object.create(null);
++    if (props.document.schema_version === 2) for (const page of compileTimeline(props.document).pages) {
++        const local = props.playhead - page.start;
++        times[page.id] = local >= 0 && local < page.source.duration ? Math.floor(local * 1e6) / 1e6 : 0;
++    }
++    pageFrameTimes.value = times;
++}
++watch(() => props.modelValue, open => { if (open) initializeFrames(); }, { immediate: true });
+ 
+ async function run(mode) {
+     if (busy.value) return;
+@@ -28,8 +39,10 @@
+         status.value = 'Guardando la revisión del diseño…';
+         const snapshot = await props.prepare();
+         const pageIds = snapshot.document.pages.filter(page => selectedPages.value.includes(page.id)).map(page => page.id);
++        const temporal = snapshot.document.schema_version === 2
++            ? { frame_times: pageIds.map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] ?? 0 })) } : {};
+         status.value = 'Preparando fuentes, recursos y páginas…';
+-        const files = await exportDesign(snapshot.document, { format: format.value, pageIds, assets: props.assets, fonts: props.fonts, scale: Number(scale.value), quality: Number(quality.value), transparent: transparent.value && format.value !== 'jpeg', title: snapshot.name, onProgress: ({ completed, total }) => { status.value = `Renderizadas ${completed} de ${total} páginas.`; } });
++        const files = await exportDesign(snapshot.document, { format: format.value, pageIds, assets: props.assets, fonts: props.fonts, scale: Number(scale.value), quality: Number(quality.value), transparent: transparent.value && format.value !== 'jpeg', title: snapshot.name, ...temporal, onProgress: ({ completed, total }) => { status.value = `Renderizadas ${completed} de ${total} páginas.`; } });
+         if (mode === 'download') {
+             files.forEach((output, i) => downloadStudioBlob(output.blob, `${snapshot.name}${files.length > 1 ? `-${i + 1}` : ''}.${output.extension}`));
+             status.value = `${files.length} ${files.length === 1 ? 'archivo preparado' : 'archivos preparados'}.`;
+@@ -42,7 +55,7 @@
+             ids.push(asset.id);
+         }
+         status.value = 'Registrando la exportación en esta marca…';
+-        const result = await studioRequest('POST', route('studio.exports.store', props.designId), { revision: snapshot.revision, format: format.value, pages: pageIds, media_ids: ids, scale: Number(scale.value), quality: Number(quality.value), transparent: transparent.value && format.value !== 'jpeg' });
++        const result = await studioRequest('POST', route('studio.exports.store', props.designId), { revision: snapshot.revision, format: format.value, pages: pageIds, media_ids: ids, scale: Number(scale.value), quality: Number(quality.value), transparent: transparent.value && format.value !== 'jpeg', ...temporal });
+         emit('registered', result.export);
+         if (mode === 'post') {
+             status.value = 'Creando el borrador de publicación…';
+@@ -54,6 +67,7 @@
+ }
+ function publish() {
+     if (!raster.value) format.value = 'png';
++    initializeFrames();
+     emit('update:modelValue', true);
+     return run('post');
+ }
+@@ -68,7 +82,7 @@
+                 <div class="grid grid-cols-2 gap-4"><label class="space-y-1 text-sm font-medium">Escala<select v-model.number="scale" aria-label="Escala" class="field"><option :value="0.5">0,5 ×</option><option :value="1">1 ×</option><option :value="2">2 ×</option><option :value="3">3 ×</option><option :value="4">4 ×</option></select></label><label class="space-y-1 text-sm font-medium">Calidad<input v-model.number="quality" class="field" type="number" min="0.1" max="1" step="0.05" /></label></div>
+                 <p class="text-xs text-slate-500">{{ format === 'svg' ? `${document.width} × ${document.height} px · vector y medios embebidos` : outputSize }}{{ format === 'pdf' ? ' · un fotograma por página en PDF' : '' }}</p>
+                 <label v-if="format !== 'jpeg'" class="flex items-center gap-2 text-sm"><input v-model="transparent" type="checkbox" />Fondo transparente</label>
+-                <div><h3 class="mb-2 text-sm font-medium">Páginas</h3><div class="max-h-44 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3"><label v-for="(page, index) in document.pages" :key="page.id" class="flex items-center gap-2 text-sm"><input v-model="selectedPages" type="checkbox" :value="page.id" />{{ index + 1 }}. {{ page.name }}</label></div></div>
++                <div><h3 class="mb-2 text-sm font-medium">Páginas</h3><p v-if="document.schema_version === 2" class="mb-2 text-xs text-slate-500">Elige un segundo local por página. Las páginas donde está el cabezal parten de ese instante.</p><div class="max-h-60 space-y-3 overflow-y-auto rounded-xl border border-slate-200 p-3"><div v-for="(page, index) in document.pages" :key="page.id" class="min-w-0 space-y-2"><label class="flex items-center gap-2 text-sm"><input v-model="selectedPages" type="checkbox" :value="page.id" />{{ index + 1 }}. {{ page.name }}</label><label v-if="document.schema_version === 2" class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600"><span>Fotograma (s)</span><input v-model.number="pageFrameTimes[page.id]" :aria-label="`Fotograma de ${page.name} (s)`" type="number" min="0" :max="page.duration - 0.000001" step="0.001" class="field w-28 text-xs" :disabled="!selectedPages.includes(page.id)" /><span>antes de {{ page.duration }} s</span></label></div></div></div>
+             </fieldset>
+             <p v-if="status" role="status" class="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">{{ status }}</p>
+             <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
+--- a/app/Services/Studio/StudioRenderer.php
++++ b/app/Services/Studio/StudioRenderer.php
+@@ -28,12 +28,15 @@
+             'revision' => ['required', 'integer', 'min:1'],
+             'format' => ['required', Rule::in(['png', 'jpeg', 'webp', 'svg', 'pdf'])],
+             'pages' => ['required', 'array', 'min:1', 'max:100'], 'pages.*' => ['required', 'string', 'max:64', 'distinct'],
++            'frame_times' => ['sometimes', 'array', 'max:100'],
+             'scale' => ['sometimes', 'numeric', 'min:0.1', 'max:4'], 'quality' => ['sometimes', 'numeric', 'min:0.1', 'max:1'], 'transparent' => ['sometimes', 'boolean'],
+         ])->validate();
+         $revision = $this->exports->revision($user, $design, (int) $data['revision']);
+         if (! array_is_list($data['pages']) || array_diff($data['pages'], array_column($revision->document['pages'], 'id')) !== []) {
+             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes en la revisión indicada.']]);
+         }
++        $frameTimes = app(StudioFrames::class)->validate($revision->document, $data['pages'], $data['frame_times'] ?? []);
++        $frameOptions = array_key_exists('frame_times', $data) ? ['frame_times' => $frameTimes] : [];
+         $scale = (float) ($data['scale'] ?? 1);
+         $width = (int) round($revision->document['width'] * $scale);
+         $height = (int) round($revision->document['height'] * $scale);
+@@ -41,10 +44,10 @@
+             throw ValidationException::withMessages(['scale' => ['El trabajo completo admite hasta 64 megapíxeles y 16000 píxeles por lado. Exporta menos páginas o reduce la escala.']]);
+         }
+ 
+-        return DB::transaction(function () use ($user, $design, $data): DesignExport {
++        return DB::transaction(function () use ($user, $design, $data, $frameOptions): DesignExport {
+             $export = DesignExport::create(['user_id' => $user->id, 'brand_id' => $design->brand_id, 'design_id' => $design->id,
+                 'revision' => $data['revision'], 'format' => $data['format'], 'pages' => $data['pages'], 'status' => 'pending',
+-                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)]]);
++                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)] + $frameOptions]);
+             RenderStudioDesign::dispatch($export->id)->afterCommit();
+ 
+             return $export->refresh();
+@@ -65,6 +68,8 @@
+             $user = User::findOrFail($export->user_id);
+             $design = Design::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->design_id);
+             $revision = $this->exports->revision($user, $design, $export->revision);
++            $frames = app(StudioFrames::class);
++            $times = array_column($frames->validate($revision->document, $export->pages, $export->options['frame_times'] ?? []), 'time', 'page_id');
+             $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->brand_id);
+             $assetIds = [];
+             $fontIds = [];
+@@ -83,7 +88,9 @@
+             };
+             foreach ($revision->document['pages'] as $page) {
+                 if (in_array($page['id'], $export->pages, true)) {
+-                    $walk($page['elements']);
++                    $walk(($revision->document['schema_version'] ?? 1) === 2
++                        ? $frames->elements($page['elements'], $times[$page['id']] ?? 0, $page['duration'])
++                        : $page['elements']);
+                 }
+             }
+             $assets = [];
+--- a/app/Services/Studio/StudioExports.php
++++ b/app/Services/Studio/StudioExports.php
+@@ -32,6 +32,7 @@
+             'format' => ['required', Rule::in(['png', 'jpeg', 'webp'])],
+             'pages' => ['required', 'array', 'min:1', 'max:100'], 'pages.*' => ['required', 'string', 'max:64', 'distinct'],
+             'media_ids' => ['required', 'array', 'min:1', 'max:100'], 'media_ids.*' => ['required', 'integer', 'min:1', 'distinct'],
++            'frame_times' => ['sometimes', 'array', 'max:100'],
+             'scale' => ['sometimes', 'numeric', 'min:0.1', 'max:4'], 'transparent' => ['sometimes', 'boolean'], 'quality' => ['sometimes', 'numeric', 'min:0.1', 'max:1'],
+         ])->validate();
+         $revision = $this->revision($user, $design, (int) $data['revision']);
+@@ -41,6 +42,8 @@
+         if (! array_is_list($pages) || ! array_is_list($ids) || count($pages) !== count($ids) || array_diff($pages, $pageIds) !== []) {
+             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes y un archivo por página, en el mismo orden.']]);
+         }
++        $frameTimes = app(StudioFrames::class)->validate($revision->document, $pages, $data['frame_times'] ?? []);
++        $frameOptions = array_key_exists('frame_times', $data) ? ['frame_times' => $frameTimes] : [];
+         $scale = (float) ($data['scale'] ?? 1);
+         $width = (int) round($revision->document['width'] * $scale);
+         $height = (int) round($revision->document['height'] * $scale);
+@@ -57,14 +60,14 @@
+         }
+         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
+ 
+-        return DB::transaction(function () use ($user, $brand, $design, $data, $pages, $ids): DesignExport {
++        return DB::transaction(function () use ($user, $brand, $design, $data, $pages, $ids, $frameOptions): DesignExport {
+             foreach ($ids as $id) {
+                 $this->assets->attach($user, $brand, $id);
+             }
+ 
+             return DesignExport::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'design_id' => $design->id,
+                 'revision' => (int) $data['revision'], 'format' => $data['format'], 'pages' => $pages, 'media_ids' => $ids,
+-                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'transparent' => (bool) ($data['transparent'] ?? false), 'quality' => (float) ($data['quality'] ?? 1)], 'status' => 'ready']);
++                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'transparent' => (bool) ($data['transparent'] ?? false), 'quality' => (float) ($data['quality'] ?? 1)] + $frameOptions, 'status' => 'ready']);
+         });
+     }
+ 
+--- a/app/Mcp/Tools/ExportDesign.php
++++ b/app/Mcp/Tools/ExportDesign.php
+@@ -6,6 +6,7 @@
+ use App\Models\Studio\Design;
+ use App\Models\User;
+ use App\Services\Studio\StudioExports;
++use App\Services\Studio\StudioFrames;
+ use App\Services\Studio\StudioRenderer;
+ use Illuminate\Contracts\JsonSchema\JsonSchema;
+ use Laravel\Mcp\Request;
+@@ -31,11 +32,14 @@
+         return ['design_id' => $schema->integer()->required(), 'revision' => $schema->integer()->min(1)->required(),
+             'format' => $schema->string()->enum(['png', 'jpeg', 'webp', 'svg', 'pdf'])->required(),
+             'pages' => $schema->array()->items($schema->string())->required(), 'scale' => $schema->number()->min(0.1)->max(4),
++            'frame_times' => $schema->array()->items($schema->object(['page_id' => $schema->string()->required(), 'time' => $schema->number()->min(0)->max(3600)->required()]))
++                ->description('Solo documento v2: segundos locales por página seleccionada, sin repetir; time menor que su duración. Páginas omitidas usan0.'),
+             'transparent' => $schema->boolean(), 'quality' => $schema->number()->min(0.1)->max(1)];
+     }
+ 
+     protected function run(Request $request, User $user): array
+     {
++        app(StudioFrames::class)->assertJsonList(request(), 'params.arguments.frame_times');
+         $data = $request->validate(['design_id' => ['required', 'integer', 'min:1']]);
+         $export = app(StudioRenderer::class)->export($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño'), $request->all());
+ 
+--- a/docs/api/creative-suite.openapi.yaml
++++ b/docs/api/creative-suite.openapi.yaml
+@@ -313,6 +313,8 @@
+                   minItems: 1
+                   maxItems: 100
+                   items: { type: string, maxLength: 64 }
++                frame_times:
++                  $ref: '#/components/schemas/FrameTimes'
+       responses:
+         '202': { description: Trabajo de render aceptado, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+         '422': { $ref: '#/components/responses/ValidationError' }
+@@ -787,6 +789,17 @@
+         options: { type: object, nullable: true }
+         error: { type: string, nullable: true }
+         download_url: { type: string, nullable: true, description: URL firmada de descarga válida durante 10 minutos; null hasta disponer de artefacto listo }
++    FrameTimes:
++      type: array
++      maxItems: 100
++      description: Instantes locales por página para exportaciones estáticas de documento v2. Cada page_id debe estar seleccionado y aparecer una sola vez; time es finito, mayor o igual a cero y menor que la duración de esa página. Las páginas omitidas usan cero. No aplica transiciones entre páginas ni audio a formatos estáticos. Un documento v1 admite solamente una lista vacía o ausencia, conservando su póster anterior.
++      items:
++        type: object
++        additionalProperties: false
++        required: [page_id, time]
++        properties:
++          page_id: { type: string, minLength: 1, maxLength: 64 }
++          time: { type: number, minimum: 0, maximum: 3600, exclusiveMaximum: true }
+     ExpectedRevision:
+       type: object
+       additionalProperties: false
+--- a/tests/frontend/studio-geometry.test.mjs
++++ b/tests/frontend/studio-geometry.test.mjs
+@@ -40,6 +40,16 @@
+     restored.getObjects().forEach((object, i) => assertMatrix(before[i], object.calcTransformMatrix()));
+ });
+ 
++test('a fixed group preserves non-centered local coordinates when only one timed child is present', async () => {
++    const group = await elementToFabric({ id: 'fixed', type: 'group', x: 100, y: 80, width: 100, height: 100,
++        elements: [{ id: 'red', type: 'rect', x: -50, y: -50, width: 60, height: 60, fill: '#ff0000' }] });
++    const child = group.getObjects()[0];
++    assert.equal(child.left, -50);
++    assert.equal(child.top, -50);
++    assert.ok(Math.abs(child.calcTransformMatrix()[4] - 130) < 0.001);
++    assert.ok(Math.abs(child.calcTransformMatrix()[5] - 110) < 0.001);
++});
++
+ test('a gradient angle stays stable on nonsquare shapes through repeated saves', async () => {
+     const fill = { type: 'linear', angle: 45, stops: [{ offset: 0, color: '#ffffff' }, { offset: 1, color: '#7c3aed' }] };
+     let element = { id: 'wide_gradient', type: 'rect', x: 10, y: 20, width: 900, height: 100, fill, strokeWidth: 0 };
+--- a/tests/frontend/studio-renderer.browser.test.mjs
++++ b/tests/frontend/studio-renderer.browser.test.mjs
+@@ -9,10 +9,10 @@
+ import { blankDocument, newElement, duplicatePage } from '../../resources/js/Studio/document.js';
+ 
+ const base = path.resolve('storage/app/private/studio-exports/0/0');
+-async function render(document, format, pageIds, assets = [], fonts = []) {
++async function render(document, format, pageIds, assets = [], fonts = [], options = {}) {
+     const directory = path.join(base, crypto.randomUUID());
+     assert.ok(directory.startsWith(`${base}${path.sep}`));
+-    const input = { document, format, pageIds, assets, fonts };
++    const input = { document, format, pageIds, assets, fonts, ...options };
+     let stdout = '', stderr = '';
+     const child = spawn(process.execPath, ['scripts/studio/render.mjs', directory], { cwd: process.cwd(), stdio: ['pipe', 'pipe', 'pipe'] });
+     child.stdout.on('data', value => { stdout += value; });
+@@ -77,6 +77,31 @@
+     } finally { await browser.close(); }
+ });
+ 
++test('isolated server renderer honors page frame times and does not load inactive media', { timeout: 45000 }, async () => {
++    const document = blankDocument(100, 100);
++    document.schema_version = 2; document.timeline = { fps: 30, audio_tracks: [] };
++    document.pages[0].duration = 4;
++    document.pages[0].elements = [newElement('rect', { id: 'red', x: 0, y: 0, width: 60, height: 60, fill: '#ff0000', timing: { start: 1, duration: 1 } }),
++        newElement('video', { id: 'future', asset_id: 999, x: 0, y: 0, width: 60, height: 60, timing: { start: 3, duration: 1 } })];
++    const images = [];
++    for (const time of [0, 1.5, 2]) images.push((await render(document, 'png', [document.pages[0].id], [], [], { frame_times: [{ page_id: document.pages[0].id, time }] }))[0].bytes.toString('base64'));
++    const browser = await chromium.launch({ headless: true });
++    try {
++        const page = await browser.newPage();
++        const pixels = await page.evaluate(async images => {
++            const output = [];
++            for (const data of images) {
++                const bitmap = await createImageBitmap(await fetch(`data:image/png;base64,${data}`).then(response => response.blob()));
++                try { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 100; const context = canvas.getContext('2d');
++                    context.drawImage(bitmap, 0, 0); output.push([...context.getImageData(10, 10, 1, 1).data]); }
++                finally { bitmap.close(); }
++            }
++            return output;
++        }, images);
++        assert.deepEqual(pixels, [[255, 255, 255, 255], [255, 0, 0, 255], [255, 255, 255, 255]]);
++    } finally { await browser.close(); }
++});
++
+ test('isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG', { timeout: 120000 }, async () => {
+     const bytes = await fs.readFile('tests/Fixtures/fonts/SpaceGrotesk-Variable.woff2');
+     const font = { id: 17, brand_id: 1, name: 'Space Grotesk', family: 'Space Grotesk', weight: 400, style: 'normal', format: 'woff2', mime: 'font/woff2', size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), status: 'ready', file_url: `data:font/woff2;base64,${bytes.toString('base64')}` };
+--- a/app/Http/Controllers/Studio/StudioController.php
++++ b/app/Http/Controllers/Studio/StudioController.php
+@@ -11,6 +11,7 @@
+ use App\Services\Studio\StudioAutomation;
+ use App\Services\Studio\StudioExports;
+ use App\Services\Studio\StudioFonts;
++use App\Services\Studio\StudioFrames;
+ use App\Services\Studio\StudioService;
+ use App\Support\CurrentBrand;
+ use Illuminate\Http\JsonResponse;
+@@ -157,6 +158,7 @@
+ 
+     public function registerExport(Request $request, Design $design): JsonResponse
+     {
++        app(StudioFrames::class)->assertJsonList($request);
+         $export = $this->exports->register($request->user(), $design, $request->all());
+ 
+         return response()->json(['export' => $this->exports->present($request->user(), $export)], 201);
+--- a/app/Http/Controllers/Studio/StudioApiController.php
++++ b/app/Http/Controllers/Studio/StudioApiController.php
+@@ -10,6 +10,7 @@
+ use App\Services\Studio\StudioAssets;
+ use App\Services\Studio\StudioAutomation;
+ use App\Services\Studio\StudioExports;
++use App\Services\Studio\StudioFrames;
+ use App\Services\Studio\StudioRenderer;
+ use App\Services\Studio\StudioService;
+ use Illuminate\Http\JsonResponse;
+@@ -137,6 +138,7 @@
+ 
+     public function export(Request $request, Design $design): JsonResponse
+     {
++        app(StudioFrames::class)->assertJsonList($request);
+         $export = app(StudioRenderer::class)->export($request->user(), $design, $request->all());
+ 
+         return response()->json($this->exports->present($request->user(), $export), 202);
+--- a/resources/js/Studio/frames.js
++++ b/resources/js/Studio/frames.js
+@@ -0,0 +1,34 @@
++/** Selected-page frame times are local document seconds, never rounded export-frame bounds. */
++export function frameTimes(document, pageIds, input = []) {
++    if (!Array.isArray(input) || input.length > 100) throw new Error('frame_times debe ser una lista de hasta 100 fotogramas.');
++    if (document.schema_version !== 2 && input.length) throw new Error('Los fotogramas temporales requieren un documento v2.');
++    const pages = new Map(document.pages.filter(page => pageIds.includes(page.id)).map(page => [page.id, page]));
++    if (pageIds.some(id => typeof id !== 'string' || !pages.has(id))) throw new Error('La página seleccionada no está disponible.');
++    const times = new Map([...pages.keys()].map(id => [id, 0]));
++    const seen = new Set();
++    for (const item of input) {
++        if (!item || typeof item !== 'object' || Array.isArray(item) || ![Object.prototype, null].includes(Object.getPrototypeOf(item))
++            || !Object.hasOwn(item, 'page_id') || !Object.hasOwn(item, 'time') || Object.keys(item).some(key => !['page_id', 'time'].includes(key))
++            || typeof item.page_id !== 'string' || !pages.has(item.page_id) || seen.has(item.page_id)
++            || !Number.isFinite(item.time) || item.time < 0 || item.time >= pages.get(item.page_id).duration) {
++            throw new Error('Indica una página seleccionada sin repetir y un segundo local dentro de su duración.');
++        }
++        seen.add(item.page_id); times.set(item.page_id, item.time);
++    }
++    return times;
++}
++
++/** Keep geometry unchanged, filtering only the inherited, semi-open temporal window. */
++export function frameElements(elements, time, pageDuration) {
++    const result = [];
++    for (const element of elements) {
++        const window = element.timing ?? { start: 0, duration: pageDuration };
++        if (element.visible === false || time < window.start || time >= window.start + window.duration) continue;
++        if (element.type !== 'group') result.push(element);
++        else {
++            const children = frameElements(element.elements, time, pageDuration);
++            if (children.length) result.push({ ...element, elements: children });
++        }
++    }
++    return result;
++}
+--- a/resources/js/Studio/frame-renderer.js
++++ b/resources/js/Studio/frame-renderer.js
+@@ -0,0 +1,31 @@
++import { renderStudioPage, seekVideoFrame } from './canvas.js';
++import { frameElements } from './frames.js';
++import { clipMediaState } from './timeline.js';
++
++/** A static page frame uses the same geometry and private media as the editor; it never plays audio. */
++export async function renderStudioFrame(document, pageId, time, assets, fonts) {
++    if (document.schema_version !== 2) return renderStudioPage(document, pageId, assets, fonts);
++    const page = document.pages.find(page => page.id === pageId);
++    const { transition: ignored, ...source } = page;
++    const elements = frameElements(page.elements, time, page.duration);
++    const scene = await renderStudioPage({ ...document, timeline: { fps: document.timeline.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, pageId, assets, fonts);
++    try {
++        const update = async (objects, layers) => {
++            for (let i = 0; i < objects.length; i++) {
++                const object = objects[i], layer = layers[i];
++                if (layer.type === 'group') { await update(object.getObjects(), layer.elements); object.dirty = true; }
++                if (!object.studioVideo) continue;
++                const video = object.studioVideo, state = clipMediaState(layer, time, video.duration, page.duration);
++                video.pause(); video.muted = true;
++                const start = layer.trimStart ?? 0, end = Math.min(layer.trimEnd ?? video.duration, video.duration);
++                if (start >= end) throw new Error('El recorte del vídeo no contiene un fotograma disponible.');
++                const last = end - Math.min(0.0001, (end - start) / 2);
++                await seekVideoFrame(video, Math.min(state.sourceTime, last), { positionTolerance: Math.min(0.0001, (end - start) / 4), endTolerance: 0 });
++                object.dirty = true;
++            }
++        };
++        await update(scene.canvas.getObjects(), elements);
++        scene.canvas.renderAll();
++        return scene;
++    } catch (error) { await scene.dispose(); throw error; }
++}
+--- a/app/Services/Studio/StudioFrames.php
++++ b/app/Services/Studio/StudioFrames.php
+@@ -0,0 +1,76 @@
++<?php
++
++namespace App\Services\Studio;
++
++use Illuminate\Http\Request;
++use Illuminate\Validation\ValidationException;
++
++/** Frame requests retain local document seconds; frame rounding belongs to audiovisual output. */
++class StudioFrames
++{
++    /** Laravel's associative decoder makes JSON {} and [] indistinguishable. Check the wire type first. */
++    public function assertJsonList(Request $request, string $path = 'frame_times'): void
++    {
++        if (! $request->isJson()) {
++            return;
++        }
++        $wire = json_decode($request->getContent());
++        if (json_last_error() !== JSON_ERROR_NONE) {
++            $this->fail('La solicitud JSON no es válida.');
++        }
++        $missing = new \stdClass;
++        $value = data_get($wire, $path, $missing);
++        if ($value !== $missing && ! is_array($value)) {
++            $this->fail('frame_times debe ser una lista JSON, no un objeto.');
++        }
++    }
++
++    public function validate(array $document, array $pageIds, mixed $input = []): array
++    {
++        if (! is_array($input) || ! array_is_list($input) || count($input) > 100) {
++            $this->fail('Indica una lista de hasta cien fotogramas.');
++        }
++        if (($document['schema_version'] ?? 1) !== 2 && $input !== []) {
++            $this->fail('Los fotogramas temporales requieren un documento v2.');
++        }
++        $pages = array_column($document['pages'], null, 'id');
++        $seen = [];
++        foreach ($input as $item) {
++            if (! is_array($item) || array_diff(array_keys($item), ['page_id', 'time']) !== []
++                || ! is_string($item['page_id'] ?? null) || ! in_array($item['page_id'], $pageIds, true)
++                || ! isset($pages[$item['page_id']]) || isset($seen[$item['page_id']])
++                || (! is_int($item['time'] ?? null) && ! is_float($item['time'] ?? null))
++                || ! is_finite((float) $item['time']) || $item['time'] < 0 || $item['time'] >= $pages[$item['page_id']]['duration']) {
++                $this->fail('Indica una página seleccionada sin repetir y un segundo local dentro de su duración.');
++            }
++            $seen[$item['page_id']] = true;
++        }
++
++        return $input;
++    }
++
++    public function elements(array $elements, float $time, float $pageDuration): array
++    {
++        $result = [];
++        foreach ($elements as $element) {
++            $window = $element['timing'] ?? ['start' => 0, 'duration' => $pageDuration];
++            if (($element['visible'] ?? true) === false || $time < $window['start'] || $time >= $window['start'] + $window['duration']) {
++                continue;
++            }
++            if ($element['type'] === 'group') {
++                $element['elements'] = $this->elements($element['elements'], $time, $pageDuration);
++                if ($element['elements'] === []) {
++                    continue;
++                }
++            }
++            $result[] = $element;
++        }
++
++        return $result;
++    }
++
++    private function fail(string $message): never
++    {
++        throw ValidationException::withMessages(['frame_times' => [$message]]);
++    }
++}
+--- a/tests/Feature/Studio/StudioFrameTimesTest.php
++++ b/tests/Feature/Studio/StudioFrameTimesTest.php
+@@ -0,0 +1,135 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\User;
++use App\Services\Studio\StudioAssets;
++use App\Services\Studio\StudioDocument;
++use App\Services\Studio\StudioExports;
++use App\Services\Studio\StudioRenderer;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\Process;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Validation\ValidationException;
++use Tests\Support\McpClient;
++
++uses(McpClient::class);
++
++beforeEach(function () {
++    Queue::fake();
++    Storage::fake('local');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $doc = StudioDocument::blank(100, 80);
++    $doc['pages'][0]['id'] = 'one';
++    $doc['pages'][0]['duration'] = 1.2;
++    $doc['schema_version'] = 2;
++    $doc['timeline'] = ['fps' => 24, 'audio_tracks' => []];
++    $this->design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Frames', 'document' => $doc]);
++    $this->image = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'width' => 100, 'height' => 80]);
++    $this->input = ['revision' => 1, 'format' => 'png', 'pages' => ['one']];
++});
++
++test('server rendering preserves selected frame times in the export options', function () {
++    $times = [['page_id' => 'one', 'time' => 0.75]];
++    $export = app(StudioRenderer::class)->export($this->user, $this->design, $this->input + ['frame_times' => $times]);
++    expect($export->options['frame_times'] ?? null)->toBe($times);
++});
++
++test('MCP advertises typed frame selection and shares the API renderer options', function () {
++    $key = $this->mcpKey($this->user, ['designs:read', 'designs:write']);
++    $tools = [];
++    $cursor = null;
++    do {
++        $result = $this->rpc($key, 'tools/list', $cursor === null ? [] : ['cursor' => $cursor])->assertOk()->json('result');
++        $tools = array_merge($tools, $result['tools']);
++        $cursor = $result['nextCursor'] ?? null;
++    } while ($cursor !== null);
++    $export = collect($tools)->firstWhere('name', 'export_design');
++    expect(data_get($export, 'inputSchema.properties.frame_times.type'))->toBe('array');
++    $times = [['page_id' => 'one', 'time' => 0.5]];
++    [$error, $data] = $this->callTool($key, 'export_design', $this->input + ['design_id' => $this->design->id, 'frame_times' => $times]);
++    expect($error)->toBeFalse()->and($data['options']['frame_times'])->toBe($times);
++    app('auth')->forgetGuards();
++    $this->postJson('/api/v1/designs/'.$this->design->id.'/exports', $this->input + ['frame_times' => $times], ['Authorization' => 'Bearer '.$key])
++        ->assertAccepted()->assertJsonPath('options.frame_times', $times);
++});
++
++test('browser registration preserves selected frame times in the export options', function () {
++    $times = [['page_id' => 'one', 'time' => 0.75]];
++    $export = app(StudioExports::class)->register($this->user, $this->design, $this->input + ['media_ids' => [$this->image->id], 'frame_times' => $times]);
++    expect($export->options['frame_times'] ?? null)->toBe($times);
++});
++
++test('frame selection preserves numeric and prototype-like page ids as string values', function ($id) {
++    $doc = $this->design->document;
++    $doc['pages'][0]['id'] = $id;
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'String id', 'document' => $doc]);
++    $times = [['page_id' => $id, 'time' => 0.25]];
++    $export = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 1, 'format' => 'png', 'pages' => [$id], 'frame_times' => $times]);
++    expect($export->options['frame_times'])->toBe($times);
++})->with(['0', '01', '__proto__']);
++
++test('JSON objects cannot masquerade as frame-time lists at any HTTP entry point', function ($entry, $indexed) {
++    $times = $indexed ? (object) ['0' => (object) ['page_id' => 'one', 'time' => 0.5]] : (object) [];
++    $payload = $this->input + ['frame_times' => $times];
++    if ($entry === 'mcp') {
++        $key = $this->mcpKey($this->user, ['designs:write']);
++        [$error] = $this->callTool($key, 'export_design', $payload + ['design_id' => $this->design->id]);
++        expect($error)->toBeTrue();
++    } elseif ($entry === 'api') {
++        $key = $this->mcpKey($this->user, ['designs:write']);
++        $this->postJson('/api/v1/designs/'.$this->design->id.'/exports', $payload, ['Authorization' => 'Bearer '.$key])->assertUnprocessable();
++    } else {
++        $this->actingAs($this->user);
++        $url = '/studio/designs/'.$this->design->id.'/exports';
++        $payload['media_ids'] = [$this->image->id];
++        $this->postJson($url, $payload)->assertUnprocessable();
++    }
++})->with(['api', 'mcp', 'register'])->with([false, true]);
++
++test('frame times reject malformed or out-of-page values in both entry points', function ($times) {
++    expect(fn () => app(StudioRenderer::class)->export($this->user, $this->design, $this->input + ['frame_times' => $times]))->toThrow(ValidationException::class);
++    expect(fn () => app(StudioExports::class)->register($this->user, $this->design, $this->input + ['media_ids' => [$this->image->id], 'frame_times' => $times]))->toThrow(ValidationException::class);
++})->with([
++    'null' => [null], 'scalar' => ['1'], 'object' => [['one' => 0]],
++    'time string' => [[['page_id' => 'one', 'time' => '0.5']]],
++    'time null' => [[['page_id' => 'one', 'time' => null]]],
++    'raw end' => [[['page_id' => 'one', 'time' => 1.2]]],
++    'frame end' => [[['page_id' => 'one', 'time' => 29 / 24]]],
++    'negative' => [[['page_id' => 'one', 'time' => -0.001]]],
++    'nan' => [[['page_id' => 'one', 'time' => NAN]]],
++    'other page' => [[['page_id' => 'other', 'time' => 0]]],
++    'unknown key' => [[['page_id' => 'one', 'time' => 0, 'url' => 'https://invalid.test']]],
++    'duplicate' => [[['page_id' => 'one', 'time' => 0], ['page_id' => 'one', 'time' => 0.5]]],
++]);
++
++test('legacy designs reject explicit frame times instead of silently changing their poster', function () {
++    $doc = $this->design->document;
++    $doc['schema_version'] = 1;
++    unset($doc['timeline']);
++    $legacy = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Legacy', 'document' => $doc]);
++    expect(fn () => app(StudioRenderer::class)->export($this->user, $legacy, $this->input + ['frame_times' => [['page_id' => 'one', 'time' => 0]]]))->toThrow(ValidationException::class);
++});
++
++test('server frame preparation does not read resources outside the selected temporal window', function () {
++    $future = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'width' => 8, 'height' => 8, 'path' => 'media/future-missing.png']);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $future->id);
++    $doc = $this->design->document;
++    $doc['pages'][0]['elements'] = [['id' => 'future', 'type' => 'image', 'asset_id' => $future->id, 'x' => 0, 'y' => 0, 'width' => 8, 'height' => 8,
++        'timing' => ['start' => 0.5, 'duration' => 0.5]]];
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Window', 'document' => $doc]);
++    Process::fake(function ($process) {
++        $input = json_decode($process->input, true);
++        expect($input['assets'])->toBe([])->and($input['frame_times'])->toBe([['page_id' => 'one', 'time' => 0]]);
++        $image = imagecreatetruecolor(100, 80);
++        imagepng($image, $process->command[2].DIRECTORY_SEPARATOR.'page-001.png');
++        imagedestroy($image);
++
++        return Process::result(output: '{"files":[{"name":"page-001.png","mime":"image/png"}]}');
++    });
++    $export = app(StudioRenderer::class)->export($this->user, $design, $this->input + ['frame_times' => [['page_id' => 'one', 'time' => 0]]]);
++    app(StudioRenderer::class)->render($export->id);
++    expect($export->refresh()->status)->toBe('ready', $export->error ?? '');
++});
+--- a/tests/frontend/studio-frame-export.browser.test.mjs
++++ b/tests/frontend/studio-frame-export.browser.test.mjs
+@@ -0,0 +1,131 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import { execFileSync } from 'node:child_process';
++import { chromium } from 'playwright';
++import { build } from 'vite';
++import { newElement, validateDocument } from '../../resources/js/Studio/document.js';
++
++let browser, page;
++before(async () => {
++    const video = execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=red:size=64x64:rate=10:duration=1',
++        '-f', 'lavfi', '-i', 'color=blue:size=64x64:rate=10:duration=3', '-filter_complex', '[0:v][1:v]concat=n=2:v=1:a=0[v]', '-map', '[v]',
++        '-c:v', 'libx264', '-threads', '1', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', 'pipe:1'], { timeout: 20000 });
++    const bundle = await build({ configFile: false, publicDir: false, logLevel: 'silent', build: { write: false,
++        lib: { entry: 'resources/js/Studio/exports.js', name: 'FrameExports', formats: ['iife'] } } });
++    browser = await chromium.launch({ headless: true }); page = await browser.newPage({ serviceWorkers: 'block' });
++    await page.route('**/*', route => {
++        if (route.request().url() === 'http://frame-export.invalid/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><body></body>' });
++        if (route.request().url() === 'http://frame-export.invalid/video.mp4') {
++            const range = /^bytes=(\d+)-(\d*)$/.exec(route.request().headers().range ?? '');
++            const start = range ? Number(range[1]) : 0, end = range?.[2] ? Math.min(Number(range[2]), video.length - 1) : video.length - 1;
++            return route.fulfill({ status: range ? 206 : 200, contentType: 'video/mp4', body: video.subarray(start, end + 1),
++                headers: { 'Accept-Ranges': 'bytes', ...(range ? { 'Content-Range': `bytes ${start}-${end}/${video.length}` } : {}) } });
++        }
++        return route.abort();
++    });
++    await page.goto('http://frame-export.invalid/');
++    await page.addScriptTag({ content: (Array.isArray(bundle) ? bundle[0] : bundle).output[0].code });
++    await page.evaluate(() => {
++        window.framePixel = async blob => {
++            const image = new Image(), url = URL.createObjectURL(blob);
++            try { image.src = url; await image.decode(); const canvas = document.createElement('canvas'); canvas.width = canvas.height = 100;
++                canvas.getContext('2d').drawImage(image, 0, 0); return Array.from(canvas.getContext('2d').getImageData(10, 10, 1, 1).data); }
++            finally { URL.revokeObjectURL(url); }
++        };
++    });
++});
++after(async () => { await browser?.close(); });
++
++const document = elements => validateDocument({ schema_version: 2, width: 100, height: 100, timeline: { fps: 30, audio_tracks: [] },
++    pages: [{ id: 'one', duration: 4, background: '#ffffff', elements }] });
++const element = (type, properties) => newElement(type, { x: 0, y: 0, ...properties });
++
++test('static export respects the selected local frame and semi-open windows without changing the design', async () => {
++    const result = await page.evaluate(async doc => {
++        const before = JSON.stringify(doc), samples = [];
++        for (const time of [0, 1.5, 2]) samples.push(await window.framePixel(await FrameExports.exportPage(doc, 'one', [], { frame_times: [{ page_id: 'one', time }] })));
++        return { samples, unchanged: before === JSON.stringify(doc) };
++    }, document([element('rect', { id: 'red', width: 60, height: 60, fill: '#ff0000', timing: { start: 1, duration: 1 } })]));
++    assert.deepEqual(result.samples, [[255, 255, 255, 255], [255, 0, 0, 255], [255, 255, 255, 255]]);
++    assert.equal(result.unchanged, true);
++});
++
++test('static video frames use trim, rate, source offset and loop instead of the initial poster', async () => {
++    const result = await page.evaluate(async doc => {
++        const assets = [{ id: 1, kind: 'video', status: 'listo', duration: 4, preview_url: 'http://frame-export.invalid/video.mp4' }];
++        const samples = [];
++        for (const time of [1.3, 2.2]) samples.push(await window.framePixel(await FrameExports.exportPage(doc, 'one', assets, { frame_times: [{ page_id: 'one', time }] })));
++        return samples;
++    }, document([element('video', { id: 'video', asset_id: 1, width: 64, height: 64, timing: { start: 0.5, duration: 2 },
++        trimStart: 0.1, trimEnd: 3.1, playbackRate: 2, sourceOffset: 0.2, loop: true })]));
++    assert.ok(result[0][2] > 230 && result[0][0] < 20, JSON.stringify(result));
++    assert.ok(result[1][0] > 230 && result[1][2] < 20, JSON.stringify(result));
++});
++
++test('an exhausted non-looping video holds the last frame inside its trim interval', async () => {
++    const result = await page.evaluate(async doc => {
++        const assets = [{ id: 1, kind: 'video', status: 'listo', duration: 4, preview_url: 'http://frame-export.invalid/video.mp4' }];
++        const samples = [];
++        for (const time of [0.9, 1, 2, 3.9]) samples.push(await window.framePixel(await FrameExports.exportPage(doc, 'one', assets, { frame_times: [{ page_id: 'one', time }] })));
++        return samples;
++    }, document([element('video', { id: 'short', asset_id: 1, width: 64, height: 64, timing: { start: 0, duration: 4 },
++        trimStart: 0, trimEnd: 1, playbackRate: 1, sourceOffset: 0, loop: false })]));
++    assert.ok(result.every(pixel => pixel[0] > 230 && pixel[2] < 20), JSON.stringify(result));
++});
++
++test('inactive grouped media are not loaded and selected frames apply to every static format', async () => {
++    const result = await page.evaluate(async doc => {
++        const samples = [];
++        for (const format of ['png', 'jpeg', 'webp', 'svg']) {
++            const files = await FrameExports.exportDesign(doc, { pageIds: ['one'], format, frame_times: [{ page_id: 'one', time: 1.25 }] });
++            samples.push(await window.framePixel(files[0].blob));
++        }
++        const pdf = await FrameExports.exportDesign(doc, { pageIds: ['one'], format: 'pdf', frame_times: [{ page_id: 'one', time: 1.25 }] });
++        return { samples, pdf: await pdf[0].blob.slice(0, 5).text() };
++    }, document([element('group', { id: 'group', width: 100, height: 100, timing: { start: 1, duration: 2 }, elements: [
++        element('rect', { id: 'red', x: -50, y: -50, width: 60, height: 60, fill: '#ff0000', timing: { start: 1, duration: 1 } }),
++        element('video', { id: 'future', x: 0, y: 0, asset_id: 999, width: 60, height: 60, timing: { start: 2, duration: 1 } }),
++    ] })]));
++    assert.ok(result.samples.every(pixel => pixel[0] > 230 && pixel[1] < 25 && pixel[2] < 25), JSON.stringify(result));
++    assert.equal(result.pdf, '%PDF-');
++});
++
++test('frame-time inputs reject invalid types, unknown pages, duplicates and end boundaries', async () => {
++    const result = await page.evaluate(async doc => {
++        const invalid = [null, {}, [Object.create({ page_id: 'one', time: 0 })], [{ page_id: 'one', time: '1' }], [{ page_id: 'one', time: null }], [{ page_id: 'one', time: 4 }],
++            [{ page_id: 'one', time: -0.1 }], [{ page_id: 'one', time: NaN }], [{ page_id: 'other', time: 0 }],
++            [{ page_id: 'one', time: 0, url: 'https://invalid.test' }], [{ page_id: 'one', time: 0 }, { page_id: 'one', time: 1 }]];
++        const outcomes = [];
++        for (const frame_times of invalid) {
++            try { await FrameExports.exportPage(doc, 'one', [], { frame_times }); outcomes.push(false); }
++            catch { outcomes.push(true); }
++        }
++        const legacy = { ...doc, schema_version: 1 }; delete legacy.timeline;
++        try { await FrameExports.exportPage(legacy, 'one', [], { frame_times: [{ page_id: 'one', time: 0 }] }); outcomes.push(false); }
++        catch { outcomes.push(true); }
++        return outcomes;
++    }, document([]));
++    assert.ok(result.every(Boolean), JSON.stringify(result));
++});
++
++test('different page times retain the selected order and inherited group visibility', async () => {
++    const input = document([element('rect', { id: 'red', width: 60, height: 60, fill: '#ff0000', timing: { start: 1, duration: 1 } })]);
++    input.pages.push({ ...input.pages[0], id: 'two', name: 'Dos', background: '#0000ff', elements: [
++        element('group', { id: 'hidden_group', width: 100, height: 100, timing: { start: 2, duration: 1 }, elements: [
++            element('video', { id: 'hidden_video', asset_id: 999, x: -50, y: -50, width: 60, height: 60 }),
++        ] }),
++    ] });
++    const result = await page.evaluate(async doc => {
++        const files = await FrameExports.exportDesign(doc, { pageIds: ['two', 'one'], frame_times: [{ page_id: 'one', time: 1.5 }, { page_id: 'two', time: 1 }] });
++        const pixels = []; for (const file of files) pixels.push({ page: file.pageId, color: await window.framePixel(file.blob) });
++        return pixels;
++    }, input);
++    assert.deepEqual(result, [{ page: 'two', color: [0, 0, 255, 255] }, { page: 'one', color: [255, 0, 0, 255] }]);
++});
++
++test('a missing selected page reports a usable frame error', async () => {
++    const error = await page.evaluate(async doc => {
++        try { await FrameExports.exportPage(doc, 'missing'); return null; } catch (error) { return error.message; }
++    }, document([]));
++    assert.match(error, /página/);
++});
+--- a/tests/e2e/studio-frame-export.spec.ts
++++ b/tests/e2e/studio-frame-export.spec.ts
+@@ -0,0 +1,59 @@
++import { expect, test } from '@playwright/test';
++import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
++
++test('Studio frame export: choose a local page time, export real pixels and retain it with the private brand output', async ({ page }, info) => {
++    const user = e2eUser(info.project.name), errors: string[] = [];
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `studio-frame-${stamp()}-${info.project.name}`);
++    page.on('pageerror', error => errors.push(error.message));
++    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
++    try {
++        await loginAs(page, user); await page.goto(`/studio?brand_id=${brand.id}`);
++        const design = await page.evaluate(async brandId => {
++            const csrf = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
++            const response = await fetch(`/brands/${brandId}/studio/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': csrf },
++                body: JSON.stringify({ name: 'Fotograma', document: { schema_version: 2, width: 100, height: 100, timeline: { fps: 30, audio_tracks: [] }, pages: [
++                    { id: 'one', name: 'Una', duration: 4, background: '#ffffff', elements: [{ id: 'red', type: 'rect', x: 0, y: 0, width: 60, height: 60, fill: '#ff0000', timing: { start: 1, duration: 1 } }] },
++                ] } }) });
++            if (!response.ok) throw new Error(await response.text());
++            return (await response.json()).design;
++        }, brand.id);
++        await page.goto(`/studio/designs/${design.id}/edit`);
++        const clock = page.getByLabel('Tiempo de reproducción', { exact: true });
++        await clock.fill('1.5'); await clock.press('Tab');
++        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++        const dialog = page.getByRole('dialog', { name: 'Exportar diseño', exact: true });
++        const time = dialog.getByLabel('Fotograma de Una (s)', { exact: true });
++        await expect(time).toHaveValue('1.5');
++        for (const [second, expected] of [[0, [255, 255, 255, 255]], [1.5, [255, 0, 0, 255]]] as const) {
++            await time.fill(String(second));
++            const registration = page.waitForResponse(response => response.url().endsWith(`/studio/designs/${design.id}/exports`) && response.request().method() === 'POST');
++            await dialog.getByRole('button', { name: 'Guardar en biblioteca', exact: true }).click();
++            const response = await registration; expect(response.status()).toBe(201);
++            const result = (await response.json()).export;
++            expect(result.options.frame_times).toEqual([{ page_id: 'one', time: second }]);
++            const pixel = await page.evaluate(async ({ brandId, mediaId }) => {
++                const data = await (await fetch(`/brands/${brandId}/studio/assets`, { headers: { Accept: 'application/json' } })).json();
++                const asset = data.assets.find((asset: {id: number}) => asset.id === mediaId);
++                const bitmap = await createImageBitmap(await (await fetch(asset.preview_url)).blob());
++                try { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 100; const context = canvas.getContext('2d')!;
++                    context.drawImage(bitmap, 0, 0); return [...context.getImageData(10, 10, 1, 1).data]; }
++                finally { bitmap.close(); }
++            }, { brandId: brand.id, mediaId: result.media_ids[0] });
++            expect(pixel).toEqual(expected);
++            await expect(dialog.getByRole('status')).toContainText('biblioteca');
++        }
++        const heading = dialog.getByRole('heading', { name: 'Exportar diseño', exact: true });
++        await heading.scrollIntoViewIfNeeded();
++        await expect(heading).toBeInViewport({ ratio: 0.99 });
++        await page.screenshot({ path: info.outputPath('frame-export.png'), fullPage: true });
++        const download = dialog.getByRole('button', { name: 'Descargar', exact: true });
++        await download.scrollIntoViewIfNeeded();
++        await expect(download).toBeInViewport({ ratio: 0.99 });
++        await page.screenshot({ path: info.outputPath('frame-export-actions.png'), fullPage: true });
++        await dialog.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
++        const stored = await page.evaluate(async id => (await (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).json()).design, design.id);
++        expect(stored.document).toEqual(design.document);
++        await expectNoOverflow(page); expect(errors).toEqual([]);
++    } finally { cleanComposerBrands(user.email); }
++});

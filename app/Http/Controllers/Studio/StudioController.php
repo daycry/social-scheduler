@@ -9,7 +9,11 @@ use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
+use App\Services\Studio\StudioAvControl;
 use App\Services\Studio\StudioExports;
+use App\Services\Studio\StudioFonts;
+use App\Services\Studio\StudioFrames;
+use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use App\Support\CurrentBrand;
 use Illuminate\Http\JsonResponse;
@@ -156,6 +160,7 @@ class StudioController extends Controller
 
     public function registerExport(Request $request, Design $design): JsonResponse
     {
+        app(StudioFrames::class)->assertJsonList($request);
         $export = $this->exports->register($request->user(), $design, $request->all());
 
         return response()->json(['export' => $this->exports->present($request->user(), $export)], 201);
@@ -164,6 +169,28 @@ class StudioController extends Controller
     public function showExport(Request $request, DesignExport $export): JsonResponse
     {
         return response()->json(['export' => $this->exports->present($request->user(), $export)]);
+    }
+
+    public function renderExport(Request $request, Design $design): JsonResponse
+    {
+        app(StudioFrames::class)->assertJsonList($request);
+        $export = app(StudioRenderer::class)->export($request->user(), $design, $request->all());
+
+        return response()->json(['export' => $this->exports->present($request->user(), $export)], 202);
+    }
+
+    public function cancelExport(Request $request, DesignExport $export): JsonResponse
+    {
+        $current = app(StudioAvControl::class)->cancel($request->user(), $export);
+
+        return response()->json(['export' => $this->exports->present($request->user(), $current)]);
+    }
+
+    public function retryExport(Request $request, DesignExport $export): JsonResponse
+    {
+        $current = app(StudioAvControl::class)->retry($request->user(), $export);
+
+        return response()->json(['export' => $this->exports->present($request->user(), $current)], 202);
     }
 
     public function createPost(Request $request, DesignExport $export): JsonResponse|RedirectResponse
@@ -177,10 +204,15 @@ class StudioController extends Controller
     private function brandProps(Request $request, Brand $brand): array
     {
         $this->assets->assertBrand($request->user(), $brand);
+        $kit = $this->studio->kit($request->user(), $brand);
+        $fonts = app(StudioFonts::class);
+        $kitFonts = $fonts->many($request->user(), $brand, array_values(array_filter($kit['font_ids'] ?? [])))
+            ->map(fn ($font) => $fonts->present($font))->values()->all();
 
-        return ['brand' => $brand->only(['id', 'name', 'timezone']), 'kit' => $this->studio->kit($request->user(), $brand),
+        return ['brand' => $brand->only(['id', 'name', 'timezone']), 'kit' => $kit,
             'assets' => $this->assets->list($request->user(), $brand)->map(fn ($asset) => $this->assets->present($brand, $asset))->all(),
-            'folders' => $this->studio->folders($request->user(), $brand)];
+            'folders' => $this->studio->folders($request->user(), $brand),
+            'fonts' => collect(array_merge($fonts->listing($request->user(), $brand)['fonts'], $kitFonts))->unique('id')->values()->all()];
     }
 
     private function editorProps(Request $request, Design $design): array
@@ -190,7 +222,13 @@ class StudioController extends Controller
         $brand = Brand::withoutUserScope()->where('user_id', $request->user()->id)->findOrFail($design->brand_id);
         $history = $this->exports->paginated($request->user(), $design, (int) ($data['exports_page'] ?? 1));
 
-        return $this->brandProps($request, $brand) + ['design' => $this->studio->present($request->user(), $design),
+        $props = $this->brandProps($request, $brand);
+        $fonts = app(StudioFonts::class);
+        $ids = array_values(array_filter($this->studio->kit($request->user(), $brand)['font_ids'] ?? []));
+        $needed = array_merge($fonts->neededFor($request->user(), $brand, $design->document), $fonts->many($request->user(), $brand, $ids)->map(fn ($font) => $fonts->present($font))->values()->all());
+        $props['fonts'] = collect(array_merge($props['fonts'], $needed))->unique('id')->values()->all();
+
+        return $props + ['design' => $this->studio->present($request->user(), $design),
             'exports' => $this->exports->presentMany($request->user(), $history->getCollection()), 'exports_pagination' => $this->exports->pageMetadata($history)];
     }
 }

@@ -1,0 +1,827 @@
+--- a/scripts/studio/av-files.mjs
++++ b/scripts/studio/av-files.mjs
+@@ -42,10 +42,38 @@
+     });
+ }
+ 
+-export async function segmentFolder(directory) {
+-    const folder = path.join(directory, 'segments'); await fs.mkdir(folder, { recursive: true });
++export function checkedNamespace(namespace = null) {
++    if (namespace !== null && (typeof namespace !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(namespace))) throw new Error('Namespace de lease no válido.');
++    return namespace;
++}
++
++export function checkpointRelative(kind, name, namespace = null) {
++    checkedNamespace(namespace);
++    const valid = kind === 'segments' ? /^(?:video-\d{6}\.(?:mp4|gif)|[a-z0-9_-]{1,32}-\d{6}\.wav)$/.test(name)
++        : kind === 'audio-sources' ? /^[1-9]\d*\.pcm$/.test(name)
++            : kind === 'outputs' && /^project\.(?:mp4|gif)$/.test(name);
++    if (!valid) throw new Error('Nombre de checkpoint no válido.');
++    return `${kind}/${namespace ? namespace + '/' : ''}${name}`;
++}
++
++export async function outputFolder(directory, kind, namespace = null) {
++    checkedNamespace(namespace);
++    if (!['segments', 'audio-sources', 'outputs'].includes(kind)) throw new Error('Directorio de checkpoint no válido.');
++    const parent = path.join(directory, kind); await fs.mkdir(parent, { recursive: true });
++    if (!samePath(await fs.realpath(parent), parent)) throw new Error('La salida no admite enlaces.');
++    if (!namespace) return parent;
++    const folder = path.join(parent, namespace); await fs.mkdir(folder, { recursive: true });
+     if (!samePath(await fs.realpath(folder), folder)) throw new Error('La salida no admite enlaces.');
+     return folder;
++}
++
++export const segmentFolder = (directory, namespace = null) => outputFolder(directory, 'segments', namespace);
++
++/** link() atomically creates a complete checkpoint and refuses any existing destination. */
++export async function publishCheckpoint(temporary, target, namespace = null) {
++    checkedNamespace(namespace);
++    if (namespace) await fs.link(temporary, target);
++    else await fs.rename(temporary, target);
+ }
+ 
+ export function checkedSegment(plan, segment) {
+@@ -57,12 +85,12 @@
+     return expected;
+ }
+ 
+-export async function atomicBytes(directory, relative, bytes) {
+-    if (!/^segments\/[a-z0-9_-]{1,32}-\d{6}\.wav$/.test(relative)) throw new Error('Nombre de tramo no válido.');
+-    const folder = path.join(directory, 'segments'); await fs.mkdir(folder, { recursive: true });
+-    if (!samePath(await fs.realpath(folder), folder)) throw new Error('La salida no admite enlaces.');
++export async function atomicBytes(directory, relative, bytes, namespace = null) {
++    const name = relative.split('/').at(-1);
++    if (!/^[a-z0-9_-]{1,32}-\d{6}\.wav$/.test(name) || relative !== checkpointRelative('segments', name, namespace)) throw new Error('Nombre de tramo no válido.');
++    await segmentFolder(directory, namespace);
+     const target = path.join(directory, relative), temporary = `${target}.${randomUUID()}.part`;
+-    try { await fs.writeFile(temporary, bytes, { flag: 'wx' }); await fs.rename(temporary, target); }
++    try { await fs.writeFile(temporary, bytes, { flag: 'wx' }); await publishCheckpoint(temporary, target, namespace); }
+     finally { await fs.rm(temporary, { force: true }); }
+-    return { file: relative, size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
++    return { file: relative, namespace, size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
+ }
+--- a/scripts/studio/av-pcm.mjs
++++ b/scripts/studio/av-pcm.mjs
+@@ -2,13 +2,14 @@
+ import { createReadStream } from 'node:fs';
+ import path from 'node:path';
+ import { createHash, randomUUID } from 'node:crypto';
+-import { attemptDirectory, sourceFile, boundedProcess } from './av-files.mjs';
++import { attemptDirectory, sourceFile, boundedProcess, checkedNamespace, checkpointRelative, outputFolder, publishCheckpoint } from './av-files.mjs';
+ 
+ const rate = 48000, frameBytes = 8, limit = 8 * 1024 ** 3;
+ const same = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+ 
+ /** A separate checkpointable preparation phase. Never decode a compressed seek as an exact PCM clock. */
+-export async function prepareAudioSource({ directory, asset, signal }) {
++export async function prepareAudioSource({ directory, asset, signal, namespace = null }) {
++    checkedNamespace(namespace);
+     directory = await attemptDirectory(directory); signal?.throwIfAborted();
+     if (!['audio', 'video'].includes(asset?.kind) || !Number.isFinite(asset.duration) || asset.duration <= 0) throw new Error('Origen de audio no válido.');
+     const frames = Math.round(asset.duration * rate), size = frames * frameBytes;
+@@ -21,14 +22,26 @@
+     const audio = probe.streams?.find(stream => stream.codec_type === 'audio');
+     const seconds = Number(stream?.duration ?? probe.format?.duration);
+     if (!audio || !Number.isFinite(seconds) || Math.abs(seconds - asset.duration) > 0.1) throw new Error('La duración del origen de audio está incompleta o cambió respecto al recurso.');
+-    const folder = path.join(directory, 'audio-sources'); await fs.mkdir(folder, { recursive: true });
+-    if (!same(await fs.realpath(folder), folder)) throw new Error('Los PCM privados no admiten enlaces.');
+-    let used = 0;
++    const folder = await outputFolder(directory, 'audio-sources', namespace);
++    let used = 0, entries = 0;
+     const name = `${asset.id}.pcm`;
+-    for (const entry of await fs.readdir(folder, { withFileTypes: true })) {
+-        if (entry.isSymbolicLink() || !entry.isFile()) throw new Error('El directorio PCM contiene una entrada ajena.');
+-        if (entry.name !== name) used += (await fs.stat(path.join(folder, entry.name))).size;
++    async function count(current, nested = false) {
++        let contents;
++        try { contents = await fs.readdir(current, { withFileTypes: true }); }
++        catch (error) { if (nested && error.code === 'ENOENT') return; throw error; }
++        for (const entry of contents) {
++            signal?.throwIfAborted();
++            if (++entries > 8192 || entry.isSymbolicLink()) throw new Error('El directorio PCM contiene una entrada ajena.');
++            const file = path.join(current, entry.name);
++            if (entry.isDirectory() && !nested) { checkedNamespace(entry.name); await count(file, true); }
++            else if (!entry.isFile()) throw new Error('El directorio PCM contiene una entrada ajena.');
++            else if (namespace || file !== path.join(folder, name)) {
++                try { used += (await fs.stat(file)).size; }
++                catch (error) { if (error.code !== 'ENOENT') throw error; }
++            }
++        }
+     }
++    await count(path.join(directory, 'audio-sources'));
+     if (used + size > limit) throw new Error('Los intermediarios PCM del intento superan 8 GiB.');
+     const temporary = path.join(folder, `${randomUUID()}.part.pcm`), target = path.join(folder, name);
+     try {
+@@ -43,20 +56,21 @@
+         if (original.size !== after.size || original.mtimeMs !== after.mtimeMs || stat.size !== size) throw new Error('El origen cambió o la normalización PCM está incompleta.');
+         const hash = createHash('sha256');
+         for await (const bytes of createReadStream(temporary)) { signal?.throwIfAborted(); hash.update(bytes); }
+-        signal?.throwIfAborted(); await fs.rename(temporary, target);
+-        return { id: asset.id, file: `audio-sources/${name}`, size, frames, sampleRate: rate, channels: 2, codec: 'pcm_f32le',
++        signal?.throwIfAborted(); await publishCheckpoint(temporary, target, namespace);
++        return { id: asset.id, file: checkpointRelative('audio-sources', name, namespace), namespace, size, frames, sampleRate: rate, channels: 2, codec: 'pcm_f32le',
+             sha256: hash.digest('hex'), sourceSize: original.size, sourceMtimeMs: original.mtimeMs };
+     } finally { await fs.rm(temporary, { force: true }); }
+ }
+ 
+-export async function prepareAudioSources({ directory, plan, assets, signal }) {
++export async function prepareAudioSources({ directory, plan, assets, signal, namespace = null }) {
++    checkedNamespace(namespace);
+     const resources = new Map(assets.map(asset => [asset.id, asset])), profiles = [];
+-    for (const id of new Set(plan.audio.map(input => input.assetId))) profiles.push(await prepareAudioSource({ directory, asset: resources.get(id), signal }));
++    for (const id of new Set(plan.audio.map(input => input.assetId))) profiles.push(await prepareAudioSource({ directory, asset: resources.get(id), signal, namespace }));
+     return profiles;
+ }
+ 
+ export async function pcmFile(directory, profile) {
+-    if (!Number.isSafeInteger(profile?.id) || profile.id < 1 || profile.file !== `audio-sources/${profile.id}.pcm` || profile.sampleRate !== rate
++    if (!Number.isSafeInteger(profile?.id) || profile.id < 1 || profile.file !== checkpointRelative('audio-sources', `${profile.id}.pcm`, profile.namespace) || profile.sampleRate !== rate
+         || profile.channels !== 2 || profile.codec !== 'pcm_f32le' || !Number.isSafeInteger(profile.frames) || profile.frames < 1
+         || profile.size !== profile.frames * frameBytes || profile.size > limit || !/^[a-f0-9]{64}$/.test(profile.sha256 ?? '')) throw new Error('Perfil PCM no válido o incompleto.');
+     const file = path.join(directory, profile.file), real = await fs.realpath(file), stat = await fs.stat(real);
+--- a/scripts/studio/av-audio.mjs
++++ b/scripts/studio/av-audio.mjs
+@@ -1,5 +1,5 @@
+ import { audioInputState } from '../../resources/js/Studio/audiovisual-plan.js';
+-import { attemptDirectory, checkedSegment, atomicBytes } from './av-files.mjs';
++import { attemptDirectory, checkedSegment, atomicBytes, checkedNamespace, checkpointRelative } from './av-files.mjs';
+ import { pcmWindowReader } from './av-pcm.mjs';
+ 
+ const rate = 48000;
+@@ -12,7 +12,8 @@
+ }
+ 
+ /** Read at most eight source seconds per active clip from previously normalised disk PCM. */
+-export async function mixAudioSegment({ directory, plan, audioSources, segment, name = 'audio', signal, onRead = () => {} }) {
++export async function mixAudioSegment({ directory, plan, audioSources, segment, name = 'audio', signal, onRead = () => {}, namespace = null }) {
++    checkedNamespace(namespace);
+     directory = await attemptDirectory(directory); checkedSegment(plan, segment); signal?.throwIfAborted();
+     if (!/^[a-z0-9_-]{1,32}$/.test(name)) throw new Error('Nombre de mezcla no válido.');
+     const output = new Float64Array(segment.sampleCount * 2), readWindow = pcmWindowReader(directory, audioSources, { signal, onRead });
+@@ -54,6 +55,6 @@
+     signal?.throwIfAborted();
+     const bytes = Buffer.alloc(44 + output.length * 4); header(segment.sampleCount).copy(bytes);
+     for (let i = 0; i < output.length; i++) bytes.writeFloatLE(Math.max(-1, Math.min(1, output[i])), 44 + i * 4);
+-    const result = await atomicBytes(directory, `segments/${name}-${String(segment.index).padStart(6, '0')}.wav`, bytes);
++    const result = await atomicBytes(directory, checkpointRelative('segments', `${name}-${String(segment.index).padStart(6, '0')}.wav`, namespace), bytes, namespace);
+     return { ...result, sampleCount: segment.sampleCount, sampleStart: segment.sampleStart };
+ }
+--- a/scripts/studio/av-video.mjs
++++ b/scripts/studio/av-video.mjs
+@@ -3,16 +3,17 @@
+ import { fileURLToPath } from 'node:url';
+ import { randomUUID, createHash } from 'node:crypto';
+ import { chromium } from 'playwright';
+-import { attemptDirectory, checkedSegment, segmentFolder, boundedProcess } from './av-files.mjs';
++import { attemptDirectory, checkedSegment, segmentFolder, boundedProcess, checkedNamespace, checkpointRelative, publishCheckpoint } from './av-files.mjs';
+ import { openResourceServer } from './av-server.mjs';
+ import { audiovisualRenderOptions } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
+ const project = fileURLToPath(new URL('../../', import.meta.url));
+-export async function renderVisualSegment({ directory, plan, assets = [], fonts = [], segment, signal, format = 'mp4' }) {
++export async function renderVisualSegment({ directory, plan, assets = [], fonts = [], segment, signal, format = 'mp4', namespace = null }) {
++    checkedNamespace(namespace);
+     directory = await attemptDirectory(directory); checkedSegment(plan, segment); signal?.throwIfAborted();
+     if (!['mp4', 'gif'].includes(format)) throw new Error('Formato audiovisual no admitido.');
+     const render = audiovisualRenderOptions(plan.document, plan.options), { width, height } = render;
+-    const folder = await segmentFolder(directory), name = `video-${String(segment.index).padStart(6, '0')}.${format}`;
++    const folder = await segmentFolder(directory, namespace), name = `video-${String(segment.index).padStart(6, '0')}.${format}`;
+     const temporary = path.join(folder, `${randomUUID()}.part.${format}`), target = path.join(folder, name);
+     let browser, server;
+     const abort = () => { void browser?.close().catch(() => {}); };
+@@ -55,10 +56,10 @@
+         const stat = await fs.stat(temporary);
+         if (stat.size < 1 || stat.size > 512 * 1024 ** 2) throw new Error('El tramo de vídeo supera su presupuesto de disco.');
+         // Only a fully probed segment is published; an interrupted .part is never a downloadable result.
+-        await fs.rename(temporary, target);
++        await publishCheckpoint(temporary, target, namespace);
+         const hash = createHash('sha256');
+         const file = await fs.open(target, 'r'); try { for await (const bytes of file.createReadStream()) hash.update(bytes); } finally { await file.close(); }
+-        return { file: `segments/${name}`, size: stat.size, sha256: hash.digest('hex'), frameStart: segment.frameStart,
++        return { file: checkpointRelative('segments', name, namespace), namespace, size: stat.size, sha256: hash.digest('hex'), frameStart: segment.frameStart,
+             frameCount: segment.frameCount, fps: plan.fps, width: paddedWidth, height: paddedHeight, scale: render.scale, quality: render.quality };
+     } finally {
+         signal?.removeEventListener('abort', abort); await browser?.close().catch(() => {}); await server?.close(); await fs.rm(temporary, { force: true });
+--- a/scripts/studio/av-finalize.mjs
++++ b/scripts/studio/av-finalize.mjs
+@@ -2,7 +2,7 @@
+ import path from 'node:path';
+ import { createReadStream } from 'node:fs';
+ import { createHash, randomUUID } from 'node:crypto';
+-import { attemptDirectory, boundedProcess } from './av-files.mjs';
++import { attemptDirectory, boundedProcess, checkedNamespace, checkpointRelative, outputFolder, publishCheckpoint } from './av-files.mjs';
+ import { joinGifSegments } from './av-gif.mjs';
+ import { audiovisualRenderOptions } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
+@@ -16,10 +16,12 @@
+     return file;
+ }
+ 
+-export async function assembleProject({ directory, plan, segments, format, signal }) {
++export async function assembleProject({ directory, plan, segments, format, signal, namespace = null }) {
++    checkedNamespace(namespace);
+     directory = await attemptDirectory(directory); signal?.throwIfAborted();
+     if (!['mp4', 'gif'].includes(format) || !Array.isArray(segments) || segments.length !== plan.segments.length) throw new Error('Selecciona todos los tramos ordenados y un formato admitido.');
+-    const id = randomUUID(), temporary = path.join(directory, `${id}.part.${format}`), target = path.join(directory, `project.${format}`);
++    const folder = namespace ? await outputFolder(directory, 'outputs', namespace) : directory;
++    const id = randomUUID(), temporary = path.join(folder, `${id}.part.${format}`), target = path.join(folder, `project.${format}`);
+     const videoList = path.join(directory, `${id}.video.txt`), audioList = path.join(directory, `${id}.audio.txt`);
+     const render = audiovisualRenderOptions(plan.document, plan.options), width = render.paddedWidth, height = render.paddedHeight;
+     try {
+@@ -29,10 +31,10 @@
+             const segment = plan.segments[index], suffix = String(index).padStart(6, '0');
+             if (item.video?.scale !== render.scale || item.video?.quality !== render.quality) throw new Error('Los tramos usan opciones de escala o calidad distintas.');
+             if (item.video?.frameStart !== segment.frameStart || item.video?.frameCount !== segment.frameCount || item.video?.fps !== plan.fps || item.video?.width !== width || item.video?.height !== height) throw new Error('Los tramos no siguen el reloj y las dimensiones del proyecto.');
+-            videos.push(await verifiedFile(directory, item.video, `segments/video-${suffix}.${format}`));
++            videos.push(await verifiedFile(directory, item.video, checkpointRelative('segments', `video-${suffix}.${format}`, item.video?.namespace)));
+             if (format === 'mp4' && plan.audio.length) {
+                 if (item.audio?.sampleStart !== segment.sampleStart || item.audio?.sampleCount !== segment.sampleCount || item.audio?.size !== 44 + segment.sampleCount * 8) throw new Error('Faltan muestras de audio del proyecto.');
+-                audio.push(await verifiedFile(directory, item.audio, `segments/audio-${suffix}.wav`));
++                audio.push(await verifiedFile(directory, item.audio, checkpointRelative('segments', `audio-${suffix}.wav`, item.audio?.namespace)));
+             }
+         }
+         if (format === 'gif') await joinGifSegments(videos, temporary, { width, height, fps: plan.fps, frameCount: plan.frameCount, counts: plan.segments.map(segment => segment.frameCount), signal });
+@@ -54,8 +56,8 @@
+             || probe.streams?.length !== (audioExpected ? 2 : 1) || (audioExpected && (audioStream?.codec_name !== 'aac' || Number(audioStream.sample_rate) !== 48000 || audioStream.channels !== 2))) throw new Error('El archivo final no coincide con sus pistas, duración, dimensiones o fotogramas.');
+         const size = (await fs.stat(temporary)).size;
+         if (size < 1 || size > 8 * 1024 ** 3) throw new Error('El archivo final supera su presupuesto de disco.');
+-        const sha256 = await hashFile(temporary); signal?.throwIfAborted(); await fs.rename(temporary, target);
+-        return { file: `project.${format}`, size, sha256, frameCount: plan.frameCount, fps: plan.fps, width, height, duration,
++        const sha256 = await hashFile(temporary); signal?.throwIfAborted(); await publishCheckpoint(temporary, target, namespace);
++        return { file: namespace ? checkpointRelative('outputs', `project.${format}`, namespace) : `project.${format}`, namespace, size, sha256, frameCount: plan.frameCount, fps: plan.fps, width, height, duration,
+             videoCodec: video.codec_name, audioCodec: audioStream?.codec_name ?? null, scale: render.scale, quality: render.quality };
+     } finally { await Promise.all([temporary, videoList, audioList].map(file => fs.rm(file, { force: true }))); }
+ }
+--- a/tests/frontend/studio-audiovisual-checkpoints.test.mjs
++++ b/tests/frontend/studio-audiovisual-checkpoints.test.mjs
+@@ -0,0 +1,96 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { randomUUID, createHash } from 'node:crypto';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { renderVisualSegment } from '../../scripts/studio/av-video.mjs';
++import { assembleProject } from '../../scripts/studio/av-finalize.mjs';
++import { prepareAudioSource, pcmFile } from '../../scripts/studio/av-pcm.mjs';
++import { mixAudioSegment } from '../../scripts/studio/av-audio.mjs';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0');
++let directory;
++before(async () => {
++    directory = path.join(base, randomUUID()); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    const wav = Buffer.alloc(44 + 48000 * 8);
++    wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16);
++    wav.writeUInt16LE(3, 20); wav.writeUInt16LE(2, 22); wav.writeUInt32LE(48000, 24); wav.writeUInt32LE(384000, 28);
++    wav.writeUInt16LE(8, 32); wav.writeUInt16LE(32, 34); wav.write('data', 36); wav.writeUInt32LE(wav.length - 44, 40);
++    for (let n = 0; n < 48000; n++) for (let c = 0; c < 2; c++) wav.writeFloatLE(0.1 * Math.sin(2 * Math.PI * 440 * n / 48000), 44 + n * 8 + c * 4);
++    await fs.writeFile(path.join(directory, 'assets/1.bin'), wav);
++});
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++const asset = { id: 1, file: 'assets/1.bin', kind: 'audio', duration: 1, status: 'listo', audio_codec: 'pcm_f32le' };
++const plan = color => compileAudiovisual({ schema_version: 2, width: 64, height: 48, timeline: { fps: 12,
++    audio_tracks: [{ id: 'music', asset_id: 1, start: 0, duration: 0.25 }] },
++    pages: [{ id: 'p', duration: 0.25, background: color, elements: [] }] }, [asset]);
++const hash = async file => createHash('sha256').update(await fs.readFile(path.join(directory, file))).digest('hex');
++
++test('a late visual worker cannot overwrite a segment from another lease', async () => {
++    const namespace = randomUUID(), late = randomUUID(), compiled = plan('#ff0000');
++    const first = await renderVisualSegment({ directory, plan: compiled, segment: compiled.segments[0], namespace });
++    const accepted = await hash(first.file), otherPlan = plan('#0000ff');
++    const second = await renderVisualSegment({ directory, plan: otherPlan, segment: otherPlan.segments[0], namespace: late });
++    assert.equal(first.file, `segments/${namespace}/video-000000.mp4`);
++    assert.equal(second.file, `segments/${late}/video-000000.mp4`);
++    assert.equal(await hash(first.file), accepted); assert.notEqual(first.sha256, second.sha256);
++    await assert.rejects(renderVisualSegment({ directory, plan: otherPlan, segment: otherPlan.segments[0], namespace }), /exist|publicad|checkpoint/i);
++    assert.equal(await hash(first.file), accepted);
++});
++
++test('PCM and mixed audio checkpoints keep independent lease identities and reject forged paths', async () => {
++    const namespace = randomUUID(), late = randomUUID(), compiled = plan('#ff0000');
++    const a = await prepareAudioSource({ directory, asset, namespace });
++    const b = await prepareAudioSource({ directory, asset, namespace: late });
++    assert.equal(a.file, `audio-sources/${namespace}/1.pcm`); assert.notEqual(a.file, b.file);
++    assert.equal(await hash(a.file), a.sha256); assert.equal(await hash(b.file), b.sha256);
++    assert.equal(await pcmFile(directory, a), path.join(directory, a.file));
++    await assert.rejects(pcmFile(directory, { ...a, file: b.file }), /perfil/i);
++    const first = await mixAudioSegment({ directory, plan: compiled, segment: compiled.segments[0], audioSources: [a], namespace });
++    const second = await mixAudioSegment({ directory, plan: compiled, segment: compiled.segments[0], audioSources: [a], namespace: late });
++    assert.equal(first.file, `segments/${namespace}/audio-000000.wav`); assert.notEqual(first.file, second.file);
++    assert.equal(first.sha256, second.sha256);
++    await assert.rejects(mixAudioSegment({ directory, plan: compiled, segment: compiled.segments[0], audioSources: [a], namespace }), /exist|publicad|checkpoint/i);
++});
++
++test('assembly accepts selected checkpoints from different leases and publishes an immutable final generation', async () => {
++    const compiled = plan('#00ff00'), visual = randomUUID(), audio = randomUUID(), final = randomUUID();
++    const video = await renderVisualSegment({ directory, plan: compiled, segment: compiled.segments[0], namespace: visual });
++    const profile = await prepareAudioSource({ directory, asset, namespace: randomUUID() });
++    const mixed = await mixAudioSegment({ directory, plan: compiled, segment: compiled.segments[0], audioSources: [profile], namespace: audio });
++    const segments = [{ video, audio: mixed }];
++    const result = await assembleProject({ directory, plan: compiled, segments, format: 'mp4', namespace: final });
++    assert.equal(result.file, `outputs/${final}/project.mp4`); assert.equal(result.audioCodec, 'aac');
++    assert.equal(await hash(result.file), result.sha256);
++    await assert.rejects(assembleProject({ directory, plan: compiled, segments, format: 'mp4', namespace: final }), /exist|publicad|checkpoint/i);
++    await assert.rejects(assembleProject({ directory, plan: compiled, segments: [{ video: { ...video, namespace: audio }, audio: mixed }], format: 'mp4', namespace: randomUUID() }), /manifiesto/i);
++    assert.equal(await hash(result.file), result.sha256);
++});
++
++test('namespace validation rejects paths, URLs, empty values and malformed UUIDs before heavy work', async () => {
++    const compiled = plan('#ff0000');
++    for (const namespace of ['', '../escape', 'assets', 'https://example.com', 5, 'a'.repeat(36)]) {
++        await assert.rejects(renderVisualSegment({ directory, plan: compiled, segment: compiled.segments[0], namespace }), /namespace|lease/i);
++        await assert.rejects(prepareAudioSource({ directory, asset, namespace }), /namespace|lease/i);
++        await assert.rejects(mixAudioSegment({ directory, plan: compiled, segment: compiled.segments[0], audioSources: [], namespace }), /namespace|lease/i);
++        await assert.rejects(assembleProject({ directory, plan: compiled, segments: [], format: 'mp4', namespace }), /namespace|lease/i);
++    }
++});
++
++test('a different lease cleaning its temporary during PCM accounting cannot abort valid normalisation', async () => {
++    const other = randomUUID(), current = randomUUID();
++    const folder = path.join(directory, 'audio-sources', other), temporary = path.join(folder, `${randomUUID()}.part.pcm`);
++    await fs.mkdir(folder, { recursive: true }); await fs.writeFile(temporary, Buffer.alloc(128));
++    const readdir = fs.readdir; let cleaned = false;
++    fs.readdir = async function (file, ...options) {
++        const entries = await readdir.call(this, file, ...options);
++        if (file === folder) { await fs.rm(temporary); cleaned = true; }
++        return entries;
++    };
++    try {
++        const result = await prepareAudioSource({ directory, asset, namespace: current });
++        assert.equal(cleaned, true); assert.equal(result.frames, 48000);
++        assert.equal(await hash(result.file), result.sha256);
++    } finally { fs.readdir = readdir; }
++});
+--- a/scripts/studio/av-runtime.py
++++ b/scripts/studio/av-runtime.py
+@@ -0,0 +1,191 @@
++"""Private audiovisual process supervisor; no model imports or remote access."""
++import json
++import os
++import pathlib
++import re
++import subprocess
++import sys
++import tempfile
++import time
++
++LIMIT = 3 * 1024**3
++
++
++def windows_api():
++    import ctypes
++    from ctypes import wintypes
++
++    class Basic(ctypes.Structure):
++        _fields_ = [('process_time', ctypes.c_longlong), ('job_time', ctypes.c_longlong),
++                    ('flags', wintypes.DWORD), ('minimum', ctypes.c_size_t), ('maximum', ctypes.c_size_t),
++                    ('active', wintypes.DWORD), ('affinity', ctypes.c_size_t),
++                    ('priority', wintypes.DWORD), ('scheduling', wintypes.DWORD)]
++
++    class Io(ctypes.Structure):
++        _fields_ = [(name, ctypes.c_ulonglong) for name in ('read_ops', 'write_ops', 'other_ops', 'read_bytes', 'write_bytes', 'other_bytes')]
++
++    class Bounds(ctypes.Structure):
++        _fields_ = [('basic', Basic), ('io', Io), ('process_memory', ctypes.c_size_t),
++                    ('job_memory', ctypes.c_size_t), ('peak_process_memory', ctypes.c_size_t), ('peak_job_memory', ctypes.c_size_t)]
++
++    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
++    kernel.CreateJobObjectW.restype = wintypes.HANDLE
++    kernel.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
++    kernel.GetCurrentProcess.restype = wintypes.HANDLE
++    kernel.GetCurrentProcess.argtypes = []
++    kernel.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
++    kernel.QueryInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p]
++    kernel.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
++    return ctypes, kernel, Bounds
++
++
++def cgroup_bounds(membership, mountinfo, read):
++    """Read the effective minimum across the real v2 membership and its mounted ancestors."""
++    group = next((line[3:] for line in membership.splitlines() if line.startswith('0::')), None)
++    if group is None:
++        raise RuntimeError('runtime_unavailable')
++    decode = lambda text: re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), text)
++    for line in mountinfo.splitlines():
++        before, separator, after = line.partition(' - ')
++        fields = before.split()
++        if not separator or after.split()[0] != 'cgroup2' or len(fields) < 5:
++            continue
++        mount_root, mount = pathlib.PurePosixPath(decode(fields[3])), pathlib.PurePosixPath(decode(fields[4]))
++        try:
++            relative = pathlib.PurePosixPath(group).relative_to(mount_root)
++        except ValueError:
++            continue
++        if '..' in relative.parts:
++            raise RuntimeError('runtime_unavailable')
++        current = mount / relative
++        limits = []
++        while True:
++            try:
++                text = read(str(current / 'memory.max')).strip()
++                if text != 'max':
++                    value = int(text)
++                    if value < 1:
++                        raise RuntimeError('runtime_unavailable')
++                    limits.append(value)
++            except FileNotFoundError:
++                if current != mount:
++                    raise RuntimeError('runtime_unavailable') from None
++            if current == mount:
++                break
++            current = current.parent
++        if not limits or min(limits) > LIMIT:
++            raise RuntimeError('runtime_unavailable')
++        return {'scope': 'cgroup-v2', 'limit': min(limits)}
++    raise RuntimeError('runtime_unavailable')
++
++
++def observed_memory(job=None):
++    if os.name == 'nt':
++        ctypes, kernel, Bounds = windows_api()
++        bounds = Bounds()
++        if not kernel.QueryInformationJobObject(job, 9, ctypes.byref(bounds), ctypes.sizeof(bounds), None):
++            raise RuntimeError('runtime_unavailable')
++        return {'scope': 'job', 'limit': bounds.job_memory if bounds.basic.flags & 0x200 else 0, 'peak_commit': bounds.peak_job_memory,
++                'kill_on_close': bool(bounds.basic.flags & 0x2000), 'breakaway': bool(bounds.basic.flags & 0x1800)}
++    if sys.platform == 'linux':
++        read = lambda name: pathlib.Path(name).read_text(encoding='utf-8')
++        return cgroup_bounds(read('/proc/self/cgroup'), read('/proc/self/mountinfo'), read)
++    raise RuntimeError('runtime_unavailable')
++
++
++def enforce_memory():
++    if os.name != 'nt':
++        # The dedicated service must already bound its entire descendant cgroup. Never use RLIMIT_AS for V8.
++        observed_memory()
++        return None
++    ctypes, kernel, Bounds = windows_api()
++    job = kernel.CreateJobObjectW(None, None)
++    bounds = Bounds()
++    bounds.basic.flags = 0x200 | 0x2000  # JOB_MEMORY | KILL_ON_JOB_CLOSE; no breakaway flags.
++    bounds.job_memory = LIMIT
++    if not job or not kernel.SetInformationJobObject(job, 9, ctypes.byref(bounds), ctypes.sizeof(bounds)) or not kernel.AssignProcessToJobObject(job, kernel.GetCurrentProcess()):
++        raise RuntimeError('runtime_unavailable')
++    observed = observed_memory(job)
++    if observed['limit'] != LIMIT or not observed['kill_on_close'] or observed['breakaway']:
++        raise RuntimeError('runtime_unavailable')
++    return job  # Sole non-inheritable handle: OS close on supervisor exit kills every remaining descendant.
++
++
++def observe_tree(depth):
++    result = {'pid': os.getpid(), 'memory': observed_memory()}
++    if depth:
++        child = subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve()), '--observe', str(depth - 1)],
++                               capture_output=True, text=True, timeout=5)
++        if child.returncode:
++            raise RuntimeError('runtime_unavailable')
++        result['child'] = json.loads(child.stdout)
++    return result
++
++
++def run_phase(arguments):
++    # Linux process supervision/cgroup cleanup must be completed before enabling native phases there.
++    if os.name != 'nt':
++        raise RuntimeError('runtime_unavailable')
++    if not pathlib.Path(arguments[0]).is_absolute() or re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', arguments[1]) is None or arguments[2] not in ('plan', 'normalize', 'render', 'mix', 'assemble') or re.fullmatch(r'\d{1,6}', arguments[3]) is None:
++        return {'ok': False, 'error_code': 'invalid_request'}
++    budget = int(os.environ.get('STUDIO_AV_BUDGET_MS', '85000'))
++    if not 100 <= budget <= 85000:
++        return {'ok': False, 'error_code': 'invalid_request'}
++    start = time.monotonic()
++    env = os.environ.copy()
++    env['STUDIO_AV_MANAGED'] = '1'
++    env['STUDIO_AV_DEADLINE_MS'] = str(time.time_ns() // 1000000 + budget)
++    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
++        child = subprocess.Popen([os.environ.get('STUDIO_NODE_BINARY', 'node'), str(pathlib.Path(__file__).with_name('render-av.mjs')), *arguments],
++                                 stdout=stdout, stderr=stderr, env=env, creationflags=subprocess.CREATE_NO_WINDOW)
++        failure = None
++        try:
++            while child.poll() is None:
++                if time.monotonic() - start > (budget + 3000) / 1000:
++                    failure = 'phase_timeout'
++                    break
++                if os.fstat(stdout.fileno()).st_size > 8 * 1024**2 or os.fstat(stderr.fileno()).st_size > 65536:
++                    failure = 'output_budget'
++                    break
++                time.sleep(0.025)
++            if failure:
++                child.kill()
++                child.wait(timeout=2)
++                return {'ok': False, 'error_code': failure}
++            stdout.seek(0)
++            raw = stdout.read(8 * 1024**2 + 1)
++            if len(raw) > 8 * 1024**2:
++                return {'ok': False, 'error_code': 'output_budget'}
++            response = json.loads(raw)
++            if not isinstance(response, dict) or not isinstance(response.get('ok'), bool) or (response['ok'] and child.returncode):
++                raise RuntimeError('runtime_unavailable')
++            if time.monotonic() - start > budget / 1000:
++                response = {'ok': False, 'error_code': 'phase_timeout'}
++            response['memory'] = observed_memory()
++            return response
++        finally:
++            if child.poll() is None:
++                child.kill()
++                child.wait(timeout=2)
++
++
++def main():
++    try:
++        if sys.argv[1:] == ['--probe']:
++            memory_job = enforce_memory()
++            response = {'ok': True, **observe_tree(2)}
++        elif len(sys.argv) == 3 and sys.argv[1] == '--observe' and sys.argv[2] in ('0', '1'):
++            response = observe_tree(int(sys.argv[2]))
++        elif len(sys.argv) == 5:
++            memory_job = enforce_memory()
++            response = run_phase(sys.argv[1:])
++        else:
++            response = {'ok': False, 'error_code': 'invalid_request'}
++    except (RuntimeError, OSError, ValueError, subprocess.SubprocessError):
++        response = {'ok': False, 'error_code': 'runtime_unavailable'}
++    print(json.dumps(response), flush=True)
++    return 0 if response.get('ok', 'memory' in response) else 2
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+--- a/scripts/studio/render-av.mjs
++++ b/scripts/studio/render-av.mjs
+@@ -0,0 +1,82 @@
++// Private per-lease audiovisual phase entry point. Not an HTTP or MCP API.
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { attemptDirectory, checkedNamespace } from './av-files.mjs';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { prepareAudioSource } from './av-pcm.mjs';
++import { mixAudioSegment } from './av-audio.mjs';
++import { renderVisualSegment } from './av-video.mjs';
++import { assembleProject } from './av-finalize.mjs';
++
++const phases = ['plan', 'normalize', 'render', 'mix', 'assemble'];
++const same = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
++let response, timer, polling;
++const controller = new AbortController();
++try {
++    const [supplied, namespace, phase, indexValue, ...extra] = process.argv.slice(2);
++    checkedNamespace(namespace);
++    const deadline = Number(process.env.STUDIO_AV_DEADLINE_MS), remaining = deadline - Date.now();
++    if (process.env.STUDIO_AV_MANAGED !== '1' || !namespace || !phases.includes(phase) || extra.length
++        || !/^\d{1,6}$/.test(indexValue ?? '') || !Number.isSafeInteger(deadline) || remaining > 85000) throw new Error('invalid_request');
++    if (remaining <= 0) throw new Error('phase_timeout');
++    timer = setTimeout(() => controller.abort(new Error('phase_timeout')), remaining);
++    const signal = controller.signal, directory = await attemptDirectory(supplied), index = Number(indexValue);
++    const work = path.join(directory, 'work'), file = path.join(work, `${namespace}.json`), cancel = path.join(work, `${namespace}.cancel`);
++    if (!same(await fs.realpath(work), work) || !same(await fs.realpath(file), file)) throw new Error('invalid_request');
++    const stat = await fs.stat(file);
++    if (!stat.isFile() || stat.size < 1 || stat.size > 8 * 1024 ** 2) throw new Error('invalid_request');
++    async function checkCancel() {
++        try { await fs.lstat(cancel); controller.abort(new Error('phase_cancelled')); }
++        catch (error) { if (error.code !== 'ENOENT') controller.abort(new Error('phase_failed')); }
++    }
++    await checkCancel(); signal.throwIfAborted();
++    polling = setInterval(() => { void checkCancel(); }, 100);
++    const content = await fs.readFile(file);
++    if (content.length !== stat.size || content.length > 8 * 1024 ** 2) throw new Error('invalid_request');
++    const input = JSON.parse(content.toString('utf8'));
++    if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => !['document', 'assets', 'fonts', 'options', 'format', 'audioSources', 'segments'].includes(key))
++        || !['mp4', 'gif'].includes(input.format) || !Array.isArray(input.assets) || !Array.isArray(input.fonts)
++        || !Array.isArray(input.audioSources) || !Array.isArray(input.segments)) throw new Error('invalid_request');
++    const plan = compileAudiovisual(input.document, input.assets, input.options);
++    if (plan.segments.length > 4096) throw new Error('plan_budget');
++    const audioIds = new Set(input.format === 'mp4' ? plan.audio.map(input => input.assetId) : []);
++    const assetIds = new Set(audioIds), visualIds = new Set(), fontIds = new Set();
++    function collect(elements, start, end, duration) {
++        for (const element of elements) {
++            if (element.visible === false) continue;
++            const timing = element.timing ?? { start: 0, duration };
++            const from = Math.max(start, timing.start), to = Math.min(end, timing.start + timing.duration);
++            if (from >= to) continue;
++            if (element.type === 'group') collect(element.elements, from, to, duration);
++            else if (['image', 'video'].includes(element.type)) { assetIds.add(element.asset_id); visualIds.add(element.asset_id); }
++            else if (element.type === 'text' && element.font_id != null) fontIds.add(element.font_id);
++        }
++    }
++    for (const page of plan.timeline.pages) collect(page.source.elements, 0, Math.min(page.source.duration, page.end - page.start), page.source.duration);
++    const assets = input.assets.filter(asset => assetIds.has(asset.id)), fonts = input.fonts.filter(font => fontIds.has(font.id));
++    if (assets.length !== assetIds.size || fonts.length !== fontIds.size || assets.some(asset => asset.status !== 'listo')) throw new Error('missing_resource');
++    const common = { directory, namespace, plan, signal };
++    signal.throwIfAborted();
++    let result;
++    if (phase === 'plan') result = { frameCount: plan.frameCount, fps: plan.fps, duration: plan.duration, sampleRate: plan.sampleRate,
++        segmentCount: plan.segments.length, segmentFrames: plan.options.segmentFrames, selection: plan.selection, render: plan.render,
++        assetIds: [...assetIds], fontIds: [...fontIds], audioAssetIds: [...audioIds] };
++    else if (phase === 'normalize') {
++        if (!audioIds.has(index)) throw new Error('invalid_request');
++        result = await prepareAudioSource({ ...common, asset: assets.find(asset => asset.id === index) });
++    } else if (phase === 'render' || phase === 'mix') {
++        const segment = plan.segments[index];
++        if (!segment || (phase === 'mix' && (input.format === 'gif' || !plan.audio.length))) throw new Error('invalid_request');
++        result = phase === 'render' ? await renderVisualSegment({ ...common, assets: assets.filter(asset => visualIds.has(asset.id)), fonts, segment, format: input.format })
++            : await mixAudioSegment({ ...common, segment, audioSources: input.audioSources });
++    } else result = await assembleProject({ ...common, segments: input.segments, format: input.format });
++    signal.throwIfAborted();
++    if (Date.now() >= deadline) throw new Error('phase_timeout');
++    response = { ok: true, phase, index, namespace, result };
++} catch (error) {
++    const code = controller.signal.reason?.message ?? error.message;
++    response = { ok: false, error_code: ['invalid_request', 'phase_timeout', 'phase_cancelled', 'plan_budget', 'missing_resource'].includes(code) ? code : 'phase_failed' };
++} finally { clearTimeout(timer); clearInterval(polling); }
++const output = JSON.stringify(response);
++process.stdout.write((Buffer.byteLength(output) <= 8 * 1024 ** 2 ? output : JSON.stringify({ ok: false, error_code: 'output_budget' })) + '\n');
++process.exitCode = response.ok ? 0 : 1;
+--- a/tests/studio_runtime/test_av_limits.py
++++ b/tests/studio_runtime/test_av_limits.py
+@@ -0,0 +1,67 @@
++import json
++import os
++import subprocess
++import sys
++import unittest
++
++
++@unittest.skipUnless(os.name == 'nt', 'Windows Job Object acceptance; Linux needs its real bounded worker cgroup')
++class AudiovisualLimitsTest(unittest.TestCase):
++    def test_probe_observes_three_gib_job_limit_in_parent_child_and_grandchild(self):
++        result = subprocess.run([sys.executable, 'scripts/studio/av-runtime.py', '--probe'], capture_output=True, text=True, timeout=15)
++        data = json.loads(result.stdout)
++        self.assertTrue(data['ok'], data)
++        self.assertEqual(result.returncode, 0, result.stderr)
++        for process in (data['memory'], data['child']['memory'], data['child']['child']['memory']):
++            self.assertEqual(process['limit'], 3 * 1024**3)
++            self.assertEqual(process['scope'], 'job')
++            self.assertTrue(process['kill_on_close'])
++            self.assertFalse(process['breakaway'])
++        self.assertNotEqual(data['pid'], data['child']['pid'])
++        self.assertNotEqual(data['child']['pid'], data['child']['child']['pid'])
++
++    def test_supervisor_exit_closes_its_job_and_terminates_a_detached_child(self):
++        script = '''
++import os,runpy,subprocess,sys
++scope=runpy.run_path('scripts/studio/av-runtime.py')
++job=scope['enforce_memory']()
++child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(15)'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.DETACHED_PROCESS|subprocess.CREATE_NEW_PROCESS_GROUP)
++print(child.pid,flush=True)
++'''
++        result = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, timeout=10)
++        self.assertEqual(result.returncode, 0, result.stderr)
++        pid = int(result.stdout.strip())
++        import ctypes
++        from ctypes import wintypes
++        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
++        kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
++        kernel.OpenProcess.restype = wintypes.HANDLE
++        kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
++        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
++        process = kernel.OpenProcess(0x100000, False, pid)
++        if process:
++            try:
++                self.assertEqual(kernel.WaitForSingleObject(process, 3000), 0, 'detached child survived supervisor exit')
++            finally:
++                kernel.CloseHandle(process)
++        else:
++            self.assertEqual(ctypes.get_last_error(), 87, 'only an already vanished PID is accepted')
++
++
++class CgroupBoundsTest(unittest.TestCase):
++    def test_effective_ancestor_limit_is_used_and_unbounded_or_unmounted_groups_fail_closed(self):
++        import runpy
++        bounds = runpy.run_path('scripts/studio/av-runtime.py')['cgroup_bounds']
++        membership = '0::/service/worker\n'
++        mount = '20 19 0:29 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n'
++        files = {'/sys/fs/cgroup/service/worker/memory.max': 'max', '/sys/fs/cgroup/service/memory.max': str(2 * 1024**3), '/sys/fs/cgroup/memory.max': 'max'}
++        self.assertEqual(bounds(membership, mount, files.__getitem__), {'scope': 'cgroup-v2', 'limit': 2 * 1024**3})
++        files['/sys/fs/cgroup/service/memory.max'] = 'max'
++        with self.assertRaisesRegex(RuntimeError, 'runtime_unavailable'):
++            bounds(membership, mount, files.__getitem__)
++        with self.assertRaisesRegex(RuntimeError, 'runtime_unavailable'):
++            bounds('0::/outside\n', mount.replace('/ /sys', '/service /sys'), files.__getitem__)
++
++
++if __name__ == '__main__':
++    unittest.main()
+--- a/tests/frontend/studio-audiovisual-phase.test.mjs
++++ b/tests/frontend/studio-audiovisual-phase.test.mjs
+@@ -0,0 +1,122 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { execFileSync, spawn } from 'node:child_process';
++import { randomUUID, createHash } from 'node:crypto';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0'), python = process.env.STUDIO_TEST_PYTHON ?? 'python';
++let directory;
++before(async () => { directory = path.join(base, randomUUID()); await fs.mkdir(path.join(directory, 'work'), { recursive: true }); });
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++const manifest = () => ({ document: { schema_version: 2, width: 64, height: 48, timeline: { fps: 12, audio_tracks: [] },
++    pages: [{ id: 'a', duration: 0.25, background: '#ff0000', elements: [] }, { id: 'b', duration: 0.25, background: '#0000ff', elements: [] }] },
++    assets: [], fonts: [], options: { pageIds: ['b', 'a'], scale: 2, quality: 1 }, format: 'mp4', audioSources: [], segments: [] });
++async function request(input, phase, index = 0, options = {}) {
++    const namespace = randomUUID(); await fs.writeFile(path.join(directory, 'work', `${namespace}.json`), JSON.stringify(input), { flag: 'wx' });
++    let raw;
++    try { raw = execFileSync(python, ['scripts/studio/av-runtime.py', directory, namespace, phase, String(index)], { encoding: 'utf8', timeout: 15000, windowsHide: true, ...options }); }
++    catch (error) { raw = error.stdout; }
++    return { namespace, result: JSON.parse(raw) };
++}
++
++test('managed phase runner compiles, renders and joins immutable lease outputs under the OS group bound', { skip: process.platform !== 'win32' }, async () => {
++    const input = manifest();
++    const planned = await request(input, 'plan');
++    assert.equal(planned.result.ok, true, JSON.stringify(planned.result));
++    assert.equal(planned.result.result.frameCount, 6); assert.equal(planned.result.result.render.width, 128);
++    assert.deepEqual(planned.result.result.selection, ['b', 'a']);
++    assert.ok(planned.result.memory.limit > 0 && planned.result.memory.limit <= 3 * 1024 ** 3);
++    const visual = await request(input, 'render');
++    assert.equal(visual.result.ok, true, JSON.stringify(visual.result));
++    input.segments = [{ video: visual.result.result }];
++    const final = await request(input, 'assemble');
++    assert.equal(final.result.ok, true, JSON.stringify(final.result));
++    const result = final.result.result;
++    assert.equal(result.file, `outputs/${final.namespace}/project.mp4`);
++    assert.equal(result.frameCount, 6); assert.equal(result.width, 128); assert.equal(result.duration, 0.5);
++    const bytes = await fs.readFile(path.join(directory, result.file));
++    assert.equal(createHash('sha256').update(bytes).digest('hex'), result.sha256);
++    const decoded = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(directory, result.file), '-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1']);
++    const first = [...decoded.subarray(0, 3)], last = [...decoded.subarray(decoded.length - 3)];
++    assert.ok(first[2] > 230 && first[0] < 25); assert.ok(last[0] > 230 && last[2] < 25);
++});
++
++test('managed runner applies one deadline including startup and publishes no checkpoint on expiry', { skip: process.platform !== 'win32' }, async () => {
++    const before = Date.now(), input = manifest();
++    const response = await request(input, 'render', 0, { env: { ...process.env, STUDIO_AV_BUDGET_MS: '100' } });
++    assert.equal(response.result.ok, false); assert.equal(response.result.error_code, 'phase_timeout');
++    assert.ok(Date.now() - before < 6500);
++    await assert.rejects(fs.access(path.join(directory, 'segments', response.namespace, 'video-000000.mp4')));
++});
++
++test('managed runner observes per-lease cancellation before native work and keeps errors private', { skip: process.platform !== 'win32' }, async () => {
++    const namespace = randomUUID(); await fs.writeFile(path.join(directory, 'work', `${namespace}.json`), JSON.stringify(manifest()));
++    await fs.writeFile(path.join(directory, 'work', `${namespace}.cancel`), '1');
++    let output;
++    try { output = execFileSync(python, ['scripts/studio/av-runtime.py', directory, namespace, 'render', '0'], { encoding: 'utf8', timeout: 10000, windowsHide: true }); }
++    catch (error) { output = error.stdout; }
++    const result = JSON.parse(output);
++    assert.equal(result.ok, false); assert.equal(result.error_code, 'phase_cancelled');
++    assert.equal(output.includes(directory), false); assert.equal(output.includes('stack'), false);
++    await assert.rejects(fs.access(path.join(directory, 'segments', namespace, 'video-000000.mp4')));
++});
++
++test('managed GIF skips music snapshots while still rendering selected visual pages', { skip: process.platform !== 'win32' }, async () => {
++    const input = manifest(); input.format = 'gif';
++    input.document.timeline.audio_tracks = [{ id: 'song', asset_id: 1, start: 0, duration: 0.5 }];
++    input.assets = [{ id: 1, kind: 'audio', duration: 1, audio_codec: 'pcm_f32le', status: 'listo', mime: 'audio/wav', file: 'assets/1.bin' }];
++    const plan = await request(input, 'plan');
++    assert.equal(plan.result.ok, true, JSON.stringify(plan.result));
++    assert.deepEqual(plan.result.result.audioAssetIds, []); assert.deepEqual(plan.result.result.assetIds, []);
++    const video = await request(input, 'render'); assert.equal(video.result.ok, true, JSON.stringify(video.result));
++    input.segments = [{ video: video.result.result }];
++    const joined = await request(input, 'assemble'); assert.equal(joined.result.ok, true, JSON.stringify(joined.result));
++    assert.equal(joined.result.result.audioCodec, null); assert.equal(joined.result.result.frameCount, 6);
++});
++
++test('managed normalization and mix checkpoints carry actual sound into the final AAC', { skip: process.platform !== 'win32' }, async () => {
++    const input = manifest(); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=1',
++        '-af', 'volume=0.8', '-c:a', 'pcm_f32le', '-ac', '2', '-f', 'wav', path.join(directory, 'assets/1.bin')]);
++    input.document.timeline.audio_tracks = [{ id: 'song', asset_id: 1, start: 0, duration: 0.5 }];
++    input.assets = [{ id: 1, kind: 'audio', duration: 1, audio_codec: 'pcm_f32le', status: 'listo', mime: 'audio/wav', file: 'assets/1.bin' }];
++    const normal = await request(input, 'normalize', 1);
++    assert.equal(normal.result.ok, true, JSON.stringify(normal.result)); input.audioSources = [normal.result.result];
++    const mixed = await request(input, 'mix'); assert.equal(mixed.result.ok, true, JSON.stringify(mixed.result));
++    const visual = await request(input, 'render'); assert.equal(visual.result.ok, true, JSON.stringify(visual.result));
++    input.segments = [{ video: visual.result.result, audio: mixed.result.result }];
++    const joined = await request(input, 'assemble'); assert.equal(joined.result.ok, true, JSON.stringify(joined.result));
++    assert.equal(joined.result.result.audioCodec, 'aac');
++    const sound = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(directory, joined.result.result.file), '-map', '0:a', '-f', 'f32le', '-ac', '1', '-ar', '48000', 'pipe:1']);
++    let sum = 0;
++    for (let n = 4800; n < 19200; n++) sum += sound.readFloatLE(n * 4) ** 2;
++    const rms = Math.sqrt(sum / 14400); assert.ok(rms > 0.04 && rms < 0.09, `AAC RMS ${rms}`);
++    assert.ok(joined.result.memory.peak_commit > 0 && joined.result.memory.peak_commit <= 3 * 1024 ** 3);
++});
++
++test('cancelling after a managed visual phase starts leaves no published or partial output', { skip: process.platform !== 'win32' }, async () => {
++    const input = manifest(), namespace = randomUUID();
++    input.document.width = 640; input.document.height = 360; input.options.scale = 1;
++    input.document.timeline.fps = 60; input.document.pages.forEach(page => { page.duration = 2; });
++    await fs.writeFile(path.join(directory, 'work', `${namespace}.json`), JSON.stringify(input));
++    const child = spawn(python, ['scripts/studio/av-runtime.py', directory, namespace, 'render', '0'], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
++    let stdout = '', stderr = ''; child.stdout.on('data', bytes => { stdout += bytes; }); child.stderr.on('data', bytes => { stderr += bytes; });
++    const completion = new Promise((resolve, reject) => { child.on('error', reject); child.on('close', code => resolve(code)); });
++    const folder = path.join(directory, 'segments', namespace);
++    let observed = false;
++    try {
++        for (let n = 0; n < 200 && child.exitCode === null; n++) {
++            // FFmpeg can buffer PNG probing until EOF; its output file is not a stable start marker.
++            // The per-lease folder is created only after dispatch enters renderVisualSegment.
++            if (await fs.stat(folder).then(stat => stat.isDirectory(), () => false)) { observed = true; break; }
++            await new Promise(resolve => setTimeout(resolve, 25));
++        }
++        assert.equal(observed, true, `did not observe a running segment: ${stdout} ${stderr}`);
++        await new Promise(resolve => setTimeout(resolve, 200));
++        await fs.writeFile(path.join(directory, 'work', `${namespace}.cancel`), '1');
++        const code = await completion; assert.notEqual(code, 0);
++        const response = JSON.parse(stdout); assert.equal(response.error_code, 'phase_cancelled');
++        assert.deepEqual(await fs.readdir(folder), []);
++    } finally { if (child.exitCode === null) { child.kill(); await completion; } }
++});

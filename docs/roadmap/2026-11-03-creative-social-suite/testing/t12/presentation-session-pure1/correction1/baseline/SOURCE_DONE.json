@@ -1,0 +1,70 @@
+{
+  "schema": "presentation-session-source-done-v1",
+  "state": "SOURCE_DONE_PENDING_FRESH_REVIEW",
+  "captured_utc": "2026-11-06T23:05:48.414052+00:00",
+  "task": "T-12/P1 presentation session only",
+  "source_count": 2,
+  "sources": {
+    "resources/js/Studio/presentation.js": "da13bf7c2765d5a658533da046ad5217c533840efe94276f523641ffc2b60b54",
+    "tests/frontend/studio-presentation.test.mjs": "408e467d36efa366d6ba3d3149c3857e4076480534ed3666a487bb0ca36763b4"
+  },
+  "loaded_static_dependencies": {
+    "resources/js/Studio/presentation.js": "da13bf7c2765d5a658533da046ad5217c533840efe94276f523641ffc2b60b54",
+    "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+    "resources/js/Studio/timeline.js": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+    "resources/js/Studio/captions.js": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5",
+    "resources/js/Studio/chart-spec.js": "03812080e151fb76dfe91eb0c1e939927c149e3f4cfc6f790f8df8d5cc2a5cc3",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3"
+  },
+  "tdd": {
+    "red": "RED: tests/frontend/studio-presentation.test.mjs::initial session exposes selected order, duration and immutable presentation state failed with presentation session export is absent (undefined vs function), before presentation.js existed; 2026-11-07.",
+    "red_exit_code": 1,
+    "red_cases": 1,
+    "red_pass": 0,
+    "green_focal_cases": 12,
+    "green_neighbor_cases": 25,
+    "failures": 0,
+    "skips": 0,
+    "cancellations": 0,
+    "sequence": "All 12 focal test bodies were authored before production module creation; initial single-test RED asserted absent export through narrowly handled module absence, not a broken import. Tests unchanged after initial RED.",
+    "commands": [
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none --test-name-pattern=initial session tests/frontend/studio-presentation.test.mjs",
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-presentation.test.mjs",
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-presentation.test.mjs tests/frontend/studio-document.test.mjs tests/frontend/studio-timeline.test.mjs",
+      "node --max-old-space-size=512 --check resources/js/Studio/presentation.js",
+      "node --max-old-space-size=512 --check tests/frontend/studio-presentation.test.mjs"
+    ]
+  },
+  "evidence": {
+    "red-initial.txt": {
+      "sha256": "84bee855b3d4ba7f9f1b8b62eb7eea6803b4db4bb1f27bb95befb2ed8b517929",
+      "bytes": 2428
+    },
+    "green-initial.txt": {
+      "sha256": "18e354fe0fa7b9a747210fac01171b6accefbd9f0c7b5d21b3a35e046b6e77d2",
+      "bytes": 5732
+    },
+    "green-neighbors.txt": {
+      "sha256": "4cf297d196de46793f7ef2f072a188729fb8b6b7141e00f3c1eb40a47d0013b9",
+      "bytes": 11826
+    }
+  },
+  "config": {
+    "dev_json": false,
+    "jira_json": false,
+    "constitution": false,
+    "branch": "feature/creative-social-suite",
+    "knowledge_find": "frontend query exit0, no applicable results; initial invalid tipo implementacion safely fell back and was retried with frontend"
+  },
+  "resource_scope": "Pure Node tests, max-old-space-size512, <1 second each command; no browser/build/DB/env/network/models/timers/waits.",
+  "limits": [
+    "No Editor integration or imports from existing files.",
+    "No presenter/audience UI, notes persistence, fullscreen, recording or Office acceptance.",
+    "No build7 mutation or chart native execution.",
+    "T12 and full roadmap stay open; root sole ledger writer."
+  ],
+  "measurement": "No usage-meter window was started; no measured hours/tokens claimed.",
+  "next": "Root fresh review A/B and subsequent UI/schema/QA integration."
+}

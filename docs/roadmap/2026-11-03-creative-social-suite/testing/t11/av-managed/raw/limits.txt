@@ -1,0 +1,8 @@
+test_probe_observes_three_gib_job_limit_in_parent_child_and_grandchild (tests.studio_runtime.test_av_limits.AudiovisualLimitsTest.test_probe_observes_three_gib_job_limit_in_parent_child_and_grandchild) ... ok
+test_supervisor_exit_closes_its_job_and_terminates_a_detached_child (tests.studio_runtime.test_av_limits.AudiovisualLimitsTest.test_supervisor_exit_closes_its_job_and_terminates_a_detached_child) ... ok
+test_effective_ancestor_limit_is_used_and_unbounded_or_unmounted_groups_fail_closed (tests.studio_runtime.test_av_limits.CgroupBoundsTest.test_effective_ancestor_limit_is_used_and_unbounded_or_unmounted_groups_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.272s
+
+OK

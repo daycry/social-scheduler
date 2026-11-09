@@ -1,0 +1,11 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "project": "desktop",
+    "case": "E2E27.01",
+    "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "scope": "Static WCAG calculation from declared Tailwind slate foreground and white background; actual browser observation pending",
+  "before": {
+    "foreground": "#94a3b8",
+    "background": "#ffffff",
+    "font_px": 10,
+    "ratio": 2.5640413904962034
+  },
+  "after": {
+    "foreground": "#475569",
+    "background": "#ffffff",
+    "font_px": 12,
+    "ratio": 7.577663953533317
+  },
+  "threshold_normal_text": 4.5,
+  "source_before": "20afbcb0fcc9c150b05b887fc0818f35e02e28257a66b046ac76affb7a77df0f",
+  "source_after": "5ae68972ce4a47f7151d6738ddc9816b5036f99e65124994408ecc1eb985f6c1",
+  "change": "Only footer SHA class; scripts, bindings and event handlers unchanged",
+  "tdd": "n/a: declarative style adjustment; real accessibility test planned in E2E27, no implementation-mirroring unit test"
+}

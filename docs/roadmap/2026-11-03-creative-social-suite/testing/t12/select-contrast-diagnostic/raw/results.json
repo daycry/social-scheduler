@@ -1,0 +1,870 @@
+{
+  "cases": 4,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "name": "baseline",
+      "nativeSelect": false,
+      "whiteTable": false,
+      "passed": true,
+      "metrics": [
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")",
+          "appearance": "none",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 48.78125,
+            "width": 720,
+            "height": 38
+          },
+          "options": [
+            {
+              "value": "category",
+              "text": "Categoría"
+            },
+            {
+              "value": "s0",
+              "text": "Serie 1"
+            },
+            {
+              "value": "s1",
+              "text": "Serie 2"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          }
+        },
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")",
+          "appearance": "none",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 127.5625,
+            "width": 720,
+            "height": 38
+          },
+          "options": [
+            {
+              "value": "safe",
+              "text": "Segura · rechazar pérdida de precisión"
+            },
+            {
+              "value": "approximate",
+              "text": "Aproximada · acepto aproximar números"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          }
+        }
+      ],
+      "table": {
+        "color": "rgb(30, 41, 59)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "fontSize": "12px",
+        "rect": {
+          "x": 361,
+          "y": 816.5625,
+          "width": 718,
+          "height": 128
+        },
+        "dialogBackground": "rgb(255, 255, 255)",
+        "cells": [
+          {
+            "text": "r0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 10",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r1",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: -20",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r2",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2022 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Vacío (null)",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r3",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 2026",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          }
+        ]
+      },
+      "section": {
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(30, 41, 59)",
+        "rect": {
+          "x": 360,
+          "y": 815.5625,
+          "width": 720,
+          "height": 158
+        },
+        "status": {
+          "text": "Página 1 de 1 · 4 filas",
+          "color": "rgb(30, 41, 59)",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "12px",
+          "rect": {
+            "x": 360,
+            "y": 957.5625,
+            "width": 111.125,
+            "height": 16
+          }
+        }
+      },
+      "messages": {
+        "bgImage": 2,
+        "obscured_cells": 9,
+        "obscured_status": 1,
+        "other": 0
+      },
+      "keyboard": [
+        {
+          "index": 0,
+          "afterEnd": "s1",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        },
+        {
+          "index": 1,
+          "afterEnd": "approximate",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        }
+      ],
+      "violations": 0,
+      "incomplete_nodes": 12
+    },
+    {
+      "name": "native-select",
+      "nativeSelect": true,
+      "whiteTable": false,
+      "passed": true,
+      "metrics": [
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "none",
+          "appearance": "auto",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 48.78125,
+            "width": 720,
+            "height": 39
+          },
+          "options": [
+            {
+              "value": "category",
+              "text": "Categoría"
+            },
+            {
+              "value": "s0",
+              "text": "Serie 1"
+            },
+            {
+              "value": "s1",
+              "text": "Serie 2"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          }
+        },
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "none",
+          "appearance": "auto",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 128.5625,
+            "width": 720,
+            "height": 39
+          },
+          "options": [
+            {
+              "value": "safe",
+              "text": "Segura · rechazar pérdida de precisión"
+            },
+            {
+              "value": "approximate",
+              "text": "Aproximada · acepto aproximar números"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          }
+        }
+      ],
+      "table": {
+        "color": "rgb(30, 41, 59)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "fontSize": "12px",
+        "rect": {
+          "x": 361,
+          "y": 818.5625,
+          "width": 718,
+          "height": 128
+        },
+        "dialogBackground": "rgb(255, 255, 255)",
+        "cells": [
+          {
+            "text": "r0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 10",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r1",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: -20",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r2",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2022 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Vacío (null)",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r3",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 2026",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          }
+        ]
+      },
+      "section": {
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(30, 41, 59)",
+        "rect": {
+          "x": 360,
+          "y": 817.5625,
+          "width": 720,
+          "height": 158
+        },
+        "status": {
+          "text": "Página 1 de 1 · 4 filas",
+          "color": "rgb(30, 41, 59)",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "12px",
+          "rect": {
+            "x": 360,
+            "y": 959.5625,
+            "width": 111.125,
+            "height": 16
+          }
+        }
+      },
+      "messages": {
+        "bgImage": 0,
+        "obscured_cells": 9,
+        "obscured_status": 1,
+        "other": 0
+      },
+      "keyboard": [
+        {
+          "index": 0,
+          "afterEnd": "s1",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        },
+        {
+          "index": 1,
+          "afterEnd": "approximate",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        }
+      ],
+      "violations": 0,
+      "incomplete_nodes": 10
+    },
+    {
+      "name": "section-white",
+      "nativeSelect": false,
+      "whiteTable": true,
+      "passed": true,
+      "metrics": [
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")",
+          "appearance": "none",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 48.78125,
+            "width": 720,
+            "height": 38
+          },
+          "options": [
+            {
+              "value": "category",
+              "text": "Categoría"
+            },
+            {
+              "value": "s0",
+              "text": "Serie 1"
+            },
+            {
+              "value": "s1",
+              "text": "Serie 2"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          }
+        },
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")",
+          "appearance": "none",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 127.5625,
+            "width": 720,
+            "height": 38
+          },
+          "options": [
+            {
+              "value": "safe",
+              "text": "Segura · rechazar pérdida de precisión"
+            },
+            {
+              "value": "approximate",
+              "text": "Aproximada · acepto aproximar números"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          }
+        }
+      ],
+      "table": {
+        "color": "rgb(30, 41, 59)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "fontSize": "12px",
+        "rect": {
+          "x": 361,
+          "y": 816.5625,
+          "width": 718,
+          "height": 128
+        },
+        "dialogBackground": "rgb(255, 255, 255)",
+        "cells": [
+          {
+            "text": "r0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 10",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r1",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: -20",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r2",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2022 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Vacío (null)",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r3",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 2026",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          }
+        ]
+      },
+      "section": {
+        "backgroundColor": "rgb(255, 255, 255)",
+        "color": "rgb(30, 41, 59)",
+        "rect": {
+          "x": 360,
+          "y": 815.5625,
+          "width": 720,
+          "height": 158
+        },
+        "status": {
+          "text": "Página 1 de 1 · 4 filas",
+          "color": "rgb(30, 41, 59)",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "12px",
+          "rect": {
+            "x": 360,
+            "y": 957.5625,
+            "width": 111.125,
+            "height": 16
+          }
+        }
+      },
+      "messages": {
+        "bgImage": 2,
+        "obscured_cells": 0,
+        "obscured_status": 0,
+        "other": 0
+      },
+      "keyboard": [
+        {
+          "index": 0,
+          "afterEnd": "s1",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        },
+        {
+          "index": 1,
+          "afterEnd": "approximate",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 36,
+            "client": 36
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        }
+      ],
+      "violations": 0,
+      "incomplete_nodes": 2
+    },
+    {
+      "name": "both",
+      "nativeSelect": true,
+      "whiteTable": true,
+      "passed": true,
+      "metrics": [
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "none",
+          "appearance": "auto",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 48.78125,
+            "width": 720,
+            "height": 39
+          },
+          "options": [
+            {
+              "value": "category",
+              "text": "Categoría"
+            },
+            {
+              "value": "s0",
+              "text": "Serie 1"
+            },
+            {
+              "value": "s1",
+              "text": "Serie 2"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          }
+        },
+        {
+          "color": "rgb(15, 23, 42)",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "backgroundImage": "none",
+          "appearance": "auto",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "14px",
+          "fontWeight": "500",
+          "rect": {
+            "x": 360,
+            "y": 128.5625,
+            "width": 720,
+            "height": 39
+          },
+          "options": [
+            {
+              "value": "safe",
+              "text": "Segura · rechazar pérdida de precisión"
+            },
+            {
+              "value": "approximate",
+              "text": "Aproximada · acepto aproximar números"
+            }
+          ],
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          }
+        }
+      ],
+      "table": {
+        "color": "rgb(30, 41, 59)",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "fontSize": "12px",
+        "rect": {
+          "x": 361,
+          "y": 818.5625,
+          "width": 718,
+          "height": 128
+        },
+        "dialogBackground": "rgb(255, 255, 255)",
+        "cells": [
+          {
+            "text": "r0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 10",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r1",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2020 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: -20",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r2",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Texto: Año 2022 é",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Vacío (null)",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "r3",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 2026",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          },
+          {
+            "text": "Número: 0",
+            "color": "rgb(30, 41, 59)",
+            "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+            "fontSize": "12px"
+          }
+        ]
+      },
+      "section": {
+        "backgroundColor": "rgb(255, 255, 255)",
+        "color": "rgb(30, 41, 59)",
+        "rect": {
+          "x": 360,
+          "y": 817.5625,
+          "width": 720,
+          "height": 158
+        },
+        "status": {
+          "text": "Página 1 de 1 · 4 filas",
+          "color": "rgb(30, 41, 59)",
+          "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontSize": "12px",
+          "rect": {
+            "x": 360,
+            "y": 959.5625,
+            "width": 111.125,
+            "height": 16
+          }
+        }
+      },
+      "messages": {
+        "bgImage": 0,
+        "obscured_cells": 0,
+        "obscured_status": 0,
+        "other": 0
+      },
+      "keyboard": [
+        {
+          "index": 0,
+          "afterEnd": "s1",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        },
+        {
+          "index": 1,
+          "afterEnd": "approximate",
+          "focused": true,
+          "scroll": {
+            "top": 0,
+            "height": 37,
+            "client": 37
+          },
+          "limitation": "Closed native select keyboard navigation; native OS popup scrolling not inferred."
+        }
+      ],
+      "violations": 0,
+      "incomplete_nodes": 0
+    }
+  ],
+  "network": [],
+  "timedOut": false,
+  "table_clip_reproduced": true,
+  "section_white_hypothesis": {
+    "cell_incomplete_before": 9,
+    "cell_incomplete_after": 0,
+    "status_incomplete_after": 0,
+    "confirmed": true
+  },
+  "app_pass_claim": false,
+  "scope": "Diagnostic color-contrast rule only; two artifact selects,12original cells+status in reconstructed clipped layout. Residual incomplete is reported and does not authorize E2E exemption or product fix."
+}

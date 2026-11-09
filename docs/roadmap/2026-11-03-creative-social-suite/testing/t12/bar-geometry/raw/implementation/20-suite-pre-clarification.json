@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-06T12:09:08.584300+00:00",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "tests/frontend/studio-bar-geometry.test.mjs",
+    "tests/frontend/studio-chart-binding.test.mjs",
+    "tests/frontend/studio-dataset-table.test.mjs"
+  ],
+  "exit_code": 0,
+  "before": {
+    "resources/js/Studio/bar-geometry.js": "180cdace4df14049c5663c8699907a2e5e335fd27fc51d7650feba5c58d7039c",
+    "tests/frontend/studio-bar-geometry.test.mjs": "c391fb99a0a679bb66b57e0d82fb9abeae3e90fb81fae4a212d196f6cd860e05",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "tests/frontend/studio-chart-binding.test.mjs": "a9779052666bfb6f1ff315bfaf00aaf6318503d85e7b596907ade9d06fbfb39d",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "after": {
+    "resources/js/Studio/bar-geometry.js": "180cdace4df14049c5663c8699907a2e5e335fd27fc51d7650feba5c58d7039c",
+    "tests/frontend/studio-bar-geometry.test.mjs": "c391fb99a0a679bb66b57e0d82fb9abeae3e90fb81fae4a212d196f6cd860e05",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "tests/frontend/studio-chart-binding.test.mjs": "a9779052666bfb6f1ff315bfaf00aaf6318503d85e7b596907ade9d06fbfb39d",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  }
+}

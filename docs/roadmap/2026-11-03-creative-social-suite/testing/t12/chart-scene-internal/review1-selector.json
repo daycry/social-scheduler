@@ -1,0 +1,82 @@
+{
+  "lente_c": false,
+  "motivos": [],
+  "lente_d": true,
+  "motivos_d": [
+    {
+      "tipo": "contenido",
+      "fichero": "app/Services/Studio/StudioChartFiles.php",
+      "patron": "n-plus-one",
+      "linea": 29
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "resources/js/Components/Studio/ExportDialog.vue",
+      "patron": "Export"
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Components/Studio/StudioChartsDialog.vue",
+      "patron": "json-doble-vuelta",
+      "linea": 13
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Pages/Studio/Editor.vue",
+      "patron": "json-doble-vuelta",
+      "linea": 52
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/canvas.js",
+      "patron": "await-en-bucle",
+      "linea": 499
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/canvas.js",
+      "patron": "await-en-bucle",
+      "linea": 571
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/chart-renderer.js",
+      "patron": "json-doble-vuelta",
+      "linea": 24
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/chart-scene.js",
+      "patron": "await-en-bucle",
+      "linea": 25
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "resources/js/Studio/exports.js",
+      "patron": "export"
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/render-entry.js",
+      "patron": "await-en-bucle",
+      "linea": 12
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/render.mjs",
+      "patron": "await-en-bucle",
+      "linea": 64
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/render.mjs",
+      "patron": "await-en-bucle",
+      "linea": 72
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "tests/frontend/studio-chart-exports.test.mjs",
+      "patron": "export"
+    }
+  ]
+}

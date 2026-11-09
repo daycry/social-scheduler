@@ -1,0 +1,623 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>QA independiente T11 - intento2</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+ img {max-height:245mm;object-fit:contain} img[src$="composite-mobile.png"] {width:80mm;height:173mm;object-fit:cover;object-position:top} pre {white-space:pre-wrap;overflow-wrap:anywhere} h2,h3 {break-after:avoid} table {font-size:8.5pt;break-inside:auto;table-layout:fixed;width:100%} td,th {overflow-wrap:anywhere} tr {break-inside:avoid} </style><body><main class="doc"><h1>QA independiente T11 — intento 2</h1>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fecha</td>
+<td>2026-11-05</td>
+</tr>
+<tr>
+<td>Veredicto de qa-gate</td>
+<td><strong>VERDE</strong>, exit 0</td>
+</tr>
+<tr>
+<td>Evaluación del alcance local</td>
+<td><strong>NO ACEPTADO: QA2-V01 Important de legibilidad</strong></td>
+</tr>
+<tr>
+<td>Resultado real</td>
+<td>72/72 correctos; 0 fallos</td>
+</tr>
+<tr>
+<td>Fuentes</td>
+<td>838 SHA antes/después; 0 cambios</td>
+</tr>
+<tr>
+<td>Escenarios</td>
+<td>12 archivos, 3 proyectos; conteo tomado del JSON, no supuesto</td>
+</tr>
+<tr>
+<td>Sesión / PID</td>
+<td>77306; helper 33672, Playwright 6096</td>
+</tr>
+<tr>
+<td>Raíz</td>
+<td><code>C:\laragon\www\metricool\storage\framework\testing\t43\run-general-48262984-4932-47db-90f6-7011cd33f5bb</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Veredicto y alcance</h2>
+<pre><code class="language-json">{
+  &quot;verdict&quot;: &quot;VERDE&quot;,
+  &quot;counts&quot;: {
+    &quot;passed&quot;: 72,
+    &quot;failed&quot;: 0,
+    &quot;flaky&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;interrupted&quot;: 0
+  },
+  &quot;flaky_sin_justificar&quot;: [],
+  &quot;flaky_justificados&quot;: {},
+  &quot;threshold&quot;: &quot;verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado&quot;
+}
+</code></pre>
+<p>Exit Playwright 0; duración 1014.417s; errores de runner 0; reintentos 0. Desktop 1440×900, mobile 375×812 y mobile-360 360×740: {'desktop': 24, 'mobile': 24, 'mobile-360': 24}. Ejecución única, sin reiniciar por timeout de observación ni repetir casos. Las comprobaciones independientes de captions son 42/42 correctas; detalle y cualquier discrepancia en <a href="raw/caption-independent-checks.json">caption-independent-checks.json</a>.</p>
+<p>Este informe aporta evidencia local para que el orquestador decida los estados de T07/T11. <strong>QA no modifica ni cierra tareas, plan o spec</strong>. El estado de entrada era 6/23 tareas completadas y T07/T11 en progreso; no se acepta el roadmap completo por superar estos recorridos. La <a href="../final-qa/report.md">QA1 original</a> conserva su NO-VERDE 62/63 y no se altera. El diagnóstico SQLite y la regresión focal posteriores se documentan en <a href="../sqlite-concurrency/review.md">sqlite-concurrency</a>; la excepción del primer recorrido no se inventa retrospectivamente.</p>
+<h3>QA2-V01 — Important: subtítulos casi ilegibles con ajuste permitido</h3>
+<p>El recorrido UI de captions importa texto, cambia el tamaño a22px y conserva el estilo por defecto: fill blanco, contorno negro de grosor2. Sobre el lienzo negro, las dos líneas son prácticamente ilegibles mientras el emoji púrpura permanece visible. QA y el orquestador inspeccionaron la misma evidencia nueva. Es una limitación funcional de lectura en un ajuste permitido, no una preferencia estética. El test automático puede pasar porque no comprueba legibilidad de ese estilo; los renders medidos con strokeWidth0 son otro escenario.</p>
+<p>La causa raíz no se ha probado: que el contorno cubra el glifo por paint order sigue siendo hipótesis. No se afirma ratioWCAG ni se aplica un parche durante QA. T07/T11 permanecen abiertas; root hará reproducción RED, corrección y revisión afectada después de liberar el slot nativo. Se conserva la misma pasada, sin repetirla ni detenerla.</p>
+<p><a href="raw/visual-findings.json">Hallazgo estructurado</a>. Recorte fiel del original mobile 375, x0/y900/375×600; original completo conservado en raw/artifacts.</p>
+<p><img src="raw/mobile-preview-detail.png" alt="QA2-V01 detalle de preview casi ilegible" /></p>
+<h2>Aislamiento, límite OS y estabilidad</h2>
+<p>URL http://localhost:8080 validada por el guardrail oficial. El puerto estaba libre; el runner exige servidor propio y <code>reuseExistingServer:false</code>. SQLite, storage y cuentas desechables pertenecen al UUID de esta pasada; sin reutilizar ni detener Node ajeno. Inicio 2026-11-05T21:52:50.750123+00:00, fin 2026-11-05T22:09:46.723363+00:00. Sin .env/MySQL/VPS, ONNX/test_background/imaging, bucket R2 real ni publicación social.</p>
+<p>El helper QA2 y sus hijos están en un JobObject de <strong>3 GiB de COMMIT agregado</strong>, consultado al kernel: límite 3221225472 B, kill-on-close=True, breakaway=False, pico 1243049984B (1.158GiB). El observador posterior y sus procesos FFmpeg/Chromium/Python tienen un Job equivalente: pico 891523072B, límite 3221225472B. <strong>No es RSS ni una reserva previa de 3 GiB.</strong> El límite se impone al árbol, además de los supervisores nativos de fase de la aplicación. No se induce OOM.</p>
+<p>Snapshot directo: 838 rutas, incluidos API OpenAPI, guía API/MCP, README, módulo MCP, deploy, document-contract, matriz, contrato captions, ledger/test-plan, renderer estático/vector/fuentes, fixtures reales <code>tests/Fixtures/fonts</code>, soporte <code>.mjs</code>/<code>.d.mts</code> y public/build completo. Los hashes de <a href="raw/sources-before.json">sources-before</a> y <a href="raw/sources-after.json">sources-after</a> coinciden. T12 estuvo congelada y no se excluyó.</p>
+<p>Adicionalmente se comprobaron las39 fuentes revisadas,76 generados y siete descriptores tanto antes del arranque como al terminar: <a href="raw/freeze-input-check.json">pre</a>, <a href="raw/freeze-output-check.json">post</a>. Cuatro fuentes del freeze están fuera de los árboles generales: test_caption_archive.py y tres helpers de storage. Su baseline adicional es el <a href="raw/reviewed-freeze-manifest.json">manifiesto revisado</a>, verificado antes; no se modificó el archivo sources-before para fingir que esas cuatro estaban en el snapshot directo. No hay exenciones de integridad.</p>
+<h2>Cobertura, ledger y trazabilidad</h2>
+<p>Ledger-lint exit0:0 incoherencias/18 avisos,16 Changelog y dos cabeceras de revisión no canónicas. No se editaron durante QA. Coverage-check exit0: 0 referencias rotas, 0 tests sin referencia y ningún GWT huérfano. T11 incluye E2E-11–25 y M03; T07 comparte exportaciones estáticas y multipágina. Sin bloques API-xx/A11Y-xx definidos ni mínimo unitario configurado; no se inventa porcentaje de cobertura de código o auditoría axe.</p>
+<p>La puerta sigue mostrando tareas fuera del alcance sin mapeo: <strong>T-01, T-02, T-12, T-13, T-14, T-15, T-16, T-17, T-18, T-19, T-20</strong>. No reciben exención ni verde global. T10/E2E09–10 siguen sin ejecución por la restricción de memoria/ONNX. Salidas y códigos literales: <a href="raw/gates.json">gates.json</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Criterio T11/T07</th>
+<th>Evidencia actual</th>
+<th>Resultado / límite</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v2, corte, pistas, ventanas, página2, undo/reapertura</td>
+<td>E2E-11–19 y regresiones Studio</td>
+<td>Resultado individual del JSON en tabla inferior</td>
+</tr>
+<tr>
+<td>Compuesto vídeo/audio/overlays/fade, MP4/GIF, revisión y borrador</td>
+<td>E2E-21; recálculo de MP4/GIF descargados</td>
+<td>Muestras nuevas por viewport, sin reutilizar resultados QA1</td>
+</tr>
+<tr>
+<td>Cola, cancel/retry, historial paginado, orden/escala</td>
+<td>E2E-20/22</td>
+<td>Worker real local y55 exportaciones para paginar</td>
+</tr>
+<tr>
+<td>Importar/editar/estilo/offset/eliminar/undo/reabrir y exportSRT/VTT/error</td>
+<td>E2E-23</td>
+<td>Unicode y tiempos observados; no ASR/traducción</td>
+</tr>
+<tr>
+<td>Ventana <code>[start,end)</code> y opacidad en fade</td>
+<td>E2E-24 + observador independiente</td>
+<td>Decode antes/inicio/dentro/fin/después, ratios y máscaras</td>
+</tr>
+<tr>
+<td>A sola, C→A y A→C</td>
+<td>E2E-24 + frames decodificados</td>
+<td>Ventanas de origen/cue y orden de páginas observables</td>
+</tr>
+<tr>
+<td>Fuente privada y SVG/PNG/PDF reales multipágina</td>
+<td>E2E-24 + XML/ZIP/SHA/raster independiente</td>
+<td>Texto/fuente portable y contenido, no solo firma o DTO</td>
+</tr>
+<tr>
+<td>Revisión fijada tras limpiar subtítulos actuales</td>
+<td>E2E-24,25</td>
+<td>Outputs revisión 1 y documento actual revisión 2</td>
+</tr>
+<tr>
+<td>UI/API/MCP abilities, propietario y conflicto</td>
+<td>E2E-25 + revisión backend previa</td>
+<td>Canales compartidos; no publicación externa</td>
+</tr>
+<tr>
+<td>Bordes LF, separadores, importappend e IDs globales</td>
+<td>A2/B2/C2 y tests PHP/JS previos fijados en freeze</td>
+<td>Revisados antes de QA; no se suman como tests de esta pasada</td>
+</tr>
+<tr>
+<td>Presupuesto OS</td>
+<td>Job QA/observador y runtime de fases</td>
+<td>Windows COMMIT medido; no RSS/multimedia Linux/VPS</td>
+</tr>
+</tbody>
+</table>
+<h2>Medición propia de vídeo y audio compuesto</h2>
+<p>Los MP4/GIF descargados de <strong>esta QA2</strong> se decodificaron nuevamente, sin generar más exportaciones. MP4 H264100×80,42 frames/3,5 s,AAC 48000 Hz/estéreo; GIF50×40,42 frames/3,5 s y sin audio. Se contrastan píxeles de overlays/fade, movimiento RMS, revisión 1 frente a actual 2 y borrador con marca/medio exactos. Detalle completo: <a href="raw/composite-audit.json">composite-audit.json</a> y samples/desktop,mobile,mobile-360.</p>
+<p>El recálculo Python del PCM es independiente del helper JS del test. Mesetas440/880 deben estar 0,04–0,06; rampas 0,015–0,025; marcador 1760 fuera del trim&lt;0,003, cola RMS&lt;0,002 y diferencia L/R&lt;0,001. Ambos canales se comprueban. El 880 posterior al fin del vídeo acredita continuidad de música; no es una valoración musical humana.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport</th>
+<th>440 L/R</th>
+<th>880 L/R</th>
+<th>Ataque L/R</th>
+<th>Salida L/R</th>
+<th>Marcador1760 L/R</th>
+<th>ColaRMS L/R</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop</td>
+<td>0.049847/0.049847</td>
+<td>0.049994/0.049994</td>
+<td>0.019968/0.019968</td>
+<td>0.019963/0.019963</td>
+<td>0.000025/0.000025</td>
+<td>0.000000/0.000000</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>0.049847/0.049847</td>
+<td>0.049994/0.049994</td>
+<td>0.019968/0.019968</td>
+<td>0.019963/0.019963</td>
+<td>0.000025/0.000025</td>
+<td>0.000000/0.000000</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>0.049847/0.049847</td>
+<td>0.049994/0.049994</td>
+<td>0.019968/0.019968</td>
+<td>0.019963/0.019963</td>
+<td>0.000025/0.000025</td>
+<td>0.000000/0.000000</td>
+</tr>
+</tbody>
+</table>
+<h2>Medición propia de subtítulos</h2>
+<p>El observador no importa captions.js, captions-renderer.js ni sus asserts. Trabaja sobre los bytes descargados: ffprobe/FFmpeg, ZIP/XML, SHA, Pillow y PyMuPDF; Chromium sin red para volver a rasterizar el SVG portable. El perfil de observación registra archivos, índices y ventanas esperadas; no deduce PASS del nombre del caso. SVG contiene texto y la fuente WOFF2 embebida, cuyo SHA se contrasta con el snapshot privado validado. Los PNG y cada página PDF se rasterizan realmente; una firma PDF o tamaño ZIP no basta.</p>
+<p>La fixture de ventana es 160×120/FPS12, cue «Hola» global[0,25,1,25), con transición entre 0,5 y 1 s. Frames0/2 anteriores,3 en inicio,4/6/9/14 activos,15 en fin exacto y17 posterior. Se cuentan múltiples umbrales16/64/128/200/240, bbox, luminancia y diferencias RGB. Se compara luminancia de la máscara de glifos muy brillantes antes y durante el fade; ratio aceptado 0,94–1,06, con tolerancia a codec. No se afirma inferir el número interno de llamadas de dibujo cuando dos composiciones producen píxeles matemáticamente idénticos.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport/formato</th>
+<th>Frames decodificados</th>
+<th>Píxeles&gt;200 por índice</th>
+<th>Ratio máscara brillante entre frames</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop/mp4</td>
+<td>18</td>
+<td>{0: 0, 2: 0, 3: 181, 4: 181, 6: 181, 9: 181, 14: 181, 15: 0, 17: 0}</td>
+<td>[4, 9]: 1.000000, [4, 14]: 1.000000</td>
+</tr>
+<tr>
+<td>desktop/gif</td>
+<td>18</td>
+<td>{0: 0, 2: 0, 3: 181, 4: 181, 6: 181, 9: 181, 14: 181, 15: 0, 17: 0}</td>
+<td>[4, 9]: 1.000000, [4, 14]: 1.000000</td>
+</tr>
+<tr>
+<td>mobile/mp4</td>
+<td>18</td>
+<td>{0: 0, 2: 0, 3: 181, 4: 181, 6: 181, 9: 181, 14: 181, 15: 0, 17: 0}</td>
+<td>[4, 9]: 1.000000, [4, 14]: 1.000000</td>
+</tr>
+<tr>
+<td>mobile/gif</td>
+<td>18</td>
+<td>{0: 0, 2: 0, 3: 181, 4: 181, 6: 181, 9: 181, 14: 181, 15: 0, 17: 0}</td>
+<td>[4, 9]: 1.000000, [4, 14]: 1.000000</td>
+</tr>
+<tr>
+<td>mobile-360/mp4</td>
+<td>18</td>
+<td>{0: 0, 2: 0, 3: 181, 4: 181, 6: 181, 9: 181, 14: 181, 15: 0, 17: 0}</td>
+<td>[4, 9]: 1.000000, [4, 14]: 1.000000</td>
+</tr>
+<tr>
+<td>mobile-360/gif</td>
+<td>18</td>
+<td>{0: 0, 2: 0, 3: 181, 4: 181, 6: 181, 9: 181, 14: 181, 15: 0, 17: 0}</td>
+<td>[4, 9]: 1.000000, [4, 14]: 1.000000</td>
+</tr>
+</tbody>
+</table>
+<p>Selección fuente: A dura 2 s y tiene fade 0,5s; cue AA 1,8–1,95. C contiene cue CCCCCCCC 3,8–4 global. A sola conserva el cue completo; C→A lo remapea tras C; A→C cambia propiedad de ventana en el midpoint para conservar la cue de C sin duplicar la de A. El contenido de las cues y los fondos permiten distinguir fase y orden. No se reusa el compilador de selección del producto para calcular estos índices.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport/selección</th>
+<th>Frames reales</th>
+<th>Píxeles&gt;200 por índice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop/a</td>
+<td>60</td>
+<td>{0: 0, 53: 0, 54: 139, 55: 139, 58: 139, 59: 0}</td>
+</tr>
+<tr>
+<td>desktop/c-a</td>
+<td>120</td>
+<td>{0: 0, 8: 0, 9: 466, 10: 466, 14: 466, 15: 0, 113: 0, 114: 139, 115: 139, 117: 139, 118: 139, 119: 0}</td>
+</tr>
+<tr>
+<td>desktop/a-c</td>
+<td>105</td>
+<td>{0: 0, 50: 0, 52: 0, 53: 0, 54: 464, 55: 469, 56: 468, 59: 465, 60: 0, 104: 0}</td>
+</tr>
+<tr>
+<td>mobile/a</td>
+<td>60</td>
+<td>{0: 0, 53: 0, 54: 139, 55: 139, 58: 139, 59: 0}</td>
+</tr>
+<tr>
+<td>mobile/c-a</td>
+<td>120</td>
+<td>{0: 0, 8: 0, 9: 466, 10: 466, 14: 466, 15: 0, 113: 0, 114: 139, 115: 139, 117: 139, 118: 139, 119: 0}</td>
+</tr>
+<tr>
+<td>mobile/a-c</td>
+<td>105</td>
+<td>{0: 0, 50: 0, 52: 0, 53: 0, 54: 464, 55: 469, 56: 468, 59: 465, 60: 0, 104: 0}</td>
+</tr>
+<tr>
+<td>mobile-360/a</td>
+<td>60</td>
+<td>{0: 0, 53: 0, 54: 139, 55: 139, 58: 139, 59: 0}</td>
+</tr>
+<tr>
+<td>mobile-360/c-a</td>
+<td>120</td>
+<td>{0: 0, 8: 0, 9: 466, 10: 466, 14: 466, 15: 0, 113: 0, 114: 139, 115: 139, 117: 139, 118: 139, 119: 0}</td>
+</tr>
+<tr>
+<td>mobile-360/a-c</td>
+<td>105</td>
+<td>{0: 0, 50: 0, 52: 0, 53: 0, 54: 464, 55: 469, 56: 468, 59: 465, 60: 0, 104: 0}</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>SVG/página</th>
+<th>Texto vectorial</th>
+<th>SHA WOFF2 embebido</th>
+<th>Coincide fuente privada</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop/page-001.svg</td>
+<td>['Hola']</td>
+<td>7b1431f0b4369904db5ab319b0c925b8b306d443f03a5e9fc996ed76e843f544</td>
+<td>True</td>
+</tr>
+<tr>
+<td>desktop/page-002.svg</td>
+<td>['Hola']</td>
+<td>7b1431f0b4369904db5ab319b0c925b8b306d443f03a5e9fc996ed76e843f544</td>
+<td>True</td>
+</tr>
+<tr>
+<td>mobile/page-001.svg</td>
+<td>['Hola']</td>
+<td>2243f6c6fdd446824bf5fad41825d5fa8f49596185757bc654f757ee601dc66b</td>
+<td>True</td>
+</tr>
+<tr>
+<td>mobile/page-002.svg</td>
+<td>['Hola']</td>
+<td>2243f6c6fdd446824bf5fad41825d5fa8f49596185757bc654f757ee601dc66b</td>
+<td>True</td>
+</tr>
+<tr>
+<td>mobile-360/page-001.svg</td>
+<td>['Hola']</td>
+<td>d691633f54e9a5ca332fdce266afbac7cfcef07b08cbe2d05620386246bab0cb</td>
+<td>True</td>
+</tr>
+<tr>
+<td>mobile-360/page-002.svg</td>
+<td>['Hola']</td>
+<td>d691633f54e9a5ca332fdce266afbac7cfcef07b08cbe2d05620386246bab0cb</td>
+<td>True</td>
+</tr>
+</tbody>
+</table>
+<p>Artefactos: <a href="raw/caption-independent/observations.json">observaciones</a>, <a href="raw/caption-independent-checks.json">checks</a>, <a href="raw/caption-static-observations.json">estáticos</a>, <a href="raw/svg-independent-pixel-observations.json">raster SVG</a>. Los PNG extraídos, PDF, SVG extraídos/rasterizados y MP4/GIF/selecciones están en samples/captions//. El SRT/VTT descargado se conserva en raw/artifacts, con Unicode y tiempos del recorrido UI.</p>
+<h2>Resultados por escenario</h2>
+<p>Cada caso se ejecutó una vez por proyecto; <a href="raw/test-index.json">test-index.json</a> conserva todos los resultados/retries/errores. La tabla no sustituye el JSON original.</p>
+<table>
+<thead>
+<tr>
+<th>Archivo/caso</th>
+<th>Desktop</th>
+<th>Mobile375</th>
+<th>Mobile360</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>all-brands.spec.ts — E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>brand-reporting.spec.ts — Ads and reports retain the selected brand across navigation and report creation</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>metrics-quality.spec.ts — Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-audio-editor.spec.ts — Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-audio-editor.spec.ts — Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-audio-resources.spec.ts — Studio audio resources API: private binary upload, byte ranges and native browser playback</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-automation.spec.ts — Studio automation: own template substitutes literal fields in an independent branded design and exports</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-automation.spec.ts — Studio automation: brand styles, proportional resize and independent variants persist and export</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-av-composite.spec.ts — Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-captions.spec.ts — Captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-captions.spec.ts — Captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-captions.spec.ts — Captions access: revision pinned API MCP abilities ownership and optimistic conflicts</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-frame-export.spec.ts — Studio frame export: choose a local page time, export real pixels and retain it with the private brand output</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-native-export.spec.ts — Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-native-export.spec.ts — Studio native history: paginate real exports in one request per page and reopen without creating work</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: edit windows, split, persist and run a common playhead without changing the document</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: an uploaded real video with an open source end can be split and previewed</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: splitting the second page uses local clip time and survives undo and redo</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: buffering never consumes a short clip before playback starts</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: closing while media buffers cancels the pending playback</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — design persists, exports real PNG and starts a publication in its brand</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — a stale revision preserves local edits and can recover the server version</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+</tbody>
+</table>
+<h2>Inspección visual y manuales</h2>
+<p>Las capturas del editor de captions, diálogo y medios se inspeccionan por viewport. Se conservan originales completos; en PDF se puede mostrar un detalle superior explícitamente identificado para mantener legibles controles. Los frames de ventana/fade/selección y raster SVG/PDF se inspeccionan aparte. El resultado exacto de la revisión visual y del PDF real se conserva en raw/pdf-validation.json.</p>
+<p>Las tres imágenes siguientes son detalles recortados del panel para conservar legibilidad en PDF; <code>raw/caption-screenshot-crops.json</code> registra las coordenadas. Los originales completos se conservan en screenshots/captions--full.png y raw/artifacts, sin alterar sus píxeles.</p>
+<h3>Captions — desktop</h3>
+<p><img src="screenshots/captions-desktop.png" alt="Captions desktop" /></p>
+<h3>Captions — mobile 375</h3>
+<p><img src="screenshots/captions-mobile.png" alt="Captions mobile 375" /></p>
+<h3>Captions — mobile360</h3>
+<p><img src="screenshots/captions-mobile-360.png" alt="Captions mobile360" /></p>
+<p>Linux cgroup previo con procesos Python no es multimedia Linux/VPS. R2 simulado no certifica bucket real. Permanecen:</p>
+<ul>
+<li>[ ] <strong>M01 — Usuario:</strong> scheduler/worker/heartbeat y muestras del VPS, sin volver a pedir SSH.</li>
+<li>[ ] <strong>M02 — Usuario:</strong> smokes reales Bluesky/Threads y publicación por red; sin resultados comunicados.</li>
+<li>[ ] <strong>M03 — Desarrollo + usuario:</strong> Node/Chromium/fuentes/cola y medios/R2 reales del servidor, multimedia Linux y políticas OS efectivas.</li>
+<li>[ ] <strong>M04 — Usuario:</strong> Claude Desktop aplazado; no se reabre su autorización.</li>
+<li>[ ] Revisión audiovisual humana de los archivos descargados; las medidas no sustituyen apreciación de producto.</li>
+</ul>
+<p>ASR/traducción sigue en T14, ONNX/T10 bloqueado y Claude CLI final después de todo el roadmap. Sin Jira/Confluence, knowledge, commits ni cierre de estados. No se declara paridad Metricool/Canva.</p>
+<h2>Evidencias e informe PDF</h2>
+<p><a href="manifest.json">Manifiesto</a> · <a href="raw/execution.json">Ejecución/PID/límite</a> · <a href="raw/results.json">JSON real</a> · <a href="raw/playwright.stdout.txt">stdout</a> · <a href="raw/playwright.stderr.txt">stderr</a>. QA1 se preserva íntegra.</p>
+<p>PDF por el adaptador existente de to-pdf: CommonMark instalado → HTML/tema CSS → Chromium instalado; sin instalaciones. Rasterización de las páginas del PDF real con PyMuPDF y revisión visual; no se confunde una captura HTML con ese PDF.</p>
+</main></body></html>

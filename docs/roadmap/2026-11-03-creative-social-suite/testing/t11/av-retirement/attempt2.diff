@@ -1,0 +1,859 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -77,6 +77,9 @@
+             if (! $current || $current->phase !== 'register') {
+                 throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
+             }
++            if ($workspace->media_retiring) {
++                throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
++            }
+             $source = $this->registrationSource($export);
+             $result = $source->result;
+             $kind = $export->format === 'mp4' ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE;
+@@ -104,9 +107,33 @@
+                 'declared_size' => $result['size'], 'status' => MediaAsset::STATUS_PENDING,
+                 'import_state' => ['studio_av' => $workspace->uuid, 'disk' => $disk, 'sha256' => $result['sha256'], 'total' => $result['size'],
+                     'bytes' => 0, 'verified_bytes' => 0, 'complete' => false, 'parts' => []]])->save();
+-            $workspace->update(['media_id' => $media->id, 'media_reserved_bytes' => $result['size']]);
++            $workspace->update(['media_id' => $media->id, 'media_reserved_bytes' => $result['size'], 'media_receipt' => [
++                'version' => 1, 'media_id' => $media->id, 'disk' => $disk, 'path' => $media->path, 'total' => $result['size'],
++                'sha256' => $result['sha256'], 'upload_id' => null, 'location' => null, 'state' => 'active']]);
+ 
+             return $media;
++        });
++    }
++
++    /** Fix the physical backend before the transfer can perform I/O. Credentials are never persisted. */
++    public function bindRegistrationLocation(StudioAvLease $lease, array $location): void
++    {
++        DB::transaction(function () use ($lease, $location) {
++            [$export, $workspace, $current] = $this->activeLease($lease);
++            if (! $current || $current->phase !== 'register') {
++                throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
++            }
++            if ($workspace->media_retiring) {
++                throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
++            }
++            $receipt = $workspace->media_receipt;
++            if (! $receipt || $receipt['media_id'] !== $workspace->media_id || $receipt['state'] !== 'active'
++                || (! in_array($location['driver'] ?? null, ['local', 's3'], true))
++                || (($receipt['location'] ?? null) !== null && $receipt['location'] !== $location)) {
++                throw ValidationException::withMessages(['export' => ['El almacenamiento cambió respecto a la asignación original.']]);
++            }
++            $receipt['location'] = $location;
++            $workspace->update(['media_receipt' => $receipt]);
+         });
+     }
+ 
+@@ -135,6 +162,9 @@
+                 throw ValidationException::withMessages(['export' => ['El progreso de la transferencia no es válido.']]);
+             }
+             $media->update(['import_state' => $journal, 'upload_id' => $uploadId]);
++            $receipt = $workspace->media_receipt;
++            $receipt['upload_id'] = $uploadId;
++            $workspace->update(['media_receipt' => $receipt]);
+ 
+             return true;
+         });
+@@ -170,6 +200,9 @@
+ 
+     private function assertRegistrationPin(StudioAvWorkspace $workspace, MediaAsset $media, array $result): void
+     {
++        if ($workspace->media_retiring) {
++            throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
++        }
+         $journal = $media->import_state;
+         $mp4 = $result['videoCodec'] === 'h264';
+         if ($media->status !== MediaAsset::STATUS_PENDING || ($journal['studio_av'] ?? null) !== $workspace->uuid
+@@ -232,7 +265,7 @@
+         });
+     }
+ 
+-    private const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'media_reserved_bytes', 'active_until', 'created_at', 'updated_at'];
++    private const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'media_reserved_bytes', 'media_receipt', 'media_retiring', 'active_until', 'created_at', 'updated_at'];
+ 
+     public function initialize(User $user, DesignExport $export): DesignExport
+     {
+@@ -370,7 +403,10 @@
+                     'codec' => $output['videoCodec'], 'audio_codec' => $output['audioCodec'], 'upload_id' => null, 'error' => null])->save();
+                 StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $export->brand_id, 'media_asset_id' => $mediaId], ['user_id' => $export->user_id]);
+                 $export->media_ids = [$mediaId];
+-                $workspace->update(['media_reserved_bytes' => 0]);
++                $receipt = $workspace->media_receipt;
++                $receipt['state'] = 'published';
++                $receipt['upload_id'] = null;
++                $workspace->update(['media_reserved_bytes' => 0, 'media_receipt' => $receipt]);
+                 $export->disk = 'local';
+                 $export->path = 'studio-exports/'.$export->user_id.'/'.$export->id.'/'.$workspace->uuid.'/'.$output['file'];
+             } else {
+--- a/app/Services/Studio/StudioAvTransfer.php
++++ b/app/Services/Studio/StudioAvTransfer.php
+@@ -38,6 +38,10 @@
+             }
+             $media = $this->state->allocateRegistration($lease);
+             $disk = Storage::disk($media->disk);
++            $location = $disk instanceof AwsS3V3Adapter
++                ? ['driver' => 's3', 'bucket' => $disk->getConfig()['bucket'], 'key' => $disk->path($media->path), 'endpoint' => (string) $disk->getClient()->getEndpoint()]
++                : ['driver' => 'local', 'root' => rtrim($disk->path(''), '/\\')];
++            $this->state->bindRegistrationLocation($lease, $location);
+             if ($disk instanceof AwsS3V3Adapter) {
+                 return $this->remote($lease, $workspace, $source, $media, $disk, $deadline);
+             }
+--- a/app/Services/Studio/StudioAvRegistrationCleanup.php
++++ b/app/Services/Studio/StudioAvRegistrationCleanup.php
+@@ -0,0 +1,240 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAsset;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvWorkspace;
++use Aws\Exception\AwsException;
++use Illuminate\Filesystem\AwsS3V3Adapter;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use RuntimeException;
++
++class StudioAvRegistrationCleanup
++{
++    public function __construct(private readonly StudioAvStorage $storage) {}
++
++    public function run(int $workspaceId, ?float $deadline = null): bool
++    {
++        if (! StudioAvWorkspace::withoutUserScope()->whereKey($workspaceId)->exists()) {
++            return true;
++        }
++        $deadline = min($deadline ?? microtime(true) + 25, microtime(true) + 25);
++        $this->remaining($deadline);
++        try {
++            return $this->storage->locked($workspaceId, function (StudioAvWorkspace $workspace) use ($deadline) {
++                $this->remaining($deadline);
++                $receipt = $this->begin($workspace);
++                if ($receipt === null) {
++                    return false;
++                }
++                if ($receipt === []) {
++                    return true;
++                }
++                $location = $receipt['location'];
++                if ($location !== null) {
++                    if ($location['driver'] === 's3') {
++                        if (! $this->remote($workspace, $receipt, $deadline)) {
++                            return false;
++                        }
++                    } else {
++                        $this->local($receipt, $deadline);
++                    }
++                } elseif ($receipt['upload_id'] !== null) {
++                    throw new RuntimeException('El multipart no tiene una ubicación durable.');
++                }
++                $this->remaining($deadline);
++
++                return DB::transaction(function () use ($workspace, $receipt) {
++                    DesignExport::withoutUserScope()->whereKey($workspace->export_id)->lockForUpdate()->first();
++                    $current = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++                    if (! $current->media_retiring || ($current->media_receipt['token'] ?? null) !== $receipt['token']) {
++                        return false;
++                    }
++                    $media = MediaAsset::withoutUserScope()->whereKey($current->media_id)->lockForUpdate()->first();
++                    if ($media && ($media->isReady() || $this->referenced($media))) {
++                        return false;
++                    }
++                    $media?->delete();
++                    $done = $current->media_receipt;
++                    $done['state'] = 'released';
++                    $done['upload_id'] = null;
++                    unset($done['cursor']);
++                    $current->update(['media_id' => null, 'media_reserved_bytes' => 0, 'media_retiring' => false, 'media_cleanup_after' => null, 'media_receipt' => $done]);
++
++                    return true;
++                });
++            });
++        } catch (StudioAvWorkspaceBusy) {
++            return false;
++        }
++    }
++
++    private function begin(StudioAvWorkspace $workspace): ?array
++    {
++        return DB::transaction(function () use ($workspace) {
++            $export = DesignExport::withoutUserScope()->whereKey($workspace->export_id)->lockForUpdate()->first();
++            $current = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++            $receipt = $current->media_receipt;
++            if ($receipt === null || ($receipt['state'] ?? '') === 'released') {
++                return $current->media_reserved_bytes === 0 ? [] : null;
++            }
++            if (($receipt['version'] ?? null) !== 1 || ($receipt['media_id'] ?? null) !== $current->media_id
++                || ! in_array($receipt['path'] ?? '', ['media/'.$current->user_id.'/studio-'.$current->uuid.'.mp4', 'media/'.$current->user_id.'/studio-'.$current->uuid.'.gif'], true)) {
++                throw new RuntimeException('El recibo de retiro no pertenece al workspace.');
++            }
++            $media = MediaAsset::withoutUserScope()->whereKey($current->media_id)->lockForUpdate()->first();
++            if ($media && ($media->user_id !== $current->user_id || $media->disk !== $receipt['disk'] || $media->path !== $receipt['path'])) {
++                throw new RuntimeException('La reserva de biblioteca cambió de propietario o destino.');
++            }
++            if ($media?->isReady()) {
++                return [];
++            }
++            if ($media && $this->referenced($media)) {
++                return null;
++            }
++            if (! $current->media_retiring) {
++                if (($export && ! in_array($export->status, ['failed', 'cancelled'], true)) || $current->active_until->isFuture()
++                    || StudioAvLease::where('workspace_id', $current->id)->where('expires_at', '>', now())->exists()) {
++                    return null;
++                }
++                $receipt['state'] = 'retiring';
++                $receipt['token'] = (string) Str::uuid();
++                $current->update(['media_retiring' => true, 'media_cleanup_after' => now(), 'media_receipt' => $receipt]);
++            }
++
++            return $receipt;
++        });
++    }
++
++    private function referenced(MediaAsset $media): bool
++    {
++        return $media->posts()->exists() || StudioAsset::withoutUserScope()->where('media_asset_id', $media->id)->exists();
++    }
++
++    private function remote(StudioAvWorkspace $workspace, array $receipt, float $deadline): bool
++    {
++        $location = $receipt['location'];
++        $disk = Storage::disk($receipt['disk']);
++        if (! $disk instanceof AwsS3V3Adapter || $disk->getConfig()['bucket'] !== $location['bucket']
++            || (string) $disk->getClient()->getEndpoint() !== $location['endpoint']
++            || ($location['key'] !== $receipt['path'] && ! str_ends_with($location['key'], '/'.$receipt['path']))) {
++            throw new RuntimeException('El backend original no está disponible para retirar la copia.');
++        }
++        $client = $disk->getClient();
++        $address = ['Bucket' => $location['bucket'], 'Key' => $location['key']];
++        if ($receipt['upload_id'] !== null) {
++            $upload = $address + ['UploadId' => $receipt['upload_id']];
++            try {
++                $client->abortMultipartUpload($upload + $this->http($deadline));
++                try {
++                    $client->listParts($upload + ['MaxParts' => 1] + $this->http($deadline));
++
++                    return false; // The upload ID is still queryable; retain it and confirm on another pass.
++                } catch (AwsException $error) {
++                    if ($error->getStatusCode() !== 404) {
++                        throw $error;
++                    }
++                }
++            } catch (AwsException $error) {
++                if ($error->getStatusCode() !== 404) {
++                    throw $error;
++                }
++            }
++            $this->checkpoint($workspace, $receipt['token'], ['upload_id' => null]);
++        }
++        $cursor = $receipt['cursor'] ?? [];
++        $listed = $client->listMultipartUploads(['Bucket' => $location['bucket'], 'Prefix' => $location['key'], 'MaxUploads' => 16]
++            + $cursor + $this->http($deadline));
++        foreach ($listed['Uploads'] ?? [] as $upload) {
++            if (($upload['Key'] ?? null) === $location['key']) {
++                $this->checkpoint($workspace, $receipt['token'], ['upload_id' => $upload['UploadId'], 'cursor' => []]);
++
++                return false;
++            }
++        }
++        if ($listed['IsTruncated'] ?? false) {
++            $next = ['KeyMarker' => $listed['NextKeyMarker'] ?? '', 'UploadIdMarker' => $listed['NextUploadIdMarker'] ?? ''];
++            if ($next === $cursor || $next['KeyMarker'] === '') {
++                throw new RuntimeException('El listado de multipart no avanzó.');
++            }
++            $this->checkpoint($workspace, $receipt['token'], ['cursor' => $next]);
++
++            return false;
++        }
++        $client->deleteObject($address + $this->http($deadline));
++        try {
++            $client->headObject($address + $this->http($deadline));
++
++            return false;
++        } catch (AwsException $error) {
++            if ($error->getStatusCode() !== 404) {
++                throw $error;
++            }
++        }
++
++        return true;
++    }
++
++    private function checkpoint(StudioAvWorkspace $workspace, string $token, array $changes): void
++    {
++        DB::transaction(function () use ($workspace, $token, $changes) {
++            $current = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
++            if (! $current->media_retiring || ($current->media_receipt['token'] ?? null) !== $token) {
++                throw new RuntimeException('El retiro cambió de generación.');
++            }
++            $current->update(['media_receipt' => array_replace($current->media_receipt, $changes)]);
++        });
++    }
++
++    private function local(array $receipt, float $deadline): void
++    {
++        $root = rtrim(Storage::disk($receipt['disk'])->path(''), '/\\');
++        if ($root !== $receipt['location']['root'] || is_link($root) || ! is_dir($root) || ! is_readable($root)
++            || (PHP_OS_FAMILY !== 'Windows' && ! is_executable($root))) {
++            throw new RuntimeException('La raíz original de biblioteca cambió.');
++        }
++        foreach ([$receipt['path'].'.part', $receipt['path']] as $relative) {
++            $path = $root;
++            foreach (explode('/', $relative) as $piece) {
++                $this->remaining($deadline);
++                if (! preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/D', $piece) || in_array($piece, ['.', '..'], true)) {
++                    throw new RuntimeException('El destino de retiro no es válido.');
++                }
++                $path .= DIRECTORY_SEPARATOR.$piece;
++                clearstatcache(true, $path);
++                if (is_link($path) || (is_dir($path) && (! is_readable($path) || (PHP_OS_FAMILY !== 'Windows' && ! is_executable($path))))) {
++                    throw new RuntimeException('El retiro no admite enlaces ni directorios inaccesibles.');
++                }
++            }
++            if (file_exists($path) && (! is_file($path) || ! @unlink($path))) {
++                throw new RuntimeException('No se pudo retirar el archivo privado de biblioteca.');
++            }
++            clearstatcache(true, $path);
++            if (file_exists($path)) {
++                throw new RuntimeException('El archivo privado sigue pendiente de retiro.');
++            }
++        }
++    }
++
++    private function http(float $deadline): array
++    {
++        $seconds = min(5, $this->remaining($deadline));
++
++        return ['@retries' => 0, '@http' => ['timeout' => $seconds, 'connect_timeout' => min(2, $seconds)]];
++    }
++
++    private function remaining(float $deadline): float
++    {
++        $seconds = $deadline - microtime(true);
++        if ($seconds <= 0 || ! is_finite($seconds)) {
++            throw new RuntimeException('El retiro continuará en otra pasada.');
++        }
++
++        return $seconds;
++    }
++}
+--- a/app/Services/Studio/StudioAvCleanup.php
++++ b/app/Services/Studio/StudioAvCleanup.php
+@@ -57,7 +57,11 @@
+ 
+     public function orphan(int $id): bool
+     {
+-        if (! StudioAvWorkspace::withoutUserScope()->whereKey($id)->exists()) {
++        $candidate = StudioAvWorkspace::withoutUserScope()->find($id);
++        if (! $candidate || DesignExport::withoutUserScope()->whereKey($candidate->export_id)->exists()) {
++            return false;
++        }
++        if (! app(StudioAvRegistrationCleanup::class)->run($id)) {
+             return false;
+         }
+         try {
+@@ -66,6 +70,7 @@
+                     $current = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->lockForUpdate()->firstOrFail();
+ 
+                     return ! DesignExport::withoutUserScope()->whereKey($current->export_id)->exists()
++                        && ! $current->media_retiring && $current->media_reserved_bytes === 0
+                         && ! $current->active_until->isFuture()
+                         && ! StudioAvLease::where('workspace_id', $current->id)->where('expires_at', '>', now())->exists();
+                 });
+--- a/app/Services/Studio/StudioAvRecovery.php
++++ b/app/Services/Studio/StudioAvRecovery.php
+@@ -11,14 +11,32 @@
+ 
+ class StudioAvRecovery
+ {
+-    public function __construct(private readonly StudioAvQueue $queue, private readonly StudioAvCleanup $cleanup, private readonly StudioAvState $state) {}
++    public function __construct(private readonly StudioAvQueue $queue, private readonly StudioAvCleanup $cleanup,
++        private readonly StudioAvState $state, private readonly StudioAvRegistrationCleanup $registrationCleanup) {}
+ 
+     public function run(int $limit = 25): array
+     {
+         $result = ['enqueued' => 0, 'leases_released' => 0, 'orphans_removed' => 0, 'deferred' => 0];
+         $limit = max(1, min(100, $limit));
+         $deadline = microtime(true) + 15;
+-        $orphans = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++        // A retry can hold a new native lease while the old library copy is retiring. Use a separate due time.
++        $retiring = StudioAvWorkspace::withoutUserScope()->where('media_retiring', true)->where('media_cleanup_after', '<=', now())
++            ->orderBy('media_cleanup_after')->limit($limit)->get(['id']);
++        foreach ($retiring as $workspace) {
++            if (microtime(true) >= $deadline) {
++                break;
++            }
++            try {
++                if (! $this->registrationCleanup->run($workspace->id)) {
++                    $result['deferred']++;
++                }
++            } catch (Throwable) {
++                $result['deferred']++;
++            }
++            $this->deferRetirement($workspace->id);
++        }
++        // All already-retiring copies belong exclusively to the due-time pass above.
++        $orphans = StudioAvWorkspace::withoutUserScope()->where('media_retiring', false)->where('active_until', '<=', now())
+             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id'))
+             ->orderBy('active_until')->limit($limit)->get(['id']);
+         foreach ($orphans as $workspace) {
+@@ -30,17 +48,28 @@
+             } catch (Throwable) {
+                 $result['deferred']++;
+             }
++            $this->deferRetirement($workspace->id);
++            StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->where('active_until', '<=', now())
++                ->update(['active_until' => now()->addSeconds(180)]);
+         }
+-        $terminal = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++        $terminal = StudioAvWorkspace::withoutUserScope()->where('media_retiring', false)->where('active_until', '<=', now())
+             ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id')
+                 ->whereIn('studio_design_exports.status', ['failed', 'cancelled']))
+-            ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_av_leases')->whereColumn('studio_av_leases.workspace_id', 'studio_av_workspaces.id')
+-                ->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])->where('expires_at', '<=', now()))
++            ->where(fn ($q) => $q->where('media_reserved_bytes', '>', 0)->orWhereExists(fn ($leases) => $leases->selectRaw('1')->from('studio_av_leases')->whereColumn('studio_av_leases.workspace_id', 'studio_av_workspaces.id')
++                ->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])->where('expires_at', '<=', now())))
+             ->orderBy('active_until')->limit($limit)->get(['id']);
+         foreach ($terminal as $workspace) {
+             if (microtime(true) >= $deadline) {
+                 break;
+             }
++            try {
++                if (! $this->registrationCleanup->run($workspace->id)) {
++                    $result['deferred']++;
++                }
++            } catch (Throwable) {
++                $result['deferred']++;
++            }
++            $this->deferRetirement($workspace->id);
+             $leases = StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
+                 ->where('expires_at', '<=', now())->orderBy('expires_at')->limit(32)->get(['id']);
+             foreach ($leases as $lease) {
+@@ -116,4 +145,10 @@
+ 
+         return $result;
+     }
++
++    private function deferRetirement(int $id): void
++    {
++        StudioAvWorkspace::withoutUserScope()->whereKey($id)->where('media_retiring', true)
++            ->update(['media_cleanup_after' => now()->addSeconds(180)]);
++    }
+ }
+--- a/app/Models/Studio/StudioAvWorkspace.php
++++ b/app/Models/Studio/StudioAvWorkspace.php
+@@ -14,10 +14,10 @@
+ 
+     protected $guarded = ['id'];
+ 
+-    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'source_metadata', 'media_id', 'media_reserved_bytes', 'active_until', 'created_at', 'updated_at'];
++    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'source_metadata', 'media_id', 'media_reserved_bytes', 'media_receipt', 'media_retiring', 'media_cleanup_after', 'active_until', 'created_at', 'updated_at'];
+ 
+     protected function casts(): array
+     {
+-        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'media_reserved_bytes' => 'integer', 'active_until' => 'immutable_datetime', 'plan' => 'array', 'source_metadata' => 'array'];
++        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'media_reserved_bytes' => 'integer', 'media_receipt' => 'array', 'media_retiring' => 'boolean', 'media_cleanup_after' => 'immutable_datetime', 'active_until' => 'immutable_datetime', 'plan' => 'array', 'source_metadata' => 'array'];
+     }
+ }
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -24,6 +24,10 @@
+             $table->json('source_metadata')->nullable();
+             $table->unsignedBigInteger('media_id')->nullable();
+             $table->unsignedBigInteger('media_reserved_bytes')->default(0);
++            $table->json('media_receipt')->nullable();
++            $table->boolean('media_retiring')->default(false);
++            $table->timestamp('media_cleanup_after')->nullable();
++            $table->index(['media_retiring', 'media_cleanup_after'], 'studio_av_media_retirement');
+             $table->timestamp('active_until')->index();
+             $table->timestamps();
+         });
+--- a/tests/Support/StudioAvR2.php
++++ b/tests/Support/StudioAvR2.php
+@@ -30,6 +30,8 @@
+ 
+     public bool $ignoreRange = false;
+ 
++    private S3Client $client;
++
+     public function __construct(string $prefix = 'tenant')
+     {
+         $this->calls = new ArrayObject;
+@@ -52,7 +54,16 @@
+                         $uploads[] = ['Key' => $upload['key'], 'UploadId' => $uploadId];
+                     }
+                 }
+-                $result = new Result(['Uploads' => $uploads, 'IsTruncated' => false]);
++                usort($uploads, fn ($a, $b) => [$a['Key'], $a['UploadId']] <=> [$b['Key'], $b['UploadId']]);
++                if (isset($args['KeyMarker'])) {
++                    $uploads = array_values(array_filter($uploads, fn ($upload) => $upload['Key'] > $args['KeyMarker']
++                        || ($upload['Key'] === $args['KeyMarker'] && isset($args['UploadIdMarker']) && $upload['UploadId'] > $args['UploadIdMarker'])));
++                }
++                $page = array_slice($uploads, 0, $args['MaxUploads'] ?? 1000);
++                $truncated = count($uploads) > count($page);
++                $last = $page === [] ? null : $page[count($page) - 1];
++                $result = new Result(['Uploads' => $page, 'IsTruncated' => $truncated]
++                    + ($truncated ? ['NextKeyMarker' => $last['Key'], 'NextUploadIdMarker' => $last['UploadId']] : []));
+             } elseif ($name === 'CreateMultipartUpload') {
+                 $id = 'fixture-upload-'.(count($this->uploads) + 1);
+                 $this->uploads[$id] = ['key' => $key, 'metadata' => $args['Metadata'], 'parts' => []];
+@@ -96,6 +107,24 @@
+                 $bytes = $this->ignoreRange ? $object['bytes'] : substr($object['bytes'], $start, $end - $start + 1);
+                 $result = new Result(['Body' => Utils::streamFor($bytes), 'ContentLength' => strlen($bytes),
+                     'ContentRange' => $this->ignoreRange ? null : 'bytes '.$start.'-'.$end.'/'.strlen($object['bytes'])]);
++            } elseif ($name === 'AbortMultipartUpload') {
++                if (! isset($this->uploads[$id]) || $this->uploads[$id]['key'] !== $key) {
++                    throw new S3Exception('fixture no upload', $command, ['response' => new Response(404), 'code' => 'NoSuchUpload']);
++                }
++                unset($this->uploads[$id]);
++                $result = new Result;
++            } elseif ($name === 'ListParts') {
++                if (! isset($this->uploads[$id]) || $this->uploads[$id]['key'] !== $key) {
++                    throw new S3Exception('fixture no upload', $command, ['response' => new Response(404), 'code' => 'NoSuchUpload']);
++                }
++                $parts = [];
++                foreach ($this->uploads[$id]['parts'] as $number => $part) {
++                    $parts[] = ['PartNumber' => $number, 'ETag' => $part['etag'], 'Size' => strlen($part['bytes'])];
++                }
++                $result = new Result(['Parts' => array_slice($parts, 0, $args['MaxParts'] ?? 1000)]);
++            } elseif ($name === 'DeleteObject') {
++                unset($this->objects[$key]);
++                $result = new Result;
+             } else {
+                 throw new RuntimeException('Unexpected fixture S3 command '.$name);
+             }
+@@ -108,6 +137,13 @@
+         $client = new S3Client(['version' => 'latest', 'region' => 'auto', 'endpoint' => 'https://studio-transfer.invalid',
+             'use_path_style_endpoint' => true, 'credentials' => ['key' => 'fixture-key', 'secret' => 'fixture-secret'],
+             'handler' => new MockHandler(array_fill(0, 1000, $handler))]);
++        $this->client = $client;
++        $this->setPrefix($prefix);
++    }
++
++    public function setPrefix(string $prefix): void
++    {
++        $client = $this->client;
+         $config = ['bucket' => 'fixture-bucket', 'root' => $prefix];
+         $adapter = new Adapter($client, 'fixture-bucket', $prefix);
+         Storage::set('studio-transfer-r2', new AwsS3V3Adapter(new Filesystem($adapter), $adapter, $config, $client));
+--- a/tests/Feature/Studio/StudioAvRetirementTest.php
++++ b/tests/Feature/Studio/StudioAvRetirementTest.php
+@@ -0,0 +1,290 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use App\Services\Studio\StudioAvCleanup;
++use App\Services\Studio\StudioAvRecovery;
++use App\Services\Studio\StudioAvRegistrationCleanup;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioAvTransfer;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Validation\ValidationException;
++use Tests\Support\StudioAvR2;
++
++beforeEach(function () {
++    Storage::fake('local');
++    config(['filesystems.media' => 'local']);
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->state = app(StudioAvState::class);
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Retirement', 'document' => [
++        'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]]]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $this->export = $this->state->initialize($this->user, $export);
++    $generation = $this->export->render_state['generation'];
++    $this->state->accept($this->state->claim($export->id, $generation), [
++        'frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]]);
++    $render = $this->state->claim($export->id, $generation, 1);
++    $this->state->accept($render, ['file' => 'segments/'.$render->id.'/video-000000.mp4', 'namespace' => $render->id,
++        'size' => 1, 'sha256' => hash('sha256', 'x')], 1);
++    $source = $this->state->claim($export->id, $generation, 5);
++    $this->state->accept($source, ['file' => 'outputs/'.$source->id.'/project.mp4', 'namespace' => $source->id,
++        'size' => 5, 'sha256' => hash('sha256', 'video'), 'width' => 100, 'height' => 80, 'duration' => 1,
++        'fps' => 12, 'frameCount' => 12, 'videoCodec' => 'h264', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94,
++        'chunk_size' => 16 * 1024 ** 2, 'chunk_sha256' => [hash('sha256', 'video')]], 5);
++    $root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'];
++    Storage::disk('local')->put($root.'/outputs/'.$source->id.'/project.mp4', 'video');
++    $this->lease = $this->state->claim($export->id, $generation);
++    $this->workspace = StudioAvWorkspace::withoutUserScope()->findOrFail($this->lease->workspace_id);
++});
++
++test('AV storage receipt is durable before I/O and survives deletion of the media owner', function () {
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    $receipt = $this->workspace->refresh()->media_receipt;
++    expect($receipt)->toBeArray()->and($receipt['media_id'])->toBe($media->id)->and($receipt['upload_id'])->toBe($media->upload_id)
++        ->and($receipt['location']['key'])->toBe('tenant/'.$media->path)->and($receipt['state'])->toBe('active');
++    $this->user->delete();
++    expect(MediaAsset::withoutUserScope()->find($media->id))->toBeNull()->and($this->workspace->refresh()->media_receipt)->toBe($receipt);
++    expect($this->workspace->toArray())->not->toHaveKey('media_receipt');
++});
++
++test('AV retirement deletes only expired cancelled local copy and releases its reservation after removal', function () {
++    app(StudioAvTransfer::class)->run($this->lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    Storage::disk('local')->put('media/unrelated.bin', 'keep');
++    $this->state->cancel($this->user, $this->export);
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    expect($this->workspace->refresh()->media_reserved_bytes)->toBe(0)->and($this->workspace->media_id)->toBeNull();
++    expect(MediaAsset::withoutUserScope()->find($media->id))->toBeNull();
++    Storage::disk('local')->assertMissing($media->path.'.part');
++    Storage::disk('local')->assertExists('media/unrelated.bin');
++    expect($this->export->refresh()->status)->toBe('cancelled');
++});
++
++test('AV retirement aborts known multipart and verifies removal before releasing its bytes', function () {
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    app(StudioAvTransfer::class)->run($this->lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    expect($r2->uploads)->toBe([])->and($this->workspace->refresh()->media_reserved_bytes)->toBe(0);
++    expect(MediaAsset::withoutUserScope()->find($media->id))->toBeNull();
++    $calls = collect($r2->calls->getArrayCopy());
++    expect($calls->where('name', 'AbortMultipartUpload'))->toHaveCount(1)->and($calls->where('name', 'ListParts'))->toHaveCount(1);
++    foreach ($calls->filter(fn ($call) => in_array($call['name'], ['AbortMultipartUpload', 'ListParts', 'DeleteObject'], true)) as $call) {
++        expect($call['args']['Key'])->toBe('tenant/'.$media->path)->and($call['args']['@retries'])->toBe(0)
++            ->and($call['args']['@http']['timeout'])->toBeGreaterThan(0)->toBeLessThanOrEqual(5);
++    }
++});
++
++test('AV orphan retirement recovers a lost upload id after deleting its owner without touching another key', function () {
++    $r2 = new StudioAvR2;
++    $r2->after = function ($name) use ($r2) {
++        if ($name === 'CreateMultipartUpload') {
++            $r2->after = null;
++            throw new RuntimeException('fixture lost response');
++        }
++    };
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(RuntimeException::class);
++    $receipt = $this->workspace->refresh()->media_receipt;
++    $r2->uploads['unrelated'] = ['key' => $receipt['location']['key'].'-other', 'parts' => [], 'metadata' => []];
++    $this->user->delete();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
++    expect($this->workspace->refresh()->media_reserved_bytes)->toBe(5);
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    expect(array_keys($r2->uploads))->toBe(['unrelated'])->and($this->workspace->refresh()->media_reserved_bytes)->toBe(0);
++});
++
++test('AV retirement keeps journal and reservation after a delete acknowledgement is lost and resumes idempotently', function () {
++    $r2 = new StudioAvR2;
++    $result = null;
++    for ($pass = 0; $pass < 8 && $result === null; $pass++) {
++        $result = app(StudioAvTransfer::class)->run($this->lease);
++    }
++    $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    $r2->after = function ($name) use ($r2) {
++        if ($name === 'DeleteObject') {
++            $r2->after = null;
++            throw new RuntimeException('fixture lost deletion acknowledgement');
++        }
++    };
++    expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toThrow(RuntimeException::class);
++    expect($this->workspace->refresh()->media_retiring)->toBeTrue()->and($this->workspace->media_reserved_bytes)->toBe(5)
++        ->and(MediaAsset::withoutUserScope()->find($media->id))->not->toBeNull();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    expect($r2->objects)->toBe([])->and($this->workspace->refresh()->media_reserved_bytes)->toBe(0);
++});
++
++test('AV orphan cleanup cannot delete the workspace journal before its unknown multipart is retired', function () {
++    $r2 = new StudioAvR2;
++    $r2->after = function ($name) use ($r2) {
++        if ($name === 'CreateMultipartUpload') {
++            $r2->after = null;
++            throw new RuntimeException('fixture lost response');
++        }
++    };
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(RuntimeException::class);
++    $this->user->delete();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvCleanup::class)->orphan($this->workspace->id))->toBeFalse();
++    expect(StudioAvWorkspace::withoutUserScope()->find($this->workspace->id))->not->toBeNull();
++    expect(app(StudioAvCleanup::class)->orphan($this->workspace->id))->toBeTrue();
++    expect($r2->uploads)->toBe([])->and(StudioAvWorkspace::withoutUserScope()->find($this->workspace->id))->toBeNull();
++});
++
++test('AV scheduled recovery retires a terminal copy even when all its leases have already been released', function () {
++    app(StudioAvTransfer::class)->run($this->lease);
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    app(StudioAvCleanup::class)->lease($this->lease->id);
++    app(StudioAvRecovery::class)->run();
++    expect($this->workspace->refresh()->media_reserved_bytes)->toBe(0)->and($this->workspace->media_id)->toBeNull();
++    expect($this->export->refresh()->status)->toBe('cancelled');
++});
++
++test('AV retirement preserves ready library media when its design export becomes orphaned', function () {
++    $result = null;
++    for ($pass = 0; $pass < 6 && $result === null; $pass++) {
++        $result = app(StudioAvTransfer::class)->run($this->lease);
++    }
++    $this->state->accept($this->lease, $result);
++    $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
++    expect($this->workspace->refresh()->media_receipt['state'])->toBe('published');
++    $this->export->delete();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvCleanup::class)->orphan($this->workspace->id))->toBeTrue();
++    expect($media->refresh()->isReady())->toBeTrue();
++    Storage::disk('local')->assertExists($media->path);
++});
++
++test('AV retirement retains the upload id while in-flight parts still appear after abort', function () {
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    app(StudioAvTransfer::class)->run($this->lease);
++    $saved = $r2->uploads;
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    $r2->after = function ($name) use ($r2, $saved) {
++        if ($name === 'AbortMultipartUpload') {
++            $r2->after = null;
++            $r2->uploads = $saved;
++        }
++    };
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
++    expect($this->workspace->refresh()->media_receipt['upload_id'])->not->toBeNull()->and($this->workspace->media_reserved_bytes)->toBe(5);
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    expect($r2->uploads)->toBe([]);
++});
++
++test('AV recovery completes an interrupted retirement after retry even while the new generation holds a lease', function () {
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    $r2->after = function ($name) use ($r2) {
++        if ($name === 'DeleteObject') {
++            $r2->after = null;
++            throw new RuntimeException('fixture lost deletion acknowledgement');
++        }
++    };
++    expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toThrow(RuntimeException::class);
++    $retry = $this->state->retry($this->user, $this->export);
++    $next = $this->state->claim($retry->id, $retry->render_state['generation']);
++    expect($next->expires_at->isFuture())->toBeTrue();
++    app(StudioAvRecovery::class)->run();
++    expect($this->workspace->refresh()->media_reserved_bytes)->toBe(0)->and($this->workspace->media_retiring)->toBeFalse();
++    expect($this->export->refresh()->status)->toBe('processing')->and($this->export->render_state['lease'])->toBe($next->id);
++});
++
++test('AV retirement paginates unrelated multipart prefixes without deleting another key', function () {
++    $r2 = new StudioAvR2;
++    $result = null;
++    for ($pass = 0; $pass < 6 && $result === null; $pass++) {
++        $result = app(StudioAvTransfer::class)->run($this->lease);
++    }
++    $key = $this->workspace->refresh()->media_receipt['location']['key'];
++    for ($i = 0; $i < 20; $i++) {
++        $r2->uploads['unrelated-'.$i] = ['key' => $key.'-'.sprintf('%03d', $i), 'metadata' => [], 'parts' => []];
++    }
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
++    expect($this->workspace->refresh()->media_reserved_bytes)->toBe(5)->and($this->workspace->media_receipt['cursor'])->not->toBe([]);
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    expect($r2->uploads)->toHaveCount(20)->and($r2->objects)->toBe([]);
++});
++
++test('AV retirement targets the original S3 key after its configured prefix changes', function () {
++    $r2 = new StudioAvR2;
++    app(StudioAvTransfer::class)->run($this->lease);
++    $receipt = $this->workspace->refresh()->media_receipt;
++    $r2->setPrefix('different');
++    expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(ValidationException::class);
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
++    foreach (collect($r2->calls->getArrayCopy())->filter(fn ($call) => in_array($call['name'], ['AbortMultipartUpload', 'DeleteObject'], true)) as $call) {
++        expect($call['args']['Key'])->toBe($receipt['location']['key']);
++    }
++});
++
++test('AV retirement does not touch an expired but still resumable processing copy', function () {
++    app(StudioAvTransfer::class)->run($this->lease);
++    $media = MediaAsset::withoutUserScope()->sole();
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
++    expect($this->workspace->refresh()->media_retiring)->toBeFalse()->and($this->workspace->media_reserved_bytes)->toBe(5);
++    Storage::disk('local')->assertExists($media->path.'.part');
++});
++
++test('AV retirement refuses an exhausted caller budget before claiming its cleanup token', function () {
++    app(StudioAvTransfer::class)->run($this->lease);
++    $this->state->cancel($this->user, $this->export);
++    $this->travel(181)->seconds();
++    expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id, microtime(true) - 1))->toThrow(RuntimeException::class);
++    expect($this->workspace->refresh()->media_retiring)->toBeFalse();
++});
++
++test('AV scheduled retirement backoff is respected by every recovery branch', function (bool $orphan) {
++    $r2 = new StudioAvR2;
++    $result = null;
++    for ($pass = 0; $pass < 6 && $result === null; $pass++) {
++        $result = app(StudioAvTransfer::class)->run($this->lease);
++    }
++    if ($orphan) {
++        $this->user->delete();
++    } else {
++        $this->state->cancel($this->user, $this->export);
++    }
++    $this->travel(181)->seconds();
++    $r2->after = function ($name) {
++        if ($name === 'DeleteObject') {
++            throw new RuntimeException('fixture persistently unavailable');
++        }
++    };
++    expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toThrow(RuntimeException::class);
++    $count = fn () => collect($r2->calls->getArrayCopy())->where('name', 'DeleteObject')->count();
++    $before = $count();
++    app(StudioAvRecovery::class)->run();
++    expect($count() - $before)->toBe(1);
++    expect($this->workspace->refresh()->media_cleanup_after->isFuture())->toBeTrue();
++    app(StudioAvRecovery::class)->run();
++    expect($count() - $before)->toBe(1)->and($this->workspace->refresh()->media_reserved_bytes)->toBe(5);
++})->with(['terminal' => false, 'orphan' => true]);
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -58,7 +58,19 @@
+ 
+ Las llamadas S3 llevan retries0 y timeout≤20s, connect≤5s y presupuesto restante compartido. GetObject usa stream y read_timeout≤5s; se comprueban ContentLength y ContentRange antes de leer hasta16MiB, y el cuerpo siempre se cierra. La cuenta de almacenamiento debe poder listar multipart del destino además de crear/subir/completar, leer HEAD/rangos y, cuando se conecte la limpieza, abortar/borrar. Sin permisos se conserva el journal y falla explícitamente. Estos requisitos se contrastan con [R2 multipart](https://developers.cloudflare.com/r2/objects/upload-objects/), [UploadPart S3](https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html) y [stream/read_timeout de Guzzle](https://docs.guzzlephp.org/en/stable/request-options.html#stream).
+ 
+-El bloque está en verificación: tests de disco real desechable y simulador S3 con respuestas HTTP404/412 y fallos después del efecto remoto, sin cuentas ni red real. No acreditan un bucket R2 real ni despliegue. Cancelación durante I/O impide confirmar el recibo tardío o publicar el medio; la reserva conserva los bytes/UploadId conocidos para el futuro aborto. Todavía faltan recuperación/aborto/limpieza de reservas terminales/huérfanas, integración de register en runner/queue y flujo público completo.
++El bloque de transferencia está revisado con tests de disco real desechable y simulador S3 con respuestas HTTP404/412 y fallos después del efecto remoto, sin cuentas ni red real. No acreditan un bucket R2 real ni despliegue. Cancelación durante I/O impide confirmar el recibo tardío o publicar el medio; la reserva conserva los bytes/UploadId conocidos para el retiro descrito a continuación. La integración de register en runner/queue y el flujo público completo siguen pendientes.
++
++### Retiro y recuperación del medio pendiente
++
++El workspace conserva ahora `media_receipt`: ID/disco/path/hash/tamaño, estado, ubicación física y UploadId, sin credenciales. La reserva se registra antes del I/O y la ubicación se fija antes de abrir el destino o crear un multipart. Cada checkpoint actualiza MediaAsset y el recibo del workspace en la misma transacción. El recibo sobrevive a las cascadas de usuario/marca/exportación; el medio listo marca published en la aceptación atómica. Un cambio del backend o prefijo no puede redirigir una transferencia ya iniciada.
++
++`StudioAvRegistrationCleanup` adquiere el mutex real de workspace. Inicia retiro solo cuando falta la exportación o está failed/cancelled, ha vencido active_until y no queda ningún lease futuro. Un medio listo se conserva; una referencia a un medio pendiente impide retirarlo. El token retiring se guarda antes del I/O. Mientras existe, ninguna asignación, checkpoint o aceptación de registro puede usar esa reserva. Un reintento puede avanzar su propia generación, pero el retiro ya iniciado conserva su token y termina antes de permitir otra copia.
++
++Cada pasada tiene presupuesto≤25s, con comprobación previa al token, HTTP≤5s/connect≤2s y retries0. En local se retiran solo los archivos generados final/part, bajo la raíz original comprobada, sin recorrer ni seguir enlaces. En S3/R2 se usa el bucket/key/endpoint originales. Se aborta el UploadId conocido y se consulta ListParts: mientras el ID siga consultable, la reserva permanece pendiente. Después se buscan UploadIds desconocidos por Key exacta, paginando16entradas con marcadores persistidos; una pasada descubre como máximo otro ID para abortarlo en la siguiente. El borrado del objeto se confirma con HEAD404. Fallos o respuestas perdidas conservan recibo y reserva para otra pasada. Las reglas de abortar/listar se contrastan con [AbortMultipartUpload](https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html) y [ListMultipartUploads](https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html).
++
++Solo tras retirar físicamente el destino se borra el MediaAsset pendiente, se libera media_reserved_bytes y se marca released. Un nuevo intento podrá crear una nueva reserva activa; nunca se mantienen dos medios activos para el mismo workspace ni se elimina un medio ya listo. El retiro de huérfanos precede al borrado del journal y del árbol temporal. El recuperador incluye reservas terminales aunque todos los leases hayan sido liberados, y usa media_cleanup_after/index propio para continuar retiring independientemente del active_until de una generación nueva. Conserva estados y leases de esa generación. La pasada de vencimientos es la única que procesa retiring; las ramas terminal/orphan omiten esos registros. Todo intento programado incompleto o fallido se difiere180s, y los huérfanos no resueltos también atrasan active_until para no monopolizar el lote. Las llamadas internas explícitas al limpiador pueden continuar una pasada sin esperar ese reloj del scheduler. El presupuesto15s del recuperador se comprueba entre operaciones, no es un límite duro que interrumpa una pasada física ya comenzada.
++
++El bloque de retiro está pendiente de revisión/regresión. Las pruebas usan SQLite y almacenamiento desechables/simulador SDK; no acreditan R2 real ni VPS. Queue.enqueue(register) continúa deshabilitado. Todavía falta conectar la transferencia por partes al runner/queue, señal de cancelación nativa y flujo público web/API/MCP con QA integral.
+ 
+ Una fase nativa tiene un presupuesto total inferior al timeout del job; el job queda por debajo del worker y del retry_after. El límite cubre preparación, navegador, FFmpeg, probes, hashes y cierre de hijos. Los timeouts aislados de FFmpeg del motor no bastan para acreditar esta propiedad.
+ 

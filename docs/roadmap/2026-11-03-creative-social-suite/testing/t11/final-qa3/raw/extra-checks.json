@@ -1,0 +1,33 @@
+{
+  "stats": {
+    "startTime": "2026-11-05T22:53:46.460Z",
+    "duration": 735503.35,
+    "expected": 72,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "actual_test_count": 72,
+  "runner_errors": [],
+  "retried_results": 0,
+  "non_passed_results": [],
+  "files": [
+    "all-brands.spec.ts",
+    "brand-reporting.spec.ts",
+    "metrics-quality.spec.ts",
+    "studio-audio-editor.spec.ts",
+    "studio-audio-resources.spec.ts",
+    "studio-automation.spec.ts",
+    "studio-av-composite.spec.ts",
+    "studio-captions.spec.ts",
+    "studio-frame-export.spec.ts",
+    "studio-native-export.spec.ts",
+    "studio-timeline.spec.ts",
+    "studio.spec.ts"
+  ],
+  "projects": [
+    "desktop",
+    "mobile",
+    "mobile-360"
+  ]
+}

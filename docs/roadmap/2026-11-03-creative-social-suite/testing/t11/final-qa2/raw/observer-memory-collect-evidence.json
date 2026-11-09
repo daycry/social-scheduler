@@ -1,0 +1,22 @@
+{
+  "script": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\collect-evidence.py",
+  "arguments": [],
+  "pid": 29420,
+  "started": "2026-11-05T22:10:14.161530+00:00",
+  "memory_before": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 12173312,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "exit_code": 0,
+  "finished": "2026-11-05T22:10:21.208677+00:00",
+  "memory_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 891523072,
+    "kill_on_close": true,
+    "breakaway": false
+  }
+}

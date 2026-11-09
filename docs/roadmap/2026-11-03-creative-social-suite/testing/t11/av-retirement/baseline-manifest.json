@@ -1,0 +1,13 @@
+{
+  "app/Services/Studio/StudioAvState.php": "3235ee1fd3dc147d43d394bc0dbfa53e7fe50aceb8698da3ce132e81dc7bf537",
+  "app/Services/Studio/StudioAvTransfer.php": "fbd7374577c22e24a41431ca44d58b6ebf9260fb5da06de09140a5ad23a2bfaf",
+  "app/Models/Studio/StudioAvWorkspace.php": "f3d01b3db10d9b4a9eaefe26def53596ce32641a528ab22643ca4e38d934d0db",
+  "database/migrations/2026_11_05_150000_add_studio_render_state.php": "2a67eebff42b2f534baf4702e7610902e4b6252b6e8a0aa641d9546f54f557e2",
+  "app/Services/Studio/StudioAvCleanup.php": "1720f92196dc74537f519714da38ca227776b5fb97f5f963f2c595b99cf6c697",
+  "app/Services/Studio/StudioAvRecovery.php": "1aa8d4c80399493d6ed041880488c5ed9185d2a13a46fcf2ac895b1db3766d5d",
+  "app/Services/Studio/StudioAvQueue.php": "a11a73bad8e3640554b58f1018a62511ca7a613dfc4e94bcf6aee1c9e230d0d9",
+  "app/Services/Studio/StudioAvRunner.php": "36dba5094e914b4cb35221c066ef5024a7c199696daea76f8e1efd12e053821a",
+  "tests/Support/StudioAvR2.php": "cb3c6b3ab6ac158252beb45999f0d174a50b294e9e2984b5818af3d11bb2a341",
+  "tests/Feature/Studio/StudioAvQueueTest.php": "5bfcaed21fa122cd520acf7854d69bee276c7322cd1a1a8a1f41e77d2f8e66a9",
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md": "a51c229a97743b33e15b92da2fac48b2da3974ca6d5f1a0233f6171b08c9e6da"
+}

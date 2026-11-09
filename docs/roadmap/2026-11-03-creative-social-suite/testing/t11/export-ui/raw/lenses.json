@@ -1,0 +1,49 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "ruta",
+      "fichero": "resources/js/Components/Studio/ExportDialog.vue",
+      "patron": "Export"
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Components/Studio/ExportDialog.vue",
+      "patron": "await-en-bucle",
+      "linea": 74
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/api.js",
+      "patron": "await-en-bucle",
+      "linea": 42
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "resources/js/Studio/export-jobs.js",
+      "patron": "export"
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "tests/e2e/studio-native-export.spec.ts",
+      "patron": "export"
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "tests/frontend/studio-export-job-panel.test.mjs",
+      "patron": "export"
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "tests/frontend/studio-export-jobs.test.mjs",
+      "patron": "export"
+    }
+  ],
+  "base": "--files",
+  "ficheros": 10,
+  "avisos": []
+}

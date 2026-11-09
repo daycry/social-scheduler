@@ -43,6 +43,8 @@ spike/.results-*.json
 /tests/e2e/.auth
 
 # Artefactos locales que no se versionan
+__pycache__/
+*.pyc
 docs/roadmap/*/testing/results.json
 docs/roadmap/*/.claude/
 .serena/
@@ -54,3 +56,18 @@ docs/security-scan/
 !/docs/roadmap/2026-10-19-social-scheduler/testing/raw/console.log
 !/docs/roadmap/2026-10-26-metricool-parity-3/testing/raw/playwright-full.log
 !/docs/roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/raw/playwright-full.log
+
+# Evidencias raw de más de 1 MB de la suite creativa: se conservan en disco, no en el repo
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t10/raw/phpunit-reviewed.xml
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t11/audio/raw/phpunit-full.xml
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/artifacts/studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360/trace.zip
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t11/frames/raw/phpunit-full.xml
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t11/raw/phpunit-full-core-ui.xml
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-editor-qa3/report.pdf
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dense-focused-qa1/raw/1440/dense-12000-svg-observer.json
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dense-focused-qa1/raw/1440/dense-12000.svg
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dense-focused-qa1/raw/375/dense-12000-svg-observer.json
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dense-focused-qa1/raw/375/dense-12000.svg
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dense-focused-qa1/raw/768/dense-12000-svg-observer.json
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/dense-focused-qa1/raw/768/dense-12000.svg
+/docs/roadmap/2026-11-03-creative-social-suite/testing/t12/presentation-p3-native-2026-11-07/trace.zip

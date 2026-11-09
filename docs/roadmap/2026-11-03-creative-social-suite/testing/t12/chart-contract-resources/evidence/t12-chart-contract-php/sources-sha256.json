@@ -1,0 +1,8 @@
+{
+  "app/Services/Studio/StudioChartSpec.php": "576b0c56cd9283d72401e55b302e7707529f84167e6d5ca13de63781b0f06a80",
+  "app/Services/Studio/StudioCharts.php": "b99245fa6da0b3da7f025b9e9f54d1242025f1d7c190738dfd704acb8c698b27",
+  "app/Services/Studio/StudioDocument.php": "dda5562fed42d8f8a464c23b3e3f4cc15f3ea25c336b8f0e3690a724c0a887d2",
+  "app/Services/Studio/StudioFonts.php": "f68978fb49d9964fc51e13e9bd4956a8a5dfab5ccd01f0a13a4860b5dd7de8de",
+  "tests/Feature/Studio/StudioChartSpecTest.php": "731c8ac72e8e27982b7d5d8a2f360a1210a9d2c2f87c59f393488a3b3414e23a",
+  "tests/Feature/Studio/StudioChartsTest.php": "72cb6ecfedc4af0e04d0dd359513763269029439c83d5aa9936eabff82816b33"
+}

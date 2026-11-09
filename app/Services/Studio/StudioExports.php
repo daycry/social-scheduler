@@ -21,6 +21,8 @@ use Illuminate\Validation\ValidationException;
 
 class StudioExports
 {
+    private const PUBLIC_COLUMNS = ['id', 'user_id', 'brand_id', 'design_id', 'revision', 'format', 'pages', 'media_ids', 'options', 'status', 'error', 'disk', 'path', 'render_progress', 'created_at', 'updated_at'];
+
     public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly PostService $posts) {}
 
     /** Register files already processed by MediaUploadService; a browser declaration alone cannot mark a new asset ready. */
@@ -32,6 +34,7 @@ class StudioExports
             'format' => ['required', Rule::in(['png', 'jpeg', 'webp'])],
             'pages' => ['required', 'array', 'min:1', 'max:100'], 'pages.*' => ['required', 'string', 'max:64', 'distinct'],
             'media_ids' => ['required', 'array', 'min:1', 'max:100'], 'media_ids.*' => ['required', 'integer', 'min:1', 'distinct'],
+            'frame_times' => ['sometimes', 'array', 'max:100'],
             'scale' => ['sometimes', 'numeric', 'min:0.1', 'max:4'], 'transparent' => ['sometimes', 'boolean'], 'quality' => ['sometimes', 'numeric', 'min:0.1', 'max:1'],
         ])->validate();
         $revision = $this->revision($user, $design, (int) $data['revision']);
@@ -41,6 +44,8 @@ class StudioExports
         if (! array_is_list($pages) || ! array_is_list($ids) || count($pages) !== count($ids) || array_diff($pages, $pageIds) !== []) {
             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes y un archivo por página, en el mismo orden.']]);
         }
+        $frameTimes = app(StudioFrames::class)->validate($revision->document, $pages, $data['frame_times'] ?? []);
+        $frameOptions = array_key_exists('frame_times', $data) ? ['frame_times' => $frameTimes] : [];
         $scale = (float) ($data['scale'] ?? 1);
         $width = (int) round($revision->document['width'] * $scale);
         $height = (int) round($revision->document['height'] * $scale);
@@ -57,14 +62,14 @@ class StudioExports
         }
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
 
-        return DB::transaction(function () use ($user, $brand, $design, $data, $pages, $ids): DesignExport {
+        return DB::transaction(function () use ($user, $brand, $design, $data, $pages, $ids, $frameOptions): DesignExport {
             foreach ($ids as $id) {
                 $this->assets->attach($user, $brand, $id);
             }
 
             return DesignExport::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'design_id' => $design->id,
                 'revision' => (int) $data['revision'], 'format' => $data['format'], 'pages' => $pages, 'media_ids' => $ids,
-                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'transparent' => (bool) ($data['transparent'] ?? false), 'quality' => (float) ($data['quality'] ?? 1)], 'status' => 'ready']);
+                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'transparent' => (bool) ($data['transparent'] ?? false), 'quality' => (float) ($data['quality'] ?? 1)] + $frameOptions, 'status' => 'ready']);
         });
     }
 
@@ -72,12 +77,12 @@ class StudioExports
     {
         $design = $this->studio->owned($user, $design);
 
-        return DesignExport::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->latest('id')->get();
+        return DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->where('design_id', $design->id)->latest('id')->get();
     }
 
     public function owned(User $user, DesignExport $export): DesignExport
     {
-        $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->id);
+        $current = DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->findOrFail($export->id);
         abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists(), 404);
 
         return $current;
@@ -89,7 +94,7 @@ class StudioExports
         Validator::make(['page' => $page, 'per_page' => $perPage], ['page' => ['integer', 'min:1'], 'per_page' => ['integer', 'min:1', 'max:100']])->validate();
 
         return DesignExport::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)
-            ->latest('id')->paginate($perPage, ['*'], 'page', $page);
+            ->latest('id')->paginate($perPage, self::PUBLIC_COLUMNS, 'page', $page);
     }
 
     public function pageMetadata(LengthAwarePaginator $page): array
@@ -134,6 +139,9 @@ class StudioExports
         return $current->only(['id', 'brand_id', 'design_id', 'revision', 'format', 'pages', 'media_ids', 'options', 'status', 'error', 'created_at', 'updated_at']) + [
             'download_url' => $current->status === 'ready' && $current->disk === 'local' && $current->path
                 ? URL::temporarySignedRoute('studio.exports.download', now()->addMinutes(10), ['export' => $current->id, 'owner' => $user->id]) : null,
+            'progress' => $current->render_progress,
+            'can_cancel' => $current->render_progress !== null && in_array($current->format, ['mp4', 'gif'], true) && in_array($current->status, ['pending', 'processing'], true),
+            'can_retry' => $current->render_progress !== null && in_array($current->format, ['mp4', 'gif'], true) && in_array($current->status, ['failed', 'cancelled'], true),
         ];
     }
 

@@ -1,0 +1,239 @@
+DATE: 2026-11-06T14:52:29.5033773+01:00 CRITERION: warnings precision STUBS: empty objects; no implementation
+TAP version 13
+# Subtest: G5 warnings precision domains ticks and semantic failures match the existing geometry
+not ok 1 - G5 warnings precision domains ticks and semantic failures match the existing geometry
+  ---
+  duration_ms: 5.1796
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-bar-prepared.test.mjs:81:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + {}
+    - {
+    -   bars: [
+    -     {
+    -       column_id: 's0',
+    -       end: 1e-300,
+    -       fill: '#7c3aed',
+    -       height: 0,
+    -       key: 'r0:s0',
+    -       opacity: 1,
+    -       percentage: null,
+    -       raw: '1e-300',
+    -       row_id: 'r0',
+    -       start: 0,
+    -       value: 1e-300,
+    -       width: 256,
+    -       x: 32,
+    -       y: 360
+    -     },
+    -     {
+    -       column_id: 's0',
+    -       end: 1e+308,
+    -       fill: '#7c3aed',
+    -       height: 360,
+    -       key: 'r1:s0',
+    -       opacity: 1,
+    -       percentage: null,
+    -       raw: '1e308',
+    -       row_id: 'r1',
+    -       start: 0,
+    -       value: 1e+308,
+    -       width: 256,
+    -       x: 352,
+    -       y: 0
+    -     }
+    -   ],
+    -   baseline: 360,
+    -   categories: [
+    -     {
+    -       band_end: 320,
+    -       band_start: 0,
+    -       center: 160,
+    -       label: 'Categoría 0',
+    -       row_id: 'r0',
+    -       type: 'text'
+    -     },
+    -     {
+    -       band_end: 640,
+    -       band_start: 320,
+    -       center: 480,
+    -       label: 'Categoría 1',
+    -       row_id: 'r1',
+    -       type: 'text'
+    -     }
+    -   ],
+    -   dataset: {
+    -     id: 8,
+    -     revision: 3,
+    -     sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    -   },
+    -   domain: {
+    -     max: 1e+308,
+    -     min: 0
+    -   },
+    -   height: 360,
+    -   kind: 'column',
+    -   orientation: 'vertical',
+    -   series: [
+    -     {
+    -       column_id: 's0',
+    -       label: 'Serie 0'
+    -     }
+    -   ],
+    -   ticks: [
+    -     {
+    -       position: 360,
+    -       value: 0
+    -     },
+    -     {
+    -       position: 270,
+    -       value: 2.5e+307
+    -     },
+    -     {
+    -       position: 180,
+    -       value: 5e+307
+    -     },
+    -     {
+    -       position: 90,
+    -       value: 7.5e+307
+    -     },
+    -     {
+    -       position: 0,
+    -       value: 1e+308
+    -     }
+    -   ],
+    -   warnings: [
+    -     {
+    -       code: 'APPROXIMATE_COORDINATE',
+    -       column: 2,
+    -       column_id: 's0',
+    -       raw: '1e308',
+    -       row: 2,
+    -       row_id: 'r1'
+    -     },
+    -     {
+    -       code: 'ZERO_SIZE_BAR',
+    -       column_id: 's0',
+    -       raw: '1e-300',
+    -       row_id: 'r0'
+    -     }
+    -   ],
+    -   width: 640
+    - }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    kind: 'column'
+    dataset:
+      id: 8
+      revision: 3
+      sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    orientation: 'vertical'
+    width: 640
+    height: 360
+    domain:
+      min: 0
+      max: 1e+308
+    baseline: 360
+    ticks:
+      0:
+        value: 0
+        position: 360
+      1:
+        value: 2.5e+307
+        position: 270
+      2:
+        value: 5e+307
+        position: 180
+      3:
+        value: 7.5e+307
+        position: 90
+      4:
+        value: 1e+308
+        position: 0
+    categories:
+      0:
+        row_id: 'r0'
+        type: 'text'
+        label: 'Categoría 0'
+        center: 160
+        band_start: 0
+        band_end: 320
+      1:
+        row_id: 'r1'
+        type: 'text'
+        label: 'Categoría 1'
+        center: 480
+        band_start: 320
+        band_end: 640
+    series:
+      0:
+        column_id: 's0'
+        label: 'Serie 0'
+    bars:
+      0:
+        key: 'r0:s0'
+        row_id: 'r0'
+        column_id: 's0'
+        x: 32
+        y: 360
+        width: 256
+        height: 0
+        fill: '#7c3aed'
+        opacity: 1
+        value: 1e-300
+        raw: '1e-300'
+        start: 0
+        end: 1e-300
+        percentage: ~
+      1:
+        key: 'r1:s0'
+        row_id: 'r1'
+        column_id: 's0'
+        x: 352
+        y: 0
+        width: 256
+        height: 360
+        fill: '#7c3aed'
+        opacity: 1
+        value: 1e+308
+        raw: '1e308'
+        start: 0
+        end: 1e+308
+        percentage: ~
+    warnings:
+      0:
+        code: 'APPROXIMATE_COORDINATE'
+        row_id: 'r1'
+        column_id: 's0'
+        row: 2
+        column: 2
+        raw: '1e308'
+      1:
+        code: 'ZERO_SIZE_BAR'
+        row_id: 'r0'
+        column_id: 's0'
+        raw: '1e-300'
+  actual:
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-bar-prepared.test.mjs:84:120)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21.6815

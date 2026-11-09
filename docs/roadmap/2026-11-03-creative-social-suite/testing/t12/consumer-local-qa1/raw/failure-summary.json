@@ -1,0 +1,27 @@
+{
+  "actual_executed_cases": 1,
+  "recorded_cases": 3,
+  "original_stats": {
+    "startTime": "2026-11-06T21:40:54.263Z",
+    "duration": 258773.225,
+    "expected": 0,
+    "skipped": 2,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "failures": [
+    {
+      "project": "desktop",
+      "message": "Test timeout of 240000ms exceeded."
+    },
+    {
+      "project": "desktop",
+      "message": "Error: locator.click: Test timeout of 240000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Editar configuración y datos del gráfico', exact: true })\n\n\n   at support\\studio-chart-ui.ts:28\n\n  26 | export async function dataset(page:Page,brand:number,table:any,name='Analítica é 2026'){const result=await web(page,'POST',`/brands/${brand}/studio/datasets`,{name,table});expect(result.status).toBe(201);return JSON.parse(result.text).dataset;}\n  27 | export async function choose(page:Page,id:number){await page.getByRole('button',{name:'Tablas de datos',exact:true}).click();const d=datasetsDialog(page);await d.getByTestId(`dataset-open-${id}`).click();const select=d.getByRole('button',{name:'Usar revisión guardada para gráfico',exact:true});await expect(select).toBeEnabled();await select.click();await expect(chartDialog(page)).toBeVisible();}\n> 28 | export async function edit(page:Page){await page.getByRole('button',{name:'Propiedades',exact:true}).click();await page.getByRole('button',{name:'Editar configuración y datos del gráfico',exact:true}).click();await expect(chartDialog(page)).toBeVisible();}\n     |                                                                                                                                                                                                          ^\n  29 | export async function configure(page:Page,kind:string,series:string[],font?:any){const d=chartDialog(page);await expect(d.getByRole('button',{name:/^(Insertar|Aplicar) gráfico$/})).toBeEnabled();const tableReads:string[]=[];const observer=(request:any)=>{if(request.method()==='GET'&&/^\\/brands\\/\\d+\\/studio\\/datasets\\/\\d+\\/table$/.test(new URL(request.url()).pathname))tableReads.push(new URL(request.url()).pathname);};page.on('request',observer);await d.getByRole('button',{name:'1 · Datos',exact:true}).click();await chartSelect(d,'Tipo de gráfico').selectOption(kind);await chartSelect(d,'Categoría').selectOption('category');for(const [index] of series.entries())await d.getByLabel(`Serie ${index+1}`,{exact:true}).setChecked(true);await d.getByRole('button',{name:'2 · Estilo',exact:true}).click();for(const [label,value] of Object.entries({'Título':'QA 2026 é Ω','Subtítulo':'Datos originales','Fuente de datos':'Fixture propia','Título del eje X':'Categorías','Título del eje Y':'Valores','Paleta propia · hex separados por comas':fixtures.pal"
+    }
+  ],
+  "global_errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ]
+}

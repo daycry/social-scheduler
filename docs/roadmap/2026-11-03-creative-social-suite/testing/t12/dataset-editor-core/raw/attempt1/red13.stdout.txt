@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: transpose retains original headers as values and regenerates all identities
+not ok 1 - transpose retains original headers as values and regenerates all identities
+  ---
+  duration_ms: 3.9705
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-dataset-table.test.mjs:132:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'A',
+    +   'B'
+    -   'Columna',
+    -   'Fila 1',
+    -   'Fila 2'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'Columna'
+    1: 'Fila 1'
+    2: 'Fila 2'
+  actual:
+    0: 'A'
+    1: 'B'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-dataset-table.test.mjs:135:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 41.6921

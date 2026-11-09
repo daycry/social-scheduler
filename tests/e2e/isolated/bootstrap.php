@@ -69,6 +69,8 @@ function generalBootstrap(): Application
             'mail.default' => 'array', 'reports.branding.logo' => null,
             'dompdf.options.font_cache' => $root.'/font-cache', 'dompdf.options.temp_dir' => $root.'/pdf-temp',
             'social.backfill_on_connect' => false,
+            // Read-only, pinned weights; all image input/output stays in this run's storage.
+            'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/birefnet-general-lite.onnx',
         ]);
     });
     $app->make(Kernel::class)->bootstrap();

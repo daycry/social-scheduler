@@ -1,0 +1,5 @@
+{
+  "baseline_renderer_sha256": "84d7f2efef7c77d970b2f6d31a005e041fdc753b8d082f0be8135e325e090be8",
+  "fixed_renderer_sha256": "7e8d38c9dff20ed15a51a60488e17e78b736e648962ac3e1e524a7f44842ede4",
+  "permitted_delta": "Only origin literal HTTP -> HTTPS; no renderer copy or alternate renderer executed"
+}

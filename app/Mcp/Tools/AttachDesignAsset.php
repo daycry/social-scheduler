@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('attach_design_asset')]
-#[Description('Registra media propia ya lista en una marca para usar su id como asset_id de imágenes/vídeos en documentos. Flujo import_media_from_url -> list_media hasta listo -> attach_design_asset -> create_design/update_design. No acepta URLs ni archivos ajenos. Requiere designs:write.')]
+#[Description('Registra media propia ya lista en una marca para usar asset_id de imágenes/vídeos o timeline.audio_tracks. Audio: manage_studio_audio hasta listo; otras media: import_media_from_url -> list_media hasta listo. Después attach_design_asset -> create_design/update_design. No acepta URLs ni archivos ajenos. Requiere designs:write.')]
 class AttachDesignAsset extends SchedulerTool
 {
     protected function ability(): string

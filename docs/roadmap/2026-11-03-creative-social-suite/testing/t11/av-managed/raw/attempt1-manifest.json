@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "path": "scripts/studio/av-files.mjs",
+      "sha256": "014618e702bd653c161a146536058a4a21ede0610de86947d92e28233599af62"
+    },
+    {
+      "path": "scripts/studio/av-pcm.mjs",
+      "sha256": "869fac3b1f91c55c02eaae50fbbe687bbbf1e7077c752bfed5a30132ce9e8827"
+    },
+    {
+      "path": "scripts/studio/av-audio.mjs",
+      "sha256": "2dd32312f86dae7331edc4d24ccf92d3865e2d72dd473e9de594da19685a0bbc"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "007bfba44d8b34d61bfe10b8550b57594640101a4c63188adf060e92781f93e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "26c6a9b23d2d76d894e80bb25ea00f5bee619b27149f92a5d3eb169ebece52ba"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "0061b4406ee7a2e7eaf8cbdb401540e6dc6e9a08333831a7d8829b158cd8ae1c"
+    }
+  ]
+}

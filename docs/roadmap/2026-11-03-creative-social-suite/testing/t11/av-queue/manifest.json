@@ -1,0 +1,222 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "1933681737683fb628dcf9303085d46372b4582f5acec71aa3d27df997e5bcdd"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "797bd11487877d9faede82d9d981f178f07d5076b7ec1fc6cf75ef9a19408905"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "dd6d1710d7814fbc7acf04528a31c8c461b2331c69625c496dd72a282cb7e22c"
+    },
+    {
+      "path": "app/Models/Studio/DesignExport.php",
+      "sha256": "6744f8fa9865ba76bef06cbf0f5fd48b85cf3cc9aa88c40b1168316856d23b88"
+    },
+    {
+      "path": "app/Services/Studio/StudioExports.php",
+      "sha256": "70796393f8849cf8059c5a5a2bb736a6ffd013a9df7178150df6d52364ecfc98"
+    },
+    {
+      "path": "config/studio.php",
+      "sha256": "a9a706a5b6f79b8d0e3bc63d04c46cfb5178263d61b41bbdcf47ad571bfc21b5"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "cd225102cc7015d65b75203c7c6b06320cc45b88550c93eb9cdfa0b7aa0aa804"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvStateTest.php",
+      "sha256": "82897a70374fefdcdc41a1f480981452a58f89e7613afe2eece71e2b8fdf2d9a"
+    },
+    {
+      "path": "docs/api/creative-suite.openapi.yaml",
+      "sha256": "e3908cba5406d36d7e6f87b57c93f5378325b9e81612463ae50eafbcea92acc4"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "c89b94f77a62a0528264b43a1ed8a395dd4a8b1d0bf05772fa43e8e2a37c2bb0"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvStep.php",
+      "sha256": "90879ea2e8adc37703b830056f9e448ed8d479259101933a43bb6d8bf9753144"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "5b626c347eb4239d1ffdc71afbdfaaaea59b3cd42fb90424ac9da6c4065e6178"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvFilesTest.php",
+      "sha256": "0fc645688ec252b950710aff27bff67fba41f137a680437f813c25db58a422b8"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvStorage.php",
+      "sha256": "324bf5835268b5b75d7b1b6006def17246b3fa53de288f2a62a399c0e71504fd"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCleanup.php",
+      "sha256": "1720f92196dc74537f519714da38ca227776b5fb97f5f963f2c595b99cf6c697"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvWorkspaceBusy.php",
+      "sha256": "dce0a4298334c773ac5b677260f4efa198561dcc801a928b100c4eff06422b44"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCheckpointCorrupt.php",
+      "sha256": "cd78e47fcf6daa7539085021c4ec5f70017e13202fdde1deea73869dac39d59e"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvCleanupTest.php",
+      "sha256": "a692664f188a9858d89489dac4bfb58b33d8889601b583343eee10bcfc2587e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "4e1b758b4bda5741983cc02afbeee14cad9290c9ca632dbf73b29d673691fd69"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "b78b8c6638b66c2329c4a27e64d476abcf2e15a178f93425bb29c0b8594d71f3"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvQueue.php",
+      "sha256": "a11a73bad8e3640554b58f1018a62511ca7a613dfc4e94bcf6aee1c9e230d0d9"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcess.php",
+      "sha256": "c8fd1036cc7185cdc508d73f1fbba6d9c2046bf92562bee8f2e7adae5053df49"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcessFailed.php",
+      "sha256": "b1be6af28f4b51e9e4bd4d9c60a31e7a2b009b45953dca6a9ec06d68365ab036"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRunner.php",
+      "sha256": "36dba5094e914b4cb35221c066ef5024a7c199696daea76f8e1efd12e053821a"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRecovery.php",
+      "sha256": "1aa8d4c80399493d6ed041880488c5ed9185d2a13a46fcf2ac895b1db3766d5d"
+    },
+    {
+      "path": "app/Jobs/Studio/ProcessStudioAvPhase.php",
+      "sha256": "36b31a6ad7e6022d42b8447bd2adb01b617940f8cc92df4f3ff17c3925733fa5"
+    },
+    {
+      "path": "app/Console/Commands/RecoverStudioExports.php",
+      "sha256": "77bdccd35ece2473460ebd9b7fc3bb760c34f7e2d8672618977eacd026235a74"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "6efdb0513b41aaf836ff376da1a89bab6c9ce9b2ce5ccdcfe5b6733992536a96"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvQueueTest.php",
+      "sha256": "5bfcaed21fa122cd520acf7854d69bee276c7322cd1a1a8a1f41e77d2f8e66a9"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvProcessTest.php",
+      "sha256": "1fa7277a32d3da084d5b2b49ee82f98141d59cfa961864094f1effc0420e72a5"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/native-cases.json",
+      "sha256": "37602af8fd52bdd8273100b221609f453a58cd1f039a1d53497f025b8fa1bae3"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/baseline-manifest.json",
+      "sha256": "1da0cdf0a16c5fe6d3bd533e1addba3aaaca998fa9de106371891cebf936e034"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/php-result.json",
+      "sha256": "514a95ce0658d2a69c05c11e19a366d3a3de78468e64a9585becf4ebefe0956f"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/php.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/php.stdout",
+      "sha256": "792a79488dcb25811eb0461294bb93e94a1b0e61d4be877e067f8c98c4cb756c"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/phpunit.xml",
+      "sha256": "d33577835336699fc91079b3f122366a19d7585d418ecd32d7e76d0df5874476"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt1-lenses.json",
+      "sha256": "7756a60c9a87dfe1da149ed4fbeaf05e4612101f2a4ec4894705809e8fd9c20d"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt1-manifest.json",
+      "sha256": "2face1be1b572596a37d15048296fa855147115896bf43f0a8b79bcab06cdead"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt1-reviewed.diff",
+      "sha256": "f4507a7c758b336e36f618678523dd8181d1c14d798156b1e3b51aa8bb3141aa"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt1-scope.json",
+      "sha256": "f9786889c7605fb1c5dd8d85dfce35fdebe48917e8c8dbf4fc4aa87c88ab873e"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt2-delta2.diff",
+      "sha256": "357d7159a1306858c6e833a658db3d5593faeedc196f8d23f0f15d2ca49093b3"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt2-lenses.json",
+      "sha256": "7756a60c9a87dfe1da149ed4fbeaf05e4612101f2a4ec4894705809e8fd9c20d"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt2-manifest.json",
+      "sha256": "108bf38f75cca3e2ef61ecaee5e3aeb048fa58438d064848e4651ffaa75797e0"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt2-reviewed.diff",
+      "sha256": "b8218041262c475f1e99239fb1665dc07b03f5b7cb68f98514b5a4197f57f895"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-attempt2-scope.json",
+      "sha256": "f9786889c7605fb1c5dd8d85dfce35fdebe48917e8c8dbf4fc4aa87c88ab873e"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-delta2.diff",
+      "sha256": "357d7159a1306858c6e833a658db3d5593faeedc196f8d23f0f15d2ca49093b3"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-delta3.diff",
+      "sha256": "081aa866097fff58e3bf73285715e07eee7d27e9b0e2f7e02baecbdd6115fcb3"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-ledger.txt",
+      "sha256": "a28bed6cacfb2c0db88ff13eb8a6aafc48d542f2327ee19937f24247f4a8f94f"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-lenses.json",
+      "sha256": "7756a60c9a87dfe1da149ed4fbeaf05e4612101f2a4ec4894705809e8fd9c20d"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-manifest.json",
+      "sha256": "749754bfe20c9147fb7372c91e59e46f6c7e0aed41c53474f8f25763b2fb2b87"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-reviewed.diff",
+      "sha256": "84bdad882cd33401f3fad732cb0498606172b9095287c378206e21e8b0d40b0c"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/review-scope.json",
+      "sha256": "f9786889c7605fb1c5dd8d85dfce35fdebe48917e8c8dbf4fc4aa87c88ab873e"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/raw/sources.json",
+      "sha256": "c94772f692d812d9e12604dc4f870105cb99c3e85ccd5ba354a8183264bad78a"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-queue/summary.json",
+      "sha256": "9cc233df6b7e7a75f07bd0474550461af8e825a5b03a02de306fc33b5dcd3b36"
+    }
+  ]
+}

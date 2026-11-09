@@ -1,0 +1,19 @@
+{
+  "csv": {
+    "bytes": 25000000,
+    "sha256": "f7978554e54fdbae62559f374c8371a23e4b1788cc46f0fb1a9b336e69a14d33",
+    "rows": 50,
+    "columns": 100
+  },
+  "json": {
+    "bytes": 52000000,
+    "sha256": "5916851043bee9de3bc8e9c159d915eb9dd423b5dc013cbd98b91b8b5b39c1a5",
+    "rows": 52,
+    "columns": 100
+  },
+  "mcp": {
+    "envelope_bytes": 155970107,
+    "sha256": "e3cee2ead43485aa96daa920b1ace0c127f5bf8d8218e91a677f104fce6919a4",
+    "encoder": "Python json.dumps ensure_ascii=True, no custom escaping"
+  }
+}

@@ -1,0 +1,619 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>QA independiente T11 - intento3</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+ img {max-height:245mm;object-fit:contain} img[src$="composite-mobile.png"] {width:80mm;height:173mm;object-fit:cover;object-position:top} pre {white-space:pre-wrap;overflow-wrap:anywhere} h2,h3 {break-after:avoid} table {font-size:8.5pt;break-inside:auto;table-layout:fixed;width:100%} td,th {overflow-wrap:anywhere} tr {break-inside:avoid} </style><body><main class="doc"><h1>QA independiente T07/T11 — intento 3</h1>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fecha local de finalización</td>
+<td>2026-11-06, Europe/Madrid (CET)</td>
+</tr>
+<tr>
+<td>Gate automático</td>
+<td><strong>VERDE</strong>, exit 0</td>
+</tr>
+<tr>
+<td>Aceptación del alcance</td>
+<td><strong>ACEPTABLES LOCALMENTE T07/T11; cierre a decisión del orquestador</strong></td>
+</tr>
+<tr>
+<td>Casos reales</td>
+<td>72/72 pasan; 0 fallos</td>
+</tr>
+<tr>
+<td>Observación independiente</td>
+<td>Privados/ventanas/selección 42/42; DEFAULT/CONTROL 24/24</td>
+</tr>
+<tr>
+<td>Integridad</td>
+<td>842 SHA directos, 0 cambios; unión39/76/7 comprobada</td>
+</tr>
+<tr>
+<td>Sesión / PID</td>
+<td>36509; helper 27628, Playwright 34356</td>
+</tr>
+<tr>
+<td>Raíz propia</td>
+<td><code>C:\laragon\www\metricool\storage\framework\testing\t43\run-general-7ed017ac-ba2c-4710-87e1-dc109e3846f3</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Veredicto determinista</h2>
+<pre><code class="language-json">{
+  &quot;verdict&quot;: &quot;VERDE&quot;,
+  &quot;counts&quot;: {
+    &quot;passed&quot;: 72,
+    &quot;failed&quot;: 0,
+    &quot;flaky&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;interrupted&quot;: 0
+  },
+  &quot;flaky_sin_justificar&quot;: [],
+  &quot;flaky_justificados&quot;: {},
+  &quot;threshold&quot;: &quot;verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado&quot;
+}
+</code></pre>
+<p>Una única pasada de12 specs en desktop 1440×900, mobile 375×812 y mobile-360 360×740. Conteo obtenido del JSON original: {'desktop': 24, 'mobile': 24, 'mobile-360': 24}. Exit Playwright 0; duración 735.503s; errores de runner 0; resultados con retry&gt;0: 0. No se reinició el proceso por timeout de observación ni se excluyeron resultados del gate. <a href="raw/results.json">JSON real</a> · <a href="raw/extra-checks.json">checks adicionales</a>.</p>
+<p>La aceptación local se basa conjuntamente en gate, medios nuevos, inspección visual e integridad. QA no cambia estados del ledger/spec/plan ni cierra el roadmap de23 tareas. T07/T11 entraron en progreso, con 6/23 completadas; root decide su cierre. VPS/R2/social real, T10/ONNX y otros requisitos externos no se aceptan por esta pasada.</p>
+<h2>QA2-V01: verificación de legibilidad con DEFAULT y CONTROL</h2>
+<p>El Important de QA2 era reproducible: Arial 22 normal blanco, contorno negro 2 sobre negro dejaba las letras casi ilegibles. Root aisló el orden de pintura y cambió únicamente paintFirst a stroke en textos temporales de captions. No se cambiaron JSON de estilo, tamaños admitidos ni defaults globales de Fabric. A3/B3 sin gaps; C2/D1 preservadas, C/Ddelta3=false. Los dos focales históricos fallidos siguen siendo fallos de fixture/comparador; no se reetiquetan como PASS ni se atribuyen a QA3.</p>
+<p>E2E23/24 actuales y la observación propia verifican el estilo por defecto, además de mantener la fixture privada con strokeWidth0. La serie nueva no tiene emoji:320×180, Arial 22 normal, texto «Modificado\nsegunda línea»,fill blanco,stroke negro 2(DEFAULT) y control stroke 0(CONTROL). Cue[0,25,1,25),FPS12. Se observan archivos PNG/MP4/GIF descargados de esta ejecución, sin crear otras exportaciones. PNG estático 0,5s; MP4/GIF frame 6 activo y frame 0 anterior,18 frames completos.</p>
+<p>Métrica fijada antes de ejecutar: <strong>min(R,G,B)&gt;=200</strong>, energía=sum(minRGB/255), umbrales inclusivos 16/64/128/199/200/201/240 y recuento de píxeles exactamente 200. Control PNG sin escala&gt;1000 blancos; controles de codec&gt;500; DEFAULT≥50% de blancos y energía del CONTROL. El frame anterior al cue exige 0 blancos. No se cambió comparador ni umbral según los resultados nuevos. La serie privada conserva su propio comparador&gt;200 y sus 42 checks, sin mezclar definiciones.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport/formato</th>
+<th>CONTROL blancos</th>
+<th>DEFAULT blancos</th>
+<th>Razón blancos</th>
+<th>Razón energía</th>
+<th>Antes cue DEFAULT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop/png</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>—</td>
+</tr>
+<tr>
+<td>desktop/mp4</td>
+<td>1004</td>
+<td>1003</td>
+<td>0.999004</td>
+<td>0.999911</td>
+<td>0</td>
+</tr>
+<tr>
+<td>desktop/gif</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>0</td>
+</tr>
+<tr>
+<td>desktop/preview</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>—</td>
+</tr>
+<tr>
+<td>mobile/png</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>—</td>
+</tr>
+<tr>
+<td>mobile/mp4</td>
+<td>1004</td>
+<td>1003</td>
+<td>0.999004</td>
+<td>0.999911</td>
+<td>0</td>
+</tr>
+<tr>
+<td>mobile/gif</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>0</td>
+</tr>
+<tr>
+<td>mobile/preview</td>
+<td>809</td>
+<td>798</td>
+<td>0.986403</td>
+<td>0.998676</td>
+<td>—</td>
+</tr>
+<tr>
+<td>mobile-360/png</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>—</td>
+</tr>
+<tr>
+<td>mobile-360/mp4</td>
+<td>1004</td>
+<td>1003</td>
+<td>0.999004</td>
+<td>0.999911</td>
+<td>0</td>
+</tr>
+<tr>
+<td>mobile-360/gif</td>
+<td>1007</td>
+<td>1007</td>
+<td>1.000000</td>
+<td>1.000000</td>
+<td>0</td>
+</tr>
+<tr>
+<td>mobile-360/preview</td>
+<td>722</td>
+<td>715</td>
+<td>0.990305</td>
+<td>1.001655</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>El preview se mide sobre el screenshot real, sin tomar el DTO del test como único oráculo. Se aísla una única ROI negra con aspecto 320:180,ancho 200–360,alto 100–205,desviación &lt;0,03 y componente negra &gt;85% de bbox. Una ROI ambigua/ausente falla. Se guardan coordenadas, dimensiones y SHA del original: <a href="raw/default-contrast/observations.json">observaciones</a>. HTML blanco y headers no satisfacen ese perfil. La razón se calcula bajo la misma escala CSS; el control físico exige &gt;500 blancos y la calibración absoluta&gt;1000 se contrasta en PNG 320×180 sin redimensionar.</p>
+<h3>Preview375 nuevo: DEFAULT frente a CONTROL</h3>
+<table>
+<thead>
+<tr>
+<th>DEFAULT22/contorno2</th>
+<th>CONTROL22/contorno0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img src="raw/default-contrast/mobile-outline-preview-crop.png" alt="DEFAULT375" /></td>
+<td><img src="raw/default-contrast/mobile-control-preview-crop.png" alt="CONTROL375" /></td>
+</tr>
+</tbody>
+</table>
+<h3>Referencia histórica QA2, sin usarla como esperado</h3>
+<p><img src="raw/default-contrast/historical-qa2-preview-canvas.png" alt="Preview oscuro histórico" /></p>
+<p>La referencia antigua incluye el emoji y pertenece a otro snapshot; se presenta para mostrar el defecto, no para fijar los umbrales de QA3 ni como comparación numérica del mismo documento. QA1 y QA2 conservan sus resultados originales. La decisión visual actual consta en <a href="raw/visual-review.json">visual-review.json</a>. No se afirma un ratioWCAG no medido.</p>
+<h2>Medios, fuente privada y selección: conservar la aceptación previa</h2>
+<p>Las 42 comprobaciones independientes de QA2 se ejecutaron sobre nuevos archivos QA3, sin importar captions.js/captions-renderer.js ni sus asserts. Se decodifican MP4/GIF con ffprobe/FFmpeg, ZIP/XML y SHA; se rasterizan PNG/PDF reales y SVG portable con Chromium sin red. Se contrasta la WOFF2 embebida con la fuente privada validada y se comprueba su carga real. SRT/VTT preserva Unicode, dos líneas y tiempos desplazados 0,350–0,850/0,850–1,350.</p>
+<p>Fixture privada 160×120/FPS12,«Hola»,cue [0,25,1,25) con transición0,5–1s. Columnas de blancos&gt;200 corresponden a frames 0,2,3,4,9,14,15,17; se compara luminancia de máscara de glifos entre 4→9 y 4→14,ratio permitido 0,94–1,06. El fin exacto es exclusivo. No se infiere el número interno de llamadas de dibujo cuando dos operaciones producen los mismos píxeles.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport/formato</th>
+<th>Frames</th>
+<th>Blancos por índice</th>
+<th>Razones de luminancia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop/mp4</td>
+<td>18</td>
+<td>0,0,181,181,181,181,0,0</td>
+<td>1.000000/1.000000</td>
+</tr>
+<tr>
+<td>desktop/gif</td>
+<td>18</td>
+<td>0,0,181,181,181,181,0,0</td>
+<td>1.000000/1.000000</td>
+</tr>
+<tr>
+<td>mobile/mp4</td>
+<td>18</td>
+<td>0,0,181,181,181,181,0,0</td>
+<td>1.000000/1.000000</td>
+</tr>
+<tr>
+<td>mobile/gif</td>
+<td>18</td>
+<td>0,0,181,181,181,181,0,0</td>
+<td>1.000000/1.000000</td>
+</tr>
+<tr>
+<td>mobile-360/mp4</td>
+<td>18</td>
+<td>0,0,181,181,181,181,0,0</td>
+<td>1.000000/1.000000</td>
+</tr>
+<tr>
+<td>mobile-360/gif</td>
+<td>18</td>
+<td>0,0,181,181,181,181,0,0</td>
+<td>1.000000/1.000000</td>
+</tr>
+</tbody>
+</table>
+<p>Selección fuente: A 2 s/fade 0,5s con cue AA 1,8–1,95; cue CCCCCCCC en C 3,8–4 global. A sola conserva la ventana completa, C→A remapea las dos fuentes y A→C cambia propiedad en el midpoint de salida sin duplicar la cue. Los índices esperados se deducen de ese contrato, sin llamar al compilador del producto.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport/selección</th>
+<th>Frames reales</th>
+<th>Blancos por frame observado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop/a</td>
+<td>60</td>
+<td>{0: 0, 53: 0, 54: 139, 55: 139, 58: 139, 59: 0}</td>
+</tr>
+<tr>
+<td>desktop/c-a</td>
+<td>120</td>
+<td>{0: 0, 8: 0, 9: 466, 10: 466, 14: 466, 15: 0, 113: 0, 114: 139, 115: 139, 117: 139, 118: 139, 119: 0}</td>
+</tr>
+<tr>
+<td>desktop/a-c</td>
+<td>105</td>
+<td>{0: 0, 50: 0, 52: 0, 53: 0, 54: 464, 55: 469, 56: 468, 59: 465, 60: 0, 104: 0}</td>
+</tr>
+<tr>
+<td>mobile/a</td>
+<td>60</td>
+<td>{0: 0, 53: 0, 54: 139, 55: 139, 58: 139, 59: 0}</td>
+</tr>
+<tr>
+<td>mobile/c-a</td>
+<td>120</td>
+<td>{0: 0, 8: 0, 9: 466, 10: 466, 14: 466, 15: 0, 113: 0, 114: 139, 115: 139, 117: 139, 118: 139, 119: 0}</td>
+</tr>
+<tr>
+<td>mobile/a-c</td>
+<td>105</td>
+<td>{0: 0, 50: 0, 52: 0, 53: 0, 54: 464, 55: 469, 56: 468, 59: 465, 60: 0, 104: 0}</td>
+</tr>
+<tr>
+<td>mobile-360/a</td>
+<td>60</td>
+<td>{0: 0, 53: 0, 54: 139, 55: 139, 58: 139, 59: 0}</td>
+</tr>
+<tr>
+<td>mobile-360/c-a</td>
+<td>120</td>
+<td>{0: 0, 8: 0, 9: 466, 10: 466, 14: 466, 15: 0, 113: 0, 114: 139, 115: 139, 117: 139, 118: 139, 119: 0}</td>
+</tr>
+<tr>
+<td>mobile-360/a-c</td>
+<td>105</td>
+<td>{0: 0, 50: 0, 52: 0, 53: 0, 54: 464, 55: 469, 56: 468, 59: 465, 60: 0, 104: 0}</td>
+</tr>
+</tbody>
+</table>
+<p>Detalle: <a href="raw/caption-independent-checks.json">42checks</a>, <a href="raw/default-contrast/checks.json">24checks DEFAULT/CONTROL</a>, <a href="raw/caption-independent/observations.json">frames/probes</a>, <a href="raw/caption-static-observations.json">estáticos</a>, <a href="raw/svg-independent-pixel-observations.json">SVG rasterizado</a>, <a href="raw/caption-text-observations.json">SRT/VTT</a>. Los archivos y PNG decodificados están en samples/ y raw/. La métrica numérica se complementa con inspección de imágenes actuales legibles.</p>
+<h2>Compuesto audiovisual y flujos conservados</h2>
+<p>Se vuelve a decodificar la descarga de E2E21: MP4 H264100×80,42 frames/3,5 s,AAC 48 k estéreo; GIF50×40,42 frames/3,5 s sin pista de audio. Se comprueban overlays/fade/movimiento, revisión 1 frente a edición actual 2 y borrador con brand_id/media_ids exactos. La mezcla 440/880 mantiene rampas, recorte/loop, música tras terminar el vídeo y cola silenciosa en ambos canales. El recálculo Python del PCM no importa el helper JS de test.</p>
+<table>
+<thead>
+<tr>
+<th>Viewport</th>
+<th>440 L/R</th>
+<th>880 L/R</th>
+<th>Ataque L/R</th>
+<th>Salida L/R</th>
+<th>Cola RMS L/R</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop</td>
+<td>0.049847/0.049847</td>
+<td>0.049994/0.049994</td>
+<td>0.019968/0.019968</td>
+<td>0.019963/0.019963</td>
+<td>0.000000/0.000000</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>0.049847/0.049847</td>
+<td>0.049994/0.049994</td>
+<td>0.019968/0.019968</td>
+<td>0.019963/0.019963</td>
+<td>0.000000/0.000000</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>0.049847/0.049847</td>
+<td>0.049994/0.049994</td>
+<td>0.019968/0.019968</td>
+<td>0.019963/0.019963</td>
+<td>0.000000/0.000000</td>
+</tr>
+</tbody>
+</table>
+<p>No se confunden esos tonos sintéticos con aceptación musical humana. Las mediciones completas incluyen marcador 1760 fuera del trim y diferencia L/R en <a href="raw/composite-audit.json">composite-audit.json</a>. Los recorridos de timeline/audio, estáticos multipágina, conflicto, plantillas, métricas y marca se mantienen en los12 specs actuales.</p>
+<h2>Integridad, guardrails y memoria OS</h2>
+<p>URL http://localhost:8080 validada por guardrail oficial y puerto libre al arrancar. Runtime local con SQLite/storage/usuarios UUID propios y <code>reuseExistingServer:false</code>; no servidor ni Node ajeno. Inicio 2026-11-05T22:53:46.125165+00:00; fin 2026-11-05T23:06:02.010938+00:00. No se leyó .env para este servidor ni se usó MySQL, VPS, ONNX/imaging/test_background, bucket real o publicación social.</p>
+<p>Snapshot directo 842 rutas antes/después con 0 cambios: código/UI/renderer/fuentes/fixtures, API, guías/README/móduloMCP/deploy/document-contract, matriz, contratos, ledger/test-plan, <code>.mjs</code>/<code>.d.mts</code> y public/build. Las cuatro rutas adicionales de QA2 se integran ahora directamente desde la unión revisada. T12 estuvo congelada y no se excluyó. <a href="raw/sources-before.json">SHA antes</a> · <a href="raw/sources-after.json">después</a>. La unión 39 fuentes +76 generados +7 descriptores nueva coincide antes y después, sin usar legacy freeze ni ajustar el esperado posterior: <a href="raw/freeze-input-check.json">pre</a>, <a href="raw/freeze-output-check.json">post</a>.</p>
+<p>JobObject del runner/hijos: límite 3221225472B de <strong>COMMIT agregado</strong>, kill-on-close=True, breakaway=False, pico 1240743936B. Observador posterior: límite 3221225472B,pico 892448768B. Cada árbol está protegido por 3 GiB; <strong>no es RSS ni reserva previa</strong>. PDF usa también el wrapper protegido y conserva su registro en raw/observer-memory-render-pdf.json. No se induce OOM. Linux cgroup previo con Python no acredita multimedia Linux/VPS.</p>
+<h2>Cobertura y resultado por escenario</h2>
+<p>Ledger-lint exit0:0 incoherencias/16 avisos Changelog. Coverage-check exit0: 0 referencias rotas y 0 tests sin referencia; ningún GWT huérfano. T07/T11 están mapeadas. Tareas sin mapeo fuera de este alcance: <strong>T-01, T-02, T-12, T-13, T-14, T-15, T-16, T-17, T-18, T-19, T-20</strong>; no tienen exención ni aceptación global. T10/E2E09–10 no ejecutados por la restricción ONNX/memoria. Sin bloques API-xx/A11Y-xx ni mínimo unitario configurado, no se inventa cobertura de código ni auditoría axe. <a href="raw/gates.json">gates.json</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Archivo/caso</th>
+<th>Desktop</th>
+<th>Mobile375</th>
+<th>Mobile360</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>all-brands.spec.ts — E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>brand-reporting.spec.ts — Ads and reports retain the selected brand across navigation and report creation</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>metrics-quality.spec.ts — Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-audio-editor.spec.ts — Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-audio-editor.spec.ts — Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-audio-resources.spec.ts — Studio audio resources API: private binary upload, byte ranges and native browser playback</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-automation.spec.ts — Studio automation: own template substitutes literal fields in an independent branded design and exports</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-automation.spec.ts — Studio automation: brand styles, proportional resize and independent variants persist and export</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-av-composite.spec.ts — Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-captions.spec.ts — Captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-captions.spec.ts — Captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-captions.spec.ts — Captions access: revision pinned API MCP abilities ownership and optimistic conflicts</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-frame-export.spec.ts — Studio frame export: choose a local page time, export real pixels and retain it with the private brand output</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-native-export.spec.ts — Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-native-export.spec.ts — Studio native history: paginate real exports in one request per page and reopen without creating work</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: edit windows, split, persist and run a common playhead without changing the document</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: an uploaded real video with an open source end can be split and previewed</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: splitting the second page uses local clip time and survives undo and redo</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: buffering never consumes a short clip before playback starts</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio-timeline.spec.ts — Timeline: closing while media buffers cancels the pending playback</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — design persists, exports real PNG and starts a publication in its brand</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+<tr>
+<td>studio.spec.ts — a stale revision preserves local edits and can recover the server version</td>
+<td>PASA</td>
+<td>PASA</td>
+<td>PASA</td>
+</tr>
+</tbody>
+</table>
+<h2>Manuales y decisión de cierre</h2>
+<ul>
+<li>[ ] <strong>M01 — Usuario:</strong> scheduler/worker/heartbeat y muestras de VPS; no se solicita SSH de nuevo.</li>
+<li>[ ] <strong>M02 — Usuario:</strong> smokes Bluesky/Threads y publicación real por red; resultados aún no comunicados.</li>
+<li>[ ] <strong>M03 — Desarrollo + usuario:</strong> renderer Node/Chromium/fuentes/colas y R2 reales del servidor; multimedia Linux/políticas OS efectivas.</li>
+<li>[ ] <strong>M04 — Usuario:</strong> Claude Desktop aplazado; no se reabre autorización.</li>
+<li>[ ] Revisión audiovisual humana de los medios descargados.</li>
+</ul>
+<p>ASR/traducción sigue en T14 y Claude CLI final después de TODO el roadmap. No se declara paridad Metricool/Canva ni aceptación de las23 tareas. No commits, Jira/Confluence, knowledge ni handoff documenter por QA. Root recibe el resultado local y decide estados T07/T11 sin cerrar por ello plan/spec globales.</p>
+<h2>Artefactos</h2>
+<p><a href="manifest.json">Manifiesto</a> · <a href="raw/execution.json">Ejecución/PID/pico </a> · <a href="raw/results.json">JSON original</a> · <a href="raw/playwright.stdout.txt">stdout</a> · <a href="raw/playwright.stderr.txt">stderr</a>. PDF mediante CommonMark → HTML/tema de to-pdf → Chromium ya instalado; rasterización del PDF real con PyMuPDF e inspección de sus páginas, sin instalaciones. La revisión visual y los recortes documentados no alteran los PNG originales.</p>
+</main></body></html>

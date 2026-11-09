@@ -1,0 +1,177 @@
+{
+  "verdict": "NO-PASS",
+  "counts": {
+    "unexpected": 7,
+    "expected": 6
+  },
+  "case_count": 13,
+  "issues": [
+    "E2E-26.01 bearer abilities user and brand isolation",
+    "E2E-26.02 replace conflict immutable history pinned rows archive restore",
+    "E2E-26.03 closed schema and JSON object/list identity",
+    "E2E-26.04 independent export observer safe all strings text typed JSON headers",
+    "E2E-26.07 missing snapshot controlled503 no private path",
+    "E2E-26.07 corrupt snapshot controlled503 no private path",
+    "E2E-26.10 MCP real CRUD permissions exports pinned rows audit datasetID"
+  ],
+  "changed_sources": [],
+  "qa_gate_exit": 1,
+  "cases": [
+    {
+      "title": "E2E-26.01 bearer abilities user and brand isolation",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.02 replace conflict immutable history pinned rows archive restore",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.03 closed schema and JSON object/list identity",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.04 independent export observer safe all strings text typed JSON headers",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.05 exact25000000B real multipart import export hash and metadata",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.06 sixMiB pagination no gaps or truncation",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.07 missing snapshot controlled503 no private path",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.07 corrupt snapshot controlled503 no private path",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.08 early53MiB body cap framing ContentLength",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.08 early53MiB body cap framing noContentLength",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.09 vendor MCP paginated discovery and legacy tool",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.10 MCP real CRUD permissions exports pinned rows audit datasetID",
+      "outcome": "unexpected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "errors": 1
+        }
+      ]
+    },
+    {
+      "title": "E2E-26.11 exact52M typed dataset ordinary escaped JSON MCP envelope TCP",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    }
+  ]
+}

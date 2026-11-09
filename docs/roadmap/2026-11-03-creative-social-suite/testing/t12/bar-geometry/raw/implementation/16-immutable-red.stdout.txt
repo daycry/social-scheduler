@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: geometry is deeply immutable and detached from mutable input while preserving Unicode labels
+not ok 1 - geometry is deeply immutable and detached from mutable input while preserving Unicode labels
+  ---
+  duration_ms: 8.1224
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-bar-geometry.test.mjs:194:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(Object.isFrozen(value))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    frozen (file:///C:/laragon/www/metricool/tests/frontend/studio-bar-geometry.test.mjs:198:80)
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-bar-geometry.test.mjs:199:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27.0932

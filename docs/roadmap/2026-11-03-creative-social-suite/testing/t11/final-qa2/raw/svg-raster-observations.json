@@ -1,0 +1,68 @@
+[
+  {
+    "file": "samples\\captions\\desktop\\independent-vector-0.svg",
+    "png": "samples\\captions\\desktop\\independent-vector-0.png",
+    "fonts": [
+      {
+        "family": "StudioFont_1_7b1431f0b4369904",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "file": "samples\\captions\\desktop\\independent-vector-1.svg",
+    "png": "samples\\captions\\desktop\\independent-vector-1.png",
+    "fonts": [
+      {
+        "family": "StudioFont_1_7b1431f0b4369904",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "file": "samples\\captions\\mobile\\independent-vector-0.svg",
+    "png": "samples\\captions\\mobile\\independent-vector-0.png",
+    "fonts": [
+      {
+        "family": "StudioFont_2_2243f6c6fdd44682",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "file": "samples\\captions\\mobile\\independent-vector-1.svg",
+    "png": "samples\\captions\\mobile\\independent-vector-1.png",
+    "fonts": [
+      {
+        "family": "StudioFont_2_2243f6c6fdd44682",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "file": "samples\\captions\\mobile-360\\independent-vector-0.svg",
+    "png": "samples\\captions\\mobile-360\\independent-vector-0.png",
+    "fonts": [
+      {
+        "family": "StudioFont_3_d691633f54e9a5ca",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "file": "samples\\captions\\mobile-360\\independent-vector-1.svg",
+    "png": "samples\\captions\\mobile-360\\independent-vector-1.png",
+    "fonts": [
+      {
+        "family": "StudioFont_3_d691633f54e9a5ca",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  }
+]

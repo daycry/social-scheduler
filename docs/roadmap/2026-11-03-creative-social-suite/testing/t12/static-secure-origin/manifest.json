@@ -1,0 +1,24 @@
+{
+  "scope": "Focal native regression only; no full application acceptance",
+  "artifacts": {
+    "allowed-origin-change.json": "fd2dc0a40cf813c982ef197ca387bac6bf3de605e1e2bdb508b6637d58cb4445",
+    "fixture-provenance.json": "65cea99b3d7455743ac46a29d28d5f220e2cadc38a3adcbbd95732d494bb1937",
+    "OFL.txt": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+    "report.md": "1af778c893cfdd0d3c556481783afd3e7e82b46cb7ba5b0f91fc38efcd18fc68",
+    "sample.pdf": "36a05678bce8c19a8b4803188d57ffcd5c9e0ebb03e2bc5557b8417906dd25ff",
+    "sample.png": "c83db358c10ac6c9a792a7e834c76039a21a534548a7b247d5b05ae9ea0ccf78",
+    "sample.svg": "529d394269906a9e6afd37a0bf0f97aae12902503d7447f183055248ab777153",
+    "baseline/execution.json": "efa13f3e7d72f393414dce16b0d92a4a8b20076f5fe47567fefcccb4315ce391",
+    "baseline/svg.stderr": "0e4db6717f72eb293e6d2a4c19491c5bb879764716d58bdda917cb066914c772",
+    "baseline/terminal-root.json": "9443534ba66eeddc45f2b8abc8e1c44083b04012dcedac2d626142f916892d1f",
+    "fixed/execution.json": "df352958c35399f9390f5d0cd0ae6b9966a7234517b800487755c57684ff67fa",
+    "fixed/pdf-verify.stdout": "421b2be357ff1e7e47ffe987a3025b3b2e7c495bc13ac69b0f0726892ec616c4",
+    "fixed/pdf.stdout": "128e89155679155866b20efdf16144dbe00be4dbf74e3faaadafafc718f7a6b8",
+    "fixed/png.stdout": "21a26fc20f385005f2636b5876c83cd2217416ce913c6627729fd96fb62db0f5",
+    "fixed/svg.stdout": "ad201e620640804837590d1f7288c4be414dc8c3a450bd2e44cd84c42bab8ca7",
+    "fixed/terminal-root.json": "ead0caf5f5e4f79d6db5fa268d56679160c7769b6d8b2cdebc36f17cc8c9ebaa",
+    "origin-controls/execution.json": "99449d31411a94333d7b9159bb76e93ceb852fca2ca84b440f5f098ddd273d1b",
+    "origin-controls/results.json": "a7eb8757e1547728fc8e7e7597eda31c76617958cdc7514dbd3ced12e07a3e16",
+    "origin-controls/terminal-root.json": "62d88f7d33e39e3dada4285df0b057f56f7b32c4ed9f4407ba612d6e4205e162"
+  }
+}

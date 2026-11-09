@@ -1,0 +1,18 @@
+{
+  "fingerprints_verified": 1378,
+  "changed": [],
+  "missing": [],
+  "manifest_sha256": "f3960812f353319c2dfb74d0746d8f68f8eb11d72c23e89e79d9b2aa50cc9df6",
+  "refusal_sha256": "5cc92e5db7d78e4ef570f46900bdaa970373a24f1d1b604de27d999045ffda39",
+  "receipt": {
+    "state": "REFUSED_BEFORE_UUID_OR_SERVER",
+    "reason": "physical_preflight_below_11GiB",
+    "physical_available_bytes": 10829635584,
+    "required_physical_bytes": 11811160064,
+    "runtime": null
+  },
+  "runs_attempt1_exists": false,
+  "actual_cases": 0,
+  "qa_observed_exit_code": 1,
+  "note": "Capacity guard refused before UUID/server. No native integrated process, Job metrics, runner JSON, gate or PDF. Exit observation is 1, not inferred from the expected branch return."
+}

@@ -1,93 +1,87 @@
-# Continuación del roadmap
+# Continuar la suite social y creativa
 
-Actualizado: 2026-11-04. Fuente canónica del estado de cada tarea: `docs/roadmap/*/tasks.md`.
+Actualizado: 2026-11-07. El [ledger canónico](docs/roadmap/2026-11-03-creative-social-suite/tasks.md) manda sobre este resumen.
 
-## Decisiones vigentes del usuario
+## Objetivo completo y autorizaciones
 
-- Continuar el roadmap con el flujo de custom-agents y sus puertas de verificación.
-- **Claude Desktop queda aplazado** («lo dejamos de momento»). No retomar su formulario, pedir otro consentimiento ni marcar M-04 como aprobado. Este aplazamiento no pausa el resto del trabajo.
-- Las pruebas del **VPS** las ejecuta el usuario («eso ya lo probaré yo»). No volver a pedir SSH para T-09/T-10.
-- Los smokes reales de **Bluesky y Threads** siguen a cargo del usuario; todavía no ha comunicado resultados.
-- El diseño y las secciones del informe PDF están aprobados; T-41 del roadmap principal ya está completada. No confundirla con T-41 de post-composer.
-- Las autorizaciones de Codex, Claude Code, OpenCode y el acceso ChatGPT de OpenCode ya están dadas. No volver a solicitarlas al reanudar las mismas comprobaciones.
+Implementar las **23 tareas** de la suite que reúne las funciones solicitadas de Metricool y Canva, incluidas capacidades de pago, marcas y servicios web/API/MCP. Después ejecutar **Claude Code CLI sobre toda la aplicación y documentación**, corregir y verificar sus hallazgos y completar commits, push y PR. El usuario autoriza trabajo independiente; no volver a pedir permisos rutinarios. No cerrar el objetivo por una fase parcial.
 
-## Estado comprobado de los ledgers
+**8/23 tareas cerradas:** T02, T04, T05, T06, T07, T08, T09 y T11. T12 está en progreso. La auditoría global Claude CLI y la nueva entrega Git siguen pendientes. Rama `feature/creative-social-suite`; no confundir la disponibilidad de Claude CLI con una auditoría realizada.
 
-### Iniciativa activa: suite creativa y social por marca
+## Siguiente acción vigente
 
-**Tanda terminada 2026-11-04:** T-09 completa: plantillas propias/campos/kit/resize/variantes web/API/MCP. Referencia del kit y undo/redo, presupuesto previo a expansión y colores lineales corregidos y revisados. El usuario añadió reconexiones frecuentes: subbloque T-18 corregido, con guard de generación de credenciales y registro OAuth atómico por contexto de navegador. [Auditoría](docs/roadmap/2026-11-03-creative-social-suite/testing/connections/audit-2026-11-04.md). Revisión final sin gaps; PHP **2618/2618,15568 aserciones**, Studio Node/Chromium **26/26**, QA independiente **24/24**, gate VERDE en tres viewports. [QA/PDF](docs/roadmap/2026-11-03-creative-social-suite/testing/t09/qa/report.md). Código en `f64c677`, `9d1491f`, `e3f1cef`; documentos/evidencias en el commit posterior de esta misma rama/PR #19. Migración adicional `2026_11_04_080000_add_kit_reference_to_studio_designs.php` no aplicada al MySQL local (no escucha); no VPS ni cambios de `.env`. Siguiente implementación: **T-10**, fuentes reales/recursos/máscaras/quitar fondo; conservar el alcance completo y no repetir estas suites sin cambios o defectos nuevos.
+**Gráficos build12: perfiles de fuente listos para revisión actual.** Clientqa3(71/0+AST5/0),serverqa4(86/0+AST7/0),renewal2(20/0puros,grafo9/11) conservan casos/oráculos/guardas ybuild12actual95/78. Root publica snapshots completos ycongela fullmap en `t12-chart-labels-current-review1/attempt1`; SourceReady/ACK/runtime aún pendientes. Tras A+B frescas yC/D condicionalresueltas, `labels-ready3/prepare-ready-root.py --compose` crea datos/config/ACK actual; sólo entonces ejecutar renewal2/coordinator.py hostlocal. Foco6+cliente3+server3 compartenUN900inclinicio/bundle/oráculos/cierre; no resets,ni recortes. Reutilizarcolección3+3 sólo porSHAigual, no repetir. No tocar fuentes/ledger/checkpoint entreflat yfinfase. Preservar negativa ready2 yfalloP3original. Gráficos no valida presentaciones.
 
-El usuario amplía el alcance a las funciones de Metricool y Canva, incluidas las de pago, con APIs/MCP y revisión específica de exactitud de métricas. Trabajar de forma autónoma; no confundir este alcance nuevo con los ledgers anteriores cerrados. Rama actual `feature/creative-social-suite`, base `2b38fb8` de PR #18. [Spec](docs/roadmap/2026-11-03-creative-social-suite/spec.md), [plan](docs/roadmap/2026-11-03-creative-social-suite/improvement-plan.md), [ledger de 23 tareas](docs/roadmap/2026-11-03-creative-social-suite/tasks.md).
 
-**7/23 tareas completadas**: T-02 y T-04–09. Estudio nativo por marca usable, con revisiones/recursos/kits/carpetas, Canvas Fabric, 14 plantillas, editor responsive, plantillas propias y campos, identidad aplicable, resize/variantes, cinco exportaciones estáticas reales y borrador asociado. API v1 y nueve herramientas nativas; catálogo MCP total 36, paginado de 30 en 30, acciones ampliadas de `manage_design`. No afirmar paridad total ni exportación MP4 por cerrar estos bloques. Próximo trabajo: T-10 y después las capacidades avanzadas/sociales de la matriz; no reiniciar el estudio ni repetir sus pruebas sin nuevos cambios.
+**Build12 actual y revisado**, `storage/framework/testing/t12-presentation-build12/result.json`: exit0,95entradas/78assets,drift[],clase corregida enJSgenerado,post-build-root.json exacto. No recompilar sin cambio/fallo nuevo. Build11 archivado porbytes en build12/build11-artifacts, ahora histórico.
 
-Revisión Studio A/B/C/D intento 2 sin gaps; suplemento de límites Unicode y grupos vacíos también revisado. QA independiente final **18/18**, cero fallos/flaky/skips, gate VERDE; frontend **29/29** y runner **3/3**. PHP completo **2585/2585, 15376 aserciones**, más focal posterior Studio **55/55** que incorpora dos datasets Unicode adicionales. [QA y PDF](docs/roadmap/2026-11-03-creative-social-suite/testing/qa-final/report.md). Node/Chromium/cola `media` son requisitos del renderer del servidor; [guía API/MCP y despliegue](docs/guias/estudio-api-mcp.md). Migración Studio aplicada a MySQL local tras comprobar host de loopback; no se accedió al VPS.
+**QA integrada P2+P3 NO-PASS:** qa2/run-1794027861823829800 terminó16pass/1fail/16sin ejecutar. Oncecasosdesktop ycincomobile pasan. Móvil tools.spec83:91 recibe azul envezdeláserrojo. Causa probada: grid flex min-h-0 se comprime yfooterinterceptacanvas conherramientasabiertas. Diagnóstico SFCmarkup+CSSreal375: grid70.39<canvas188.44,hitFOOTER; trasminfixshrink-0,grid468.875,hitCANVAS;768/1440CANVASpreservado. SourceDone yA+B aprobados0C/I/M, única claseDialog234, SHA8e4f8013…550d6. No se modificaronJS/tests/aserciones. Diagnóstico no aceptaapp. [Informe/captura/traza originales](docs/roadmap/2026-11-03-creative-social-suite/testing/t12/presentation-p3-native-2026-11-07/report.md).
 
-Diagnóstico del runner: PHP local escuchaba solo IPv6, Chrome intentaba IPv4 y cada asset cerraba su TCP. El runner usa ahora un frontend loopback keep-alive y PHP privado; conserva el origen/RP ID localhost:8080 y todas las guardas/errores. [Evidencia y regresión](docs/roadmap/2026-11-03-creative-social-suite/testing/debug-loopback/report.md). La suite PHP amplia debe usar un `LARAVEL_STORAGE_PATH` único si se ejecuta junto con otro proceso de tests: `Storage::fake` compartido produjo colisiones, no defectos del producto.
+El runterminal conserva origenc común1794027586.7066417/deadline1794028486.7066417.419.478s cumulative/143.131srunner,peak734769152B,minphysical9527115776B,guardfailureNone,drift[],noownedchildren,puertos8080libres. EPERM previo cero casos/reporter metadata sólo. La reparación/revisión/buildconsumieronelresto: no cabeotra tanda33completa. **No resetear ese900 ni relanzar perfilesqa1/qa2 que apuntanbuild11; fallaránporSHAactual.** No presentar16pasadoscomoaceptación33. PDF yaceptaciónvisual/nativafinal pendientes.
 
-La [auditoría de métricas](docs/roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) confirmó y corrigió engagement con coberturas dispares y selección implícita de canal YouTube. En la BD **local**, marca 55, los snapshots terminan el 21 de octubre. GETs de Meta devuelven actividad 28 octubre–2 noviembre: Facebook 46 vistas, Instagram 314 vistas/6 interacciones. No se escribieron esos datos ni se renovaron credenciales. Esto acredita una brecha local de recolección; no diagnostica el VPS (el navegador usa marca 2 de otro entorno). Cobertura/frescura aditivas web/MCP y avisos UI en curso. Las pruebas del servidor siguen a cargo del usuario.
+**Próximo trabajo independiente permitido:** renovar la aceptación pendiente de gráficos para build12, manteniendo su propio scope común foco6+cliente3+servidor3/900, o continuar otra capacidad funcional real pendiente de T12 según ledger. Gráficos es una fase distinta ya contratada; no valida presentaciones. No usar nuevasetiquetas/cambiosficticios para resetearlaQAfallida. Una futura aceptación de presentaciones exige contexto/build/manifest actuales yfase autorizada completa; conservar siempre el fallo original yfixpendientedeGREENnativo.
 
-Agentes de implementación/revisión/QA de este bloque terminados. Métricas en `6c33b0e`, coherencia de marca en `48e453e`, estudio/API/MCP/render y transporte de QA en `e4c37b2`. [Manifiesto de entrega](docs/roadmap/2026-11-03-creative-social-suite/testing/delivery-manifest.json) con hashes y alcance de cada verificación. Conservar cualquier cambio posterior de otros chats y comprobar rama/estado antes de escribir.
+Todos los implementadores/revisores actuales terminaron. Root mantiene docs/ledger yúnicoslotpesado. T12yroadmap8/23siguenabiertos;live/grabación/Office/docs/pizarras/gráficos/XLSX/rest23,ClaudeCodeCLIglobal/fixes+commits-push-PRpendientes. Sin.env/BD/R2/proveedoresreales.
 
-Rama subida y [PR #19 en borrador](https://github.com/daycry/social-scheduler/pull/19), apilada sobre `fix/composer-refresh-after-save` / [PR #18](https://github.com/daycry/social-scheduler/pull/18), que seguía abierta al comprobarla. Documentación/evidencias iniciales en `d14957d`; tanda T-09/conexiones descrita arriba. No duplicar la PR ni fusionarla automáticamente. Consultar sus checks actuales antes de integrarla. La paridad completa continúa pendiente y la siguiente tarea es T-10.
+## Producto P2 y última compilación anterior a P3
 
-### Compositor y audio: T-11/T-12 verificadas localmente
+Notas opcionales de página v1/v2: texto exacto, máximo 20.000 puntos Unicode, límite global 2 MiB, persistencia web/API/MCP, duplicados e historial. El test de backend ya funciona desde Pest estándar mediante `tests/Support/StudioPresentationTestApplication.php`, con SQLite en memoria, almacenamiento aleatorio y cache ficticia antes del Kernel. No necesita helpers privados ignorados ni lee .env.
 
-En `feature/metricool-composer-parity`, audio por red y buscador T-01–10 conservan su verificación anterior. La ampliación autorizada incorpora paneles cuidados de ajustes globales y por cuenta, colaboradores e IA de Instagram, título de Facebook y errores plegables. [Spec](docs/roadmap/2026-10-31-metricool-composer-parity/spec.md), [ledger](docs/roadmap/2026-10-31-metricool-composer-parity/tasks.md), [guía e inventario observado](docs/guias/ajustes-compositor.md) y [QA actual](docs/roadmap/2026-10-31-metricool-composer-parity/testing/presets-ui/report.md).
+La UI implementa audiencia/presentador, notas y siguiente diapositiva, reproducción/navegación/loop/blackout, popup sólo de píxeles, teclado/foco y limpieza. Usa el renderer real en código, copia propia del documento, reloj de timeline con cuantización/solapes y staging canvas. El siguiente preview es offline y acotado, sin audio. **Su aceptación nativa sigue pendiente.**
 
-La [PR #17](https://github.com/daycry/social-scheduler/pull/17) está integrada en `feature/metricool-parity-3`, merge `46c3b01`, con CI correcta. La PR #16 sigue abierta. T-11/T-12 conservan su evidencia: 2.511 tests PHP/14.763 aserciones y 54 E2E correctos; no son ejecuciones de T-13.
+La carrera de vídeo quedó corregida: `timeline-preview.pause()` invalida la generación; un error de seek antiguo no pausa una petición nueva. Regresión integrada con player y factory reales: RED cuatro fallos y un positivo, GREEN 5/5; vecinos de presentación 39/39 y timeline 13/13. Es prueba pura, no observación audiovisual.
 
-**12/13 completadas; solo T-06 real abierta.** El usuario informa que los adjuntos permanecen al crear una publicación. La corrección de `fix/composer-refresh-after-save` reconstruye el compositor tras crear correctamente, conservando los adjuntos persistidos y el trabajo ante errores. La edición mantiene su flujo. GREEN focal correcto; revisión A/B intento 2 sin gaps; QA final de **21/21 casos** correcta, cero fallos/flaky/skips/errores y qa-gate VERDE. [Informe actual de T-13](docs/roadmap/2026-10-31-metricool-composer-parity/testing/composer-refresh/report.md). Build y tipado correctos. Las publicaciones reales y pruebas del servidor siguen a cargo del usuario; no se ejecutan como parte de esta corrección. El usuario autorizó commits, push y PR al terminar; usar la sesión de GitHub CLI mediante helper temporal, sin cambiar configuración global.
+Revisión final P2:
 
-Corrección y evidencias subidas en `88ebdd0`. [PR #18](https://github.com/daycry/social-scheduler/pull/18) abierta sobre `feature/metricool-parity-3`, sin fusionar. Comprobar su CI antes de integrarla; no repetir los E2E locales ya acreditados salvo cambios o fallos nuevos.
+- [Resultado review3](storage/framework/testing/t12-presentation-p2-review3/attempt3/result.json): `SOURCE-REVIEW-PASS_P2`, 0C/0I/0M.
+- Veredicto SHA `6163aaf6616c3d1c9321b48b424378825cc188dd1a7e71379a52ad2f437c88d0`.
+- Dos intentos anteriores preservados: portabilidad del test y cancelación real de medios; ambos corregidos y aprobados. No reiniciar su contador ni reabrir otros juicios sin evidencia nueva.
 
-No se declara paridad total con Metricool. Acortador, modo manual y automatización de SmartLinks siguen identificados en el inventario como pendientes. El backlog amplio incluye X. Threads tiene código, pero faltan credenciales locales; no se cambia `.env`. El usuario dejó la comparación de catálogos musicales como estaba y probará servidor y publicaciones reales.
+**Build10 real terminado0, histórico tras P3**, no recompilar parcialmente:
 
-Las cifras siguientes corresponden a los ocho ledgers previos; no incluyen ni dan por completada esta ampliación.
+- [Recibo](storage/framework/testing/t12-presentation-build10/result.json), SHA `b793c048f6d9e5c2bde0ec03564ac7bd7d7f502c7a8c3d06f3ed78efd6a141f8`.
+- 83 entradas,78assets,changed[],1.8098438s; COMMIT pico1.239.216.128B bajo3GiB,killOnClose/sinbreakaway; físico inicial6.670.274.560B,mínimo6.213.079.040B.
+- [Comprobación root](storage/framework/testing/t12-presentation-build10/post-build-root.json): SHA actuales y conjunto exacto de assets comprobados. Sus fuentes incluyen el fix aprobado; cambios posteriores son sólo documentación y perfil contextual QA3.
+- Los78assetsbuild9 quedaron archivados por bytes en build10/build9-artifacts y su índice. Build9 es histórico; sus79/78 yreceipt6af1…d46f3 no acreditan código posterior. Los77assetsbuild8 siguen en su archivo anterior.
 
-Corrección del buscador (2026-11-01, T-10): Meta devuelve cursores `after` sin `paging.next`; antes se perdían. Web/MCP ya continúan por páginas, con resultados acumulados/deduplicados y cursores ligados a cuenta, consulta y filtro. Escribir actualiza la búsqueda; cambios/cierre invalidan respuestas atrasadas. Comprobación real: 25+25=50 pistas distintas. La [investigación inicial de Aipocalipsis / Libre](docs/roadmap/2026-10-31-metricool-composer-parity/testing/catalogo-aipocalipsis-libre.md) conserva solo los hechos de esas consultas; no demuestra ausencia general de la canción ni descarta defectos del buscador. Sin publicaciones reales.
+No usar coordinadores/perfiles build8/build9 obsoletos para probar build10. Renovación de gráficos requiere preparación actual nueva sin reetiquetar resultados históricos.
 
-**264/280 tareas completadas; 16 abiertas.** La revisión de las tareas abiertas no encuentra otra implementación pendiente independiente de sus verificaciones reales o de sus cierres dependientes. No se cierran por tener pruebas simuladas en verde.
+## Guardas y límites de ejecución
 
-| Iniciativa | Completadas | Abiertas |
-|---|---:|---|
-| [social-scheduler](docs/roadmap/2026-10-19-social-scheduler/tasks.md) | 33/43 | T-09, T-10, T-12, T-21, T-22, T-23, T-26, T-27, T-37, T-43 |
-| [metricool-parity](docs/roadmap/2026-10-20-metricool-parity/tasks.md) | 15/15 | — |
-| [account-2fa-passkeys](docs/roadmap/2026-10-22-account-2fa-passkeys/tasks.md) | 20/20 | — |
-| [mcp-install](docs/roadmap/2026-10-22-mcp-install/tasks.md) | 3/3 | — |
-| [social-login-mcp-oauth](docs/roadmap/2026-10-22-social-login-mcp-oauth/tasks.md) | 28/29 | T-11: Desktop aplazado; tres CLI verificados |
-| [post-composer](docs/roadmap/2026-10-23-post-composer/tasks.md) | 41/43 | T-41 smoke real; T-42 cierre dependiente |
-| [metricool-parity-2](docs/roadmap/2026-10-24-metricool-parity-2/tasks.md) | 50/50 | —; conserva su checklist manual de usuario |
-| [metricool-parity-3](docs/roadmap/2026-10-26-metricool-parity-3/tasks.md) | 74/77 | T-30 Bluesky, T-64 Threads y T-77 cierre dependiente |
+Un único slot pesado para root: build, Chromium, render y PDF. Sólo datos ficticios y loopback; no .env, BD/R2/proveedores reales, posts, despliegues ni merge.
 
-## Próxima evidencia necesaria
+- QA nativa: Windows Job **COMMIT agregado 3 GiB**, killOnClose, sin breakaway; físico libre >=6 GiB antes de UUID/semilla y piso >=3 GiB cada100 ms; Node512/PHP256; **900 s totales** con inicio, casos, oráculos y cierre, sin reinicios por viewport o comando.
+- Build: Node1536, Job3GiB, 330 s total/300 s child, OS whitelist y envDir vacío para Vite/Laravel; guardas y recibos existentes; nueva compilación sólo tras SourceDone/revisión de P3.
+- No duplicar oráculos pesados ni rasterizar de nuevo para un recuento. Comprobar procesos propios terminales y puerto8080 libre IPv4/IPv6. PDF sólo con evidencia real y páginas inspeccionadas.
+- Pruebas puras: Node512; Node22 usa `--experimental-test-isolation=none`. Para estrés previo se usó `--expose-gc`; no repetir sin motivo.
+- No escribir acentos mediante here-string de PowerShell enviado por STDIN; usar archivo UTF-8 o escapes Unicode ASCII.
 
-| Bloque | Tareas abiertas | Qué permite avanzar |
-|---|---|---|
-| Operación real del VPS y R2 | Principal T-09, T-10 | Resultados del usuario sobre cron, workers, reinicio y almacenamiento real |
-| OAuth de redes y publicación real | Principal T-12, T-21, T-22, T-23, T-26, T-27 | Conexión/renovación y enlaces o IDs de las publicaciones exigidas, con la visibilidad aprobada |
-| Analítica real | Principal T-37 | Comparación con datos reales del periodo previsto; no sustituir por el PDF ficticio aprobado |
-| Compositor | Post-composer T-41 | Una publicación real por red, Publicar ahora y ausencia de duplicados según el [registro preparado](docs/roadmap/2026-10-23-post-composer/testing/smoke-real.md) |
-| Bluesky y Threads | P3 T-30, T-64 | Resultados del usuario y enlaces/IDs según sus M-01/M-02 |
-| Cliente MCP de escritorio | OAuth T-11 | Solo cuando el usuario retome Desktop: consentimiento, callback, tool y conclusión final; limpieza de tokens al terminar el smoke completo |
-| Cierres dependientes | Principal T-43; post-composer T-42; P3 T-77 | Evidencias anteriores, revisión del ledger y actualización de spec/plan cuando sus condiciones se cumplan |
+## Gráficos: pendiente independiente que se conserva
 
-El detalle operativo y los restantes manuales de tareas ya completadas están en [pendientes-manuales.md](docs/referencia/pendientes-manuales.md). Si el usuario aporta un resultado, contrastarlo con su criterio concreto, registrar evidencia saneada y cerrar solo lo que quede acreditado. Si aparece un defecto reproducible, corregirlo con las puertas del flujo custom-agents. No crear nuevas funciones para sustituir pruebas pendientes.
+VL1/VL2 corrigieron etiquetas ocultas y porcentajes ilegibles. Cliente build7 tuvo verde automático pero **NO-PASS visual**: ese resultado histórico no se convierte en aceptación actual. Fuentes y nuevas guardas de visibilidad fueron revisadas; falta la ejecución con la compilación actual.
 
-## Verificaciones existentes: preservar, no repetir sin motivo
+La renovación conserva **foco6 + cliente01×3 + servidor02×3 dentro de un único common900**. No usar P2 para fraccionar ese plazo. La fase P2 es otra funcionalidad y no ejecuta esos grupos. Actualizar los perfiles y el manifiesto de gráficos para la compilación vigente, preservando recibos anteriores, antes de relanzar nada.
 
-Se han vuelto a leer los archivos de evidencia el 2026-10-31; las siguientes cifras corresponden a esas ejecuciones, no a una nueva ejecución de suites.
+El intento `labels-ready2` se rechazó antes de crear Job por físico <6GiB. Conserva su config, ACK y [rechazo](storage/framework/testing/t12-chart-labels-ready2/refusal-root.json); cero bundle privado y casos nativos. `ready1` conserva un rebase administrativo parcial con originales archivados. No relanzar sus composers ni sobrescribirlos.
 
-- PHP: **2461 tests, 14549 aserciones**, cero errores/fallos/omitidos. [JUnit](docs/roadmap/2026-10-19-social-scheduler/testing/raw/phpunit-final-p3.xml).
-- T-43 aislado: **57 pasados**, cero fallos/flaky/omitidos. [Informe](docs/roadmap/2026-10-19-social-scheduler/testing/report.md). JSON SHA-256: `ac554df539a373dbca70f3bc5065da457a7d7ac20cb26c740c76545283b95e6a`.
-- Playwright general: **502 pasados y dos omitidos previstos de 504**, cero fallos/flaky/errores del runner. [Informe definitivo](docs/roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md). JSON SHA-256: `b7db16de01b7bdf7cd240ce03f0e6d9159d72471090b22ba4595bac88776ce7e`.
-- MCP: **Codex 0.162.1, Claude Code 2.1.314 y OpenCode 2.0.18** completan OAuth y una llamada `list_brands` cada uno, sin API key MCP. OpenCode usa el servicio local y ChatGPT (`openai/gpt-6.1-sol`). [Registro y evidencia](docs/roadmap/2026-10-22-social-login-mcp-oauth/testing/smoke-ca29.md).
-- Ninguna de estas pruebas acredita publicaciones reales ni el despliegue de los cambios locales en producción. El usuario realizará el despliegue y las pruebas del servidor; publicar los commits y la PR no acredita ese despliegue.
+Errores QA ya resueltos: opacidad XML, protocolo metadata público, normalización Vite/Windows y baselines del servidor. Sus revisiones/archivos históricos permanecen íntegros. Las colecciones originales cliente3+servidor3 no se repiten por cambios sólo administrativos. El renderer ahora cambió con P2, así que una nueva preparación debe corresponder al código actual, sin presentar pines históricos como actuales.
 
-## Reanudación técnica
+Las máscaras alfa del foco siguen siendo diagnóstico `accepted:null/threshold:null`; no hay aceptación99% de glifos. Las matrices agotadas, consumidor, densidad y título Y conservan sus alcances históricos; no reejecutarlos por rutina ni ampliar sus conclusiones.
 
-- Trabajar en la rama existente y conservar los cambios de otros chats. `docs/knowledge/journal/README.md` estaba modificado antes de esta continuación; no sobrescribirlo.
-- Los helpers y checkpoints temporales están bajo `storage/framework/testing/roadmap-continuation/`, ignorado por Git. La vista local generada del roadmap está en `dashboard.html` dentro de esa carpeta; es regenerable con la skill `custom-agents:roadmap-dashboard`.
-- Ngrok se autorizó expresamente hacia `https://metricool.test` con dominio `https://workable-humorous-rat.ngrok-free.app`, inspector desactivado y TLS verificado. Antes de usarlo otra vez, comprobar su estado; no asumir que sigue activo ni volver a iniciar procesos duplicados. Los datos del proceso propio están en `mcp-runtime/tunnel-owned.json`.
-- No hay una sesión CLI OAuth de prueba pendiente de observación: los tres flujos terminaron. No reabrirlos por haber perdido contexto.
-- La instrumentación temporal de diagnóstico de OpenCode fue retirada; `bootstrap/app.php` recuperó exactamente su hash anterior. No se demostró la causa del fallo POST transitorio ni la compatibilidad del modo standalone; el éxito acreditado usa el servicio local.
+## Alcance que todavía falta
+
+T12 no se cierra por P2: quedan aceptación nativa de presentación y gráficos, otras familias/configuraciones de gráficos, AVcharts, XLSX/conexiones, documentos refluibles, pizarras/conectores, Office editable y grabación según el inventario canónico. T10 mantiene su aceptación integrada pendiente; no repetir modelos ONNX ni bajar sus guardas.
+
+T01/T03/T13–T23 conservan inventario, métricas/proveedores, colaboración, IA, sitios, integración oficial Canva, profundidad social, reporting/Ads, QA global y entrega. Leer sus criterios en el ledger; no sustituirlos por este resumen.
+
+Después de implementar todo: auditoría Claude Code CLI sobre app y docs completos, corregir/verificar y entregar commits/push/PR. No ejecutarla ahora como si la implementación estuviera terminada.
+
+## Decisiones del usuario y coordinación
+
+El usuario prueba VPS/cron/workers y smokes reales Bluesky/Threads; no volver a pedir SSH. Claude Desktop queda aplazado. Las autorizaciones previas de herramientas persisten. No comprar planes ni publicar en redes, desplegar o mergear automáticamente.
+
+Root mantiene docs/ledger y el slot pesado. Cada agente sólo sus archivos; no revertir trabajo concurrente. TDD, revisión fresca y verificaciones apropiadas; sin reruns generales sin cambio/fallo nuevo. Ningún Jira externo habilitado. Conocimiento sólo en candidatos; no promover sin curador. No escribir memorias personales sin petición explícita.
+
+## Historia preservada
+
+El [checkpoint previo completo](docs/roadmap/2026-11-03-creative-social-suite/continuation-history/2026-11-07-before-p2-native-qa.txt) queda archivado por bytes. Sus pasos antiguos de “siguiente” no son instrucciones vigentes. El ledger y los recibos citados preservan la evidencia detallada.

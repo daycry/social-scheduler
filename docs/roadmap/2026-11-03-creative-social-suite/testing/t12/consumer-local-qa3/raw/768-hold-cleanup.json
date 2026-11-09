@@ -1,0 +1,32 @@
+[
+  {
+    "captured": true,
+    "released": true,
+    "events": [
+      {
+        "kind": "hold-captured-real-response",
+        "token": "77064d76-9489-46b3-adb5-6b805e0180f7",
+        "method": "GET",
+        "path": "/brands/3/studio/datasets/10/export",
+        "status": 200,
+        "upstream_status": 200,
+        "bytes": 289,
+        "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "headers": {
+          "content-type": "application/json; charset=UTF-8",
+          "content-disposition": "attachment; filename=dataset-10-r1.json",
+          "cache-control": "no-store, private",
+          "x-content-type-options": "nosniff"
+        }
+      },
+      {
+        "kind": "hold-released",
+        "token": "77064d76-9489-46b3-adb5-6b805e0180f7",
+        "cancelled_delivery": false,
+        "unchanged_bytes": 289,
+        "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "deadline_release": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "source_count": 842,
+  "changed_sources": [],
+  "reviewed_after_observers": {
+    "sources39": {
+      "count": 39,
+      "mismatches": []
+    },
+    "generated76": {
+      "count": 76,
+      "mismatches": []
+    },
+    "descriptors7": {
+      "count": 7,
+      "mismatches": []
+    }
+  },
+  "historical_attempts": {
+    "final-qa": {
+      "artifact_count": 136,
+      "changed_or_missing": []
+    },
+    "final-qa2": {
+      "artifact_count": 424,
+      "changed_or_missing": []
+    }
+  }
+}

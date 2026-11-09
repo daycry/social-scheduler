@@ -1,0 +1,47 @@
+{
+  "modo": "diff",
+  "exit": 0,
+  "cambios": [
+    {
+      "ruta": "/paths//design-exports/{export}/cancel",
+      "mensaje": "path nuevo: /design-exports/{export}/cancel",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//design-exports/{export}/retry",
+      "mensaje": "path nuevo: /design-exports/{export}/retry",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//designs/{design}/exports/post/responses/202/content/application~1json/schema/properties/progress",
+      "mensaje": "campo de respuesta nuevo (opcional): progress",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//designs/{design}/exports/post/responses/202/content/application~1json/schema/properties/can_cancel",
+      "mensaje": "campo de respuesta nuevo (opcional): can_cancel",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//designs/{design}/exports/post/responses/202/content/application~1json/schema/properties/can_retry",
+      "mensaje": "campo de respuesta nuevo (opcional): can_retry",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//design-exports/{export}/get/responses/200/content/application~1json/schema/properties/progress",
+      "mensaje": "campo de respuesta nuevo (opcional): progress",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//design-exports/{export}/get/responses/200/content/application~1json/schema/properties/can_cancel",
+      "mensaje": "campo de respuesta nuevo (opcional): can_cancel",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//design-exports/{export}/get/responses/200/content/application~1json/schema/properties/can_retry",
+      "mensaje": "campo de respuesta nuevo (opcional): can_retry",
+      "rompedor": false
+    }
+  ],
+  "rompedores": 0
+}

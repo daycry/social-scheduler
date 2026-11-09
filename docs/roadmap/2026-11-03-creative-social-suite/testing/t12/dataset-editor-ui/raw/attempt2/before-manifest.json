@@ -1,0 +1,11 @@
+{
+  "resources/js/Components/Studio/StudioDatasetsDialog.vue": "5ae68972ce4a47f7151d6738ddc9816b5036f99e65124994408ecc1eb985f6c1",
+  "resources/js/Studio/dataset-client.js": "de61d8c872ec8d74cff7e16d1c01436815fdb889dcb3d5e6907399b90c420213",
+  "tests/frontend/studio-dataset-client.test.mjs": "6edc27b4b68eebdb9ea2ea16cc66c03b3a09c587db775b4998bc1adee6d216cc",
+  "tests/frontend/studio-datasets-dialog.test.mjs": "83ae0374af8e13e8976b4102674358d7a4cf8770cb7659c7ded7a060ef29c3b4",
+  "resources/js/Pages/Studio/Index.vue": "2ff87f28893febd71a17fefb1d065dcfc6ee5113eec6e0c16798bfd340339982",
+  "resources/js/Pages/Studio/Editor.vue": "bcb8f2536e19fec1bdea3f134aa6296329a85862677024c22ccc5fc2d1ee47ad",
+  "tests/e2e/studio-datasets.spec.ts": "73024973870fdb9be84ad1b3da5048d6ff3aad30f7fc368f36026f9678effd5f",
+  "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+  "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+}

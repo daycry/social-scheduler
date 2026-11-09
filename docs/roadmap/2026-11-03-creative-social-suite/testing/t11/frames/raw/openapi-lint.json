@@ -1,0 +1,19 @@
+{
+  "modo": "validar",
+  "exit": 0,
+  "errores": [],
+  "avisos": [
+    {
+      "ruta": "/paths//designs/{design}/duplicate/post/requestBody/content/application/json/schema",
+      "mensaje": "objeto sin `additionalProperties: false` (opcional)"
+    },
+    {
+      "ruta": "/paths//brands/{brand}/design-assets/post/requestBody/content/application/json/schema",
+      "mensaje": "objeto sin `additionalProperties: false` (opcional)"
+    },
+    {
+      "ruta": "/paths//designs/{design}/exports/post/requestBody/content/application/json/schema",
+      "mensaje": "objeto sin `additionalProperties: false` (opcional)"
+    }
+  ]
+}

@@ -23,3 +23,13 @@ test('templates use supplied brand colors/fonts without mutating the kit', () =>
     assert.deepEqual(kit, original);
     assert.throws(() => createFromTemplate('missing-template'), /plantilla/i);
 });
+
+test('brand templates preserve the first uploaded font identity on every generated page', () => {
+    const kit = { palette: ['#102030', '#dca123', '#fafafa'], fonts: ['Space Grotesk'], font_ids: [17] };
+    for (const key of ['aurora-launch', 'carousel-story', 'deck-agenda']) {
+        const document = createFromTemplate(key, kit);
+        for (const page of document.pages) for (const element of page.elements.filter(item => item.type === 'text')) {
+            assert.equal(element.font_id, 17, `${key}/${page.name}/${element.text}`);
+        }
+    }
+});

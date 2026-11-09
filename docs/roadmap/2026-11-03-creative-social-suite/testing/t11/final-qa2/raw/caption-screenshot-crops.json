@@ -1,0 +1,47 @@
+[
+  {
+    "project": "desktop",
+    "source": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-desktop/captions-editor.png",
+    "source_size": [
+      1440,
+      2203
+    ],
+    "crop_box": [
+      470,
+      1180,
+      1140,
+      2000
+    ],
+    "derived": "screenshots/captions-desktop.png"
+  },
+  {
+    "project": "mobile",
+    "source": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile/captions-editor.png",
+    "source_size": [
+      375,
+      3280
+    ],
+    "crop_box": [
+      0,
+      1800,
+      375,
+      2800
+    ],
+    "derived": "screenshots/captions-mobile.png"
+  },
+  {
+    "project": "mobile-360",
+    "source": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile-360/captions-editor.png",
+    "source_size": [
+      360,
+      3300
+    ],
+    "crop_box": [
+      0,
+      1800,
+      360,
+      2800
+    ],
+    "derived": "screenshots/captions-mobile-360.png"
+  }
+]

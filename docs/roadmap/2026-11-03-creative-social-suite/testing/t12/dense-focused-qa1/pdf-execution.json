@@ -1,0 +1,21 @@
+{
+  "state": "finished",
+  "pid": 8420,
+  "started": 1794005917.3827822,
+  "finished": 1794005919.0552475,
+  "resource": {
+    "physical_minimum_observed_bytes": 8460013568,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 1.6780511000251863,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 634023936,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "pdf_sha256": "d7f1bbb702ed23dbb805991c12400d7b832b0b5443fb35787b7669b51b1a5d8e",
+  "visual_review_pending": true
+}

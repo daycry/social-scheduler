@@ -1,0 +1,22 @@
+[
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "11397672B7246C36F5283E3F832FEAE3122D2EEE98F9A7B70585B001A3CC439A",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\document.js"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "3CF6ED9948E0929EF9E3A0EDB0D2E56D8FA8A9EFCD296E60573F433B622FAF76",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\fonts.js"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "31E4576A81EA58B1B56BD532F0DC01EC0E781635497AB74AC9BC79A6503DACA4",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\chart-binding.js"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "805DBBE61F70C95A3A56A41F751E0D20315312A9DDFC4701A90DF895BC596DA3",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\bar-geometry.js"
+    }
+]

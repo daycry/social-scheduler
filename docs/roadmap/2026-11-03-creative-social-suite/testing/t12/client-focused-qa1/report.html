@@ -1,0 +1,148 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 C3charts QA</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:8pt;table-layout:fixed;width:100%;break-inside:auto}td,th{overflow-wrap:anywhere}tr{break-inside:avoid}img{max-height:235mm;object-fit:contain}h2,h3{break-after:avoid}</style><body><main class="doc"><h1>T12: cliente de gráficos, diez variantes completas</h1>
+<p><strong>AUTOMÁTICO: FOCAL-PASS. VISUAL: NO-PASS (VL1 pendiente). Casos realmente ejecutados: 3/3; registros del JSON original: 3.</strong> Tres viewports previstos:1440,375 y768px. Un worker, cero reintentos, fail-fast1. T12 sigue abierta y el roadmap conserva8/23 tareas cerradas. No se reconstruye una matriz con resultados anteriores.</p>
+<h2>Qué comprueba el escenario original</h2>
+<p>Diez variantes de barras/columnas por viewport con todos sus controles, dataset fijado a revisión1/SHA, título Unicode, edición/deshacer, guardar/reabrir, exportaciones y eliminación por historial entre variantes. La fixture conserva cuatro filas, categorías repetidas y numérica, null y cero distintos. Son48barras semánticas por caso y144en el grupo completo,96positivas y48ceros.</p>
+<p>El grupo PASS exige30SVG y30PNG entregados,30observadores DOM y30XML independientes;30verificaciones raster,30comparaciones de glifos contra TTF original/Arial y30comparaciones de preview render800×500 con el recorte del PNG exportado. Conserva150PNG deterministas:30exportados,30capturas UI,30preview render y60referencias de fuente. Los oráculos leen los archivos originales una sola vez; finalize comprueba recibo/SHA sin repetir raster.</p>
+<p>XML conserva234formas:144barras y90ejes. Raster exige color central RGB≤3, amplitud≤2 y ocupación de paleta≥100píxeles. Glifos IoU≥.8 y ventaja sobre Arial≥.03; preview12millones de píxeles, máximoRGB≤4 ymedia≤.25. Se comprueban seis conjuntos de siete ticks legibles≥12px, sólo para column/bar. No se atribuye ese check a los proporcionales.</p>
+<p>Tres subidas TTF originales; cada SVG embebe la WOFF2 registrada. Respuestas privadas de fuente con cardinalidad dinámica≥1por caso, archivos1:1, status200/MIME/firma/bytes/SHA y TODAS coincidentes con metadata. A1/B1 del validador se corrigió antes de esta ejecución, con RED negativo y positivo de múltiples respuestas idénticas; los71checks puros yAST5 no se suman como pruebas nativas.</p>
+<h2>Recursos y cierre</h2>
+<p>Runtime ficticio aislado, loopback ybuild7actual62fuentes/77assets, sin recompilar. Sin .env ni servicios reales. Job Windows3GiB COMMIT agregado, preflight físico6GiB y piso3GiB cada100ms,Node512MiB/PHP256MiB,900s totales incluyendo startup/oráculos/cierre. Núcleo266.324s,COMMIT754782208B,mínimo físico6269128704B;fallo de recursos:None. Global266.9880751000019s. Clausura0.4968267000222113s. PID30920terminado,procesos propios vacíos y8080IPv4/IPv6libres. 1360fuentes protegidas verificadas antes/después y tras PDF/inspección; este informe se genera después en otro Job.</p>
+<h2>Resultado y límites</h2>
+<p>Los tres cuerpos completos y sus recibos independientes han pasado. Glifo:IoU mínimo1.0, margen mínimo0.7174959871589085. Preview:errorRGB máximo0, media máxima0.0.</p>
+<p>Cero PDF de diseño, materialización nativa, archivo de tabla raw/percentage, axe o recibo dedicado native-font-readiness acreditados por esta tanda. El PDF adjunto es un informe, distinto de exportar PDF del diseño. No acredita otras familias/configuraciones, AV, Docs, presentaciones, pizarras, XLSX, el roadmap completo ni auditoría globalClaudeCode. Los resultados servidor/consumidor/denso y sus fechas/builds conservan sus alcances propios.</p>
+<p>Se preservan todos los inputs originales por caso. Para las figuras se deduplican únicamente PNG exportados conSHAidéntico entre viewports, según export-equivalence.json; se muestran todas las imágenes distintas y una captura UI por viewport. La selección de figuras no sustituye los30oráculos ni declara inspección manual de todos los150PNG.</p>
+<h2>Hallazgo visual VL1: etiqueta oculta en apilados</h2>
+<p><strong>Important, pendiente de corrección.</strong> Los resultados automáticos3/3 y sus30observaciones independientes son reales, pero no comprueban la oclusión de todas las etiquetas de valores. Esta revisión visual impide aceptar el aspecto del grupo completo.</p>
+<p>En column-stacked, fila r0, el valor10 de la primera serie desaparece bajo el segmento verde de la segunda. El observador original registra la tinta del texto, pero el rectángulo posterior cubre el99,9976% de su caja. Los180píxeles interiores del PNG original son verdes (22,128,71),sin píxeles del texto. La lectura de chart-scene.js:156-167 confirma que se intercalan barra y etiqueta dentro del bucle: la barra siguiente se dibuja encima. Una etiqueta «fuera» también puede ocupar otro segmento.</p>
+<p>La observación posterior usa exclusivamente el PNG y el recibo DOM originales, con susSHA; no se repitió el navegador ni el raster de referencia. Se adjunta raw/visual-labels-finding.json. Hay que corregir la disposición/orden de etiquetas y añadir una regresión de su visibilidad compuesta; también revisar apilados proporcionales y orientación horizontal. No basta conservar el texto oculto en el SVG o en la tabla.</p>
+<p>Este informe es una revisión explícita del primer PDF generado antes de detectar VL1. El primer PDF permanece privado e inmutable, sin aceptación visual. El JSON de ejecución copiado en el namespace de informe es byteidéntico al original y sólo permite la generación posterior del documento; no representa otra ejecución de tests.</p>
+<h2>Evidencias visuales</h2>
+<h3>images/column-export-1440-375-768.png</h3>
+<p><img src="images/column-export-1440-375-768.png" alt="images/column-export-1440-375-768.png" /></p>
+<h3>images/bar-export-1440-375-768.png</h3>
+<p><img src="images/bar-export-1440-375-768.png" alt="images/bar-export-1440-375-768.png" /></p>
+<h3>images/column-grouped-export-1440-375-768.png</h3>
+<p><img src="images/column-grouped-export-1440-375-768.png" alt="images/column-grouped-export-1440-375-768.png" /></p>
+<h3>images/bar-grouped-export-1440-375-768.png</h3>
+<p><img src="images/bar-grouped-export-1440-375-768.png" alt="images/bar-grouped-export-1440-375-768.png" /></p>
+<h3>images/column-stacked-export-1440-375-768.png</h3>
+<p><img src="images/column-stacked-export-1440-375-768.png" alt="images/column-stacked-export-1440-375-768.png" /></p>
+<h3>images/bar-stacked-export-1440-375-768.png</h3>
+<p><img src="images/bar-stacked-export-1440-375-768.png" alt="images/bar-stacked-export-1440-375-768.png" /></p>
+<h3>images/column-proportional-export-1440-375-768.png</h3>
+<p><img src="images/column-proportional-export-1440-375-768.png" alt="images/column-proportional-export-1440-375-768.png" /></p>
+<h3>images/bar-proportional-export-1440-375-768.png</h3>
+<p><img src="images/bar-proportional-export-1440-375-768.png" alt="images/bar-proportional-export-1440-375-768.png" /></p>
+<h3>images/column-multicolor-export-1440-375-768.png</h3>
+<p><img src="images/column-multicolor-export-1440-375-768.png" alt="images/column-multicolor-export-1440-375-768.png" /></p>
+<h3>images/bar-multicolor-export-1440-375-768.png</h3>
+<p><img src="images/bar-multicolor-export-1440-375-768.png" alt="images/bar-multicolor-export-1440-375-768.png" /></p>
+<h3>images/1440-column-preview-ui.png</h3>
+<p><img src="images/1440-column-preview-ui.png" alt="images/1440-column-preview-ui.png" /></p>
+<h3>images/375-column-preview-ui.png</h3>
+<p><img src="images/375-column-preview-ui.png" alt="images/375-column-preview-ui.png" /></p>
+<h3>images/768-column-preview-ui.png</h3>
+<p><img src="images/768-column-preview-ui.png" alt="images/768-column-preview-ui.png" /></p>
+</main></body></html>

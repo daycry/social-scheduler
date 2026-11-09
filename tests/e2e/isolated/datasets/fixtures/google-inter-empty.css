@@ -1,0 +1,2 @@
+/* QA isolation fixture: intentionally empty. External Inter is not loaded;
+   the application uses its system font fallback during this isolated run. */

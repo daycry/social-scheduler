@@ -1,0 +1,12 @@
+{
+  "charts": 840,
+  "bars": 5600,
+  "original_outside_bars": 11,
+  "original_outside_x": 11,
+  "original_outside_y": 0,
+  "current_outside_bars": 0,
+  "unchanged_semantics": true,
+  "exact_one_representable_step": true,
+  "milliseconds": 236.85909999999998,
+  "scope": "Pure deterministic geometry probe; 28 fractional size pairs, both axes, ten variants; no native/app/HTTP/DB"
+}

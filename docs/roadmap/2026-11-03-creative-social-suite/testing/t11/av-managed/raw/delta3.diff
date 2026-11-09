@@ -1,0 +1,43 @@
+--- a/scripts/studio/av-runtime.py
++++ b/scripts/studio/av-runtime.py
+@@ -126,7 +126,7 @@
+     # Linux process supervision/cgroup cleanup must be completed before enabling native phases there.
+     if os.name != 'nt':
+         raise RuntimeError('runtime_unavailable')
+-    if not pathlib.Path(arguments[0]).is_absolute() or re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', arguments[1]) is None or arguments[2] not in ('plan', 'normalize', 'render', 'mix', 'assemble') or re.fullmatch(r'\d{1,6}', arguments[3]) is None:
++    if not pathlib.Path(arguments[0]).is_absolute() or re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', arguments[1]) is None or arguments[2] not in ('plan', 'normalize', 'render', 'mix', 'assemble') or re.fullmatch(r'[0-9]{1,16}', arguments[3]) is None or int(arguments[3]) > 9007199254740991:
+         return {'ok': False, 'error_code': 'invalid_request'}
+     budget = int(os.environ.get('STUDIO_AV_BUDGET_MS', '85000'))
+     if not 100 <= budget <= 85000:
+--- a/scripts/studio/render-av.mjs
++++ b/scripts/studio/render-av.mjs
+@@ -17,7 +17,7 @@
+     checkedNamespace(namespace);
+     const deadline = Number(process.env.STUDIO_AV_DEADLINE_MS), remaining = deadline - Date.now();
+     if (process.env.STUDIO_AV_MANAGED !== '1' || !namespace || !phases.includes(phase) || extra.length
+-        || !/^\d{1,6}$/.test(indexValue ?? '') || !Number.isSafeInteger(deadline) || remaining > 85000) throw new Error('invalid_request');
++        || !/^\d{1,16}$/.test(indexValue ?? '') || !Number.isSafeInteger(Number(indexValue)) || !Number.isSafeInteger(deadline) || remaining > 85000) throw new Error('invalid_request');
+     if (remaining <= 0) throw new Error('phase_timeout');
+     timer = setTimeout(() => controller.abort(new Error('phase_timeout')), remaining);
+     const signal = controller.signal, directory = await attemptDirectory(supplied), index = Number(indexValue);
+--- a/tests/frontend/studio-audiovisual-phase.test.mjs
++++ b/tests/frontend/studio-audiovisual-phase.test.mjs
+@@ -120,3 +120,18 @@
+         assert.deepEqual(await fs.readdir(folder), []);
+     } finally { if (child.exitCode === null) { child.kill(); await completion; } }
+ });
++
++test('normalization accepts media IDs above six digits and rejects unsafe or noninteger indices', { skip: process.platform !== 'win32' }, async () => {
++    const input = manifest(), id = 1000000;
++    await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=1', '-c:a', 'pcm_f32le', '-ac', '2', '-f', 'wav', path.join(directory, `assets/${id}.bin`)]);
++    input.document.timeline.audio_tracks = [{ id: 'song', asset_id: id, start: 0, duration: 0.5 }];
++    input.assets = [{ id, kind: 'audio', duration: 1, audio_codec: 'pcm_f32le', status: 'listo', mime: 'audio/wav', file: `assets/${id}.bin` }];
++    const response = await request(input, 'normalize', id);
++    assert.equal(response.result.ok, true, JSON.stringify(response.result));
++    assert.equal(response.result.result.id, id); assert.equal(response.result.result.frames, 48000);
++    for (const value of ['-1', 'x', '9007199254740992', '1e6', '1.5']) {
++        const rejected = await request(input, 'normalize', value);
++        assert.equal(rejected.result.error_code, 'invalid_request', `${value}: ${JSON.stringify(rejected.result)}`);
++    }
++});

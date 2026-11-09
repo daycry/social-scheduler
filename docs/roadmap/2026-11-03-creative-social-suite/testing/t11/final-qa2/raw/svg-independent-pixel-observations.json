@@ -1,0 +1,170 @@
+[
+  {
+    "path": "samples\\captions\\desktop\\independent-vector-0.png",
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 364,
+      "64": 289,
+      "128": 223,
+      "200": 187,
+      "240": 91
+    },
+    "peak_luminance": 255.0,
+    "sum_luminance": 60112.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "bcf0b007801a4ddc96e70beba62ddc1cf1fc5d4bbea468f696e829ce1ae5cd05",
+    "fonts": [
+      {
+        "family": "StudioFont_1_7b1431f0b4369904",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "path": "samples\\captions\\desktop\\independent-vector-1.png",
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 364,
+      "64": 289,
+      "128": 223,
+      "200": 187,
+      "240": 91
+    },
+    "peak_luminance": 255.0,
+    "sum_luminance": 60112.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "bcf0b007801a4ddc96e70beba62ddc1cf1fc5d4bbea468f696e829ce1ae5cd05",
+    "fonts": [
+      {
+        "family": "StudioFont_1_7b1431f0b4369904",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "path": "samples\\captions\\mobile\\independent-vector-0.png",
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 364,
+      "64": 289,
+      "128": 223,
+      "200": 187,
+      "240": 91
+    },
+    "peak_luminance": 255.0,
+    "sum_luminance": 60112.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "bcf0b007801a4ddc96e70beba62ddc1cf1fc5d4bbea468f696e829ce1ae5cd05",
+    "fonts": [
+      {
+        "family": "StudioFont_2_2243f6c6fdd44682",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "path": "samples\\captions\\mobile\\independent-vector-1.png",
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 364,
+      "64": 289,
+      "128": 223,
+      "200": 187,
+      "240": 91
+    },
+    "peak_luminance": 255.0,
+    "sum_luminance": 60112.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "bcf0b007801a4ddc96e70beba62ddc1cf1fc5d4bbea468f696e829ce1ae5cd05",
+    "fonts": [
+      {
+        "family": "StudioFont_2_2243f6c6fdd44682",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "path": "samples\\captions\\mobile-360\\independent-vector-0.png",
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 364,
+      "64": 289,
+      "128": 223,
+      "200": 187,
+      "240": 91
+    },
+    "peak_luminance": 255.0,
+    "sum_luminance": 60112.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "bcf0b007801a4ddc96e70beba62ddc1cf1fc5d4bbea468f696e829ce1ae5cd05",
+    "fonts": [
+      {
+        "family": "StudioFont_3_d691633f54e9a5ca",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  },
+  {
+    "path": "samples\\captions\\mobile-360\\independent-vector-1.png",
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 364,
+      "64": 289,
+      "128": 223,
+      "200": 187,
+      "240": 91
+    },
+    "peak_luminance": 255.0,
+    "sum_luminance": 60112.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "bcf0b007801a4ddc96e70beba62ddc1cf1fc5d4bbea468f696e829ce1ae5cd05",
+    "fonts": [
+      {
+        "family": "StudioFont_3_d691633f54e9a5ca",
+        "status": "loaded",
+        "weight": "300"
+      }
+    ]
+  }
+]

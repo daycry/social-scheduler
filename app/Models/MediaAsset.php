@@ -36,6 +36,8 @@ class MediaAsset extends Model
 
     public const KIND_VIDEO = 'video';
 
+    public const KIND_AUDIO = 'audio';
+
     protected $fillable = [
         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
         'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error', 'source', 'source_ref', 'import_state',

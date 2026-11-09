@@ -29,6 +29,7 @@ export function createFromTemplate(key, kit = {}) {
     const paper = palette[2] ?? template.background;
     const white = '#ffffff';
     const font = Array.isArray(kit.fonts) && typeof kit.fonts[0] === 'string' ? kit.fonts[0] : 'Arial';
+    const fontReference = Number.isSafeInteger(kit.font_ids?.[0]) && kit.font_ids[0] > 0 ? { font_id: kit.font_ids[0] } : {};
     const document = blankDocument(template.width, template.height);
     const page = document.pages[0];
     page.name = template.name;
@@ -38,7 +39,7 @@ export function createFromTemplate(key, kit = {}) {
     const elements = page.elements;
     const rect = (x, y, width, height, fill, patch = {}) => elements.push(newElement('rect', { x, y, width, height, fill, ...patch }));
     const ellipse = (x, y, width, height, fill, patch = {}) => elements.push(newElement('ellipse', { x, y, width, height, fill, ...patch }));
-    const text = (value, x, y, width, size, fill = dark, patch = {}) => elements.push(newElement('text', { text: value, x, y, width, height: size * 1.4, fontSize: size, fontFamily: font, fill, lineHeight: 1.1, ...patch }));
+    const text = (value, x, y, width, size, fill = dark, patch = {}) => elements.push(newElement('text', { text: value, x, y, width, height: size * 1.4, fontSize: size, fontFamily: font, ...fontReference, fill, lineHeight: 1.1, ...patch }));
     const label = (value, x = 80, y = 70, fill = dark) => text(value, x, y, w - 160, 24, fill, { charSpacing: 160, fontWeight: 'bold' });
     const footer = (value = 'TU MARCA · HECHO CON INTENCIÓN', fill = dark) => text(value, 80, h - 90, w - 160, 21, fill, { charSpacing: 80 });
     const gradient = (from, to, angle = 45) => ({ type: 'linear', angle, stops: [{ offset: 0, color: from }, { offset: 1, color: to }] });
@@ -172,11 +173,11 @@ export function createFromTemplate(key, kit = {}) {
     if (key === 'carousel-story' || key === 'deck-agenda') {
         const second = duplicatePage(page);
         second.name = key === 'carousel-story' ? 'Desarrolla la idea' : 'Nuestra agenda';
-        second.elements = [newElement('text', { text: '01. Descubre\n02. Conecta\n03. Da el siguiente paso', x: 100, y: h * 0.3, width: w - 200, height: h * 0.5, fontFamily: font, fontSize: key === 'carousel-story' ? 73 : 100, fontWeight: 'bold', fill: dark, lineHeight: 1.8 }), newElement('rect', { x: 100, y: h * 0.2, width: 100, height: 10, fill: accent })];
+        second.elements = [newElement('text', { text: '01. Descubre\n02. Conecta\n03. Da el siguiente paso', x: 100, y: h * 0.3, width: w - 200, height: h * 0.5, fontFamily: font, ...fontReference, fontSize: key === 'carousel-story' ? 73 : 100, fontWeight: 'bold', fill: dark, lineHeight: 1.8 }), newElement('rect', { x: 100, y: h * 0.2, width: 100, height: 10, fill: accent })];
         const third = duplicatePage(page);
         third.name = 'El siguiente paso';
         third.background = dark;
-        third.elements = [newElement('text', { text: '¿Empezamos?', x: 80, y: h * 0.34, width: w - 160, height: 220, fontFamily: font, fontSize: key === 'carousel-story' ? 108 : 160, fontWeight: 'bold', fill: white, textAlign: 'center' }), newElement('text', { text: 'TU MARCA · HABLEMOS', x: 80, y: h * 0.72, width: w - 160, height: 80, fontFamily: font, fontSize: 30, fill: accent, charSpacing: 100, textAlign: 'center' })];
+        third.elements = [newElement('text', { text: '¿Empezamos?', x: 80, y: h * 0.34, width: w - 160, height: 220, fontFamily: font, ...fontReference, fontSize: key === 'carousel-story' ? 108 : 160, fontWeight: 'bold', fill: white, textAlign: 'center' }), newElement('text', { text: 'TU MARCA · HABLEMOS', x: 80, y: h * 0.72, width: w - 160, height: 80, fontFamily: font, ...fontReference, fontSize: 30, fill: accent, charSpacing: 100, textAlign: 'center' })];
         document.pages.push(second, third);
     }
     return validateDocument(document);

@@ -1,0 +1,202 @@
+[
+  {
+    "format": "mp4",
+    "probe": {
+      "streams": [
+        {
+          "index": 0,
+          "codec_name": "h264",
+          "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+          "profile": "High",
+          "codec_type": "video",
+          "codec_tag_string": "avc1",
+          "codec_tag": "0x31637661",
+          "mime_codec_string": "avc1.64000a",
+          "width": 160,
+          "height": 120,
+          "coded_width": 160,
+          "coded_height": 128,
+          "has_b_frames": 2,
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "chroma_location": "left",
+          "field_order": "progressive",
+          "refs": 4,
+          "is_avc": "true",
+          "nal_length_size": "4",
+          "id": "0x1",
+          "r_frame_rate": "12/1",
+          "avg_frame_rate": "12/1",
+          "time_base": "1/12288",
+          "start_pts": 0,
+          "start_time": "0.000000",
+          "duration_ts": 18432,
+          "duration": "1.500000",
+          "bit_rate": "8506",
+          "bits_per_raw_sample": "8",
+          "nb_frames": "18",
+          "nb_read_frames": "18",
+          "extradata_size": 45,
+          "disposition": {
+            "default": 1,
+            "dub": 0,
+            "original": 0,
+            "comment": 0,
+            "lyrics": 0,
+            "karaoke": 0,
+            "forced": 0,
+            "hearing_impaired": 0,
+            "visual_impaired": 0,
+            "clean_effects": 0,
+            "attached_pic": 0,
+            "timed_thumbnails": 0,
+            "non_diegetic": 0,
+            "captions": 0,
+            "descriptions": 0,
+            "metadata": 0,
+            "dependent": 0,
+            "still_image": 0,
+            "multilayer": 0
+          },
+          "tags": {
+            "language": "und",
+            "handler_name": "VideoHandler",
+            "encoder": "Lavc63.1.102 libx264"
+          }
+        }
+      ]
+    },
+    "white_counts": [
+      0,
+      181,
+      181,
+      0
+    ],
+    "revision": 1,
+    "journal": {
+      "fontIds": [
+        1
+      ],
+      "fonts": [
+        {
+          "id": 1,
+          "family": "Space Grotesk",
+          "format": "woff2",
+          "mime": "font/woff2",
+          "size": 49236,
+          "sha256": "5deb5f3883fc5c4bade65d9c447344b6fdf97a07e16d195439d21b38d3cc8464",
+          "style": "normal",
+          "weight": 300,
+          "status": "ready",
+          "file": "fonts/1.woff2",
+          "css_family": "StudioFont_1_5deb5f3883fc5c4b"
+        }
+      ]
+    }
+  },
+  {
+    "format": "gif",
+    "probe": {
+      "streams": [
+        {
+          "index": 0,
+          "codec_name": "gif",
+          "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+          "codec_type": "video",
+          "codec_tag_string": "[0][0][0][0]",
+          "codec_tag": "0x0000",
+          "width": 160,
+          "height": 120,
+          "coded_width": 160,
+          "coded_height": 120,
+          "has_b_frames": 0,
+          "pix_fmt": "bgra",
+          "level": -99,
+          "refs": 1,
+          "r_frame_rate": "12000/1001",
+          "avg_frame_rate": "25/2",
+          "time_base": "1/100",
+          "start_pts": 0,
+          "start_time": "0.000000",
+          "duration_ts": 150,
+          "duration": "1.500000",
+          "nb_frames": "18",
+          "nb_read_frames": "18",
+          "disposition": {
+            "default": 0,
+            "dub": 0,
+            "original": 0,
+            "comment": 0,
+            "lyrics": 0,
+            "karaoke": 0,
+            "forced": 0,
+            "hearing_impaired": 0,
+            "visual_impaired": 0,
+            "clean_effects": 0,
+            "attached_pic": 0,
+            "timed_thumbnails": 0,
+            "non_diegetic": 0,
+            "captions": 0,
+            "descriptions": 0,
+            "metadata": 0,
+            "dependent": 0,
+            "still_image": 0,
+            "multilayer": 0
+          }
+        }
+      ]
+    },
+    "white_counts": [
+      0,
+      181,
+      181,
+      0
+    ],
+    "revision": 1,
+    "journal": {
+      "fontIds": [
+        1
+      ],
+      "fonts": [
+        {
+          "id": 1,
+          "family": "Space Grotesk",
+          "format": "woff2",
+          "mime": "font/woff2",
+          "size": 49236,
+          "sha256": "5deb5f3883fc5c4bade65d9c447344b6fdf97a07e16d195439d21b38d3cc8464",
+          "style": "normal",
+          "weight": 300,
+          "status": "ready",
+          "file": "fonts/1.woff2",
+          "css_family": "StudioFont_1_5deb5f3883fc5c4b"
+        }
+      ]
+    }
+  },
+  {
+    "format": "png",
+    "page": 0,
+    "whites": 181
+  },
+  {
+    "format": "png",
+    "page": 1,
+    "whites": 181
+  },
+  {
+    "format": "pdf",
+    "pages": [
+      {
+        "width": 160,
+        "height": 120,
+        "whites": 181
+      },
+      {
+        "width": 160,
+        "height": 120,
+        "whites": 181
+      }
+    ]
+  }
+]

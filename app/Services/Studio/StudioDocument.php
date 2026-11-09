@@ -5,13 +5,14 @@ namespace App\Services\Studio;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\StudioAsset;
+use App\Models\Studio\StudioFont;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 /** Validates our public scene format, never a renderer's executable class graph. */
 class StudioDocument
 {
-    public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group'];
+    public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart'];
 
     public static function blank(int $width = 1080, int $height = 1080): array
     {
@@ -24,6 +25,9 @@ class StudioDocument
     public function validate(User $user, Brand $brand, array $document): array
     {
         abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        if (($document['schema_version'] ?? null) === 2) {
+            return app(StudioTimeline::class)->validate($user, $brand, $document, $this);
+        }
         $this->keys($document, ['schema_version', 'width', 'height', 'pages'], 'document');
         $encoded = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS);
         $this->ensure($encoded !== false && strlen($encoded) <= 2 * 1024 * 1024, 'document', 'El documento supera el límite de 2 MiB o contiene valores no finitos.');
@@ -38,9 +42,10 @@ class StudioDocument
         foreach ($pages as $i => $page) {
             $path = "document.pages.$i";
             $this->ensure(is_array($page), $path, 'La página debe ser un objeto.');
-            $this->keys($page, ['id', 'name', 'background', 'duration', 'elements'], $path);
+            $this->keys($page, ['id', 'name', 'background', 'duration', 'elements', 'notes'], $path);
             $this->identifier($page['id'] ?? null, $path.'.id', $seen);
             $this->optionalString($page, 'name', 255, $path);
+            $this->optionalString($page, 'notes', 20000, $path);
             $this->ensure(array_key_exists('background', $page), $path.'.background', 'Indica el fondo de la página.');
             $this->paint($page['background'], $path.'.background');
             $this->optionalNumber($page, 'duration', 0.1, 3600, $path);
@@ -56,6 +61,11 @@ class StudioDocument
                     $this->ensure($asset !== null && (int) $asset->user_id === (int) $user->id && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo o no está registrado en esta marca.');
                     $expected = $type === 'video' ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE;
                     $this->ensure($asset->kind === $expected, $path.'.asset_id', 'El tipo de recurso no coincide con el elemento.');
+                    foreach (['cropX' => 'width', 'cropY' => 'height'] as $offset => $dimension) {
+                        if (($element[$offset] ?? 0) > 0) {
+                            $this->ensure($asset->$dimension !== null && $element[$offset] < $asset->$dimension, $path.'.'.$offset, 'El origen del recorte queda fuera del recurso.');
+                        }
+                    }
                     if ($type === 'video' && isset($element['trimEnd'])) {
                         $this->ensure($element['trimEnd'] > ($element['trimStart'] ?? 0), $path.'.trimEnd', 'El final del vídeo debe ser posterior a su inicio.');
                         if ($asset->duration !== null) {
@@ -64,6 +74,13 @@ class StudioDocument
                     }
                 }
             }
+        }
+
+        app(StudioCharts::class)->validate($user, $brand, $document);
+        $fontIds = StudioFonts::idsFromDocument($document);
+        if ($fontIds !== []) {
+            $fonts = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $fontIds)->get()->keyBy('id');
+            $this->ensure($fonts->count() === count($fontIds), 'document.font_id', 'La fuente no está disponible en esta marca.');
         }
 
         return $document;
@@ -82,13 +99,14 @@ class StudioDocument
             $this->ensure(is_string($type) && in_array($type, self::TYPES, true), $p.'.type', 'Tipo de elemento no compatible.');
             $common = ['id', 'type', 'name', 'x', 'y', 'width', 'height', 'scaleX', 'scaleY', 'rotation', 'skewX', 'skewY', 'opacity', 'locked', 'visible', 'fill', 'stroke', 'strokeWidth', 'flipX', 'flipY', 'shadow'];
             $extra = match ($type) {
-                'text' => ['text', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign', 'underline', 'lineHeight', 'charSpacing'],
+                'text' => ['text', 'fontFamily', 'font_id', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign', 'underline', 'lineHeight', 'charSpacing'],
                 'rect' => ['radius'],
                 'line' => ['x1', 'y1', 'x2', 'y2'],
                 'path' => ['path'],
-                'image' => ['asset_id', 'cropX', 'cropY', 'filters'],
+                'image' => ['asset_id', 'cropX', 'cropY', 'filters', 'mask'],
                 'video' => ['asset_id', 'cropX', 'cropY', 'filters', 'trimStart', 'trimEnd', 'volume', 'muted'],
                 'group' => ['elements'],
+                'chart' => ['chart'],
                 default => [],
             };
             $this->keys($element, [...$common, ...$extra], $p);
@@ -98,7 +116,10 @@ class StudioDocument
                 $this->number($element[$key] ?? null, -32000, 32000, $p.'.'.$key);
             }
             foreach (['width', 'height'] as $key) {
-                $this->number($element[$key] ?? null, 0, 32000, $p.'.'.$key);
+                $this->number($element[$key] ?? null, $type === 'chart' ? 160 : 0, $type === 'chart' ? 8000 : 32000, $p.'.'.$key);
+            }
+            if ($type === 'chart') {
+                StudioChartSpec::normalize($element['chart'] ?? null, $p.'.chart');
             }
             foreach (['scaleX', 'scaleY'] as $key) {
                 $this->optionalNumber($element, $key, 0.01, 100, $p);
@@ -131,6 +152,9 @@ class StudioDocument
                 $this->ensure(is_string($element['text'] ?? null) && mb_strlen($element['text']) <= 10000, $p.'.text', 'El texto debe tener hasta 10000 caracteres.');
                 if (array_key_exists('fontFamily', $element)) {
                     $this->ensure(self::validFont($element['fontFamily']), $p.'.fontFamily', 'Indica una familia tipográfica, sin CSS ni URLs.');
+                }
+                if (isset($element['font_id'])) {
+                    $this->ensure(is_int($element['font_id']) && $element['font_id'] > 0, $p.'.font_id', 'La referencia tipográfica debe ser un entero positivo.');
                 }
                 $this->optionalNumber($element, 'fontSize', 1, 1000, $p);
                 $this->optionalNumber($element, 'lineHeight', 0.5, 5, $p);
@@ -180,6 +204,14 @@ class StudioDocument
                     }
                 }
             }
+            if ($type === 'image' && isset($element['mask'])) {
+                $mask = $element['mask'];
+                $this->ensure(is_array($mask) && in_array($mask['type'] ?? null, ['ellipse', 'rounded_rect'], true), $p.'.mask', 'La máscara debe ser ellipse o rounded_rect.');
+                $this->keys($mask, $mask['type'] === 'ellipse' ? ['type'] : ['type', 'radius'], $p.'.mask');
+                if ($mask['type'] === 'rounded_rect') {
+                    $this->optionalNumber($mask, 'radius', 0, 16000, $p.'.mask');
+                }
+            }
             if ($type === 'video') {
                 $this->optionalNumber($element, 'trimStart', 0, 86400, $p);
                 if (($element['trimEnd'] ?? null) !== null) {
@@ -197,7 +229,7 @@ class StudioDocument
 
     public static function validFont(mixed $value): bool
     {
-        return is_string($value) && preg_match('/^[\p{L}\p{N}][\p{L}\p{N} .,_-]{0,99}$/uD', $value) === 1;
+        return is_string($value) && preg_match('/(?:^|,)\s*StudioFont_/i', $value) !== 1 && preg_match('/^[\p{L}\p{N}][\p{L}\p{N} .,_-]{0,99}$/uD', $value) === 1;
     }
 
     public static function color(mixed $value): bool

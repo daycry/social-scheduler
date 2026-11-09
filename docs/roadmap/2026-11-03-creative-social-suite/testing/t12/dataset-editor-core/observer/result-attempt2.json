@@ -1,0 +1,8 @@
+{
+  "scope": "Small independent PHP64/JS fidelity observer, not UI or size-limit acceptance",
+  "rows": 13,
+  "checks": 22,
+  "source_sha256": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+  "canonical_sha256": "dca94bae50cd4b65364a2f416a4d243fc17e41fd04ffcc3b36e6747790a7bee1",
+  "status": "PASS"
+}

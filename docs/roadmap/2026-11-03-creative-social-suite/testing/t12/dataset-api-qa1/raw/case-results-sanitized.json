@@ -1,0 +1,185 @@
+[
+  {
+    "title": "E2E-26.01 bearer abilities user and brand isolation",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 2035,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 422"
+    ]
+  },
+  {
+    "title": "E2E-26.02 replace conflict immutable history pinned rows archive restore",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 204,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 422"
+    ]
+  },
+  {
+    "title": "E2E-26.03 closed schema and JSON object/list identity",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 2876,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: false\nReceived: true"
+    ]
+  },
+  {
+    "title": "E2E-26.04 independent export observer safe all strings text typed JSON headers",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 188,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 422"
+    ]
+  },
+  {
+    "title": "E2E-26.05 exact25000000B real multipart import export hash and metadata",
+    "outcome": "expected",
+    "expected": "passed",
+    "duration_ms": 14533,
+    "statuses": [
+      "passed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": []
+  },
+  {
+    "title": "E2E-26.06 sixMiB pagination no gaps or truncation",
+    "outcome": "expected",
+    "expected": "passed",
+    "duration_ms": 1249,
+    "statuses": [
+      "passed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": []
+  },
+  {
+    "title": "E2E-26.07 missing snapshot controlled503 no private path",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 173,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 422"
+    ]
+  },
+  {
+    "title": "E2E-26.07 corrupt snapshot controlled503 no private path",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 230,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 422"
+    ]
+  },
+  {
+    "title": "E2E-26.08 early53MiB body cap framing ContentLength",
+    "outcome": "expected",
+    "expected": "passed",
+    "duration_ms": 11609,
+    "statuses": [
+      "passed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": []
+  },
+  {
+    "title": "E2E-26.08 early53MiB body cap framing noContentLength",
+    "outcome": "expected",
+    "expected": "passed",
+    "duration_ms": 130102,
+    "statuses": [
+      "passed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": []
+  },
+  {
+    "title": "E2E-26.09 vendor MCP paginated discovery and legacy tool",
+    "outcome": "expected",
+    "expected": "passed",
+    "duration_ms": 887,
+    "statuses": [
+      "passed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": []
+  },
+  {
+    "title": "E2E-26.10 MCP real CRUD permissions exports pinned rows audit datasetID",
+    "outcome": "unexpected",
+    "expected": "passed",
+    "duration_ms": 197,
+    "statuses": [
+      "failed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": [
+      "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: false\nReceived: true"
+    ]
+  },
+  {
+    "title": "E2E-26.11 exact52M typed dataset ordinary escaped JSON MCP envelope TCP",
+    "outcome": "expected",
+    "expected": "passed",
+    "duration_ms": 89790,
+    "statuses": [
+      "passed"
+    ],
+    "retry": [
+      0
+    ],
+    "errors": []
+  }
+]

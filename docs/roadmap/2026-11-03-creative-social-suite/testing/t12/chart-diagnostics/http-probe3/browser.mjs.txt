@@ -1,0 +1,45 @@
+// DIAGNOSTIC ONLY. Fetch option isolation is not a production policy proposal or API acceptance.
+import { parseDatasetTable, datasetTableChunks, cellText } from '/modules/dataset-table.js';
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+export function fetchOptions(name, signal) {
+    switch (name) {
+        case 'default': return {};
+        case 'signal-only': return { signal };
+        case 'redirect-error-only': return { redirect: 'error' };
+        case 'full-registry': return { method: 'GET', credentials: 'same-origin', redirect: 'error', signal };
+        default: throw Error('Unknown diagnostic option');
+    }
+}
+export async function run({ fixture, sha256, options, bodyMethod }) {
+    let phase = 'request';
+    const events = [], note = (event, data = {}) => events.push({ event, ts: Date.now(), phase, ...data });
+    const controller = new AbortController(), init = fetchOptions(options, controller.signal);
+    controller.signal.addEventListener('abort', () => note('signal.abort'));
+    note('fetch.begin', { options, bodyMethod, optionKeys: Object.keys(init), signalAborted: controller.signal.aborted });
+    const response = await fetch('/brands/1/studio/datasets/1/export?format=json&revision=1', init);
+    note('headersresolved', { status: response.status, signalAborted: controller.signal.aborted });
+    if (response.status !== 200) throw Error('HTTP 200 required');
+    let bytes;
+    if (bodyMethod === 'arrayBuffer') {
+        bytes = new Uint8Array(await response.arrayBuffer());
+        note('arrayBuffer.complete', { bytes: bytes.byteLength });
+    } else if (bodyMethod === 'reader') {
+        const reader = response.body.getReader(), chunks = []; let size = 0;
+        for (;;) {
+            const result = await reader.read();
+            note('reader.read', { done: result.done, bytes: result.value?.byteLength ?? 0 });
+            if (result.done) break;
+            chunks.push(result.value); size += result.value.byteLength;
+        }
+        bytes = new Uint8Array(size); let offset = 0;
+        for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+        // Intentionally no cancel(), releaseLock(), controller.abort() or registry dispose().
+        globalThis.__diagnosticClosedReader = reader;
+    } else throw Error('Unknown diagnostic body method');
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), x => x.toString(16).padStart(2, '0')).join('');
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes), table = parseDatasetTable(text);
+    const raw = cellText(table.rows[0].values[1]);
+    if (digest !== sha256 || text !== fixture || Array.from(datasetTableChunks(table)).join('') !== fixture || raw !== '9007199254740993') throw Error('Canonical byte/hash/raw mismatch');
+    note('body.complete', { bytes: bytes.byteLength, sha256: digest, raw, signalAborted: controller.signal.aborted });
+    phase = 'settled'; await sleep(500); note('observation.end'); return events;
+}

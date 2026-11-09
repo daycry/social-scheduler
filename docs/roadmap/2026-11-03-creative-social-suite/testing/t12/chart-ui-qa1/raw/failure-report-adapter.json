@@ -1,0 +1,9 @@
+{
+  "scope": "Report only; failed attempt only; reviewed source files unchanged",
+  "adapter_sha256": "7dd82c4ced31f5093f53077a6ca3a82657930c42b82213ac1613d5684b552602",
+  "reviewed_postprocess_sha256": "dd8070b9d40b990e203c832cd031dfac016ff69f9c18c93c14dc17c4135d7c43",
+  "actual_cases": 1,
+  "failed": 1,
+  "not_run": 11,
+  "verdict": "NO-PASS"
+}

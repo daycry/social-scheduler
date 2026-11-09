@@ -49,7 +49,7 @@ class ManageDesign extends SchedulerTool
             $payload = $request->all();
             unset($payload['action'], $payload['design_id']);
 
-            return app(StudioAutomation::class)->perform($user, $design, $data['action'], $payload);
+            return app(StudioAutomation::class)->perform($user, $design, $data['action'], $payload, true);
         }
         if ($data['action'] === 'archive') {
             $studio->archive($user, $design);
@@ -58,6 +58,6 @@ class ManageDesign extends SchedulerTool
         }
 
         return $studio->present($user, $data['action'] === 'restore' ? $studio->restore($user, $design)
-            : $studio->duplicate($user, $design, $data['name'] ?? null));
+            : $studio->duplicate($user, $design, $data['name'] ?? null), true);
     }
 }

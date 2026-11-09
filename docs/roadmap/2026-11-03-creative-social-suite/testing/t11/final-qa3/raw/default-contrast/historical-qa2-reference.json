@@ -1,0 +1,33 @@
+{
+  "source": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\raw\\mobile-preview-detail.png",
+  "sha256": "96937d4c19ac4e92c0c2133a2a52df47351074e0e9a924a743af23551aa15317",
+  "crop_box": [
+    29,
+    218,
+    346,
+    396
+  ],
+  "observation": {
+    "width": 317,
+    "height": 178,
+    "white": 0,
+    "energy": 124.50196078431372,
+    "thresholds_inclusive": {
+      "16": 335,
+      "64": 259,
+      "128": 0,
+      "199": 0,
+      "200": 0,
+      "201": 0,
+      "240": 0
+    },
+    "exact_200": 0,
+    "background": [
+      0,
+      0,
+      0
+    ],
+    "rgb_sha256": "a6a1d68b1e390babc8f1cd2d5eddb4c371be6ee4424cbb86da5143fac282ca25"
+  },
+  "role": "Historical illustration only; includes emoji and is not the oracle or threshold for QA3"
+}

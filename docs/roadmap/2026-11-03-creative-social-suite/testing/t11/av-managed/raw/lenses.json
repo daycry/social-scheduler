@@ -1,0 +1,48 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-audio.mjs",
+      "patron": "await-en-bucle",
+      "linea": 37
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-audio.mjs",
+      "patron": "await-en-bucle",
+      "linea": 57
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-finalize.mjs",
+      "patron": "await-en-bucle",
+      "linea": 29
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-pcm.mjs",
+      "patron": "await-en-bucle",
+      "linea": 32
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-runtime.py",
+      "patron": "sleep-bloqueante",
+      "linea": 150
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-video.mjs",
+      "patron": "await-en-bucle",
+      "linea": 32
+    }
+  ],
+  "base": "--files",
+  "ficheros": 10,
+  "avisos": []
+}

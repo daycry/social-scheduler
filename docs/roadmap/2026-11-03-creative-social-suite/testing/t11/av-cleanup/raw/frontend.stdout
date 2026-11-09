@@ -1,0 +1,921 @@
+TAP version 13
+# Subtest: partial coverage exposes missing account days even when the reported total is zero
+ok 1 - partial coverage exposes missing account days even when the reported total is zero
+  ---
+  duration_ms: 5756.3819
+  type: 'test'
+  ...
+# Subtest: missing, unsupported and still open periods have distinct meanings
+ok 2 - missing, unsupported and still open periods have distinct meanings
+  ---
+  duration_ms: 0.1274
+  type: 'test'
+  ...
+# Subtest: complete zero observations are not described as absent or as a guaranteed refresh
+ok 3 - complete zero observations are not described as absent or as a guaranteed refresh
+  ---
+  duration_ms: 0.1776
+  type: 'test'
+  ...
+# Subtest: explicit private font references survive validation and can be removed without changing text
+ok 4 - explicit private font references survive validation and can be removed without changing text
+  ---
+  duration_ms: 2.0024
+  type: 'test'
+  ...
+# Subtest: image masks use known shapes only, roundtrip radius and support explicit removal
+ok 5 - image masks use known shapes only, roundtrip radius and support explicit removal
+  ---
+  duration_ms: 0.5986
+  type: 'test'
+  ...
+# Subtest: canvas serialization preserves the private font identity and mask descriptor instead of engine internals
+ok 6 - canvas serialization preserves the private font identity and mask descriptor instead of engine internals
+  ---
+  duration_ms: 0.41
+  type: 'test'
+  ...
+# Subtest: documents cannot impersonate a previously loaded private face through a local family name
+ok 7 - documents cannot impersonate a previously loaded private face through a local family name
+  ---
+  duration_ms: 0.2263
+  type: 'test'
+  ...
+# Subtest: font family syntax rejects quoted names and reserved private fallback families
+ok 8 - font family syntax rejects quoted names and reserved private fallback families
+  ---
+  duration_ms: 0.4626
+  type: 'test'
+  ...
+# Subtest: an explicit private font never silently falls back when its registered resource is absent
+ok 9 - an explicit private font never silently falls back when its registered resource is absent
+  ---
+  duration_ms: 0.5578
+  type: 'test'
+  ...
+# Subtest: private font loading rejects a resource URL outside the application before fetching
+ok 10 - private font loading rejects a resource URL outside the application before fetching
+  ---
+  duration_ms: 0.5643
+  type: 'test'
+  ...
+# Subtest: private font decoding has a deadline even after the HTTP body finished downloading
+ok 11 - private font decoding has a deadline even after the HTTP body finished downloading
+  ---
+  duration_ms: 25.7339
+  type: 'test'
+  ...
+# Subtest: real private WOFF2 changes raster glyphs and portable SVG embeds the exact font bytes
+ok 12 - real private WOFF2 changes raster glyphs and portable SVG embeds the exact font bytes
+  ---
+  duration_ms: 1548.5708
+  type: 'test'
+  ...
+# Subtest: ellipse and rounded rectangle masks remove corner pixels while retaining central subject pixels
+ok 13 - ellipse and rounded rectangle masks remove corner pixels while retaining central subject pixels
+  ---
+  duration_ms: 148.2279
+  type: 'test'
+  ...
+# Subtest: crop origins outside the actual raster reject while legacy oversized frames still render
+ok 14 - crop origins outside the actual raster reject while legacy oversized frames still render
+  ---
+  duration_ms: 44.4771
+  type: 'test'
+  ...
+# Subtest: editor awaits real fonts, preserves masked transforms through copy and releases its private faces
+ok 15 - editor awaits real fonts, preserves masked transforms through copy and releases its private faces
+  ---
+  duration_ms: 30.507
+  type: 'test'
+  ...
+# Subtest: crop and every supported filter change decoded output pixels rather than only document metadata
+ok 16 - crop and every supported filter change decoded output pixels rather than only document metadata
+  ---
+  duration_ms: 1089.0765
+  type: 'test'
+  ...
+# Subtest: loop phase, muted tracks, source exhaustion and unavailable assets have explicit preview states
+ok 17 - loop phase, muted tracks, source exhaustion and unavailable assets have explicit preview states
+  ---
+  duration_ms: 59.1408
+  type: 'test'
+  ...
+# Subtest: closing during an unresponsive audio request aborts its decoder and queue immediately
+ok 18 - closing during an unresponsive audio request aborts its decoder and queue immediately
+  ---
+  duration_ms: 46.5385
+  type: 'test'
+  ...
+# Subtest: 64 muted tracks do not allocate decoders or introduce buffering during visual playback
+ok 19 - 64 muted tracks do not allocate decoders or introduce buffering during visual playback
+  ---
+  duration_ms: 13.7083
+  type: 'test'
+  ...
+# Subtest: paused seeks honor a sub-40ms source trim at slow playback rates
+ok 20 - paused seeks honor a sub-40ms source trim at slow playback rates
+  ---
+  duration_ms: 8.6441
+  type: 'test'
+  ...
+# Subtest: preview seeks real private audio with trim/rate/envelope and releases it outside its window
+ok 21 - preview seeks real private audio with trim/rate/envelope and releases it outside its window
+  ---
+  duration_ms: 9.0113
+  type: 'test'
+  ...
+# Subtest: two real tones mix through independent gain nodes and pause without mutating tracks
+ok 22 - two real tones mix through independent gain nodes and pause without mutating tracks
+  ---
+  duration_ms: 626.7117
+  type: 'test'
+  ...
+# Subtest: a real video and a streaming audio track follow the same clock within one output frame
+ok 23 - a real video and a streaming audio track follow the same clock within one output frame
+  ---
+  duration_ms: 415.5648
+  type: 'test'
+  ...
+# Subtest: audio uploader transfers private binary bytes and completes the brand ticket without leaking credentials to storage
+ok 24 - audio uploader transfers private binary bytes and completes the brand ticket without leaking credentials to storage
+  ---
+  duration_ms: 26.355
+  type: 'test'
+  ...
+# Subtest: a temporary validation failure retries completion without uploading the bytes again
+ok 25 - a temporary validation failure retries completion without uploading the bytes again
+  ---
+  duration_ms: 0.6919
+  type: 'test'
+  ...
+# Subtest: native audio rejects truncated decoder output instead of filling the missing tail with a held sample
+ok 26 - native audio rejects truncated decoder output instead of filling the missing tail with a held sample
+  ---
+  duration_ms: 37.152
+  type: 'test'
+  ...
+# Subtest: native PCM segments change rate and mix known tones at their global start without resetting phase
+ok 27 - native PCM segments change rate and mix known tones at their global start without resetting phase
+  ---
+  duration_ms: 240.9464
+  type: 'test'
+  ...
+# Subtest: native loop, trim, offset and envelope match a sample-clock reference across segment boundaries
+ok 28 - native loop, trim, offset and envelope match a sample-clock reference across segment boundaries
+  ---
+  duration_ms: 199.6506
+  type: 'test'
+  ...
+# Subtest: native m4a44100 preserves the continuous PCM sample clock in short and default segments
+ok 29 - native m4a44100 preserves the continuous PCM sample clock in short and default segments
+  ---
+  duration_ms: 296.9217
+  type: 'test'
+  ...
+# Subtest: native m4a48000 preserves the continuous PCM sample clock in short and default segments
+ok 30 - native m4a48000 preserves the continuous PCM sample clock in short and default segments
+  ---
+  duration_ms: 300.6161
+  type: 'test'
+  ...
+# Subtest: native mp344100 preserves the continuous PCM sample clock in short and default segments
+ok 31 - native mp344100 preserves the continuous PCM sample clock in short and default segments
+  ---
+  duration_ms: 262.4393
+  type: 'test'
+  ...
+# Subtest: 64 clips sharing one source window read that window only once per segment
+ok 32 - 64 clips sharing one source window read that window only once per segment
+  ---
+  duration_ms: 388.058
+  type: 'test'
+  ...
+# Subtest: normalised PCM profiles reject altered lengths, arbitrary paths and duplicate identities
+ok 33 - normalised PCM profiles reject altered lengths, arbitrary paths and duplicate identities
+  ---
+  duration_ms: 79.2523
+  type: 'test'
+  ...
+# Subtest: cancelled normalisation leaves no usable PCM or partial file
+ok 34 - cancelled normalisation leaves no usable PCM or partial file
+  ---
+  duration_ms: 33.532
+  type: 'test'
+  ...
+# Subtest: a truncated compressed stream cannot be padded into a successful normalisation
+ok 35 - a truncated compressed stream cannot be padded into a successful normalisation
+  ---
+  duration_ms: 163.0682
+  type: 'test'
+  ...
+# Subtest: a late visual worker cannot overwrite a segment from another lease
+ok 36 - a late visual worker cannot overwrite a segment from another lease
+  ---
+  duration_ms: 1161.2007
+  type: 'test'
+  ...
+# Subtest: PCM and mixed audio checkpoints keep independent lease identities and reject forged paths
+ok 37 - PCM and mixed audio checkpoints keep independent lease identities and reject forged paths
+  ---
+  duration_ms: 161.3722
+  type: 'test'
+  ...
+# Subtest: assembly accepts selected checkpoints from different leases and publishes an immutable final generation
+ok 38 - assembly accepts selected checkpoints from different leases and publishes an immutable final generation
+  ---
+  duration_ms: 831.2021
+  type: 'test'
+  ...
+# Subtest: namespace validation rejects paths, URLs, empty values and malformed UUIDs before heavy work
+ok 39 - namespace validation rejects paths, URLs, empty values and malformed UUIDs before heavy work
+  ---
+  duration_ms: 0.9084
+  type: 'test'
+  ...
+# Subtest: assembly concat controls remain attributable to their lease after an interrupted process
+ok 40 - assembly concat controls remain attributable to their lease after an interrupted process
+  ---
+  duration_ms: 581.5908
+  type: 'test'
+  ...
+# Subtest: a different lease cleaning its temporary during PCM accounting cannot abort valid normalisation
+ok 41 - a different lease cleaning its temporary during PCM accounting cannot abort valid normalisation
+  ---
+  duration_ms: 75.1032
+  type: 'test'
+  ...
+# Subtest: native selected music matches its original source and join envelope: c,a
+ok 42 - native selected music matches its original source and join envelope: c,a
+  ---
+  duration_ms: 143.0195
+  type: 'test'
+  ...
+# Subtest: native selected music matches its original source and join envelope: a,c
+ok 43 - native selected music matches its original source and join envelope: a,c
+  ---
+  duration_ms: 192.838
+  type: 'test'
+  ...
+# Subtest: native selected page export applies scale to the real pixels and keeps explicit order
+ok 44 - native selected page export applies scale to the real pixels and keeps explicit order
+  ---
+  duration_ms: 569.6592
+  type: 'test'
+  ...
+# Subtest: native quality changes H264 size and the real GIF colour palette
+ok 45 - native quality changes H264 size and the real GIF colour palette
+  ---
+  duration_ms: 2462.114
+  type: 'test'
+  ...
+# Subtest: native assembly rejects segments made with different render options
+ok 46 - native assembly rejects segments made with different render options
+  ---
+  duration_ms: 764.7802
+  type: 'test'
+  ...
+# Subtest: native scaled slide transitions translate in scaled coordinates
+ok 47 - native scaled slide transitions translate in scaled coordinates
+  ---
+  duration_ms: 1187.0603
+  type: 'test'
+  ...
+# Subtest: native legacy export holds an exhausted poster without mutating the saved v1 document
+not ok 48 - native legacy export holds an exhausted poster without mutating the saved v1 document
+  ---
+  duration_ms: 130.9809
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-audiovisual-options-render.test.mjs:75:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    page.goto: net::ERR_NO_BUFFER_SPACE at http://127.0.0.1:56333/c8192f7eba0e5e50ea8fb0ce2d87d571c163c28746ef3d2067c5c5e9599fd537/
+    Call log:
+    [2m  - navigating to "http://127.0.0.1:56333/c8192f7eba0e5e50ea8fb0ce2d87d571c163c28746ef3d2067c5c5e9599fd537/", waiting until "load"[22m
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    renderVisualSegment (C:\laragon\www\metricool\scripts\studio\av-video.mjs:27:20)
+    async TestContext.<anonymous> (C:\laragon\www\metricool\tests\frontend\studio-audiovisual-options-render.test.mjs:79:62)
+  ...
+# Subtest: managed phase runner compiles, renders and joins immutable lease outputs under the OS group bound
+ok 49 - managed phase runner compiles, renders and joins immutable lease outputs under the OS group bound
+  ---
+  duration_ms: 2124.5284
+  type: 'test'
+  ...
+# Subtest: managed runner applies one deadline including startup and publishes no checkpoint on expiry
+ok 50 - managed runner applies one deadline including startup and publishes no checkpoint on expiry
+  ---
+  duration_ms: 439.9844
+  type: 'test'
+  ...
+# Subtest: managed runner observes per-lease cancellation before native work and keeps errors private
+ok 51 - managed runner observes per-lease cancellation before native work and keeps errors private
+  ---
+  duration_ms: 442.9497
+  type: 'test'
+  ...
+# Subtest: managed GIF skips music snapshots while still rendering selected visual pages
+ok 52 - managed GIF skips music snapshots while still rendering selected visual pages
+  ---
+  duration_ms: 1889.5968
+  type: 'test'
+  ...
+# Subtest: managed normalization and mix checkpoints carry actual sound into the final AAC
+ok 53 - managed normalization and mix checkpoints carry actual sound into the final AAC
+  ---
+  duration_ms: 2767.3468
+  type: 'test'
+  ...
+# Subtest: cancelling after a managed visual phase starts leaves no published or partial output
+ok 54 - cancelling after a managed visual phase starts leaves no published or partial output
+  ---
+  duration_ms: 742.2476
+  type: 'test'
+  ...
+# Subtest: normalization accepts media IDs above six digits and rejects unsafe or noninteger indices
+ok 55 - normalization accepts media IDs above six digits and rejects unsafe or noninteger indices
+  ---
+  duration_ms: 961.0026
+  type: 'test'
+  ...
+# Subtest: segments cover the accumulated project exactly once in frames and PCM samples
+ok 56 - segments cover the accumulated project exactly once in frames and PCM samples
+  ---
+  duration_ms: 2.7052
+  type: 'test'
+  ...
+# Subtest: inherited video windows preserve source phase and envelope instead of restarting at the group boundary
+ok 57 - inherited video windows preserve source phase and envelope instead of restarting at the group boundary
+  ---
+  duration_ms: 0.5152
+  type: 'test'
+  ...
+# Subtest: page audio crossfades on the same accumulated clock while global music stays continuous
+ok 58 - page audio crossfades on the same accumulated clock while global music stays continuous
+  ---
+  duration_ms: 0.5607
+  type: 'test'
+  ...
+# Subtest: audio source trim, offset, slow rate, loop and EOF use a semi-open interval
+ok 59 - audio source trim, offset, slow rate, loop and EOF use a semi-open interval
+  ---
+  duration_ms: 0.2077
+  type: 'test'
+  ...
+# Subtest: muted, silent, invisible and non-intersecting video layers never become audio inputs
+ok 60 - muted, silent, invisible and non-intersecting video layers never become audio inputs
+  ---
+  duration_ms: 0.2805
+  type: 'test'
+  ...
+# Subtest: audio compilation rejects unready, duplicate, missing and out-of-source metadata and invalid segment budgets
+ok 61 - audio compilation rejects unready, duplicate, missing and out-of-source metadata and invalid segment budgets
+  ---
+  duration_ms: 0.5565
+  type: 'test'
+  ...
+# Subtest: native MP4 assembly preserves all frames, AAC sound, duration and faststart after joining segments
+ok 62 - native MP4 assembly preserves all frames, AAC sound, duration and faststart after joining segments
+  ---
+  duration_ms: 1154.6351
+  type: 'test'
+  ...
+# Subtest: native GIF segments retain palettes and use accumulated centisecond delays when joined
+ok 63 - native GIF segments retain palettes and use accumulated centisecond delays when joined
+  ---
+  duration_ms: 2669.2545
+  type: 'test'
+  ...
+# Subtest: native page audio fades on the shared project clock and includes the original video soundtrack
+ok 64 - native page audio fades on the shared project clock and includes the original video soundtrack
+  ---
+  duration_ms: 172.8191
+  type: 'test'
+  ...
+# Subtest: a video soundtrack shorter than its visual stream becomes silence after audio EOF
+ok 65 - a video soundtrack shorter than its visual stream becomes silence after audio EOF
+  ---
+  duration_ms: 133.0505
+  type: 'test'
+  ...
+# Subtest: native visual segments render moving video, timed overlays and a page transition on the project frame clock
+ok 66 - native visual segments render moving video, timed overlays and a page transition on the project frame clock
+  ---
+  duration_ms: 2009.3334
+  type: 'test'
+  ...
+# Subtest: the private loopback origin serves only its closed map and honours byte ranges
+ok 67 - the private loopback origin serves only its closed map and honours byte ranges
+  ---
+  duration_ms: 25.7323
+  type: 'test'
+  ...
+# Subtest: native resources reject arbitrary paths, MIME injection, duplicate identities, wrong sizes and unrelated attempt folders
+ok 68 - native resources reject arbitrary paths, MIME injection, duplicate identities, wrong sizes and unrelated attempt folders
+  ---
+  duration_ms: 5.2797
+  type: 'test'
+  ...
+# Subtest: native processes enforce a bounded output and abort the owned child
+ok 69 - native processes enforce a bounded output and abort the owned child
+  ---
+  duration_ms: 106.2662
+  type: 'test'
+  ...
+# Subtest: cancelled native render does not publish a segment or leave its part file
+ok 70 - cancelled native render does not publish a segment or leave its part file
+  ---
+  duration_ms: 142.4187
+  type: 'test'
+  ...
+# Subtest: final assembly rejects altered, missing and unordered segment manifests before publishing
+ok 71 - final assembly rejects altered, missing and unordered segment manifests before publishing
+  ---
+  duration_ms: 379.432
+  type: 'test'
+  ...
+# Subtest: audiovisual selection preserves explicit order, removes only the final transition and leaves the source intact
+ok 72 - audiovisual selection preserves explicit order, removes only the final transition and leaves the source intact
+  ---
+  duration_ms: 0.4918
+  type: 'test'
+  ...
+# Subtest: audiovisual page selection rejects unknown, duplicate, empty, sparse and mistyped IDs and impossible new adjacency
+ok 73 - audiovisual page selection rejects unknown, duplicate, empty, sparse and mistyped IDs and impossible new adjacency
+  ---
+  duration_ms: 0.6345
+  type: 'test'
+  ...
+# Subtest: global music follows a selected source interval while preserving envelope, trim and phase
+ok 74 - global music follows a selected source interval while preserving envelope, trim and phase
+  ---
+  duration_ms: 0.2751
+  type: 'test'
+  ...
+# Subtest: contiguous fractional pages use a single source clock without duplicating music in their internal transition
+ok 75 - contiguous fractional pages use a single source clock without duplicating music in their internal transition
+  ---
+  duration_ms: 0.3608
+  type: 'test'
+  ...
+# Subtest: reordered source intervals crossfade only their boundary and retain native video audio on selected pages
+ok 76 - reordered source intervals crossfade only their boundary and retain native video audio on selected pages
+  ---
+  duration_ms: 0.3616
+  type: 'test'
+  ...
+# Subtest: legacy audiovisual conversion stays in memory and preserves an exhausted poster without audio
+ok 77 - legacy audiovisual conversion stays in memory and preserves an exhausted poster without audio
+  ---
+  duration_ms: 0.2345
+  type: 'test'
+  ...
+# Subtest: render settings preserve default quality and scale geometry without changing timeline duration
+ok 78 - render settings preserve default quality and scale geometry without changing timeline duration
+  ---
+  duration_ms: 0.1385
+  type: 'test'
+  ...
+# Subtest: render settings reject non-numeric options and an oversized result including even padding
+ok 79 - render settings reject non-numeric options and an oversized result including even padding
+  ---
+  duration_ms: 0.5585
+  type: 'test'
+  ...
+# Subtest: offline frames never open audio decoders or play media and hold strictly inside trimEnd
+ok 80 - offline frames never open audio decoders or play media and hold strictly inside trimEnd
+  ---
+  duration_ms: 15.5487
+  type: 'test'
+  ...
+# Subtest: line and path defaults are visible strokes while explicit styles remain unchanged
+ok 81 - line and path defaults are visible strokes while explicit styles remain unchanged
+  ---
+  duration_ms: 0.4652
+  type: 'test'
+  ...
+# Subtest: blank document uses requested dimensions and independent page identities
+ok 82 - blank document uses requested dimensions and independent page identities
+  ---
+  duration_ms: 0.1258
+  type: 'test'
+  ...
+# Subtest: clone and duplicate page replace every nested id without sharing mutable state
+ok 83 - clone and duplicate page replace every nested id without sharing mutable state
+  ---
+  duration_ms: 0.213
+  type: 'test'
+  ...
+# Subtest: page selection preserves explicit order and rejects absent or repeated ids
+ok 84 - page selection preserves explicit order and rejects absent or repeated ids
+  ---
+  duration_ms: 0.1697
+  type: 'test'
+  ...
+# Subtest: validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+ok 85 - validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+  ---
+  duration_ms: 0.6388
+  type: 'test'
+  ...
+# Subtest: validation preserves gradients, filters, affine transforms and vector paths
+ok 86 - validation preserves gradients, filters, affine transforms and vector paths
+  ---
+  duration_ms: 0.3143
+  type: 'test'
+  ...
+# Subtest: server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+ok 87 - server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+  ---
+  duration_ms: 9.8861
+  type: 'test'
+  ...
+# Subtest: a minimally trimmed short video shares the server end validation
+ok 88 - a minimally trimmed short video shares the server end validation
+  ---
+  duration_ms: 0.1907
+  type: 'test'
+  ...
+# Subtest: text limits count Unicode code points like the server rather than UTF-16 code units
+ok 89 - text limits count Unicode code points like the server rather than UTF-16 code units
+  ---
+  duration_ms: 1.5255
+  type: 'test'
+  ...
+# Subtest: multipage png downloads one font once and releases its faces
+ok 90 - multipage png downloads one font once and releases its faces
+  ---
+  duration_ms: 78.911
+  type: 'test'
+  ...
+# Subtest: multipage pdf downloads one font once and releases its faces
+ok 91 - multipage pdf downloads one font once and releases its faces
+  ---
+  duration_ms: 93.9167
+  type: 'test'
+  ...
+# Subtest: bitmap exports reject oversized sides before rendering or uploading
+ok 92 - bitmap exports reject oversized sides before rendering or uploading
+  ---
+  duration_ms: 0.6811
+  type: 'test'
+  ...
+# Subtest: static export respects the selected local frame and semi-open windows without changing the design
+ok 93 - static export respects the selected local frame and semi-open windows without changing the design
+  ---
+  duration_ms: 11.3132
+  type: 'test'
+  ...
+# Subtest: static video frames use trim, rate, source offset and loop instead of the initial poster
+ok 94 - static video frames use trim, rate, source offset and loop instead of the initial poster
+  ---
+  duration_ms: 27.6259
+  type: 'test'
+  ...
+# Subtest: an exhausted non-looping video holds the last frame inside its trim interval
+ok 95 - an exhausted non-looping video holds the last frame inside its trim interval
+  ---
+  duration_ms: 17.0573
+  type: 'test'
+  ...
+# Subtest: inactive grouped media are not loaded and selected frames apply to every static format
+ok 96 - inactive grouped media are not loaded and selected frames apply to every static format
+  ---
+  duration_ms: 58.5728
+  type: 'test'
+  ...
+# Subtest: frame-time inputs reject invalid types, unknown pages, duplicates and end boundaries
+ok 97 - frame-time inputs reject invalid types, unknown pages, duplicates and end boundaries
+  ---
+  duration_ms: 2.1161
+  type: 'test'
+  ...
+# Subtest: different page times retain the selected order and inherited group visibility
+ok 98 - different page times retain the selected order and inherited group visibility
+  ---
+  duration_ms: 7.5946
+  type: 'test'
+  ...
+# Subtest: a missing selected page reports a usable frame error
+ok 99 - a missing selected page reports a usable frame error
+  ---
+  duration_ms: 1.3417
+  type: 'test'
+  ...
+# Subtest: actual Fabric transform survives own document roundtrip
+ok 100 - actual Fabric transform survives own document roundtrip
+  ---
+  duration_ms: 1.8093
+  type: 'test'
+  ...
+# Subtest: multiple selection serializes absolute transforms without altering the selection
+ok 101 - multiple selection serializes absolute transforms without altering the selection
+  ---
+  duration_ms: 2.0417
+  type: 'test'
+  ...
+# Subtest: nested group preserves local children geometry on save and reopen
+ok 102 - nested group preserves local children geometry on save and reopen
+  ---
+  duration_ms: 1.3219
+  type: 'test'
+  ...
+# Subtest: a fixed group preserves non-centered local coordinates when only one timed child is present
+ok 103 - a fixed group preserves non-centered local coordinates when only one timed child is present
+  ---
+  duration_ms: 0.3502
+  type: 'test'
+  ...
+# Subtest: a gradient angle stays stable on nonsquare shapes through repeated saves
+ok 104 - a gradient angle stays stable on nonsquare shapes through repeated saves
+  ---
+  duration_ms: 0.6521
+  type: 'test'
+  ...
+# Subtest: history restores full states, does not share snapshots and clears redo after branching
+ok 105 - history restores full states, does not share snapshots and clears redo after branching
+  ---
+  duration_ms: 0.2746
+  type: 'test'
+  ...
+# Subtest: history bounds retained states and reset starts a new clean timeline
+ok 106 - history bounds retained states and reset starts a new clean timeline
+  ---
+  duration_ms: 0.1751
+  type: 'test'
+  ...
+# Subtest: video seek resolves a decoded frame, clamps duration and supports cancellation
+ok 107 - video seek resolves a decoded frame, clamps duration and supports cancellation
+  ---
+  duration_ms: 0.4284
+  type: 'test'
+  ...
+# Subtest: video seek reports a stalled decoder and releases its listeners
+ok 108 - video seek reports a stalled decoder and releases its listeners
+  ---
+  duration_ms: 24.2637
+  type: 'test'
+  ...
+# Subtest: font loading fails explicitly if the font service never settles
+ok 109 - font loading fails explicitly if the font service never settles
+  ---
+  duration_ms: 16.55
+  type: 'test'
+  ...
+# Subtest: video playback honors trimmed endpoints and the actual media duration
+ok 110 - video playback honors trimmed endpoints and the actual media duration
+  ---
+  duration_ms: 0.16
+  type: 'test'
+  ...
+# Subtest: isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+ok 111 - isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+  ---
+  duration_ms: 1645.6725
+  type: 'test'
+  ...
+# Subtest: server render can load a registered private image without a cookie or external network
+ok 112 - server render can load a registered private image without a cookie or external network
+  ---
+  duration_ms: 847.6641
+  type: 'test'
+  ...
+# Subtest: isolated server renderer honors page frame times and does not load inactive media
+ok 113 - isolated server renderer honors page frame times and does not load inactive media
+  ---
+  duration_ms: 1722.0137
+  type: 'test'
+  ...
+# Subtest: isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG
+ok 114 - isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG
+  ---
+  duration_ms: 2085.8413
+  type: 'test'
+  ...
+# Subtest: fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+ok 115 - fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+  ---
+  duration_ms: 15.6198
+  type: 'test'
+  ...
+# Subtest: default line and path exports have actual pixels different from the empty page
+ok 116 - default line and path exports have actual pixels different from the empty page
+  ---
+  duration_ms: 58.1868
+  type: 'test'
+  ...
+# Subtest: at least twelve original templates create valid nonempty independent documents
+ok 117 - at least twelve original templates create valid nonempty independent documents
+  ---
+  duration_ms: 3.264
+  type: 'test'
+  ...
+# Subtest: templates use supplied brand colors/fonts without mutating the kit
+ok 118 - templates use supplied brand colors/fonts without mutating the kit
+  ---
+  duration_ms: 0.4755
+  type: 'test'
+  ...
+# Subtest: brand templates preserve the first uploaded font identity on every generated page
+ok 119 - brand templates preserve the first uploaded font identity on every generated page
+  ---
+  duration_ms: 0.5239
+  type: 'test'
+  ...
+# Subtest: page clock overlaps transitions and samples visual and audio gains at exact project time
+ok 120 - page clock overlaps transitions and samples visual and audio gains at exact project time
+  ---
+  duration_ms: 0.4365
+  type: 'test'
+  ...
+# Subtest: rounding cumulative boundaries preserves 100 fractional pages without project drift or frame gaps
+ok 121 - rounding cumulative boundaries preserves 100 fractional pages without project drift or frame gaps
+  ---
+  duration_ms: 0.8541
+  type: 'test'
+  ...
+# Subtest: media sampling uses trim, rate and loop phase while the half-open end remains silent
+ok 122 - media sampling uses trim, rate and loop phase while the half-open end remains silent
+  ---
+  duration_ms: 0.1994
+  type: 'test'
+  ...
+# Subtest: splitting a visual clip preserves geometry, loop phase and the original gain curve without mutating input
+ok 123 - splitting a visual clip preserves geometry, loop phase and the original gain curve without mutating input
+  ---
+  duration_ms: 0.9375
+  type: 'test'
+  ...
+# Subtest: audio split preserves global time, phase and fade continuity and rejects subframe cuts
+ok 124 - audio split preserves global time, phase and fade continuity and rejects subframe cuts
+  ---
+  duration_ms: 0.5303
+  type: 'test'
+  ...
+# Subtest: decimal source boundaries and a one-frame split survive floating-point representation
+ok 125 - decimal source boundaries and a one-frame split survive floating-point representation
+  ---
+  duration_ms: 0.3072
+  type: 'test'
+  ...
+# Subtest: split operations reject a result beyond the validated layer and audio limits
+ok 126 - split operations reject a result beyond the validated layer and audio limits
+  ---
+  duration_ms: 5.8506
+  type: 'test'
+  ...
+# Subtest: splitting cannot return a document beyond the UTF-8 byte budget
+ok 127 - splitting cannot return a document beyond the UTF-8 byte budget
+  ---
+  duration_ms: 27.6591
+  type: 'test'
+  ...
+# Subtest: cropping a nonzero clip origin keeps the gain endpoint equal to the resulting duration
+ok 128 - cropping a nonzero clip origin keeps the gain endpoint equal to the resulting duration
+  ---
+  duration_ms: 0.4389
+  type: 'test'
+  ...
+# Subtest: real video retains source phase, playback rate, loop and gain metadata across Canvas edits
+ok 129 - real video retains source phase, playback rate, loop and gain metadata across Canvas edits
+  ---
+  duration_ms: 24.5821
+  type: 'test'
+  ...
+# Subtest: preview loads only resources in the effective window and releases inactive decoders
+ok 130 - preview loads only resources in the effective window and releases inactive decoders
+  ---
+  duration_ms: 31.3667
+  type: 'test'
+  ...
+# Subtest: timeline preview samples real video phase, inherited visibility and page transitions without mutating the document
+ok 131 - timeline preview samples real video phase, inherited visibility and page transitions without mutating the document
+  ---
+  duration_ms: 13.6249
+  type: 'test'
+  ...
+# Subtest: Canvas edits, selection and copy preserve temporal metadata from a stored v2 document
+ok 132 - Canvas edits, selection and copy preserve temporal metadata from a stored v2 document
+  ---
+  duration_ms: 18.8514
+  type: 'test'
+  ...
+# Subtest: legacy v1 keeps its existing clamped video poster when only trimStart was saved beyond the source
+ok 133 - legacy v1 keeps its existing clamped video poster when only trimStart was saved beyond the source
+  ---
+  duration_ms: 7.26
+  type: 'test'
+  ...
+# Subtest: ungroup keeps the effective temporal window and clips video phase and gain without losing subframe intersections
+ok 134 - ungroup keeps the effective temporal window and clips video phase and gain without losing subframe intersections
+  ---
+  duration_ms: 19.1703
+  type: 'test'
+  ...
+# Subtest: v2 retains typed timing, rates, source phase, envelopes, audio and page transitions
+ok 135 - v2 retains typed timing, rates, source phase, envelopes, audio and page transitions
+  ---
+  duration_ms: 0.4106
+  type: 'test'
+  ...
+# Subtest: legacy v1 still rejects temporal fields instead of silently accepting a different contract
+ok 136 - legacy v1 still rejects temporal fields instead of silently accepting a different contract
+  ---
+  duration_ms: 0.246
+  type: 'test'
+  ...
+# Subtest: temporal arrays cannot contain holes that would become null after persistence
+ok 137 - temporal arrays cannot contain holes that would become null after persistence
+  ---
+  duration_ms: 0.3485
+  type: 'test'
+  ...
+# Subtest: gain envelopes reject an interior array hole before persistence or sampling
+ok 138 - gain envelopes reject an interior array hole before persistence or sampling
+  ---
+  duration_ms: 0.3158
+  type: 'test'
+  ...
+# Subtest: failed creator-info is not retried by reactive effects; explicit retry can recover
+ok 139 - failed creator-info is not retried by reactive effects; explicit retry can recover
+  ---
+  duration_ms: 123.762
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message "" remains a stable error
+ok 140 - failed creator-info with message "" remains a stable error
+  ---
+  duration_ms: 108.8662
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message false remains a stable error
+ok 141 - failed creator-info with message false remains a stable error
+  ---
+  duration_ms: 109.6116
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message 0 remains a stable error
+ok 142 - failed creator-info with message 0 remains a stable error
+  ---
+  duration_ms: 108.7077
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message null remains a stable error
+ok 143 - failed creator-info with message null remains a stable error
+  ---
+  duration_ms: 109.8631
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message {} remains a stable error
+ok 144 - failed creator-info with message {} remains a stable error
+  ---
+  duration_ms: 108.8682
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info null becomes a stable error
+ok 145 - malformed successful creator-info null becomes a stable error
+  ---
+  duration_ms: 108.8868
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info false becomes a stable error
+ok 146 - malformed successful creator-info false becomes a stable error
+  ---
+  duration_ms: 108.9031
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info 0 becomes a stable error
+ok 147 - malformed successful creator-info 0 becomes a stable error
+  ---
+  duration_ms: 109.7007
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info "" becomes a stable error
+ok 148 - malformed successful creator-info "" becomes a stable error
+  ---
+  duration_ms: 109.7324
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info [] becomes a stable error
+ok 149 - malformed successful creator-info [] becomes a stable error
+  ---
+  duration_ms: 109.9581
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info {} becomes a stable error
+ok 150 - malformed successful creator-info {} becomes a stable error
+  ---
+  duration_ms: 108.5785
+  type: 'test'
+  ...
+1..150
+# tests 150
+# suites 0
+# pass 149
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 46865.6707

@@ -1,0 +1,18 @@
+[
+  {
+    "file": "images/1440-server-static.png",
+    "sha256": "974948bea3b9f68f8d36d1fe106227721326b295e432a77040736d034cdbea4f"
+  },
+  {
+    "file": "images/375-server-static.png",
+    "sha256": "89028baedb9a20ae61d667d2f3ab60dc67d8be2a3b4adb27753b6806e12a6ce3"
+  },
+  {
+    "file": "images/768-server-static.png",
+    "sha256": "9b9d30f6d891fc3049a88149ddcc7b663a80e498f48f6c97fd66cb6329510f28"
+  },
+  {
+    "file": "images/exported-server.png",
+    "sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e"
+  }
+]

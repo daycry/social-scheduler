@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-06T12:00:04.869501",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern=^projection rejects snapshot identity",
+    "tests/frontend/studio-chart-binding.test.mjs"
+  ],
+  "exit_code": 1,
+  "sha256_before": {
+    "resources/js/Studio/chart-binding.js": "ccf82a0046c9257075e3fbb9748bffdb15852ed2d6aa706115ff7fb8a9b55610",
+    "tests/frontend/studio-chart-binding.test.mjs": "2debd4f2ce5f048437dd336f03bb35f8f942c1575a383d56f984ab4221a38573",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  },
+  "sha256_after": {
+    "resources/js/Studio/chart-binding.js": "ccf82a0046c9257075e3fbb9748bffdb15852ed2d6aa706115ff7fb8a9b55610",
+    "tests/frontend/studio-chart-binding.test.mjs": "2debd4f2ce5f048437dd336f03bb35f8f942c1575a383d56f984ab4221a38573",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  }
+}

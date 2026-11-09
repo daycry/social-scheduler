@@ -1,0 +1,56 @@
+{
+  "state": "finished",
+  "pid": 24172,
+  "started_monotonic": 155400.0254837,
+  "group": "server",
+  "resource": {
+    "physical_minimum_observed_bytes": 7373107200,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 92.04876579999109,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 934830080,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "json_fabricated": false,
+  "global_acceptance_claim": false,
+  "exit_code": 0,
+  "error": null,
+  "observer_codes": {
+    "pixels": 0,
+    "pdf": 0,
+    "pdf-provenance": 0
+  },
+  "job_pids_before_exit": [
+    24172
+  ],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "cleanup_proved": true,
+  "terminal": {
+    "alive_owned_pids": [],
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true,
+    "core_job_closed_by_supervisor_exit": true
+  },
+  "closure_resource": {
+    "physical_minimum_observed_bytes": 9431609344,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 0.05072719999589026,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 14544896,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "global_wall_seconds": 174.9232521999802
+}

@@ -35,6 +35,6 @@ class CreateDesign extends SchedulerTool
     {
         $studio = app(StudioService::class);
 
-        return $studio->present($user, $studio->create($user, $this->brandFrom($request, $user), $request->all()));
+        return $studio->present($user, $studio->create($user, $this->brandFrom($request, $user), $request->all()), true);
     }
 }

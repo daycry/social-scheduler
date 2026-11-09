@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\Studio\RenderStudioDesign;
+use App\Mcp\Servers\SchedulerServer;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
@@ -83,10 +84,11 @@ test('Studio MCP: native tools are discoverable across tools list pagination', f
         $names = [...$names, ...array_column($page['tools'], 'name')];
         $cursor = $page['nextCursor'] ?? null;
     } while ($cursor !== null);
-    expect($names)->toHaveCount(36)->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_folder')
+    $registeredTools = (new ReflectionClass(SchedulerServer::class))->getDefaultProperties()['tools'];
+    expect($names)->toHaveCount(count($registeredTools))->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_export', 'manage_design_captions', 'manage_design_folder', 'manage_studio_font', 'process_studio_image', 'manage_studio_audio', 'manage_studio_dataset')
         ->and(count($names))->toBe(count(array_unique($names)))->and(array_count_values($names)['get_stats'])->toBe(1);
     $instructions = $this->rpc($this->key, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'test', 'version' => '1']])->assertOk()->json('result.instructions');
-    expect($instructions)->toContain('list_designs', 'attach_design_asset', 'nextCursor');
+    expect($instructions)->toContain('list_designs', 'attach_design_asset', 'nextCursor', 'manage_studio_font', 'process_studio_image', 'font_id');
 });
 
 test('Studio MCP: management duplicates independent revisions and restores only the owned archived design', function () {

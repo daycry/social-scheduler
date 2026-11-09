@@ -1,0 +1,82 @@
+{
+  "pages": 10,
+  "page_info": [
+    {
+      "page": 1,
+      "chars": 1587,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 2,
+      "chars": 2734,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 3,
+      "chars": 2050,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 4,
+      "chars": 2396,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 5,
+      "chars": 2380,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 6,
+      "chars": 2365,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 7,
+      "chars": 701,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 8,
+      "chars": 168,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 9,
+      "chars": 484,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 10,
+      "chars": 1342,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    }
+  ],
+  "rendered_from_pdf": true,
+  "visually_inspected": true,
+  "contact_sheet": "raw/pdf-contact.png",
+  "detail_pages_inspected": [
+    1,
+    8
+  ],
+  "screenshots_inspected": [
+    "desktop",
+    "mobile",
+    "mobile-360"
+  ],
+  "media_frames_inspected": [
+    "samples/desktop/overlay.png",
+    "samples/desktop/fade.png"
+  ],
+  "findings": "10 PDF pages rendered; tables and images readable, no clipping found. Mobile375 PDF displays explicitly labelled upper detail; original complete PNG retained. Mobile360 shows functional export error."
+}

@@ -1,0 +1,11 @@
+
+Algorithm Hash                                                             Path                                                                   
+--------- ----                                                             ----                                                                   
+SHA256    DE2C5ACD090BD1291F8AAA68868EBE084E47CE0B940EED8E1A28DA86EC08FE4F C:\laragon\www\metricool\resources\js\Studio\chart-resources.js        
+SHA256    BF3B4B7D93272A1A6D4ABE1428F65009CDBEF06F4B6B6C789C1EF289726A369A C:\laragon\www\metricool\tests\frontend\studio-chart-resources.test.mjs
+SHA256    805DBBE61F70C95A3A56A41F751E0D20315312A9DDFC4701A90DF895BC596DA3 C:\laragon\www\metricool\resources\js\Studio\bar-geometry.js           
+SHA256    31E4576A81EA58B1B56BD532F0DC01EC0E781635497AB74AC9BC79A6503DACA4 C:\laragon\www\metricool\resources\js\Studio\chart-binding.js          
+SHA256    9953C98F07E43E04D863F991EF220CBDD067A66561C2704D25C5AD2B8AA80190 C:\laragon\www\metricool\resources\js\Studio\dataset-table.js          
+
+
+

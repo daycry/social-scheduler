@@ -45,7 +45,7 @@ class GetDesign extends SchedulerTool
         $exports = app(StudioExports::class);
         $history = $exports->paginated($user, $design, (int) ($data['exports_page'] ?? 1));
 
-        return $studio->present($user, $design) + ['kit' => $studio->kit($user, $brand),
+        return $studio->present($user, $design, true) + ['kit' => $studio->kit($user, $brand),
             'assets' => $assets->list($user, $brand)->map(fn ($asset) => $assets->present($brand, $asset)
                 + ['file_url' => route('api.studio.assets.file', ['brand' => $brand, 'media' => $asset->id], false)])->all(),
             'exports' => $exports->presentMany($user, $history->getCollection()), 'exports_pagination' => $exports->pageMetadata($history)];

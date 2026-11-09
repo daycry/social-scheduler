@@ -2,11 +2,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { createHash } from 'node:crypto';
 
 const project = fileURLToPath(new URL('../../', import.meta.url));
 const output = path.resolve(process.argv[2] ?? '');
 // Called only by the server with its unique attempt directory. No file URL or user supplied script is loaded.
-if (!path.isAbsolute(process.argv[2] ?? '') || !/[/\\]studio-exports[/\\]\d+[/\\]\d+[/\\][a-f0-9-]+$/i.test(output)) throw new Error('Directorio de exportación no válido.');
+if (!path.isAbsolute(process.argv[2] ?? '') || !/[/\\]studio-exports[/\\][1-9]\d*[/\\][1-9]\d*[/\\][a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(output)) throw new Error('Directorio de exportación no válido.');
 const chunks = [];
 let size = 0;
 for await (const chunk of process.stdin) {
@@ -15,7 +16,7 @@ for await (const chunk of process.stdin) {
     chunks.push(chunk);
 }
 const input = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-const origin = 'http://studio-renderer.invalid';
+const origin = 'https://studio-renderer.invalid';
 const resources = new Map();
 let resourceBytes = 0;
 input.assets = (input.assets ?? []).map(asset => {
@@ -29,7 +30,58 @@ input.assets = (input.assets ?? []).map(asset => {
     resources.set(url, { body, mime: match[1] });
     return { ...asset, studio_url: url, preview_url: url };
 });
-const html = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src \'self\' data: blob:; media-src \'self\' data: blob:; font-src data:"></head><body></body></html>';
+input.fonts = (input.fonts ?? []).map(font => {
+    const id = Number(font.id);
+    const match = /^data:font\/woff2;base64,([A-Za-z0-9+/]*={0,2})$/.exec(font.file_url ?? '');
+    if (!Number.isSafeInteger(id) || id < 1 || !match || font.mime !== 'font/woff2' || font.format !== 'woff2' || resources.has(`${origin}/fonts/${id}`)) throw new Error('Fuente de render no válida.');
+    const body = Buffer.from(match[1], 'base64');
+    if (body.toString('base64') !== match[1] || body.subarray(0, 4).toString() !== 'wOF2' || body.length !== font.size || body.length > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/i.test(font.sha256 ?? '') || createHash('sha256').update(body).digest('hex') !== font.sha256.toLowerCase()) throw new Error('El hash o los bytes de la fuente no son válidos.');
+    resourceBytes += body.length;
+    if (resourceBytes > 64_000_000) throw new Error('Los recursos y fuentes superan el tamaño permitido.');
+    const url = `${origin}/fonts/${id}`;
+    resources.set(url, { body, mime: 'font/woff2' });
+    return { ...font, file_url: url };
+});
+// Dataset bytes have a separate budget and never travel in stdin or page script text.
+const chartFiles = input.chartFiles ?? [];
+if (!Array.isArray(chartFiles) || chartFiles.length > 32) throw new Error('Lista de datos no válida.');
+let chartBytes = 0;
+const chartIdentities = new Set();
+for (const descriptor of chartFiles) {
+    if (!descriptor || Object.keys(descriptor).sort().join(',') !== 'bytes,id,name,revision,sha256'
+        || !Number.isSafeInteger(descriptor.id) || descriptor.id < 1 || !Number.isSafeInteger(descriptor.revision) || descriptor.revision < 1
+        || !Number.isSafeInteger(descriptor.bytes) || descriptor.bytes < 1 || descriptor.bytes > 52_000_000
+        || typeof descriptor.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(descriptor.sha256)
+        || descriptor.name !== `datasets/${descriptor.id}-${descriptor.revision}-${descriptor.sha256}.json`) throw new Error('Descriptor de datos no válido.');
+    const identity = `${descriptor.id}:${descriptor.revision}`;
+    if (chartIdentities.has(identity)) throw new Error('Referencia de datos duplicada.');
+    chartIdentities.add(identity);
+    chartBytes += descriptor.bytes;
+    if (chartBytes > 64_000_000) throw new Error('Los datos superan 64 MB.');
+}
+if (chartFiles.length) {
+    // Check every ancestor, including output and datasets: realpath alone would hide junctions.
+    for (let parent = path.join(output, 'datasets'); ; parent = path.dirname(parent)) {
+        const stat = await fs.lstat(parent);
+        if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('Raíz de datos no válida.');
+        if (path.dirname(parent) === parent) break;
+    }
+    if (await fs.realpath(output) !== output) throw new Error('Raíz de exportación no válida.');
+}
+if (Object.hasOwn(input, 'chartFiles')) input.chartDescriptors = [];
+for (const descriptor of chartFiles) {
+    const filename = path.join(output, descriptor.name);
+    const stat = await fs.lstat(filename);
+    if (stat.isSymbolicLink() || !stat.isFile() || stat.size !== descriptor.bytes || await fs.realpath(filename) !== filename) throw new Error('Archivo de datos no válido.');
+    const body = await fs.readFile(filename);
+    if (body.length !== descriptor.bytes || createHash('sha256').update(body).digest('hex') !== descriptor.sha256) throw new Error('Los datos no coinciden con la revisión.');
+    const { id, revision, sha256, bytes } = descriptor;
+    const url = `${origin}/datasets/${id}-${revision}-${sha256}.json`;
+    resources.set(url, { body, mime: 'application/json' });
+    input.chartDescriptors.push({ id, revision, sha256, bytes, url });
+}
+delete input.chartFiles;
+const html = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src \'self\' data: blob:; media-src \'self\' data: blob:; connect-src \'self\'; font-src data:"></head><body></body></html>';
 const browser = await chromium.launch({ headless: true, ...(process.env.STUDIO_CHROMIUM_PATH ? { executablePath: process.env.STUDIO_CHROMIUM_PATH } : {}) });
 try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: false, serviceWorkers: 'block' });

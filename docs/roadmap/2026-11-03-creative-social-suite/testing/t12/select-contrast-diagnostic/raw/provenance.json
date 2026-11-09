@@ -1,0 +1,68 @@
+{
+  "artifact": "storage/framework/testing/t12-chart-errors-qa2/out/errors-execution2/raw/artifacts/studio-charts-E2E28-03-inv-8b087-spector-focus-accessibility-desktop/axe-chart-modal.json",
+  "artifact_sha256": "30263e4a8a74f6a24e351f1e9e2b9f45384a41a8b8400f23f2ee5e8d4b567ff5",
+  "messages": {
+    "bgImage": 3,
+    "elmPartiallyObscured": 13
+  },
+  "controls": [
+    {
+      "html": "<select data-v-d7a4d025=\"\" class=\"field\"><!----><option data-v-d7a4d025=\"\" value=\"category\">Categoría</option><option data-v-d7a4d025=\"\" value=\"s0\">Serie 1</option><option data-v-d7a4d025=\"\" value=\"s1\">Serie 2</option></select>",
+      "target": [
+        ".chart-label:nth-child(4) > select"
+      ]
+    },
+    {
+      "html": "<select data-v-d7a4d025=\"\" class=\"field\"><option data-v-d7a4d025=\"\" value=\"safe\">Segura · rechazar pérdida de precisión</option><option data-v-d7a4d025=\"\" value=\"approximate\">Aproximada · acepto aproximar números</option></select>",
+      "target": [
+        "section[aria-label=\"Datos del gráfico\"] > .chart-label:nth-child(6) > select"
+      ]
+    }
+  ],
+  "scope_attribute": "data-v-d7a4d025=\"\"",
+  "css": [
+    {
+      "file": "public/build/assets/Editor-XqyYBjuC.css",
+      "sha256": "080963d9ffac434d22377dbc58bf5c91096ccd4628d629ede56c663eb4eb7fbb"
+    },
+    {
+      "file": "public/build/assets/StudioDatasetsDialog-l32uGF7U.css",
+      "sha256": "d7560f1e26c26a7aeda03f4802610e2bd1c26a2c3fa635fa96633d18c0eec284"
+    },
+    {
+      "file": "public/build/assets/app-CDz-3XT3.css",
+      "sha256": "d864689ed6f1fc2279ff97ed6063a3791aaa5f45a4fa8fa6735c4e9c4efa0b92"
+    }
+  ],
+  "axe_sha256": "880970c081707360e64f34cea25ff91892f5bc95675b0776925b9709dd8a68bb",
+  "candidate_css": "select.field { appearance: auto; -webkit-appearance: auto; background-image: none; }",
+  "candidate_table_css": "section[aria-label=\"Tabla accesible del gráfico\"] { background-color: white; }",
+  "reconstructed_table": {
+    "cells": [
+      "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r0</th>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Año 2020 é</td>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 10</td>",
+      "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r1</th>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Año 2020 é</td>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: -20</td>",
+      "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r2</th>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Año 2022 é</td>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Vacío (null)</td>",
+      "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r3</th>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 2026</td>",
+      "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 0</td>"
+    ],
+    "status": "<span data-v-d7a4d025=\"\" role=\"status\">Página 1 de 1 · 4 filas</span>",
+    "spacer_px": 650,
+    "ancestors": "StudioDialog max-h85vh/overflow-y-auto p6; ChartsDialog max-h80 overflow-auto region/table classes",
+    "native_clip_reproduction": "Unknown until root execution; do not expand if absent"
+  },
+  "fixture_sha256": "c7d0cfa82d299e357faed78b6ceb4fc7c3bdd8f22dee90de39ff76d5658ce6a3",
+  "limitations": [
+    "Only two complete select outerHTML fragments copied; first kind select truncated in axe artifact and not reconstructed.",
+    "Diagnostic wrapper labels/section are reconstructed with the observed Vue scope; not the full app dialog.",
+    "12 cells + one status are original fragments, but table/dialog scroll structure and650px spacer are reconstructed. White background candidate covers original section including table/nav/status. Residual incomplete remains reported if any.",
+    "Rule color-contrast only. No full axe/E2E acceptance. Native popup scrolling not inferred from DOM metrics or keyboard-only navigation."
+  ],
+  "native_executions": 0
+}

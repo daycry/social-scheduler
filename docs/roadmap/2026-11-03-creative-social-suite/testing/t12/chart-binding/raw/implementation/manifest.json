@@ -1,0 +1,235 @@
+{
+  "scope": "Pure chart binding/projection only; no geometry/UI/public integration; no task closure",
+  "files": {
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "tests/frontend/studio-chart-binding.test.mjs": "a9779052666bfb6f1ff315bfaf00aaf6318503d85e7b596907ade9d06fbfb39d"
+  },
+  "monitored": {
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "verification": {
+    "tests": 47,
+    "pass": 47,
+    "fail": 0,
+    "skip": 0,
+    "cancelled": 0,
+    "own_tests": 17,
+    "existing_core_tests": 30,
+    "suite": "17-suite.json",
+    "red_criteria": 14,
+    "characterizations": 3
+  },
+  "tdd": [
+    {
+      "test": "binding normalizes a fixed identity and explicit default precision into own immutable data",
+      "evidence": "01-normalize-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^binding normalizes a fixed identity",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "|-",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "binding rejects invalid reference identity and unknown fields",
+      "evidence": "02-schema-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^binding rejects invalid reference",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception (TypeError).'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "binding requires one to twelve distinct series IDs separate from the category",
+      "evidence": "03-selection-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^binding requires one to twelve",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception (TypeError).'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "binding rejects accessor fields without invoking getters and rejects inherited or hidden data",
+      "evidence": "04-descriptors-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^binding rejects accessor fields",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception (TypeError).'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "binding accepts only dense own series data without invoking array accessors",
+      "evidence": "05-dense-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^binding accepts only dense own",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception (TypeError).'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "projection preserves row identity Unicode labels raw numbers negatives zero and null gaps",
+      "evidence": "06-projection-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^projection preserves row identity",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "\"Cannot read properties of null (reading 'categories')\"",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "projection rejects snapshot identity mismatches and incomplete or ambiguous envelopes before reading cells",
+      "evidence": "07-snapshot-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^projection rejects snapshot identity",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception (TypeError).'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "projection rejects unavailable selected columns with their stable ID before rows",
+      "evidence": "08-columns-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^projection rejects unavailable selected",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "|-",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "projection requires explicit conversion of text series and diagnoses row and column IDs",
+      "evidence": "09-text-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^projection requires explicit conversion",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "projection validates complete table limits and branded cells without invoking external table getters",
+      "evidence": "10-table-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^projection validates complete table",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception (TypeError).'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "safe precision rejects exact decimal magnitudes above the safe integer boundary including rounded exponents",
+      "evidence": "11-safe-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^safe precision rejects exact",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "approximate precision emits exact-magnitude warnings per cell and preserves original lexemes",
+      "evidence": "12-approximate-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^approximate precision emits exact",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "|-",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "projection returns deeply immutable own data detached from externally mutable input",
+      "evidence": "13-immutable-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^projection returns deeply immutable",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "|-",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "underflow requires explicit approximation and distinct warnings while genuine zero and subnormal remain valid",
+      "evidence": "16-underflow-red.json",
+      "exit_code": 1,
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^underflow requires explicit",
+        "tests/frontend/studio-chart-binding.test.mjs"
+      ],
+      "error_line": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    }
+  ]
+}

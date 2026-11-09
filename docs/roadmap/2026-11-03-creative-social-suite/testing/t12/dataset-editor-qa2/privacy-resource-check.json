@@ -1,0 +1,8 @@
+{
+  "secret_patterns_found": [],
+  "only_sanitized_artifacts_for_root_selection": true,
+  "private_raw_results_auth_config_sqlite_not_in_deliverable": true,
+  "localhost8080_bind_ipv4_ipv6": "free",
+  "supervisor_terminal_exit": 1,
+  "no_rerun": true
+}

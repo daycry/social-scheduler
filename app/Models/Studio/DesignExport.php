@@ -15,11 +15,11 @@ class DesignExport extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['disk', 'path'];
+    protected $hidden = ['disk', 'path', 'render_state', 'render_progress'];
 
     protected function casts(): array
     {
-        return ['revision' => 'integer', 'pages' => 'array', 'media_ids' => 'array', 'options' => 'array'];
+        return ['revision' => 'integer', 'pages' => 'array', 'media_ids' => 'array', 'options' => 'array', 'render_state' => 'array', 'render_progress' => 'array'];
     }
 
     public function design(): BelongsTo

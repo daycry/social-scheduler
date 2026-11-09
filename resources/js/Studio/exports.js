@@ -1,7 +1,10 @@
 import { PDFDocument } from 'pdf-lib';
 import { FabricImage, Group } from 'fabric';
 import { selectPages, validateDocument, StudioDocumentError } from './document.js';
-import { renderStudioPage } from './canvas.js';
+import { renderStudioFrame } from './frame-renderer.js';
+import { frameElements, frameTimes } from './frames.js';
+import { createStudioFontRegistry } from './fonts.js';
+import { assertChartDocumentBudget } from './chart-scene.js';
 
 export const EXPORT_FORMATS = Object.freeze([
     { value: 'png', label: 'PNG', extension: 'png', mime: 'image/png' },
@@ -42,7 +45,7 @@ function rasterBlob(canvas, mime, quality) {
 }
 
 /** Portable SVG: include pixel bytes, never private/expiring asset URLs or video URLs. */
-export function exportSvg(canvas, { width, height } = {}) {
+export function exportSvg(canvas, { width, height, fontFaces = [] } = {}) {
     const logicalWidth = width ?? Math.round(canvas.width / canvas.getZoom());
     const logicalHeight = height ?? Math.round(canvas.height / canvas.getZoom());
     const restorations = [];
@@ -66,7 +69,16 @@ export function exportSvg(canvas, { width, height } = {}) {
     });
     try {
         inlineImages(canvas.getObjects());
-        return canvas.toSVG({ width: `${logicalWidth}px`, height: `${logicalHeight}px`, viewBox: { x: 0, y: 0, width: logicalWidth, height: logicalHeight } });
+        const svg = canvas.toSVG({ width: `${logicalWidth}px`, height: `${logicalHeight}px`, viewBox: { x: 0, y: 0, width: logicalWidth, height: logicalHeight } });
+        if (!fontFaces.length) return svg;
+        const css = fontFaces.map(face => {
+            if (!/^StudioFont_\d+_[a-f0-9]{16}$/.test(face.family) || !['normal', 'italic'].includes(face.style) || !Number.isInteger(face.weight) || face.weight < 100 || face.weight > 900 || !(face.bytes instanceof ArrayBuffer) || face.bytes.byteLength > 8 * 1024 * 1024) throw new StudioDocumentError('La fuente no se puede incluir en el SVG.');
+            const bytes = new Uint8Array(face.bytes);
+            let binary = '';
+            for (let offset = 0; offset < bytes.length; offset += 32768) binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+            return `@font-face{font-family:"${face.family}";src:url("data:font/woff2;base64,${btoa(binary)}") format("woff2");font-style:${face.style};font-weight:${face.weight};}`;
+        }).join('');
+        return svg.replace(/(<svg\b[^>]*>)/, `$1<defs><style type="text/css"><![CDATA[${css}]]></style></defs>`);
     } finally {
         restorations.forEach(restore => restore());
     }
@@ -77,15 +89,16 @@ export async function exportPage(documentData, pageId, assets = [], options = {}
     const document = validateDocument(documentData);
     const format = options.format ?? 'png';
     const target = metadata(format);
+    const times = frameTimes(document, [pageId], options.frame_times);
     if (format === 'pdf') return exportPdf(document, [pageId], assets, options);
     const { scale, quality, width, height } = rasterOptions(document, options);
-    const rendering = await renderStudioPage(document, pageId, assets);
+    const rendering = await renderStudioFrame(document, pageId, times.get(pageId), assets, options.fonts ?? [], { chartResources: options.chartResources });
     try {
         if (options.transparent) {
             rendering.canvas.backgroundColor = '#ffffff00';
             rendering.canvas.renderAll();
         }
-        if (format === 'svg') return new Blob([exportSvg(rendering.canvas, document)], { type: target.mime });
+        if (format === 'svg') return new Blob([exportSvg(rendering.canvas, { ...document, fontFaces: rendering.fontFaces() })], { type: target.mime });
         // Canvas attributes truncate fractional sizes. Set the rounded pixel dimensions first,
         // then render the original geometry at the exact scale; never stretch a truncated bitmap.
         rendering.canvas.setDimensions({ width, height });
@@ -106,36 +119,56 @@ export async function exportPage(documentData, pageId, assets = [], options = {}
     }
 }
 
+async function withExportFonts(pages, fonts, render) {
+    const registry = createStudioFontRegistry(fonts);
+    try {
+        await registry.ensure(pages.flatMap(page => page.elements));
+        return await render();
+    } finally { registry.dispose(); }
+}
+
 /** Raster pages embedded in a real PDF, one page per selected ID in the requested order. */
 export async function exportPdf(documentData, pageIds, assets = [], options = {}) {
     const document = validateDocument(documentData);
     const pages = selectPages(document, pageIds);
-    const pdf = await PDFDocument.create();
-    pdf.setTitle(options.title || 'Diseño');
-    pdf.setCreator('Creative Social Suite');
-    const pageWidth = document.width * 72 / 96;
-    const pageHeight = document.height * 72 / 96;
-    for (let i = 0; i < pages.length; i++) {
-        const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png' });
-        const bitmap = await pdf.embedPng(await image.arrayBuffer());
-        const page = pdf.addPage([pageWidth, pageHeight]);
-        page.drawImage(bitmap, { x: 0, y: 0, width: pageWidth, height: pageHeight });
-        options.onProgress?.({ completed: i + 1, total: pages.length });
-    }
-    return new Blob([await pdf.save()], { type: 'application/pdf' });
+    const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
+    const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
+    return withExportFonts(sampled, options.fonts ?? [], async () => {
+        const pdf = await PDFDocument.create();
+        pdf.setTitle(options.title || 'Diseño');
+        pdf.setCreator('Creative Social Suite');
+        const pageWidth = document.width * 72 / 96;
+        const pageHeight = document.height * 72 / 96;
+        for (let i = 0; i < pages.length; i++) {
+            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png', frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined });
+            const bitmap = await pdf.embedPng(await image.arrayBuffer());
+            const page = pdf.addPage([pageWidth, pageHeight]);
+            page.drawImage(bitmap, { x: 0, y: 0, width: pageWidth, height: pageHeight });
+            options.onProgress?.({ completed: i + 1, total: pages.length });
+        }
+        return new Blob([await pdf.save()], { type: 'application/pdf' });
+    });
 }
 
 export async function exportDesign(documentData, { format = 'png', pageIds, assets = [], ...options } = {}) {
     const document = validateDocument(documentData);
     const pages = selectPages(document, pageIds);
     const target = metadata(format);
-    if (format === 'pdf') return [{ blob: await exportPdf(document, pages.map(page => page.id), assets, options), pageId: null, extension: target.extension, mime: target.mime }];
-    const output = [];
-    for (let i = 0; i < pages.length; i++) {
-        output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
-        options.onProgress?.({ completed: i + 1, total: pages.length });
+    const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
+    const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
+    const hasCharts = elements => elements.some(element => element.type === 'chart' || (element.type === 'group' && hasCharts(element.elements)));
+    if (sampled.some(page => hasCharts(page.elements))) {
+        await assertChartDocumentBudget({ ...document, pages: sampled }, options.chartResources, { signal: options.signal });
     }
-    return output;
+    return withExportFonts(sampled, options.fonts ?? [], async () => {
+        if (format === 'pdf') return [{ blob: await exportPdf(document, pages.map(page => page.id), assets, options), pageId: null, extension: target.extension, mime: target.mime }];
+        const output = [];
+        for (let i = 0; i < pages.length; i++) {
+            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format, frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
+            options.onProgress?.({ completed: i + 1, total: pages.length });
+        }
+        return output;
+    });
 }
 
 export function downloadBlob(blob, filename) {

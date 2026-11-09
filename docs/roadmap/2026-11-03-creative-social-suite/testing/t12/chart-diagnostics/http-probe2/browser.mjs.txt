@@ -1,0 +1,60 @@
+// DIAGNOSTIC ONLY: conditional cancel suppression is not a production fix or API acceptance.
+// Diagnostic only. Actual ESM imports, native fetch and actual Chromium streams.
+import { createChartResources } from '/modules/chart-resources.js';
+import { parseDatasetTable, datasetTableChunks, cellText } from '/modules/dataset-table.js';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+export async function run({ fixture, sha256, variant, kind }) {
+    const events = [], note = (event, data = {}) => events.push({ event, ts: Date.now(), phase, ...data });
+    let phase = 'start'; const nativeFetch = globalThis.fetch.bind(globalThis);
+    if (variant !== 'original') globalThis.fetch = async (...args) => {
+        const response = await nativeFetch(...args);
+        if (new URL(args[0], location.href).pathname !== '/brands/1/studio/datasets/1/export') return response;
+        const signal = args[1]?.signal;
+        note('headersresolved', { status: response.status, aborted: signal?.aborted });
+        signal?.addEventListener('abort', () => note('signal.abort'), { once: true });
+        const getReader = response.body.getReader.bind(response.body);
+        response.body.getReader = (...options) => {
+            const reader = getReader(...options), read = reader.read.bind(reader), cancel = reader.cancel.bind(reader);
+            let readDone = false;
+            reader.read = async (...a) => { const result = await read(...a); readDone = result.done === true; note('reader.read', { done: result.done, bytes: result.value?.byteLength ?? 0 }); return result; };
+            reader.cancel = (...a) => {
+                const suppressed = variant === 'suppress-completed-cancel' && readDone === true;
+                note('reader.cancel', { readDone, suppressed, stack: new Error().stack, aborted: signal?.aborted });
+                return suppressed ? Promise.resolve() : cancel(...a);
+            };
+            return reader;
+        };
+        return response;
+    };
+    const ref = { id: 1, revision: 1, sha256 }, registry = createChartResources({ brandId: 1 });
+    const expected = parseDatasetTable(fixture);
+    if (Array.from(datasetTableChunks(expected)).join('') !== fixture || cellText(expected.rows[0].values[1]) !== '9007199254740993') throw Error('Fixture raw lexeme lost');
+    try {
+        phase = 'request';
+        if (kind === 'native') {
+            const response = await fetch('/brands/1/studio/datasets/1/export?format=json&revision=1');
+            const bytes = await response.arrayBuffer();
+            const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), x => x.toString(16).padStart(2, '0')).join('');
+            if (digest !== sha256 || new TextDecoder().decode(bytes) !== fixture) throw Error('Native bytes mismatch');
+            note('native.complete', { bytes: bytes.byteLength, sha256: digest });
+        } else {
+            let result;
+            if (kind === 'replacement') {
+                const consumer = new AbortController();
+                const first = registry.resolve(ref, { signal: consumer.signal }).then(() => 'unexpected-success', e => e.name);
+                consumer.abort(); result = await registry.resolve(ref);
+                if (await first !== 'AbortError') throw Error('Consumer did not abort');
+            } else result = await registry.resolve(ref);
+            const info = await registry.describe(ref);
+            if (info.sha256 !== sha256 || info.bytes !== new TextEncoder().encode(fixture).length || Array.from(datasetTableChunks(result.table)).join('') !== fixture) throw Error('Registry snapshot mismatch');
+            note('registry.complete', { info, raw: cellText(result.table.rows[0].values[1]) });
+        }
+        phase = 'settled'; if (kind === 'dispose') { registry.dispose(); note('registry.dispose'); }
+        await sleep(500); note('observation.end'); return events;
+    } finally {
+        // Keep alive/replacement registries through the HTTP observation window.
+        // Their only teardown is context.close(), logged separately by the driver.
+        globalThis.__probeRegistry = registry;
+        globalThis.fetch = nativeFetch;
+    }
+}

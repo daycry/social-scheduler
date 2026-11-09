@@ -1,0 +1,14 @@
+{
+  "reviewer": "root, direct inspection of the two actual screenshots and all four PDF pages; missing viewport receipt remains explicit",
+  "issues": [],
+  "scope": "Faithful failed-run evidence and report layout only; no product acceptance",
+  "pdf_sha256": "eddaeb590598705fa1f55f25cdebeba6231e3fd565a07945e1bc90588be760b0",
+  "inspected": {
+    "images/desktop-no-viewport-receipt-errors-table-modal.png": "3e804dde28442578c488ce1b6ea354f7d7a66b3021009e01cdc20b08e8ef9fea",
+    "images/desktop-no-viewport-receipt-test-failed-1.png": "d09c64d101efc4a1e201643fa9b36182c22489012437fd08aa2f0db277077349",
+    "pdf-pages/page-001.png": "da2f872671ebc61903cc9ec4250bf56bd393a33eac670e03a05328d6f0a15be2",
+    "pdf-pages/page-002.png": "46a0d9d20ecd72d4553186678e2bec80fd8d224947dbf012e668d2547c1b4455",
+    "pdf-pages/page-003.png": "8593f95984fff46b032e9792e3a464302e7ac00345af30f1cd7ad9238061597e",
+    "pdf-pages/page-004.png": "c52c1e3a43d0ab062ad8125030aa15f2dfdeb71b4213b78f4bc3a3c1cfd2a625"
+  }
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "new.json",
+    "kind": "snapshot",
+    "format": "json",
+    "mode": "spreadsheet",
+    "relative_url": "/brands/1/studio/datasets/1/export?revision=1&format=json",
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=UTF-8",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff",
+      "content-disposition": "attachment; filename=dataset-1-r1.json"
+    },
+    "bytes": 303,
+    "sha256": "64dc1cb065ec2cece8f4a7ae344edfe4fc20b60aab4dca97834c8312495cedd0",
+    "pipe_count": 1,
+    "upstream_ended": true,
+    "response_finished": true,
+    "upstream_status": 200
+  },
+  {
+    "name": "reopen.json",
+    "kind": "snapshot",
+    "format": "json",
+    "mode": "spreadsheet",
+    "relative_url": "/brands/1/studio/datasets/1/export?revision=1&format=json",
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=UTF-8",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff",
+      "content-disposition": "attachment; filename=dataset-1-r1.json"
+    },
+    "bytes": 303,
+    "sha256": "64dc1cb065ec2cece8f4a7ae344edfe4fc20b60aab4dca97834c8312495cedd0",
+    "pipe_count": 1,
+    "upstream_ended": true,
+    "response_finished": true,
+    "upstream_status": 200
+  },
+  {
+    "name": "editor-entry.json",
+    "kind": "snapshot",
+    "format": "json",
+    "mode": "spreadsheet",
+    "relative_url": "/brands/1/studio/datasets/1/export?revision=1&format=json",
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=UTF-8",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff",
+      "content-disposition": "attachment; filename=dataset-1-r1.json"
+    },
+    "bytes": 303,
+    "sha256": "64dc1cb065ec2cece8f4a7ae344edfe4fc20b60aab4dca97834c8312495cedd0",
+    "pipe_count": 1,
+    "upstream_ended": true,
+    "response_finished": true,
+    "upstream_status": 200
+  }
+]

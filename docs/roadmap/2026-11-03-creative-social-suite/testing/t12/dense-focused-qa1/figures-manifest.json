@@ -1,0 +1,18 @@
+[
+  {
+    "file": "images/1440-dense-screen.png",
+    "sha256": "aaa9379a0c8ff07c2648d81df51885ccbcd888f13655f815771a33abe52fdd1a"
+  },
+  {
+    "file": "images/375-dense-screen.png",
+    "sha256": "198d5c251fd98df9fdf9e92a4f92a3fe50d2be4fa86235d75ff2c58e6c29c6dd"
+  },
+  {
+    "file": "images/768-dense-screen.png",
+    "sha256": "58b44ef324dc547f55c371f0b83625ac3bfc16fe56916bd3411f67cced0d5d22"
+  },
+  {
+    "file": "images/dense-export-identical-three-viewports.png",
+    "sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a"
+  }
+]

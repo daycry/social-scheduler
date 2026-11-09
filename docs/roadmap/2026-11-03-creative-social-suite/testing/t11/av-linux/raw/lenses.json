@@ -1,0 +1,29 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "ruta",
+      "fichero": "deploy/systemd/scheduler-studio.service",
+      "patron": "scheduler"
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-linux.py",
+      "patron": "sleep-bloqueante",
+      "linea": 117
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-runtime.py",
+      "patron": "sleep-bloqueante",
+      "linea": 164
+    }
+  ],
+  "base": "--files",
+  "ficheros": 7,
+  "avisos": []
+}

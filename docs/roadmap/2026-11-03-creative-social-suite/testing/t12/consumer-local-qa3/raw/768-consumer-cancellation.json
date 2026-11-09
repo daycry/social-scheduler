@@ -1,0 +1,39 @@
+{
+  "mode": "consumer-local",
+  "method": "GET",
+  "request_target": "/brands/3/studio/datasets/10/export?format=json&revision=1",
+  "delivery": {
+    "status": 200,
+    "mime": "application/json; charset=UTF-8",
+    "finished": true,
+    "bytes": 289,
+    "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+    "body_file": "consumer-response-body.json"
+  },
+  "ui": {
+    "closed_before_release": true,
+    "focus_before_release": true,
+    "element_count_before_release": 0,
+    "closed_after_delivery": true,
+    "focus_after_delivery": true,
+    "element_count_after_delivery": 0,
+    "layer_count_after_delivery": 0
+  },
+  "cache": {
+    "requests_before_reopen": 1,
+    "requests_after_reopen": 1,
+    "preview_ready": true,
+    "table_cells": [
+      "Texto: Año 2020 é",
+      "Número: 10",
+      "Texto: Año 2020 é",
+      "Número: 20",
+      "Texto: Año 2022 é",
+      "Vacío (null)",
+      "Número: 2026",
+      "Número: 0"
+    ],
+    "closed_after_reopen": true,
+    "element_count_after_reopen": 0
+  }
+}

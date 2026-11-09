@@ -1,0 +1,28 @@
+{
+  "reviewer": "root",
+  "pdf_sha256": "c573226d12223e4fb18a0e9f2de7050bb3cecaacfde2f98b1aa37178239da563",
+  "inspected": {
+    "images/column-preview-render.png": "3b1e939bbd1668fe031caca450fdec123e540654cbb294019a3fdbdc077f97f1",
+    "images/bar-preview-render.png": "3fa2d2435ed466305a9108056b072bd2529065224b49853c6c747d73d0d479c4",
+    "images/failed-server-case.png": "45c35b50716fb469cb681a27177a7af143de4ea3dd97e9ebea60eefd7233cb76",
+    "pdf-pages/page-001.png": "e6753761310ed890dbb57c75148d6c33cc71a90debea3fb639c82768db799a9f",
+    "pdf-pages/page-002.png": "ed9e3e4167882498685678a11dcf09719dae966fc5bab794e2e90ed7913ce1b2",
+    "pdf-pages/page-003.png": "fcf7bd82f94ec8cd7890fab35e3ab118ac9fdf7cbed56db3933aea94f57df427",
+    "pdf-pages/page-004.png": "a8d610f23a4c3b006d96e362690b6c267518b9bf973ff6f10e5aaf7b93b631ef",
+    "pdf-pages/page-005.png": "4b58a3300f6d125b202f15fb8e1ea23feba4f081952beb1c16ecfa2e879db2f8"
+  },
+  "issues": [],
+  "scope": "Five report pages and three representative figures inspected. Five unchanged SHA-identical images were explicitly viewed in prior root inspection; three new byte versions viewed now. No app acceptance.",
+  "previously_inspected_identical_sha": [
+    "images/column-preview-render.png",
+    "images/bar-preview-render.png",
+    "pdf-pages/page-001.png",
+    "pdf-pages/page-002.png",
+    "pdf-pages/page-004.png"
+  ],
+  "new_versions_inspected_now": [
+    "images/failed-server-case.png",
+    "pdf-pages/page-003.png",
+    "pdf-pages/page-005.png"
+  ]
+}

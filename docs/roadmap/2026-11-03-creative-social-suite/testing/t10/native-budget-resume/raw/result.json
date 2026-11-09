@@ -1,0 +1,31 @@
+{
+  "scope": "One offline owned background-model diagnostic; no application/env/DB/network/deployment",
+  "command": [
+    "C:\\laragon\\www\\metricool\\storage\\framework\\studio-python\\Scripts\\python.exe",
+    "storage/framework/testing/t10-guarded-memory-profile.py"
+  ],
+  "exit_code": 0,
+  "seconds": 10.565571069717407,
+  "sources_before": {
+    "scripts/studio/process-image.py": "8030b17bffd354f846ceaa5fe7dab1f1b461b9b1bfa106075f0c82e8bfde8445",
+    "scripts/studio/font_probe.py": "a4da2e2729ce300e22c8b1b5bbb281dfefa62b98a1ec26624eaf085105347053",
+    "storage/framework/testing/t10-guarded-memory-profile.py": "6bef63bdd5fdc16ccea62bf6962fa94f991b4ec487f4b9291d7c2fc061b76687",
+    "storage/framework/testing/t10-profile-image.py": "8072fad3a5c22198d41e12678b2f0ce4aaa6a6c9b6d481699b494d0a23bad9e0",
+    "tests/Fixtures/images/astronaut.png": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+    "storage/app/private/studio-models/birefnet-general-lite.onnx": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333"
+  },
+  "sources_after": {
+    "scripts/studio/process-image.py": "8030b17bffd354f846ceaa5fe7dab1f1b461b9b1bfa106075f0c82e8bfde8445",
+    "scripts/studio/font_probe.py": "a4da2e2729ce300e22c8b1b5bbb281dfefa62b98a1ec26624eaf085105347053",
+    "storage/framework/testing/t10-guarded-memory-profile.py": "6bef63bdd5fdc16ccea62bf6962fa94f991b4ec487f4b9291d7c2fc061b76687",
+    "storage/framework/testing/t10-profile-image.py": "8072fad3a5c22198d41e12678b2f0ce4aaa6a6c9b6d481699b494d0a23bad9e0",
+    "tests/Fixtures/images/astronaut.png": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+    "storage/app/private/studio-models/birefnet-general-lite.onnx": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333"
+  },
+  "source_drift": false,
+  "new_outputs": [
+    "t10-profile-bd97e906-95d0-47c5-b07e-38287be7c593.png"
+  ],
+  "protective_supervisor_changed": false,
+  "not_acceptance": "Does not close T10 or substitute exact-entrypoint and integrated QA"
+}

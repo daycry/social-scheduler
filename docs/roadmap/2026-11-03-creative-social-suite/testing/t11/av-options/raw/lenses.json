@@ -1,0 +1,60 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/canvas.js",
+      "patron": "json-doble-vuelta",
+      "linea": 9
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/canvas.js",
+      "patron": "await-en-bucle",
+      "linea": 299
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/canvas.js",
+      "patron": "await-en-bucle",
+      "linea": 483
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/timeline-preview.js",
+      "patron": "await-en-bucle",
+      "linea": 61
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/timeline-preview.js",
+      "patron": "await-en-bucle",
+      "linea": 69
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "resources/js/Studio/timeline-preview.js",
+      "patron": "await-en-bucle",
+      "linea": 78
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-finalize.mjs",
+      "patron": "await-en-bucle",
+      "linea": 27
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-video.mjs",
+      "patron": "await-en-bucle",
+      "linea": 31
+    }
+  ],
+  "base": "--files",
+  "ficheros": 9,
+  "avisos": []
+}

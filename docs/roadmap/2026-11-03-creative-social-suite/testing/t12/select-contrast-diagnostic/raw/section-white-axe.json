@@ -1,0 +1,460 @@
+{
+  "testEngine": {
+    "name": "axe-core",
+    "version": "4.10.3"
+  },
+  "testRunner": {
+    "name": "axe"
+  },
+  "testEnvironment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "windowWidth": 1440,
+    "windowHeight": 1000,
+    "orientationAngle": 0,
+    "orientationType": "landscape-primary"
+  },
+  "timestamp": "2026-11-06T20:35:56.680Z",
+  "url": "about:blank",
+  "toolOptions": {
+    "runOnly": {
+      "type": "rule",
+      "values": [
+        "color-contrast"
+      ]
+    },
+    "reporter": "v1"
+  },
+  "inapplicable": [],
+  "passes": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "bold",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r0</th>",
+          "target": [
+            "tr:nth-child(1) > th"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Año 2020 é</td>",
+          "target": [
+            "tr:nth-child(1) > td:nth-child(2)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 10</td>",
+          "target": [
+            "tr:nth-child(1) > td:nth-child(3)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "bold",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r1</th>",
+          "target": [
+            "tr:nth-child(2) > th"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Año 2020 é</td>",
+          "target": [
+            "tr:nth-child(2) > td:nth-child(2)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: -20</td>",
+          "target": [
+            "tr:nth-child(2) > td:nth-child(3)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "bold",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r2</th>",
+          "target": [
+            "tr:nth-child(3) > th"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Año 2022 é</td>",
+          "target": [
+            "tr:nth-child(3) > td:nth-child(2)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Vacío (null)</td>",
+          "target": [
+            "tr:nth-child(3) > td:nth-child(3)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "bold",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<th data-v-d7a4d025=\"\" scope=\"row\" class=\"p-2\">r3</th>",
+          "target": [
+            "tr:nth-child(4) > th"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 2026</td>",
+          "target": [
+            "tr:nth-child(4) > td:nth-child(2)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<td data-v-d7a4d025=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 0</td>",
+          "target": [
+            "tr:nth-child(4) > td:nth-child(3)"
+          ]
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#1e293b",
+                "bgColor": "#ffffff",
+                "contrastRatio": 14.62,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [],
+              "impact": "serious",
+              "message": "Element has sufficient color contrast of 14.62"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": null,
+          "html": "<span data-v-d7a4d025=\"\" role=\"status\">Página 1 de 1 · 4 filas</span>",
+          "target": [
+            "span"
+          ]
+        }
+      ]
+    }
+  ],
+  "incomplete": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "contrastRatio": 0,
+                "fontSize": "10.5pt (14px)",
+                "fontWeight": "normal",
+                "messageKey": "bgImage",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<select data-v-d7a4d025=\"\" class=\"field\"><!----><option data-v-d7a4d025=\"\" value=\"category\">Categoría</option><option data-v-d7a4d025=\"\" value=\"s0\">Serie 1</option><option data-v-d7a4d025=\"\" value=\"s1\">Serie 2</option></select>",
+                  "target": [
+                    "label:nth-child(1) > select"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element's background color could not be determined due to a background image"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<select data-v-d7a4d025=\"\" class=\"field\"><!----><option data-v-d7a4d025=\"\" value=\"category\">Categoría</option><option data-v-d7a4d025=\"\" value=\"s0\">Serie 1</option><option data-v-d7a4d025=\"\" value=\"s1\">Serie 2</option></select>",
+          "target": [
+            "label:nth-child(1) > select"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background image"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "contrastRatio": 0,
+                "fontSize": "10.5pt (14px)",
+                "fontWeight": "normal",
+                "messageKey": "bgImage",
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<select data-v-d7a4d025=\"\" class=\"field\"><option data-v-d7a4d025=\"\" value=\"safe\">Segura · rechazar pérdida de precisión</option><option data-v-d7a4d025=\"\" value=\"approximate\">Aproximada · acepto aproximar números</option></select>",
+                  "target": [
+                    "label:nth-child(2) > select"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element's background color could not be determined due to a background image"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<select data-v-d7a4d025=\"\" class=\"field\"><option data-v-d7a4d025=\"\" value=\"safe\">Segura · rechazar pérdida de precisión</option><option data-v-d7a4d025=\"\" value=\"approximate\">Aproximada · acepto aproximar números</option></select>",
+          "target": [
+            "label:nth-child(2) > select"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background image"
+        }
+      ]
+    }
+  ],
+  "violations": []
+}

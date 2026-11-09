@@ -1,0 +1,38 @@
+{
+  "scope": "pure exact-entry fixture validation with actual prepareBarChart/createBarChartScene; renderer sentinel; NO metrics/native/render proof",
+  "negativeControl": true,
+  "valid": 0,
+  "total": 6,
+  "rows": [
+    {
+      "id": "column",
+      "reachedRendererSentinel": false,
+      "error": "TypeError: Fila 4, columna 1: se esperaba texto, número tipado o vacío."
+    },
+    {
+      "id": "bar",
+      "reachedRendererSentinel": false,
+      "error": "TypeError: Fila 4, columna 1: se esperaba texto, número tipado o vacío."
+    },
+    {
+      "id": "proportional",
+      "reachedRendererSentinel": false,
+      "error": "TypeError: Fila 4, columna 1: se esperaba texto, número tipado o vacío."
+    },
+    {
+      "id": "root-transform",
+      "reachedRendererSentinel": false,
+      "error": "TypeError: Fila 4, columna 1: se esperaba texto, número tipado o vacío."
+    },
+    {
+      "id": "long-private-font",
+      "reachedRendererSentinel": false,
+      "error": "TypeError: Fila 4, columna 1: se esperaba texto, número tipado o vacío."
+    },
+    {
+      "id": "tiny160",
+      "reachedRendererSentinel": false,
+      "error": "TypeError: Fila 4, columna 1: se esperaba texto, número tipado o vacío."
+    }
+  ]
+}

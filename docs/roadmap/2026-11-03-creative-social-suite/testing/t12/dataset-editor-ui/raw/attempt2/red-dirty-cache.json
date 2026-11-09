@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern=dialog save invalidates a rendered dirty cache",
+    "tests/frontend/studio-datasets-dialog.test.mjs"
+  ],
+  "exit_code": 1
+}

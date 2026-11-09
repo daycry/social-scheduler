@@ -1,0 +1,80 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -366,14 +366,18 @@
+         if (! $state) {
+             return collect();
+         }
+-        $query = StudioAvLease::query()->join('studio_av_steps as checkpoint_steps', 'checkpoint_steps.result_lease_id', '=', 'studio_av_leases.id')
+-            ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation'])
+-            ->where('studio_av_leases.workspace_id', $state['allocation_id'])->where('studio_av_leases.status', 'accepted');
++        $query = StudioAvLease::query()->where('studio_av_leases.workspace_id', $state['allocation_id'])->where('studio_av_leases.status', 'accepted');
++        if ($unpublished) {
++            $query->where('studio_av_leases.category', 'snapshot')->where('studio_av_leases.input_published', false)
++                ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_av_steps as checkpoint_steps')
++                    ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation'])
++                    ->whereColumn('checkpoint_steps.result_lease_id', 'studio_av_leases.id'))->limit(16);
++        } else {
++            $query->join('studio_av_steps as checkpoint_steps', 'checkpoint_steps.result_lease_id', '=', 'studio_av_leases.id')
++                ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation']);
++        }
+         if ($phases !== []) {
+             $query->whereIn('studio_av_leases.phase', $phases);
+-        }
+-        if ($unpublished) {
+-            $query->where('studio_av_leases.category', 'snapshot')->where('studio_av_leases.input_published', false)->limit(16);
+         }
+ 
+         return $query->select('studio_av_leases.*')->get()->keyBy(fn (StudioAvLease $lease) => $lease->phase.':'.$lease->item);
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -60,6 +60,7 @@
+             $table->uuid('result_lease_id')->nullable();
+             $table->unique(['workspace_id', 'generation', 'position']);
+             $table->index(['workspace_id', 'generation', 'phase', 'item']);
++            $table->index(['workspace_id', 'generation', 'result_lease_id'], 'studio_av_step_result_membership');
+             $table->foreign('lease_id')->references('id')->on('studio_av_leases')->nullOnDelete();
+             $table->foreign('source_id')->references('id')->on('studio_av_leases')->nullOnDelete();
+             $table->foreign('result_lease_id')->references('id')->on('studio_av_leases')->nullOnDelete();
+--- a/tests/Feature/Studio/StudioAvQueueTest.php
++++ b/tests/Feature/Studio/StudioAvQueueTest.php
+@@ -20,6 +20,7 @@
+ use Illuminate\Console\Scheduling\Schedule;
+ use Illuminate\Contracts\Queue\ShouldBeUnique;
+ use Illuminate\Support\Facades\Artisan;
++use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Process;
+ use Illuminate\Support\Facades\Queue;
+ use Illuminate\Support\Facades\Storage;
+@@ -206,6 +207,21 @@
+     expect(Storage::disk('local')->get($root.'/assets/'.$media->id.'.bin'))->toBe('snapshot bytes');
+ });
+ 
++test('AV pending promotion lookup starts with unpublished leases and uses indexed generation membership', function () {
++    DB::enableQueryLog();
++    try {
++        $this->state->checkpoints($this->export, ['asset', 'font'], true);
++        $query = collect(DB::getQueryLog())->first(fn ($q) => str_contains($q['query'], 'input_published'));
++        $plan = DB::select('EXPLAIN QUERY PLAN '.$query['query'], $query['bindings']);
++        expect($plan[0]->detail)->toContain('workspace_id=? AND category=? AND status=? AND input_published=?');
++        $details = implode(' ', array_map(fn ($row) => $row->detail, $plan));
++        expect($details)->toContain('generation=? AND result_lease_id=?');
++    } finally {
++        DB::disableQueryLog();
++        DB::flushQueryLog();
++    }
++});
++
+ test('AV recovery cleans expired partials from failed or cancelled exports while preserving their status', function (string $status) {
+     app(StudioAvQueue::class)->enqueue($this->export->id);
+     $lease = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -74,6 +74,8 @@
+ 
+ El journal de cada snapshot distingue aceptación de publicación del input fijo mediante input_published. Si el proceso muere entre esos dos pasos, recovery repara la promoción antes de encolar el trabajo siguiente. Solo consulta promociones pendientes de la generación actual, con índice ybatch de16; no vuelve a verificar todos los recursos ya publicados en cada pasada. Los parciales vencidos de exports failed/cancelled también se limpian periódicamente, conservando su estado terminal ylos checkpoints aceptados. En mantenimiento se comprueba un plazo de15s entre operaciones; una promoción individual puede consumir hasta85s yuna limpieza hasta30s, de modo que no se afirma un límite duro de15s para la pasada completa. El mutex del scheduler dura2min yno reservaRAM.
+ 
++La consulta de promociones empieza por leases con input_published=false ycomprueba pertenencia mediante EXISTS indexado porworkspace/generación/result_lease_id. Así el caso habitual de cero pendientes no recorre todos los steps publicados para después descartarlos. La consulta general de checkpoints mantiene su unión para obtener resultados completos; son accesos distintos.
++
+ El runner transmite el mismo deadline a snapshot, verificación, promoción ypuente nativo; ninguna de esas operaciones abre otro plazo85s dentro del mismo job. Una prueba con presupuesto ya agotado comprueba rechazo antes decopiar. No se presenta como una medición de una transferencia lenta de85s.
+ 
+ ## Cancelación, errores y recuperación

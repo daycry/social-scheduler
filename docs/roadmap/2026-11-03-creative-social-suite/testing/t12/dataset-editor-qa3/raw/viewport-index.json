@@ -1,0 +1,137 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "project": "desktop",
+    "case": "E2E27.01",
+    "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+  },
+  {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "project": "mobile",
+    "case": "E2E27.01",
+    "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "project": "mobile-360",
+    "case": "E2E27.01",
+    "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "project": "desktop",
+    "case": "E2E27.02",
+    "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file"
+  },
+  {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "project": "mobile",
+    "case": "E2E27.02",
+    "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file"
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "project": "mobile-360",
+    "case": "E2E27.02",
+    "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file"
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "project": "desktop",
+    "case": "E2E27.03",
+    "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo"
+  },
+  {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "project": "mobile",
+    "case": "E2E27.03",
+    "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo"
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "project": "mobile-360",
+    "case": "E2E27.03",
+    "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo"
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "project": "desktop",
+    "case": "E2E27.04",
+    "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation"
+  },
+  {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "project": "mobile",
+    "case": "E2E27.04",
+    "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation"
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "project": "mobile-360",
+    "case": "E2E27.04",
+    "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation"
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "project": "desktop",
+    "case": "E2E27.05",
+    "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus"
+  },
+  {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "project": "mobile",
+    "case": "E2E27.05",
+    "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus"
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "project": "mobile-360",
+    "case": "E2E27.05",
+    "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus"
+  }
+]

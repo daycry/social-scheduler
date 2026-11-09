@@ -1,0 +1,31 @@
+{
+  "README.md": {
+    "sha256": "baa26510c23be06d2195c755ab4ea440d9762397883f2fb3253056381bcba6b3",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full"
+  },
+  "docs/modulos/mcp.md": {
+    "sha256": "14ef4734abd6e3fd2a8ebccefc68e53ae30f27e680cf501c321de4d144137381",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full"
+  },
+  "deploy/systemd/README.md": {
+    "sha256": "b74296305b5b67c903298afdfe9c730db5d123a7f38bdb96247f17d197872a69",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full"
+  },
+  "docs/roadmap/2026-11-03-creative-social-suite/document-contract.md": {
+    "sha256": "c34a927d7e90c59c453fc8d3b391f546281a05310627497478614b5185f979ba",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full"
+  },
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-captions-contract.md": {
+    "sha256": "f9dc827bcb8f76e1bc371a075dba63098d223add92b44fb62af8683ab05cc933",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full"
+  },
+  "docs/roadmap/2026-11-03-creative-social-suite/reference-inventory.md": {
+    "sha256": "064a7b106d56e67a4fcbdbf24a311483a6c2809f71c127bb07a48c24549fa237",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full"
+  },
+  "docs/roadmap/2026-11-03-creative-social-suite/test-plan.md": {
+    "sha256": "99ce8aa5c654e1d2f1f562992ef6c3e2dee309584859a834fe354a0e28963a5d",
+    "baseline": "QA2 observed descriptor copy retained; current descriptor read in full",
+    "doc_addendum": "QA3 preparation corrected stale execution wording only; acceptance criteria unchanged"
+  }
+}

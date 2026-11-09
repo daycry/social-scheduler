@@ -1,0 +1,250 @@
+{
+  "valid": [
+    {
+      "name": "minimal",
+      "input": {
+        "binding": {
+          "dataset": {
+            "id": 1,
+            "revision": 2,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "category_column": "category",
+          "series_columns": [
+            "value"
+          ]
+        }
+      },
+      "expected_subset": {
+        "kind": "column",
+        "fontFamily": "Arial",
+        "fontSize": 16
+      }
+    },
+    {
+      "name": "full",
+      "input": {
+        "binding": {
+          "dataset": {
+            "id": 1,
+            "revision": 2,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "category_column": "category",
+          "series_columns": [
+            "v1",
+            "v2"
+          ],
+          "precision": "approximate"
+        },
+        "options": {
+          "kind": "bar-grouped",
+          "palette": [
+            "#123",
+            "#1234",
+            "#123456",
+            "#12345678"
+          ],
+          "domain_min": -10,
+          "domain_max": 100,
+          "tick_count": 7,
+          "band_gap": 0.3,
+          "series_gap": 0.2
+        },
+        "style": {
+          "title": "Ingresos ñ 😀",
+          "subtitle": "Serie anual",
+          "source": "Fuente propia",
+          "x_title": "Euros",
+          "y_title": "Mes",
+          "fontFamily": "Space Grotesk",
+          "font_id": 7,
+          "fontSize": 18,
+          "fontWeight": "bold",
+          "fontStyle": "italic",
+          "text_color": "#123456",
+          "axis_color": "#234",
+          "grid_color": "#abcdef80",
+          "background": "#fff",
+          "legend": false,
+          "show_grid": false,
+          "show_axis": false,
+          "category_labels": false,
+          "legend_position": "right",
+          "value_labels": "raw",
+          "label_position": "inside",
+          "category_label_limit": 32
+        }
+      },
+      "expected_subset": {
+        "kind": "bar-grouped",
+        "fontFamily": "Space Grotesk",
+        "fontSize": 18,
+        "font_id": 7
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "unknown-root",
+      "path": [
+        "html"
+      ],
+      "value": "<svg>"
+    },
+    {
+      "name": "upper-sha",
+      "path": [
+        "binding",
+        "dataset",
+        "sha256"
+      ],
+      "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "name": "lf-column",
+      "path": [
+        "binding",
+        "category_column"
+      ],
+      "value": "category\n"
+    },
+    {
+      "name": "lf-series",
+      "path": [
+        "binding",
+        "series_columns"
+      ],
+      "value": [
+        "value\n"
+      ]
+    },
+    {
+      "name": "duplicate-series",
+      "path": [
+        "binding",
+        "series_columns"
+      ],
+      "value": [
+        "value",
+        "value"
+      ]
+    },
+    {
+      "name": "category-as-series",
+      "path": [
+        "binding",
+        "series_columns"
+      ],
+      "value": [
+        "category"
+      ]
+    },
+    {
+      "name": "unsafe-id",
+      "path": [
+        "binding",
+        "dataset",
+        "id"
+      ],
+      "value": 9007199254740992
+    },
+    {
+      "name": "null-font",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "font_id": null
+      }
+    },
+    {
+      "name": "private-font",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "fontFamily": "Arial, StudioFont_1"
+      }
+    },
+    {
+      "name": "bad-color",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "text_color": "url(https://example.invalid)"
+      }
+    },
+    {
+      "name": "lf-color",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "axis_color": "#123\n"
+      }
+    },
+    {
+      "name": "control-title",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "title": "bad\u0000title"
+      }
+    },
+    {
+      "name": "long-unicode-title",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    },
+    {
+      "name": "empty-options",
+      "path": [
+        "options"
+      ],
+      "value": {}
+    },
+    {
+      "name": "geometry-width-forbidden",
+      "path": [
+        "options"
+      ],
+      "value": {
+        "kind": "column",
+        "width": 640
+      }
+    },
+    {
+      "name": "fraction-ticks",
+      "path": [
+        "options"
+      ],
+      "value": {
+        "kind": "column",
+        "tick_count": 3.5
+      }
+    },
+    {
+      "name": "percentage-non-proportional",
+      "path": [
+        "style"
+      ],
+      "value": {
+        "value_labels": "percentage"
+      }
+    },
+    {
+      "name": "null-style",
+      "path": [
+        "style"
+      ],
+      "value": null
+    }
+  ]
+}

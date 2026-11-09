@@ -1,0 +1,3409 @@
+{
+  "schema": "client-independent-v1",
+  "module_sha256": {
+    "svg-xml.py": "a0158169ccb38bd5ca25e9ee0fa81d21d79aad7d0fe1e6d87f4ceb3377231872",
+    "png-observer.py": "b4c397537028698a8d7fcc1f303182a96a86eda08c7c6fa51c43d048255e9c56"
+  },
+  "observations": [
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "column",
+      "input_sha256": {
+        "column.svg": "fd186f609677d03e84e09cd2b64d68f72fee627cdc779ea5791f79e713c5ebb6",
+        "column.png": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+        "column-svg-observer.json": "2a6e7cec9d5666a5be31669c679b7a436fd5e0f02e7da5e51102d46b013bf45d",
+        "column-deliveries.json": "b83c744db77dc67fe668011eaea6f465e2a476d48fdbe111f170c788b7c33e79",
+        "column-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "column-preview-render.png": "0b0def5bde9fa034cbf9c9117c97c12e71b78d85b07d9f90c81d41ca6af78adb",
+        "column-preview-crop.json": "94f04b2232ea0413b5854f6d86fdde68c4e75f1a64e92404c04e7c0ea38d64d8",
+        "column-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "column.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 4089,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36944260000018403
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "bar",
+      "input_sha256": {
+        "bar.svg": "8ff196e7f10a6c314e6cea1709c1ff6a62594ec6912a05f910e22303ef4e92f2",
+        "bar.png": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+        "bar-svg-observer.json": "016500cc29a49a4e67d86c633972eecb43e2457b28381f089f937fec23bd62b6",
+        "bar-deliveries.json": "dfb54ed7544c3057519bafbdd5448d2939550c553d6b4bf25c7758bfc3ea76af",
+        "bar-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "bar-preview-render.png": "ab88e79763d6b536d7e6aeea57d29683c8437dc9782756b7b0c5e6383065321f",
+        "bar-preview-crop.json": "9998adddd4bbf4fe3bf2b7f448591c69c33af397abb417bb8feb8f73ce3b9438",
+        "bar-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "bar.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          }
+        ],
+        "exact_palette_pixels": 4046,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.40063869999721646
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "column-grouped",
+      "input_sha256": {
+        "column-grouped.svg": "01c810d713cf6219d8f7e438f000d7b857b98f7cbf0b045844758af586c3f792",
+        "column-grouped.png": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+        "column-grouped-svg-observer.json": "90e6c094566b712e71f22a0e63e8f5103f9deb307dbee6ffd6757c632c78e092",
+        "column-grouped-deliveries.json": "13388e791add43ba5800553d2e2374bbd22466e3c95a79392883ddf6476328d8",
+        "column-grouped-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "column-grouped-preview-render.png": "70425c23bebfb230e4f839512d9c1a7e9da72584bb5284ac911ca5c1831ede58",
+        "column-grouped-preview-crop.json": "4441eaa2b393ce0c928be4ddfc65819b257c37e876cb6669aaef0a826171c668",
+        "column-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-grouped-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "column-grouped.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 213,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 257,
+            "y": 245,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 331,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 375,
+            "y": 230,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 200,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 5126,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-grouped-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-grouped-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36311859998386353
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "bar-grouped",
+      "input_sha256": {
+        "bar-grouped.svg": "f1a947256acc6d95846699709b61b558ebfe923a3bd410dfd49d6e2e14491637",
+        "bar-grouped.png": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+        "bar-grouped-svg-observer.json": "05f709ee4f90e00cc63520203229b32ff55f51dca9ad807c9387c33a8e69eac4",
+        "bar-grouped-deliveries.json": "d478ba41bf915fc559bbf960a482f279c1e6a4e58acbdaf889f4cfc21c3a2c12",
+        "bar-grouped-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "bar-grouped-preview-render.png": "629ac84d43426b8a6fd67c4967bfe0c3efda6c25b1a5305370ed6fc9335a04bb",
+        "bar-grouped-preview-crop.json": "1ff4a98a21718086a66028c53bb0e7ae3a04c064a289852b898aa76a1ad83e37",
+        "bar-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-grouped-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "bar-grouped.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 130,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 435,
+            "y": 159,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 207,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 459,
+            "y": 236,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 505
+          }
+        ],
+        "exact_palette_pixels": 5153,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-grouped-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-grouped-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.419376400008332
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "column-stacked",
+      "input_sha256": {
+        "column-stacked.svg": "6b6f24e61a40a916c880bb646ec41ac046702176a47280e9bc17e77e150d3e31",
+        "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+        "column-stacked-svg-observer.json": "87ec973f279468a5d857f8beb8cc021c92feb1d35721e885b24fa78588664f4c",
+        "column-stacked-deliveries.json": "e7b8ff707757e7df949d01acad538cf71ad6391b4428b22ebe0e4f874b75062c",
+        "column-stacked-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "column-stacked-preview-render.png": "bc1f4be4fc0ac045182b6379f5dee742c5cffd98fc48eabc18a91b76490c0956",
+        "column-stacked-preview-crop.json": "5d1ea6b4a2966a59fdd223c7afecfb1abc4d778d0f61c0cb95ee1ab9c1a7eeaa",
+        "column-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-stacked-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "column-stacked.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 235,
+            "y": 230,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 215,
+            "axis_last": 244
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 353,
+            "y": 199,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 169,
+            "axis_last": 229
+          }
+        ],
+        "exact_palette_pixels": 12123,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-stacked-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-stacked-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36364910000702366
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "bar-stacked",
+      "input_sha256": {
+        "bar-stacked.svg": "26b07b292d7a1a2b32dc9008298b5595bf0ce20a4b458486234ec237f260c4c8",
+        "bar-stacked.png": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+        "bar-stacked-svg-observer.json": "f12d9c6a5a69c8f1fc97f0e40d98bfca59091702664b13cd46116bbd31b156eb",
+        "bar-stacked-deliveries.json": "9836859de70fe98d729fa4c6255d4df01de382fb18d671ec4142154e3173d334",
+        "bar-stacked-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "bar-stacked-preview-render.png": "28ecee71ff4fc8cfb15738368b36089f368ae02557be7f7a9077f598a2ab8bd1",
+        "bar-stacked-preview-crop.json": "832ff36d66180ac8c41764acdf59c591c3aadf133598ab5aa7ad01ae310dd681",
+        "bar-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-stacked-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "bar-stacked.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 459,
+            "y": 145,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 436,
+            "axis_last": 481
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 506,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 460,
+            "axis_last": 552
+          }
+        ],
+        "exact_palette_pixels": 12025,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-stacked-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-stacked-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.33849339999142103
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "column-proportional",
+      "input_sha256": {
+        "column-proportional.svg": "991db1ce86140ff4f9899d0ce6ca29c3f54e37f571179702e86496f046f7b457",
+        "column-proportional.png": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+        "column-proportional-svg-observer.json": "b6495260527729d2d747bff7095d93024259460eb50dbbeb025c93b0554e764c",
+        "column-proportional-deliveries.json": "7f3edb5595a50162545cab3081573d845b0440202d1037ab1640df08ccf1f05c",
+        "column-proportional-preview.png": "ed05e9e91d8e5fa1876fcae1a24022ca99e7bd44a89de9b287c3bd30c388b6b1",
+        "column-proportional-preview-render.png": "45895eb4268eb083eba1d7a0eadfba70a181ea2bec7b119e24a78924427fd298",
+        "column-proportional-preview-crop.json": "62d9b250c4ca39a56aea85601bb9df6e9ab213cc9f8228b7a9d5d1c1d2538cc9",
+        "column-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-proportional-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "column-proportional.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 363,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 313,
+            "axis_last": 414
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 235,
+            "y": 209,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 107,
+            "axis_last": 311
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 363,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 313,
+            "axis_last": 414
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 353,
+            "y": 209,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 107,
+            "axis_last": 311
+          }
+        ],
+        "exact_palette_pixels": 53837,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-proportional-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-proportional-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.35940720001235604
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "bar-proportional",
+      "input_sha256": {
+        "bar-proportional.svg": "b6350207a2a8fa99c110f6a39d6bfeb630f2dea3e64fdb80351071cbfc65ed48",
+        "bar-proportional.png": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+        "bar-proportional-svg-observer.json": "93c5198d1ab5bdc5887c0fda3e385c3a836084771b0d54c21125519bd902b952",
+        "bar-proportional-deliveries.json": "ac8e52a1d9a4eee9b300c5d885741b7a31e56f52a30dd8a1761dc8eb505e3965",
+        "bar-proportional-preview.png": "ed05e9e91d8e5fa1876fcae1a24022ca99e7bd44a89de9b287c3bd30c388b6b1",
+        "bar-proportional-preview-render.png": "0c6320590f57d05c27cc4d76ab14ebb5c7b7a04ff82c6cafde21a8172ce3a5e2",
+        "bar-proportional-preview-crop.json": "2738d72482840a7f3d7ea67ee4807d00aec8f5fb6df59ba91d14e52b3623f3dc",
+        "bar-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-proportional-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "bar-proportional.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 255,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 177,
+            "axis_last": 332
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 490,
+            "y": 145,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 334,
+            "axis_last": 646
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 255,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 177,
+            "axis_last": 332
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 490,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 334,
+            "axis_last": 646
+          }
+        ],
+        "exact_palette_pixels": 53578,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-proportional-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-proportional-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36099660000763834
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "column-multicolor",
+      "input_sha256": {
+        "column-multicolor.svg": "bd38c26884ca60e3b1ed0c3aded14a02f88e6c4480ddb0fb41126423d6a61450",
+        "column-multicolor.png": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+        "column-multicolor-svg-observer.json": "88615de86253e53e113058bc1dba43f127fd855360b697e48fdfc7a0cc6fd49c",
+        "column-multicolor-deliveries.json": "a3d0b99cda99913fddd58ea91b451ad9ce80964866dbf4b197fa770665016538",
+        "column-multicolor-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "column-multicolor-preview-render.png": "2284522f5fea6d3dc5155796e9efc9f201431ded792313844b87de0c70908f5c",
+        "column-multicolor-preview-crop.json": "2e252239c29b9566b85bfdeb4f5296b1652919e4ec26a6043264016940e1e703",
+        "column-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-multicolor-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "column-multicolor.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 4201,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-multicolor-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-multicolor-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3435526000102982
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop",
+      "kind": "bar-multicolor",
+      "input_sha256": {
+        "bar-multicolor.svg": "b3534ca886f03f9c717f458fab457e9ea83fad33590950ec991415409f0858ca",
+        "bar-multicolor.png": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+        "bar-multicolor-svg-observer.json": "e13c50a56716ecf33e0f0ad853ad9af038b4abf5e874ca30f74530f05e33825d",
+        "bar-multicolor-deliveries.json": "7da9e0e891c8e213a936339dcef8f02db600df6ab4b7e6f0357b95707a958f7a",
+        "bar-multicolor-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+        "bar-multicolor-preview-render.png": "5f2b0e0e0e61e2b075eef321a48288cce4ac42dd649787af20ce2864e5bbc92b",
+        "bar-multicolor-preview-crop.json": "b53c0684e35ab01f8be76e96fdc0f62f8e7897bc27f01d98339cdc7aabf602ca",
+        "bar-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-multicolor-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+        "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25"
+      },
+      "xml": {
+        "svg": "bar-multicolor.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          }
+        ],
+        "exact_palette_pixels": 4158,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-multicolor-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-multicolor-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.34650909999618307
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "column",
+      "input_sha256": {
+        "column.svg": "b8b5991d2fc8eb25a5ca7740077d08dbd1cba61946b4f87150294bef2704c4d5",
+        "column.png": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+        "column-svg-observer.json": "30ffb77c5e13e0e68135c356a61f91c91e0fb12298f1c8d3bfc5a2f4a4599d03",
+        "column-deliveries.json": "d22d3700ce40264b7a4418d914989e82ba4315b2f8b757a1a090783204f39b29",
+        "column-preview.png": "9099674ba669e18c848245e63eb4488ae81fc193239df6e174593931a264ab10",
+        "column-preview-render.png": "0b0def5bde9fa034cbf9c9117c97c12e71b78d85b07d9f90c81d41ca6af78adb",
+        "column-preview-crop.json": "94f04b2232ea0413b5854f6d86fdde68c4e75f1a64e92404c04e7c0ea38d64d8",
+        "column-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "column.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 4089,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3246011000010185
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "bar",
+      "input_sha256": {
+        "bar.svg": "bf2db50b019ad3584d5f458b8403dc7e2169abf1d5a817dcec54353e84f820e5",
+        "bar.png": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+        "bar-svg-observer.json": "c0abbdf8b4eb4be52f5f5109c2d57790faea04abfdce1abea120d4b22458fbfa",
+        "bar-deliveries.json": "04ecc70c68244f6ddea92121e849c4dba3e9240c52d326fafc0a2655108ac014",
+        "bar-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "bar-preview-render.png": "ab88e79763d6b536d7e6aeea57d29683c8437dc9782756b7b0c5e6383065321f",
+        "bar-preview-crop.json": "9998adddd4bbf4fe3bf2b7f448591c69c33af397abb417bb8feb8f73ce3b9438",
+        "bar-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "bar.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          }
+        ],
+        "exact_palette_pixels": 4046,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3405184999865014
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "column-grouped",
+      "input_sha256": {
+        "column-grouped.svg": "bf6a175f5e4699b70bae498b5335693ee788f44c7b9c5613f6b46061ce089f38",
+        "column-grouped.png": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+        "column-grouped-svg-observer.json": "98c8ac3766ee744d8c47ebd1f506d33c47394664546edd8a15bbcd8d02947438",
+        "column-grouped-deliveries.json": "c2fcb3f62a307c425ba32435f81325e769be40f3feec8921a901c996b70d52b5",
+        "column-grouped-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "column-grouped-preview-render.png": "70425c23bebfb230e4f839512d9c1a7e9da72584bb5284ac911ca5c1831ede58",
+        "column-grouped-preview-crop.json": "4441eaa2b393ce0c928be4ddfc65819b257c37e876cb6669aaef0a826171c668",
+        "column-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-grouped-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "column-grouped.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 213,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 257,
+            "y": 245,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 331,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 375,
+            "y": 230,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 200,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 5126,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-grouped-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-grouped-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.37878009999985807
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "bar-grouped",
+      "input_sha256": {
+        "bar-grouped.svg": "cfb4aaf89bab2547c78c9becbd1f169cb5e1aa2105dfb0f79eb932ee9df9774a",
+        "bar-grouped.png": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+        "bar-grouped-svg-observer.json": "0b8932d8c45895ed05f0ef08336052eefbb4aeeb23665ac99055e8e592393ec1",
+        "bar-grouped-deliveries.json": "14e7a6db292dcc0f197d70e9e4108adbbdca25708ca4e2f999e08149ac5725d0",
+        "bar-grouped-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "bar-grouped-preview-render.png": "629ac84d43426b8a6fd67c4967bfe0c3efda6c25b1a5305370ed6fc9335a04bb",
+        "bar-grouped-preview-crop.json": "1ff4a98a21718086a66028c53bb0e7ae3a04c064a289852b898aa76a1ad83e37",
+        "bar-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-grouped-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "bar-grouped.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 130,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 435,
+            "y": 159,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 207,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 459,
+            "y": 236,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 505
+          }
+        ],
+        "exact_palette_pixels": 5153,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-grouped-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-grouped-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.333187199983513
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "column-stacked",
+      "input_sha256": {
+        "column-stacked.svg": "9c940efdc04a41d0655d54faa0ce0a0164d5b2974cd00938d39fef57737d8a0b",
+        "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+        "column-stacked-svg-observer.json": "d87933a5ee16e76b96522676ecabe66ebe20b9470e339668e94af8c6900adb04",
+        "column-stacked-deliveries.json": "fa985b82207974936ad28585d730e4ffff6f97e5e2f96ac0e02c691022c38f9a",
+        "column-stacked-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "column-stacked-preview-render.png": "bc1f4be4fc0ac045182b6379f5dee742c5cffd98fc48eabc18a91b76490c0956",
+        "column-stacked-preview-crop.json": "5d1ea6b4a2966a59fdd223c7afecfb1abc4d778d0f61c0cb95ee1ab9c1a7eeaa",
+        "column-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-stacked-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "column-stacked.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 235,
+            "y": 230,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 215,
+            "axis_last": 244
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 353,
+            "y": 199,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 169,
+            "axis_last": 229
+          }
+        ],
+        "exact_palette_pixels": 12123,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-stacked-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-stacked-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.38913540000794455
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "bar-stacked",
+      "input_sha256": {
+        "bar-stacked.svg": "4cd92372b4bd700990bad459d293d2ced92c52ae36f2e1d8d98ec6f0153b8452",
+        "bar-stacked.png": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+        "bar-stacked-svg-observer.json": "3e058257c6aa98ea8b3074b6ba0d4259a840788f67472872295915a4ff9de9e1",
+        "bar-stacked-deliveries.json": "2097564cc079bc0146074a47b4021b2ed0c393fc24530ed1b81d0f4830085d8c",
+        "bar-stacked-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "bar-stacked-preview-render.png": "28ecee71ff4fc8cfb15738368b36089f368ae02557be7f7a9077f598a2ab8bd1",
+        "bar-stacked-preview-crop.json": "832ff36d66180ac8c41764acdf59c591c3aadf133598ab5aa7ad01ae310dd681",
+        "bar-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-stacked-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "bar-stacked.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 459,
+            "y": 145,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 436,
+            "axis_last": 481
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 506,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 460,
+            "axis_last": 552
+          }
+        ],
+        "exact_palette_pixels": 12025,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-stacked-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-stacked-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36634560002130456
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "column-proportional",
+      "input_sha256": {
+        "column-proportional.svg": "45d3e5c3d9a5096fcc3125644c7ee5bf0dd4709c871bb6758947b6ee0120ad61",
+        "column-proportional.png": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+        "column-proportional-svg-observer.json": "9c6e4231f7de069468b34e772a6c6899792d2444c0fa06f4e0bda6d76e71ee59",
+        "column-proportional-deliveries.json": "5b31404848920d3897fe53579600d57a1bc95a835f7e40f32fd34323cbea88e8",
+        "column-proportional-preview.png": "a74fd095254f298f23312ad381f0c7e5286fabdd403c8db7a7deccc504d079ab",
+        "column-proportional-preview-render.png": "45895eb4268eb083eba1d7a0eadfba70a181ea2bec7b119e24a78924427fd298",
+        "column-proportional-preview-crop.json": "62d9b250c4ca39a56aea85601bb9df6e9ab213cc9f8228b7a9d5d1c1d2538cc9",
+        "column-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-proportional-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "column-proportional.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 363,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 313,
+            "axis_last": 414
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 235,
+            "y": 209,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 107,
+            "axis_last": 311
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 363,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 313,
+            "axis_last": 414
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 353,
+            "y": 209,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 107,
+            "axis_last": 311
+          }
+        ],
+        "exact_palette_pixels": 53837,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-proportional-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-proportional-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3463245999882929
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "bar-proportional",
+      "input_sha256": {
+        "bar-proportional.svg": "c4bb58360f39091f58fda8e6204544f613f12c1e1b1721d25ba507f9b7af3c9f",
+        "bar-proportional.png": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+        "bar-proportional-svg-observer.json": "aa1619e41901b11b2adcd4bbf50c6413f4a4cd67714ef3fdb68cfa83f3db06e5",
+        "bar-proportional-deliveries.json": "3bf41297b624ba92b1fca87230152e2a020af8623b41464482a36b0ed99e57b6",
+        "bar-proportional-preview.png": "a74fd095254f298f23312ad381f0c7e5286fabdd403c8db7a7deccc504d079ab",
+        "bar-proportional-preview-render.png": "0c6320590f57d05c27cc4d76ab14ebb5c7b7a04ff82c6cafde21a8172ce3a5e2",
+        "bar-proportional-preview-crop.json": "2738d72482840a7f3d7ea67ee4807d00aec8f5fb6df59ba91d14e52b3623f3dc",
+        "bar-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-proportional-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "bar-proportional.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 255,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 177,
+            "axis_last": 332
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 490,
+            "y": 145,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 334,
+            "axis_last": 646
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 255,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 177,
+            "axis_last": 332
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 490,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 334,
+            "axis_last": 646
+          }
+        ],
+        "exact_palette_pixels": 53578,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-proportional-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-proportional-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3684948999725748
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "column-multicolor",
+      "input_sha256": {
+        "column-multicolor.svg": "9b6edb1fc713e1162d93f4ac8e96a06f4f6cdef61b1ef3212d70b8da10dd0f20",
+        "column-multicolor.png": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+        "column-multicolor-svg-observer.json": "3e4560221ad856699dccadaa37dc970c52300e2373e543beb5d58e712733b6df",
+        "column-multicolor-deliveries.json": "fe30e0ebdbb5b65c92d2506a7e98d42018d49c3b14f45e213bb276db7732a919",
+        "column-multicolor-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "column-multicolor-preview-render.png": "2284522f5fea6d3dc5155796e9efc9f201431ded792313844b87de0c70908f5c",
+        "column-multicolor-preview-crop.json": "2e252239c29b9566b85bfdeb4f5296b1652919e4ec26a6043264016940e1e703",
+        "column-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-multicolor-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "column-multicolor.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 4201,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-multicolor-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-multicolor-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.34768289999919944
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile",
+      "kind": "bar-multicolor",
+      "input_sha256": {
+        "bar-multicolor.svg": "0e1ef1bf1b8f6f0210cf31daee0106a56281322585e52b93348026988ab069e3",
+        "bar-multicolor.png": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+        "bar-multicolor-svg-observer.json": "e758f7ad6e37b8a0c3d10cd88750470a4f2fdb4d92a5df4ed8c2bb582882e76d",
+        "bar-multicolor-deliveries.json": "09f1cc3c9014c60f77f1cc9e516fc1d8aaa9df5076113687fd9c52d8a0ac568a",
+        "bar-multicolor-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+        "bar-multicolor-preview-render.png": "5f2b0e0e0e61e2b075eef321a48288cce4ac42dd649787af20ce2864e5bbc92b",
+        "bar-multicolor-preview-crop.json": "b53c0684e35ab01f8be76e96fdc0f62f8e7897bc27f01d98339cdc7aabf602ca",
+        "bar-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-multicolor-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+        "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8"
+      },
+      "xml": {
+        "svg": "bar-multicolor.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          }
+        ],
+        "exact_palette_pixels": 4158,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-multicolor-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-multicolor-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3704679000074975
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "column",
+      "input_sha256": {
+        "column.svg": "6d86c34793d443b2f8be9f61a2eeee6c2e0f7d01e95d6f5f049c875a5ee20ed8",
+        "column.png": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+        "column-svg-observer.json": "afd362fe18b7be8ffb7a26bc30fc72dd3ff8cc38aea523a94166774beff7aa81",
+        "column-deliveries.json": "43bcde540abdcd9900d542d3f30ee7e3453fac15edaf7a4d2f0d4e7cda44f2e8",
+        "column-preview.png": "f69d4510b399f0d20db436ee3afb28b5b201d4570f01e4b01721bc454de84a63",
+        "column-preview-render.png": "0b0def5bde9fa034cbf9c9117c97c12e71b78d85b07d9f90c81d41ca6af78adb",
+        "column-preview-crop.json": "94f04b2232ea0413b5854f6d86fdde68c4e75f1a64e92404c04e7c0ea38d64d8",
+        "column-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "column.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 4089,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.34064819998457097
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "bar",
+      "input_sha256": {
+        "bar.svg": "bbd0128dcf26b81a2b99b87a252b4e764044ee5b368991cbcfe62025a952cdee",
+        "bar.png": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+        "bar-svg-observer.json": "db743d741d4f4522f9483212a25eaf3186ff661351065c953723f9fa21eed525",
+        "bar-deliveries.json": "e597cf2c391af0757d7d4e530e1dd7a8280c28d6811a38175b0cb8c8a7a6ce34",
+        "bar-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "bar-preview-render.png": "ab88e79763d6b536d7e6aeea57d29683c8437dc9782756b7b0c5e6383065321f",
+        "bar-preview-crop.json": "9998adddd4bbf4fe3bf2b7f448591c69c33af397abb417bb8feb8f73ce3b9438",
+        "bar-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "bar.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          }
+        ],
+        "exact_palette_pixels": 4046,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3368365000060294
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "column-grouped",
+      "input_sha256": {
+        "column-grouped.svg": "833680f0e302e3eb66204864cdd08faf3cf77cae2e52f1f9473960b3a80276a8",
+        "column-grouped.png": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+        "column-grouped-svg-observer.json": "3244d7856270bf0ac6d1931fee1dc0ccb4e8d17f33610e7358b87d319efb8b55",
+        "column-grouped-deliveries.json": "8ec69e6d7b0cac45ad7d6ee8f14dfecefcac21221b288c5af2858f4f9fb33602",
+        "column-grouped-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "column-grouped-preview-render.png": "70425c23bebfb230e4f839512d9c1a7e9da72584bb5284ac911ca5c1831ede58",
+        "column-grouped-preview-crop.json": "4441eaa2b393ce0c928be4ddfc65819b257c37e876cb6669aaef0a826171c668",
+        "column-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-grouped-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "column-grouped.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 213,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 257,
+            "y": 245,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 331,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 375,
+            "y": 230,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 200,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 5126,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-grouped-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-grouped-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.3278248000133317
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "bar-grouped",
+      "input_sha256": {
+        "bar-grouped.svg": "64439506c979d82fc0bdc035b078059fd4d500120de5ad4426aaf77dfea026a3",
+        "bar-grouped.png": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+        "bar-grouped-svg-observer.json": "a4dff1339883a5d49beb1a8d397d5a1de7de7f3e9b29c24f53694a722f470530",
+        "bar-grouped-deliveries.json": "dc66f3ecfeab692bbd3d40a7094bd9ea3350fbd39be0856020f5b08ad80a76a7",
+        "bar-grouped-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "bar-grouped-preview-render.png": "629ac84d43426b8a6fd67c4967bfe0c3efda6c25b1a5305370ed6fc9335a04bb",
+        "bar-grouped-preview-crop.json": "1ff4a98a21718086a66028c53bb0e7ae3a04c064a289852b898aa76a1ad83e37",
+        "bar-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-grouped-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "bar-grouped.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 130,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 435,
+            "y": 159,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 207,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 459,
+            "y": 236,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 505
+          }
+        ],
+        "exact_palette_pixels": 5153,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-grouped-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-grouped-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.46139439998660237
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "column-stacked",
+      "input_sha256": {
+        "column-stacked.svg": "34211e946e25142f4ff2ac00794820785c7ee32f9a13f73a0de459d69f39f61b",
+        "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+        "column-stacked-svg-observer.json": "60ea6f497dcf6b4f20649fe699335e4d5bcd99c5619b5fe317aeb1e8287e1281",
+        "column-stacked-deliveries.json": "da5d271a39fe3cb06dbe18e8e3242989aa3dbf2310b2deee39af7f050acbc405",
+        "column-stacked-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "column-stacked-preview-render.png": "bc1f4be4fc0ac045182b6379f5dee742c5cffd98fc48eabc18a91b76490c0956",
+        "column-stacked-preview-crop.json": "5d1ea6b4a2966a59fdd223c7afecfb1abc4d778d0f61c0cb95ee1ab9c1a7eeaa",
+        "column-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-stacked-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "column-stacked.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 235,
+            "y": 230,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 215,
+            "axis_last": 244
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 353,
+            "y": 199,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 169,
+            "axis_last": 229
+          }
+        ],
+        "exact_palette_pixels": 12123,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-stacked-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-stacked-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.35959269999875687
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "bar-stacked",
+      "input_sha256": {
+        "bar-stacked.svg": "637464b50acb6189ae2af83f8a8ffc276ef12ae96af1f1af600958c7a7212ac4",
+        "bar-stacked.png": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+        "bar-stacked-svg-observer.json": "3ae23a5b638def1288ec7bfb02066ce908028de2e8c6219e8dd81bcabd21654e",
+        "bar-stacked-deliveries.json": "c8fae2f3e9f5c3e04a1f66c0ca0cebac0d5ab271d5aac5e033c0f932532f87c9",
+        "bar-stacked-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "bar-stacked-preview-render.png": "28ecee71ff4fc8cfb15738368b36089f368ae02557be7f7a9077f598a2ab8bd1",
+        "bar-stacked-preview-crop.json": "832ff36d66180ac8c41764acdf59c591c3aadf133598ab5aa7ad01ae310dd681",
+        "bar-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-stacked-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "bar-stacked.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 459,
+            "y": 145,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 436,
+            "axis_last": 481
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 506,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 460,
+            "axis_last": 552
+          }
+        ],
+        "exact_palette_pixels": 12025,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-stacked-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-stacked-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.35404859998379834
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "column-proportional",
+      "input_sha256": {
+        "column-proportional.svg": "e33146850db53480959addb616191633f8f22f37dfa2fc5477919126dc616fe6",
+        "column-proportional.png": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+        "column-proportional-svg-observer.json": "45373d3d2958546cbee05d12c7193fb9e306b29d5b5e28265b882c70282e78fa",
+        "column-proportional-deliveries.json": "a941e3d9a9b8d398218d277e76c1651ce71bf05946532a5ddb6e8631f2ff97f9",
+        "column-proportional-preview.png": "5e536cba7edc62b2e23c3a59b95f0d6acd09a31ca9b59856958947dbb5cf5b9b",
+        "column-proportional-preview-render.png": "45895eb4268eb083eba1d7a0eadfba70a181ea2bec7b119e24a78924427fd298",
+        "column-proportional-preview-crop.json": "62d9b250c4ca39a56aea85601bb9df6e9ab213cc9f8228b7a9d5d1c1d2538cc9",
+        "column-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-proportional-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "column-proportional.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 363,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 313,
+            "axis_last": 414
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 235,
+            "y": 209,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 107,
+            "axis_last": 311
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 363,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 313,
+            "axis_last": 414
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 353,
+            "y": 209,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 107,
+            "axis_last": 311
+          }
+        ],
+        "exact_palette_pixels": 53837,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-proportional-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-proportional-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.35786060002283193
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "bar-proportional",
+      "input_sha256": {
+        "bar-proportional.svg": "6aae8df775a1b283428eb7c0eac350984f9ef212275441d78e8a065a8b288ac4",
+        "bar-proportional.png": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+        "bar-proportional-svg-observer.json": "3064bc36b0b3b24062d34a3d72ead73a7a6b1e5d4dc5dbcd48c4a17ce82e6490",
+        "bar-proportional-deliveries.json": "cf7da3c6d047232980eb3a9d19b1f6294863ae3e7aa2e611f810d36b5c7a8459",
+        "bar-proportional-preview.png": "5e536cba7edc62b2e23c3a59b95f0d6acd09a31ca9b59856958947dbb5cf5b9b",
+        "bar-proportional-preview-render.png": "0c6320590f57d05c27cc4d76ab14ebb5c7b7a04ff82c6cafde21a8172ce3a5e2",
+        "bar-proportional-preview-crop.json": "2738d72482840a7f3d7ea67ee4807d00aec8f5fb6df59ba91d14e52b3623f3dc",
+        "bar-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-proportional-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "bar-proportional.svg",
+        "semantic_shapes": 9,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 255,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 177,
+            "axis_last": 332
+          },
+          {
+            "id": "bar:r0:s1",
+            "x": 490,
+            "y": 145,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 334,
+            "axis_last": 646
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 255,
+            "y": 222,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 177,
+            "axis_last": 332
+          },
+          {
+            "id": "bar:r1:s1",
+            "x": 490,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 334,
+            "axis_last": 646
+          }
+        ],
+        "exact_palette_pixels": 53578,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-proportional-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-proportional-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36818969997693785
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "column-multicolor",
+      "input_sha256": {
+        "column-multicolor.svg": "0c73fb4abe4eb1d62b33046d6df98698b2ad43b33a9355de8ab454d727f0a8b8",
+        "column-multicolor.png": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+        "column-multicolor-svg-observer.json": "a9bcbaba96aa01fdf6844d3e58fc124d9d59bf106481c0a1a538098c593ff43f",
+        "column-multicolor-deliveries.json": "06bf6953877b58db6e2e416f2170a58afb29078d7d9704195915b6b9a1e9d6f8",
+        "column-multicolor-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "column-multicolor-preview-render.png": "2284522f5fea6d3dc5155796e9efc9f201431ded792313844b87de0c70908f5c",
+        "column-multicolor-preview-crop.json": "2e252239c29b9566b85bfdeb4f5296b1652919e4ec26a6043264016940e1e703",
+        "column-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "column-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "column-multicolor-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "column-multicolor.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 235,
+            "y": 253,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 246,
+            "axis_last": 260
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 353,
+            "y": 245,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 230,
+            "axis_last": 260
+          }
+        ],
+        "exact_palette_pixels": 4201,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "column-multicolor-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "column-multicolor-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.36971600001561455
+    },
+    {
+      "directory": "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360",
+      "kind": "bar-multicolor",
+      "input_sha256": {
+        "bar-multicolor.svg": "596d53120ca7d81ed807c2d7a6bd75fc8344989f6fcb00153edad83a45e47371",
+        "bar-multicolor.png": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+        "bar-multicolor-svg-observer.json": "654b3caf9e504607474d24be139afc8ebbe13863f17dab287e107ab1331bc6a2",
+        "bar-multicolor-deliveries.json": "0a08c78cbdfab517fd72658b1f8ba4d23c31ad22bf0b69fee7de9af80acae6f8",
+        "bar-multicolor-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+        "bar-multicolor-preview-render.png": "5f2b0e0e0e61e2b075eef321a48288cce4ac42dd649787af20ce2864e5bbc92b",
+        "bar-multicolor-preview-crop.json": "b53c0684e35ab01f8be76e96fdc0f62f8e7897bc27f01d98339cdc7aabf602ca",
+        "bar-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+        "bar-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+        "bar-multicolor-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+        "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+        "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+        "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca"
+      },
+      "xml": {
+        "svg": "bar-multicolor.svg",
+        "semantic_shapes": 6,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [
+          {
+            "id": "bar:r0:s0",
+            "x": 423,
+            "y": 145,
+            "rgb": [
+              208,
+              32,
+              48
+            ],
+            "axis_first": 412,
+            "axis_last": 434
+          },
+          {
+            "id": "bar:r1:s0",
+            "x": 435,
+            "y": 222,
+            "rgb": [
+              22,
+              128,
+              71
+            ],
+            "axis_first": 412,
+            "axis_last": 458
+          }
+        ],
+        "exact_palette_pixels": 4158,
+        "dense_subpixel_reference": null,
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "glyph": {
+        "file": "bar-multicolor-glyph-oracle.json",
+        "original_iou": 1.0,
+        "fallback_iou": 0.2825040128410915,
+        "box": {
+          "x": 52.4999885559082,
+          "y": 50.32449817657471,
+          "width": 102.984375,
+          "height": 23
+        },
+        "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+        "exported_woff2_sha256": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+        "svg_embedded_match": true,
+        "min_iou": 0.8,
+        "min_fallback_margin": 0.03,
+        "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+      },
+      "preview": {
+        "file": "bar-multicolor-preview-crop.json",
+        "pixels": 400000,
+        "mean_rgb_error": 0.0,
+        "maximum_rgb_error": 0,
+        "max_allowed": 4,
+        "mean_allowed": 0.25
+      },
+      "elapsed_seconds": 0.33280730000115
+    }
+  ],
+  "case_sha256": {
+    "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop": {
+      "bar-deliveries.json": "dfb54ed7544c3057519bafbdd5448d2939550c553d6b4bf25c7758bfc3ea76af",
+      "bar-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "bar-grouped-deliveries.json": "d478ba41bf915fc559bbf960a482f279c1e6a4e58acbdaf889f4cfc21c3a2c12",
+      "bar-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-grouped-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "bar-grouped-preview-crop.json": "1ff4a98a21718086a66028c53bb0e7ae3a04c064a289852b898aa76a1ad83e37",
+      "bar-grouped-preview-render.png": "629ac84d43426b8a6fd67c4967bfe0c3efda6c25b1a5305370ed6fc9335a04bb",
+      "bar-grouped-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "bar-grouped-svg-observer.json": "05f709ee4f90e00cc63520203229b32ff55f51dca9ad807c9387c33a8e69eac4",
+      "bar-grouped.png": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+      "bar-grouped.svg": "f1a947256acc6d95846699709b61b558ebfe923a3bd410dfd49d6e2e14491637",
+      "bar-multicolor-deliveries.json": "7da9e0e891c8e213a936339dcef8f02db600df6ab4b7e6f0357b95707a958f7a",
+      "bar-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-multicolor-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "bar-multicolor-preview-crop.json": "b53c0684e35ab01f8be76e96fdc0f62f8e7897bc27f01d98339cdc7aabf602ca",
+      "bar-multicolor-preview-render.png": "5f2b0e0e0e61e2b075eef321a48288cce4ac42dd649787af20ce2864e5bbc92b",
+      "bar-multicolor-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "bar-multicolor-svg-observer.json": "e13c50a56716ecf33e0f0ad853ad9af038b4abf5e874ca30f74530f05e33825d",
+      "bar-multicolor.png": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+      "bar-multicolor.svg": "b3534ca886f03f9c717f458fab457e9ea83fad33590950ec991415409f0858ca",
+      "bar-preview-crop.json": "9998adddd4bbf4fe3bf2b7f448591c69c33af397abb417bb8feb8f73ce3b9438",
+      "bar-preview-render.png": "ab88e79763d6b536d7e6aeea57d29683c8437dc9782756b7b0c5e6383065321f",
+      "bar-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "bar-proportional-deliveries.json": "ac8e52a1d9a4eee9b300c5d885741b7a31e56f52a30dd8a1761dc8eb505e3965",
+      "bar-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-proportional-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "bar-proportional-preview-crop.json": "2738d72482840a7f3d7ea67ee4807d00aec8f5fb6df59ba91d14e52b3623f3dc",
+      "bar-proportional-preview-render.png": "0c6320590f57d05c27cc4d76ab14ebb5c7b7a04ff82c6cafde21a8172ce3a5e2",
+      "bar-proportional-preview.png": "ed05e9e91d8e5fa1876fcae1a24022ca99e7bd44a89de9b287c3bd30c388b6b1",
+      "bar-proportional-svg-observer.json": "93c5198d1ab5bdc5887c0fda3e385c3a836084771b0d54c21125519bd902b952",
+      "bar-proportional.png": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+      "bar-proportional.svg": "b6350207a2a8fa99c110f6a39d6bfeb630f2dea3e64fdb80351071cbfc65ed48",
+      "bar-stacked-deliveries.json": "9836859de70fe98d729fa4c6255d4df01de382fb18d671ec4142154e3173d334",
+      "bar-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-stacked-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "bar-stacked-preview-crop.json": "832ff36d66180ac8c41764acdf59c591c3aadf133598ab5aa7ad01ae310dd681",
+      "bar-stacked-preview-render.png": "28ecee71ff4fc8cfb15738368b36089f368ae02557be7f7a9077f598a2ab8bd1",
+      "bar-stacked-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "bar-stacked-svg-observer.json": "f12d9c6a5a69c8f1fc97f0e40d98bfca59091702664b13cd46116bbd31b156eb",
+      "bar-stacked.png": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+      "bar-stacked.svg": "26b07b292d7a1a2b32dc9008298b5595bf0ce20a4b458486234ec237f260c4c8",
+      "bar-svg-observer.json": "016500cc29a49a4e67d86c633972eecb43e2457b28381f089f937fec23bd62b6",
+      "bar.png": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+      "bar.svg": "8ff196e7f10a6c314e6cea1709c1ff6a62594ec6912a05f910e22303ef4e92f2",
+      "column-deliveries.json": "b83c744db77dc67fe668011eaea6f465e2a476d48fdbe111f170c788b7c33e79",
+      "column-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "column-grouped-deliveries.json": "13388e791add43ba5800553d2e2374bbd22466e3c95a79392883ddf6476328d8",
+      "column-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-grouped-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "column-grouped-preview-crop.json": "4441eaa2b393ce0c928be4ddfc65819b257c37e876cb6669aaef0a826171c668",
+      "column-grouped-preview-render.png": "70425c23bebfb230e4f839512d9c1a7e9da72584bb5284ac911ca5c1831ede58",
+      "column-grouped-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "column-grouped-svg-observer.json": "90e6c094566b712e71f22a0e63e8f5103f9deb307dbee6ffd6757c632c78e092",
+      "column-grouped.png": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+      "column-grouped.svg": "01c810d713cf6219d8f7e438f000d7b857b98f7cbf0b045844758af586c3f792",
+      "column-multicolor-deliveries.json": "a3d0b99cda99913fddd58ea91b451ad9ce80964866dbf4b197fa770665016538",
+      "column-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-multicolor-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "column-multicolor-preview-crop.json": "2e252239c29b9566b85bfdeb4f5296b1652919e4ec26a6043264016940e1e703",
+      "column-multicolor-preview-render.png": "2284522f5fea6d3dc5155796e9efc9f201431ded792313844b87de0c70908f5c",
+      "column-multicolor-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "column-multicolor-svg-observer.json": "88615de86253e53e113058bc1dba43f127fd855360b697e48fdfc7a0cc6fd49c",
+      "column-multicolor.png": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+      "column-multicolor.svg": "bd38c26884ca60e3b1ed0c3aded14a02f88e6c4480ddb0fb41126423d6a61450",
+      "column-preview-crop.json": "94f04b2232ea0413b5854f6d86fdde68c4e75f1a64e92404c04e7c0ea38d64d8",
+      "column-preview-render.png": "0b0def5bde9fa034cbf9c9117c97c12e71b78d85b07d9f90c81d41ca6af78adb",
+      "column-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "column-proportional-deliveries.json": "7f3edb5595a50162545cab3081573d845b0440202d1037ab1640df08ccf1f05c",
+      "column-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-proportional-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "column-proportional-preview-crop.json": "62d9b250c4ca39a56aea85601bb9df6e9ab213cc9f8228b7a9d5d1c1d2538cc9",
+      "column-proportional-preview-render.png": "45895eb4268eb083eba1d7a0eadfba70a181ea2bec7b119e24a78924427fd298",
+      "column-proportional-preview.png": "ed05e9e91d8e5fa1876fcae1a24022ca99e7bd44a89de9b287c3bd30c388b6b1",
+      "column-proportional-svg-observer.json": "b6495260527729d2d747bff7095d93024259460eb50dbbeb025c93b0554e764c",
+      "column-proportional.png": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+      "column-proportional.svg": "991db1ce86140ff4f9899d0ce6ca29c3f54e37f571179702e86496f046f7b457",
+      "column-stacked-deliveries.json": "e7b8ff707757e7df949d01acad538cf71ad6391b4428b22ebe0e4f874b75062c",
+      "column-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-stacked-glyph-oracle.json": "e61223c1e45eefb9b6fc521956248c4276eb78333df9474259a679e10f92c515",
+      "column-stacked-preview-crop.json": "5d1ea6b4a2966a59fdd223c7afecfb1abc4d778d0f61c0cb95ee1ab9c1a7eeaa",
+      "column-stacked-preview-render.png": "bc1f4be4fc0ac045182b6379f5dee742c5cffd98fc48eabc18a91b76490c0956",
+      "column-stacked-preview.png": "7e3ffc52ab8bff2ae172f4ab55d14257ee287b2ddbdd52022a3190af50ff4f89",
+      "column-stacked-svg-observer.json": "87ec973f279468a5d857f8beb8cc021c92feb1d35721e885b24fa78588664f4c",
+      "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+      "column-stacked.svg": "6b6f24e61a40a916c880bb646ec41ac046702176a47280e9bc17e77e150d3e31",
+      "column-svg-observer.json": "2a6e7cec9d5666a5be31669c679b7a436fd5e0f02e7da5e51102d46b013bf45d",
+      "column.png": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+      "column.svg": "fd186f609677d03e84e09cd2b64d68f72fee627cdc779ea5791f79e713c5ebb6",
+      "font-metadata.json": "adc1a5deb94cf4fc33513d4e2421aa0b7fb9795e8a5944a23e3c961b04855742",
+      "font-responses.json": "a4036648293a71dce5b64927c7c1bd474af2d00fa0d5de87fdcb3ec007cd8e25",
+      "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+      "hold-cleanup.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "network-observer.json": "e681ff83b9d7bd7b388a9ae7d2974b5947d459da81c897afe38c3a63d5c44e82",
+      "private-font-response-0.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-1.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-10.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-11.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-12.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-13.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-14.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-15.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-16.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-17.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-18.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-19.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-2.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-20.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-21.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-22.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-23.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-24.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-25.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-26.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-27.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-28.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-29.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-3.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-30.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-31.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-32.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-33.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-34.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-35.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-36.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-37.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-38.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-39.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-4.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-5.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-6.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-7.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-8.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "private-font-response-9.woff2": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+      "viewport.json": "b772209cd3773110577b39eae940372c3b9834101477d20745fa639feaddeab9"
+    },
+    "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile": {
+      "bar-deliveries.json": "04ecc70c68244f6ddea92121e849c4dba3e9240c52d326fafc0a2655108ac014",
+      "bar-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "bar-grouped-deliveries.json": "14e7a6db292dcc0f197d70e9e4108adbbdca25708ca4e2f999e08149ac5725d0",
+      "bar-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-grouped-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "bar-grouped-preview-crop.json": "1ff4a98a21718086a66028c53bb0e7ae3a04c064a289852b898aa76a1ad83e37",
+      "bar-grouped-preview-render.png": "629ac84d43426b8a6fd67c4967bfe0c3efda6c25b1a5305370ed6fc9335a04bb",
+      "bar-grouped-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "bar-grouped-svg-observer.json": "0b8932d8c45895ed05f0ef08336052eefbb4aeeb23665ac99055e8e592393ec1",
+      "bar-grouped.png": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+      "bar-grouped.svg": "cfb4aaf89bab2547c78c9becbd1f169cb5e1aa2105dfb0f79eb932ee9df9774a",
+      "bar-multicolor-deliveries.json": "09f1cc3c9014c60f77f1cc9e516fc1d8aaa9df5076113687fd9c52d8a0ac568a",
+      "bar-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-multicolor-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "bar-multicolor-preview-crop.json": "b53c0684e35ab01f8be76e96fdc0f62f8e7897bc27f01d98339cdc7aabf602ca",
+      "bar-multicolor-preview-render.png": "5f2b0e0e0e61e2b075eef321a48288cce4ac42dd649787af20ce2864e5bbc92b",
+      "bar-multicolor-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "bar-multicolor-svg-observer.json": "e758f7ad6e37b8a0c3d10cd88750470a4f2fdb4d92a5df4ed8c2bb582882e76d",
+      "bar-multicolor.png": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+      "bar-multicolor.svg": "0e1ef1bf1b8f6f0210cf31daee0106a56281322585e52b93348026988ab069e3",
+      "bar-preview-crop.json": "9998adddd4bbf4fe3bf2b7f448591c69c33af397abb417bb8feb8f73ce3b9438",
+      "bar-preview-render.png": "ab88e79763d6b536d7e6aeea57d29683c8437dc9782756b7b0c5e6383065321f",
+      "bar-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "bar-proportional-deliveries.json": "3bf41297b624ba92b1fca87230152e2a020af8623b41464482a36b0ed99e57b6",
+      "bar-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-proportional-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "bar-proportional-preview-crop.json": "2738d72482840a7f3d7ea67ee4807d00aec8f5fb6df59ba91d14e52b3623f3dc",
+      "bar-proportional-preview-render.png": "0c6320590f57d05c27cc4d76ab14ebb5c7b7a04ff82c6cafde21a8172ce3a5e2",
+      "bar-proportional-preview.png": "a74fd095254f298f23312ad381f0c7e5286fabdd403c8db7a7deccc504d079ab",
+      "bar-proportional-svg-observer.json": "aa1619e41901b11b2adcd4bbf50c6413f4a4cd67714ef3fdb68cfa83f3db06e5",
+      "bar-proportional.png": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+      "bar-proportional.svg": "c4bb58360f39091f58fda8e6204544f613f12c1e1b1721d25ba507f9b7af3c9f",
+      "bar-stacked-deliveries.json": "2097564cc079bc0146074a47b4021b2ed0c393fc24530ed1b81d0f4830085d8c",
+      "bar-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-stacked-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "bar-stacked-preview-crop.json": "832ff36d66180ac8c41764acdf59c591c3aadf133598ab5aa7ad01ae310dd681",
+      "bar-stacked-preview-render.png": "28ecee71ff4fc8cfb15738368b36089f368ae02557be7f7a9077f598a2ab8bd1",
+      "bar-stacked-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "bar-stacked-svg-observer.json": "3e058257c6aa98ea8b3074b6ba0d4259a840788f67472872295915a4ff9de9e1",
+      "bar-stacked.png": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+      "bar-stacked.svg": "4cd92372b4bd700990bad459d293d2ced92c52ae36f2e1d8d98ec6f0153b8452",
+      "bar-svg-observer.json": "c0abbdf8b4eb4be52f5f5109c2d57790faea04abfdce1abea120d4b22458fbfa",
+      "bar.png": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+      "bar.svg": "bf2db50b019ad3584d5f458b8403dc7e2169abf1d5a817dcec54353e84f820e5",
+      "column-deliveries.json": "d22d3700ce40264b7a4418d914989e82ba4315b2f8b757a1a090783204f39b29",
+      "column-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "column-grouped-deliveries.json": "c2fcb3f62a307c425ba32435f81325e769be40f3feec8921a901c996b70d52b5",
+      "column-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-grouped-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "column-grouped-preview-crop.json": "4441eaa2b393ce0c928be4ddfc65819b257c37e876cb6669aaef0a826171c668",
+      "column-grouped-preview-render.png": "70425c23bebfb230e4f839512d9c1a7e9da72584bb5284ac911ca5c1831ede58",
+      "column-grouped-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "column-grouped-svg-observer.json": "98c8ac3766ee744d8c47ebd1f506d33c47394664546edd8a15bbcd8d02947438",
+      "column-grouped.png": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+      "column-grouped.svg": "bf6a175f5e4699b70bae498b5335693ee788f44c7b9c5613f6b46061ce089f38",
+      "column-multicolor-deliveries.json": "fe30e0ebdbb5b65c92d2506a7e98d42018d49c3b14f45e213bb276db7732a919",
+      "column-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-multicolor-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "column-multicolor-preview-crop.json": "2e252239c29b9566b85bfdeb4f5296b1652919e4ec26a6043264016940e1e703",
+      "column-multicolor-preview-render.png": "2284522f5fea6d3dc5155796e9efc9f201431ded792313844b87de0c70908f5c",
+      "column-multicolor-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "column-multicolor-svg-observer.json": "3e4560221ad856699dccadaa37dc970c52300e2373e543beb5d58e712733b6df",
+      "column-multicolor.png": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+      "column-multicolor.svg": "9b6edb1fc713e1162d93f4ac8e96a06f4f6cdef61b1ef3212d70b8da10dd0f20",
+      "column-preview-crop.json": "94f04b2232ea0413b5854f6d86fdde68c4e75f1a64e92404c04e7c0ea38d64d8",
+      "column-preview-render.png": "0b0def5bde9fa034cbf9c9117c97c12e71b78d85b07d9f90c81d41ca6af78adb",
+      "column-preview.png": "9099674ba669e18c848245e63eb4488ae81fc193239df6e174593931a264ab10",
+      "column-proportional-deliveries.json": "5b31404848920d3897fe53579600d57a1bc95a835f7e40f32fd34323cbea88e8",
+      "column-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-proportional-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "column-proportional-preview-crop.json": "62d9b250c4ca39a56aea85601bb9df6e9ab213cc9f8228b7a9d5d1c1d2538cc9",
+      "column-proportional-preview-render.png": "45895eb4268eb083eba1d7a0eadfba70a181ea2bec7b119e24a78924427fd298",
+      "column-proportional-preview.png": "a74fd095254f298f23312ad381f0c7e5286fabdd403c8db7a7deccc504d079ab",
+      "column-proportional-svg-observer.json": "9c6e4231f7de069468b34e772a6c6899792d2444c0fa06f4e0bda6d76e71ee59",
+      "column-proportional.png": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+      "column-proportional.svg": "45d3e5c3d9a5096fcc3125644c7ee5bf0dd4709c871bb6758947b6ee0120ad61",
+      "column-stacked-deliveries.json": "fa985b82207974936ad28585d730e4ffff6f97e5e2f96ac0e02c691022c38f9a",
+      "column-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-stacked-glyph-oracle.json": "e13eb53da324160498db1fd7f05c2ce2b2037382db88e6b4ae9fd0b864270704",
+      "column-stacked-preview-crop.json": "5d1ea6b4a2966a59fdd223c7afecfb1abc4d778d0f61c0cb95ee1ab9c1a7eeaa",
+      "column-stacked-preview-render.png": "bc1f4be4fc0ac045182b6379f5dee742c5cffd98fc48eabc18a91b76490c0956",
+      "column-stacked-preview.png": "2539f9bc6d92412a15df12e0e104894ba5fe145b9f38a7a228cb2f68b720b70f",
+      "column-stacked-svg-observer.json": "d87933a5ee16e76b96522676ecabe66ebe20b9470e339668e94af8c6900adb04",
+      "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+      "column-stacked.svg": "9c940efdc04a41d0655d54faa0ce0a0164d5b2974cd00938d39fef57737d8a0b",
+      "column-svg-observer.json": "30ffb77c5e13e0e68135c356a61f91c91e0fb12298f1c8d3bfc5a2f4a4599d03",
+      "column.png": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+      "column.svg": "b8b5991d2fc8eb25a5ca7740077d08dbd1cba61946b4f87150294bef2704c4d5",
+      "font-metadata.json": "2bc3a36d3aa6c8d257957b9e30cc66c771b7b94e660d185a0f99103e10f04e37",
+      "font-responses.json": "8fc928284942d2c5f9dd54f2a6d8d93e85ebfd4649553d4f3df66a20d373abd8",
+      "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+      "hold-cleanup.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "network-observer.json": "e681ff83b9d7bd7b388a9ae7d2974b5947d459da81c897afe38c3a63d5c44e82",
+      "private-font-response-0.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-1.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-10.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-11.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-12.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-13.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-14.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-15.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-16.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-17.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-18.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-19.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-2.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-20.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-21.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-22.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-23.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-24.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-25.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-26.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-27.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-28.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-29.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-3.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-30.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-31.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-32.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-33.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-34.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-35.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-36.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-37.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-38.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-39.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-4.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-5.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-6.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-7.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-8.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "private-font-response-9.woff2": "1cd8709dbe9dda236002c2f02b2fa630eceba2b5c1d1d5e59dec32053a6a2648",
+      "viewport.json": "940db3d122ea02823f66e2cc86c3521c638cb1292282c8e01e41c3c362aa3409"
+    },
+    "studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-mobile-360": {
+      "bar-deliveries.json": "e597cf2c391af0757d7d4e530e1dd7a8280c28d6811a38175b0cb8c8a7a6ce34",
+      "bar-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "bar-grouped-deliveries.json": "dc66f3ecfeab692bbd3d40a7094bd9ea3350fbd39be0856020f5b08ad80a76a7",
+      "bar-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-grouped-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "bar-grouped-preview-crop.json": "1ff4a98a21718086a66028c53bb0e7ae3a04c064a289852b898aa76a1ad83e37",
+      "bar-grouped-preview-render.png": "629ac84d43426b8a6fd67c4967bfe0c3efda6c25b1a5305370ed6fc9335a04bb",
+      "bar-grouped-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "bar-grouped-svg-observer.json": "a4dff1339883a5d49beb1a8d397d5a1de7de7f3e9b29c24f53694a722f470530",
+      "bar-grouped.png": "98cea7a64ee067f2bf97ca482e7b76a4268f3e426fd949f98a1e27b5220d060a",
+      "bar-grouped.svg": "64439506c979d82fc0bdc035b078059fd4d500120de5ad4426aaf77dfea026a3",
+      "bar-multicolor-deliveries.json": "0a08c78cbdfab517fd72658b1f8ba4d23c31ad22bf0b69fee7de9af80acae6f8",
+      "bar-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-multicolor-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "bar-multicolor-preview-crop.json": "b53c0684e35ab01f8be76e96fdc0f62f8e7897bc27f01d98339cdc7aabf602ca",
+      "bar-multicolor-preview-render.png": "5f2b0e0e0e61e2b075eef321a48288cce4ac42dd649787af20ce2864e5bbc92b",
+      "bar-multicolor-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "bar-multicolor-svg-observer.json": "654b3caf9e504607474d24be139afc8ebbe13863f17dab287e107ab1331bc6a2",
+      "bar-multicolor.png": "43e447303174bd13bc7dae182cfed7508cf1ee997689a01600a67bbfc66f8196",
+      "bar-multicolor.svg": "596d53120ca7d81ed807c2d7a6bd75fc8344989f6fcb00153edad83a45e47371",
+      "bar-preview-crop.json": "9998adddd4bbf4fe3bf2b7f448591c69c33af397abb417bb8feb8f73ce3b9438",
+      "bar-preview-render.png": "ab88e79763d6b536d7e6aeea57d29683c8437dc9782756b7b0c5e6383065321f",
+      "bar-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "bar-proportional-deliveries.json": "cf7da3c6d047232980eb3a9d19b1f6294863ae3e7aa2e611f810d36b5c7a8459",
+      "bar-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-proportional-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "bar-proportional-preview-crop.json": "2738d72482840a7f3d7ea67ee4807d00aec8f5fb6df59ba91d14e52b3623f3dc",
+      "bar-proportional-preview-render.png": "0c6320590f57d05c27cc4d76ab14ebb5c7b7a04ff82c6cafde21a8172ce3a5e2",
+      "bar-proportional-preview.png": "5e536cba7edc62b2e23c3a59b95f0d6acd09a31ca9b59856958947dbb5cf5b9b",
+      "bar-proportional-svg-observer.json": "3064bc36b0b3b24062d34a3d72ead73a7a6b1e5d4dc5dbcd48c4a17ce82e6490",
+      "bar-proportional.png": "7eea007498ada4a7079d7b356a988fdbe772d061e2dd4b5ae7500ff42ceeab80",
+      "bar-proportional.svg": "6aae8df775a1b283428eb7c0eac350984f9ef212275441d78e8a065a8b288ac4",
+      "bar-stacked-deliveries.json": "c8fae2f3e9f5c3e04a1f66c0ca0cebac0d5ab271d5aac5e033c0f932532f87c9",
+      "bar-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "bar-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "bar-stacked-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "bar-stacked-preview-crop.json": "832ff36d66180ac8c41764acdf59c591c3aadf133598ab5aa7ad01ae310dd681",
+      "bar-stacked-preview-render.png": "28ecee71ff4fc8cfb15738368b36089f368ae02557be7f7a9077f598a2ab8bd1",
+      "bar-stacked-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "bar-stacked-svg-observer.json": "3ae23a5b638def1288ec7bfb02066ce908028de2e8c6219e8dd81bcabd21654e",
+      "bar-stacked.png": "2e71b5cfde3aae685623c243b1ee9bbe96540cac8b33a5aa8c63c7dfb0e34743",
+      "bar-stacked.svg": "637464b50acb6189ae2af83f8a8ffc276ef12ae96af1f1af600958c7a7212ac4",
+      "bar-svg-observer.json": "db743d741d4f4522f9483212a25eaf3186ff661351065c953723f9fa21eed525",
+      "bar.png": "e38379d6df2302477a01289a6a6dbedb71cafb737f11a219d6152c92fb49ae8f",
+      "bar.svg": "bbd0128dcf26b81a2b99b87a252b4e764044ee5b368991cbcfe62025a952cdee",
+      "column-deliveries.json": "43bcde540abdcd9900d542d3f30ee7e3453fac15edaf7a4d2f0d4e7cda44f2e8",
+      "column-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "column-grouped-deliveries.json": "8ec69e6d7b0cac45ad7d6ee8f14dfecefcac21221b288c5af2858f4f9fb33602",
+      "column-grouped-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-grouped-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-grouped-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "column-grouped-preview-crop.json": "4441eaa2b393ce0c928be4ddfc65819b257c37e876cb6669aaef0a826171c668",
+      "column-grouped-preview-render.png": "70425c23bebfb230e4f839512d9c1a7e9da72584bb5284ac911ca5c1831ede58",
+      "column-grouped-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "column-grouped-svg-observer.json": "3244d7856270bf0ac6d1931fee1dc0ccb4e8d17f33610e7358b87d319efb8b55",
+      "column-grouped.png": "b214772196f558446d1d959717d5bfa9909cbd7c6a2e39d1ea9c852e51552cd2",
+      "column-grouped.svg": "833680f0e302e3eb66204864cdd08faf3cf77cae2e52f1f9473960b3a80276a8",
+      "column-multicolor-deliveries.json": "06bf6953877b58db6e2e416f2170a58afb29078d7d9704195915b6b9a1e9d6f8",
+      "column-multicolor-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-multicolor-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-multicolor-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "column-multicolor-preview-crop.json": "2e252239c29b9566b85bfdeb4f5296b1652919e4ec26a6043264016940e1e703",
+      "column-multicolor-preview-render.png": "2284522f5fea6d3dc5155796e9efc9f201431ded792313844b87de0c70908f5c",
+      "column-multicolor-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "column-multicolor-svg-observer.json": "a9bcbaba96aa01fdf6844d3e58fc124d9d59bf106481c0a1a538098c593ff43f",
+      "column-multicolor.png": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+      "column-multicolor.svg": "0c73fb4abe4eb1d62b33046d6df98698b2ad43b33a9355de8ab454d727f0a8b8",
+      "column-preview-crop.json": "94f04b2232ea0413b5854f6d86fdde68c4e75f1a64e92404c04e7c0ea38d64d8",
+      "column-preview-render.png": "0b0def5bde9fa034cbf9c9117c97c12e71b78d85b07d9f90c81d41ca6af78adb",
+      "column-preview.png": "f69d4510b399f0d20db436ee3afb28b5b201d4570f01e4b01721bc454de84a63",
+      "column-proportional-deliveries.json": "a941e3d9a9b8d398218d277e76c1651ce71bf05946532a5ddb6e8631f2ff97f9",
+      "column-proportional-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-proportional-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-proportional-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "column-proportional-preview-crop.json": "62d9b250c4ca39a56aea85601bb9df6e9ab213cc9f8228b7a9d5d1c1d2538cc9",
+      "column-proportional-preview-render.png": "45895eb4268eb083eba1d7a0eadfba70a181ea2bec7b119e24a78924427fd298",
+      "column-proportional-preview.png": "5e536cba7edc62b2e23c3a59b95f0d6acd09a31ca9b59856958947dbb5cf5b9b",
+      "column-proportional-svg-observer.json": "45373d3d2958546cbee05d12c7193fb9e306b29d5b5e28265b882c70282e78fa",
+      "column-proportional.png": "d39f17ea063c5f9eeff2a896dfb1d7559ff120d07f825c3d6bb87635e8e1249d",
+      "column-proportional.svg": "e33146850db53480959addb616191633f8f22f37dfa2fc5477919126dc616fe6",
+      "column-stacked-deliveries.json": "da5d271a39fe3cb06dbe18e8e3242989aa3dbf2310b2deee39af7f050acbc405",
+      "column-stacked-font-fallback.png": "2124eeec192b855692d64a43387c9d446bfc06390de1559ccc7d93f7849c0f67",
+      "column-stacked-font-original.png": "81b8e7e4642b7f20f1c3c335ba8daf71f1fd27acd0ef07bcc2f2e89a63d16425",
+      "column-stacked-glyph-oracle.json": "3510702f0ce5b15b295496e7a2d49ba6c045d54dad15ec6d39fac4b8bc58a579",
+      "column-stacked-preview-crop.json": "5d1ea6b4a2966a59fdd223c7afecfb1abc4d778d0f61c0cb95ee1ab9c1a7eeaa",
+      "column-stacked-preview-render.png": "bc1f4be4fc0ac045182b6379f5dee742c5cffd98fc48eabc18a91b76490c0956",
+      "column-stacked-preview.png": "16b95f7ef582659e52d491e3b059393834607c5772568f0f54e6959f7dd3fb24",
+      "column-stacked-svg-observer.json": "60ea6f497dcf6b4f20649fe699335e4d5bcd99c5619b5fe317aeb1e8287e1281",
+      "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8",
+      "column-stacked.svg": "34211e946e25142f4ff2ac00794820785c7ee32f9a13f73a0de459d69f39f61b",
+      "column-svg-observer.json": "afd362fe18b7be8ffb7a26bc30fc72dd3ff8cc38aea523a94166774beff7aa81",
+      "column.png": "9b5895114a4b0608a48dcd487ebfeb80710828d0ce435e782b03e1e9be85f0fa",
+      "column.svg": "6d86c34793d443b2f8be9f61a2eeee6c2e0f7d01e95d6f5f049c875a5ee20ed8",
+      "font-metadata.json": "cc3d86430fbc5d1a324841c564ae18419f815b27ba5d8782d811e5f55b2269eb",
+      "font-responses.json": "aa0feee0cb25a49517813f39cca5afaebc534e556e0976854d4860543c5fd4ca",
+      "font-upload-source.json": "f736a3031817576fc1a3d6de3bdb72003fcdb40bffe04203262c2bd2eae3ed15",
+      "hold-cleanup.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "network-observer.json": "e681ff83b9d7bd7b388a9ae7d2974b5947d459da81c897afe38c3a63d5c44e82",
+      "private-font-response-0.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-1.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-10.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-11.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-12.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-13.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-14.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-15.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-16.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-17.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-18.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-19.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-2.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-20.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-21.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-22.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-23.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-24.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-25.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-26.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-27.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-28.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-29.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-3.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-30.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-31.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-32.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-33.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-34.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-35.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-36.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-37.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-38.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-39.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-4.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-5.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-6.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-7.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-8.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "private-font-response-9.woff2": "ed37b59d03e2c7d3cac90b6420f28f650462265e47a0ed2fe34abaa948ea1fcb",
+      "viewport.json": "4dae53f5f85a0d4c33ac5c42b4a51b618b191a68085cdb5510f2382fea208a99"
+    }
+  },
+  "failed": 0,
+  "global_acceptance": false
+}

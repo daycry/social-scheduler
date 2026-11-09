@@ -1,0 +1,9 @@
+{
+  "stage": "terminal-before-report",
+  "files": 295,
+  "changed_or_missing": [],
+  "real_reporter": true,
+  "actual_cases": 1,
+  "failed": 1,
+  "not_run": 11
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "case": "column",
+    "title_id": "column:y-title:5",
+    "transform": "matrix(0 -1 1 0 -372.62 -29.1)",
+    "title_text": "Valores",
+    "font_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "svg_sha256": "7bb7344014272e295babe13414889ebed87352ed4b0c98ae5117c5a6dbaf4d23"
+  },
+  {
+    "case": "bar",
+    "title_id": "bar:y-title:5",
+    "transform": "matrix(0 -1 1 0 -372.62 -29.1)",
+    "title_text": "Valores",
+    "font_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "svg_sha256": "a6987fa791968a2e8a6f05c349146c71ec4aea9ebbf5a4a084cac40489a2e3ec"
+  },
+  {
+    "case": "proportional",
+    "title_id": "proportional:y-title:5",
+    "transform": "matrix(0 -1 1 0 -372.62 -29.1)",
+    "title_text": "Valores",
+    "font_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "svg_sha256": "8a39fcdfe1b6caabcacec06cd9a5b382fa1f24f160533ef94bb45c48336f1cc8"
+  },
+  {
+    "case": "root-transform",
+    "title_id": "root-transform:y-title:5",
+    "transform": "matrix(0 -1 1 0 -372.62 -29.1)",
+    "title_text": "Valores",
+    "font_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "svg_sha256": "ac6973cdb9dca7dc6c8e112fbf056cd08a7ed24dee36c6c6cda33c093d097b05"
+  },
+  {
+    "case": "long-private-font",
+    "title_id": "long-private-font:y-title:5",
+    "transform": "matrix(0 -0.1607 0.1607 0 -372.62 -29.1)",
+    "title_text": "Valores originales de nuestra muestra local; comparación de las cantidades registradas en cada categoría durante la prueba de legibilidad vertical. Valores originales de nuestra muestra local y su distribución por categoría.",
+    "font_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "svg_sha256": "c51d1544e2c79aaf887cf400a3ff291336e767f6ca876f2231ccdf63e0fec9b7"
+  },
+  {
+    "case": "tiny160",
+    "title_id": "tiny160:y-title:5",
+    "transform": "matrix(0 -0.5475 0.5475 0 -70.432 -11.2)",
+    "title_text": "Valores",
+    "font_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "svg_sha256": "845064185579a68ca85325279e7d6d6d2b3a9880a98d3cc62985faaa03d89d00"
+  }
+]

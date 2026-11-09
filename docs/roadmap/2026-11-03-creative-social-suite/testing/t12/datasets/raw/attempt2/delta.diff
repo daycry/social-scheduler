@@ -1,0 +1,258 @@
+﻿diff --git "a/storage\\framework\\testing\\t12-datasets\\review-attempt1\\app\\Services\\Studio\\StudioDatasets.php" b/app/Services/Studio/StudioDatasets.php
+index 4ec78f2..795592a 100644
+--- "a/storage\\framework\\testing\\t12-datasets\\review-attempt1\\app\\Services\\Studio\\StudioDatasets.php"
++++ b/app/Services/Studio/StudioDatasets.php
+@@ -6,6 +6,8 @@
+ use App\Models\Studio\StudioDataset;
+ use App\Models\Studio\StudioDatasetRevision;
+ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
++use Illuminate\Database\Eloquent\Builder;
++use Illuminate\Pagination\LengthAwarePaginator as MetadataPaginator;
+ use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Storage;
+ use Illuminate\Support\Str;
+@@ -27,23 +29,16 @@ public function replace(int $userId, int $brandId, int|StudioDataset $dataset, i
+         }
+         $name = $this->name($name);
+         $table = (new StudioChartData('dataset'))->normalize($table);
+-        $path = null;
+-        try {
+-            return DB::transaction(function () use ($userId, $brandId, $dataset, $expectedRevision, $name, $table, &$path) {
+-                $this->reserveWriter($dataset);
+-                $current = $this->owned($userId, $brandId, $dataset, true, true);
+-                abort_unless($current->revision === $expectedRevision, 409, 'Dataset revision conflict.');
+-                $current->fill(['name' => $name, 'revision' => $current->revision + 1, 'row_count' => count($table['rows']), 'column_count' => count($table['columns'])])->save();
+-                $this->snapshot($current, $table, $path);
+-
+-                return $current;
+-            });
+-        } catch (Throwable $error) {
+-            if ($path !== null) {
+-                Storage::disk('local')->delete($path);
+-            }
+-            throw $error;
+-        }
++
++        return $this->persistRevision(function (?string &$newPath) use ($userId, $brandId, $dataset, $expectedRevision, $name, $table): StudioDataset {
++            $this->reserveWriter($dataset);
++            $current = $this->owned($userId, $brandId, $dataset, true, true);
++            abort_unless($current->revision === $expectedRevision, 409, 'Dataset revision conflict.');
++            $current->fill(['name' => $name, 'revision' => $current->revision + 1, 'row_count' => count($table['rows']), 'column_count' => count($table['columns'])])->save();
++            $this->snapshot($current, $table, $newPath);
++
++            return $current;
++        });
+     }
+ 
+     public function read(int $userId, int $brandId, int|StudioDataset $dataset, ?int $revision = null): array
+@@ -124,15 +119,16 @@ public function listing(int $userId, int $brandId, string $search = '', int $pag
+             $query->whereRaw("name LIKE ? ESCAPE '!'", ['%'.$literal.'%']);
+         }
+ 
+-        return $query->orderByDesc('id')->paginate(max(1, min(100, $perPage)), $this->metadataColumns(), 'page', max(1, $page));
++        return $this->paginateMetadata($query->orderByDesc('id'), $this->metadataColumns(), $page, $perPage);
+     }
+ 
+     public function history(int $userId, int $brandId, int|StudioDataset $dataset, int $page = 1, int $perPage = 25): LengthAwarePaginator
+     {
+         $current = $this->owned($userId, $brandId, $dataset);
+ 
+-        return StudioDatasetRevision::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->where('dataset_id', $current->id)
+-            ->orderByDesc('revision')->paginate(max(1, min(100, $perPage)), ['id', 'dataset_id', 'brand_id', 'revision', 'name', 'row_count', 'column_count', 'sha256', 'json_bytes', 'created_at'], 'page', max(1, $page));
++        $query = StudioDatasetRevision::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->where('dataset_id', $current->id)->orderByDesc('revision');
++
++        return $this->paginateMetadata($query, ['id', 'dataset_id', 'brand_id', 'revision', 'name', 'row_count', 'column_count', 'sha256', 'json_bytes', 'created_at'], $page, $perPage);
+     }
+ 
+     public function present(int $userId, int $brandId, int|StudioDataset $dataset): array
+@@ -145,6 +141,19 @@ private function metadataColumns(): array
+         return ['id', 'brand_id', 'name', 'revision', 'row_count', 'column_count', 'archived_at', 'created_at', 'updated_at'];
+     }
+ 
++    private function paginateMetadata(Builder $query, array $columns, int $page, int $perPage): LengthAwarePaginator
++    {
++        $page = max(1, $page);
++        $perPage = max(1, min(100, $perPage));
++        // Such an offset exceeds every representable row count. Avoid float
++        // multiplication and preserve the caller's page and the actual total.
++        if ($page - 1 > intdiv(PHP_INT_MAX, $perPage)) {
++            return new MetadataPaginator([], $query->toBase()->getCountForPagination(), $perPage, $page, ['path' => MetadataPaginator::resolveCurrentPath(), 'pageName' => 'page']);
++        }
++
++        return $query->paginate($perPage, $columns, 'page', $page);
++    }
++
+     private function owned(int $userId, int $brandId, int|StudioDataset $dataset, bool $active = false, bool $lock = false): StudioDataset
+     {
+         $this->brand($userId, $brandId);
+@@ -189,19 +198,27 @@ public function create(int $userId, int $brandId, string $name, array $table): S
+         $this->brand($userId, $brandId);
+         $name = $this->name($name);
+         $table = (new StudioChartData('dataset'))->normalize($table);
+-        $path = null;
+-        try {
+-            return DB::transaction(function () use ($userId, $brandId, $name, $table, &$path) {
+-                $dataset = StudioDataset::create(['user_id' => $userId, 'brand_id' => $brandId, 'name' => $name, 'revision' => 1, 'row_count' => count($table['rows']), 'column_count' => count($table['columns'])]);
+-                $this->snapshot($dataset, $table, $path);
+ 
+-                return $dataset;
++        return $this->persistRevision(function (?string &$newPath) use ($userId, $brandId, $name, $table): StudioDataset {
++            $dataset = StudioDataset::create(['user_id' => $userId, 'brand_id' => $brandId, 'name' => $name, 'revision' => 1, 'row_count' => count($table['rows']), 'column_count' => count($table['columns'])]);
++            $this->snapshot($dataset, $table, $newPath);
++
++            return $dataset;
++        });
++    }
++
++    private function persistRevision(callable $operation): StudioDataset
++    {
++        $newPath = null;
++        try {
++            return DB::transaction(function () use ($operation, &$newPath): StudioDataset {
++                return $operation($newPath);
+             });
+-        } catch (Throwable $error) {
+-            if ($path !== null) {
+-                Storage::disk('local')->delete($path);
++        } catch (Throwable $failure) {
++            if ($newPath !== null) {
++                Storage::disk('local')->delete($newPath);
+             }
+-            throw $error;
++            throw $failure;
+         }
+     }
+ 
+@@ -250,7 +267,8 @@ private function snapshot(StudioDataset $dataset, array $table, ?string &$path):
+             }
+             $write(']}');
+             rewind($stream);
+-            if (! Storage::disk('local')->put($path, $stream, ['visibility' => 'private'])) {
++            $stored = Storage::disk('local')->put($path, $stream, ['visibility' => 'private']);
++            if ($stored === false) {
+                 throw new RuntimeException('Dataset storage unavailable.');
+             }
+         } finally {
+diff --git "a/storage\\framework\\testing\\t12-datasets\\review-attempt1\\tests\\Feature\\Studio\\StudioDatasetsTest.php" b/tests/Feature/Studio/StudioDatasetsTest.php
+index b67c560..6a52722 100644
+--- "a/storage\\framework\\testing\\t12-datasets\\review-attempt1\\tests\\Feature\\Studio\\StudioDatasetsTest.php"
++++ b/tests/Feature/Studio/StudioDatasetsTest.php
+@@ -200,14 +200,17 @@ public function test_failed_write_removes_only_new_file_and_rolls_back_metadata(
+ 
+             return false;
+         });
+-        $proxy->shouldReceive('delete')->once()->andReturnUsing(fn ($path) => $disk->delete($path));
++        $proxy->shouldReceive('delete')->andReturnUsing(fn ($path) => $disk->delete($path));
+         Storage::shouldReceive('disk')->with('local')->andReturn($proxy);
++        $writeError = null;
+         try {
+             $this->datasets->replace(1, 1, $dataset, 1, 'Failed', $this->table('bad'));
+-            $this->fail('Expected write failure');
+         } catch (\RuntimeException $error) {
+-            $this->assertSame('Dataset storage unavailable.', $error->getMessage());
++            $writeError = $error;
+         }
++        $this->assertSame($oldFiles, $disk->allFiles('studio-datasets'));
++        $this->assertInstanceOf(\RuntimeException::class, $writeError);
++        $this->assertSame('Dataset storage unavailable.', $writeError->getMessage());
+         $this->assertSame('Stable', $dataset->fresh()->name);
+         $this->assertSame(1, $dataset->fresh()->revision);
+         $this->assertSame(1, $dataset->revisions()->count());
+@@ -226,17 +229,55 @@ public function test_revision_insert_failure_rolls_back_only_new_file(): void
+         } catch (QueryException $error) {
+             $this->assertStringContainsString('injected failure', $error->getMessage());
+         }
+-        $this->assertSame($files, Storage::disk('local')->allFiles());
+         $this->assertSame('Stable', $dataset->fresh()->name);
++        $this->assertSame($files, Storage::disk('local')->allFiles());
+         $this->assertSame(1, $dataset->fresh()->revision);
+         $this->assertSame(1, $dataset->revisions()->count());
++        $this->assertSame($files, Storage::disk('local')->allFiles());
++    }
++
++    public function test_create_revision_insert_failure_rolls_back_dataset_and_new_file(): void
++    {
++        $stable = $this->datasets->create(1, 1, 'Stable', $this->table());
++        $files = Storage::disk('local')->allFiles();
++        DB::unprepared("CREATE TRIGGER t12_reject_revision BEFORE INSERT ON studio_dataset_revisions BEGIN SELECT RAISE(FAIL, 'injected failure'); END");
+         try {
+             $this->datasets->create(1, 1, 'Failed create', $this->table());
+             $this->fail('Expected insert failure');
+-        } catch (QueryException) {
+-            $this->assertSame(1, DB::table('studio_datasets')->count());
++        } catch (QueryException $error) {
++            $this->assertStringContainsString('injected failure', $error->getMessage());
+         }
++        $this->assertSame(1, DB::table('studio_datasets')->count());
+         $this->assertSame($files, Storage::disk('local')->allFiles());
++        $this->assertSame($this->table(), $this->datasets->read(1, 1, $stable, 1));
++    }
++
++    public function test_create_failed_write_removes_only_new_file_and_dataset(): void
++    {
++        $stable = $this->datasets->create(1, 1, 'Stable', $this->table());
++        $disk = Storage::disk('local');
++        $disk->put('unrelated/keep.json', 'unrelated');
++        $oldFiles = $disk->allFiles();
++        $proxy = \Mockery::mock($disk)->makePartial();
++        $proxy->shouldReceive('put')->once()->andReturnUsing(function ($path, $stream, $options) use ($disk) {
++            $disk->put($path, 'partial');
++
++            return false;
++        });
++        $proxy->shouldReceive('delete')->andReturnUsing(fn ($path) => $disk->delete($path));
++        Storage::shouldReceive('disk')->with('local')->andReturn($proxy);
++        $writeError = null;
++        try {
++            $this->datasets->create(1, 1, 'Failed', $this->table('bad'));
++        } catch (\RuntimeException $error) {
++            $writeError = $error;
++        }
++        $this->assertSame($oldFiles, $disk->allFiles());
++        $this->assertInstanceOf(\RuntimeException::class, $writeError);
++        $this->assertSame('Dataset storage unavailable.', $writeError->getMessage());
++        $this->assertSame(1, DB::table('studio_datasets')->count());
++        $this->assertSame(1, $stable->revisions()->count());
++        $this->assertSame('unrelated', $disk->get('unrelated/keep.json'));
+     }
+ 
+     public function test_sqlite_writer_is_reserved_before_first_transaction_read(): void
+@@ -330,4 +371,38 @@ public function test_corrupt_json_object_cannot_masquerade_as_empty_rows_list():
+         DB::table('studio_dataset_revisions')->where('id', $revision->id)->update(['sha256' => hash('sha256', $bytes), 'json_bytes' => strlen($bytes)]);
+         $this->assertStatus(503, fn () => $this->datasets->read(1, 1, $dataset, 1));
+     }
++
++    public function test_listing_extreme_page_is_empty_with_real_total_and_no_offset_overflow(): void
++    {
++        $dataset = $this->datasets->create(1, 1, 'Pages', $this->table());
++        Storage::shouldReceive('disk')->never();
++        foreach ([PHP_INT_MAX, 368934881474191034, intdiv(PHP_INT_MAX, 25) + 1, intdiv(PHP_INT_MAX, 25) + 2, 2] as $page) {
++            $result = $this->datasets->listing(1, 1, '', $page, 25);
++            $this->assertSame([], $result->items(), 'Page '.$page.' must be empty');
++            $this->assertSame(1, $result->total());
++            $this->assertSame($page, $result->currentPage());
++            $this->assertSame(25, $result->perPage());
++        }
++        $this->assertSame($dataset->id, $this->datasets->listing(1, 1, '', 1, 25)->items()[0]['id']);
++        $this->assertSame([], $this->datasets->listing(1, 1, '', PHP_INT_MAX, 1)->items());
++        $this->assertSame([], $this->datasets->listing(1, 1, '', PHP_INT_MAX, 1000)->items());
++        $this->assertSame(100, $this->datasets->listing(1, 1, '', PHP_INT_MAX, 1000)->perPage());
++    }
++
++    public function test_history_extreme_page_is_empty_with_real_total_and_no_offset_overflow(): void
++    {
++        $dataset = $this->datasets->create(1, 1, 'Pages', $this->table());
++        Storage::shouldReceive('disk')->never();
++        foreach ([PHP_INT_MAX, 368934881474191034, intdiv(PHP_INT_MAX, 25) + 1, intdiv(PHP_INT_MAX, 25) + 2, 2] as $page) {
++            $result = $this->datasets->history(1, 1, $dataset, $page, 25);
++            $this->assertSame([], $result->items(), 'Page '.$page.' must be empty');
++            $this->assertSame(1, $result->total());
++            $this->assertSame($page, $result->currentPage());
++            $this->assertSame(25, $result->perPage());
++        }
++        $this->assertSame(1, $this->datasets->history(1, 1, $dataset, 1, 25)->items()[0]['revision']);
++        $this->assertSame([], $this->datasets->history(1, 1, $dataset, PHP_INT_MAX, 1)->items());
++        $this->assertSame([], $this->datasets->history(1, 1, $dataset, PHP_INT_MAX, 1000)->items());
++        $this->assertSame(100, $this->datasets->history(1, 1, $dataset, PHP_INT_MAX, 1000)->perPage());
++    }
+ }

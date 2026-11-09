@@ -758,18 +758,22 @@ export function cleanCalendarViews(email: string) {
 export type AnalyticsSeed = { from: string; to: string; days: number };
 
 /**
- * Siembra `days` snapshots diarios (los días 2..days+1 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
+ * Siembra `days` snapshots diarios (los días 3..days+2 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
  * `views` visualizaciones y `followers` seguidores por día. Facebook no recibe ninguno: sus métricas son «no disponible».
- * Devuelve el periodo (10 días cerrados) que lo contiene.
+ * Devuelve diez días terminados hace dos días UTC (cerrados también en el Pacífico), dejando un día final sin datos.
+ * El mismo ancla PHP determina snapshots y rango: cruzar medianoche entre PHP y Node no cambia el fixture.
  */
 export function seedAnalyticsSnapshots(brandId: number, views: number, followers: number, days = 3): AnalyticsSeed {
-    artisan(
+    const output = artisan(
         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
             String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
-            String.raw`for ($i = 2; $i < ${days} + 2; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now('UTC')->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); }`,
+            String.raw`$end = Carbon\CarbonImmutable::now('UTC')->startOfDay()->subDays(2); ` +
+            String.raw`for ($i = 1; $i <= ${days}; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => $end->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); } ` +
+            String.raw`echo 'ANALYTICS_SEED:'.json_encode(['from' => $end->subDays(9)->format('Y-m-d'), 'to' => $end->format('Y-m-d'), 'days' => ${days}]);`,
     );
-    const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
-    return { from: day(10), to: day(1), days };
+    const seed = output.match(/ANALYTICS_SEED:(\{[^\r\n]*\})/);
+    if (!seed) throw new Error('The disposable analytics fixture did not return its date range.');
+    return JSON.parse(seed[1]) as AnalyticsSeed;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

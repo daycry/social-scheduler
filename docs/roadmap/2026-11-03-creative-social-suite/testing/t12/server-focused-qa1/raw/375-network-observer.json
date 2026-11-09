@@ -1,0 +1,35 @@
+{
+  "issues": [],
+  "expected_http": [
+    {
+      "method": "GET",
+      "path": "/brands/4/studio/datasets/3/table",
+      "status": 404
+    }
+  ],
+  "intentional_aborts": [],
+  "browser_diagnostics": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "path": "/brands/4/studio/datasets/3/table",
+      "status": 404,
+      "abort": false
+    }
+  ],
+  "isolated_font_fixtures": [
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    }
+  ]
+}

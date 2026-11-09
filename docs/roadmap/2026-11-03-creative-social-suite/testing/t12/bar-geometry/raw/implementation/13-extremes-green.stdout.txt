@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: coordinate interpolation stays finite for opposite extreme endpoints and diagnoses stacked overflow
+ok 1 - coordinate interpolation stays finite for opposite extreme endpoints and diagnoses stacked overflow
+  ---
+  duration_ms: 4.7909
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24.0278

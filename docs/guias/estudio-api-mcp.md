@@ -1,6 +1,6 @@
 # Estudio nativo: API, MCP y render en servidor
 
-Actualizado: 2026-11-04. Esta guía describe el código disponible en esta entrega. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca.
+Actualizado: 2026-11-05. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; La interfaz, API y MCP incorporan MP4/GIF en el árbol de trabajo; la QA integral del padre sigue pendiente.
 
 Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
 
@@ -26,7 +26,37 @@ TOKEN='TU_API_KEY'
 BRAND_ID=12
 ```
 
+## Audio en el editor
+
+En Recursos, pulsa «Subir recursos» y selecciona un MP3, WAV, M4A/AAC u Ogg compatible. El límite público es100MiB y una hora; FFprobe valida contenido, duración y códec en el servidor. Si el motor no está disponible, la interfaz conserva el ticket y ofrece «Reintentar validación del audio».
+
+Pulsa «Añadir» en el recurso listo para crear una pista global. La línea de tiempo permite mover su inicio, cambiar duración, recortar origen, ajustar velocidad/volumen, repetir, silenciar y aplicar fundidos. El cabezal sirve para dividirla; deshacer/rehacer y guardar/reabrir conservan sus valores. Varias pistas se mezclan con el vídeo durante play/pausa/seek. Las pistas globales siguen el reloj completo del diseño, sin reiniciarse al cambiar de página.
+
+El preview no modifica la revisión guardada. La interfaz, API y MCP pueden solicitar MP4/GIF con la mezcla guardada. El diálogo audiovisual permite seleccionar y ordenar páginas, consultar trabajos y cancelar o reintentar.
+
+## Fotogramas en exportaciones estáticas
+
+En un diseño con línea de tiempo, Exportar muestra «Fotograma de … (s)» para cada página elegida. Al abrirlo, las páginas donde está el cabezal parten de ese instante local; las demás parten de0. Puedes cambiar cada segundo antes de descargar, guardar en biblioteca o crear el borrador asociado. PNG, JPG, WebP, SVG y PDF respetan las ventanas y la fase del vídeo en ese instante, conservando el documento editable.
+
+API y MCP `export_design` aceptan `frame_times`, una lista opcional de objetos `{page_id,time}`. Cada ID debe estar seleccionado y aparecer una sola vez; el tiempo es un número finito desde0 y menor que la duración de su página. Una página omitida utiliza0. La selección queda en `options.frame_times` de la exportación. Los documentos antiguos v1 conservan el póster previo; activa Línea de tiempo para elegir instantes temporales desde la interfaz. Una lista no vacía con documento v1 produce422.
+
+```json
+{
+  "revision": 3,
+  "format": "png",
+  "pages": ["page_1", "page_2"],
+  "frame_times": [
+    {"page_id": "page_1", "time": 1.5},
+    {"page_id": "page_2", "time": 0.25}
+  ]
+}
+```
+
+Estos son fotogramas locales de páginas. Las transiciones entre páginas y la mezcla de sonido corresponden a MP4 del proyecto completo; GIF conserva solo imagen.
+
 ## API: rutas y respuestas
+
+El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP actual del árbol de trabajo:41herramientas.
 
 Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve el paginador en el nivel superior: `.data`, `.current_page`, `.last_page`, `.total`. Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
 
@@ -50,11 +80,27 @@ Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en e
 | `POST /brands/{brand}/design-folders` | `designs:write` | `201`, crea carpeta con `name`. |
 | `DELETE /design-folders/{folder}` | `designs:write` | Elimina la carpeta y conserva sus diseños. |
 | `GET /brands/{brand}/design-assets` | `designs:read` | Recursos registrados en esa marca. |
-| `POST /brands/{brand}/design-assets` | `designs:write` | Registra `media_id` propio, listo, de imagen o vídeo. |
+| `POST /brands/{brand}/design-assets` | `designs:write` | Registra `media_id` propio listo de imagen, vídeo o audio validado. |
 | `GET /brands/{brand}/design-assets/{media}/file` | `designs:read` | Bytes privados; admite un rango HTTP simple. |
+| `POST /brands/{brand}/design-audio` | `designs:write` | `201 {asset,upload,complete_url}`, ticket binario local o S3/R2 single/multipart. |
+| `GET /brands/{brand}/design-audio` | `designs:read` | `{assets,pagination}`, audio listo de esa marca, búsqueda `query`, `page`, `per_page` (20, máximo100). |
+| `GET /brands/{brand}/design-audio/{media}` | `designs:read` | `{asset}` con estado pendiente, listo o inválido. |
+| `PUT /brands/{brand}/design-audio/{media}/upload` | `designs:write` | Bytes locales del archivo; valida tamaño y contenido. No sobrescribe un audio listo. |
+| `POST /brands/{brand}/design-audio/{media}/complete` | `designs:write` | Finaliza single/multipart y sondeo; idempotente cuando está listo. |
+| `GET /brands/{brand}/design-fonts` | `designs:read` | `{fonts,pagination}`, búsqueda `query`, `archived`, `page`, `per_page` (20, máximo 100). |
+| `POST /brands/{brand}/design-fonts` | `designs:write` | `201 {font}`; multipart `file`, nombre opcional. |
+| `GET /brands/{brand}/design-fonts/{font}` | `designs:read` | Metadata privada `{font}`. |
+| `GET /brands/{brand}/design-fonts/{font}/file` | `designs:read` | WOFF2 privado verificado, nunca URL pública. |
+| `POST /brands/{brand}/design-fonts/{font}/archive` o `/restore` | `designs:write` | Ocultar/restaurar en el selector, manteniendo bytes y referencias. |
+| `DELETE /brands/{brand}/design-fonts/{font}` | `designs:write` | Borrado físico; `409` si un diseño, revisión o kit sigue usando la fuente. |
+| `POST /brands/{brand}/image-jobs` | `designs:write` | `202 {job}` con `media_id` propio y `operation: remove_background`. |
+| `GET /brands/{brand}/image-jobs/{job}` | `designs:read` | `{job}` con estado real y `output_asset` cuando termina. |
 | `GET /designs/{design}/exports` | `designs:read` | Historial de exportaciones, `page` y `per_page` (50 por defecto, máximo 100). |
 | `POST /designs/{design}/exports` | `designs:write` | `202`, trabajo de render con su estado real. |
-| `GET /design-exports/{export}` | `designs:read` | Estado, resultados y descarga temporal si está lista. |
+| `GET /design-exports/{export}` | `designs:read` | Estado, progreso y descarga temporal si está lista. |
+| `POST /design-exports/{export}/cancel` | `designs:write` | Cancelación audiovisual idempotente; 409 ready/failed, 422 estático, 503 si queda pendiente la señal nativa. |
+| `POST /design-exports/{export}/retry` | `designs:write` | 202 desde failed/cancelled; conserva ID, revisión y opciones, generación nueva. |
+| `POST /design-exports/{export}/post` | `designs:write` + `posts:write` | 201, borrador de la marca con medios ready; solo text/targets, nunca programa. |
 | `GET /brands/{brand}/analytics` | `stats:read` | Métricas del mismo servicio que el dashboard. |
 
 El listado de diseños acepta `query` —búsqueda literal, también para `%` y `_`—, `folder_id`, `templates`, `archived` y `page`. `archived=true` lista únicamente archivados. Los booleanos de query admiten `true`/`false` y `1`/`0`.
@@ -169,7 +215,7 @@ Envía ese cuerpo a `POST /api/v1/designs/{template}/instantiate`. Los envoltori
 
 Para redimensionar, envía `revision`, `width`, `height` y `mode` (`canvas`, `contain` o `cover`). Para variantes, envía `revision` y `variants: [{name,width,height,mode}]`; añade `fields` si la fuente contiene campos y `apply_brand_kit` si corresponde. Se permiten hasta doce variantes, con un máximo acumulado de 8 MiB de documentos y 20000 elementos. Si falla una variante no se crea ninguna.
 
-MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo mantiene 36 herramientas. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
+MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo actual contiene42herramientas, incluidas las ampliaciones de fuentes, imagen, audio, subtítulos y datasets. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
 
 Al restaurar desde el historial un documento anterior a un cambio de kit, `PATCH /designs/{design}` y MCP `update_design` admiten `kit_revision`: número de una revisión guardada del mismo diseño. El servidor recupera de ella la referencia del kit; no acepta referencias de otro diseño o usuario. El editor conserva ese dato en undo/redo, guardado y recuperación para que las aplicaciones posteriores del kit reconozcan los estilos restaurados. Sin ese argumento, una actualización conserva la referencia actual.
 
@@ -260,11 +306,11 @@ Límites actuales del render en servidor:
 - Recursos de entrada seleccionados: hasta 64000000 bytes en conjunto. Cada archivo de salida también se limita a 64000000 bytes; el proceso Node limita la entrada JSON a 90 MB.
 - El proceso tiene límite PHP de 100 s; el render del navegador, 80 s; el job, 120 s y un intento. Reduce páginas, escala o recursos si falla por capacidad o tiempo.
 
-MP4 y GIF no están implementados como formatos de exportación. Los elementos de vídeo disponibles en el documento/editor no convierten esta entrega en un exportador de animación ni garantizan una pista de audio en los cinco formatos estáticos. Las extensiones futuras se siguen en el [roadmap de la suite](../roadmap/2026-11-03-creative-social-suite/tasks.md).
+MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, desde la revisión guardada y con las páginas en el orden indicado. MP4 incluye audio; GIF es silencioso. No aceptan frame_times no vacío ni transparencia. El diálogo del editor ofrece los cinco formatos estáticos y MP4/GIF. Selecciona páginas, ordena la secuencia con las flechas y pulsa Preparar MP4/GIF. Se guarda primero la revisión y el trabajo continúa en el servidor al cerrar el diálogo. El historial paginado muestra estado/progreso y permite cancelar/reintentar; Actualizar exportaciones reanuda la consulta sin crear otro trabajo. Tras cinco minutos o un error se pausa la consulta automática. Al recargar y volver a abrir MP4/GIF se recupera el historial. Descargar y Crear borrador son acciones explícitas cuando existe resultado ready; consultar o completar el render no crea publicaciones. La [revisión y regresión del bloque público](../roadmap/2026-11-03-creative-social-suite/testing/t11/av-public/review.md) documenta su evidencia y límites, sin acreditar despliegue; la revisión/QA de interfaz y T-11 siguen abiertas en el [roadmap](../roadmap/2026-11-03-creative-social-suite/tasks.md).
 
-## MCP: nueve herramientas y flujo completo
+## MCP: herramientas de diseño y flujo de trabajo
 
-El servidor anuncia 36 herramientas en total. `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las nueve herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
+El servidor del árbol de trabajo anuncia42herramientas en total. `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
 
 ```bash
 curl --fail "$BASE/mcp" \
@@ -281,7 +327,8 @@ La siguiente llamada tiene la forma `{"jsonrpc":"2.0","id":2,"method":"tools/lis
 | `get_design` | `design_id`, `exports_page` opcional. Documento completo, revisión, kit, recursos con `file_url` e historial `exports` de 50 por página con `exports_pagination`. `designs:read`. |
 | `create_design` | Marca, `name`, `document`, opcionales `folder_id`/`is_template`. Diseño con revisión 1. `designs:write`. |
 | `update_design` | `design_id`, `name`, `document`, `revision`, opcionales `folder_id`/`is_template`. Nueva revisión o conflicto 409. `designs:write`. |
-| `export_design` | `design_id`, `revision`, `format`, `pages`, opcionales `scale`/`quality`/`transparent`. Trabajo real; consultar `get_design` para seguimiento. `designs:write`. |
+| `export_design` | `design_id`, `revision`, `format`, `pages`, opcionales `scale`/`quality`/`transparent`. MP4/GIF requieren transparencia false. `designs:write`. |
+| `manage_design_export` | `export_id`, `action`: get (designs:read), cancel/retry (designs:write), post (designs:write y posts:write). Devuelve progreso/descarga o borrador; no publica. |
 | `manage_brand_kit` | Marca; `kit` omitido consulta y, si está presente, actualiza sus campos. Requiere `designs:write` en ambos casos; `get_design` permite leer el kit con `designs:read`. |
 | `attach_design_asset` | Marca y `media_id` propio listo. Registra el recurso y devuelve sus metadatos. `designs:write`. |
 | `manage_design` | `design_id`, `action: duplicate\|archive\|restore`; `name` opcional para duplicar. Copia independiente o archivado/restauración conservando snapshots y exportaciones. `designs:write`. |
@@ -298,7 +345,7 @@ curl --fail "$BASE/mcp" \
 
 La respuesta de la herramienta está en `result.content[].text` como JSON serializado; revisa también `result.isError`. Un HTTP `200` de MCP puede contener un error de herramienta. No trates ese caso como un guardado correcto.
 
-Flujo reproducible de las nueve herramientas, adaptando los IDs a cada respuesta:
+Flujo reproducible de las herramientas de diseño, adaptando los IDs a cada respuesta:
 
 1. `list_designs({"brand_id":12,"page":1})` para consultar los diseños existentes; continúa con `page=2` si corresponde.
 2. `manage_brand_kit({"brand_id":12,"kit":{"palette":["#7c3aed","#ffffff"],"fonts":["Arial"],"voice":"Clara"}})` para preparar la marca. Repetir sin `kit` consulta el resultado.
@@ -327,6 +374,27 @@ curl --fail --get "$BASE/api/v1/brands/$BRAND_ID/analytics" \
 En MCP utiliza `get_stats`, sin una segunda herramienta de métricas de Studio.
 
 ## Despliegue del renderer
+
+### Fuentes privadas e imágenes
+
+Instala Python 3.12 o posterior en el host que ejecuta PHP y los workers. Desde la raíz del proyecto:
+
+```bash
+python3 scripts/studio/setup-runtime.py --download-model
+python3 scripts/studio/setup-runtime.py --check
+```
+
+El primer comando crea `storage/framework/studio-python`, instala las ocho versiones fijadas de `requirements-studio.txt` y descarga explícitamente el modelo BiRefNet general lite y su licencia MIT. El manifiesto `scripts/studio/background-model.json` fija origen, tamaño y SHA-256; un archivo parcial o incorrecto no sustituye al modelo previo. Los pesos ocupan 224.005.088 bytes y quedan fuera de Git. Sin `--download-model` solo se instala Python privado; la eliminación de fondo requiere también los pesos. `--check` es de solo lectura y devuelve error si faltan dependencias exactas, modelo o licencia. En Windows usa `python` en lugar de `python3`.
+
+El modelo se instala en `storage/app/private/studio-models/birefnet-general-lite.onnx`. `STUDIO_PYTHON_BINARY`, `STUDIO_BACKGROUND_MODEL_PATH` y `STUDIO_BACKGROUND_MODEL_SHA256` permiten configurar explícitamente otra ubicación; la comprobación del instalador corresponde a las rutas predeterminadas. Los procesos web y worker deben acceder al mismo entorno y los mismos archivos privados. No se descarga código ni pesos durante una petición. Fuentes: máximo 8 MiB por archivo y 32 MiB decodificados; normalización TTF/OTF/WOFF/WOFF2 mediante fontTools. Imágenes: PNG/JPEG/WebP estáticos, máximo 30 MiB y 16 millones de píxeles; inferencia CPU con cuatro hilos y timeout del proceso de 85 segundos. El proceso tiene un techo de memoria de 6 GiB, aplicado mediante Job Object en Windows o RLIMIT_AS en Linux, y CPU de 80 s en Linux; no se reservan 6 GiB al iniciar. La [prueba focal real del entrypoint con ese límite](../roadmap/2026-11-03-creative-social-suite/testing/t10/native-budget-resume/report.md) pasó en Windows (4/4 comprobaciones); la QA integrada posterior, Linux y el VPS siguen pendientes en T-10. Las pruebas anteriores sin límite no acreditan ese requisito. El servidor necesita capacidad suficiente por worker activo. El job usa `media`, timeout 110 s, inferior al worker 120 s y `retry_after` 180 s.
+
+En el editor, **Tipografías de marca** permite subir, buscar, previsualizar, archivar/restaurar y eliminar fuentes sin referencias. El selector de texto y la identidad de marca utilizan los archivos de esa marca. `font_id` positivo en texto identifica el archivo, mientras `fontFamily` conserva su familia; `font_ids` en el kit se alinea con `fonts`. No inventes IDs ni uses una URL externa: `get_design` devuelve la metadata necesaria y el renderer recibe los bytes verificados. Una fuente archivada usada por un diseño continúa cargándose. Un archivo ausente o corrupto produce un error explícito.
+
+MCP incorpora `manage_studio_font` (`list/get/upload/archive/restore/delete`; upload `file_base64` y `name` opcional) y `process_studio_image` (`start/get`). Con la ampliación posterior de audio, el catálogo total contiene42herramientas: sigue `nextCursor`. Para quitar fondo, registra primero el `media_id` como recurso de la marca; `start` devuelve `{job}` y `get` devuelve `queued`, `processing`, `ready` o `failed`. `ready` incluye una nueva `output_asset`, que se puede añadir con su ID al diseño; conserva el original. Errores de instalación o procesamiento incluyen `error_code` y mensaje, sin rutas privadas. La interfaz consulta periódicamente hasta cinco minutos y permite volver a consultar después. Ocultar el panel no cancela el worker.
+
+Las imágenes admiten `mask: {type: "ellipse"}` o `mask: {type: "rounded_rect", radius: 24}` además de los filtros y el recorte tipados del documento. La máscara y el archivo de fuente se conservan al guardar/reabrir y al exportar PNG/JPEG/WebP/SVG/PDF.
+
+### Node y Chromium
 
 Además del despliegue Laravel habitual y sus migraciones, el servidor de workers necesita Node, las dependencias JavaScript de ejecución, Chromium y las bibliotecas del sistema que este requiere. `playwright`, `fabric` y `pdf-lib` son dependencias de ejecución. No elimines `playwright` ni sus navegadores al limpiar dependencias de desarrollo.
 
@@ -361,7 +429,7 @@ Configura ese proceso en el gestor de servicios del servidor y mantenlo activo. 
 | `PLAYWRIGHT_BROWSERS_PATH` | Variable de Playwright si compartes una ubicación de navegadores entre instalación y worker. Debe ser coherente en ambos procesos. |
 | Disco Laravel `local` | Guarda los artefactos privados de descarga en `studio-exports/...`; debe ser escribible y accesible por worker y proceso web. |
 | `MEDIA_DISK` | Almacenamiento de la media generada, `local` o R2 según la configuración existente. |
-| PHP `ZipArchive` | Necesario para agrupar varias páginas de PNG/JPEG/WebP/SVG en ZIP. |
+| PHP `ZipArchive` o Python estándar | `ZipArchive` se utiliza cuando está disponible. En su ausencia, el renderer usa `scripts/studio/archive.py` con el Python ya configurado por `STUDIO_PYTHON_BINARY`: biblioteca estándar `zipfile`, streaming y ZIP64, sin instalar paquetes, modelos ni dependencias de imagen. El fallo del empaquetador conserva el trabajo como fallido y no expone un archivo parcial. |
 | Fuentes del sistema | Determinan la tipografía disponible en el Chromium del worker. |
 
 El renderer abre un navegador aislado con tráfico de red bloqueado. PHP lee los recursos propios desde Storage y entrega sus bytes al proceso; el navegador no visita URLs de usuarios. No necesita un servidor E2E ni un puerto de aplicación auxiliar para renderizar.
@@ -376,9 +444,86 @@ El renderer abre un navegador aislado con tráfico de red bloqueado. PHP lee los
 | HTTP `409` | Recargar y resolver el conflicto de revisión. |
 | HTTP `422` | Revisar `errors`: documento tipado, recurso no listo, formato, páginas, dimensiones o periodo de métricas. |
 | HTTP `429` | Respetar `Retry-After`; las rutas API usan el throttle configurado de 120 solicitudes/minuto. MCP tiene sus límites propios. |
-| Exportación `pending` persistente | Comprobar el worker de `media` y su conexión de cola. |
-| Exportación `failed` | Leer `error`; comprobar `studio-renderer.js`, Node, Playwright/Chromium, permisos de Storage, fuentes y límites. Corregir la causa y solicitar un trabajo nuevo. |
+| Exportación `pending` persistente | Comprobar `media` para estáticos y `database/studio` para MP4/GIF; revisar también el scheduler studio:recover. |
+| Exportación `failed` | Leer `error`; comprobar `studio-renderer.js`, Node, Playwright/Chromium, permisos de Storage, fuentes y límites. Corregir la causa; en MP4/GIF puede usarse retry desde failed/cancelled, conservando la revisión. |
 | Tipografía distinta | Comparar las fuentes realmente instaladas en cliente y worker. |
 | Descarga caducada | Obtener otra `download_url` consultando el estado autenticado. |
 
 La guía no ejecuta instalaciones, migraciones ni pruebas contra el servidor. Para los requisitos generales de PHP, colas, almacenamiento y proxy, sigue el [despliegue del proyecto](../modulos/despliegue.md).
+
+## Subtítulos manuales del proyecto
+
+En «Línea de tiempo», el panel «Subtítulos» importa SRT/WebVTT UTF-8, añade o edita texto/inicio/fin, elimina cues y desplaza la pista completa. «Añadir a la pista» es el modo de importación inicial; «Reemplazar la pista» es una elección explícita. Las modificaciones utilizan el historial, deshacer/rehacer y guardado automático del editor. La pista pertenece al proyecto completo; sus intervalos son `[start,end)` y se dibuja una vez después de mezclar las páginas. Los fotogramas estáticos emplean el tiempo global equivalente de la página. SVG incluye texto vectorial y tipografías privadas embebidas.
+
+La pista opcional vive en `timeline.captions: {style,cues}` de documentos v2. Cada cue contiene `{id,start,end,text}`; se admiten hasta5000cues,8simultáneos,500puntos Unicode porcue y512KiB porarchivo importado, dentro del límite2MiB del documento. Un estilo vacío de una pista nueva se normaliza a `{fontFamily:"Arial"}` para conservar el tipo objeto al guardar/reabrir; documentos anteriores sin pista continúan sin esa propiedad. Añadir subtítulos a v1 requiere activar expresamente el modo temporal. Texto fuera de rango, etiquetas/entidades, CSS/REGION y ajustes WebVTT no soportados generan un error; los bloques NOTE omitidos se avisan. La exportación SRT/VTT conserva texto Unicode, saltos y tiempos redondeados a milisegundos; informa si el formato no puede conservar marcado o líneas vacías internas. No descarga URLs ni lee rutas proporcionadas por el consumidor.
+
+El estilo común admite familia del sistema o `font_id` de la misma marca, tamaño en unidades del lienzo, peso/estilo, color/contorno/fondo, alineación, posición arriba/centro/abajo y margen seguro. Si las líneas no caben en esa zona, el renderer pide reducir tamaño o líneas; no elimina texto. La fuente privada participa en autorizaciones, historial y snapshots de exportación.
+
+| API, prefijo `/api/v1` | Ability | Resultado |
+|---|---|---|
+| `GET /designs/{design}/captions` | `designs:read` | `{design_id,revision,has_captions,style,cues,pagination}`. Página50por defecto, máximo100; sigue `next_page` manteniendo la `revision` recibida. Admite `query`. |
+| `PATCH /designs/{design}/captions` | `designs:write` | `revision` esperada y `action: import|replace|upsert|delete|offset|style|clear`; nueva revisión y estado paginado con `warnings`. Conflicto409 no modifica el diseño. |
+| `GET /designs/{design}/captions/export?format=srt|vtt&revision=N` | `designs:read` | Archivo privado de la revisión indicada. No crea un trabajo de exportación multimedia. |
+
+`import` recibe `format`, `text` UTF-8 y `mode: replace|append`: omitir `mode` equivale a `append` y conserva los cues existentes; reemplazar requiere `mode:replace` explícito. Los IDs generados de la importación evitan colisiones con páginas, capas, grupos, audio y, al añadir, los cues existentes. Las operaciones tipadas `replace`/`upsert` mantienen la validación estricta de sus IDs explícitos. `replace` recibe un objeto `captions`; `upsert`, un `cue`; `delete`, los `ids` seleccionados; `offset`, `seconds` y `ids` opcionales; `style`, el estilo completo; `clear` elimina la propiedad. Una mutación sobre v1 exige `activate_temporal:true`. El resto del documento, kit y páginas se conserva por el servicio compartido de revisiones.
+
+Los separadores de cues SRT/WebVTT admiten dos o más saltos de línea consecutivos, incluidos archivos CRLF. En el documento se conservan los saltos y el texto original. Si un cue contiene líneas vacías iniciales, finales o internas, la descarga SRT/VTT pide editarlas: el formato no puede conservarlas sin ambigüedad, y el exportador no las recorta ni modifica la pista o su render. Los espacios, tabuladores, Unicode y los saltos entre líneas no vacías sí se conservan.
+
+La herramienta MCP dedicada `manage_design_captions` utiliza estas mismas operaciones con `design_id`. `action:get` y `action:export` requieren `designs:read`; las mutaciones requieren `designs:write`. `export` devuelve `{revision,format,filename,mime,text}` sin rutas privadas. SRT/VTT no se añaden a los siete formatos de `export_design`; este último sigue gestionando las salidas visuales y audiovisuales. El catálogo del árbol contiene42herramientas y mantiene paginación de30.
+
+Al exportar páginas, los runs contiguos conservan un único reloj fuente. Una página A de2s exportada sola conserva un cue1,8–1,95s entero aunque tuviera una transición original. En transiciones del resultado entre runs disjuntos, la fuente visual de subtítulos cambia en el punto medio del solapamiento para evitar duplicación o atenuación; el documento original permanece intacto.
+
+Este bloque manual no implementa reconocimiento de voz ni traducción: ambas capacidades permanecen en T-14 sobre el contrato de cues. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
+
+
+## Datasets por marca: API y MCP
+
+Las rutas están implementadas y aprobadas en la segunda revisión independiente. [QA26 intento2](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-api-qa2/report.md) acepta el transporte HTTP/TCP local y MCP real con 13/13 casos, sin reintentos. El editor de tablas está aceptado por [QA27 intento3](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-editor-qa3/report.md), con 15/15 casos en tres tamaños de pantalla y tres auditorías de accesibilidad sin violaciones ni comprobaciones incompletas. Los gráficos siguen pendientes. El [contrato OpenAPI](../api/creative-suite.openapi.yaml) describe las once operaciones bajo `/api/v1/brands/{brand}/datasets`. Las rutas web usan `/brands/{brand}/studio/datasets` con sesión verificada y CSRF. Todas comprueban usuario y marca: acceder desde otra marca devuelve 404 aunque ambas pertenezcan al mismo usuario.
+
+| Ruta relativa a la colección | Operación | Permiso API |
+|---|---|---|
+| colección | GET listar / POST crear | designs:read / designs:write |
+| /{dataset} | GET metadatos / PUT reemplazar / DELETE archivar | designs:read / designs:write / designs:write |
+| /{dataset}/restore | POST restaurar | designs:write |
+| /{dataset}/revisions | GET historial | designs:read |
+| /{dataset}/table | GET filas | designs:read |
+| /import o /{dataset}/import | POST importar o reemplazar | designs:write |
+| /{dataset}/export | GET descargar | designs:read |
+
+Crear acepta `{name,table}`; reemplazar añade una `revision` positiva. La tabla tiene formato `{columns:[{id,label}],rows:[{id,values}]}`, con1–100 columnas y0–1000 filas. Las celdas admiten texto, números finitos o null. Se conservan espacios, Unicode, tipos e identidades; no se infieren números ni se ejecutan fórmulas. Cada reemplazo crea una revisión. Si otra sesión cambió la revisión esperada, devuelve409 y conserva los datos anteriores. Archivar y restaurar mantienen los snapshots históricos.
+
+La importación multipart requiere `name`, `format` y `file`, además de `revision` cuando reemplaza un dataset. CSV y TSV admiten25.000.000 bytes y `header:true|false`; JSON tipado admite52.000.000 bytes y no acepta `header`. Un objeto donde se exige una lista se rechaza. XLSX y las fuentes conectadas siguen pendientes. Importar una tabla no crea una publicación social.
+
+Listados e historial devuelven `pagination` con `current_page`, `per_page`, `total`, `last_page` y `next_page`. El tamaño de página va de1 a100 y es25 por defecto. Las filas usan `offset` de0 a1000 y `limit` de1 a100, con50 por defecto. La respuesta fija `revision` y `sha256` y devuelve `next_offset`. Sigue ese cursor conservando la misma revisión. El presupuesto de6MiB puede reducir las filas por respuesta; no salta filas ni trunca celdas.
+
+Para descargar, selecciona `format=csv|tsv|json`. CSV y TSV usan `mode=spreadsheet` por defecto: anteponen un apóstrofo a todos los campos de texto, incluidas las etiquetas. Los números y null conservan su representación. `mode=text` mantiene el intercambio literal; una hoja de cálculo externa puede interpretar sus fórmulas. JSON conserva tipos e IDs y no acepta `mode` ni `header`. Las descargas son privadas, con `no-store`, `nosniff` y nombre generado desde ID y revisión. Si falta el snapshot o falla su integridad, devuelve503 sin sustituirlo por otra revisión.
+
+La herramienta MCP `manage_studio_dataset` admite `list`, `get`, `create`, `replace`, `rows`, `history`, `import`, `export`, `archive` y `restore`. Requiere `brand_id` y, según la acción, `dataset_id`. Los IDs de estos ejemplos son ilustrativos: usa los que devuelvan tus llamadas.
+
+```json
+{"action":"create","brand_id":12,"name":"Ventas","table":{"columns":[{"id":"mes","label":"Mes"},{"id":"valor","label":"Ventas"}],"rows":[{"id":"enero","values":["Enero",120]}]}}
+```
+
+```json
+{"action":"rows","brand_id":12,"dataset_id":23,"revision":1,"offset":0,"limit":50}
+```
+
+La acción MCP `import` recibe `text` en lugar de un archivo. `export` devuelve `download_url`, revisión, SHA y formato; el enlace requiere un bearer con `designs:read`. Los clientes con mensajes pequeños pueden usar la API multipart autenticada. Todavía no existe un protocolo de chunks para datasets. El catálogo actual contiene42 herramientas y se obtiene acumulando páginas de30 con `nextCursor`.
+
+Los cuerpos JSON de datasets se limitan a53MiB antes de decodificar; el transporte MCP permite160MiB para envoltorios Unicode habituales. El dataset conserva su límite de52MB. Multipart requiere configurar el servidor para aceptar al menos64MiB. El ensayo TCP local aceptó una tabla JSON de52.000.000bytes mediante un envoltorio MCP de155.970.107bytes; PHP512MiB tuvo un pico de asignador465.567.744bytes. CSVmultipart25.000.000bytes también se comprobó porTCP. La aplicación no aumenta automáticamente la memoria de producción; estas pruebas no certifican FPM, proxy o VPS del usuario.
+
+Si usas importaciones MCP grandes, configura también el límite POST y el proxy para al menos192MiB. El límite de64MiB de archivos cubre multipart; no cubre por sí solo el envoltorio Unicode de MCP. La guardia sigue aplicando su máximo160MiB antes de decodificar, aunque cambie Content-Type. La aplicación no modifica PHP ni el proxy automáticamente.
+
+
+### Trabajar con tablas desde el estudio
+
+La interfaz está validada localmente en navegador a 375, 768 y 1440 píxeles. Se abre con **Tablas de datos**, tanto en la biblioteca del estudio como dentro de un diseño. Cada marca conserva su propia biblioteca. La validación incluye edición, importación, historial, conflictos de revisión, archivo, descargas y protección ante respuestas tardías al cerrar o cambiar de marca.
+
+1. Elige **Nueva tabla** o abre la importación de CSV, TSV o JSON tipado. CSV y TSV permiten indicar si la primera fila contiene encabezados. Los límites son1000filas,100columnas,25MB paraCSV/TSV y52MB paraJSON; XLSX y fuentes conectadas siguen pendientes.
+2. Abre una celda, elige Texto, Número o Vacío y pulsa **Aplicar celda**. Los textos no se convierten automáticamente en números ni se ejecutan como fórmulas. El editor distingue un texto vacío de un valor null.
+3. **Herramientas de tabla** reúne filas, columnas, reemplazo literal, relleno de vacíos, conversión con previsualización y transposición. La conversión indica las filas que no puede convertir y no aplica cambios parciales. Transponer conserva los encabezados como primera columna y admite hasta99filas de origen.
+4. Usa **Guardar tabla** para crear una revisión. Si alguien ha guardado otra versión, se conserva tu borrador y puedes descargarlo antes de recargar la guardada. **Deshacer tabla** y **Rehacer tabla** conservan hasta30pasos de la sesión.
+5. **Historial de revisiones** abre una versión fija en modo lectura. También puedes archivar/restaurar o usar **Duplicar tabla** para obtener una copia independiente. Las ventanas de filas/columnas permiten recorrer la tabla completa.
+6. **Descargar tabla** obtiene la revisión guardada; **Descargar borrador JSON** conserva los cambios locales aplicados. CSV/TSV usan el modo seguro para hojas de cálculo por defecto; el modo fiel conserva los textos originales. JSON tipado conserva los tipos e identidades.
+
+El diálogo avisa antes de descartar cambios. Una importación o edición de datos no crea una publicación ni añade todavía un gráfico al diseño.

@@ -1,0 +1,38 @@
+--- a/app/Services/Studio/StudioChartData.php
++++ b/app/Services/Studio/StudioChartData.php
+@@ -7,6 +7,11 @@
+     private const MAX_BYTES = 2097152;
+ 
+     public function normalize(array $table): array
++    {
++        return $this->normalizeTable($table);
++    }
++
++    private function normalizeTable(array $table, int $csvHeaderRows = 0): array
+     {
+         $this->fields($table, ['columns', 'rows'], 'table');
+         foreach (['columns', 'rows'] as $key) {
+@@ -23,11 +28,12 @@
+             $path = 'column '.($index + 1);
+             $this->fields($column, ['id', 'label'], $path);
+             $this->id($column['id'], $ids, $path);
+-            $this->text($column['label'], 500, $path.' label');
++            $labelPath = $csvHeaderRows === 1 ? 'row 1, column '.($index + 1) : $path.' label';
++            $this->text($column['label'], 500, $labelPath);
+         }
+         $ids = [];
+         foreach ($table['rows'] as $index => $row) {
+-            $path = 'row '.($index + 1);
++            $path = 'row '.($index + 1 + $csvHeaderRows);
+             $this->fields($row, ['id', 'values'], $path);
+             $this->id($row['id'], $ids, $path);
+             if (! is_array($row['values']) || ! array_is_list($row['values']) || count($row['values']) !== $width) {
+@@ -166,7 +172,7 @@
+             $table['rows'][] = ['id' => 'row_'.($index + 1), 'values' => $values];
+         }
+ 
+-        return $this->normalize($table);
++        return $this->normalizeTable($table, (int) $header);
+     }
+ 
+     private function record(array &$records, array $record, bool $header): void

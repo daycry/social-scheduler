@@ -1,0 +1,11 @@
+{
+  "scope": "Sanitized review and own loopback diagnosis only; no UI acceptance",
+  "files": {
+    "raw/download-probe-execution.json": "909f0c45fd2e068c7a4c581f0f3471cfb50dcc1dc8f1a11714297a2a30362b10",
+    "raw/download-probe-result.json": "f7c5e6dd9334be9eb10e6a6b26b37d2396c462e831b54c6b2ad9cb1b6e924606",
+    "raw/manifest.json": "93808d98c47da28bb4f91cdfe9e5cd1353cde6322141a3a9bcef6dd97f778398",
+    "raw/scope.json": "4a5649c5a1eb66cf48d949c37b471eb1eef1af462879230ea2c1c2c537bc98e1",
+    "raw/selector.json": "237b6bb531b0493dd8b968e86d1dfea8a1132366d5a3cc45c396535be7d5c4a8",
+    "review.md": "5936d4cc86ff816bbe439b6b1fbc360ed5f28b0403545569994dad09dfb4ef96"
+  }
+}

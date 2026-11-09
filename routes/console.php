@@ -28,6 +28,9 @@ Schedule::command('queue:prune-failed --hours=720')->daily();
 // Limpia subidas de media abandonadas (pendientes/invalidas) y aborta sus multiparts abiertos (T-17).
 Schedule::command('app:media-prune')->hourly()->name('media-prune')->withoutOverlapping();
 
+// Bounded private Studio recovery; native work stays on its dedicated queue.
+Schedule::command('studio:recover --limit=25')->everyMinute()->name('studio-av-recovery')->withoutOverlapping(2);
+
 // Renueva tokens de redes sociales antes de caducar; si falla marca la cuenta y avisa (T-16).
 Schedule::job(new RefreshTokens)->everyThirtyMinutes()->name('refresh-social-tokens')->withoutOverlapping();
 

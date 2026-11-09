@@ -1,0 +1,16 @@
+{
+  "phase": "e2e",
+  "exit": 0,
+  "terminal": true,
+  "sources_and_bundles_match": true,
+  "stats": {
+    "startTime": "2026-11-05T10:18:15.723Z",
+    "duration": 310471.76700000005,
+    "expected": 42,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "errors": [],
+  "run": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-bbc3e925-c691-43c2-adaa-51b06723df66"
+}

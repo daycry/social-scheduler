@@ -1,0 +1,17 @@
+test_child_enters_owned_subgroup_before_exec_and_cleanup_removes_only_that_subgroup (tests.studio_runtime.test_av_linux.LinuxPhaseTest.test_child_enters_owned_subgroup_before_exec_and_cleanup_removes_only_that_subgroup) ... ok
+test_closed_stdin_does_not_replace_the_private_guardian_pipe (tests.studio_runtime.test_av_linux.LinuxPhaseTest.test_closed_stdin_does_not_replace_the_private_guardian_pipe) ... ok
+test_guardian_deadline_kills_detached_descendants (tests.studio_runtime.test_av_linux.LinuxPhaseTest.test_guardian_deadline_kills_detached_descendants) ... ok
+test_guardian_pipe_eof_cleans_group_when_supervisor_is_killed (tests.studio_runtime.test_av_linux.LinuxPhaseTest.test_guardian_pipe_eof_cleans_group_when_supervisor_is_killed) ... ok
+test_invalid_namespace_or_deadline_fails_before_creating_a_group (tests.studio_runtime.test_av_linux.LinuxPhaseTest.test_invalid_namespace_or_deadline_fails_before_creating_a_group) ... ok
+test_supervisor_fallback_cleans_its_group_if_the_guardian_crashes (tests.studio_runtime.test_av_linux.LinuxPhaseTest.test_supervisor_fallback_cleans_its_group_if_the_guardian_crashes) ... ok
+test_dispatch_executes_only_inside_its_owned_cgroup_and_removes_it_before_return (tests.studio_runtime.test_av_linux.LinuxRuntimeDispatchTest.test_dispatch_executes_only_inside_its_owned_cgroup_and_removes_it_before_return) ... ok
+test_dispatch_hard_timeout_kills_the_contract_process_and_returns_no_ready_result (tests.studio_runtime.test_av_linux.LinuxRuntimeDispatchTest.test_dispatch_hard_timeout_kills_the_contract_process_and_returns_no_ready_result) ... ok
+test_probe_observes_three_gib_job_limit_in_parent_child_and_grandchild (tests.studio_runtime.test_av_limits.AudiovisualLimitsTest.test_probe_observes_three_gib_job_limit_in_parent_child_and_grandchild) ... skipped 'Windows Job Object acceptance; Linux needs its real bounded worker cgroup'
+test_supervisor_exit_closes_its_job_and_terminates_a_detached_child (tests.studio_runtime.test_av_limits.AudiovisualLimitsTest.test_supervisor_exit_closes_its_job_and_terminates_a_detached_child) ... skipped 'Windows Job Object acceptance; Linux needs its real bounded worker cgroup'
+test_child_without_local_memory_controller_uses_its_bounded_ancestor (tests.studio_runtime.test_av_limits.CgroupBoundsTest.test_child_without_local_memory_controller_uses_its_bounded_ancestor) ... ok
+test_effective_ancestor_limit_is_used_and_unbounded_or_unmounted_groups_fail_closed (tests.studio_runtime.test_av_limits.CgroupBoundsTest.test_effective_ancestor_limit_is_used_and_unbounded_or_unmounted_groups_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 4.843s
+
+OK (skipped=2)

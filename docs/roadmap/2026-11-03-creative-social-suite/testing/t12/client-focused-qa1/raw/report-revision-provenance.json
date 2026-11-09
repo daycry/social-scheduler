@@ -1,0 +1,12 @@
+{
+  "kind": "Report-only revision after manual application finding; zero new native tests",
+  "original_core": "storage/framework/testing/t12-chart-client-qa1/out/client-execution1",
+  "core_execution_sha256": "3d353e4362cb62fce7391d172bf3f8c94b44687ea3c954c26fbf62e0a38dd01c",
+  "copied_execution_sha256": "3d353e4362cb62fce7391d172bf3f8c94b44687ea3c954c26fbf62e0a38dd01c",
+  "original_pdf_sha256": "a3e53fe776f484b86058ec79d4fc184d016e162ca34f3ea3e60881a320ff2204",
+  "original_pdf_status": "superseded before visual acceptance; immutable retained",
+  "finding": "VL1",
+  "automatic_verdict": "FOCAL-PASS",
+  "visual_verdict": "NO-PASS",
+  "source_count": 1360
+}

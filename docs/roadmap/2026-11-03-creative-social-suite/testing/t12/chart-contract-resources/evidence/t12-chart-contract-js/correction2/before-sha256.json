@@ -1,0 +1,27 @@
+[
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "FA49F02545E072EA42ECE2A4369634697D878E4B0FDA2CE0DCD489A1E2398EC5",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\chart-spec.js"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "B8258402890D058E98CA0AF890388F6E69B9EDE9184B286B6DC15307A3E98C0F",
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\frontend\\studio-chart-spec.test.mjs"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "0392AA4B75CF824B5BDA0C204A2F46CC1706502A7D43216DECE57F4AB271B772",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\document.js"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "0633CD444B867B41918BE6EC349BA47966C8F8F50EC119ADAD4EBD23CF671787",
+        "Path":  "C:\\laragon\\www\\metricool\\resources\\js\\Studio\\fonts.js"
+    },
+    {
+        "Algorithm":  "SHA256",
+        "Hash":  "176994F306112D53F5A4847702FD98AF01B5735284527C73DC03D8608E5C7631",
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\Fixtures\\studio\\chart-spec.json"
+    }
+]

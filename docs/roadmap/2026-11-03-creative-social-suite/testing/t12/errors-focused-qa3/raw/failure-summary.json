@@ -1,0 +1,27 @@
+{
+  "actual_executed_cases": 1,
+  "recorded_cases": 3,
+  "original_stats": {
+    "startTime": "2026-11-06T20:54:17.617Z",
+    "duration": 24652.734,
+    "expected": 0,
+    "skipped": 2,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "failures": [
+    {
+      "project": "desktop",
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 1\nReceived: 0\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate\n\n   at support\\studio-chart-delay.ts:10\n\n   8 |  const offset=fs.existsSync(log)?fs.statSync(log).size:0;fs.writeFileSync(file,JSON.stringify({method,path:route,token}));\n   9 |  const rows=()=>fs.existsSync(log)?fs.readFileSync(log).subarray(offset).toString('utf8').split('\\n').filter(Boolean).map(line=>JSON.parse(line)).filter(row=>row.token===token):[];\n> 10 |  return {async captured(){await expect.poll(()=>rows().filter(r=>r.kind==='hold-captured-real-response').length).toBe(1);const row=rows().find(r=>r.kind==='hold-captured-real-response');expect(row.status).toBe(200);expect(row.upstream_status).toBe(200);expect(row.bytes).toBeGreaterThan(0);expect(row.sha256).toMatch(/^[a-f0-9]{64}$/);return row;},async cancelled(){await expect.poll(()=>rows().filter(r=>r.kind==='hold-client-cancelled').length).toBe(1);},async release(){fs.writeFileSync(path.join(runRoot,`hold-${token}.release`),'release');await expect.poll(()=>rows().filter(r=>r.kind==='hold-released').length).toBe(1);const released=rows().find(r=>r.kind==='hold-released');expect(released.deadline_release).toBe(false);return rows();}};\n     |                                                                                                                  ^\n  11 | }\n  12 |\n    at Object.captured (C:\\laragon\\www\\metricool\\tests\\e2e\\support\\studio-chart-delay.ts:10:114)\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-charts.spec.ts:41:672"
+    },
+    {
+      "project": "desktop",
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 1\nReceived: 0\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate\n\n   at support\\studio-chart-delay.ts:10\n\n   8 |  const offset=fs.existsSync(log)?fs.statSync(log).size:0;fs.writeFileSync(file,JSON.stringify({method,path:route,token}));\n   9 |  const rows=()=>fs.existsSync(log)?fs.readFileSync(log).subarray(offset).toString('utf8').split('\\n').filter(Boolean).map(line=>JSON.parse(line)).filter(row=>row.token===token):[];\n> 10 |  return {async captured(){await expect.poll(()=>rows().filter(r=>r.kind==='hold-captured-real-response').length).toBe(1);const row=rows().find(r=>r.kind==='hold-captured-real-response');expect(row.status).toBe(200);expect(row.upstream_status).toBe(200);expect(row.bytes).toBeGreaterThan(0);expect(row.sha256).toMatch(/^[a-f0-9]{64}$/);return row;},async cancelled(){await expect.poll(()=>rows().filter(r=>r.kind==='hold-client-cancelled').length).toBe(1);},async release(){fs.writeFileSync(path.join(runRoot,`hold-${token}.release`),'release');await expect.poll(()=>rows().filter(r=>r.kind==='hold-released').length).toBe(1);const released=rows().find(r=>r.kind==='hold-released');expect(released.deadline_release).toBe(false);return rows();}};\n     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ^\n  11 | }\n  12 |\n    at Object.release (C:\\laragon\\www\\metricool\\tests\\e2e\\support\\studio-chart-delay.ts:10:61"
+    }
+  ],
+  "global_errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ]
+}

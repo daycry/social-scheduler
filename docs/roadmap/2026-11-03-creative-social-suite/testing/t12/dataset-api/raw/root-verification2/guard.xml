@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Studio\StudioDatasetApiTest" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetApiTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.595080">
+    <testcase name="test_json_body_stream_is_bounded_before_decode_without_trusting_content_length" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetApiTest.php" line="139" class="Tests\Feature\Studio\StudioDatasetApiTest" classname="Tests.Feature.Studio.StudioDatasetApiTest" assertions="1" time="0.595080"/>
+  </testsuite>
+</testsuites>

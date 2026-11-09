@@ -1,0 +1,466 @@
+TAP version 13
+# Subtest: partial coverage exposes missing account days even when the reported total is zero
+ok 1 - partial coverage exposes missing account days even when the reported total is zero
+  ---
+  duration_ms: 0.931
+  type: 'test'
+  ...
+# Subtest: missing, unsupported and still open periods have distinct meanings
+ok 2 - missing, unsupported and still open periods have distinct meanings
+  ---
+  duration_ms: 0.1506
+  type: 'test'
+  ...
+# Subtest: complete zero observations are not described as absent or as a guaranteed refresh
+ok 3 - complete zero observations are not described as absent or as a guaranteed refresh
+  ---
+  duration_ms: 0.2009
+  type: 'test'
+  ...
+# Subtest: explicit private font references survive validation and can be removed without changing text
+ok 4 - explicit private font references survive validation and can be removed without changing text
+  ---
+  duration_ms: 5.4169
+  type: 'test'
+  ...
+# Subtest: image masks use known shapes only, roundtrip radius and support explicit removal
+ok 5 - image masks use known shapes only, roundtrip radius and support explicit removal
+  ---
+  duration_ms: 1.2442
+  type: 'test'
+  ...
+# Subtest: canvas serialization preserves the private font identity and mask descriptor instead of engine internals
+ok 6 - canvas serialization preserves the private font identity and mask descriptor instead of engine internals
+  ---
+  duration_ms: 0.5647
+  type: 'test'
+  ...
+# Subtest: documents cannot impersonate a previously loaded private face through a local family name
+ok 7 - documents cannot impersonate a previously loaded private face through a local family name
+  ---
+  duration_ms: 0.2655
+  type: 'test'
+  ...
+# Subtest: font family syntax rejects quoted names and reserved private fallback families
+ok 8 - font family syntax rejects quoted names and reserved private fallback families
+  ---
+  duration_ms: 1.1237
+  type: 'test'
+  ...
+# Subtest: an explicit private font never silently falls back when its registered resource is absent
+ok 9 - an explicit private font never silently falls back when its registered resource is absent
+  ---
+  duration_ms: 1.2753
+  type: 'test'
+  ...
+# Subtest: private font loading rejects a resource URL outside the application before fetching
+ok 10 - private font loading rejects a resource URL outside the application before fetching
+  ---
+  duration_ms: 0.5101
+  type: 'test'
+  ...
+# Subtest: private font decoding has a deadline even after the HTTP body finished downloading
+ok 11 - private font decoding has a deadline even after the HTTP body finished downloading
+  ---
+  duration_ms: 26.882
+  type: 'test'
+  ...
+# Subtest: real private WOFF2 changes raster glyphs and portable SVG embeds the exact font bytes
+ok 12 - real private WOFF2 changes raster glyphs and portable SVG embeds the exact font bytes
+  ---
+  duration_ms: 2114.3646
+  type: 'test'
+  ...
+# Subtest: ellipse and rounded rectangle masks remove corner pixels while retaining central subject pixels
+ok 13 - ellipse and rounded rectangle masks remove corner pixels while retaining central subject pixels
+  ---
+  duration_ms: 133.9829
+  type: 'test'
+  ...
+# Subtest: crop origins outside the actual raster reject while legacy oversized frames still render
+ok 14 - crop origins outside the actual raster reject while legacy oversized frames still render
+  ---
+  duration_ms: 44.1337
+  type: 'test'
+  ...
+# Subtest: editor awaits real fonts, preserves masked transforms through copy and releases its private faces
+ok 15 - editor awaits real fonts, preserves masked transforms through copy and releases its private faces
+  ---
+  duration_ms: 37.0484
+  type: 'test'
+  ...
+# Subtest: crop and every supported filter change decoded output pixels rather than only document metadata
+ok 16 - crop and every supported filter change decoded output pixels rather than only document metadata
+  ---
+  duration_ms: 912.345
+  type: 'test'
+  ...
+# Subtest: line and path defaults are visible strokes while explicit styles remain unchanged
+ok 17 - line and path defaults are visible strokes while explicit styles remain unchanged
+  ---
+  duration_ms: 4.4283
+  type: 'test'
+  ...
+# Subtest: blank document uses requested dimensions and independent page identities
+ok 18 - blank document uses requested dimensions and independent page identities
+  ---
+  duration_ms: 1.4013
+  type: 'test'
+  ...
+# Subtest: clone and duplicate page replace every nested id without sharing mutable state
+ok 19 - clone and duplicate page replace every nested id without sharing mutable state
+  ---
+  duration_ms: 0.8401
+  type: 'test'
+  ...
+# Subtest: page selection preserves explicit order and rejects absent or repeated ids
+ok 20 - page selection preserves explicit order and rejects absent or repeated ids
+  ---
+  duration_ms: 0.6782
+  type: 'test'
+  ...
+# Subtest: validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+ok 21 - validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+  ---
+  duration_ms: 1.4038
+  type: 'test'
+  ...
+# Subtest: validation preserves gradients, filters, affine transforms and vector paths
+ok 22 - validation preserves gradients, filters, affine transforms and vector paths
+  ---
+  duration_ms: 0.647
+  type: 'test'
+  ...
+# Subtest: server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+ok 23 - server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+  ---
+  duration_ms: 17.0246
+  type: 'test'
+  ...
+# Subtest: a minimally trimmed short video shares the server end validation
+ok 24 - a minimally trimmed short video shares the server end validation
+  ---
+  duration_ms: 0.2931
+  type: 'test'
+  ...
+# Subtest: text limits count Unicode code points like the server rather than UTF-16 code units
+ok 25 - text limits count Unicode code points like the server rather than UTF-16 code units
+  ---
+  duration_ms: 2.8891
+  type: 'test'
+  ...
+# Subtest: multipage png downloads one font once and releases its faces
+ok 26 - multipage png downloads one font once and releases its faces
+  ---
+  duration_ms: 891.5002
+  type: 'test'
+  ...
+# Subtest: multipage pdf downloads one font once and releases its faces
+ok 27 - multipage pdf downloads one font once and releases its faces
+  ---
+  duration_ms: 118.7114
+  type: 'test'
+  ...
+# Subtest: bitmap exports reject oversized sides before rendering or uploading
+ok 28 - bitmap exports reject oversized sides before rendering or uploading
+  ---
+  duration_ms: 2.8961
+  type: 'test'
+  ...
+# Subtest: actual Fabric transform survives own document roundtrip
+ok 29 - actual Fabric transform survives own document roundtrip
+  ---
+  duration_ms: 4.3728
+  type: 'test'
+  ...
+# Subtest: multiple selection serializes absolute transforms without altering the selection
+ok 30 - multiple selection serializes absolute transforms without altering the selection
+  ---
+  duration_ms: 2.1484
+  type: 'test'
+  ...
+# Subtest: nested group preserves local children geometry on save and reopen
+ok 31 - nested group preserves local children geometry on save and reopen
+  ---
+  duration_ms: 2.6346
+  type: 'test'
+  ...
+# Subtest: a gradient angle stays stable on nonsquare shapes through repeated saves
+ok 32 - a gradient angle stays stable on nonsquare shapes through repeated saves
+  ---
+  duration_ms: 1.2403
+  type: 'test'
+  ...
+# Subtest: history restores full states, does not share snapshots and clears redo after branching
+ok 33 - history restores full states, does not share snapshots and clears redo after branching
+  ---
+  duration_ms: 0.9677
+  type: 'test'
+  ...
+# Subtest: history bounds retained states and reset starts a new clean timeline
+ok 34 - history bounds retained states and reset starts a new clean timeline
+  ---
+  duration_ms: 0.8446
+  type: 'test'
+  ...
+# Subtest: video seek resolves a decoded frame, clamps duration and supports cancellation
+ok 35 - video seek resolves a decoded frame, clamps duration and supports cancellation
+  ---
+  duration_ms: 1.737
+  type: 'test'
+  ...
+# Subtest: video seek reports a stalled decoder and releases its listeners
+ok 36 - video seek reports a stalled decoder and releases its listeners
+  ---
+  duration_ms: 14.9854
+  type: 'test'
+  ...
+# Subtest: font loading fails explicitly if the font service never settles
+ok 37 - font loading fails explicitly if the font service never settles
+  ---
+  duration_ms: 22.2899
+  type: 'test'
+  ...
+# Subtest: video playback honors trimmed endpoints and the actual media duration
+ok 38 - video playback honors trimmed endpoints and the actual media duration
+  ---
+  duration_ms: 0.7032
+  type: 'test'
+  ...
+# Subtest: isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+ok 39 - isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+  ---
+  duration_ms: 1845.0891
+  type: 'test'
+  ...
+# Subtest: server render can load a registered private image without a cookie or external network
+ok 40 - server render can load a registered private image without a cookie or external network
+  ---
+  duration_ms: 641.0816
+  type: 'test'
+  ...
+# Subtest: isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG
+ok 41 - isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG
+  ---
+  duration_ms: 1669.0198
+  type: 'test'
+  ...
+# Subtest: fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+ok 42 - fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+  ---
+  duration_ms: 215.9022
+  type: 'test'
+  ...
+# Subtest: default line and path exports have actual pixels different from the empty page
+ok 43 - default line and path exports have actual pixels different from the empty page
+  ---
+  duration_ms: 68.7264
+  type: 'test'
+  ...
+# Subtest: at least twelve original templates create valid nonempty independent documents
+ok 44 - at least twelve original templates create valid nonempty independent documents
+  ---
+  duration_ms: 11.7413
+  type: 'test'
+  ...
+# Subtest: templates use supplied brand colors/fonts without mutating the kit
+ok 45 - templates use supplied brand colors/fonts without mutating the kit
+  ---
+  duration_ms: 1.7145
+  type: 'test'
+  ...
+# Subtest: brand templates preserve the first uploaded font identity on every generated page
+ok 46 - brand templates preserve the first uploaded font identity on every generated page
+  ---
+  duration_ms: 0.872
+  type: 'test'
+  ...
+# Subtest: page clock overlaps transitions and samples visual and audio gains at exact project time
+ok 47 - page clock overlaps transitions and samples visual and audio gains at exact project time
+  ---
+  duration_ms: 2.5058
+  type: 'test'
+  ...
+# Subtest: rounding cumulative boundaries preserves 100 fractional pages without project drift or frame gaps
+ok 48 - rounding cumulative boundaries preserves 100 fractional pages without project drift or frame gaps
+  ---
+  duration_ms: 2.6828
+  type: 'test'
+  ...
+# Subtest: media sampling uses trim, rate and loop phase while the half-open end remains silent
+ok 49 - media sampling uses trim, rate and loop phase while the half-open end remains silent
+  ---
+  duration_ms: 1.6855
+  type: 'test'
+  ...
+# Subtest: splitting a visual clip preserves geometry, loop phase and the original gain curve without mutating input
+ok 50 - splitting a visual clip preserves geometry, loop phase and the original gain curve without mutating input
+  ---
+  duration_ms: 2.348
+  type: 'test'
+  ...
+# Subtest: audio split preserves global time, phase and fade continuity and rejects subframe cuts
+ok 51 - audio split preserves global time, phase and fade continuity and rejects subframe cuts
+  ---
+  duration_ms: 0.9955
+  type: 'test'
+  ...
+# Subtest: decimal source boundaries and a one-frame split survive floating-point representation
+ok 52 - decimal source boundaries and a one-frame split survive floating-point representation
+  ---
+  duration_ms: 1.8403
+  type: 'test'
+  ...
+# Subtest: split operations reject a result beyond the validated layer and audio limits
+ok 53 - split operations reject a result beyond the validated layer and audio limits
+  ---
+  duration_ms: 7.9705
+  type: 'test'
+  ...
+# Subtest: splitting cannot return a document beyond the UTF-8 byte budget
+ok 54 - splitting cannot return a document beyond the UTF-8 byte budget
+  ---
+  duration_ms: 55.2979
+  type: 'test'
+  ...
+# Subtest: cropping a nonzero clip origin keeps the gain endpoint equal to the resulting duration
+ok 55 - cropping a nonzero clip origin keeps the gain endpoint equal to the resulting duration
+  ---
+  duration_ms: 0.8072
+  type: 'test'
+  ...
+# Subtest: real video retains source phase, playback rate, loop and gain metadata across Canvas edits
+ok 56 - real video retains source phase, playback rate, loop and gain metadata across Canvas edits
+  ---
+  duration_ms: 785.3638
+  type: 'test'
+  ...
+# Subtest: timeline preview samples real video phase, inherited visibility and page transitions without mutating the document
+ok 57 - timeline preview samples real video phase, inherited visibility and page transitions without mutating the document
+  ---
+  duration_ms: 22.1031
+  type: 'test'
+  ...
+# Subtest: Canvas edits, selection and copy preserve temporal metadata from a stored v2 document
+ok 58 - Canvas edits, selection and copy preserve temporal metadata from a stored v2 document
+  ---
+  duration_ms: 20.5157
+  type: 'test'
+  ...
+# Subtest: legacy v1 keeps its existing clamped video poster when only trimStart was saved beyond the source
+ok 59 - legacy v1 keeps its existing clamped video poster when only trimStart was saved beyond the source
+  ---
+  duration_ms: 8.615
+  type: 'test'
+  ...
+# Subtest: ungroup keeps the effective temporal window and clips video phase and gain without losing subframe intersections
+ok 60 - ungroup keeps the effective temporal window and clips video phase and gain without losing subframe intersections
+  ---
+  duration_ms: 24.5428
+  type: 'test'
+  ...
+# Subtest: v2 retains typed timing, rates, source phase, envelopes, audio and page transitions
+ok 61 - v2 retains typed timing, rates, source phase, envelopes, audio and page transitions
+  ---
+  duration_ms: 7.0907
+  type: 'test'
+  ...
+# Subtest: legacy v1 still rejects temporal fields instead of silently accepting a different contract
+ok 62 - legacy v1 still rejects temporal fields instead of silently accepting a different contract
+  ---
+  duration_ms: 0.5704
+  type: 'test'
+  ...
+# Subtest: temporal arrays cannot contain holes that would become null after persistence
+ok 63 - temporal arrays cannot contain holes that would become null after persistence
+  ---
+  duration_ms: 1.007
+  type: 'test'
+  ...
+# Subtest: gain envelopes reject an interior array hole before persistence or sampling
+ok 64 - gain envelopes reject an interior array hole before persistence or sampling
+  ---
+  duration_ms: 0.4741
+  type: 'test'
+  ...
+# Subtest: failed creator-info is not retried by reactive effects; explicit retry can recover
+ok 65 - failed creator-info is not retried by reactive effects; explicit retry can recover
+  ---
+  duration_ms: 128.5484
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message "" remains a stable error
+ok 66 - failed creator-info with message "" remains a stable error
+  ---
+  duration_ms: 110.5875
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message false remains a stable error
+ok 67 - failed creator-info with message false remains a stable error
+  ---
+  duration_ms: 109.2756
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message 0 remains a stable error
+ok 68 - failed creator-info with message 0 remains a stable error
+  ---
+  duration_ms: 124.441
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message null remains a stable error
+ok 69 - failed creator-info with message null remains a stable error
+  ---
+  duration_ms: 112.7174
+  type: 'test'
+  ...
+# Subtest: failed creator-info with message {} remains a stable error
+ok 70 - failed creator-info with message {} remains a stable error
+  ---
+  duration_ms: 151.8063
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info null becomes a stable error
+ok 71 - malformed successful creator-info null becomes a stable error
+  ---
+  duration_ms: 101.8668
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info false becomes a stable error
+ok 72 - malformed successful creator-info false becomes a stable error
+  ---
+  duration_ms: 111.74
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info 0 becomes a stable error
+ok 73 - malformed successful creator-info 0 becomes a stable error
+  ---
+  duration_ms: 111.3725
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info "" becomes a stable error
+ok 74 - malformed successful creator-info "" becomes a stable error
+  ---
+  duration_ms: 109.8562
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info [] becomes a stable error
+ok 75 - malformed successful creator-info [] becomes a stable error
+  ---
+  duration_ms: 109.0582
+  type: 'test'
+  ...
+# Subtest: malformed successful creator-info {} becomes a stable error
+ok 76 - malformed successful creator-info {} becomes a stable error
+  ---
+  duration_ms: 111.9628
+  type: 'test'
+  ...
+1..76
+# tests 76
+# suites 0
+# pass 76
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4756.8985

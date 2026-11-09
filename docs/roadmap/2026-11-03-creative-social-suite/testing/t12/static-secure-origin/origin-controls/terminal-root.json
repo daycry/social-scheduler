@@ -1,0 +1,10 @@
+{
+  "supervisor_alive": false,
+  "node_alive": false,
+  "sources": 21,
+  "drift": [],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  }
+}

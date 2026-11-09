@@ -1,0 +1,24 @@
+{
+  "state": "READY2_PROBE",
+  "executed": false,
+  "app_pass_claim": false,
+  "cases": 16,
+  "projected_seconds_max": 40,
+  "variants": [
+    "original",
+    "observed",
+    "suppress-completed-cancel"
+  ],
+  "matrix": "3 variants x alive/dispose x 2 transports + original replacement/native x 2 transports",
+  "diagnostic_only_not_production_fix": true,
+  "retries": 0,
+  "deadline_seconds": 90,
+  "node_timeout_seconds": 80,
+  "node_heap_mib": 512,
+  "aggregate_job_commit_gib": 3,
+  "physical_preflight_gib": 6,
+  "physical_floor_gib": 3,
+  "sample_ms": 100,
+  "approval": "revision T12 HTTP probe2 aprobada; ejecuta una pasada local",
+  "note": "TDD n/a: private diagnostic instrumentation. No server/browser/Job opened in preparation. Exact module routes only; no Laravel, PHP, DB, build, model, env files or external URL."
+}

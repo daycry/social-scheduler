@@ -1,0 +1,21 @@
+{
+  "reviewer": "root, direct inspection of all four figures and all five rendered PDF pages",
+  "pdf_sha256": "465cce3a8e35c4b4d59943ba2ac798a189be79c0b5072cf8f2daf607bad6b993",
+  "issues": [],
+  "scope": "Report layout and faithful partial evidence only; not overall product visual approval",
+  "known_product_followups": [
+    "Small y-axis title remains open.",
+    "Full-page screenshots retain the fixed navigation at capture position; no responsive usability acceptance is inferred."
+  ],
+  "inspected": {
+    "images/1440-server-static.png": "974948bea3b9f68f8d36d1fe106227721326b295e432a77040736d034cdbea4f",
+    "images/375-server-static.png": "89028baedb9a20ae61d667d2f3ab60dc67d8be2a3b4adb27753b6806e12a6ce3",
+    "images/768-server-static.png": "9b9d30f6d891fc3049a88149ddcc7b663a80e498f48f6c97fd66cb6329510f28",
+    "images/exported-server.png": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e",
+    "pdf-pages/page-001.png": "e74487483209c25a165271efac9327d48e2d1442fd81c1efff36bf3fa46fd2a1",
+    "pdf-pages/page-002.png": "a5e5f48d303fb823144bd8ec9f86b73545ddc596799fdbfe2f3ba120044e5cc6",
+    "pdf-pages/page-003.png": "b2e1ce14fb375b8a0e2866457cfdf1261b5fee1289b090f8a193155833872ccf",
+    "pdf-pages/page-004.png": "c64fa4edd352bd02a15ee0a994166653c5276eea3dcd82b38a8acdc215031a3d",
+    "pdf-pages/page-005.png": "20e10f5eaa931e3e501f42f798a4ce3eff476c58f1b15c6d001141d5e15f8e5d"
+  }
+}

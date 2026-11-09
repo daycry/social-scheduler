@@ -9,6 +9,7 @@ const env = JSON.parse(Buffer.from(process.env.E2E_GENERAL_ENV || '', 'base64').
 if (env.APP_ENV !== 'e2e' || env.APP_URL !== 'http://localhost:8080' || !env.E2E_GENERAL_RUN_ROOT) {
     throw new Error('Missing disposable general E2E environment manifest.');
 }
+require('./datasets/os-environment.cjs').applyTo(env);
 const init = spawnSync('php', ['tests/e2e/isolated/cli.php', 'init'], { env, stdio: 'inherit' });
 if (init.error) throw init.error;
 if (init.status !== 0) process.exit(init.status ?? 1);
@@ -20,6 +21,7 @@ reserve.listen(0, '127.0.0.1', () => {
     reserve.close(() => {
         const php = spawn('php', ['-S', `127.0.0.1:${backendPort}`, '-t', 'public', 'tests/e2e/isolated/server.php'], { env, stdio: 'inherit', windowsHide: true });
         const frontend = createFrontend(path.resolve('public'), backendPort);
+        require('./datasets/download-observer.cjs').attach(frontend, path.join(env.E2E_GENERAL_RUN_ROOT, 'dataset-downloads.jsonl'));
         frontend.listen(8080, '127.0.0.1');
         let stopping = false;
         const stop = () => {

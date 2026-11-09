@@ -1,0 +1,272 @@
+ M .gitattributes
+ M .github/workflows/ci.yml
+ M .gitignore
+ M CONTINUE-HERE.md
+ M README.md
+ M app/Connectors/Support/MediaChunkReader.php
+ M app/Http/Controllers/MediaController.php
+ M app/Http/Controllers/Studio/StudioApiController.php
+ M app/Http/Controllers/Studio/StudioController.php
+ M app/Mcp/Servers/SchedulerServer.php
+ M app/Mcp/Tools/AttachDesignAsset.php
+ M app/Mcp/Tools/CreateDesign.php
+ M app/Mcp/Tools/ExportDesign.php
+ M app/Mcp/Tools/GetDesign.php
+ M app/Mcp/Tools/ListMedia.php
+ M app/Mcp/Tools/ManageBrandKit.php
+ M app/Mcp/Tools/ManageDesign.php
+ M app/Mcp/Tools/SchedulerTool.php
+ M app/Mcp/Tools/UpdateDesign.php
+ M app/Models/MediaAsset.php
+ M app/Models/Studio/BrandKit.php
+ M app/Models/Studio/DesignExport.php
+ M app/Services/MediaProbe.php
+ M app/Services/MediaUploadService.php
+ M app/Services/Studio/StudioAssets.php
+ M app/Services/Studio/StudioAutomation.php
+ M app/Services/Studio/StudioDocument.php
+ M app/Services/Studio/StudioExports.php
+ M app/Services/Studio/StudioRenderer.php
+ M app/Services/Studio/StudioService.php
+ M bootstrap/app.php
+ M config/media.php
+ M config/studio.php
+ M deploy/systemd/README.md
+ M docs/api/creative-suite.openapi.yaml
+ M docs/guias/estudio-api-mcp.md
+ M docs/knowledge/README.md
+ M docs/knowledge/journal/README.md
+ M docs/modulos/mcp.md
+ M docs/roadmap/2026-11-03-creative-social-suite/document-contract.md
+ M docs/roadmap/2026-11-03-creative-social-suite/reference-inventory.md
+ M docs/roadmap/2026-11-03-creative-social-suite/tasks.md
+ M docs/roadmap/2026-11-03-creative-social-suite/test-plan.md
+ M docs/roadmap/2026-11-03-creative-social-suite/testing/connections/audit-2026-11-04.md
+ M resources/js/Components/Studio/ExportDialog.vue
+ M resources/js/Components/Studio/Inspector.vue
+ M resources/js/Components/Studio/TemplatePreview.vue
+ M resources/js/Pages/Studio/Editor.vue
+ M resources/js/Pages/Studio/Index.vue
+ M resources/js/Studio/api.js
+ M resources/js/Studio/canvas.js
+ M resources/js/Studio/document.js
+ M resources/js/Studio/exports.js
+ M resources/js/Studio/previews.js
+ M resources/js/Studio/templates.js
+ M routes/console.php
+ M routes/studio-api.php
+ M routes/studio.php
+ M scripts/studio/build.mjs
+ M scripts/studio/render.mjs
+ M tests/Feature/Studio/StudioApiMcpTest.php
+ M tests/Feature/Studio/StudioRendererTest.php
+ M tests/e2e/helpers.ts
+ M tests/e2e/isolated/bootstrap.php
+ M tests/e2e/isolated/serve.cjs
+ M tests/frontend/studio-geometry.test.mjs
+ M tests/frontend/studio-renderer.browser.test.mjs
+ M tests/frontend/studio-templates.test.mjs
+?? app/Console/Commands/RecoverStudioExports.php
+?? app/Http/Controllers/Studio/StudioAudioController.php
+?? app/Http/Controllers/Studio/StudioCaptionsController.php
+?? app/Http/Controllers/Studio/StudioDatasetController.php
+?? app/Http/Controllers/Studio/StudioFontController.php
+?? app/Http/Controllers/Studio/StudioImageJobController.php
+?? app/Http/Middleware/LimitStudioDatasetPayload.php
+?? app/Jobs/Studio/ProcessStudioAvPhase.php
+?? app/Jobs/Studio/ProcessStudioImage.php
+?? app/Mcp/Tools/ManageDesignCaptions.php
+?? app/Mcp/Tools/ManageDesignExport.php
+?? app/Mcp/Tools/ManageStudioAudio.php
+?? app/Mcp/Tools/ManageStudioDataset.php
+?? app/Mcp/Tools/ManageStudioFont.php
+?? app/Mcp/Tools/ProcessStudioImage.php
+?? app/Models/Studio/StudioAvLease.php
+?? app/Models/Studio/StudioAvStep.php
+?? app/Models/Studio/StudioAvWorkspace.php
+?? app/Models/Studio/StudioDataset.php
+?? app/Models/Studio/StudioDatasetRevision.php
+?? app/Models/Studio/StudioFont.php
+?? app/Models/Studio/StudioImageJob.php
+?? app/Services/Studio/StudioAudio.php
+?? app/Services/Studio/StudioAudioFiles.php
+?? app/Services/Studio/StudioAudioProbe.php
+?? app/Services/Studio/StudioAudioProbeUnavailable.php
+?? app/Services/Studio/StudioAvCheckpointCorrupt.php
+?? app/Services/Studio/StudioAvCleanup.php
+?? app/Services/Studio/StudioAvControl.php
+?? app/Services/Studio/StudioAvFiles.php
+?? app/Services/Studio/StudioAvProcess.php
+?? app/Services/Studio/StudioAvProcessFailed.php
+?? app/Services/Studio/StudioAvQueue.php
+?? app/Services/Studio/StudioAvRecovery.php
+?? app/Services/Studio/StudioAvRegistrationCleanup.php
+?? app/Services/Studio/StudioAvRunner.php
+?? app/Services/Studio/StudioAvState.php
+?? app/Services/Studio/StudioAvStorage.php
+?? app/Services/Studio/StudioAvTransfer.php
+?? app/Services/Studio/StudioAvWorkspaceBusy.php
+?? app/Services/Studio/StudioCaptionCodec.php
+?? app/Services/Studio/StudioCaptionData.php
+?? app/Services/Studio/StudioCaptions.php
+?? app/Services/Studio/StudioChartData.php
+?? app/Services/Studio/StudioChartSpec.php
+?? app/Services/Studio/StudioCharts.php
+?? app/Services/Studio/StudioDatasetActions.php
+?? app/Services/Studio/StudioDatasetInput.php
+?? app/Services/Studio/StudioDatasets.php
+?? app/Services/Studio/StudioFonts.php
+?? app/Services/Studio/StudioFrames.php
+?? app/Services/Studio/StudioImages.php
+?? app/Services/Studio/StudioTableExport.php
+?? app/Services/Studio/StudioTimeline.php
+?? database/migrations/2026_11_04_220000_create_studio_fonts.php
+?? database/migrations/2026_11_04_223000_create_studio_image_jobs.php
+?? database/migrations/2026_11_05_150000_add_studio_render_state.php
+?? database/migrations/2026_11_06_010000_create_studio_datasets.php
+?? deploy/systemd/scheduler-studio.service
+?? docs/knowledge/candidates/pending/2026-11-05-ffmpeg-aac-seek-zero-phase.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t10-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t11-captions-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t11-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-bar-geometry-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-chart-binding-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-chart-coverage.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-chart-data-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-chart-element-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-editor-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-datasets-contract.md
+?? docs/roadmap/2026-11-03-creative-social-suite/t12-reference-notes.md
+?? docs/roadmap/2026-11-03-creative-social-suite/testing/connections/raw/
+?? docs/roadmap/2026-11-03-creative-social-suite/testing/t10/
+?? docs/roadmap/2026-11-03-creative-social-suite/testing/t11/
+?? docs/roadmap/2026-11-03-creative-social-suite/testing/t12/
+?? requirements-studio.txt
+?? resources/js/Components/Studio/AudioTrackPanel.vue
+?? resources/js/Components/Studio/CaptionsPanel.vue
+?? resources/js/Components/Studio/NativeExportJobs.vue
+?? resources/js/Components/Studio/StudioDatasetsDialog.vue
+?? resources/js/Components/Studio/StudioFontsDialog.vue
+?? resources/js/Components/Studio/StudioImageJob.vue
+?? resources/js/Components/Studio/TimelinePanel.vue
+?? resources/js/Studio/audio-api.js
+?? resources/js/Studio/audiovisual-plan.js
+?? resources/js/Studio/bar-geometry.js
+?? resources/js/Studio/captions-renderer.js
+?? resources/js/Studio/captions.js
+?? resources/js/Studio/chart-binding.js
+?? resources/js/Studio/chart-spec.js
+?? resources/js/Studio/dataset-client.js
+?? resources/js/Studio/dataset-table.js
+?? resources/js/Studio/export-jobs.js
+?? resources/js/Studio/fonts.js
+?? resources/js/Studio/frame-renderer.js
+?? resources/js/Studio/frames.js
+?? resources/js/Studio/project-render-entry.js
+?? resources/js/Studio/timeline-audio.js
+?? resources/js/Studio/timeline-preview.js
+?? resources/js/Studio/timeline.js
+?? routes/studio-audio-api.php
+?? routes/studio-audio.php
+?? routes/studio-captions-api.php
+?? routes/studio-captions.php
+?? routes/studio-datasets-api.php
+?? routes/studio-datasets.php
+?? routes/studio-images-api.php
+?? routes/studio-images.php
+?? scripts/studio/archive.py
+?? scripts/studio/av-audio.mjs
+?? scripts/studio/av-files.mjs
+?? scripts/studio/av-finalize.mjs
+?? scripts/studio/av-gif.mjs
+?? scripts/studio/av-linux.py
+?? scripts/studio/av-pcm.mjs
+?? scripts/studio/av-runtime.py
+?? scripts/studio/av-server.mjs
+?? scripts/studio/av-video.mjs
+?? scripts/studio/background-model.json
+?? scripts/studio/font_probe.py
+?? scripts/studio/process-image.py
+?? scripts/studio/render-av.mjs
+?? scripts/studio/setup-runtime.py
+?? tests/Feature/Studio/StudioAudioAbortTest.php
+?? tests/Feature/Studio/StudioAudioTest.php
+?? tests/Feature/Studio/StudioAvCleanupTest.php
+?? tests/Feature/Studio/StudioAvDeliveryTest.php
+?? tests/Feature/Studio/StudioAvFilesTest.php
+?? tests/Feature/Studio/StudioAvProcessTest.php
+?? tests/Feature/Studio/StudioAvPublicTest.php
+?? tests/Feature/Studio/StudioAvQueueTest.php
+?? tests/Feature/Studio/StudioAvRegistrationTest.php
+?? tests/Feature/Studio/StudioAvRetirementTest.php
+?? tests/Feature/Studio/StudioAvStateTest.php
+?? tests/Feature/Studio/StudioAvTransferTest.php
+?? tests/Feature/Studio/StudioCaptionsTest.php
+?? tests/Feature/Studio/StudioChartDataTest.php
+?? tests/Feature/Studio/StudioChartSpecTest.php
+?? tests/Feature/Studio/StudioChartsTest.php
+?? tests/Feature/Studio/StudioDatasetApiTest.php
+?? tests/Feature/Studio/StudioDatasetsTest.php
+?? tests/Feature/Studio/StudioFontsTest.php
+?? tests/Feature/Studio/StudioFrameTimesTest.php
+?? tests/Feature/Studio/StudioImageExifTest.php
+?? tests/Feature/Studio/StudioImageJobsTest.php
+?? tests/Feature/Studio/StudioTableExportTest.php
+?? tests/Feature/Studio/StudioTimelineDocumentTest.php
+?? tests/Fixtures/fonts/
+?? tests/Fixtures/images/
+?? tests/Fixtures/studio/
+?? tests/Support/StudioAudioR2.php
+?? tests/Support/StudioAvR2.php
+?? tests/e2e/isolated/datasets/
+?? tests/e2e/studio-audio-editor.spec.ts
+?? tests/e2e/studio-audio-resources.spec.ts
+?? tests/e2e/studio-av-composite.spec.ts
+?? tests/e2e/studio-captions.spec.ts
+?? tests/e2e/studio-datasets.spec.ts
+?? tests/e2e/studio-frame-export.spec.ts
+?? tests/e2e/studio-imaging.spec.ts
+?? tests/e2e/studio-native-export.spec.ts
+?? tests/e2e/studio-timeline.spec.ts
+?? tests/e2e/support/
+?? tests/frontend/studio-advanced-document.test.mjs
+?? tests/frontend/studio-advanced-loading.test.mjs
+?? tests/frontend/studio-advanced-rendering.test.mjs
+?? tests/frontend/studio-audio-preview.browser.test.mjs
+?? tests/frontend/studio-audio-upload.test.mjs
+?? tests/frontend/studio-audiovisual-audio.test.mjs
+?? tests/frontend/studio-audiovisual-checkpoints.test.mjs
+?? tests/frontend/studio-audiovisual-options-audio.test.mjs
+?? tests/frontend/studio-audiovisual-options-render.test.mjs
+?? tests/frontend/studio-audiovisual-phase.test.mjs
+?? tests/frontend/studio-audiovisual-plan.test.mjs
+?? tests/frontend/studio-audiovisual-render.test.mjs
+?? tests/frontend/studio-audiovisual-safety.test.mjs
+?? tests/frontend/studio-audiovisual-selection.test.mjs
+?? tests/frontend/studio-audiovisual.browser.test.mjs
+?? tests/frontend/studio-bar-geometry.test.mjs
+?? tests/frontend/studio-bar-prepared.test.mjs
+?? tests/frontend/studio-captions-panel.test.mjs
+?? tests/frontend/studio-captions-render-entry.mjs
+?? tests/frontend/studio-captions-render.browser.test.mjs
+?? tests/frontend/studio-captions-selection.test.mjs
+?? tests/frontend/studio-captions.test.mjs
+?? tests/frontend/studio-chart-binding.test.mjs
+?? tests/frontend/studio-chart-document.test.mjs
+?? tests/frontend/studio-chart-spec.test.mjs
+?? tests/frontend/studio-composite-audio-oracle.test.mjs
+?? tests/frontend/studio-dataset-client.test.mjs
+?? tests/frontend/studio-dataset-observer.test.mjs
+?? tests/frontend/studio-dataset-table.test.mjs
+?? tests/frontend/studio-datasets-dialog.test.mjs
+?? tests/frontend/studio-export-font-cache.test.mjs
+?? tests/frontend/studio-export-job-panel.test.mjs
+?? tests/frontend/studio-export-jobs.test.mjs
+?? tests/frontend/studio-frame-export.browser.test.mjs
+?? tests/frontend/studio-output-integrity.test.mjs
+?? tests/frontend/studio-timeline-operations.test.mjs
+?? tests/frontend/studio-timeline.browser.test.mjs
+?? tests/frontend/studio-timeline.test.mjs
+?? tests/studio_runtime/

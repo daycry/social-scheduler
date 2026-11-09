@@ -1,0 +1,16 @@
+{
+  "scope": "Windows native budget focal acceptance only; not integrated/global T10",
+  "files": {
+    "alpha.png": "8c9d63effb3a75e2b5bf11ca3f97280fa1b81e00d4a21cd103bd1b5c1d674e1f",
+    "background-result.png": "6234394341d54bfc71ddee91685eaedb4246b95d3072754f3f30ebd995bbcb02",
+    "checkerboard.png": "546479871ff1a08c4220ff26fc4af1183fd12092cfa67113076984b80d3a8278",
+    "raw/exact/result.json": "0d5099a8ccb471ad604e72168bedf4cb3fa88c7a03eefb052e052d55f603210d",
+    "raw/exact/stderr.txt": "13f097313a1a6095148181c551670ab0ae0ef80ccf8c3fc7e140e027f9448017",
+    "raw/exact/stdout.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw/pixel-observation.json": "c3fefc48f6041edc2bac951192311e0102f0286fa841516c6c0bb75c5b006660",
+    "raw/result.json": "f74b185cd9ffbf1a26141f03b09e6d1e6c204e1287eb3e91718aaf09cbc53e97",
+    "raw/stderr.txt": "bee8a96f579357dbed60df70e769734877dc95ee72ad4ad97d3b9a759eeae3cb",
+    "raw/stdout.txt": "2f1373db95a2b03dd0321ba7edc042e4eec84cedd8a29ea2646a6bf268c99846",
+    "report.md": "b26ff1f92df339970e102b55b64c388263a8a20adaf59f13d4f170ad2df53fca"
+  }
+}

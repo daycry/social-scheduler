@@ -1,0 +1,49 @@
+--- a/resources/js/Components/Studio/StudioDatasetsDialog.vue
++++ b/resources/js/Components/Studio/StudioDatasetsDialog.vue
+@@ -170,7 +170,7 @@
+         const result = await client.save(ticket.brandId, id, { name: saveName, revision, table: snapshot });
+         if (!currentWrite(ticket)) return;
+         selected.value = result.dataset; revisionView.value = result.dataset.revision; sha256.value = '';
+-        savedTable = snapshot; savedName.value = name.value = saveName; conflict.value = false;
++        savedTable = snapshot; savedName.value = name.value = saveName; historyVersion.value++; conflict.value = false;
+         status.value = `Revisión ${result.dataset.revision} guardada.`; emit('changed', result.dataset); loadList(pagination.value.current_page);
+     } catch (e) {
+         if (currentWrite(ticket)) {
+@@ -400,7 +400,7 @@
+                                     <table class="w-full min-w-[640px] table-fixed border-collapse text-left text-xs" aria-label="Datos de la tabla">
+                                         <caption class="sr-only">Filas {{ table.rows.length ? rowPage * 20 + 1 : 0 }} a {{ Math.min((rowPage + 1) * 20, table.rows.length) }}. Columnas {{ columnPage * 8 + 1 }} a {{ Math.min((columnPage + 1) * 8, table.columns.length) }}.</caption>
+                                         <thead class="bg-slate-50"><tr><th scope="col" class="w-12 border-b border-r border-slate-200 p-2"><span class="sr-only">Fila</span>#</th><th v-for="column in visibleColumns" :key="column.id" scope="col" class="min-w-24 border-b border-r border-slate-200 p-2 last:border-r-0"><label class="sr-only" :for="`dataset-header-${column.id}`">Nombre de columna {{ column.index + 1 }}</label><input :id="`dataset-header-${column.id}`" :value="columnDrafts[column.id] ?? column.label" :disabled="!canEdit" class="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1 py-1 font-semibold text-slate-800 hover:border-slate-300 focus:border-violet-500 focus:bg-white disabled:opacity-100" @input="stageColumnLabel(column.id, $event.target.value)" @change="renameColumn(column.id, $event.target.value, $event)" /></th></tr></thead>
+-                                        <tbody><tr v-for="(row, rowIndex) in visibleRows" :key="row.id" class="border-b border-slate-100 last:border-b-0"><th scope="row" class="border-r border-slate-200 bg-slate-50 p-2 font-normal text-slate-500">{{ rowPage * 20 + rowIndex + 1 }}</th><td v-for="column in visibleColumns" :key="column.id" class="border-r border-slate-100 p-0 align-top last:border-r-0"><button type="button" :data-testid="`dataset-cell-${row.id}-${column.id}`" :aria-label="`Editar fila ${rowPage * 20 + rowIndex + 1}, columna ${column.index + 1}: ${column.label}`" :disabled="!canEdit" class="block min-h-12 w-full px-3 py-2 text-left hover:bg-violet-50 disabled:opacity-100" :class="selectedRowId === row.id && selectedColumnId === column.id ? 'bg-violet-50 ring-1 ring-inset ring-violet-300' : ''" @click="openCell(row.id, column.id)"><span class="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-slate-400">{{ { text: 'Texto', number: 'Número', empty: 'Vacío' }[tableCore.cellType(row.values[column.index])] }}</span><span class="block max-h-16 overflow-hidden whitespace-pre-wrap break-words text-slate-800">{{ row.values[column.index] === null ? '—' : tableCore.cellText(row.values[column.index]) || 'Texto vacío' }}</span></button></td></tr><tr v-if="!visibleRows.length"><td :colspan="visibleColumns.length + 1" class="p-6 text-center text-slate-500">Esta tabla todavía no tiene filas. Añade la primera fila para empezar.</td></tr></tbody>
++                                        <tbody><tr v-for="(row, rowIndex) in visibleRows" :key="row.id" class="border-b border-slate-100 last:border-b-0"><th scope="row" class="border-r border-slate-200 bg-slate-50 p-2 font-normal text-slate-500">{{ rowPage * 20 + rowIndex + 1 }}</th><td v-for="column in visibleColumns" :key="column.id" class="border-r border-slate-100 p-0 align-top last:border-r-0"><button type="button" :data-testid="`dataset-cell-${row.id}-${column.id}`" :aria-label="`Editar fila ${rowPage * 20 + rowIndex + 1}, columna ${column.index + 1}: ${column.label}`" :disabled="!canEdit" class="block min-h-12 w-full px-3 py-2 text-left hover:bg-violet-50 disabled:opacity-100" :class="selectedRowId === row.id && selectedColumnId === column.id ? 'bg-violet-50 ring-1 ring-inset ring-violet-300' : ''" @click="openCell(row.id, column.id)"><span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">{{ { text: 'Texto', number: 'Número', empty: 'Vacío' }[tableCore.cellType(row.values[column.index])] }}</span><span class="block max-h-16 overflow-hidden whitespace-pre-wrap break-words text-slate-800">{{ row.values[column.index] === null ? '—' : tableCore.cellText(row.values[column.index]) || 'Texto vacío' }}</span></button></td></tr><tr v-if="!visibleRows.length"><td :colspan="visibleColumns.length + 1" class="p-6 text-center text-slate-500">Esta tabla todavía no tiene filas. Añade la primera fila para empezar.</td></tr></tbody>
+                                     </table>
+                                 </div>
+                                 <div class="flex flex-wrap items-center justify-between gap-3 text-xs"><div class="flex items-center gap-2"><button type="button" class="data-button" :disabled="rowPage === 0" @click="rowPage--">Filas anteriores</button><span>{{ table.rows.length ? rowPage * 20 + 1 : 0 }}–{{ Math.min((rowPage + 1) * 20, table.rows.length) }} / {{ table.rows.length }}</span><button type="button" class="data-button" :disabled="(rowPage + 1) * 20 >= table.rows.length" @click="rowPage++">Filas siguientes</button></div><div class="flex items-center gap-2"><button type="button" class="data-button" :disabled="columnPage === 0" @click="columnPage--">Columnas anteriores</button><span>{{ columnPage * 8 + 1 }}–{{ Math.min((columnPage + 1) * 8, table.columns.length) }}</span><button type="button" class="data-button" :disabled="(columnPage + 1) * 8 >= table.columns.length" @click="columnPage++">Columnas siguientes</button></div></div>
+--- a/tests/frontend/studio-datasets-dialog.test.mjs
++++ b/tests/frontend/studio-datasets-dialog.test.mjs
+@@ -277,3 +277,26 @@
+         panel.state.renameColumn('__proto__', 'Editado'); assert.equal(panel.state.table.value.columns[0].label, 'Editado'); assert.equal(Object.getPrototypeOf(panel.state.columnDrafts.value), null);
+     } finally { panel.close(); }
+ });
++
++test('dialog save invalidates a rendered dirty cache after an applied cell edit without renaming', async () => {
++    const saves = []; const panel = mount({
++        load: async () => ({ table: blank(), revision: 2, sha256: 'a'.repeat(64) }),
++        save: async (brand, id, payload) => { saves.push({ brand, id, payload }); return { dataset: { id: 7, name: 'Datos', revision: 3, row_count: 1, column_count: 1 } }; },
++    }, {}, realCore);
++    try {
++        await panel.state.selectDataset({ id: 7, name: 'Datos', revision: 2 });
++        assert.equal(panel.state.dirty.value, false);
++        panel.state.openCell('r1', 'c1'); panel.state.cellDraft.value = '-0.0'; panel.state.cellTypeDraft.value = 'number'; panel.state.commitCell();
++        assert.equal(panel.state.name.value, 'Datos');
++        assert.equal(panel.state.dirty.value, true, 'read the dirty computed before saving, as the rendered template does');
++        await panel.state.saveTable();
++        assert.equal(saves.length, 1); assert.equal(saves[0].id, 7); assert.equal(saves[0].payload.revision, 2); assert.equal(saves[0].payload.name, 'Datos');
++        assert.equal(realCore.cellText(saves[0].payload.table.rows[0].values[0]), '-0.0');
++        assert.equal(panel.state.revisionView.value, 3); assert.match(panel.state.status.value, /Revisión 3 guardada/);
++        assert.equal(panel.state.dirty.value, false, 'saving the same name must invalidate the cached dirty state');
++        panel.state.undoTable('undo'); assert.equal(panel.state.dirty.value, true);
++        panel.state.undoTable('redo'); assert.equal(panel.state.dirty.value, false);
++        panel.state.requestClose(); assert.equal(panel.state.pendingDiscard.value, null);
++        assert.deepEqual(panel.emitted.at(-1), ['update:modelValue', false]);
++    } finally { panel.close(); }
++});

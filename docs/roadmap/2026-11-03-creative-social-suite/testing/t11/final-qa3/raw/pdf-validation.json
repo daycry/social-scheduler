@@ -1,0 +1,69 @@
+{
+  "pages": 9,
+  "page_info": [
+    {
+      "page": 1,
+      "chars": 1608,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 2,
+      "chars": 2518,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 3,
+      "chars": 1472,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 4,
+      "chars": 1847,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 5,
+      "chars": 2756,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 6,
+      "chars": 1429,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 7,
+      "chars": 1231,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 8,
+      "chars": 1439,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 9,
+      "chars": 623,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    }
+  ],
+  "rendered_from_pdf": true,
+  "visually_inspected": true,
+  "contact_sheet": "raw/pdf-contact.png",
+  "detail_pages_inspected": [
+    1,
+    2,
+    3,
+    8
+  ],
+  "findings": "All9 PDF pages inspected via contact sheet and selected full-size pages. Text/tables/images readable without clipping. Actual DEFAULT/CONTROL preview and labelled historical QA2 image clear. No new visual gaps in tested local profile."
+}

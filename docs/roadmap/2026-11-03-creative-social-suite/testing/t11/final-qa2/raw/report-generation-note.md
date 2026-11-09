@@ -1,0 +1,1 @@
+The first make-report invocation wrote report.md and all gates successfully, then failed printing Unicode gate threshold to CP1252 stdout. Only own generator stdout encoding was corrected to UTF-8; report generation was repeated, not Playwright/tests/workers/exports. First observer-memory-make-report-first.json is preserved. The canonical result remains the original72-test JSON.

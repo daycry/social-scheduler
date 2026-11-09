@@ -1,0 +1,46 @@
+{
+  "attempt": 2,
+  "helper_pid": 33672,
+  "started": "2026-11-05T21:52:50.750123+00:00",
+  "command": [
+    "node",
+    "node_modules/@playwright/test/cli.js",
+    "test",
+    "studio.spec.ts",
+    "studio-automation.spec.ts",
+    "studio-timeline.spec.ts",
+    "studio-audio-editor.spec.ts",
+    "studio-audio-resources.spec.ts",
+    "studio-frame-export.spec.ts",
+    "studio-native-export.spec.ts",
+    "studio-av-composite.spec.ts",
+    "metrics-quality.spec.ts",
+    "brand-reporting.spec.ts",
+    "all-brands.spec.ts",
+    "studio-captions.spec.ts"
+  ],
+  "runroot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-48262984-4932-47db-90f6-7011cd33f5bb",
+  "base_url": "http://localhost:8080",
+  "port_free_before": true,
+  "approval": "revisión aprobada; ejecuta intento2",
+  "expected_test_count": null,
+  "memory_before": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 12283904,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "playwright_pid": 6096,
+  "exit_code": 0,
+  "finished": "2026-11-05T22:09:46.723363+00:00",
+  "memory_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 1243049984,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "source_count": 838,
+  "changed_sources": []
+}

@@ -23,6 +23,8 @@ sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll sched
 Con varios workers sobre la misma cola, exigir MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED`);
 `php artisan app:health` lo indica. Con una version anterior, un solo worker por cola.
 
+Para exportaciones estáticas con varias páginas, Studio utiliza PHP `ZipArchive` cuando está disponible. Si falta, el empaquetado usa `scripts/studio/archive.py` con el Python configurado por `STUDIO_PYTHON_BINARY` y su biblioteca estándar: no requiere instalar el modelo de imágenes ni sus paquetes. El fallback escribe ZIP64 por bloques, valida archivos del directorio privado y conserva los límites del renderer. Debe poder ejecutarse ese Python desde el proceso PHP; los fallos de empaquetado conservan la exportación en error y no entregan un ZIP parcial. Las pruebas locales no sustituyen la comprobación del VPS a cargo del usuario.
+
 ### Operacion
 
 | Accion | Comando |
@@ -32,6 +34,18 @@ Con varios workers sobre la misma cola, exigir MariaDB >= 10.6 / MySQL >= 8.0 (`
 | Reinicio limpio tras deploy | `php artisan queue:restart` (lo hace `deploy/hestia/deploy.sh`; systemd relanza el worker) |
 | Prueba de extremo a extremo | `php artisan app:queue-probe --wait=60` (encola un job por cola y espera a que lo procesen) |
 | Jobs fallidos | `php artisan queue:failed` / `queue:retry all` |
+
+## Worker audiovisual de Studio (preparado, sin instalar)
+
+`scheduler-studio.service` es una unidad dedicada a la cola `database/studio`, separada de las colas actuales y del modelo de quitar fondos. Requiere cgroupv2 con `cgroup.kill` (Linux≥5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker/guardián/procesos de fase; `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad. No reserva3GiB al arrancar.
+
+`Delegate=yes` permite crear únicamente subgrupos UUID en la raíz de esa unidad. Por ello su `ProtectControlGroups=no` difiere del worker genérico; los permisos kernel de usuario siguen impidiendo tocar los cgroups de otras unidades. El supervisor verifica propietario, límite heredado y disponibilidad de kill antes de abrir Node. La limpieza usa `cgroup.kill` del subgrupo propio, nunca nombres de procesos ni un kill global. Los workers existentes no cambian.
+
+Antes de instalar, ajustar User/Group/rutas/PHP_BIN y disponer de Node nativo, FFmpeg/ffprobe, Chromium de Playwright y los bundles construidos. El timeout del job es 100 s, inferior al worker de 120 s y al retry_after de 180 s. El árbol de trabajo conecta jobs Laravel y handlers web/API/MCP de MP4/GIF e incluye el diálogo audiovisual. La [QA integral local de T-07/T-11](../../docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada; esta plantilla sigue sin instalar y no acredita despliegue. El usuario ejecutará las comprobaciones del VPS; las pruebas WSL del supervisor no las sustituyen. No instalar ni iniciar esta unidad por copiar la documentación de desarrollo.
+
+Para validar la plantilla preparada, `systemd-analyze verify deploy/systemd/scheduler-studio.service` comprueba su sintaxis. No ejecuta el worker ni acredita permisos de la instalación real.
+
+Las pruebas de cgroup son de integración y requieren `STUDIO_AV_CGROUP_TEST=1` dentro de una unidad temporal delegada y limitada. Sin esa opción se omiten explícitamente; no cuentan como aceptación Linux. Un ejecutable Python mínimo verifica el contrato del supervisor/exec; no sustituye una exportación real mediante Node/FFmpeg/Chromium. Las pruebas del VPS siguen a cargo del usuario.
 
 ## Healthcheck
 

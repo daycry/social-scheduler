@@ -40,6 +40,16 @@ test('nested group preserves local children geometry on save and reopen', async 
     restored.getObjects().forEach((object, i) => assertMatrix(before[i], object.calcTransformMatrix()));
 });
 
+test('a fixed group preserves non-centered local coordinates when only one timed child is present', async () => {
+    const group = await elementToFabric({ id: 'fixed', type: 'group', x: 100, y: 80, width: 100, height: 100,
+        elements: [{ id: 'red', type: 'rect', x: -50, y: -50, width: 60, height: 60, fill: '#ff0000' }] });
+    const child = group.getObjects()[0];
+    assert.equal(child.left, -50);
+    assert.equal(child.top, -50);
+    assert.ok(Math.abs(child.calcTransformMatrix()[4] - 130) < 0.001);
+    assert.ok(Math.abs(child.calcTransformMatrix()[5] - 110) < 0.001);
+});
+
 test('a gradient angle stays stable on nonsquare shapes through repeated saves', async () => {
     const fill = { type: 'linear', angle: 45, stops: [{ offset: 0, color: '#ffffff' }, { offset: 1, color: '#7c3aed' }] };
     let element = { id: 'wide_gradient', type: 'rect', x: 10, y: 20, width: 900, height: 100, fill, strokeWidth: 0 };

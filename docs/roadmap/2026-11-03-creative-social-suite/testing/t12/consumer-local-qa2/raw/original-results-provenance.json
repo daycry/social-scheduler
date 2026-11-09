@@ -1,0 +1,11 @@
+{
+  "json_fabricated": false,
+  "results_sha256": "07fe9681bb9f6840cfdb8003e96e944358cd770e99922430cbbf400004b5e9ce",
+  "blobs": [
+    {
+      "sha256": "53ecf60abe49a6e5bb107839b276acd4f92deab1ea0cd0d36f25d0c8ad7b53f9",
+      "bytes": 154399
+    }
+  ],
+  "originals": "Private immutable consumer-execution2/raw; original JSON/blob, no merge or reconstruction."
+}

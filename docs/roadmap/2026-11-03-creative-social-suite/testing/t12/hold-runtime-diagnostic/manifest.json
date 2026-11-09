@@ -1,0 +1,18 @@
+{
+  "diagnostic_cases": 3,
+  "sources_checked": 16,
+  "app_acceptance": false,
+  "artifacts": {
+    "report.md": "d76b0b2a750b9b3794854c22abfeb04d3081632cf557b55e50e31d92eeb583c7",
+    "raw/dataset.json": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+    "raw/execution.json": "a096164c44903ec25d3bb45b5eaa500905b69ec8730644af19f800b044486594",
+    "raw/provenance.json": "ea8cb70bf6ade0b0f38a9edc89f2a52b0b9fc2d9223d2e4e12a77eba2986ddf7",
+    "raw/results.json": "853dcd98892e62d3209ccd4b503dba09ba64acba389a240ae73653fbfa733456",
+    "raw/root-terminal.json": "b0aa43e24f87dd0ca98d53674d5393d10a0eee3a0388e16a2999db44a3f418db",
+    "raw/source-manifest.json": "59b13bfbdaef00a2494d6d2a264a6bea863b3fb4a4f4a6e18e2d85d954b656e8",
+    "raw/sources-after.json": "59b13bfbdaef00a2494d6d2a264a6bea863b3fb4a4f4a6e18e2d85d954b656e8",
+    "raw/sources-before.json": "59b13bfbdaef00a2494d6d2a264a6bea863b3fb4a4f4a6e18e2d85d954b656e8",
+    "raw/registry-dispose/chart-http-observer.jsonl": "36161ea0a2f6cdaf8f910e3f52a3c77f00b0a53f8d2173a9d416c5231b059cb6",
+    "raw/sole-consumer/chart-http-observer.jsonl": "35648115044b42bfed4313be22ae59af18418d814b0f5b1762223f60d5b1a50c"
+  }
+}

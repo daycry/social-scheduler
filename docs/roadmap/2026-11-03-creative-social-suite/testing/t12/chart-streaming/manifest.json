@@ -1,0 +1,119 @@
+{
+  "scope": "T12 streaming codec only; A1/B1 no gaps, T12 open",
+  "sources": {
+    "app/Services/Studio/StudioChartData.php": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+    "tests/Feature/Studio/StudioChartDataTest.php": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b"
+  },
+  "artifacts": [
+    {
+      "path": "review.md",
+      "sha256": "19df0188fec58c7b9294aaad6d6d8806b85ca3f9c66c263a1593fc371be25877",
+      "bytes": 5775
+    },
+    {
+      "path": "raw/contract-addendum.md",
+      "sha256": "e295d3ded80813f81cd2de1457b2d8e4ad5fe4de11c6594f8a9a684d80fa6ccb",
+      "bytes": 2802
+    },
+    {
+      "path": "raw/green-25MB.txt",
+      "sha256": "c8a0e1bae087f6c5c88753a4a81934e64285d8fabbf6caede3bd4a0e4fd1574e",
+      "bytes": 958
+    },
+    {
+      "path": "raw/green-52MB.txt",
+      "sha256": "669082e6661c5438f6c3a07b1ba40efdcb16249c670ae13b88bad7e3c09285b0",
+      "bytes": 180
+    },
+    {
+      "path": "raw/green-all-final.txt",
+      "sha256": "7b046020255d56f0cfe3b9a1fc3345e0173eebdccc49e1787695b9366042e6c9",
+      "bytes": 324
+    },
+    {
+      "path": "raw/red-0.txt",
+      "sha256": "3496ee6c9129fac4bd3f57aa16c7bbe358f05766c04812ca13717f2342c7899b",
+      "bytes": 1286
+    },
+    {
+      "path": "raw/red-1.txt",
+      "sha256": "c61918c167b25f2fb46a8a2f237ff24e88367d414f702ddba2d5e29e5c41121a",
+      "bytes": 1534
+    },
+    {
+      "path": "raw/red-2.txt",
+      "sha256": "59238758531f17c6e241517f774e26ee404a870f1995e0c05331db3b107d6321",
+      "bytes": 1028
+    },
+    {
+      "path": "raw/red-3.txt",
+      "sha256": "39efe655815c133aae0abf316cffe85eb74b02e16d8a17159845743aed325149",
+      "bytes": 1302
+    },
+    {
+      "path": "raw/red-export.txt",
+      "sha256": "ef413b3ec853d3bb49c00ce3270b8738f6aeb431c485c884f89d161801eb2cd6",
+      "bytes": 1298
+    },
+    {
+      "path": "raw/tdd-evidence.md",
+      "sha256": "f889a8f68fc30b13c52e3bcea8ae7e7277d58ad05d965fa12a9b3ecd7667d4c5",
+      "bytes": 7408
+    },
+    {
+      "path": "raw/promotion/after-manifest.json",
+      "sha256": "575af2913b2105516b5523f3ded44f2363adb5dc93cf4a252c6ec5dad7b70370",
+      "bytes": 2859
+    },
+    {
+      "path": "raw/promotion/before.json",
+      "sha256": "eeb27103968da68617ac839d554fae8c444a48eb6b34af10d4be05c3dfb34478",
+      "bytes": 478
+    },
+    {
+      "path": "raw/promotion/final-two-files.patch",
+      "sha256": "2769c68919aec6a48b62a6921ee9f9302866980b857d026676ac0d0ab892bcaf",
+      "bytes": 18940
+    },
+    {
+      "path": "raw/promotion/format-equivalence.txt",
+      "sha256": "3228349ebeab36b8fbd9af413bb67ab08e390b88a80d821b432be17ba907fcf5",
+      "bytes": 324
+    },
+    {
+      "path": "raw/promotion/pint-final.txt",
+      "sha256": "e9d6f79de157b815c74d2ca1a40c52bd72e82a3e9f84c4562b4a1ca835c84a8f",
+      "bytes": 72
+    },
+    {
+      "path": "raw/promotion/real-tests.txt",
+      "sha256": "1e244cd402c5746bf2f5ae710e7f0db1db9b0be70047cde1f5ea55808a4ec854",
+      "bytes": 324
+    },
+    {
+      "path": "raw/reviewed/tests/Feature/Studio/StudioChartDataTest.php",
+      "sha256": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+      "bytes": 19158
+    },
+    {
+      "path": "raw/reviewed/app/Services/Studio/StudioChartData.php",
+      "sha256": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+      "bytes": 11713
+    },
+    {
+      "path": "raw/baseline/tests/Feature/Studio/StudioChartDataTest.php",
+      "sha256": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0",
+      "bytes": 11279
+    },
+    {
+      "path": "raw/baseline/app/Services/Studio/StudioChartData.php",
+      "sha256": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845",
+      "bytes": 8658
+    },
+    {
+      "path": "raw/manifest.json",
+      "sha256": "61d760bc89544e8123f68840327bc4d2186bfefa364ed9ba961860cadd1e6a42",
+      "bytes": 3808
+    }
+  ]
+}

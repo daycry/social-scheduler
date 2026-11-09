@@ -1,0 +1,235 @@
+[
+  {
+    "format": "mp4",
+    "result": {
+      "file": "project.mp4",
+      "size": 141787,
+      "sha256": "b2c74f08ca3046b405ccd709eb90c59d30472f667dc0fabac74850e51f7df04f",
+      "frameCount": 30,
+      "fps": 12,
+      "width": 400,
+      "height": 240,
+      "duration": 2.5,
+      "videoCodec": "h264",
+      "audioCodec": "aac"
+    },
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 400,
+          "height": 240,
+          "avg_frame_rate": "12/1",
+          "nb_read_frames": "30"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "48000",
+          "channels": 2,
+          "avg_frame_rate": "0/0",
+          "nb_read_frames": "118"
+        }
+      ],
+      "format": {
+        "duration": "2.500000",
+        "size": "141787"
+      }
+    },
+    "segments": [
+      {
+        "video": {
+          "file": "segments/video-000000.mp4",
+          "size": 24332,
+          "sha256": "b7ed18ebbea15b149f2a01591467eb2bcf53729711b7c1ea74ede819986e3c76",
+          "frameStart": 0,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        },
+        "audio": {
+          "file": "segments/audio-000000.wav",
+          "size": 192044,
+          "sha256": "25595e38e234b86c31b396cbb824f19860eccd31909fd08d0a4cb7e50080b975",
+          "sampleCount": 24000,
+          "sampleStart": 0
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000001.mp4",
+          "size": 24476,
+          "sha256": "f930128068cda8c6de41cc9b17b760a2a6c06723043eec427e2aeb7d486afac7",
+          "frameStart": 6,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        },
+        "audio": {
+          "file": "segments/audio-000001.wav",
+          "size": 192044,
+          "sha256": "dd373068611eb5b498ee657ffaef4d330da74b34ae136bc02c6f0cb025a6d0f5",
+          "sampleCount": 24000,
+          "sampleStart": 24000
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000002.mp4",
+          "size": 39214,
+          "sha256": "fb0980d371ba0b12bac260b66cc71ab3515457c596b7e1bcd7a66f8ed0a6e8b1",
+          "frameStart": 12,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        },
+        "audio": {
+          "file": "segments/audio-000002.wav",
+          "size": 192044,
+          "sha256": "1f22f4e3eb4d64596910108f1d51890ac2d5c3e2543f8fe7fb75d0ea093303f2",
+          "sampleCount": 24000,
+          "sampleStart": 48000
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000003.mp4",
+          "size": 6303,
+          "sha256": "536ab6dc2836ea396575ccbde9dabc87587c304c52f687d4b889d12a263516bd",
+          "frameStart": 18,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        },
+        "audio": {
+          "file": "segments/audio-000003.wav",
+          "size": 192044,
+          "sha256": "cef33bc55d1c8ba071f6dba7c0fd1c4192c5adc0705b9ccbae1e5333473b215b",
+          "sampleCount": 24000,
+          "sampleStart": 72000
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000004.mp4",
+          "size": 6303,
+          "sha256": "536ab6dc2836ea396575ccbde9dabc87587c304c52f687d4b889d12a263516bd",
+          "frameStart": 24,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        },
+        "audio": {
+          "file": "segments/audio-000004.wav",
+          "size": 192044,
+          "sha256": "aac9102af3cba75d5b3c2cd879d8535eec886066f5a39a400fb44ea353783d7b",
+          "sampleCount": 24000,
+          "sampleStart": 96000
+        }
+      }
+    ]
+  },
+  {
+    "format": "gif",
+    "result": {
+      "file": "project.gif",
+      "size": 673223,
+      "sha256": "cd10988f0e2a10436402ca07b07fea560c33378bda375dbdbcd6f46c52017daa",
+      "frameCount": 30,
+      "fps": 12,
+      "width": 400,
+      "height": 240,
+      "duration": 2.5,
+      "videoCodec": "gif",
+      "audioCodec": null
+    },
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "gif",
+          "codec_type": "video",
+          "width": 400,
+          "height": 240,
+          "avg_frame_rate": "25/2",
+          "nb_read_frames": "30"
+        }
+      ],
+      "format": {
+        "duration": "2.500000",
+        "size": "673223"
+      }
+    },
+    "segments": [
+      {
+        "video": {
+          "file": "segments/video-000000.gif",
+          "size": 191972,
+          "sha256": "59e657a876157f05bd55a0bf35845fdf375cb550ffa1ce77e59864023f78714a",
+          "frameStart": 0,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000001.gif",
+          "size": 200552,
+          "sha256": "77fb0508f63587a21940896a245831d6099e78dc42008910bcb52ad68a582a16",
+          "frameStart": 6,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000002.gif",
+          "size": 217117,
+          "sha256": "4c7a06f3d72b7fee9264a7c351e9e64e167a9d42c28449866a1771624c2381d9",
+          "frameStart": 12,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000003.gif",
+          "size": 28017,
+          "sha256": "e0dc358a9cadb02906d2da26cf325dfc64299f96bfdef22dd3902312a2dda586",
+          "frameStart": 18,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        }
+      },
+      {
+        "video": {
+          "file": "segments/video-000004.gif",
+          "size": 28017,
+          "sha256": "e0dc358a9cadb02906d2da26cf325dfc64299f96bfdef22dd3902312a2dda586",
+          "frameStart": 24,
+          "frameCount": 6,
+          "fps": 12,
+          "width": 400,
+          "height": 240
+        }
+      }
+    ]
+  }
+]

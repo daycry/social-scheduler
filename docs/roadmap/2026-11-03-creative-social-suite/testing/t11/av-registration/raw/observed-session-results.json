@@ -1,0 +1,58 @@
+{
+  "provenance": "Extracted verbatim test names/messages/counts from observed tool results, not raw process stdout files. Original chunk IDs retained. No source reexecution.",
+  "results": [
+    {
+      "chunk_id": "526067",
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "assertions": 1,
+      "test": "AV registration refuses an unrelated ready library asset even in the same brand",
+      "message": "Exception \"Illuminate\\Validation\\ValidationException\" not thrown."
+    },
+    {
+      "chunk_id": "5f810e",
+      "tests": 1,
+      "passed": 0,
+      "errors": 1,
+      "assertions": 0,
+      "test": "AV registration allocation is private idempotent and pinned to its accepted assembly",
+      "message": "Call to undefined method App\\Services\\Studio\\StudioAvState::allocateRegistration()"
+    },
+    {
+      "chunk_id": "0ba4c3",
+      "tests": 4,
+      "passed": 0,
+      "failed": 4,
+      "assertions": 4,
+      "tests_filter": "generic",
+      "message": "Exception \"DomainException\" not thrown. (complete, finalize, delete and stale-model finalize)"
+    },
+    {
+      "chunk_id": "4cfacb",
+      "tests": 2,
+      "passed": 0,
+      "failed": 2,
+      "assertions": 2,
+      "tests_filter": "destination|lowered",
+      "message": "Exception \"Illuminate\\Validation\\ValidationException\" not thrown."
+    },
+    {
+      "chunk_id": "8b5b51",
+      "tests": 1,
+      "passed": 0,
+      "errors": 1,
+      "assertions": 0,
+      "test": "AV registration uses the actual padded GIF dimensions for an odd canvas",
+      "message": "Los metadatos finales no coinciden con el plan aceptado."
+    },
+    {
+      "chunk_id": "4de61e",
+      "tests": 20,
+      "passed": 20,
+      "assertions": 75,
+      "duration_ms": 1109,
+      "result": "passed"
+    }
+  ]
+}

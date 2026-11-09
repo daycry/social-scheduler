@@ -27,7 +27,7 @@ class ManageBrandKit extends SchedulerTool
     public function schema(JsonSchema $schema): array
     {
         return $this->brandSchema($schema) + ['kit' => $schema->object(['palette' => $schema->array()->items($schema->string()),
-            'fonts' => $schema->array()->items($schema->string()), 'logos' => $schema->array()->items($schema->integer()),
+            'fonts' => $schema->array()->items($schema->string()), 'font_ids' => $schema->array()->items($schema->integer()->nullable()), 'logos' => $schema->array()->items($schema->integer()),
             'guidelines' => $schema->string(), 'voice' => $schema->string()])];
     }
 

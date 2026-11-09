@@ -1,0 +1,20 @@
+[
+  {
+    "format": "svg",
+    "url": "blob:http://localhost:8080/34f8df4c-c650-4a11-accd-1ea04a81707f",
+    "filename": "Diseño sin título.svg",
+    "bytes": 86248,
+    "sha256": "9b6edb1fc713e1162d93f4ac8e96a06f4f6cdef61b1ef3212d70b8da10dd0f20",
+    "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+    "native_response": null
+  },
+  {
+    "format": "png",
+    "url": "blob:http://localhost:8080/13fbeb70-8425-47f7-b20f-18c190c87547",
+    "filename": "Diseño sin título.png",
+    "bytes": 62487,
+    "sha256": "c6d5aae72f8aa77f015fd3f134e278cd64b1db4f841f7a5fcd70dce1344cecaa",
+    "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+    "native_response": null
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "2492a1f8d9cc58740080dc323c6d11e5d6b2c16578a2d2e89357c9c76710b6fe"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvFilesTest.php",
+      "sha256": "0fc645688ec252b950710aff27bff67fba41f137a680437f813c25db58a422b8"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "54c2541a7a6c89b0c473d273070daaf14f0e3c17edf7276b9ea0aab56387f3a6"
+    }
+  ]
+}

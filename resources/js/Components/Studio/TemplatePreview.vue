@@ -1,7 +1,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { templatePreview } from '@/Studio/previews';
-const props = defineProps({ template: { type: Object, required: true }, kit: { type: Object, default: () => ({}) } });
+const props = defineProps({ template: { type: Object, required: true }, kit: { type: Object, default: () => ({}) }, fonts: { type: Array, default: () => [] } });
 const container = ref(null), url = ref(''), failed = ref(false);
 let observer, visible = false, generation = 0;
 const load = async () => {
@@ -9,7 +9,7 @@ const load = async () => {
     const token = ++generation;
     failed.value = false;
     try {
-        const blob = await templatePreview(props.template.key, props.kit);
+        const blob = await templatePreview(props.template.key, props.kit, props.fonts);
         if (token !== generation) return;
         if (url.value) URL.revokeObjectURL(url.value);
         url.value = URL.createObjectURL(blob);
@@ -21,7 +21,7 @@ onMounted(() => {
     }, { rootMargin: '160px' });
     observer.observe(container.value);
 });
-watch(() => [props.template.key, JSON.stringify(props.kit)], load);
+watch(() => [props.template.key, JSON.stringify(props.kit), props.fonts.map(font => `${font.id}:${font.sha256}`).join(',')], load);
 onBeforeUnmount(() => { generation++; observer?.disconnect(); if (url.value) URL.revokeObjectURL(url.value); });
 </script>
 

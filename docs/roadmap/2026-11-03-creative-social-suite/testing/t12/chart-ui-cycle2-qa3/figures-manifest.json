@@ -1,0 +1,14 @@
+[
+  {
+    "file": "images/column-preview-render.png",
+    "sha256": "3b1e939bbd1668fe031caca450fdec123e540654cbb294019a3fdbdc077f97f1"
+  },
+  {
+    "file": "images/bar-preview-render.png",
+    "sha256": "3fa2d2435ed466305a9108056b072bd2529065224b49853c6c747d73d0d479c4"
+  },
+  {
+    "file": "images/failed-server-case.png",
+    "sha256": "32f08e55eb015a1be32ee91f10028b57e65709091f1dc562b0bc65e758712dd6"
+  }
+]

@@ -1,0 +1,278 @@
+{
+  "counter_schema": "consumer-local-v2",
+  "mode": "consumer-local",
+  "planned": 3,
+  "recorded": 3,
+  "all_three_passed": true,
+  "receipts": [
+    {
+      "project": "desktop",
+      "width": 1440,
+      "axe_reports": 3,
+      "screenshots": [
+        {
+          "file": "errors-table-modal.png",
+          "bytes": 115781,
+          "sha256": "3e804dde28442578c488ce1b6ea354f7d7a66b3021009e01cdc20b08e8ef9fea",
+          "width": 1440,
+          "height": 1211
+        },
+        {
+          "file": "inspector.png",
+          "bytes": 120417,
+          "sha256": "ac2e5bd81092f481b0804df03c2c848d136ba4537a90213e0cacdd3b0db6279f",
+          "width": 1440,
+          "height": 1211
+        },
+        {
+          "file": "empty-historic.png",
+          "bytes": 135870,
+          "sha256": "8ab48df741fd6685bcea79ed6b1cf7270ad0f6bae36c9c756377b9e70b7d3d45",
+          "width": 1440,
+          "height": 1211
+        }
+      ],
+      "focus": {
+        "outline": true,
+        "shadow": true
+      },
+      "hold_token": "1973bead-5507-4c69-8474-f26fefc9dcec",
+      "held_route": "/brands/1/studio/datasets/2/export",
+      "held_bytes": 289,
+      "held_sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+      "intentional_aborts": 0,
+      "consumer": {
+        "mode": "consumer-local",
+        "request_target": "/brands/1/studio/datasets/2/export?format=json&revision=1",
+        "body_sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "body_bytes": 289,
+        "table_cells": [
+          "Texto: Año 2020 é",
+          "Número: 10",
+          "Texto: Año 2020 é",
+          "Número: 20",
+          "Texto: Año 2022 é",
+          "Vacío (null)",
+          "Número: 2026",
+          "Número: 0"
+        ],
+        "ui": {
+          "closed_before_release": true,
+          "focus_before_release": true,
+          "element_count_before_release": 0,
+          "closed_after_delivery": true,
+          "focus_after_delivery": true,
+          "element_count_after_delivery": 0,
+          "layer_count_after_delivery": 0
+        },
+        "cache": {
+          "requests_before_reopen": 1,
+          "requests_after_reopen": 1,
+          "preview_ready": true,
+          "table_cells": [
+            "Texto: Año 2020 é",
+            "Número: 10",
+            "Texto: Año 2020 é",
+            "Número: 20",
+            "Texto: Año 2022 é",
+            "Vacío (null)",
+            "Número: 2026",
+            "Número: 0"
+          ],
+          "closed_after_reopen": true,
+          "element_count_after_reopen": 0
+        },
+        "cleanup": {
+          "captured": true,
+          "released": true,
+          "events": 2
+        }
+      },
+      "historical_empty_reference": {
+        "id": 4,
+        "revision": 1,
+        "sha256": "d344eb6c7656f68c3d2858192a8c0c959b4347e9d406c95d38e216cb55d9fc32"
+      }
+    },
+    {
+      "project": "mobile",
+      "width": 375,
+      "axe_reports": 3,
+      "screenshots": [
+        {
+          "file": "errors-table-modal.png",
+          "bytes": 83440,
+          "sha256": "2b349e02b30b51f37eb64884807ed9405c77c66c735e3009f201ad6aba58b7a9",
+          "width": 375,
+          "height": 2035
+        },
+        {
+          "file": "inspector.png",
+          "bytes": 97262,
+          "sha256": "2eb930f9985c827359fe1aabebb8ffe3a0bf8ce968bf3250b1206390e47c4c7d",
+          "width": 375,
+          "height": 2552
+        },
+        {
+          "file": "empty-historic.png",
+          "bytes": 112239,
+          "sha256": "80e030313e96ee67910dc7f340a939f34f1040f0c24444e99962a8698086f3d2",
+          "width": 375,
+          "height": 2552
+        }
+      ],
+      "focus": {
+        "outline": true,
+        "shadow": true
+      },
+      "hold_token": "091c8ae7-5763-4f88-9a34-c3ffd1ff938e",
+      "held_route": "/brands/2/studio/datasets/6/export",
+      "held_bytes": 289,
+      "held_sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+      "intentional_aborts": 0,
+      "consumer": {
+        "mode": "consumer-local",
+        "request_target": "/brands/2/studio/datasets/6/export?format=json&revision=1",
+        "body_sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "body_bytes": 289,
+        "table_cells": [
+          "Texto: Año 2020 é",
+          "Número: 10",
+          "Texto: Año 2020 é",
+          "Número: 20",
+          "Texto: Año 2022 é",
+          "Vacío (null)",
+          "Número: 2026",
+          "Número: 0"
+        ],
+        "ui": {
+          "closed_before_release": true,
+          "focus_before_release": true,
+          "element_count_before_release": 0,
+          "closed_after_delivery": true,
+          "focus_after_delivery": true,
+          "element_count_after_delivery": 0,
+          "layer_count_after_delivery": 0
+        },
+        "cache": {
+          "requests_before_reopen": 1,
+          "requests_after_reopen": 1,
+          "preview_ready": true,
+          "table_cells": [
+            "Texto: Año 2020 é",
+            "Número: 10",
+            "Texto: Año 2020 é",
+            "Número: 20",
+            "Texto: Año 2022 é",
+            "Vacío (null)",
+            "Número: 2026",
+            "Número: 0"
+          ],
+          "closed_after_reopen": true,
+          "element_count_after_reopen": 0
+        },
+        "cleanup": {
+          "captured": true,
+          "released": true,
+          "events": 2
+        }
+      },
+      "historical_empty_reference": {
+        "id": 8,
+        "revision": 1,
+        "sha256": "d344eb6c7656f68c3d2858192a8c0c959b4347e9d406c95d38e216cb55d9fc32"
+      }
+    },
+    {
+      "project": "mobile-360",
+      "width": 768,
+      "axe_reports": 3,
+      "screenshots": [
+        {
+          "file": "errors-table-modal.png",
+          "bytes": 86926,
+          "sha256": "ca647103c18ead682a1a0926e191ece787750d3a97c9ca15db57dba9203f28d9",
+          "width": 768,
+          "height": 2027
+        },
+        {
+          "file": "inspector.png",
+          "bytes": 106555,
+          "sha256": "3795cee81750a1abdd7ff5fee5107b5e248546945b4f92bebbcfb96ec53573d7",
+          "width": 768,
+          "height": 2547
+        },
+        {
+          "file": "empty-historic.png",
+          "bytes": 130325,
+          "sha256": "34f2701213b62cebb8229e04c8085e8f4722d9686dd2d0bd2b607b38818b34a1",
+          "width": 768,
+          "height": 2547
+        }
+      ],
+      "focus": {
+        "outline": true,
+        "shadow": true
+      },
+      "hold_token": "77064d76-9489-46b3-adb5-6b805e0180f7",
+      "held_route": "/brands/3/studio/datasets/10/export",
+      "held_bytes": 289,
+      "held_sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+      "intentional_aborts": 0,
+      "consumer": {
+        "mode": "consumer-local",
+        "request_target": "/brands/3/studio/datasets/10/export?format=json&revision=1",
+        "body_sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+        "body_bytes": 289,
+        "table_cells": [
+          "Texto: Año 2020 é",
+          "Número: 10",
+          "Texto: Año 2020 é",
+          "Número: 20",
+          "Texto: Año 2022 é",
+          "Vacío (null)",
+          "Número: 2026",
+          "Número: 0"
+        ],
+        "ui": {
+          "closed_before_release": true,
+          "focus_before_release": true,
+          "element_count_before_release": 0,
+          "closed_after_delivery": true,
+          "focus_after_delivery": true,
+          "element_count_after_delivery": 0,
+          "layer_count_after_delivery": 0
+        },
+        "cache": {
+          "requests_before_reopen": 1,
+          "requests_after_reopen": 1,
+          "preview_ready": true,
+          "table_cells": [
+            "Texto: Año 2020 é",
+            "Número: 10",
+            "Texto: Año 2020 é",
+            "Número: 20",
+            "Texto: Año 2022 é",
+            "Vacío (null)",
+            "Número: 2026",
+            "Número: 0"
+          ],
+          "closed_after_reopen": true,
+          "element_count_after_reopen": 0
+        },
+        "cleanup": {
+          "captured": true,
+          "released": true,
+          "events": 2
+        }
+      },
+      "historical_empty_reference": {
+        "id": 12,
+        "revision": 1,
+        "sha256": "d344eb6c7656f68c3d2858192a8c0c959b4347e9d406c95d38e216cb55d9fc32"
+      }
+    }
+  ],
+  "blob_files": 1,
+  "global_acceptance_claim": false
+}

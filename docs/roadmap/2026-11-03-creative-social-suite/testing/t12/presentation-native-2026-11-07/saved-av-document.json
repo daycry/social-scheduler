@@ -1,0 +1,100 @@
+{
+  "id": 1,
+  "user_id": 1,
+  "brand_id": 1,
+  "folder_id": null,
+  "name": "Diseño sin título",
+  "document": {
+    "schema_version": 2,
+    "width": 320,
+    "height": 180,
+    "pages": [
+      {
+        "id": "page_016f1630-9333-4e05-9f57-3c47ebfe2c55",
+        "name": "Página 1",
+        "background": "#ffffff",
+        "duration": 3,
+        "elements": [
+          {
+            "id": "video_b540b49b-f408-4feb-afe3-5b86c3dcedd2",
+            "type": "video",
+            "name": "own-video.mp4",
+            "x": 128,
+            "y": 58,
+            "width": 64,
+            "height": 64,
+            "scaleX": 1,
+            "scaleY": 1,
+            "rotation": 0,
+            "skewX": 0,
+            "skewY": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "fill": "#7c3aed",
+            "stroke": "",
+            "strokeWidth": 0,
+            "flipX": false,
+            "flipY": false,
+            "asset_id": 1,
+            "cropX": 0,
+            "cropY": 0,
+            "filters": [],
+            "trimStart": 0,
+            "trimEnd": null,
+            "volume": 1,
+            "muted": false,
+            "playbackRate": 1,
+            "sourceOffset": 0,
+            "loop": false
+          }
+        ],
+        "notes": "PRIVATE AV NOTES Ω"
+      },
+      {
+        "id": "silent-destination",
+        "name": "Destino sin medios",
+        "duration": 2,
+        "background": "#0000ff",
+        "notes": "Destino Ω",
+        "elements": []
+      }
+    ],
+    "timeline": {
+      "fps": 30,
+      "audio_tracks": [
+        {
+          "id": "dbe6f428-b690-4bd1-a47d-0a208b95f413",
+          "asset_id": 2,
+          "start": 0,
+          "duration": 3,
+          "trimStart": 0,
+          "trimEnd": null,
+          "playbackRate": 1,
+          "sourceOffset": 0,
+          "loop": false,
+          "volume": 1,
+          "muted": false
+        }
+      ]
+    }
+  },
+  "revision": 3,
+  "is_template": false,
+  "kit_reference": {
+    "palette": [
+      "#7c3aed",
+      "#111827",
+      "#ffffff"
+    ],
+    "fonts": [
+      "Arial"
+    ],
+    "logos": []
+  },
+  "created_at": "2026-11-07T03:35:02.000000Z",
+  "updated_at": "2026-11-07T03:35:05.000000Z",
+  "deleted_at": null,
+  "template_fields": [],
+  "fonts": []
+}

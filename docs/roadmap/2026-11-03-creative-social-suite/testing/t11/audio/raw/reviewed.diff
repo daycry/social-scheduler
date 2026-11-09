@@ -1,0 +1,1910 @@
+--- a/app/Models/MediaAsset.php
++++ b/app/Models/MediaAsset.php
+@@ -35,6 +35,8 @@
+     public const KIND_IMAGE = 'image';
+ 
+     public const KIND_VIDEO = 'video';
++
++    public const KIND_AUDIO = 'audio';
+ 
+     protected $fillable = [
+         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
+--- a/app/Services/MediaUploadService.php
++++ b/app/Services/MediaUploadService.php
+@@ -10,8 +10,13 @@
+ use App\Services\Media\UnsafeUrlException;
+ use App\Services\Media\UrlGuard;
+ use App\Services\Media\UrlSource;
++use App\Services\Studio\StudioAudioFiles;
++use App\Services\Studio\StudioAudioProbe;
++use App\Services\Studio\StudioAudioProbeUnavailable;
++use Aws\Exception\AwsException;
+ use Illuminate\Database\QueryException;
+ use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Log;
+ use Illuminate\Support\Str;
+ use InvalidArgumentException;
+ use RuntimeException;
+@@ -33,9 +38,9 @@
+      *
+      * @return array{asset: MediaAsset, upload: array<string, mixed>}
+      */
+-    public function initiate(User $user, string $name, string $mime, int $size): array
+-    {
+-        $kind = $this->kindFor($mime);
++    public function initiate(User $user, string $name, string $mime, int $size, bool $allowAudio = false): array
++    {
++        $kind = $this->kindFor($mime, $allowAudio);
+ 
+         if ($size < 1 || $size > (int) config("media.max_bytes.$kind")) {
+             throw new InvalidArgumentException('El fichero supera el tamano maximo permitido para '.($kind === 'video' ? 'videos' : 'imagenes').'.');
+@@ -217,7 +222,7 @@
+      *
+      * @param  list<array{number: int, etag: string}>  $parts
+      */
+-    public function complete(MediaAsset $asset, array $parts = []): MediaAsset
++    public function complete(MediaAsset $asset, array $parts = [], ?float $timeout = null): MediaAsset
+     {
+         if ($asset->status !== MediaAsset::STATUS_PENDING) {
+             return $asset;
+@@ -225,16 +230,30 @@
+ 
+         if ($asset->upload_id) {
+             if ($parts === []) {
++                if ($asset->kind === MediaAsset::KIND_AUDIO && app(StudioAudioFiles::class)->hasCompleteObject($asset)) {
++                    $asset->forceFill(['upload_id' => null])->save();
++
++                    return $this->finalize($asset);
++                }
+                 throw new InvalidArgumentException('Faltan las partes subidas del multipart.');
+             }
+ 
+             usort($parts, fn ($a, $b) => $a['number'] <=> $b['number']);
+-            $this->storage->client()->completeMultipartUpload([
+-                'Bucket' => $this->storage->bucket(),
+-                'Key' => $asset->path,
+-                'UploadId' => $asset->upload_id,
+-                'MultipartUpload' => ['Parts' => array_map(fn ($p) => ['PartNumber' => $p['number'], 'ETag' => $p['etag']], $parts)],
+-            ]);
++            try {
++                $this->storage->client()->completeMultipartUpload([
++                    'Bucket' => $this->storage->bucket(), 'Key' => $asset->path, 'UploadId' => $asset->upload_id,
++                    'MultipartUpload' => ['Parts' => array_map(fn ($p) => ['PartNumber' => $p['number'], 'ETag' => $p['etag']], $parts)],
++                ] + ($timeout === null ? [] : ['@retries' => 0, '@http' => ['timeout' => $timeout, 'connect_timeout' => min(5, $timeout)]]));
++            } catch (AwsException $e) {
++                if ($asset->kind !== MediaAsset::KIND_AUDIO || $e->getAwsErrorCode() !== 'NoSuchUpload'
++                    || ! app(StudioAudioFiles::class)->hasCompleteObject($asset)) {
++                    throw $e;
++                }
++            }
++            if ($asset->kind === MediaAsset::KIND_AUDIO) {
++                // Storage completion and native validation are separate recoverable checkpoints.
++                $asset->forceFill(['upload_id' => null])->save();
++            }
+         }
+ 
+         return $this->finalize($asset);
+@@ -243,6 +262,9 @@
+     /** Lee el objeto ya subido y rellena tamano y metadatos; deja `invalido` si no es lo declarado. */
+     public function finalize(MediaAsset $asset): MediaAsset
+     {
++        if ($asset->kind === MediaAsset::KIND_AUDIO) {
++            return app(StudioAudioFiles::class)->finalize($asset);
++        }
+         $disk = $this->storage->disk();
+ 
+         if (! $disk->exists($asset->path)) {
+@@ -267,6 +289,8 @@
+ 
+         try {
+             $meta = $this->probe->inspect($asset);
++        } catch (StudioAudioProbeUnavailable $e) {
++            throw $e;
+         } catch (RuntimeException $e) {
+             $disk->delete($asset->path);
+ 
+@@ -297,6 +321,11 @@
+      */
+     public function delete(MediaAsset $asset): void
+     {
++        if ($asset->kind === MediaAsset::KIND_AUDIO && ! $asset->isReady()) {
++            app(StudioAudioFiles::class)->deletePending($asset);
++
++            return;
++        }
+         try {
+             DB::transaction(function () use ($asset) {
+                 $locked = MediaAsset::withoutUserScope()->lockForUpdate()->find($asset->id);
+@@ -326,6 +355,8 @@
+      */
+     public function pruneAbandoned(int $hours): int
+     {
++        StudioAudioProbe::pruneTemporaries();
++        app(StudioAudioFiles::class)->pruneStaging();
+         $n = 0;
+ 
+         MediaAsset::withoutUserScope()
+@@ -339,6 +370,8 @@
+                         $n++;
+                     } catch (\DomainException) {
+                         // se adjunto a una publicacion en el ultimo instante: se conserva
++                    } catch (StudioAudioProbeUnavailable) {
++                        Log::warning('studio.audio_abandoned_cleanup_deferred', ['media_id' => $asset->id]);
+                     }
+                 }
+             });
+@@ -381,6 +414,11 @@
+     /** Aborta el multipart abierto (si lo hay) y borra el objeto; ambos pasos tolerantes a «ya no existe». */
+     private function removeObject(MediaAsset $asset): void
+     {
++        if ($asset->kind === MediaAsset::KIND_AUDIO) {
++            $files = app(StudioAudioFiles::class);
++            $files->discardSnapshot($asset);
++            $files->deleteStaging($asset);
++        }
+         if ($asset->upload_id && $this->storage->isS3()) {
+             try {
+                 $this->storage->client()->abortMultipartUpload(['Bucket' => $this->storage->bucket(), 'Key' => $asset->path, 'UploadId' => $asset->upload_id]);
+@@ -399,8 +437,11 @@
+         return $asset;
+     }
+ 
+-    public function kindFor(string $mime): string
+-    {
++    public function kindFor(string $mime, bool $allowAudio = false): string
++    {
++        if ($allowAudio && in_array($mime, (array) config('media.allowed_audio_mimes'), true)) {
++            return MediaAsset::KIND_AUDIO;
++        }
+         foreach ((array) config('media.allowed_mimes') as $kind => $mimes) {
+             if (in_array($mime, $mimes, true)) {
+                 return $kind;
+@@ -417,6 +458,11 @@
+             'image/png' => 'png',
+             'image/webp' => 'webp',
+             'video/quicktime' => 'mov',
++            'audio/mpeg' => 'mp3',
++            'audio/wav' => 'wav',
++            'audio/mp4' => 'm4a',
++            'audio/aac' => 'aac',
++            'audio/ogg' => 'ogg',
+             default => 'mp4',
+         };
+     }
+--- a/app/Services/MediaProbe.php
++++ b/app/Services/MediaProbe.php
+@@ -5,6 +5,7 @@
+ use App\Connectors\Data\PublishMedia;
+ use App\Connectors\Support\MediaChunkReader;
+ use App\Models\MediaAsset;
++use App\Services\Studio\StudioAudioProbe;
+ use RuntimeException;
+ use Symfony\Component\Process\Process;
+ 
+@@ -25,6 +26,10 @@
+      */
+     public function inspect(MediaAsset $asset): array
+     {
++        if ($asset->kind === MediaAsset::KIND_AUDIO) {
++            return app(StudioAudioProbe::class)->inspect($asset);
++        }
++
+         return $asset->isVideo() ? $this->video($asset) : $this->image($asset);
+     }
+ 
+--- a/app/Services/Studio/StudioAssets.php
++++ b/app/Services/Studio/StudioAssets.php
+@@ -18,8 +18,9 @@
+     {
+         $this->assertBrand($user, $brand);
+         $asset = MediaAsset::withoutUserScope()->where('user_id', $user->id)->findOrFail($mediaId);
+-        if (! $asset->isReady() || ! in_array($asset->kind, [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO], true)) {
+-            throw ValidationException::withMessages(['media_id' => ['El archivo debe ser una imagen o vídeo propio listo.']]);
++        if (! $asset->isReady() || ! in_array($asset->kind, [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO, MediaAsset::KIND_AUDIO], true)
++            || ($asset->kind === MediaAsset::KIND_AUDIO && (! filled($asset->audio_codec) || ! is_finite((float) $asset->duration) || $asset->duration <= 0))) {
++            throw ValidationException::withMessages(['media_id' => ['El archivo debe ser una imagen, vídeo o audio propio validado y listo.']]);
+         }
+         StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $brand->id, 'media_asset_id' => $asset->id], ['user_id' => $user->id]);
+ 
+@@ -62,7 +63,8 @@
+ 
+     public function present(Brand $brand, MediaAsset $asset): array
+     {
+-        return array_replace($asset->toPublicArray(), ['preview_url' => route('studio.assets.file', ['brand' => $brand->id, 'media' => $asset->id], absolute: false)]);
++        return array_replace($asset->toPublicArray(), ['preview_url' => route('studio.assets.file', ['brand' => $brand->id, 'media' => $asset->id], absolute: false)])
++            + ($asset->kind === MediaAsset::KIND_AUDIO ? ['audio_codec' => $asset->audio_codec] : []);
+     }
+ 
+     /** Same-origin private proxy works for local and R2 assets without exposing bucket credentials or relying on CORS. */
+--- /dev/null
++++ b/app/Services/Studio/StudioAudio.php
+@@ -0,0 +1,181 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\StudioAsset;
++use App\Models\User;
++use App\Services\MediaStorage;
++use App\Services\MediaUploadService;
++use Illuminate\Support\Facades\Cache;
++use Illuminate\Support\Facades\File;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Facades\Validator;
++use Illuminate\Support\Str;
++use Illuminate\Validation\Rule;
++use Illuminate\Validation\ValidationException;
++use InvalidArgumentException;
++use Throwable;
++
++class StudioAudio
++{
++    public const MIMES = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/ogg'];
++
++    public function __construct(private readonly MediaUploadService $uploads, private readonly StudioAssets $assets, private readonly MediaStorage $storage) {}
++
++    public function start(User $user, Brand $brand, array $input, bool $api = false): array
++    {
++        $this->assets->assertBrand($user, $brand);
++        if (array_diff(array_keys($input), ['name', 'mime', 'size'])) {
++            throw ValidationException::withMessages(['audio' => ['Indica solo nombre, MIME y tamaño; el archivo se transfiere como binario.']]);
++        }
++        $max = min(100 * 1024 * 1024, (int) config('media.max_bytes.audio'));
++        $data = Validator::make($input, ['name' => ['required', 'string', 'max:255'], 'mime' => ['required', Rule::in(self::MIMES)],
++            'size' => ['required', 'integer', 'min:1', 'max:'.$max]])->validate();
++        $mime = match ($data['mime']) {
++            'audio/x-wav' => 'audio/wav', 'audio/x-m4a' => 'audio/mp4', default => $data['mime']
++        };
++        try {
++            $result = $this->uploads->initiate($user, $data['name'], $mime, (int) $data['size'], allowAudio: true);
++        } catch (InvalidArgumentException $e) {
++            throw ValidationException::withMessages(['audio' => [$e->getMessage()]]);
++        }
++        $asset = $result['asset'];
++        try {
++            StudioAsset::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'media_asset_id' => $asset->id]);
++        } catch (Throwable $e) {
++            $this->uploads->delete($asset);
++            throw $e;
++        }
++        $upload = $result['upload'];
++        if ($upload['mode'] === 'local') {
++            $upload['url'] = route(($api ? 'api.' : '').'studio.audio.upload', ['brand' => $brand->id, 'media' => $asset->id], absolute: false);
++            $upload['headers'] = ['Content-Type' => $mime];
++        }
++
++        return ['asset' => $this->present($brand, $asset, $api), 'upload' => $upload,
++            'complete_url' => route(($api ? 'api.' : '').'studio.audio.complete', ['brand' => $brand->id, 'media' => $asset->id], absolute: false)];
++    }
++
++    public function present(Brand $brand, MediaAsset $asset, bool $api = false): array
++    {
++        $data = $asset->toPublicArray();
++        $data['audio_codec'] = $asset->audio_codec;
++        if ($data['preview_url'] !== null) {
++            $data['preview_url'] = route(($api ? 'api.' : '').'studio.assets.file', ['brand' => $brand->id, 'media' => $asset->id], absolute: false);
++        }
++
++        return $data;
++    }
++
++    public function listing(User $user, Brand $brand, array $filters = [], bool $api = false): array
++    {
++        $this->assets->assertBrand($user, $brand);
++        $filters = Validator::make($filters, ['query' => ['sometimes', 'nullable', 'string', 'max:120'],
++            'page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']])->validate();
++        $query = MediaAsset::withoutUserScope()->select('media_assets.*')->join('studio_assets', 'studio_assets.media_asset_id', '=', 'media_assets.id')
++            ->where('media_assets.user_id', $user->id)->where('studio_assets.user_id', $user->id)->where('studio_assets.brand_id', $brand->id)
++            ->where('media_assets.kind', MediaAsset::KIND_AUDIO)->where('media_assets.status', MediaAsset::STATUS_READY);
++        if (filled($filters['query'] ?? null)) {
++            $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim($filters['query'])).'%';
++            $query->whereRaw("media_assets.original_name LIKE ? ESCAPE '!'", [$term]);
++        }
++        $page = $query->orderByDesc('media_assets.id')->paginate($filters['per_page'] ?? 20, ['media_assets.*'], 'page', $filters['page'] ?? 1);
++
++        return ['assets' => $page->getCollection()->map(fn ($asset) => $this->present($brand, $asset, $api))->values()->all(),
++            'pagination' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(),
++                'total' => $page->total(), 'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null]];
++    }
++
++    public function owned(User $user, Brand $brand, int $media): MediaAsset
++    {
++        $this->assets->assertBrand($user, $brand);
++        $link = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
++            ->where('media_asset_id', $media)->with('media')->firstOrFail();
++        abort_unless($link->media && (int) $link->media->user_id === (int) $user->id && $link->media->kind === MediaAsset::KIND_AUDIO, 404);
++
++        return $link->media;
++    }
++
++    /** The incoming binary is streamed to a bounded staging file, never materialized as a PHP string. */
++    public function uploadLocal(User $user, Brand $brand, int $media, mixed $stream): MediaAsset
++    {
++        $asset = $this->owned($user, $brand, $media);
++        abort_if($this->storage->isS3() || $asset->disk !== $this->storage->diskName(), 404);
++        abort_unless(is_resource($stream), 400, 'Falta el archivo binario.');
++
++        return $this->locked($asset, function () use ($user, $brand, $media, $stream): MediaAsset {
++            $asset = $this->owned($user, $brand, $media);
++            abort_unless($asset->status === MediaAsset::STATUS_PENDING, 409, 'La subida ya terminó; inicia otra para cambiar el archivo.');
++            $disk = Storage::disk($asset->disk);
++            $temporary = $asset->path.'.'.Str::uuid().'.part';
++            $out = null;
++            try {
++                File::ensureDirectoryExists(dirname($disk->path($temporary)), 0700);
++                $out = fopen($disk->path($temporary), 'xb');
++                abort_unless(is_resource($out), 503, 'No se pudo preparar la subida.');
++                $limit = min(100 * 1024 * 1024, (int) config('media.max_bytes.audio'), (int) $asset->declared_size);
++                $bytes = 0;
++                $deadline = microtime(true) + 30;
++                while (! feof($stream)) {
++                    abort_if(microtime(true) > $deadline, 503, 'La lectura de la subida agotó su tiempo.');
++                    $chunk = fread($stream, min(1024 * 1024, $limit - $bytes + 1));
++                    abort_if($chunk === false || ($chunk === '' && ! feof($stream)), 503, 'No se pudo leer el archivo completo.');
++                    $bytes += strlen($chunk);
++                    if ($bytes > $limit) {
++                        return $this->uploads->invalidate($asset, 'El audio supera el tamaño declarado o permitido.');
++                    }
++                    abort_if($chunk !== '' && fwrite($out, $chunk) !== strlen($chunk), 503, 'No se pudo guardar el archivo completo.');
++                }
++                fclose($out);
++                if ($bytes !== (int) $asset->declared_size) {
++                    return $this->uploads->invalidate($asset, 'El tamaño real del audio no coincide con el declarado.');
++                }
++                abort_unless($disk->move($temporary, $asset->path), 503, 'No se pudo confirmar la subida.');
++
++                return $this->uploads->finalize($asset);
++            } finally {
++                if (is_resource($out)) {
++                    fclose($out);
++                }
++                $disk->delete($temporary);
++            }
++        });
++    }
++
++    public function complete(User $user, Brand $brand, int $media, array $input): MediaAsset
++    {
++        $asset = $this->owned($user, $brand, $media);
++        if (array_diff(array_keys($input), ['parts'])) {
++            throw ValidationException::withMessages(['parts' => ['Solo se admite la lista de partes subidas.']]);
++        }
++        $data = Validator::make($input, ['parts' => ['sometimes', 'array', 'max:10000'], 'parts.*' => ['array:number,etag'],
++            'parts.*.number' => ['required', 'integer', 'distinct', 'min:1', 'max:10000'], 'parts.*.etag' => ['required', 'string', 'max:200']])->validate();
++
++        return $this->locked($asset, function () use ($user, $brand, $media, $data): MediaAsset {
++            $fresh = $this->owned($user, $brand, $media);
++            if ($fresh->isReady()) {
++                return $fresh;
++            }
++            abort_unless($fresh->status === MediaAsset::STATUS_PENDING, 422, 'El audio no es válido; inicia otra subida.');
++            abort_unless($fresh->disk === $this->storage->diskName(), 409, 'El almacenamiento de esta subida cambió.');
++            try {
++                return $this->uploads->complete($fresh, $data['parts'] ?? [], timeout: 20);
++            } catch (InvalidArgumentException $e) {
++                throw ValidationException::withMessages(['parts' => [$e->getMessage()]]);
++            }
++        });
++    }
++
++    private function locked(MediaAsset $asset, callable $operation): MediaAsset
++    {
++        $lock = Cache::lock('studio.audio.transfer.'.$asset->id, 180);
++        abort_unless($lock->get(), 409, 'La subida está siendo procesada en otra petición.');
++        try {
++            return $operation();
++        } finally {
++            $lock->release();
++        }
++    }
++}
+--- /dev/null
++++ b/app/Services/Studio/StudioAudioFiles.php
+@@ -0,0 +1,253 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Connectors\Data\PublishMedia;
++use App\Connectors\Exceptions\PermanentPublishException;
++use App\Connectors\Support\MediaChunkReader;
++use App\Models\MediaAsset;
++use App\Models\Studio\StudioAsset;
++use App\Services\MediaProbe;
++use Aws\Exception\AwsException;
++use DomainException;
++use Illuminate\Filesystem\AwsS3V3Adapter;
++use Illuminate\Support\Facades\Cache;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Log;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use RuntimeException;
++use Throwable;
++
++/** A ready audio file is a private snapshot that has never had a signed upload capability. */
++class StudioAudioFiles
++{
++    public function __construct(private readonly MediaProbe $probe) {}
++
++    public function finalize(MediaAsset $asset): MediaAsset
++    {
++        if ($asset->isReady() || $asset->status === MediaAsset::STATUS_INVALID) {
++            return $asset;
++        }
++        $disk = Storage::disk($asset->disk);
++        $source = $asset->path;
++        $size = $this->readSize($asset, $source);
++        if ($size === null) {
++            return $this->invalid($asset, 'El archivo de audio no llegó al almacenamiento.');
++        }
++        if (! $this->sizeValid($asset, $size)) {
++            $this->removeFile($asset, $source);
++
++            return $this->invalid($asset, 'El tamaño real del audio no coincide con el declarado o supera el límite.');
++        }
++        $extension = pathinfo($source, PATHINFO_EXTENSION);
++        abort_unless(in_array($extension, ['wav', 'mp3', 'm4a', 'aac', 'ogg'], true), 422, 'Extensión de audio no compatible.');
++        $snapshot = 'studio-audio/'.$asset->user_id.'/'.$asset->id.'/'.Str::uuid().'.'.$extension;
++        // Persist the allocation before I/O so the existing abandoned-upload cleanup owns it after a crash.
++        $this->discardSnapshot($asset);
++        $asset->forceFill(['import_state' => ['studio_audio_snapshot' => $snapshot]])->save();
++        $published = false;
++        try {
++            try {
++                if ($disk instanceof AwsS3V3Adapter) {
++                    $config = $disk->getConfig();
++                    $prefix = trim((string) ($config['root'] ?? ''), '/');
++                    $prefix = $prefix === '' ? '' : $prefix.'/';
++                    $disk->getClient()->copyObject(['Bucket' => $config['bucket'], 'Key' => $prefix.$snapshot,
++                        'CopySource' => $config['bucket'].'/'.str_replace('%2F', '/', rawurlencode($prefix.$source)),
++                        '@retries' => 0, '@http' => ['timeout' => 20, 'connect_timeout' => 5]]);
++                } else {
++                    abort_unless($disk->copy($source, $snapshot), 503, 'No se pudo preparar el audio.');
++                }
++            } catch (Throwable) {
++                throw new StudioAudioProbeUnavailable('No se pudo preparar la copia privada del audio; vuelve a intentarlo.');
++            }
++            $size = $this->readSize($asset, $snapshot);
++            if ($size === null || ! $this->sizeValid($asset, $size)) {
++                $this->removeFile($asset, $source);
++
++                return $this->invalid($asset, 'La copia recibida no coincide con el tamaño declarado.');
++            }
++            $candidate = clone $asset;
++            $candidate->path = $snapshot;
++            try {
++                $meta = $this->probe->inspect($candidate);
++            } catch (StudioAudioProbeUnavailable $e) {
++                throw $e;
++            } catch (RuntimeException $e) {
++                $this->removeFile($asset, $source);
++
++                return $this->invalid($asset, $e->getMessage());
++            }
++            unset($meta['mime']);
++            $result = DB::transaction(function () use ($asset, $snapshot, $source, $size, $meta): MediaAsset {
++                $fresh = MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->lockForUpdate()->findOrFail($asset->id);
++                if ($fresh->isReady()) {
++                    return $fresh;
++                }
++                abort_unless($fresh->status === MediaAsset::STATUS_PENDING && $fresh->path === $source, 409, 'La subida cambió durante su validación.');
++                $fresh->forceFill($meta + ['path' => $snapshot, 'source_ref' => $source, 'import_state' => null, 'size' => $size,
++                    'status' => MediaAsset::STATUS_READY, 'upload_id' => null, 'error' => null])->save();
++
++                return $fresh;
++            });
++            $published = $result->path === $snapshot;
++            try {
++                $this->removeFile($asset, $source);
++            } catch (Throwable) {
++                Log::warning('studio.audio_staging_cleanup_deferred', ['media_id' => $asset->id]);
++            }
++
++            return $result;
++        } finally {
++            if (! $published) {
++                $this->discardSnapshot($asset);
++            }
++        }
++    }
++
++    private function sizeValid(MediaAsset $asset, int $size): bool
++    {
++        return $size > 0 && $size === (int) $asset->declared_size && $size <= min(100 * 1024 * 1024, (int) config('media.max_bytes.audio'));
++    }
++
++    public function hasCompleteObject(MediaAsset $asset): bool
++    {
++        $size = $this->readSize($asset, $asset->path);
++
++        return $size !== null && $this->sizeValid($asset, $size);
++    }
++
++    private function readSize(MediaAsset $asset, string $path): ?int
++    {
++        try {
++            return MediaChunkReader::for(new PublishMedia(id: $asset->id, kind: 'audio', mime: $asset->mime, url: '', disk: $asset->disk, path: $path), timeout: 5)->size;
++        } catch (PermanentPublishException) {
++            return null;
++        } catch (Throwable) {
++            throw new StudioAudioProbeUnavailable('No se pudo consultar el audio del almacenamiento; vuelve a intentarlo.');
++        }
++    }
++
++    private function removeFile(MediaAsset $asset, string $path): void
++    {
++        $disk = Storage::disk($asset->disk);
++        try {
++            if ($disk instanceof AwsS3V3Adapter) {
++                $config = $disk->getConfig();
++                $root = trim((string) ($config['root'] ?? ''), '/');
++                $disk->getClient()->deleteObject(['Bucket' => $config['bucket'], 'Key' => ($root === '' ? '' : $root.'/').$path,
++                    '@retries' => 0, '@http' => ['timeout' => 5, 'connect_timeout' => 5]]);
++            } else {
++                if (! $disk->delete($path)) {
++                    throw new RuntimeException('storage delete failed');
++                }
++            }
++        } catch (Throwable) {
++            throw new StudioAudioProbeUnavailable('La limpieza del audio no terminó; vuelve a intentarlo.');
++        }
++    }
++
++    private function invalid(MediaAsset $asset, string $reason): MediaAsset
++    {
++        $asset->forceFill(['status' => MediaAsset::STATUS_INVALID, 'upload_id' => null, 'error' => $reason])->save();
++
++        return $asset;
++    }
++
++    public function discardSnapshot(MediaAsset $asset): void
++    {
++        $path = $asset->import_state['studio_audio_snapshot'] ?? null;
++        if (! is_string($path) || ! preg_match('~^studio-audio/'.(int) $asset->user_id.'/'.(int) $asset->id.'/[a-f0-9-]{36}\.(wav|mp3|m4a|aac|ogg)$~D', $path)) {
++            return;
++        }
++        $this->removeFile($asset, $path);
++        MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->whereKey($asset->id)
++            ->where('import_state->studio_audio_snapshot', $path)->update(['import_state' => null]);
++    }
++
++    public function deleteStaging(MediaAsset $asset): void
++    {
++        $path = $asset->source_ref;
++        if (is_string($path) && preg_match('~^media/'.(int) $asset->user_id.'/[a-z0-9]{26}\.(wav|mp3|m4a|aac|ogg)$~D', $path)) {
++            $this->removeFile($asset, $path);
++        }
++    }
++
++    /** Keep failed allocations in the ledger until their bytes are actually removed; no network inside a DB transaction. */
++    public function deletePending(MediaAsset $asset): void
++    {
++        $lock = Cache::lock('studio.audio.transfer.'.$asset->id, 180);
++        if (! $lock->get()) {
++            throw new DomainException('El audio se está procesando; vuelve a intentar su eliminación.');
++        }
++        try {
++            $fresh = MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->find($asset->id);
++            if ($fresh === null) {
++                return;
++            }
++            if ($fresh->isReady()) {
++                throw new DomainException('El audio ya está listo en el estudio.');
++            }
++            $this->abortMultipart($fresh);
++            $this->discardSnapshot($fresh);
++            $this->deleteStaging($fresh);
++            $this->removeFile($fresh, $fresh->path);
++            DB::transaction(function () use ($asset): void {
++                $locked = MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->lockForUpdate()->find($asset->id);
++                if ($locked === null) {
++                    return;
++                }
++                if ($locked->isReady() || $locked->posts()->exists()) {
++                    throw new DomainException('El audio está en uso.');
++                }
++                StudioAsset::withoutUserScope()->where('user_id', $locked->user_id)->where('media_asset_id', $locked->id)->delete();
++                $locked->delete();
++            });
++        } finally {
++            $lock->release();
++        }
++    }
++
++    private function abortMultipart(MediaAsset $asset): void
++    {
++        if (! $asset->upload_id) {
++            return;
++        }
++        $disk = Storage::disk($asset->disk);
++        if (! $disk instanceof AwsS3V3Adapter) {
++            throw new StudioAudioProbeUnavailable('No se pudo cancelar la sesión de subida remota.');
++        }
++        $config = $disk->getConfig();
++        $root = trim((string) ($config['root'] ?? ''), '/');
++        try {
++            $disk->getClient()->abortMultipartUpload(['Bucket' => $config['bucket'], 'Key' => ($root === '' ? '' : $root.'/').$asset->path,
++                'UploadId' => $asset->upload_id, '@retries' => 0, '@http' => ['timeout' => 5, 'connect_timeout' => 5]]);
++        } catch (AwsException $e) {
++            if ($e->getAwsErrorCode() !== 'NoSuchUpload') {
++                throw new StudioAudioProbeUnavailable('No se pudo cancelar la subida remota; conserva su seguimiento para reintentar.');
++            }
++        } catch (Throwable) {
++            throw new StudioAudioProbeUnavailable('No se pudo cancelar la subida remota; conserva su seguimiento para reintentar.');
++        }
++        $asset->forceFill(['upload_id' => null])->save();
++    }
++
++    /** Retain the old key until every upload URL is expired, so replay-created objects remain tracked. */
++    public function pruneStaging(): void
++    {
++        MediaAsset::withoutUserScope()->where('kind', MediaAsset::KIND_AUDIO)->where('status', MediaAsset::STATUS_READY)->whereNotNull('source_ref')
++            ->chunkById(100, function ($assets): void {
++                foreach ($assets as $asset) {
++                    try {
++                        $this->deleteStaging($asset);
++                        if ($asset->created_at->lt(now()->subMinutes((int) config('media.upload_url_ttl', 120) + 60))) {
++                            MediaAsset::withoutUserScope()->whereKey($asset->id)->where('source_ref', $asset->source_ref)->update(['source_ref' => null]);
++                        }
++                    } catch (Throwable) {
++                        Log::warning('studio.audio_staging_cleanup_deferred', ['media_id' => $asset->id]);
++                    }
++                }
++            });
++    }
++}
+--- /dev/null
++++ b/app/Services/Studio/StudioAudioProbe.php
+@@ -0,0 +1,163 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Connectors\Data\PublishMedia;
++use App\Connectors\Exceptions\ConnectorException;
++use App\Connectors\Support\MediaChunkReader;
++use App\Models\MediaAsset;
++use App\Services\MediaStorage;
++use Illuminate\Support\Facades\File;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use RuntimeException;
++use Symfony\Component\Process\ExecutableFinder;
++use Symfony\Component\Process\Process;
++use Throwable;
++
++/** Native audio inspection uses only managed local files, never a URL or playlist demuxer. */
++class StudioAudioProbe
++{
++    public function __construct(private readonly MediaStorage $storage) {}
++
++    public function inspect(MediaAsset $asset): array
++    {
++        $format = match ($asset->mime) {
++            'audio/mpeg' => 'mp3', 'audio/wav' => 'wav', 'audio/mp4' => 'mov', 'audio/aac' => 'aac', 'audio/ogg' => 'ogg',
++            default => throw new RuntimeException('El formato de audio no es compatible.'),
++        };
++        $binary = (new ExecutableFinder)->find((string) config('media.ffprobe', 'ffprobe'));
++        if ($binary === null) {
++            throw new StudioAudioProbeUnavailable('El motor de audio no está disponible; conserva el archivo y vuelve a intentarlo.');
++        }
++        $temporary = null;
++        try {
++            $disk = Storage::disk($asset->disk);
++            if ($this->storage->isS3()) {
++                $source = $temporary = $this->download($asset);
++            } else {
++                $source = $disk->path($asset->path);
++            }
++            $process = new Process([$binary, '-v', 'error', '-max_alloc', '67108864', '-protocol_whitelist', 'file',
++                '-f', $format, '-probesize', '10485760', '-analyzeduration', '10000000',
++                '-show_entries', 'format=format_name,duration:stream=codec_type,codec_name,sample_rate,channels,duration:stream_disposition=attached_pic',
++                '-of', 'json', '-i', $source]);
++            $process->setTimeout((float) config('media.audio_probe_timeout', 15));
++            try {
++                $process->run();
++            } catch (Throwable) {
++                throw new StudioAudioProbeUnavailable('El motor de audio no respondió a tiempo; vuelve a intentar la validación.');
++            }
++            if (! $process->isSuccessful()) {
++                throw new RuntimeException('El archivo no contiene audio válido del formato declarado.');
++            }
++
++            return $this->parse($process->getOutput(), $asset->mime);
++        } finally {
++            if ($temporary !== null) {
++                @unlink($temporary);
++            }
++        }
++    }
++
++    private function download(MediaAsset $asset): string
++    {
++        $deadline = microtime(true) + (float) config('media.audio_download_timeout', 25);
++        $path = storage_path('app/private/studio-audio-probe/'.Str::uuid().'.bin');
++        File::ensureDirectoryExists(dirname($path), 0700);
++        $out = null;
++        try {
++            $reader = MediaChunkReader::for(new PublishMedia(id: $asset->id, kind: 'audio', mime: $asset->mime, url: '', disk: $asset->disk, path: $asset->path), timeout: $deadline - microtime(true));
++            $max = min(100 * 1024 * 1024, (int) config('media.max_bytes.audio'));
++            if ($reader->size < 1 || $reader->size > $max || $reader->size > $asset->declared_size) {
++                throw new RuntimeException('El audio supera el tamaño declarado o permitido.');
++            }
++            $out = fopen($path, 'xb');
++            if (! is_resource($out)) {
++                throw new StudioAudioProbeUnavailable('No se pudo preparar el sondeo de audio.');
++            }
++            for ($offset = 0; $offset < $reader->size;) {
++                $remaining = $deadline - microtime(true);
++                if ($remaining <= 0) {
++                    throw new StudioAudioProbeUnavailable('La lectura del audio agotó su tiempo; vuelve a intentarlo.');
++                }
++                $length = min(1024 * 1024, $reader->size - $offset);
++                $bytes = $reader->chunk($offset, $length, $remaining);
++                if (strlen($bytes) !== $length || fwrite($out, $bytes) !== $length) {
++                    throw new StudioAudioProbeUnavailable('No se pudo leer el audio completo.');
++                }
++                $offset += $length;
++            }
++            fclose($out);
++
++            return $path;
++        } catch (Throwable $e) {
++            if (is_resource($out)) {
++                fclose($out);
++            }
++            @unlink($path);
++            if ($e instanceof RuntimeException && ! $e instanceof ConnectorException) {
++                throw $e;
++            }
++            throw new StudioAudioProbeUnavailable('No se pudo leer el audio del almacenamiento.');
++        }
++    }
++
++    public function parse(string $json, string $mime): array
++    {
++        $data = json_decode($json, true, 32);
++        $streams = is_array($data) ? ($data['streams'] ?? []) : [];
++        $audio = null;
++        if (! is_array($streams) || count($streams) > 16) {
++            throw new RuntimeException('El audio contiene demasiadas pistas o metadatos inválidos.');
++        }
++        foreach ($streams as $stream) {
++            if (($stream['codec_type'] ?? null) === 'video' && ! ($stream['disposition']['attached_pic'] ?? false)) {
++                throw new RuntimeException('El archivo contiene vídeo; súbelo como recurso de vídeo.');
++            }
++            if (($stream['codec_type'] ?? null) === 'audio' && $audio === null) {
++                $audio = $stream;
++            }
++        }
++        $allowed = match ($mime) {
++            'audio/mpeg' => ['mp3'], 'audio/mp4', 'audio/aac' => ['aac'], 'audio/ogg' => ['opus', 'vorbis'],
++            'audio/wav' => ['pcm_u8', 'pcm_s16le', 'pcm_s24le', 'pcm_s32le', 'pcm_f32le', 'pcm_f64le', 'pcm_alaw', 'pcm_mulaw'],
++            default => [],
++        };
++        $duration = $audio['duration'] ?? $data['format']['duration'] ?? null;
++        $seconds = is_numeric($duration) ? (float) $duration : 0;
++        if ($audio === null || ! in_array($audio['codec_name'] ?? null, $allowed, true)
++            || ! is_finite($seconds) || $seconds < 0.001 || $seconds > min(3600, (float) config('media.audio_max_duration', 3600))
++            || ! is_numeric($audio['sample_rate'] ?? null) || $audio['sample_rate'] < 8000 || $audio['sample_rate'] > 192000
++            || ! is_int($audio['channels'] ?? null) || $audio['channels'] < 1 || $audio['channels'] > 8) {
++            throw new RuntimeException('El audio tiene duración, frecuencia, canales o códec no compatibles.');
++        }
++
++        return ['width' => null, 'height' => null, 'duration' => $seconds, 'fps' => null,
++            'codec' => null, 'audio_codec' => $audio['codec_name'], 'mime' => $mime];
++    }
++
++    /** A killed PHP process cannot run finally; clean only old UUID files in this owned directory. */
++    public static function pruneTemporaries(int $olderThanMinutes = 60): int
++    {
++        $directory = storage_path('app/private/studio-audio-probe');
++        $resolved = realpath($directory);
++        if ($resolved === false || ! is_dir($resolved)) {
++            return 0;
++        }
++        $limit = time() - max(1, $olderThanMinutes) * 60;
++        $removed = 0;
++        foreach (File::files($resolved) as $file) {
++            $path = $file->getRealPath();
++            if ($file->isLink() || $path === false || dirname($path) !== $resolved
++                || ! preg_match('/^[a-f0-9-]{36}\.bin$/D', $file->getFilename()) || $file->getMTime() >= $limit) {
++                continue;
++            }
++            if (File::delete($path)) {
++                $removed++;
++            }
++        }
++
++        return $removed;
++    }
++}
+--- /dev/null
++++ b/app/Services/Studio/StudioAudioProbeUnavailable.php
+@@ -0,0 +1,7 @@
++<?php
++
++namespace App\Services\Studio;
++
++use RuntimeException;
++
++class StudioAudioProbeUnavailable extends RuntimeException {}
+--- a/app/Http/Controllers/MediaController.php
++++ b/app/Http/Controllers/MediaController.php
+@@ -7,6 +7,7 @@
+ use App\Services\Media\UnsafeUrlException;
+ use App\Services\MediaStorage;
+ use App\Services\MediaUploadService;
++use App\Services\Studio\StudioAudioProbeUnavailable;
+ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+ use Illuminate\Http\JsonResponse;
+ use Illuminate\Http\RedirectResponse;
+@@ -29,6 +30,7 @@
+     {
+         return response()->json([
+             'media' => MediaAsset::query()->where('status', MediaAsset::STATUS_READY)
++                ->whereIn('kind', [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO])
+                 ->latest('id')->limit(100)->get()->map->toPublicArray()->values(),
+         ]);
+     }
+@@ -104,6 +106,7 @@
+     public function upload(Request $request, MediaAsset $asset): JsonResponse
+     {
+         $this->authorize('update', $asset);
++        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
+         abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
+ 
+         $stream = $request->getContent(true);
+@@ -117,6 +120,7 @@
+     public function complete(Request $request, MediaAsset $asset): JsonResponse
+     {
+         $this->authorize('update', $asset);
++        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
+ 
+         $data = $request->validate([
+             'parts' => ['sometimes', 'array', 'max:10000'],
+@@ -163,6 +167,8 @@
+             $this->uploads->delete($asset);
+         } catch (\DomainException $e) {
+             return response()->json(['message' => $e->getMessage()], 409);
++        } catch (StudioAudioProbeUnavailable $e) {
++            return response()->json(['message' => $e->getMessage()], 503);
+         }
+ 
+         return response()->json(['ok' => true]);
+--- /dev/null
++++ b/app/Http/Controllers/Studio/StudioAudioController.php
+@@ -0,0 +1,57 @@
++<?php
++
++namespace App\Http\Controllers\Studio;
++
++use App\Http\Controllers\Controller;
++use App\Models\Brand;
++use App\Services\Studio\StudioAudio;
++use App\Services\Studio\StudioAudioProbeUnavailable;
++use Illuminate\Http\JsonResponse;
++use Illuminate\Http\Request;
++
++class StudioAudioController extends Controller
++{
++    public function __construct(private readonly StudioAudio $audio) {}
++
++    public function store(Request $request, Brand $brand): JsonResponse
++    {
++        return response()->json($this->audio->start($request->user(), $brand, $request->all(), $request->is('api/*')), 201);
++    }
++
++    public function index(Request $request, Brand $brand): JsonResponse
++    {
++        return response()->json($this->audio->listing($request->user(), $brand, $request->only(['query', 'page', 'per_page']), $request->is('api/*')));
++    }
++
++    public function show(Request $request, Brand $brand, int $media): JsonResponse
++    {
++        return response()->json(['asset' => $this->audio->present($brand, $this->audio->owned($request->user(), $brand, $media), $request->is('api/*'))]);
++    }
++
++    public function upload(Request $request, Brand $brand, int $media): JsonResponse
++    {
++        $stream = $request->getContent(true);
++        try {
++            $asset = $this->audio->uploadLocal($request->user(), $brand, $media, $stream);
++        } catch (StudioAudioProbeUnavailable $e) {
++            return response()->json(['message' => $e->getMessage()], 503);
++        } finally {
++            if (is_resource($stream)) {
++                fclose($stream);
++            }
++        }
++
++        return response()->json(['asset' => $this->audio->present($brand, $asset, $request->is('api/*'))], $asset->isReady() ? 200 : 422);
++    }
++
++    public function complete(Request $request, Brand $brand, int $media): JsonResponse
++    {
++        try {
++            $asset = $this->audio->complete($request->user(), $brand, $media, $request->all());
++        } catch (StudioAudioProbeUnavailable $e) {
++            return response()->json(['message' => $e->getMessage()], 503);
++        }
++
++        return response()->json(['asset' => $this->audio->present($brand, $asset, $request->is('api/*'))], $asset->isReady() ? 200 : 422);
++    }
++}
+--- /dev/null
++++ b/app/Mcp/Tools/ManageStudioAudio.php
+@@ -0,0 +1,72 @@
++<?php
++
++namespace App\Mcp\Tools;
++
++use App\Mcp\Abilities;
++use App\Models\User;
++use App\Services\Studio\StudioAudio;
++use App\Services\Studio\StudioAudioProbeUnavailable;
++use Illuminate\Contracts\JsonSchema\JsonSchema;
++use Illuminate\Validation\ValidationException;
++use Laravel\Mcp\Request;
++use Laravel\Mcp\Server\Attributes\Description;
++use Laravel\Mcp\Server\Attributes\Name;
++
++#[Name('manage_studio_audio')]
++#[Description('Audio privado por marca. start recibe nombre/MIME/tamaño (hasta100MiB) y devuelve ticket binario local o prefirmado single/multipart; nunca base64 ni URL de origen. Transfiere los bytes por HTTP, luego complete con partes si aplica; get/list consultan estado/biblioteca. Solo listo con duración/códec sondeados puede usarse en timeline.audio_tracks. URLs API locales requieren Bearer designs:write/read; no envíes ese Bearer a URLs de almacenamiento. No publica. get/list requieren designs:read; start/complete designs:write.')]
++class ManageStudioAudio extends SchedulerTool
++{
++    protected function ability(): string
++    {
++        return Abilities::DESIGNS_WRITE;
++    }
++
++    protected function abilityFor(Request $request): string
++    {
++        return in_array($request->get('action'), ['list', 'get'], true) ? Abilities::DESIGNS_READ : Abilities::DESIGNS_WRITE;
++    }
++
++    protected function resource(): ?string
++    {
++        return 'brand';
++    }
++
++    public function schema(JsonSchema $schema): array
++    {
++        return $this->brandSchema($schema) + [
++            'action' => $schema->string()->enum(['start', 'complete', 'list', 'get'])->required(),
++            'media_id' => $schema->integer()->min(1), 'name' => $schema->string(),
++            'mime' => $schema->string()->enum(StudioAudio::MIMES), 'size' => $schema->integer()->min(1)->max(104857600),
++            'parts' => $schema->array()->items($schema->object(['number' => $schema->integer()->min(1)->max(10000)->required(), 'etag' => $schema->string()->required()])),
++            'query' => $schema->string(), 'page' => $schema->integer()->min(1), 'per_page' => $schema->integer()->min(1)->max(100),
++        ];
++    }
++
++    protected function run(Request $request, User $user): array
++    {
++        if (array_diff(array_keys($request->all()), ['brand', 'brand_id', 'action', 'media_id', 'name', 'mime', 'size', 'parts', 'query', 'page', 'per_page'])) {
++            throw ValidationException::withMessages(['audio' => ['No se admiten rutas, URLs de origen ni contenido base64.']]);
++        }
++        $data = $request->validate(['action' => ['required', 'in:start,complete,list,get'],
++            'media_id' => ['required_if:action,get,complete', 'integer', 'min:1'],
++            'name' => ['required_if:action,start', 'string', 'max:255'], 'mime' => ['required_if:action,start', 'string'],
++            'size' => ['required_if:action,start', 'integer', 'min:1'], 'parts' => ['sometimes', 'array'],
++            'query' => ['sometimes', 'nullable', 'string'], 'page' => ['sometimes', 'integer'], 'per_page' => ['sometimes', 'integer']]);
++        $brand = $this->brandFrom($request, $user);
++        $audio = app(StudioAudio::class);
++        if ($data['action'] === 'start') {
++            return $audio->start($user, $brand, array_intersect_key($data, array_flip(['name', 'mime', 'size'])), true);
++        }
++        if ($data['action'] === 'list') {
++            return $audio->listing($user, $brand, array_intersect_key($data, array_flip(['query', 'page', 'per_page'])), true);
++        }
++        try {
++            $asset = $data['action'] === 'get' ? $audio->owned($user, $brand, $data['media_id'])
++                : $audio->complete($user, $brand, $data['media_id'], array_intersect_key($data, ['parts' => true]));
++        } catch (StudioAudioProbeUnavailable $e) {
++            abort(503, $e->getMessage());
++        }
++
++        return ['asset' => $audio->present($brand, $asset, true)];
++    }
++}
+--- a/app/Mcp/Tools/ListMedia.php
++++ b/app/Mcp/Tools/ListMedia.php
+@@ -45,7 +45,7 @@
+             throw new InvalidArgumentException('status debe ser listo, pendiente, invalido o todos.');
+         }
+ 
+-        $query = MediaAsset::withoutUserScope()->where('user_id', $user->id);
++        $query = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('kind', [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO]);
+         if ($status !== 'todos') {
+             $query->where('status', $status);
+         }
+--- a/app/Mcp/Tools/AttachDesignAsset.php
++++ b/app/Mcp/Tools/AttachDesignAsset.php
+@@ -11,7 +11,7 @@
+ use Laravel\Mcp\Server\Attributes\Name;
+ 
+ #[Name('attach_design_asset')]
+-#[Description('Registra media propia ya lista en una marca para usar su id como asset_id de imágenes/vídeos en documentos. Flujo import_media_from_url -> list_media hasta listo -> attach_design_asset -> create_design/update_design. No acepta URLs ni archivos ajenos. Requiere designs:write.')]
++#[Description('Registra media propia ya lista en una marca para usar asset_id de imágenes/vídeos o timeline.audio_tracks. Audio: manage_studio_audio hasta listo; otras media: import_media_from_url -> list_media hasta listo. Después attach_design_asset -> create_design/update_design. No acepta URLs ni archivos ajenos. Requiere designs:write.')]
+ class AttachDesignAsset extends SchedulerTool
+ {
+     protected function ability(): string
+--- a/app/Mcp/Servers/SchedulerServer.php
++++ b/app/Mcp/Servers/SchedulerServer.php
+@@ -29,6 +29,7 @@
+ use App\Mcp\Tools\ManageBrandKit;
+ use App\Mcp\Tools\ManageDesign;
+ use App\Mcp\Tools\ManageDesignFolder;
++use App\Mcp\Tools\ManageStudioAudio;
+ use App\Mcp\Tools\ManageStudioFont;
+ use App\Mcp\Tools\ProcessStudioImage;
+ use App\Mcp\Tools\PublishPostNow;
+@@ -52,7 +53,7 @@
+ #[Icon('/favicon.svg', 'image/svg+xml', ['any'])]
+ #[Name('Social Scheduler')]
+ #[Version('1.0.0')]
+-#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads (list_accounts dice cuales estan disponibles en esta instalacion y sus tipos de contenido; cada red cuenta el texto a su manera: Bluesky 300 grafemas, Threads 500 con el conteo conservador de emojis y 1 etiqueta de tema). Audio de Instagram Reels: search_instagram_audio busca pistas autorizadas de Meta para account_id; get_instagram_audio consulta la pista y renueva su preescucha temporal. create_post/update_post aceptan targets[].options.instagram_audio={audio_id, audio_volume, video_volume}; solo Reels elegibles mediante Facebook, volumenes 1-100 y null quita la pista. list_accounts anuncia instagram_audio.available. Nunca inventes un audio_id ni lo obtengas de una URL de Reel; la preescucha no es la mezcla final. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente: list_media con status=pendiente da su progreso y con status=invalido el motivo del fallo; solo la media «listo» se usa en un post) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) y update_post_campaign asigna o quita la campana, ambas aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; list_calendar_views lista las vistas guardadas del calendario (usa su id en get_calendar view=<id>); get_best_times da el engagement medio por dia y hora para elegir cuando publicar; suggest_hashtags propone hashtags del historico propio de la marca (sin IA). Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB; Bluesky y Threads no tienen buzon, filtros network/unread) reply_comment y add_comment_note (nota interna que nunca se publica) (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Disenos nativos por marca: list_designs -> get_design (documento tipado v1/v2, revision, kit, assets y exports) -> create_design/update_design (revision esperada; 409 exige recargar). Media: import_media_from_url -> list_media listo -> attach_design_asset -> asset_id en el documento; nunca URLs arbitrarias en elementos. manage_brand_kit edita colores, fuentes, logos y voz; font_ids alinea las fuentes privadas con fonts. manage_studio_font lista, sube, archiva, restaura y elimina tipografias privadas por marca; usa font_id en texto y la familia devuelta, nunca inventes IDs ni URLs de fuentes. process_studio_image start encola remove_background para media_id propio registrado en la marca; get consulta queued/processing/ready/failed hasta obtener output_asset nuevo, conservando el original. Estas herramientas requieren designs:read para consultas y designs:write para cambios. manage_design duplica, archiva y restaura sin perder revisiones/exportaciones. manage_design_folder lista, crea o elimina carpetas de una marca; list requiere designs:read, mutaciones designs:write. get_design pagina exports de 50 en 50 con exports_page y exports_pagination. export_design renderiza PNG/JPEG/WebP/SVG/PDF; consulta get_design para el estado y download_url temporal real. El documento v2 conserva timeline.fps/audio_tracks, timing y metadatos de clip; nunca lo rebajes a v1 ni borres sus campos al actualizar. Los formatos disponibles son los anunciados por export_design; no inventes MP4/GIF antes de que el contrato los incluya. Estas herramientas no publican. Permisos designs:read/designs:write. tools/list esta paginado: sigue nextCursor hasta que desaparezca, conservando todas las herramientas. Solo ves y modificas los datos del usuario dueno de la API key.')]
++#[Instructions('Programa y consulta publicaciones en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads (list_accounts dice cuales estan disponibles en esta instalacion y sus tipos de contenido; cada red cuenta el texto a su manera: Bluesky 300 grafemas, Threads 500 con el conteo conservador de emojis y 1 etiqueta de tema). Audio de Instagram Reels: search_instagram_audio busca pistas autorizadas de Meta para account_id; get_instagram_audio consulta la pista y renueva su preescucha temporal. create_post/update_post aceptan targets[].options.instagram_audio={audio_id, audio_volume, video_volume}; solo Reels elegibles mediante Facebook, volumenes 1-100 y null quita la pista. list_accounts anuncia instagram_audio.available. Nunca inventes un audio_id ni lo obtengas de una URL de Reel; la preescucha no es la mezcla final. Flujo: list_brands -> list_accounts (cuentas y tipos de contenido validos) -> list_media (media ya subida; se referencia por id; import_media_from_url importa desde una URL publica y queda pendiente: list_media con status=pendiente da su progreso y con status=invalido el motivo del fallo; solo la media «listo» se usa en un post) -> list_campaigns (opcional: campaign_id del post) -> create_post; update_post_notes edita las notas internas (nunca se publican) y update_post_campaign asigna o quita la campana, ambas aunque el post ya este publicado; publish_post_now publica ya un borrador o una programada. Estadisticas: get_stats (por marca o red y periodo, con comparacion; null = no disponible, nunca 0) y get_post_stats; list_calendar_views lista las vistas guardadas del calendario (usa su id en get_calendar view=<id>); get_best_times da el engagement medio por dia y hora para elegir cuando publicar; suggest_hashtags propone hashtags del historico propio de la marca (sin IA). Informes: generate_report (encola y devuelve el id) -> get_report (estado y enlace firmado de descarga que caduca). Buzon: list_comments (comentarios de IG/FB; Bluesky y Threads no tienen buzon, filtros network/unread) reply_comment y add_comment_note (nota interna que nunca se publica) (abilities inbox:read / inbox:write). Las fechas sin zona se interpretan en la zona horaria de la marca. Disenos nativos por marca: list_designs -> get_design (documento tipado v1/v2, revision, kit, assets y exports) -> create_design/update_design (revision esperada; 409 exige recargar). Media: import_media_from_url -> list_media listo -> attach_design_asset -> asset_id en el documento; nunca URLs arbitrarias en elementos. manage_brand_kit edita colores, fuentes, logos y voz; font_ids alinea las fuentes privadas con fonts. manage_studio_font lista, sube, archiva, restaura y elimina tipografias privadas por marca; usa font_id en texto y la familia devuelta, nunca inventes IDs ni URLs de fuentes. manage_studio_audio start devuelve ticket binario de audio propio por marca; transfiere por HTTP sin enviar Bearer a URLs de almacenamiento y complete valida contenido/duracion/codec; list/get consultan recursos privados. process_studio_image start encola remove_background para media_id propio registrado en la marca; get consulta queued/processing/ready/failed hasta obtener output_asset nuevo, conservando el original. Estas herramientas requieren designs:read para consultas y designs:write para cambios. manage_design duplica, archiva y restaura sin perder revisiones/exportaciones. manage_design_folder lista, crea o elimina carpetas de una marca; list requiere designs:read, mutaciones designs:write. get_design pagina exports de 50 en 50 con exports_page y exports_pagination. export_design renderiza PNG/JPEG/WebP/SVG/PDF; consulta get_design para el estado y download_url temporal real. El documento v2 conserva timeline.fps/audio_tracks, timing y metadatos de clip; nunca lo rebajes a v1 ni borres sus campos al actualizar. Los formatos disponibles son los anunciados por export_design; no inventes MP4/GIF antes de que el contrato los incluya. Estas herramientas no publican. Permisos designs:read/designs:write. tools/list esta paginado: sigue nextCursor hasta que desaparezca, conservando todas las herramientas. Solo ves y modificas los datos del usuario dueno de la API key.')]
+ class SchedulerServer extends Server
+ {
+     /** Clients follow nextCursor after each page; studio tools bring the catalog above 30 entries. */
+@@ -97,5 +98,6 @@
+         ManageDesignFolder::class,
+         ManageStudioFont::class,
+         ProcessStudioImage::class,
++        ManageStudioAudio::class,
+     ];
+ }
+--- a/config/media.php
++++ b/config/media.php
+@@ -8,10 +8,14 @@
+         'video' => ['video/mp4', 'video/quicktime'],
+     ],
+ 
++    // Audio is admitted only through the brand-scoped Studio upload service.
++    'allowed_audio_mimes' => ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/aac', 'audio/ogg'],
++
+     /* Tamano maximo de subida (bytes). Los limites por red/tipo viven en config/media_specs.php. */
+     'max_bytes' => [
+         'image' => (int) env('MEDIA_MAX_IMAGE_BYTES', 30 * 1024 * 1024),
+         'video' => (int) env('MEDIA_MAX_VIDEO_BYTES', 4 * 1024 * 1024 * 1024),
++        'audio' => (int) env('MEDIA_MAX_AUDIO_BYTES', 100 * 1024 * 1024),
+     ],
+ 
+     /* A partir de este tamano se sube por multipart (partes de `part_size`; S3/R2 exige >= 5 MiB). */
+@@ -36,6 +40,9 @@
+     /* Binario de ffprobe (requisito de despliegue para leer duracion/fps/codec de los videos). */
+     'ffprobe' => env('FFPROBE_BINARY', 'ffprobe'),
+     'ffprobe_timeout' => (int) env('FFPROBE_TIMEOUT', 60),
++    'audio_probe_timeout' => (int) env('AUDIO_PROBE_TIMEOUT', 15),
++    'audio_download_timeout' => (int) env('AUDIO_DOWNLOAD_TIMEOUT', 25),
++    'audio_max_duration' => (float) env('AUDIO_MAX_DURATION', 3600),
+ 
+     /* Binario de ffmpeg (recomendado): reduce las fotos grandes para Bluesky con poca memoria. Sin el se usa GD, que carga la imagen entera. */
+     'ffmpeg' => env('FFMPEG_BINARY', 'ffmpeg'),
+--- a/routes/studio.php
++++ b/routes/studio.php
+@@ -41,3 +41,4 @@
+ });
+ 
+ require __DIR__.'/studio-images.php';
++require __DIR__.'/studio-audio.php';
+--- a/routes/studio-api.php
++++ b/routes/studio-api.php
+@@ -45,3 +45,4 @@
+ });
+ 
+ require __DIR__.'/studio-images-api.php';
++require __DIR__.'/studio-audio-api.php';
+--- /dev/null
++++ b/routes/studio-audio.php
+@@ -0,0 +1,12 @@
++<?php
++
++use App\Http\Controllers\Studio\StudioAudioController;
++use Illuminate\Support\Facades\Route;
++
++Route::middleware(['auth', 'verified'])->group(function () {
++    Route::get('brands/{brand}/studio/audio', [StudioAudioController::class, 'index'])->whereNumber('brand')->name('studio.audio.index');
++    Route::get('brands/{brand}/studio/audio/{media}', [StudioAudioController::class, 'show'])->whereNumber(['brand', 'media'])->name('studio.audio.show');
++    Route::post('brands/{brand}/studio/audio', [StudioAudioController::class, 'store'])->whereNumber('brand')->name('studio.audio.store');
++    Route::put('brands/{brand}/studio/audio/{media}/upload', [StudioAudioController::class, 'upload'])->whereNumber(['brand', 'media'])->name('studio.audio.upload');
++    Route::post('brands/{brand}/studio/audio/{media}/complete', [StudioAudioController::class, 'complete'])->whereNumber(['brand', 'media'])->name('studio.audio.complete');
++});
+--- /dev/null
++++ b/routes/studio-audio-api.php
+@@ -0,0 +1,16 @@
++<?php
++
++use App\Http\Controllers\Studio\StudioAudioController;
++use App\Http\Middleware\RequireApiAbility;
++use Illuminate\Support\Facades\Route;
++
++Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120,1', RequireApiAbility::class.':designs:read'])->group(function () {
++    Route::get('brands/{brand}/design-audio', [StudioAudioController::class, 'index'])->whereNumber('brand')->name('studio.audio.index');
++    Route::get('brands/{brand}/design-audio/{media}', [StudioAudioController::class, 'show'])->whereNumber(['brand', 'media'])->name('studio.audio.show');
++});
++
++Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120,1', RequireApiAbility::class.':designs:write'])->group(function () {
++    Route::post('brands/{brand}/design-audio', [StudioAudioController::class, 'store'])->whereNumber('brand')->name('studio.audio.store');
++    Route::put('brands/{brand}/design-audio/{media}/upload', [StudioAudioController::class, 'upload'])->whereNumber(['brand', 'media'])->name('studio.audio.upload');
++    Route::post('brands/{brand}/design-audio/{media}/complete', [StudioAudioController::class, 'complete'])->whereNumber(['brand', 'media'])->name('studio.audio.complete');
++});
+--- a/docs/api/creative-suite.openapi.yaml
++++ b/docs/api/creative-suite.openapi.yaml
+@@ -455,12 +455,94 @@
+       responses:
+         '200': { description: Estado y recurso de salida privado cuando está listo, content: { application/json: { schema: { $ref: '#/components/schemas/StudioImageJobResult' } } } }
+         '404': { $ref: '#/components/responses/NotFound' }
++  /brands/{brand}/design-audio:
++    parameters:
++      - $ref: '#/components/parameters/Brand'
++    get:
++      operationId: listStudioAudio
++      description: Audio de la marca, diseños read; búsqueda por nombre y paginación.
++      parameters:
++        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
++        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
++        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
++      responses:
++        '200': { description: Recursos de audio y paginación, content: { application/json: { schema: { type: object, properties: { assets: { type: array, items: { $ref: '#/components/schemas/StudioAudioAsset' } }, pagination: { type: object } } } } } }
++        '404': { $ref: '#/components/responses/NotFound' }
++    post:
++      operationId: startStudioAudioUpload
++      description: designs:write. Inicia una subida binaria privada local o prefirmada single/multipart; no recibe base64 ni URLs de origen.
++      requestBody:
++        required: true
++        content:
++          application/json:
++            schema: { $ref: '#/components/schemas/StartStudioAudioUpload' }
++      responses:
++        '201': { description: Recurso pendiente y ticket de subida, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioUpload' } } } }
++        '422': { $ref: '#/components/responses/ValidationError' }
++  /brands/{brand}/design-audio/{media}:
++    parameters:
++      - $ref: '#/components/parameters/Brand'
++      - $ref: '#/components/parameters/Media'
++    get:
++      operationId: getStudioAudio
++      description: designs:read; recurso de audio de la misma marca, incluido el estado pendiente o inválido.
++      responses:
++        '200': { description: Estado del audio, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioResult' } } } }
++        '404': { $ref: '#/components/responses/NotFound' }
++  /brands/{brand}/design-audio/{media}/upload:
++    parameters:
++      - $ref: '#/components/parameters/Brand'
++      - $ref: '#/components/parameters/Media'
++    put:
++      operationId: uploadStudioAudioLocal
++      description: designs:write. Solo modo local, cuerpo binario acotado; sondeo real antes de ready. Una subida terminada no se sobrescribe.
++      requestBody:
++        required: true
++        content:
++          application/octet-stream:
++            schema: { type: string, format: binary }
++      responses:
++        '200': { description: Audio sondeado y listo, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioResult' } } } }
++        '409': { description: Subida ya terminada o concurrente }
++        '422': { $ref: '#/components/responses/ValidationError' }
++        '503': { description: Motor o preparación temporal no disponible; el archivo válido sigue pendiente para reintentar }
++  /brands/{brand}/design-audio/{media}/complete:
++    parameters:
++      - $ref: '#/components/parameters/Brand'
++      - $ref: '#/components/parameters/Media'
++    post:
++      operationId: completeStudioAudioUpload
++      description: designs:write. Finaliza single/multipart, valida bytes/contenido/sondeo y devuelve el estado. Idempotente si ya está listo.
++      requestBody:
++        required: true
++        content:
++          application/json:
++            schema:
++              type: object
++              additionalProperties: false
++              properties:
++                parts:
++                  type: array
++                  maxItems: 10000
++                  items:
++                    type: object
++                    additionalProperties: false
++                    required: [number, etag]
++                    properties:
++                      number: { type: integer, minimum: 1, maximum: 10000 }
++                      etag: { type: string, maxLength: 200 }
++      responses:
++        '200': { description: Audio validado, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioResult' } } } }
++        '409': { description: Finalización concurrente }
++        '422': { $ref: '#/components/responses/ValidationError' }
++        '503': { description: Motor o copia privada no disponibles; la subida sigue pendiente }
+ components:
+   securitySchemes:
+     bearerAuth: { type: http, scheme: bearer }
+   parameters:
+     Brand: { name: brand, in: path, required: true, schema: { type: integer, minimum: 1 } }
+     Design: { name: design, in: path, required: true, schema: { type: integer, minimum: 1 } }
++    Media: { name: media, in: path, required: true, schema: { type: integer, minimum: 1 } }
+   responses:
+     NotFound:
+       description: Recurso inexistente o ajeno
+@@ -473,6 +555,47 @@
+         application/json:
+           schema: { $ref: '#/components/schemas/Error' }
+   schemas:
++    StartStudioAudioUpload:
++      type: object
++      additionalProperties: false
++      required: [name, mime, size]
++      properties:
++        name: { type: string, maxLength: 255 }
++        mime: { type: string, enum: [audio/mpeg, audio/wav, audio/x-wav, audio/mp4, audio/x-m4a, audio/aac, audio/ogg] }
++        size: { type: integer, minimum: 1, maximum: 104857600 }
++    StudioAudioAsset:
++      type: object
++      required: [id, name, kind, mime, size, status, duration, audio_codec, preview_url]
++      properties:
++        id: { type: integer, minimum: 1 }
++        name: { type: string }
++        kind: { type: string, enum: [audio] }
++        mime: { type: string }
++        size: { type: integer }
++        status: { type: string, enum: [pendiente, listo, invalido] }
++        duration: { type: number, nullable: true, minimum: 0, maximum: 3600 }
++        audio_codec: { type: string, nullable: true }
++        preview_url: { type: string, nullable: true, description: Proxy privado de recursos de la misma marca; requiere designs:read en API }
++    StudioAudioResult:
++      type: object
++      required: [asset]
++      properties:
++        asset: { $ref: '#/components/schemas/StudioAudioAsset' }
++    StudioAudioUpload:
++      type: object
++      required: [asset, upload, complete_url]
++      properties:
++        asset: { $ref: '#/components/schemas/StudioAudioAsset' }
++        upload:
++          type: object
++          required: [mode]
++          properties:
++            mode: { type: string, enum: [local, single, multipart] }
++            url: { type: string }
++            headers: { type: object, additionalProperties: { type: string } }
++            part_size: { type: integer }
++            parts: { type: array, items: { type: object } }
++        complete_url: { type: string }
+     StudioImageJobResult:
+       type: object
+       required: [job]
+--- /dev/null
++++ b/tests/Feature/Studio/StudioAudioTest.php
+@@ -0,0 +1,407 @@
++<?php
++
++use App\Enums\ContentType;
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\StudioAsset;
++use App\Models\User;
++use App\Services\MediaUploadService;
++use App\Services\MediaValidator;
++use App\Services\Studio\StudioAudioProbeUnavailable;
++use Illuminate\Support\Facades\Cache;
++use Illuminate\Support\Facades\File;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use Symfony\Component\Process\Process;
++use Tests\Support\McpClient;
++use Tests\Support\StudioAudioR2;
++
++uses(McpClient::class);
++
++beforeEach(function () {
++    Storage::fake('local');
++    config(['filesystems.media' => 'local']);
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->actingAs($this->user);
++    $this->audioUrl = '/brands/'.$this->brand->id.'/studio/audio';
++});
++
++/** One second of our own 440 Hz, 16 kHz mono PCM. No third-party recording. */
++function studioAudioWave(): string
++{
++    $pcm = '';
++    for ($i = 0; $i < 16000; $i++) {
++        $pcm .= pack('v', ((int) round(12000 * sin(2 * M_PI * 440 * $i / 16000))) & 0xFFFF);
++    }
++
++    return 'RIFF'.pack('V', 36 + strlen($pcm)).'WAVEfmt '.pack('VvvVVvv', 16, 1, 1, 16000, 32000, 2, 16)
++        .'data'.pack('V', strlen($pcm)).$pcm;
++}
++
++test('Studio audio starts a private binary upload registered in exactly its brand', function () {
++    $response = $this->postJson($this->audioUrl, ['name' => 'tono.wav', 'mime' => 'audio/wav', 'size' => strlen(studioAudioWave())])
++        ->assertCreated()->assertJsonPath('asset.kind', 'audio')->assertJsonPath('asset.status', 'pendiente')
++        ->assertJsonPath('asset.preview_url', null)->assertJsonPath('upload.mode', 'local');
++    $id = $response->json('asset.id');
++    expect($response->json('upload.url'))->toBe($this->audioUrl.'/'.$id.'/upload')
++        ->and($response->json('complete_url'))->toBe($this->audioUrl.'/'.$id.'/complete');
++    $this->assertDatabaseHas('studio_assets', ['brand_id' => $this->brand->id, 'user_id' => $this->user->id, 'media_asset_id' => $id]);
++    expect(StudioAsset::withoutUserScope()->count())->toBe(1);
++    $response->assertJsonMissingPath('asset.path')->assertJsonMissingPath('asset.disk');
++});
++
++test('Studio audio finalization probes our real PCM file before declaring it ready', function () {
++    $wave = studioAudioWave();
++    $asset = app(MediaUploadService::class)->initiate($this->user, 'tono.wav', 'audio/wav', strlen($wave), allowAudio: true)['asset'];
++    Storage::disk('local')->put($asset->path, $wave);
++    $result = app(MediaUploadService::class)->finalize($asset);
++    expect($result->status)->toBe('listo')
++        ->and($result->duration)->toBe(1.0)->and($result->audio_codec)->toBe('pcm_s16le')
++        ->and($result->width)->toBeNull()->and($result->height)->toBeNull()->and($result->codec)->toBeNull();
++    Storage::disk('local')->assertExists($result->path);
++    Storage::disk('local')->assertMissing($asset->path);
++});
++
++test('Studio audio keeps a valid pending file when the native probe is unavailable', function () {
++    $wave = studioAudioWave();
++    $asset = app(MediaUploadService::class)->initiate($this->user, 'tono.wav', 'audio/wav', strlen($wave), allowAudio: true)['asset'];
++    Storage::disk('local')->put($asset->path, $wave);
++    config(['media.ffprobe' => 't11-no-such-ffprobe-executable']);
++    try {
++        app(MediaUploadService::class)->finalize($asset);
++    } catch (Throwable $e) {
++        expect($e->getMessage())->not->toContain($asset->path);
++    }
++    expect($asset->fresh()->status)->toBe('pendiente');
++    Storage::disk('local')->assertExists($asset->path);
++    expect($asset->fresh()->import_state)->toBeNull()->and(Storage::disk('local')->allFiles('studio-audio'))->toBe([]);
++});
++
++test('Studio audio binary upload becomes playable only after native validation and cannot be overwritten', function () {
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'tono.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json', 'CONTENT_TYPE' => 'audio/wav'], $wave)
++        ->assertOk()->assertJsonPath('asset.status', 'listo')->assertJsonPath('asset.duration', 1)
++        ->assertJsonPath('asset.audio_codec', 'pcm_s16le');
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $file = '/brands/'.$this->brand->id.'/studio/assets/'.$asset->id.'/file';
++    $this->get($file, ['Range' => 'bytes=0-15'])->assertStatus(206)->assertHeader('Content-Range', 'bytes 0-15/'.strlen($wave));
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json'], 'overwrite')
++        ->assertConflict();
++    expect(Storage::disk('local')->get($asset->path))->toBe($wave);
++    $this->postJson($start['complete_url'], [])->assertOk()->assertJsonPath('asset.id', $asset->id);
++});
++
++test('Studio audio rejects a real object whose size differs from its upload declaration', function () {
++    $wave = studioAudioWave();
++    $asset = app(MediaUploadService::class)->initiate($this->user, 'tono.wav', 'audio/wav', strlen($wave) + 1, allowAudio: true)['asset'];
++    Storage::disk('local')->put($asset->path, $wave);
++    expect(app(MediaUploadService::class)->finalize($asset)->status)->toBe('invalido');
++    Storage::disk('local')->assertMissing($asset->path);
++});
++
++test('Studio audio ready listing is scoped paginated and treats search wildcards literally', function () {
++    foreach (['Tono %_ uno.wav', 'Tono %_ dos.wav', 'Tono otro.wav'] as $name) {
++        $asset = MediaAsset::factory()->for($this->user)->create(['kind' => 'audio', 'mime' => 'audio/wav', 'original_name' => $name, 'duration' => 1, 'audio_codec' => 'pcm_s16le']);
++        StudioAsset::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'media_asset_id' => $asset->id]);
++    }
++    $pending = $this->postJson($this->audioUrl, ['name' => 'Tono %_ pendiente.wav', 'mime' => 'audio/wav', 'size' => 200])->assertCreated()->json('asset.id');
++    $response = $this->getJson($this->audioUrl.'?query='.urlencode('%_').'&per_page=1')->assertOk()
++        ->assertJsonPath('pagination.total', 2)->assertJsonPath('pagination.next_page', 2)->assertJsonCount(1, 'assets');
++    $first = $response->json('assets.0.id');
++    $second = $this->getJson($this->audioUrl.'?query='.urlencode('%_').'&per_page=1&page=2')->assertOk()->json('assets.0.id');
++    expect($first)->not->toBe($second)->and($first)->not->toBe($pending);
++    $this->getJson($this->audioUrl.'/'.$pending)->assertOk()->assertJsonPath('asset.status', 'pendiente');
++});
++
++test('Studio audio never appears in the social composer media catalog', function () {
++    $image = MediaAsset::factory()->for($this->user)->create();
++    MediaAsset::factory()->for($this->user)->create(['kind' => 'audio', 'mime' => 'audio/wav', 'duration' => 1, 'audio_codec' => 'pcm_s16le']);
++    $ids = array_column($this->getJson(route('media.index'))->assertOk()->json('media'), 'id');
++    expect($ids)->toBe([$image->id]);
++    [$error, $data] = $this->callTool($this->mcpKey($this->user, ['brands:read']), 'list_media');
++    expect($error)->toBeFalse()->and(array_column($data['media'], 'id'))->toBe([$image->id]);
++});
++
++test('Studio audio API and MCP enforce mixed abilities and the original brand identity', function () {
++    $read = $this->mcpKey($this->user, ['designs:read']);
++    $write = $this->mcpKey($this->user, ['designs:write']);
++    $base = '/api/v1/brands/'.$this->brand->id.'/design-audio';
++    app('auth')->forgetGuards();
++    $this->getJson($base, ['Authorization' => 'Bearer '.$read])->assertOk();
++    app('auth')->forgetGuards();
++    $this->postJson($base, ['name' => 'test.wav', 'mime' => 'audio/wav', 'size' => 200], ['Authorization' => 'Bearer '.$read])->assertForbidden();
++    [$error, $data] = $this->callTool($write, 'manage_studio_audio', ['action' => 'start', 'brand_id' => $this->brand->id, 'name' => 'agente.wav', 'mime' => 'audio/wav', 'size' => 200]);
++    expect($error)->toBeFalse()->and($data['asset']['kind'])->toBe('audio')
++        ->and($data['upload']['url'])->toStartWith($base.'/');
++    $id = $data['asset']['id'];
++    $otherBrand = Brand::factory()->for($this->user)->create();
++    app('auth')->forgetGuards();
++    $this->getJson('/api/v1/brands/'.$otherBrand->id.'/design-audio/'.$id, ['Authorization' => 'Bearer '.$read])->assertNotFound();
++    [$error] = $this->callTool($read, 'manage_studio_audio', ['action' => 'start', 'brand_id' => $this->brand->id, 'name' => 'denied.wav', 'mime' => 'audio/wav', 'size' => 200]);
++    expect($error)->toBeTrue();
++    [$error, $get] = $this->callTool($read, 'manage_studio_audio', ['action' => 'get', 'brand_id' => $this->brand->id, 'media_id' => $id]);
++    expect($error)->toBeFalse()->and($get['asset']['id'])->toBe($id);
++});
++
++test('Studio audio can be explicitly attached to another own brand after native validation', function () {
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'marca.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json'], $wave)->assertOk();
++    $other = Brand::factory()->for($this->user)->create();
++    $this->postJson('/brands/'.$other->id.'/studio/assets', ['media_id' => $start['asset']['id']])
++        ->assertCreated()->assertJsonPath('asset.kind', 'audio');
++    $this->assertDatabaseHas('studio_assets', ['brand_id' => $other->id, 'user_id' => $this->user->id, 'media_asset_id' => $start['asset']['id']]);
++});
++
++test('Studio audio R2 completion seals a validated snapshot away from the upload capability', function () {
++    $remote = new StudioAudioR2;
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'remoto.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])
++        ->assertCreated()->assertJsonPath('upload.mode', 'single')->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $uploadPath = $asset->path;
++    $remote->objects[$uploadPath] = $wave;
++    $this->postJson($start['complete_url'], [])->assertOk()->assertJsonPath('asset.audio_codec', 'pcm_s16le')
++        ->assertJsonPath('asset.duration', 1)->assertJsonPath('asset.status', 'listo');
++    $asset->refresh();
++    expect($asset->path)->not->toBe($uploadPath);
++    $remote->objects[$uploadPath] = 'a replay of the old upload URL';
++    expect($remote->objects[$asset->path])->toBe($wave);
++    $this->get('/brands/'.$this->brand->id.'/studio/assets/'.$asset->id.'/file', ['Range' => 'bytes=0-15'])
++        ->assertStatus(206)->assertStreamedContent(substr($wave, 0, 16));
++    expect(array_filter(iterator_to_array($remote->calls), fn ($call) => $call['name'] === 'GetObject' && isset($call['args']['Range'])))->not->toBeEmpty();
++    $this->travel(181)->minutes();
++    app(MediaUploadService::class)->pruneAbandoned(24);
++    expect(isset($remote->objects[$uploadPath]))->toBeFalse()->and($remote->objects[$asset->path])->toBe($wave);
++});
++
++test('Studio audio binary transfer cannot bypass its brand-scoped endpoints', function () {
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'marca.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $id = $start['asset']['id'];
++    $this->call('PUT', route('media.upload', $id), [], [], [], ['HTTP_ACCEPT' => 'application/json'], $wave)->assertNotFound();
++    $this->postJson(route('media.complete', $id), [])->assertNotFound();
++    expect(MediaAsset::withoutUserScope()->findOrFail($id)->status)->toBe('pendiente');
++});
++
++test('Studio audio abandoned upload cleanup removes its managed probe snapshot', function () {
++    $start = $this->postJson($this->audioUrl, ['name' => 'abandono.wav', 'mime' => 'audio/wav', 'size' => 200])->assertCreated()->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $snapshot = 'studio-audio/'.$this->user->id.'/'.$asset->id.'/'.Str::uuid().'.wav';
++    Storage::disk('local')->put($snapshot, 'owned incomplete snapshot');
++    $asset->forceFill(['import_state' => ['studio_audio_snapshot' => $snapshot], 'created_at' => now()->subHours(25)])->save();
++    expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(1);
++    Storage::disk('local')->assertMissing($snapshot);
++});
++
++test('Studio audio probes real supported compressed formats', function (string $mime, string $extension, string $encoder, string $codec) {
++    $disk = Storage::disk('local');
++    $work = 'audio-format/'.Str::uuid();
++    $disk->put($work.'/source.wav', studioAudioWave());
++    $output = $disk->path($work.'/encoded.'.$extension);
++    $process = new Process([(string) config('media.ffmpeg', 'ffmpeg'), '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
++        '-i', $disk->path($work.'/source.wav'), '-vn', '-c:a', $encoder, '-b:a', '64k', $output]);
++    $process->setTimeout(15);
++    $process->mustRun();
++    $bytes = file_get_contents($output);
++    $start = $this->postJson($this->audioUrl, ['name' => 'tono.'.$extension, 'mime' => $mime, 'size' => strlen($bytes)])->assertCreated()->json();
++    $result = $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json'], $bytes)
++        ->assertOk()->assertJsonPath('asset.status', 'listo')->assertJsonPath('asset.audio_codec', $codec)->json('asset');
++    expect((float) $result['duration'])->toBeGreaterThan(0.8)->toBeLessThan(1.4);
++    $asset = MediaAsset::withoutUserScope()->findOrFail($result['id']);
++    expect(hash('sha256', $disk->get($asset->path)))->toBe(hash('sha256', $bytes));
++})->with([
++    'MP3' => ['audio/mpeg', 'mp3', 'libmp3lame', 'mp3'],
++    'M4A AAC' => ['audio/mp4', 'm4a', 'aac', 'aac'],
++    'ADTS AAC' => ['audio/aac', 'aac', 'aac', 'aac'],
++    'Ogg Vorbis' => ['audio/ogg', 'ogg', 'libvorbis', 'vorbis'],
++    'Ogg Opus' => ['audio/ogg', 'ogg', 'libopus', 'opus'],
++]);
++
++test('Studio audio rejects invalid declarations without allocating media', function (array $patch) {
++    $this->postJson($this->audioUrl, array_replace(['name' => 'tono.wav', 'mime' => 'audio/wav', 'size' => 200], $patch))->assertUnprocessable();
++    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
++})->with([
++    'video' => [['mime' => 'video/mp4']], 'empty' => [['size' => 0]], 'too large' => [['size' => 104857601]],
++    'remote URL' => [['url' => 'https://source.invalid/track.wav']], 'base64' => [['file_base64' => 'AAAA']],
++    'path' => [['path' => '../track.wav']],
++]);
++
++test('Studio audio rejects playlists and malformed files and cleans their bytes', function (string $bytes, string $mime) {
++    $start = $this->postJson($this->audioUrl, ['name' => 'bad.audio', 'mime' => $mime, 'size' => strlen($bytes)])->assertCreated()->json();
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json'], $bytes)
++        ->assertStatus(422)->assertJsonPath('asset.status', 'invalido')->assertJsonPath('asset.preview_url', null);
++    expect(Storage::disk('local')->allFiles('studio-audio'))->toBe([]);
++    Storage::disk('local')->assertMissing(MediaAsset::withoutUserScope()->findOrFail($start['asset']['id'])->path);
++})->with([
++    'HLS' => ["#EXTM3U\n#EXTINF:1\nhttps://audio-target.invalid/segment.aac\n", 'audio/aac'],
++    'html' => ['<html>not audio</html>', 'audio/wav'],
++]);
++
++test('Studio audio refuses cross-brand and cross-owner operations including pending files', function () {
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'marca.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $id = $start['asset']['id'];
++    $other = Brand::factory()->for($this->user)->create();
++    $base = '/brands/'.$other->id.'/studio/audio/'.$id;
++    $this->getJson($base)->assertNotFound();
++    $this->call('PUT', $base.'/upload', [], [], [], ['HTTP_ACCEPT' => 'application/json'], $wave)->assertNotFound();
++    $this->postJson($base.'/complete', [])->assertNotFound();
++    $this->actingAs(User::factory()->create());
++    $this->getJson($this->audioUrl.'/'.$id)->assertNotFound();
++    $this->postJson($this->audioUrl.'/'.$id.'/complete', [])->assertNotFound();
++    expect(MediaAsset::withoutUserScope()->findOrFail($id)->status)->toBe('pendiente');
++});
++
++test('Studio audio does not accept a concurrent transfer or a truncated body', function () {
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'tono.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $lock = Cache::lock('studio.audio.transfer.'.$start['asset']['id'], 180);
++    expect($lock->get())->toBeTrue();
++    try {
++        $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json'], $wave)->assertConflict();
++    } finally {
++        $lock->release();
++    }
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json'], substr($wave, 0, -1))
++        ->assertStatus(422)->assertJsonPath('asset.status', 'invalido');
++    expect(Storage::disk('local')->allFiles('media'))->toBe([]);
++});
++
++test('Studio audio R2 multipart uses ordered parts bounded requests and complete file probing', function () {
++    $remote = new StudioAudioR2;
++    config(['media.multipart_threshold' => 1, 'media.part_size' => 5 * 1024 * 1024]);
++    $wave = studioAudioWave();
++    $junk = 'JUNK'.pack('V', 5 * 1024 * 1024).str_repeat("\0", 5 * 1024 * 1024);
++    $wave = substr_replace($wave, pack('V', strlen($wave) + strlen($junk) - 8), 4, 4).$junk;
++    $start = $this->postJson($this->audioUrl, ['name' => 'multipart.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])
++        ->assertCreated()->assertJsonPath('upload.mode', 'multipart')->assertJsonCount(2, 'upload.parts')->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $remote->objects[$asset->path] = $wave;
++    $this->postJson($start['complete_url'], ['parts' => [['number' => 2, 'etag' => 'part-2'], ['number' => 1, 'etag' => 'part-1']]])
++        ->assertOk()->assertJsonPath('asset.status', 'listo')->assertJsonPath('asset.duration', 1);
++    $commands = array_values(array_filter(iterator_to_array($remote->calls), fn ($call) => $call['name'] === 'CompleteMultipartUpload'));
++    expect(array_column($commands[0]['args']['MultipartUpload']['Parts'], 'PartNumber'))->toBe([1, 2])
++        ->and($commands[0]['args']['@http']['timeout'])->toBe(20.0);
++    $this->postJson($start['complete_url'], [])->assertOk();
++    expect(count(array_filter(iterator_to_array($remote->calls), fn ($call) => $call['name'] === 'CompleteMultipartUpload')))->toBe(1);
++});
++
++test('Studio audio transfers native bytes through bearer API and completes through MCP', function () {
++    $wave = studioAudioWave();
++    $write = $this->mcpKey($this->user, ['designs:write']);
++    $read = $this->mcpKey($this->user, ['designs:read']);
++    [$error, $start] = $this->callTool($write, 'manage_studio_audio', ['action' => 'start', 'brand_id' => $this->brand->id,
++        'name' => 'agente.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)]);
++    expect($error)->toBeFalse();
++    app('auth')->forgetGuards();
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json', 'HTTP_AUTHORIZATION' => 'Bearer '.$read], $wave)->assertForbidden();
++    app('auth')->forgetGuards();
++    $this->call('PUT', $start['upload']['url'], [], [], [], ['HTTP_ACCEPT' => 'application/json', 'HTTP_AUTHORIZATION' => 'Bearer '.$write], $wave)
++        ->assertOk()->assertJsonPath('asset.status', 'listo');
++    [$error, $completed] = $this->callTool($write, 'manage_studio_audio', ['action' => 'complete', 'brand_id' => $this->brand->id, 'media_id' => $start['asset']['id']]);
++    expect($error)->toBeFalse()->and($completed['asset']['audio_codec'])->toBe('pcm_s16le');
++    app('auth')->forgetGuards();
++    $this->get($completed['asset']['preview_url'], ['Authorization' => 'Bearer '.$read, 'Range' => 'bytes=0-15'])
++        ->assertStatus(206)->assertStreamedContent(substr($wave, 0, 16));
++    [$error, $listing] = $this->callTool($read, 'manage_studio_audio', ['action' => 'list', 'brand_id' => $this->brand->id]);
++    expect($error)->toBeFalse()->and(array_column($listing['assets'], 'id'))->toBe([$start['asset']['id']]);
++});
++
++test('Studio audio remains invalid as a standalone social attachment for every network content type', function () {
++    $asset = MediaAsset::factory()->for($this->user)->create(['kind' => 'audio', 'mime' => 'audio/wav', 'duration' => 1, 'audio_codec' => 'pcm_s16le']);
++    foreach (ContentType::cases() as $type) {
++        expect(app(MediaValidator::class)->validate($type, [$asset], 'Texto de prueba'))->not->toBeEmpty($type->value);
++    }
++});
++
++test('Studio audio retries only validation after a consumed multipart and an unavailable probe', function () {
++    $remote = new StudioAudioR2;
++    config(['media.multipart_threshold' => 1]);
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'retry.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $remote->objects[$asset->path] = $wave;
++    $binary = config('media.ffprobe');
++    config(['media.ffprobe' => 't11-missing-native-probe']);
++    $this->postJson($start['complete_url'], ['parts' => [['number' => 1, 'etag' => 'part-1']]])->assertStatus(503);
++    expect($asset->fresh()->status)->toBe('pendiente')->and($asset->fresh()->upload_id)->toBeNull();
++    config(['media.ffprobe' => $binary]);
++    $this->postJson($start['complete_url'], [])->assertOk()->assertJsonPath('asset.status', 'listo');
++    expect(count(array_filter(iterator_to_array($remote->calls), fn ($call) => $call['name'] === 'CompleteMultipartUpload')))->toBe(1);
++});
++
++test('Studio audio remote metadata honors bounded per-request timeouts and disables hidden retries', function () {
++    $remote = new StudioAudioR2;
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'timeout.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $remote->objects[$asset->path] = $wave;
++    $this->postJson($start['complete_url'], [])->assertOk();
++    $heads = array_filter(iterator_to_array($remote->calls), fn ($call) => $call['name'] === 'HeadObject');
++    expect($heads)->not->toBeEmpty();
++    foreach ($heads as $head) {
++        expect($head['args']['@http']['timeout'] ?? null)->toBeNumeric()->toBeGreaterThan(0)->toBeLessThanOrEqual(25)
++            ->and($head['args']['@retries'] ?? null)->toBe(0);
++    }
++});
++
++test('Studio audio cleanup removes only stale managed native probe temporaries', function () {
++    $dir = storage_path('app/private/studio-audio-probe');
++    File::ensureDirectoryExists($dir);
++    $old = $dir.'/'.Str::uuid().'.bin';
++    $fresh = $dir.'/'.Str::uuid().'.bin';
++    $unowned = $dir.'/keep-this.bin';
++    file_put_contents($old, 'small owned stale fixture');
++    file_put_contents($fresh, 'small owned live fixture');
++    file_put_contents($unowned, 'not a generated temporary');
++    touch($old, time() - 7200);
++    touch($unowned, time() - 7200);
++    app(MediaUploadService::class)->pruneAbandoned(24);
++    expect(is_file($old))->toBeFalse()->and(is_file($fresh))->toBeTrue()->and(is_file($unowned))->toBeTrue();
++});
++
++test('Studio audio recovers a consumed multipart acknowledgement before its database checkpoint', function () {
++    $remote = new StudioAudioR2;
++    config(['media.multipart_threshold' => 1]);
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'checkpoint.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $remote->objects[$asset->path] = $wave;
++    $remote->multipartOpen = false; // The storage consumed it before PHP could persist the acknowledgement.
++    $this->postJson($start['complete_url'], ['parts' => [['number' => 1, 'etag' => 'part-1']]])
++        ->assertOk()->assertJsonPath('asset.status', 'listo');
++});
++
++test('Studio audio remote metadata outage is retryable and preserves the uploaded bytes', function () {
++    $remote = new StudioAudioR2;
++    $wave = studioAudioWave();
++    $start = $this->postJson($this->audioUrl, ['name' => 'outage.wav', 'mime' => 'audio/wav', 'size' => strlen($wave)])->assertCreated()->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $remote->objects[$asset->path] = $wave;
++    $remote->fail['HeadObject'] = 20;
++    $this->postJson($start['complete_url'], [])->assertStatus(503);
++    expect($asset->fresh()->status)->toBe('pendiente')->and($remote->objects[$asset->path])->toBe($wave);
++});
++
++test('Studio audio failed abandoned-file deletion retains the record and snapshot for a later retry', function () {
++    $remote = new StudioAudioR2;
++    $start = $this->postJson($this->audioUrl, ['name' => 'cleanup.wav', 'mime' => 'audio/wav', 'size' => 200])->assertCreated()->json();
++    $asset = MediaAsset::withoutUserScope()->findOrFail($start['asset']['id']);
++    $snapshot = 'studio-audio/'.$asset->user_id.'/'.$asset->id.'/'.Str::uuid().'.wav';
++    $remote->objects[$asset->path] = 'owned upload';
++    $remote->objects[$snapshot] = 'owned temporary snapshot';
++    $asset->forceFill(['import_state' => ['studio_audio_snapshot' => $snapshot], 'created_at' => now()->subHours(25)])->save();
++    $remote->fail['DeleteObject'] = 1;
++    try {
++        app(MediaUploadService::class)->pruneAbandoned(24);
++    } catch (StudioAudioProbeUnavailable) {
++        // The important invariant is retaining the retryable allocation, even if the caller reports an outage.
++    }
++    expect(MediaAsset::withoutUserScope()->whereKey($asset->id)->exists())->toBeTrue()
++        ->and(isset($remote->objects[$snapshot]))->toBeTrue();
++    expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(1);
++    expect(isset($remote->objects[$snapshot]))->toBeFalse()->and(isset($remote->objects[$asset->path]))->toBeFalse();
++});
+--- a/tests/Feature/Studio/StudioApiMcpTest.php
++++ b/tests/Feature/Studio/StudioApiMcpTest.php
+@@ -83,7 +83,7 @@
+         $names = [...$names, ...array_column($page['tools'], 'name')];
+         $cursor = $page['nextCursor'] ?? null;
+     } while ($cursor !== null);
+-    expect($names)->toHaveCount(38)->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_folder', 'manage_studio_font', 'process_studio_image')
++    expect($names)->toHaveCount(39)->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_folder', 'manage_studio_font', 'process_studio_image', 'manage_studio_audio')
+         ->and(count($names))->toBe(count(array_unique($names)))->and(array_count_values($names)['get_stats'])->toBe(1);
+     $instructions = $this->rpc($this->key, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'test', 'version' => '1']])->assertOk()->json('result.instructions');
+     expect($instructions)->toContain('list_designs', 'attach_design_asset', 'nextCursor', 'manage_studio_font', 'process_studio_image', 'font_id');
+--- /dev/null
++++ b/tests/Support/StudioAudioR2.php
+@@ -0,0 +1,97 @@
++<?php
++
++namespace Tests\Support;
++
++use ArrayObject;
++use Aws\CommandInterface;
++use Aws\MockHandler;
++use Aws\Result;
++use Aws\S3\Exception\S3Exception;
++use Aws\S3\S3Client;
++use GuzzleHttp\Psr7\Utils;
++use Illuminate\Filesystem\AwsS3V3Adapter;
++use Illuminate\Support\Facades\Storage;
++use League\Flysystem\AwsS3V3\AwsS3V3Adapter as Adapter;
++use League\Flysystem\Filesystem;
++use RuntimeException;
++
++/** In-memory S3 protocol fixture. No network, real accounts, credentials or persisted bucket data. */
++class StudioAudioR2
++{
++    public ArrayObject $objects;
++
++    public ArrayObject $calls;
++
++    public array $fail = [];
++
++    public bool $multipartOpen = false;
++
++    public function __construct()
++    {
++        $this->objects = new ArrayObject;
++        $this->calls = new ArrayObject;
++        $handler = function (CommandInterface $command): Result {
++            $name = $command->getName();
++            $args = $command->toArray();
++            $this->calls[] = ['name' => $name, 'args' => $args];
++            if (($this->fail[$name] ?? 0) > 0) {
++                $this->fail[$name]--;
++                throw new S3Exception('fake unavailable', $command, ['status_code' => 503, 'code' => 'ServiceUnavailable']);
++            }
++            $key = $args['Key'] ?? '';
++            if (in_array($name, ['HeadObject', 'GetObject'], true) && ! isset($this->objects[$key])) {
++                throw new S3Exception('fake missing object', $command, ['status_code' => 404]);
++            }
++            if ($name === 'HeadObject') {
++                return new Result(['ContentLength' => strlen($this->objects[$key]), 'ETag' => 'fake-etag']);
++            }
++            if ($name === 'GetObject') {
++                $bytes = $this->objects[$key];
++                if (isset($args['Range']) && preg_match('/^bytes=(\d+)-(\d+)$/', $args['Range'], $matches)) {
++                    $bytes = substr($bytes, (int) $matches[1], (int) $matches[2] - (int) $matches[1] + 1);
++                }
++
++                return new Result(['Body' => Utils::streamFor($bytes), 'ContentLength' => strlen($bytes)]);
++            }
++            if ($name === 'CopyObject') {
++                $source = substr(rawurldecode(ltrim($args['CopySource'], '/')), strlen('audio-bucket/'));
++                $this->objects[$key] = $this->objects[$source];
++
++                return new Result(['CopyObjectResult' => ['ETag' => 'fake-copy-etag']]);
++            }
++            if ($name === 'DeleteObject') {
++                unset($this->objects[$key]);
++
++                return new Result;
++            }
++            if ($name === 'CreateMultipartUpload') {
++                $this->multipartOpen = true;
++
++                return new Result(['UploadId' => 'fake-upload']);
++            }
++            if ($name === 'CompleteMultipartUpload') {
++                if (! $this->multipartOpen) {
++                    throw new S3Exception('fake consumed upload', $command, ['status_code' => 404, 'code' => 'NoSuchUpload']);
++                }
++                $this->multipartOpen = false;
++
++                return new Result(['ETag' => 'fake-complete-etag']);
++            }
++            if ($name === 'AbortMultipartUpload') {
++                if (! $this->multipartOpen) {
++                    throw new S3Exception('fake consumed upload', $command, ['status_code' => 404, 'code' => 'NoSuchUpload']);
++                }
++                $this->multipartOpen = false;
++
++                return new Result(['ETag' => 'fake-complete-etag']);
++            }
++            throw new RuntimeException('Unexpected fake S3 command: '.$name);
++        };
++        $client = new S3Client(['version' => 'latest', 'region' => 'auto', 'endpoint' => 'https://audio-r2.invalid', 'use_path_style_endpoint' => true,
++            'credentials' => ['key' => 'audio-test-key', 'secret' => 'audio-test-secret'], 'handler' => new MockHandler(array_fill(0, 100, $handler))]);
++        $config = ['bucket' => 'audio-bucket', 'root' => ''];
++        $adapter = new Adapter($client, 'audio-bucket');
++        Storage::set('audio-test-r2', new AwsS3V3Adapter(new Filesystem($adapter), $adapter, $config, $client));
++        config(['filesystems.media' => 'audio-test-r2', 'filesystems.disks.audio-test-r2' => $config]);
++    }
++}
+--- a/app/Connectors/Support/MediaChunkReader.php
++++ b/app/Connectors/Support/MediaChunkReader.php
+@@ -23,20 +23,37 @@
+  */
+ class MediaChunkReader
+ {
+-    private function __construct(private readonly string $disk, private readonly string $path, public readonly int $size) {}
++    private function __construct(private readonly string $disk, private readonly string $path, public readonly int $size, private readonly bool $strictTimeouts = false) {}
+ 
+-    public static function for(PublishMedia $media): self
++    public static function for(PublishMedia $media, ?float $timeout = null): self
+     {
+         if ($media->disk === null || $media->path === null) {
+             throw new PermanentPublishException('No se encuentra el archivo de video en el almacenamiento.', 'media_invalida');
+         }
+ 
+         $disk = Storage::disk($media->disk);
++        if ($timeout !== null && (! is_finite($timeout) || $timeout <= 0)) {
++            throw new TransientPublishException('Se agotó el tiempo para consultar el almacenamiento.', 'lectura_media');
++        }
+ 
+         // Tamano real del fichero (no el declarado): el protocolo de subida lo exige exacto. UNA sola consulta (HeadObject en
+         // S3/R2): `size()` ya falla si el fichero no existe, no hace falta un `exists()` previo (revision F4-5 i2 N4).
+         try {
+-            $size = (int) $disk->size($media->path);
++            if ($timeout !== null && $disk instanceof AwsS3V3Adapter) {
++                $config = $disk->getConfig();
++                $root = trim((string) ($config['root'] ?? ''), '/');
++                $key = ($root === '' ? '' : $root.'/').ltrim($media->path, '/');
++                $meta = $disk->getClient()->headObject(['Bucket' => $config['bucket'], 'Key' => $key, '@retries' => 0,
++                    '@http' => ['timeout' => $timeout, 'connect_timeout' => min($timeout, 5.0)]]);
++                $size = (int) $meta['ContentLength'];
++            } else {
++                $size = (int) $disk->size($media->path);
++            }
++        } catch (AwsException $e) {
++            if ($e->getStatusCode() === 404) {
++                throw new PermanentPublishException('El archivo ya no existe en el almacenamiento.', 'media_invalida');
++            }
++            throw new TransientPublishException('No se pudo consultar el archivo en el almacenamiento.', 'lectura_media');
+         } catch (FilesystemException $e) {
+             $previous = $e->getPrevious();
+ 
+@@ -48,7 +65,7 @@
+             throw new PermanentPublishException('El archivo de video ya no existe en el almacenamiento.', 'media_invalida');
+         }
+ 
+-        return new self($media->disk, $media->path, $size);
++        return new self($media->disk, $media->path, $size, $timeout !== null);
+     }
+ 
+     /** Lee `$length` bytes (o los que queden) a partir de `$offset`; cadena vacia si no hay nada que leer. */
+@@ -126,6 +143,9 @@
+         // Opciones HTTP POR PETICION: el timeout del disco (r2 `timeout` 600 s) no sirve dentro de una pasada de ~100 s.
+         if ($timeout !== null) {
+             $args['@http'] = ['timeout' => $timeout, 'connect_timeout' => min($timeout, 5.0)];
++            if ($this->strictTimeouts) {
++                $args['@retries'] = 0;
++            }
+         }
+ 
+         try {
+--- /dev/null
++++ b/tests/Feature/Studio/StudioAudioAbortTest.php
+@@ -0,0 +1,44 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\User;
++use App\Services\MediaUploadService;
++use Illuminate\Support\Facades\Storage;
++use Tests\Support\StudioAudioR2;
++
++beforeEach(function () {
++    Storage::fake('local');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->actingAs($this->user);
++    $this->remote = new StudioAudioR2;
++    config(['media.multipart_threshold' => 1]);
++    $this->upload = $this->postJson('/brands/'.$this->brand->id.'/studio/audio', ['name' => 'abandonado.wav', 'mime' => 'audio/wav', 'size' => 200])
++        ->assertCreated()->assertJsonPath('upload.mode', 'multipart')->json();
++    $this->asset = MediaAsset::withoutUserScope()->findOrFail($this->upload['asset']['id']);
++    $this->asset->forceFill(['created_at' => now()->subHours(25)])->save();
++});
++
++test('Studio audio abandonment aborts its open remote multipart before removing the ledger', function () {
++    expect($this->remote->multipartOpen)->toBeTrue();
++    expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(1);
++    expect($this->remote->multipartOpen)->toBeFalse()->and(MediaAsset::withoutUserScope()->whereKey($this->asset->id)->exists())->toBeFalse();
++    $calls = array_values(array_filter(iterator_to_array($this->remote->calls), fn ($call) => $call['name'] === 'AbortMultipartUpload'));
++    expect($calls)->toHaveCount(1)->and($calls[0]['args']['@http']['timeout'])->toBeLessThanOrEqual(5)
++        ->and($calls[0]['args']['@retries'])->toBe(0);
++});
++
++test('Studio audio failed remote abort keeps the session tracked until a later cleanup', function () {
++    $this->remote->fail['AbortMultipartUpload'] = 1;
++    expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(0);
++    expect($this->remote->multipartOpen)->toBeTrue()->and($this->asset->fresh()->upload_id)->toBe('fake-upload');
++    expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(1);
++    expect($this->remote->multipartOpen)->toBeFalse()->and(MediaAsset::withoutUserScope()->whereKey($this->asset->id)->exists())->toBeFalse();
++});
++
++test('Studio audio abandoned cleanup accepts an already closed remote session', function () {
++    $this->remote->multipartOpen = false;
++    expect(app(MediaUploadService::class)->pruneAbandoned(24))->toBe(1);
++    expect(MediaAsset::withoutUserScope()->whereKey($this->asset->id)->exists())->toBeFalse();
++});

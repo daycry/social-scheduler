@@ -1,0 +1,330 @@
+{
+  "date": "2026-11-05",
+  "scope": "T-11 internal audiovisual native engine and editor regression",
+  "parent_task_complete": false,
+  "internal_motor_verified": true,
+  "public_mp4_gif_export_ready": false,
+  "jobs_os_rss_and_total_phase_budget_verified": false,
+  "t10_onnx_verified": false,
+  "real_vps_r2_verified": false,
+  "review": "A3/B3/C3/D3, no pending gaps",
+  "qa_execution": "root after independent review; not independent QA",
+  "sources": [
+    {
+      "path": "resources/js/Studio/audiovisual-plan.js",
+      "sha256": "39e442126f918dd13173d2ead0c81d80153b09661e1c41304fb485c92382e11d"
+    },
+    {
+      "path": "resources/js/Studio/timeline-preview.js",
+      "sha256": "725d104628f1c6687401295b995223c5abe67b4af28814e078ca488955843423"
+    },
+    {
+      "path": "resources/js/Studio/project-render-entry.js",
+      "sha256": "7f4771babae800309282ad3873e9f2adbd6f47a3fcf8a35d4d07d3cb919048d7"
+    },
+    {
+      "path": "scripts/studio/build.mjs",
+      "sha256": "6ffa4b142943b77f55a68d569f2bb28331ad231ace8d36b982b32eaf8ddbc441"
+    },
+    {
+      "path": "scripts/studio/av-files.mjs",
+      "sha256": "26040ab98ff4904525f71e7004649fec9777db83a759f962fb5a9c4eba47b901"
+    },
+    {
+      "path": "scripts/studio/av-server.mjs",
+      "sha256": "b4aaedb2bb25dc997aa33443aca08e22ab0aabb20937067986ca780f1b2ee297"
+    },
+    {
+      "path": "scripts/studio/av-audio.mjs",
+      "sha256": "c536e91cbcf3347db31a34b09d5a9e4d3acc2702ec20f662e40d252bc31e2290"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "c0f3438f75740dcc292d537d2c65cb7b580caec578bffe27e35540450643ae6b"
+    },
+    {
+      "path": "scripts/studio/av-gif.mjs",
+      "sha256": "a67fb1a665a22bcff42fb7b27b06cd70c6081c9d3f98106255b7de7a5f3b3f23"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "f70b0a9ab23131229dbdae61ddea2895356bb7e8367c56555a30fce16306431d"
+    },
+    {
+      "path": "scripts/studio/av-pcm.mjs",
+      "sha256": "fbf3ab19e9d91a70f04c0ebdb7293dca36a999eed76f4f21960f2863a9e97f2e"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-plan.test.mjs",
+      "sha256": "d0269d69ea8f017ecdcbe018b887b8d76b28ee1ea134ac3447e0cd3fd662fa8b"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual.browser.test.mjs",
+      "sha256": "f26be66a08115c5c008bf5beaef89ed9ff2c87b94f719207911b04d57bb63cb7"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-audio.test.mjs",
+      "sha256": "0d01c139e9e821a6a35ae4f567ff43256195ebf834348fb9814af35aec949ccd"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-render.test.mjs",
+      "sha256": "f1c153980950242a2b60a8291ce78a27417239ed9058474ff414ab19363c40ef"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-safety.test.mjs",
+      "sha256": "bef96abbef201614ccddd1c1ee84ed46a8be333eb432228b7b50074d7d6619c9"
+    }
+  ],
+  "bundles": [
+    {
+      "path": "public/build/studio-renderer.js",
+      "sha256": "dc8e686e844140ed0381e61f675aec896b6324a5e748c78e6eef29c84c883863"
+    },
+    {
+      "path": "public/build/studio-project-renderer.js",
+      "sha256": "1616626dd8fca634bc334f59f1c83cf5580c4314a85058ec6a7c9747b8a492bc"
+    }
+  ],
+  "frontend": {
+    "phase": "frontend",
+    "exit": 0,
+    "terminal": true,
+    "sources_and_bundles_match": true,
+    "files": 25,
+    "summary": [
+      "# tests 122",
+      "# pass 122",
+      "# fail 0",
+      "# cancelled 0",
+      "# skipped 0",
+      "# duration_ms 23954.3428"
+    ]
+  },
+  "e2e": {
+    "phase": "e2e",
+    "exit": 0,
+    "terminal": true,
+    "sources_and_bundles_match": true,
+    "stats": {
+      "startTime": "2026-11-05T10:18:15.723Z",
+      "duration": 310471.76700000005,
+      "expected": 42,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "errors": [],
+    "run": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-bbc3e925-c691-43c2-adaa-51b06723df66"
+  },
+  "openapi_unchanged_from_av_baseline": true,
+  "screenshots_inspected": {
+    "editor": 9,
+    "native_sample_frames": 4
+  },
+  "samples": [
+    {
+      "file": "project.mp4",
+      "size": 141787,
+      "sha256": "b2c74f08ca3046b405ccd709eb90c59d30472f667dc0fabac74850e51f7df04f",
+      "frameCount": 30,
+      "fps": 12,
+      "width": 400,
+      "height": 240,
+      "duration": 2.5,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "format": "mp4"
+    },
+    {
+      "file": "project.gif",
+      "size": 673223,
+      "sha256": "cd10988f0e2a10436402ca07b07fea560c33378bda375dbdbcd6f46c52017daa",
+      "frameCount": 30,
+      "fps": 12,
+      "width": 400,
+      "height": 240,
+      "duration": 2.5,
+      "videoCodec": "gif",
+      "audioCodec": null,
+      "format": "gif"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "raw/e2e-result.json",
+      "size": 420,
+      "sha256": "d22612988ad94ff17576318b8a5561a3ca6bee3f5ae54fc64bc6a9bf069e98a3"
+    },
+    {
+      "path": "raw/frontend-result.json",
+      "size": 270,
+      "sha256": "b4845bbc85b26aeb8008b3e9d8ccc403b32dd4078d85abfa48098fcf5a2963cc"
+    },
+    {
+      "path": "raw/frontend.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/frontend.tap",
+      "size": 28631,
+      "sha256": "bb56c45402e6c5656ae16ff25a6e6bff9ee2ad4bd2e443695a8b960b3cbe8caa"
+    },
+    {
+      "path": "raw/ledger.txt",
+      "size": 1910,
+      "sha256": "a28bed6cacfb2c0db88ff13eb8a6aafc48d542f2327ee19937f24247f4a8f94f"
+    },
+    {
+      "path": "raw/lenses.json",
+      "size": 2255,
+      "sha256": "7ba97509cfb98bbbe4ffd7180ec1d10baee4f33be621c1ea910adfa73e77088a"
+    },
+    {
+      "path": "raw/playwright-console.txt",
+      "size": 7009,
+      "sha256": "b5ec94597346324291cb024407cd794ef9792d802ac0efeb0828193d76e2de8a"
+    },
+    {
+      "path": "raw/playwright-editor-regression.json",
+      "size": 64393,
+      "sha256": "e10c2c251370b9f8873c49657616a8a380376eb0b910ded0352b7e87a3970d88"
+    },
+    {
+      "path": "raw/playwright.stderr.txt",
+      "size": 492,
+      "sha256": "4b86b922ba066a1ab24cbd51ad1f3cc5d0a763b0781cb57d2abaa91bc93b61de"
+    },
+    {
+      "path": "raw/qa-gate.json",
+      "size": 305,
+      "sha256": "6de00022426e70b78a43bf527b88083ab2cf8b154ec2e062c625a291cd04f747"
+    },
+    {
+      "path": "raw/review-attempt1.diff",
+      "size": 79883,
+      "sha256": "b7d73eed4399efd2c84c0b6279cb597a0fecb3007e2d6645d30e23b8e9dffbee"
+    },
+    {
+      "path": "raw/review-attempt2.diff",
+      "size": 92876,
+      "sha256": "c98f23e71456b1cd3439722ebd02cccdfac35f50262bdef83e0807aff1bd34c8"
+    },
+    {
+      "path": "raw/review-attempt3.diff",
+      "size": 93860,
+      "sha256": "548af1445979c14300dcb94713ede9affb522941db8cf62936edacd555552f68"
+    },
+    {
+      "path": "raw/reviewed-sources-attempt1.json",
+      "size": 2675,
+      "sha256": "bd459f24a8e086b47ea8f6cda11ceeabffe035e73c606049f805f82cb7c07287"
+    },
+    {
+      "path": "raw/reviewed-sources-attempt2.json",
+      "size": 2818,
+      "sha256": "e0a7ace032115a1c3bab5b8eca730760129f5abd35a12288e4f7f922d1e64681"
+    },
+    {
+      "path": "raw/reviewed-sources.json",
+      "size": 2818,
+      "sha256": "a4636244896bf717cf364e655653af6e3b3dbde08966ac726ef461f19e47d3e9"
+    },
+    {
+      "path": "raw/sample-document.json",
+      "size": 5747,
+      "sha256": "863ed98086c7d8954666135dcc8f0302507da080111afb73d265b62d7626c78d"
+    },
+    {
+      "path": "raw/sample-metrics.json",
+      "size": 6286,
+      "sha256": "a9292592959c78cf68b31a14e3e33097ceb0a083d308bb44c2d6ba36e280d202"
+    },
+    {
+      "path": "raw/sample-spectrum.json",
+      "size": 464,
+      "sha256": "014def5bc105d3e380bc264e1c6d6581e68091b549c2b2e78ba8bdc93a8107fa"
+    },
+    {
+      "path": "raw/scope.json",
+      "size": 24067,
+      "sha256": "07c7f4dcb851bfa8fcb8531d8486a0ce0c83a02d3babedeeb507bbab6bdb4bca"
+    },
+    {
+      "path": "samples/frame-000.png",
+      "size": 44249,
+      "sha256": "9f733fd40ed35182918bb18b5da0d7cc4918a9b29cf999649a8501db59e9bc3f"
+    },
+    {
+      "path": "samples/frame-009.png",
+      "size": 65246,
+      "sha256": "5c366f1d233d0092452a09bd93d94e4ee1acebf9673c2ba526b9592c46e3ccb0"
+    },
+    {
+      "path": "samples/frame-015.png",
+      "size": 62140,
+      "sha256": "5dee919b8ce0ff1a1e490eb835246868a07a72d27d27c27e23749e59cb7e2e9b"
+    },
+    {
+      "path": "samples/frame-024.png",
+      "size": 18108,
+      "sha256": "658744f7f734bb5b28a4325b7fe838cd6f8c360c6bba6d4bd41f42feb24ee45b"
+    },
+    {
+      "path": "samples/sample.gif",
+      "size": 673223,
+      "sha256": "cd10988f0e2a10436402ca07b07fea560c33378bda375dbdbcd6f46c52017daa"
+    },
+    {
+      "path": "samples/sample.mp4",
+      "size": 141787,
+      "sha256": "b2c74f08ca3046b405ccd709eb90c59d30472f667dc0fabac74850e51f7df04f"
+    },
+    {
+      "path": "screenshots/desktop-audio-timeline.png",
+      "size": 162304,
+      "sha256": "815f68658e69ace72c105d3e4bbbf2f1a7cdd51b734de34f42168e5a70148290"
+    },
+    {
+      "path": "screenshots/desktop-frame-export-actions.png",
+      "size": 184598,
+      "sha256": "fd9e31106aa978037ddc46e364746b01b21d5a907d4fcb4c742aa851822405b8"
+    },
+    {
+      "path": "screenshots/desktop-timeline-video.png",
+      "size": 153173,
+      "sha256": "0d34352c93a1b92ce4dee242f8cce404f0154db29ce372e52dd93ce53f4903a1"
+    },
+    {
+      "path": "screenshots/mobile-360-audio-timeline.png",
+      "size": 134675,
+      "sha256": "d8b6b54d1c2ca238539445617162ebd433a4b24d27eaf30edb400b2714951732"
+    },
+    {
+      "path": "screenshots/mobile-360-frame-export-actions.png",
+      "size": 124304,
+      "sha256": "9d67feee8f866b820182245f77e40d4b771e74d5363892d4033921b815995bae"
+    },
+    {
+      "path": "screenshots/mobile-360-timeline-video.png",
+      "size": 125825,
+      "sha256": "fce515c50e7655c2e2ba35d087fbcaba80a3308bb1e39b8fb31c4048ba40730b"
+    },
+    {
+      "path": "screenshots/mobile-audio-timeline.png",
+      "size": 134771,
+      "sha256": "bc9e58831c674b51215f2450662c72fdf8da36d93feb5534d809deb4fa8cfcd1"
+    },
+    {
+      "path": "screenshots/mobile-frame-export-actions.png",
+      "size": 128083,
+      "sha256": "88c304ba195ea9daeb832f74895d0a3c7175ba076f674de467b4b6dbe3a9352c"
+    },
+    {
+      "path": "screenshots/mobile-timeline-video.png",
+      "size": 124908,
+      "sha256": "37384961b618bce4037e903e60a910b43504ca37a8701ca8aadccdfe6982be3e"
+    }
+  ],
+  "next": "selection semantics, managed snapshot preparation/checkpoints/jobs, progress/cancel/retry and private registration/draft web/API/MCP, total phase and OS resource budgets"
+}

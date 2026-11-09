@@ -1,0 +1,80 @@
+[
+  {
+    "kind": "native-render-stdin-passive",
+    "pid": 13156,
+    "owned_directory": true,
+    "input_bytes": 70306,
+    "input_sha256": "7351ac80e0dc3bd6e6cdb645c5dc78e22d96cfbc9d2fa2f0697ef8743fd23dcb",
+    "format": "svg",
+    "selected_pages": [
+      "page_866a6821-eef8-4c24-973f-c6c88eb4fe5b"
+    ],
+    "chart_files": [
+      {
+        "id": 1,
+        "revision": 1,
+        "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+        "bytes": 291,
+        "name": "datasets/1-1-f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb.json",
+        "observed_bytes": 291,
+        "observed_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb"
+      }
+    ],
+    "font_ids": [
+      1
+    ],
+    "document_sha256": "38fdb8df3055a840017e352bc878b7781158935191dc4acef6474e0622943751"
+  },
+  {
+    "kind": "native-render-stdin-passive",
+    "pid": 32816,
+    "owned_directory": true,
+    "input_bytes": 70306,
+    "input_sha256": "f2272fd7bc62a6c6fd1daf437e61c745509ac975d9e35968b731d9df99091610",
+    "format": "png",
+    "selected_pages": [
+      "page_866a6821-eef8-4c24-973f-c6c88eb4fe5b"
+    ],
+    "chart_files": [
+      {
+        "id": 1,
+        "revision": 1,
+        "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+        "bytes": 291,
+        "name": "datasets/1-1-f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb.json",
+        "observed_bytes": 291,
+        "observed_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb"
+      }
+    ],
+    "font_ids": [
+      1
+    ],
+    "document_sha256": "38fdb8df3055a840017e352bc878b7781158935191dc4acef6474e0622943751"
+  },
+  {
+    "kind": "native-render-stdin-passive",
+    "pid": 26964,
+    "owned_directory": true,
+    "input_bytes": 70306,
+    "input_sha256": "da3f980711bb5cccd4542bbadf94c17b142e187832a2ea6b165c6d3856dbe195",
+    "format": "pdf",
+    "selected_pages": [
+      "page_866a6821-eef8-4c24-973f-c6c88eb4fe5b"
+    ],
+    "chart_files": [
+      {
+        "id": 1,
+        "revision": 1,
+        "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+        "bytes": 291,
+        "name": "datasets/1-1-f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb.json",
+        "observed_bytes": 291,
+        "observed_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb"
+      }
+    ],
+    "font_ids": [
+      1
+    ],
+    "document_sha256": "38fdb8df3055a840017e352bc878b7781158935191dc4acef6474e0622943751"
+  }
+]

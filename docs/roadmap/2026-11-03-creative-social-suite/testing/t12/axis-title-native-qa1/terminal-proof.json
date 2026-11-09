@@ -1,0 +1,12 @@
+{
+  "state": "finished",
+  "cleanup_proved": true,
+  "alive_owned_pids": [],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "source_count": 159,
+  "all_sources_current_after_inspection": true,
+  "browser_job_closed_by_supervisor_exit": true
+}

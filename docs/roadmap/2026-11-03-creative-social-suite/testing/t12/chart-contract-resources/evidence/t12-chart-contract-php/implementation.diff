@@ -1,0 +1,656 @@
+--- before/app/Services/Studio/StudioChartSpec.php
++++ after/app/Services/Studio/StudioChartSpec.php
+@@ -0,0 +1,122 @@
++<?php
++
++namespace App\Services\Studio;
++
++use Illuminate\Validation\ValidationException;
++
++final class StudioChartSpec
++{
++    public const MAX_SAFE = 9007199254740991;
++
++    public const PALETTE = ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0891b2', '#65a30d', '#ea580c', '#9333ea', '#475569'];
++
++    public static function normalize(mixed $value, string $path = 'chart'): array
++    {
++        self::object($value, ['binding', 'options', 'style'], $path);
++        $binding = $value['binding'] ?? null;
++        self::object($binding, ['dataset', 'category_column', 'series_columns', 'precision'], $path.'.binding');
++        $dataset = $binding['dataset'] ?? null;
++        self::object($dataset, ['id', 'revision', 'sha256'], $path.'.binding.dataset');
++        foreach (['id', 'revision'] as $key) {
++            self::positiveInteger($dataset[$key] ?? null, $path.'.binding.dataset.'.$key);
++        }
++        self::check(is_string($dataset['sha256'] ?? null) && preg_match('/^[a-f0-9]{64}$/D', $dataset['sha256']) === 1, $path.'.binding.dataset.sha256');
++        self::identifier($binding['category_column'] ?? null, $path.'.binding.category_column');
++        $series = $binding['series_columns'] ?? null;
++        self::check(is_array($series) && array_is_list($series) && count($series) >= 1 && count($series) <= 12, $path.'.binding.series_columns');
++        $seen = [$binding['category_column'] => true];
++        foreach ($series as $index => $id) {
++            self::identifier($id, $path.'.binding.series_columns.'.$index);
++            self::check(! isset($seen[$id]), $path.'.binding.series_columns.'.$index);
++            $seen[$id] = true;
++        }
++        $binding += ['precision' => 'safe'];
++        self::check(in_array($binding['precision'], ['safe', 'approximate'], true), $path.'.binding.precision');
++
++        $options = ['kind' => 'column', 'band_gap' => 0.2, 'series_gap' => 0.1, 'palette' => self::PALETTE, 'domain_min' => null, 'domain_max' => null, 'tick_count' => 5];
++        if (array_key_exists('options', $value)) {
++            self::object($value['options'], array_keys($options), $path.'.options');
++            self::check(array_key_exists('kind', $value['options']), $path.'.options.kind');
++            $options = $value['options'] + $options;
++        }
++        self::check(in_array($options['kind'], ['bar', 'column', 'bar-grouped', 'column-grouped', 'bar-stacked', 'column-stacked', 'bar-proportional', 'column-proportional', 'bar-multicolor', 'column-multicolor'], true), $path.'.options.kind');
++        foreach (['band_gap', 'series_gap'] as $key) {
++            self::number($options[$key], 0, 0.9, $path.'.options.'.$key);
++        }
++        self::number($options['tick_count'], 2, 21, $path.'.options.tick_count');
++        self::check(is_int($options['tick_count']), $path.'.options.tick_count');
++        self::check(is_array($options['palette']) && array_is_list($options['palette']) && count($options['palette']) >= 1 && count($options['palette']) <= 24, $path.'.options.palette');
++        foreach ($options['palette'] as $color) {
++            self::check(StudioDocument::color($color), $path.'.options.palette');
++        }
++        foreach (['domain_min', 'domain_max'] as $key) {
++            if ($options[$key] !== null) {
++                self::number($options[$key], -PHP_FLOAT_MAX, PHP_FLOAT_MAX, $path.'.options.'.$key);
++            }
++        }
++        $proportional = str_ends_with($options['kind'], '-proportional');
++        if ($proportional) {
++            self::check(($options['domain_min'] === null || $options['domain_min'] == 0) && ($options['domain_max'] === null || $options['domain_max'] == 100), $path.'.options');
++        } else {
++            self::check(($options['domain_min'] === null || $options['domain_min'] <= 0) && ($options['domain_max'] === null || $options['domain_max'] >= 0), $path.'.options');
++            self::check($options['domain_min'] === null || $options['domain_max'] === null || $options['domain_min'] < $options['domain_max'], $path.'.options');
++        }
++        self::check(preg_match('/-(grouped|stacked|proportional)$/D', $options['kind']) === 1 || count($series) === 1, $path.'.binding.series_columns');
++
++        $style = ['title' => '', 'subtitle' => '', 'source' => '', 'x_title' => '', 'y_title' => '', 'fontFamily' => 'Arial', 'fontSize' => 16, 'fontWeight' => 'normal', 'fontStyle' => 'normal', 'text_color' => '#111827', 'axis_color' => '#64748b', 'grid_color' => '#e2e8f0', 'background' => '#ffffff', 'legend' => true, 'show_grid' => true, 'show_axis' => true, 'category_labels' => true, 'legend_position' => 'bottom', 'value_labels' => 'none', 'label_position' => 'outside', 'category_label_limit' => 24];
++        if (array_key_exists('style', $value)) {
++            self::object($value['style'], [...array_keys($style), 'font_id'], $path.'.style');
++            $style = $value['style'] + $style;
++        }
++        foreach (['title', 'subtitle', 'source', 'x_title', 'y_title'] as $key) {
++            self::check(is_string($style[$key]) && mb_check_encoding($style[$key], 'UTF-8') && mb_strlen($style[$key], 'UTF-8') <= 256 && preg_match('/[\x00-\x08\x0b-\x1f]/u', $style[$key]) === 0, $path.'.style.'.$key);
++        }
++        self::check(StudioDocument::validFont($style['fontFamily']), $path.'.style.fontFamily');
++        if (array_key_exists('font_id', $style)) {
++            self::positiveInteger($style['font_id'], $path.'.style.font_id');
++        }
++        self::number($style['fontSize'], 8, 72, $path.'.style.fontSize');
++        foreach (['fontWeight' => ['normal', 'bold'], 'fontStyle' => ['normal', 'italic'], 'legend_position' => ['bottom', 'right'], 'value_labels' => ['none', 'raw', 'percentage'], 'label_position' => ['inside', 'outside']] as $key => $choices) {
++            self::check(in_array($style[$key], $choices, true), $path.'.style.'.$key);
++        }
++        self::check($style['value_labels'] !== 'percentage' || $proportional, $path.'.style.value_labels');
++        foreach (['text_color', 'axis_color', 'grid_color', 'background'] as $key) {
++            self::check(StudioDocument::color($style[$key]), $path.'.style.'.$key);
++        }
++        foreach (['legend', 'show_grid', 'show_axis', 'category_labels'] as $key) {
++            self::check(is_bool($style[$key]), $path.'.style.'.$key);
++        }
++        self::number($style['category_label_limit'], 1, 80, $path.'.style.category_label_limit');
++        self::check(is_int($style['category_label_limit']), $path.'.style.category_label_limit');
++
++        return ['binding' => $binding, 'options' => $options, 'style' => $style];
++    }
++
++    private static function object(mixed $value, array $allowed, string $path): void
++    {
++        self::check(is_array($value) && ($value === [] || ! array_is_list($value)), $path);
++        self::check(array_diff(array_keys($value), $allowed) === [], $path);
++    }
++
++    private static function identifier(mixed $id, string $path): void
++    {
++        self::check(is_string($id) && preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $id) === 1, $path);
++    }
++
++    private static function positiveInteger(mixed $value, string $path): void
++    {
++        self::check(is_int($value) && $value > 0 && $value <= self::MAX_SAFE, $path);
++    }
++
++    private static function number(mixed $value, float $min, float $max, string $path): void
++    {
++        self::check((is_int($value) || is_float($value)) && is_finite((float) $value) && $value >= $min && $value <= $max, $path);
++    }
++
++    private static function check(bool $valid, string $path): void
++    {
++        if (! $valid) {
++            throw ValidationException::withMessages([$path => ['Configuración de gráfico no válida.']]);
++        }
++    }
++}
+--- before/app/Services/Studio/StudioCharts.php
++++ after/app/Services/Studio/StudioCharts.php
+@@ -0,0 +1,127 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Brand;
++use App\Models\User;
++use Illuminate\Validation\ValidationException;
++
++final class StudioCharts
++{
++    /** Validation-local metadata and selections; never retain private tables on the service. */
++    public function validate(User $user, Brand $brand, array $document): void
++    {
++        abort_unless((int) $brand->user_id === (int) $user->id, 404);
++        $references = [];
++        $pages = [];
++        $walk = function (array $elements, int $page, string $path) use (&$walk, &$references, &$pages): void {
++            foreach ($elements as $index => $element) {
++                $p = $path.'.'.$index;
++                if (($element['type'] ?? null) === 'chart') {
++                    $spec = StudioChartSpec::normalize($element['chart'] ?? null, $p.'.chart');
++                    $ref = $spec['binding']['dataset'];
++                    $key = $ref['id'].':'.$ref['revision'].':'.$ref['sha256'];
++                    $references[$key]['ref'] = $ref;
++                    // Style does not affect cell validation. Same reference/selection/config is visited once.
++                    $selection = json_encode([$spec['binding'], $spec['options']['kind'], $spec['options']['domain_min'], $spec['options']['domain_max']], JSON_THROW_ON_ERROR);
++                    $references[$key]['selections'][$selection] ??= [$spec, $p.'.chart'];
++                    $pages[$page]['charts'][] = [$key, count($spec['binding']['series_columns'])];
++                } else {
++                    $pages[$page]['ordinary'] = ($pages[$page]['ordinary'] ?? 0) + 1;
++                    if (($element['type'] ?? null) === 'group') {
++                        $walk($element['elements'], $page, $p.'.elements');
++                    }
++                }
++            }
++        };
++        foreach ($document['pages'] ?? [] as $index => $page) {
++            $walk($page['elements'] ?? [], $index, 'document.pages.'.$index.'.elements');
++        }
++        self::check(count($references) <= 32, 'document', 'Demasiadas referencias de datos.');
++        $bytes = 0;
++        $actions = app(StudioDatasetActions::class);
++        foreach ($references as &$entry) {
++            $ref = $entry['ref'];
++            $metadata = $actions->authorizedRevisionInfo((int) $user->id, (int) $brand->id, $ref['id'], $ref['revision']);
++            self::check(hash_equals($metadata['sha256'], $ref['sha256']), 'document', 'La huella de la revisión no coincide.');
++            $entry['rows'] = (int) $metadata['row_count'];
++            $bytes += (int) $metadata['json_bytes'];
++        }
++        unset($entry);
++        self::check($bytes <= 64000000, 'document', 'El documento supera el presupuesto de datos.');
++        $total = 0;
++        foreach ($pages as $index => $page) {
++            $cost = $page['ordinary'] ?? 0;
++            foreach ($page['charts'] ?? [] as [$key, $series]) {
++                $rows = $references[$key]['rows'];
++                $cost += 100 + $rows + 2 * $rows * $series;
++            }
++            self::check($cost <= 50000, 'document.pages.'.$index, 'La página supera el presupuesto de gráficos.');
++            $total += $cost;
++        }
++        self::check($total <= 200000, 'document', 'El documento supera el presupuesto de gráficos.');
++        foreach ($references as $entry) {
++            $ref = $entry['ref'];
++            $table = app(StudioDatasets::class)->read((int) $user->id, (int) $brand->id, $ref['id'], $ref['revision']);
++            foreach ($entry['selections'] as [$spec, $path]) {
++                $this->selection($table, $spec, $path);
++            }
++            unset($table);
++        }
++    }
++
++    private function selection(array $table, array $spec, string $path): void
++    {
++        $binding = $spec['binding'];
++        $options = $spec['options'];
++        $columns = array_column($table['columns'], null, 'id');
++        foreach ([$binding['category_column'], ...$binding['series_columns']] as $id) {
++            self::check(isset($columns[$id]), $path.'.binding', 'La columna no existe en esta revisión.');
++        }
++        $indices = array_flip(array_column($table['columns'], 'id'));
++        $series = array_map(fn ($id) => $indices[$id], $binding['series_columns']);
++        $proportional = str_ends_with($options['kind'], '-proportional');
++        $stacked = str_ends_with($options['kind'], '-stacked');
++        $min = 0;
++        $max = 0;
++        foreach ($table['rows'] as $row) {
++            $positive = 0;
++            $negative = 0;
++            foreach ($series as $index) {
++                $value = $row['values'][$index];
++                if ($value === null) {
++                    continue;
++                }
++                self::check((is_int($value) || is_float($value)) && is_finite((float) $value), $path.'.binding.series_columns', 'La serie debe contener números o nulos, sin convertir texto.');
++                self::check($binding['precision'] === 'approximate' || abs($value) <= StudioChartSpec::MAX_SAFE, $path.'.binding.precision', 'La magnitud exige aproximación explícita.');
++                self::check(! $proportional || $value >= 0, $path.'.options.kind', 'El gráfico proporcional no admite negativos.');
++                if ($stacked) {
++                    if ($value < 0) {
++                        $negative += $value;
++                    } else {
++                        $positive += $value;
++                    }
++                    self::check(is_finite((float) $negative) && is_finite((float) $positive), $path.'.options', 'Acumulado no finito.');
++                    $min = min($min, $negative);
++                    $max = max($max, $positive);
++                } else {
++                    $min = min($min, $value);
++                    $max = max($max, $value);
++                }
++            }
++        }
++        if (! $proportional) {
++            self::check(($options['domain_min'] === null || $options['domain_min'] <= $min) && ($options['domain_max'] === null || $options['domain_max'] >= $max), $path.'.options', 'El dominio debe incluir cero y todos los extremos.');
++            $domainMin = $options['domain_min'] ?? $min;
++            $domainMax = $options['domain_max'] ?? $max;
++            self::check(is_finite((float) ($domainMax - $domainMin)), $path.'.options', 'El intervalo del dominio debe ser finito.');
++        }
++    }
++
++    private static function check(bool $condition, string $path, string $message): void
++    {
++        if (! $condition) {
++            throw ValidationException::withMessages([$path => [$message]]);
++        }
++    }
++}
+--- before/app/Services/Studio/StudioDocument.php
++++ after/app/Services/Studio/StudioDocument.php
+@@ -12,7 +12,7 @@
+ /** Validates our public scene format, never a renderer's executable class graph. */
+ class StudioDocument
+ {
+-    public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group'];
++    public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart'];
+ 
+     public static function blank(int $width = 1080, int $height = 1080): array
+     {
+@@ -75,6 +75,7 @@
+             }
+         }
+ 
++        app(StudioCharts::class)->validate($user, $brand, $document);
+         $fontIds = StudioFonts::idsFromDocument($document);
+         if ($fontIds !== []) {
+             $fonts = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $fontIds)->get()->keyBy('id');
+@@ -104,6 +105,7 @@
+                 'image' => ['asset_id', 'cropX', 'cropY', 'filters', 'mask'],
+                 'video' => ['asset_id', 'cropX', 'cropY', 'filters', 'trimStart', 'trimEnd', 'volume', 'muted'],
+                 'group' => ['elements'],
++                'chart' => ['chart'],
+                 default => [],
+             };
+             $this->keys($element, [...$common, ...$extra], $p);
+@@ -113,7 +115,10 @@
+                 $this->number($element[$key] ?? null, -32000, 32000, $p.'.'.$key);
+             }
+             foreach (['width', 'height'] as $key) {
+-                $this->number($element[$key] ?? null, 0, 32000, $p.'.'.$key);
++                $this->number($element[$key] ?? null, $type === 'chart' ? 160 : 0, $type === 'chart' ? 8000 : 32000, $p.'.'.$key);
++            }
++            if ($type === 'chart') {
++                StudioChartSpec::normalize($element['chart'] ?? null, $p.'.chart');
+             }
+             foreach (['scaleX', 'scaleY'] as $key) {
+                 $this->optionalNumber($element, $key, 0.01, 100, $p);
+--- before/app/Services/Studio/StudioFonts.php
++++ after/app/Services/Studio/StudioFonts.php
+@@ -118,6 +118,9 @@
+                 if (($element['type'] ?? null) === 'text' && isset($element['font_id'])) {
+                     $ids[(int) $element['font_id']] = true;
+                 }
++                if (($element['type'] ?? null) === 'chart' && isset($element['chart']['style']['font_id'])) {
++                    $ids[(int) $element['chart']['style']['font_id']] = true;
++                }
+                 if (($element['type'] ?? null) === 'group' && is_array($element['elements'] ?? null)) {
+                     $walk($element['elements']);
+                 }
+--- before/tests/Feature/Studio/StudioChartSpecTest.php
++++ after/tests/Feature/Studio/StudioChartSpecTest.php
+@@ -0,0 +1,90 @@
++<?php
++
++namespace Tests\Feature\Studio;
++
++use App\Services\Studio\StudioChartSpec;
++use Illuminate\Contracts\Console\Kernel;
++use Illuminate\Validation\ValidationException;
++use Tests\TestCase;
++
++final class StudioChartSpecTest extends TestCase
++{
++    public function createApplication()
++    {
++        foreach (['APP_ENV' => 'testing', 'APP_CONFIG_CACHE' => 'storage/framework/testing/t12-chart-contract-php/absent-'.bin2hex(random_bytes(8)).'.php', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:', 'DB_URL' => '', 'CACHE_STORE' => 'array', 'SESSION_DRIVER' => 'array', 'QUEUE_CONNECTION' => 'sync'] as $key => $value) {
++            putenv($key.'='.$value);
++            $_ENV[$key] = $_SERVER[$key] = $value;
++        }
++        $app = require dirname(__DIR__, 3).'/bootstrap/app.php';
++        $app->loadEnvironmentFrom('storage/framework/testing/t12-chart-contract-php/absent.env');
++        $app->make(Kernel::class)->bootstrap();
++
++        return $app;
++    }
++
++    private function fixtures(): array
++    {
++        return json_decode(file_get_contents(base_path('tests/Fixtures/studio/chart-spec.json')), true, flags: JSON_THROW_ON_ERROR);
++    }
++
++    public function test_defaults_match_shared_contract(): void
++    {
++        foreach ($this->fixtures()['valid'] as $fixture) {
++            $result = StudioChartSpec::normalize($fixture['input']);
++            $this->assertSame($fixture['expected_subset']['kind'], $result['options']['kind'] ?? null, $fixture['name']);
++            $this->assertSame($fixture['expected_subset']['fontFamily'], $result['style']['fontFamily'] ?? null);
++            $this->assertSame($fixture['expected_subset']['fontSize'], $result['style']['fontSize'] ?? null);
++            $this->assertSame($fixture['input']['binding']['precision'] ?? 'safe', $result['binding']['precision']);
++            $this->assertArrayNotHasKey('width', $result['options']);
++        }
++    }
++
++    public function test_shared_invalid_mutations_are_rejected(): void
++    {
++        foreach ($this->fixtures()['invalid'] as $fixture) {
++            $input = $this->fixtures()['valid'][0]['input'];
++            $cursor = &$input;
++            foreach ($fixture['path'] as $key) {
++                $cursor = &$cursor[$key];
++            }
++            $cursor = $fixture['value'];
++            unset($cursor);
++            try {
++                StudioChartSpec::normalize($input);
++                $this->fail('Accepted '.$fixture['name']);
++            } catch (ValidationException $error) {
++                $this->assertNotEmpty($error->errors());
++            }
++        }
++    }
++
++    /** Characterization of the complete defaults, beyond the shared fixture's compact subset. */
++    public function test_complete_defaults_and_unicode_codepoint_boundary(): void
++    {
++        $input = $this->fixtures()['valid'][0]['input'];
++        $result = StudioChartSpec::normalize($input);
++        $this->assertSame(['kind' => 'column', 'band_gap' => 0.2, 'series_gap' => 0.1, 'palette' => ['#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#db2777', '#4f46e5', '#0891b2', '#65a30d', '#ea580c', '#9333ea', '#475569'], 'domain_min' => null, 'domain_max' => null, 'tick_count' => 5], $result['options']);
++        $this->assertSame(['title' => '', 'subtitle' => '', 'source' => '', 'x_title' => '', 'y_title' => '', 'fontFamily' => 'Arial', 'fontSize' => 16, 'fontWeight' => 'normal', 'fontStyle' => 'normal', 'text_color' => '#111827', 'axis_color' => '#64748b', 'grid_color' => '#e2e8f0', 'background' => '#ffffff', 'legend' => true, 'show_grid' => true, 'show_axis' => true, 'category_labels' => true, 'legend_position' => 'bottom', 'value_labels' => 'none', 'label_position' => 'outside', 'category_label_limit' => 24], $result['style']);
++        $title = str_repeat("\u{1F600}", 254)."\n\t";
++        $input['style'] = ['title' => $title];
++        $this->assertSame($title, StudioChartSpec::normalize($input)['style']['title']);
++        $this->assertSame(['precision' => 'safe'], array_diff_key($result['binding'], $input['binding']));
++    }
++
++    public function test_characterization_nested_unknown_fields_and_nonfinite_numbers(): void
++    {
++        foreach ([['binding', 'url', 'https://example.invalid'], ['style', 'fontSize', INF], ['options', 'band_gap', NAN], ['style', 'legend', 1], ['options', 'opacity', 0.5], ['options', 'tick_count', 22], ['style', 'category_label_limit', 81]] as [$section, $key, $value]) {
++            $input = $this->fixtures()['valid'][0]['input'];
++            if ($section === 'options') {
++                $input['options'] = ['kind' => 'column'];
++            }
++            $input[$section][$key] = $value;
++            try {
++                StudioChartSpec::normalize($input);
++                $this->fail('Accepted '.$section.'.'.$key);
++            } catch (ValidationException $error) {
++                $this->assertNotEmpty($error->errors());
++            }
++        }
++    }
++}
+--- before/tests/Feature/Studio/StudioChartsTest.php
++++ after/tests/Feature/Studio/StudioChartsTest.php
+@@ -0,0 +1,254 @@
++<?php
++
++namespace Tests\Feature\Studio;
++
++use App\Models\Brand;
++use App\Models\User;
++use App\Services\Studio\StudioCharts;
++use App\Services\Studio\StudioDatasets;
++use App\Services\Studio\StudioDocument;
++use App\Services\Studio\StudioFonts;
++use Illuminate\Contracts\Console\Kernel;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Validation\ValidationException;
++use Symfony\Component\HttpKernel\Exception\HttpException;
++use Tests\TestCase;
++
++final class StudioChartsTest extends TestCase
++{
++    private StudioDatasets $datasets;
++
++    private User $user;
++
++    private Brand $brand;
++
++    public function createApplication()
++    {
++        foreach (['APP_ENV' => 'testing', 'APP_CONFIG_CACHE' => 'storage/framework/testing/t12-chart-contract-php/absent-'.bin2hex(random_bytes(8)).'.php', 'DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:', 'DB_URL' => '', 'CACHE_STORE' => 'array', 'SESSION_DRIVER' => 'array', 'QUEUE_CONNECTION' => 'sync'] as $key => $value) {
++            putenv($key.'='.$value);
++            $_ENV[$key] = $_SERVER[$key] = $value;
++        }
++        $app = require dirname(__DIR__, 3).'/bootstrap/app.php';
++        $app->loadEnvironmentFrom('storage/framework/testing/t12-chart-contract-php/absent.env');
++        $app->make(Kernel::class)->bootstrap();
++        $app['config']->set('filesystems.disks.local', ['driver' => 'local', 'root' => storage_path('framework/testing/t12-chart-contract-php/files-'.bin2hex(random_bytes(8))), 'throw' => true]);
++
++        return $app;
++    }
++
++    protected function setUp(): void
++    {
++        parent::setUp();
++        Schema::create('users', fn (Blueprint $table) => $table->id());
++        Schema::create('brands', function (Blueprint $table) {
++            $table->id();
++            $table->unsignedBigInteger('user_id');
++        });
++        Schema::create('studio_fonts', function (Blueprint $table) {
++            $table->id();
++            $table->unsignedBigInteger('user_id');
++            $table->unsignedBigInteger('brand_id');
++            $table->string('status');
++        });
++        DB::table('users')->insert([['id' => 1], ['id' => 2]]);
++        DB::table('brands')->insert([['id' => 1, 'user_id' => 1], ['id' => 2, 'user_id' => 2], ['id' => 3, 'user_id' => 1]]);
++        (require base_path('database/migrations/2026_11_06_010000_create_studio_datasets.php'))->up();
++        $this->datasets = new StudioDatasets;
++        $this->user = User::withoutGlobalScopes()->findOrFail(1);
++        $this->brand = Brand::withoutGlobalScopes()->findOrFail(1);
++    }
++
++    private function chart(array $values = [2, null, 0], array $options = ['kind' => 'column']): array
++    {
++        $table = ['columns' => [['id' => 'category', 'label' => 'Category'], ['id' => 'value', 'label' => 'Value']], 'rows' => []];
++        foreach ($values as $index => $value) {
++            $table['rows'][] = ['id' => 'r'.$index, 'values' => ['Same', $value]];
++        }
++        $dataset = $this->datasets->create(1, 1, 'Chart', $table);
++
++        return ['id' => 'chart', 'type' => 'chart', 'x' => 0, 'y' => 0, 'width' => 640, 'height' => 360, 'chart' => ['binding' => ['dataset' => ['id' => $dataset->id, 'revision' => 1, 'sha256' => $dataset->revisions()->first()->sha256], 'category_column' => 'category', 'series_columns' => ['value']], 'options' => $options]];
++    }
++
++    private function document(array $elements): array
++    {
++        $doc = StudioDocument::blank();
++        $doc['pages'][0]['elements'] = $elements;
++
++        return $doc;
++    }
++
++    private function invalid(callable $action): void
++    {
++        try {
++            $action();
++            $this->fail('Expected validation rejection');
++        } catch (ValidationException $error) {
++            $this->assertNotEmpty($error->errors());
++        }
++    }
++
++    public function test_document_preserves_chart_exactly_and_checks_dimensions(): void
++    {
++        $chart = $this->chart();
++        unset($chart['chart']['options']);
++        $document = $this->document([$chart]);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++        foreach ([159, 8001] as $size) {
++            $chart['width'] = $size;
++            $this->invalid(fn () => app(StudioDocument::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        }
++    }
++
++    public function test_typed_series_precision_and_domains_are_enforced(): void
++    {
++        foreach ([[['2'], ['kind' => 'column']], [[-1], ['kind' => 'bar-proportional']], [[9007199254740992], ['kind' => 'column']], [[10], ['kind' => 'column', 'domain_max' => 5]], [[-10], ['kind' => 'bar', 'domain_min' => -5]]] as [$values, $options]) {
++            $chart = $this->chart($values, $options);
++            $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        }
++        $chart = $this->chart([9007199254740992]);
++        $chart['chart']['binding']['precision'] = 'approximate';
++        $document = $this->document([$chart]);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++    }
++
++    public function test_scope_revision_sha_and_resource_integrity_statuses(): void
++    {
++        $chart = $this->chart();
++        foreach ([['id', 999, 404], ['revision', 2, 404], ['sha256', str_repeat('b', 64), 422]] as [$key, $value, $status]) {
++            $copy = $chart;
++            $copy['chart']['binding']['dataset'][$key] = $value;
++            $this->assertHttpStatus($status, fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$copy])));
++        }
++        $foreign = Brand::withoutGlobalScopes()->findOrFail(3);
++        $this->assertHttpStatus(404, fn () => app(StudioCharts::class)->validate($this->user, $foreign, $this->document([$chart])));
++        $revision = DB::table('studio_dataset_revisions')->first();
++        Storage::disk('local')->put($revision->path, 'corrupt');
++        $this->assertHttpStatus(503, fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++    }
++
++    private function assertHttpStatus(int $status, callable $action): void
++    {
++        try {
++            $action();
++            $this->fail('Expected HTTP '.$status);
++        } catch (ValidationException $error) {
++            $this->assertSame($status, $error->status);
++        } catch (ModelNotFoundException $error) {
++            $this->assertSame(404, $status);
++        } catch (HttpException $error) {
++            $this->assertSame($status, $error->getStatusCode());
++        }
++    }
++
++    public function test_metadata_budgets_precede_any_read_and_repeated_layers_are_deduplicated(): void
++    {
++        $chart = $this->chart();
++        $revision = DB::table('studio_dataset_revisions')->first();
++        DB::table('studio_dataset_revisions')->update(['json_bytes' => 64000001]);
++        Storage::disk('local')->delete($revision->path);
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        DB::table('studio_dataset_revisions')->update(['json_bytes' => $revision->json_bytes]);
++        // 500 empty charts exactly meet the 50k budget: one metadata resolution + one read.
++        $chart = $this->chart([]);
++        $disk = Storage::disk('local');
++        $spy = \Mockery::mock($disk);
++        $spy->shouldReceive('readStream')->once()->andReturnUsing(fn ($path) => $disk->readStream($path));
++        Storage::set('local', $spy);
++        DB::enableQueryLog();
++        DB::flushQueryLog();
++        app(StudioCharts::class)->validate($this->user, $this->brand, $this->document(array_fill(0, 500, $chart)));
++        $this->assertLessThan(12, count(DB::getQueryLog()));
++        DB::disableQueryLog();
++        DB::table('studio_dataset_revisions')->where('dataset_id', $chart['chart']['binding']['dataset']['id'])->update(['row_count' => 1000]);
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document(array_fill(0, 20, $chart))));
++    }
++
++    public function test_chart_fonts_are_walked_and_require_own_ready_brand_font(): void
++    {
++        $chart = $this->chart();
++        $chart['chart']['style'] = ['font_id' => 7];
++        $document = $this->document([['id' => 'group', 'type' => 'group', 'x' => 0, 'y' => 0, 'width' => 640, 'height' => 360, 'elements' => [$chart]]]);
++        $this->assertSame([7], StudioFonts::idsFromDocument($document));
++        $this->invalid(fn () => app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++        DB::table('studio_fonts')->insert(['id' => 7, 'user_id' => 1, 'brand_id' => 1, 'status' => 'ready']);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++        foreach ([['brand_id' => 3], ['brand_id' => 1, 'status' => 'pending'], ['user_id' => 2, 'status' => 'ready']] as $mutation) {
++            DB::table('studio_fonts')->where('id', 7)->update($mutation);
++            $this->invalid(fn () => app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++        }
++    }
++
++    /** Characterization of scoped dataset behavior reused by the new integration. */
++    public function test_archived_historical_revision_is_fixed_and_missing_columns_fail(): void
++    {
++        $chart = $this->chart([2, null, 0]);
++        $id = $chart['chart']['binding']['dataset']['id'];
++        $this->datasets->replace(1, 1, $id, 1, 'Changed', ['columns' => [['id' => 'other', 'label' => 'Other']], 'rows' => []]);
++        $this->datasets->archive(1, 1, $id);
++        $document = $this->document([$chart]);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++        $chart['chart']['binding']['category_column'] = 'absent';
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++    }
++
++    public function test_characterization_stacked_extremes_simple_series_and_overflow(): void
++    {
++        $chart = $this->chart([6, -6]);
++        $chart['chart']['binding']['series_columns'] = ['value', 'second'];
++        $id = $chart['chart']['binding']['dataset']['id'];
++        $table = $this->datasets->read(1, 1, $id, 1);
++        $table['columns'][] = ['id' => 'second', 'label' => 'Second'];
++        foreach ($table['rows'] as &$row) {
++            $row['values'][] = $row['values'][1];
++        } unset($row);
++        $this->datasets->replace(1, 1, $id, 1, 'Two series', $table);
++        $chart['chart']['binding']['dataset']['revision'] = 2;
++        $chart['chart']['binding']['dataset']['sha256'] = DB::table('studio_dataset_revisions')->where('dataset_id', $id)->where('revision', 2)->value('sha256');
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        foreach ([['kind' => 'column-stacked', 'domain_max' => 10], ['kind' => 'bar-stacked', 'domain_min' => -10]] as $options) {
++            $chart['chart']['options'] = $options;
++            $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++        }
++        $chart['chart']['options'] = ['kind' => 'bar-stacked'];
++        $document = $this->document([$chart]);
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++        $chart['chart']['options'] = ['kind' => 'bar', 'domain_min' => -PHP_FLOAT_MAX, 'domain_max' => PHP_FLOAT_MAX];
++        $chart['chart']['binding']['series_columns'] = ['value'];
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart])));
++    }
++
++    public function test_characterization_unique_reference_and_aggregate_document_budgets(): void
++    {
++        $chart = $this->chart();
++        $elements = [];
++        for ($i = 0; $i < 33; $i++) {
++            $copy = $chart;
++            $copy['chart']['binding']['dataset']['id'] = $i + 1;
++            $elements[] = $copy;
++        }
++        // Reference bound is checked before querying nonexistent ids.
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document($elements)));
++        $other = $this->chart();
++        DB::table('studio_dataset_revisions')->update(['json_bytes' => 33000000]);
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $this->document([$chart, $other])));
++        DB::table('studio_dataset_revisions')->update(['json_bytes' => 1, 'row_count' => 1000]);
++        $document = $this->document(array_fill(0, 16, $chart));
++        $document['pages'] = array_fill(0, 5, $document['pages'][0]);
++        // Each page is under 50k, their combined 248k exceeds the 200k document budget before reads.
++        $this->invalid(fn () => app(StudioCharts::class)->validate($this->user, $this->brand, $document));
++    }
++
++    public function test_characterization_v2_preserves_chart_timing_and_captions(): void
++    {
++        $chart = $this->chart();
++        $chart['timing'] = ['start' => 0, 'duration' => 4];
++        $document = $this->document([$chart]);
++        $document['schema_version'] = 2;
++        $document['timeline'] = ['fps' => 30, 'audio_tracks' => [], 'captions' => ['style' => ['fontFamily' => 'Arial'], 'cues' => [['id' => 'cue', 'start' => 0, 'end' => 1, 'text' => 'Caption']]]];
++        $this->assertSame($document, app(StudioDocument::class)->validate($this->user, $this->brand, $document));
++    }
++}

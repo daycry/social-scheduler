@@ -1,0 +1,12 @@
+{
+  "app/Services/Studio/StudioAvState.php": "4aa9aac214818cea35ed3b1324e011089ec642fd77b3dfd115edb0237599eb87",
+  "app/Services/Studio/StudioAvTransfer.php": "0365ca0b6cf75109a2bfb2e7955b351dd1898bc817af7c793afb735ab857995f",
+  "app/Services/Studio/StudioAvRegistrationCleanup.php": "dbce40c2d84a372ae44e53de86f48b501d6b543fc8e92f863d3f6e7a3c2773bb",
+  "app/Services/Studio/StudioAvCleanup.php": "f07130a04cd1cda110e34ee0ededa4c7616247ebb2489f7947a1b053606b4bb8",
+  "app/Services/Studio/StudioAvRecovery.php": "5ac028409c8a239d50c2fa2bdd05b10aa0fc08c41fbdd6616b6e98cab4f9a70e",
+  "app/Models/Studio/StudioAvWorkspace.php": "9185f5673a8df29fdf1d4dc223f6a2ac4e431b7bfbf62c65715b7dc32f13857a",
+  "database/migrations/2026_11_05_150000_add_studio_render_state.php": "30d9b37bef68a102e1114c43676766cbd87d9b61c477eee6222096a22b4b2d23",
+  "tests/Support/StudioAvR2.php": "53b4e50bc40a134ce629d9b54865919e1806898f711eb54da5b20efc4d62e484",
+  "tests/Feature/Studio/StudioAvRetirementTest.php": "ecb4e6b1f5855843bb86bcc6ab69c1d785474055d1873cb35dcd8d7825f693fc",
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md": "be045738b606dffb884da3c813039cc37215d3a45487dd310394ebf0fbf2a328"
+}

@@ -1,0 +1,293 @@
+{
+  "date": "2026-11-05",
+  "scope": "Internal AV database state and private snapshots, not public native export",
+  "php": {
+    "tests": 150,
+    "assertions": 744,
+    "exit": 0
+  },
+  "e2e": {
+    "stats": {
+      "startTime": "2026-11-05T14:14:29.617Z",
+      "duration": 303017.579,
+      "expected": 42,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "errors": [],
+    "tests": [
+      {
+        "project": "desktop",
+        "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio timeline: closing while media buffers cancels the pending playback",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio timeline: closing while media buffers cancels the pending playback",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio timeline: closing while media buffers cancels the pending playback",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "desktop",
+        "title": "Studio: a stale revision preserves local edits and can recover the server version",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile",
+        "title": "Studio: a stale revision preserves local edits and can recover the server version",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+        "status": "expected",
+        "attempts": 1
+      },
+      {
+        "project": "mobile-360",
+        "title": "Studio: a stale revision preserves local edits and can recover the server version",
+        "status": "expected",
+        "attempts": 1
+      }
+    ]
+  },
+  "review": {
+    "state": "A2+B2+D2 no gaps; D1 fixed",
+    "files": "A1+B1 no gaps; C/D false"
+  },
+  "screenshots": [
+    "desktop.png",
+    "mobile.png",
+    "mobile-360.png"
+  ],
+  "qa": "root integration; not independent QA",
+  "parent_task": "T-11 in progress; roadmap7/23",
+  "pending": [
+    "physical cleanup and reservation release",
+    "corrupt checkpoint recovery",
+    "queue/native job orchestration",
+    "web/API/MCP handlers and UI",
+    "registration and draft",
+    "full T11 final independent QA"
+  ]
+}

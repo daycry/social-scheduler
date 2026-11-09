@@ -1,0 +1,216 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 C3charts QA</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:8pt;table-layout:fixed;width:100%;break-inside:auto}td,th{overflow-wrap:anywhere}tr{break-inside:avoid}img{max-height:235mm;object-fit:contain}h2,h3{break-after:avoid}</style><body><main class="doc"><h1>T12 C3charts — QA local</h1>
+<p>Resultado automático de esta ejecución: <strong>NO-PASS</strong>. Casos realmente ejecutados: <strong>1 de 12 previstos</strong>. Inspección de figuras/PDF: <strong>pendiente</strong>, nunca inferida por colección, render o hash. No se cierra T12 ni el plan.</p>
+<h2>Ejecución y límites</h2>
+<p>Cuatro escenarios × 375/768/1440, un worker, cero reintentos y fail-fast1. Las ramas no alcanzadas no quedan acreditadas. SQLite, almacenamiento, cachés, rutas y usuarios ficticios aislados antes de Kernel; proof de rutas antes de usuarios. Sólo loopback. InterCSS externo tiene fixture vacía exacta; ninguna otra red externa está autorizada. Fuentes privadas SpaceGrotesk TTF y WOFF2 reales por UI de marca.</p>
+<p>Job agregado COMMIT3GiB, killOnClose y sin breakaway; default del worker av-runtime3GiB intacto. Preflight físico6GiB anterior al UUID/servidor, piso3GiB cada100ms y plazo900s; capacidad desconocida o bajo presupuesto produce REFUSED. PHP CLI/servidor256M, Node512M. No se confunden COMMIT, RSS y memoria PHP; no se anuncia estrés52MB. Cualquier aborto invalida un verde anterior. PDF del informe en Job separado después del cierre real de procesos y puerto8080 IPv4/IPv6.</p>
+<h2>Resultados reales</h2>
+<table>
+<thead>
+<tr>
+<th>Proyecto</th>
+<th>Escenario</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop</td>
+<td>E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font</td>
+<td>unexpected</td>
+</tr>
+<tr>
+<td>desktop</td>
+<td>E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>desktop</td>
+<td>E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>desktop</td>
+<td>E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>E2E28.02 server static SVG PNG PDF pinned archived historical selected pages actor brand boundary</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded</td>
+<td>skipped</td>
+</tr>
+</tbody>
+</table>
+<h2>qa-gate literal</h2>
+<pre><code class="language-json">{
+  &quot;verdict&quot;: &quot;NO-VERDE&quot;,
+  &quot;reason&quot;: &quot;el runner reportó errores de ejecución&quot;,
+  &quot;errors&quot;: [
+    &quot;\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m&quot;
+  ]
+}
+</code></pre>
+<p>El recount exige 12 resultados sin skip/flaky/retry y todos los observadores, axe, red, materialización, deriva y cierre de procesos. El gate aislado no sustituye esa evidencia.</p>
+<h2>Observadores y alcance</h2>
+<p>XML y matrices SVG se leen con DOM nativo y un segundo parser independiente stdlib. IDs de barras, línea cero, categorías/series, colores y signos/null/cero/apilado/proporciones se contrastan con álgebra de fixtures propias, sin importar escena/geometría/renderer del producto. Tolerancia de coordenadas0,75px contempla el centro de ejes de1px; escala de amplitud0,012. PNG valida firma/CRC/filtros y píxeles/longitudes frente a SVG+fixture. Barras subpixel de la tanda12.000 se cuentan individualmente en SVG; PNG se contrasta además con cobertura fraccional/source-over independiente, error medio≤6/p95≤18 y centros de ejes/rejilla±2px excluidos. No se afirman12.000 píxeles separables.</p>
+<p>El preview real se compara con el recorte correspondiente del PNG final: error RGB máximo4 y medio0,25. Glifos privados se contrastan después de exportar con Canvas2D cargado desde TTF original bajo otra familia eliminada al terminar: IoU≥0,80 y margen≥0,03 frente a Arial. SVG debe contener los bytes WOFF2 cuyo SHA/tamaño se observaron por HTTP200/MIME real. Los umbrales anteriores son criterios fijados antes de ejecutar, no resultados asumidos.</p>
+<p>PDF del diseño es raster: una página y un XObject RGB realmente dibujado a tamaño correcto. Su RGB debe coincidir píxel a píxel con el PNG entregado, donde se verifican los glifos; no se presenta como texto extraíble/vectorial. La entrada real de Node y sus archivos materializados se observan pasivamente, sin reescritura: referencias seleccionadas, revisión antigua archivada y SHA original. Cancelación retiene una respuesta PHP200 real y conserva sus bytes; cierre del cliente y ausencia de aplicación tardía son aserciones explícitas.</p>
+<p>Descargas reales guardan bytes, SHA y URL privada; las URLs publicables se reducen a ruta. Las cabeceras nativas se observan en el frontend propio; los Blob del cliente declaran que sus cabeceras no son observables, sin GET adicional. Errores HTTP sólo admiten método/ruta/status predeclarados y afirmados, y abortos exactos confirmados. Axe exige cero violaciones e incomplete, sin exclusiones.</p>
+<h2>Checklist manual pendiente</h2>
+<ul>
+<li>[ ] Root inspecciona cada figura y cada página del PDF y registra su SHA actual en visual-inspection.json.</li>
+<li>[ ] Persona confirma legibilidad/densidad y calidad de diseño en375/768/1440 con sus datos reales.</li>
+<li>[ ] Otras22configuraciones, AV, Linux/VPS/R2 y datos52MB necesitan fases/pruebas propias; esta tanda no los acredita.</li>
+</ul>
+<h2>Evidencias visuales</h2>
+<h3>images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-bar-preview.png</h3>
+<p><img src="images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-bar-preview.png" alt="images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-bar-preview.png" /></p>
+<h3>images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column-preview.png</h3>
+<p><img src="images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column-preview.png" alt="images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column-preview.png" /></p>
+<h3>images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column.png</h3>
+<p><img src="images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column.png" alt="images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column.png" /></p>
+<h2>Fallo observado y diagnóstico pendiente</h2>
+<p>Un caso desktop falló y once no se ejecutaron. La espera de la fuente pasó esta vez; el recorrido generó SVG/PNG de column y SVG de bar, con sus previews. Se detuvo en el oráculo categórico de bar: «Category text outside its semantic row band». También se registraron tres GET de exportación JSON de dataset con net::ERR_ABORTED; el observador pasivo independiente del servidor conserva tres respuestas200 terminadas con los mismos bytes/SHA. Se investiga su causa; no se ocultan ni se declaran aceptadas.</p>
+<p>Estos archivos son evidencia parcial de un intento NO-PASS, no aceptación de las diez variantes, píxeles, fuentes, accesibilidad ni exportación integrada. La causa entre métricas del oráculo y renderizado se investiga mediante fuentes, SVG real y métricas de la fuente antes de corregir. No se relaja ninguna tolerancia por este resultado.</p>
+<p>Core31,070s, COMMIT694.661.120B y mínimo físico9.642.672.128B, sin fallo del guard. Finalize0,118s/31.961.088B separado; PIDs propios muertos y8080IPv4/IPv6 libres.306fuentes verificadas intactas antes del informe. No es RSS. El reportador revisado admite ahora el terminal fallido cerrado y conserva NO-PASS sin el adaptador del intento1.</p>
+<p><a href="sample-column.svg">SVG column observado</a> · <a href="sample-bar.svg">SVG bar observado</a></p>
+<p><img src="images/failed-second-variant.png" alt="Fallo durante la segunda variante" /></p>
+<p><img src="images/column-preview-render.png" alt="Preview column realmente renderizado" /></p>
+<p><img src="images/bar-preview-render.png" alt="Preview bar realmente renderizado" /></p>
+</main></body></html>

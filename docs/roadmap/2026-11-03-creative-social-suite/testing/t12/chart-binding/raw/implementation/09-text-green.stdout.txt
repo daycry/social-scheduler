@@ -1,0 +1,48 @@
+TAP version 13
+# Subtest: projection requires explicit conversion of text series and diagnoses row and column IDs
+not ok 1 - projection requires explicit conversion of text series and diagnoses row and column IDs
+  ---
+  duration_ms: 1.6591
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-chart-binding.test.mjs:116:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The validation function is expected to return "true". Received false
+    
+    Caught error:
+    
+    TypeError: Fila 1 (row_problem), columna 2 (value): convierte el texto explícitamente a número antes de graficar.
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: [Function (anonymous)]
+  actual:
+  error: 'Fila 1 (row_problem), columna 2 (value): convierte el texto explícitamente a número antes de graficar.'
+  name: 'TypeError'
+  stack: |-
+    fail (file:///C:/laragon/www/metricool/resources/js/Studio/chart-binding.js:2:33)
+    file:///C:/laragon/www/metricool/resources/js/Studio/chart-binding.js:76:48
+    Array.map (<anonymous>)
+    file:///C:/laragon/www/metricool/resources/js/Studio/chart-binding.js:73:32
+    Array.map (<anonymous>)
+    projectCategoricalChart (file:///C:/laragon/www/metricool/resources/js/Studio/chart-binding.js:70:42)
+    file:///C:/laragon/www/metricool/tests/frontend/studio-chart-binding.test.mjs:119:29
+    getActual (node:assert:609:5)
+    Function.throws (node:assert:757:24)
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-chart-binding.test.mjs:119:16)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-chart-binding.test.mjs:119:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 19.2839

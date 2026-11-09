@@ -1,0 +1,809 @@
+{
+  "config": {
+    "argv": [
+      "C:\\laragon\\bin\\nodejs\\node-v22\\node.exe",
+      "C:\\laragon\\www\\metricool\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-presentation-native-qa3\\playwright.config.ts"
+    ],
+    "configFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-presentation-native-qa3\\playwright.config.ts",
+    "rootDir": "C:/laragon/www/metricool/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-chart-final-qa1\\global-setup.ts",
+    "globalTeardown": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 830000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 1,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "studio-presentations.spec.ts",
+          "studio-presentation-media.spec.ts"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "studio-presentations.spec.ts",
+          "studio-presentation-media.spec.ts"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-360",
+        "name": "mobile-360",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "studio-presentations.spec.ts",
+          "studio-presentation-media.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "desktop",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "studio-presentations.spec.ts",
+          "studio-presentation-media.spec.ts"
+        ],
+        "timeout": 90000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "serviceWorkers": "block",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1, MAP * ~NOTFOUND"
+            ]
+          },
+          "browserName": "chromium",
+          "viewport": {
+            "width": 1440,
+            "height": 1000
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "desktop"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "mobile",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "studio-presentations.spec.ts",
+          "studio-presentation-media.spec.ts"
+        ],
+        "timeout": 90000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "serviceWorkers": "block",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1, MAP * ~NOTFOUND"
+            ]
+          },
+          "browserName": "chromium",
+          "viewport": {
+            "width": 375,
+            "height": 812
+          },
+          "isMobile": true,
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "mobile-360",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "studio-presentations.spec.ts",
+          "studio-presentation-media.spec.ts"
+        ],
+        "timeout": 90000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "serviceWorkers": "block",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1, MAP * ~NOTFOUND"
+            ]
+          },
+          "browserName": "chromium",
+          "viewport": {
+            "width": 768,
+            "height": 1024
+          },
+          "isMobile": true,
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile-360"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "cwd": "C:\\laragon\\www\\metricool",
+      "command": "node storage/framework/testing/t12-presentation-native-qa3/serve.cjs",
+      "url": "http://localhost:8080/__general-isolation-proof",
+      "reuseExistingServer": false,
+      "timeout": 60000,
+      "stdout": "ignore",
+      "stderr": "ignore",
+      "env": {
+        "E2E_GENERAL_ENV": "eyJQQVRIIjoiQzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFx0bXBcXGFyZzAtd2luZG93c1xcY29kZXgtYXJnMDVaWm5raDtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHBhY2thZ2VzXFxhcHAtc2VydmVyLWRhZW1vblxccmVsZWFzZXNcXDAuMTY3LjAteDg2XzY0LXBjLXdpbmRvd3MtbXN2Y1xcY29kZXgtcGF0aDtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwUGxrYlJjO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwLXdpbmRvd3NcXGNvZGV4LWFyZzAwclJmeW07QzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFxwYWNrYWdlc1xcc3RhbmRhbG9uZVxccmVsZWFzZXNcXDAuMTY2LjAteDg2XzY0LXBjLXdpbmRvd3MtbXN2Y1xcY29kZXgtcGF0aDtDOlxcV2luZG93c1xcc3lzdGVtMzI7QzpcXFdpbmRvd3M7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxXYmVtO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2luZG93c1Bvd2VyU2hlbGxcXHYxLjBcXDtDOlxcV2luZG93c1xcU3lzdGVtMzJcXE9wZW5TU0hcXDtDOlxcUHJvZ3JhbSBGaWxlc1xcTlZJRElBIENvcnBvcmF0aW9uXFxOVklESUEgQXBwXFxOdkRMSVNSO0M6XFxQcm9ncmFtIEZpbGVzICh4ODYpXFxOVklESUEgQ29ycG9yYXRpb25cXFBoeXNYXFxDb21tb247QzpcXFByb2dyYW0gRmlsZXNcXEdpdEh1YiBDTElcXDtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxccG5wbVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXC5sb2NhbFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXGNvbXBvc2VyO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcY21kO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcbWluZ3c2NFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcdXNyXFxiaW47QzpcXGxhcmFnb25cXGJpblxcbXlzcWxcXG15c3FsLTguNC4zLXdpbng2NFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG5ncm9rO0M6XFxsYXJhZ29uXFxiaW5cXG5vZGVqc1xcbm9kZS12MjI7QzpcXGxhcmFnb25cXGJpblxccGhwXFxwaHAtOC4zLjMzLVdpbjMyLXZzMTYteDY0O0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTM7QzpcXGxhcmFnb25cXGJpblxccHl0aG9uXFxweXRob24tMy4xM1xcU2NyaXB0cztDOlxcbGFyYWdvblxcdXNyXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFlhcm5cXGNvbmZpZ1xcZ2xvYmFsXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcUm9hbWluZ1xcQ29tcG9zZXJcXHZlbmRvclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXG5wbTtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXE9wZW5BSVxcQ29kZXhcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcTWljcm9zb2Z0XFxXaW5kb3dzQXBwcztDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXE1pY3Jvc29mdCBWUyBDb2RlXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXEdpdEh1YkRlc2t0b3BcXGJpbjtDOlxcUHJvZ3JhbURhdGFcXGRheWNyXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luR2V0XFxQYWNrYWdlc1xcR3lhbi5GRm1wZWdfTWljcm9zb2Z0LldpbmdldC5Tb3VyY2VfOHdla3liM2Q4YmJ3ZVxcZmZtcGVnLTkuMC4yLWZ1bGxfYnVpbGRcXGJpbjs7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxEb2NrZXJEZXNrdG9wXFxyZXNvdXJjZXNcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXE1pY3Jvc29mdCBWUyBDb2RlXFxiaW5cXGNvcGlsb3Qtc2hpbSIsIlBhdGgiOiJDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwNVpabmtoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjcuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwLXdpbmRvd3NcXGNvZGV4LWFyZzBQbGtiUmM7QzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFxwYWNrYWdlc1xcYXBwLXNlcnZlci1kYWVtb25cXHJlbGVhc2VzXFwwLjE2Ni4wLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFx0bXBcXGFyZzAtd2luZG93c1xcY29kZXgtYXJnMDByUmZ5bTtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHBhY2thZ2VzXFxzdGFuZGFsb25lXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxXaW5kb3dzXFxzeXN0ZW0zMjtDOlxcV2luZG93cztDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdiZW07QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxXaW5kb3dzUG93ZXJTaGVsbFxcdjEuMFxcO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcT3BlblNTSFxcO0M6XFxQcm9ncmFtIEZpbGVzXFxOVklESUEgQ29ycG9yYXRpb25cXE5WSURJQSBBcHBcXE52RExJU1I7QzpcXFByb2dyYW0gRmlsZXMgKHg4NilcXE5WSURJQSBDb3Jwb3JhdGlvblxcUGh5c1hcXENvbW1vbjtDOlxcUHJvZ3JhbSBGaWxlc1xcR2l0SHViIENMSVxcO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxwbnBtXFxiaW47QzpcXFVzZXJzXFxkYXljclxcLmxvY2FsXFxiaW47QzpcXGxhcmFnb25cXGJpblxcY29tcG9zZXI7QzpcXGxhcmFnb25cXGJpblxcZ2l0XFxiaW47QzpcXGxhcmFnb25cXGJpblxcZ2l0XFxjbWQ7QzpcXGxhcmFnb25cXGJpblxcZ2l0XFxtaW5ndzY0XFxiaW47QzpcXGxhcmFnb25cXGJpblxcZ2l0XFx1c3JcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxteXNxbFxcbXlzcWwtOC40LjMtd2lueDY0XFxiaW47QzpcXGxhcmFnb25cXGJpblxcbmdyb2s7QzpcXGxhcmFnb25cXGJpblxcbm9kZWpzXFxub2RlLXYyMjtDOlxcbGFyYWdvblxcYmluXFxwaHBcXHBocC04LjMuMzMtV2luMzItdnMxNi14NjQ7QzpcXGxhcmFnb25cXGJpblxccHl0aG9uXFxweXRob24tMy4xMztDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzXFxTY3JpcHRzO0M6XFxsYXJhZ29uXFx1c3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcWWFyblxcY29uZmlnXFxnbG9iYWxcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxDb21wb3NlclxcdmVuZG9yXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcUm9hbWluZ1xcbnBtO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcT3BlbkFJXFxDb2RleFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbmRvd3NBcHBzO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcTWljcm9zb2Z0IFZTIENvZGVcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxQcm9ncmFtRGF0YVxcZGF5Y3JcXEdpdEh1YkRlc2t0b3BcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcTWljcm9zb2Z0XFxXaW5HZXRcXFBhY2thZ2VzXFxHeWFuLkZGbXBlZ19NaWNyb3NvZnQuV2luZ2V0LlNvdXJjZV84d2VreWIzZDhiYndlXFxmZm1wZWctOS4wLjItZnVsbF9idWlsZFxcYmluOztDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXERvY2tlckRlc2t0b3BcXHJlc291cmNlc1xcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcTWljcm9zb2Z0IFZTIENvZGVcXGJpblxcY29waWxvdC1zaGltIiwiU3lzdGVtUm9vdCI6IkM6XFxXaW5kb3dzIiwiU1lTVEVNUk9PVCI6IkM6XFxXaW5kb3dzIiwiV0lORElSIjoiQzpcXFdpbmRvd3MiLCJURU1QIjoiQzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFRlbXAiLCJUTVAiOiJDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcVGVtcCIsIkNPTVNQRUMiOiJDOlxcV2luZG93c1xcc3lzdGVtMzJcXGNtZC5leGUiLCJQQVRIRVhUIjoiLkNPTTsuRVhFOy5CQVQ7LkNNRDsuVkJTOy5WQkU7LkpTOy5KU0U7LldTRjsuV1NIOy5NU0M7LkNQTCIsIkUyRV9HRU5FUkFMX1JVTl9ST09UIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQzZTVhZTUtNTg0NS00Njg5LWJmNjUtNTRkNjM5NzgwYWIwIiwiVDQzX1JVTl9ST09UIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQzZTVhZTUtNTg0NS00Njg5LWJmNjUtNTRkNjM5NzgwYWIwIiwiQVBQX0VOViI6ImUyZSIsIkFQUF9ERUJVRyI6InRydWUiLCJBUFBfTE9DQUxFIjoiZXMiLCJBUFBfRkFMTEJBQ0tfTE9DQUxFIjoiZXMiLCJBUFBfVVJMIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiQVBQX0tFWSI6ImJhc2U2NDpUVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUwPSIsIkFQUF9DT05GSUdfQ0FDSEUiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC0yZDNlNWFlNS01ODQ1LTQ2ODktYmY2NS01NGQ2Mzk3ODBhYjBcXGNvbmZpZy5waHAiLCJBUFBfU0VSVklDRVNfQ0FDSEUiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC0yZDNlNWFlNS01ODQ1LTQ2ODktYmY2NS01NGQ2Mzk3ODBhYjBcXHNlcnZpY2VzLnBocCIsIkFQUF9QQUNLQUdFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkM2U1YWU1LTU4NDUtNDY4OS1iZjY1LTU0ZDYzOTc4MGFiMFxccGFja2FnZXMucGhwIiwiQVBQX0VWRU5UU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkM2U1YWU1LTU4NDUtNDY4OS1iZjY1LTU0ZDYzOTc4MGFiMFxcZXZlbnRzLnBocCIsIkFQUF9ST1VURVNfQ0FDSEUiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC0yZDNlNWFlNS01ODQ1LTQ2ODktYmY2NS01NGQ2Mzk3ODBhYjBcXHJvdXRlcy5waHAiLCJMQVJBVkVMX1NUT1JBR0VfUEFUSCI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkM2U1YWU1LTU4NDUtNDY4OS1iZjY1LTU0ZDYzOTc4MGFiMCIsIkRCX0NPTk5FQ1RJT04iOiJzcWxpdGUiLCJEQl9EQVRBQkFTRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkM2U1YWU1LTU4NDUtNDY4OS1iZjY1LTU0ZDYzOTc4MGFiMFxcZGIuc3FsaXRlIiwiREJfVVJMIjoiIiwiQ0FDSEVfU1RPUkUiOiJmaWxlIiwiQ0FDSEVfTElNSVRFUl9TVE9SRSI6ImZpbGUiLCJTRVNTSU9OX0RSSVZFUiI6ImRhdGFiYXNlIiwiU0VTU0lPTl9DT05ORUNUSU9OIjoic3FsaXRlIiwiUVVFVUVfQ09OTkVDVElPTiI6ImRhdGFiYXNlIiwiREJfUVVFVUVfQ09OTkVDVElPTiI6InNxbGl0ZSIsIlNFU1NJT05fU0VDVVJFX0NPT0tJRSI6ImZhbHNlIiwiTUFJTF9NQUlMRVIiOiJhcnJheSIsIk1FRElBX0RJU0siOiJsb2NhbCIsIlNPQ0lBTF9CQUNLRklMTF9PTl9DT05ORUNUIjoiZmFsc2UiLCJUUlVTVEVEX1BST1hJRVMiOiIiLCJHT09HTEVfQ0xJRU5UX0lEIjoiZTJlLWZha2UtZ29vZ2xlIiwiR09PR0xFX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJNRVRBX0FQUF9JRCI6ImUyZS1mYWtlLW1ldGEiLCJNRVRBX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJUSUtUT0tfQ0xJRU5UX0tFWSI6ImUyZS1mYWtlLXRpa3RvayIsIlRJS1RPS19DTElFTlRfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiR09PR0xFX0xPR0lOX0NMSUVOVF9JRCI6ImUyZS1mYWtlLWdvb2dsZS1sb2dpbiIsIkdPT0dMRV9MT0dJTl9DTElFTlRfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiTUVUQV9MT0dJTl9BUFBfSUQiOiJlMmUtZmFrZS1tZXRhLWxvZ2luIiwiTUVUQV9MT0dJTl9BUFBfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiVEhSRUFEU19BUFBfSUQiOiJlMmUtZmFrZS10aHJlYWRzIiwiVEhSRUFEU19BUFBfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiR0lQSFlfQVBJX0tFWSI6IiIsIkFJX0FTU0lTVEFOVF9FTkFCTEVEIjoidHJ1ZSIsIkFOVEhST1BJQ19BUElfS0VZIjoiZTJlLWZha2UtYW50aHJvcGljIiwiTUNQX09BVVRIX1JFR0lTVEVSX0dMT0JBTF9QRVJfSE9VUiI6IjEwMDAwMCIsIldFQkFVVEhOX1JQX0lEIjoibG9jYWxob3N0IiwiV0VCQVVUSE5fT1JJR0lOUyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsIlZJRVdfQ09NUElMRURfUEFUSCI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkM2U1YWU1LTU4NDUtNDY4OS1iZjY1LTU0ZDYzOTc4MGFiMFxcdmlld3MiLCJQU1lTSF9DT05GSUciOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC0yZDNlNWFlNS01ODQ1LTQ2ODktYmY2NS01NGQ2Mzk3ODBhYjBcXHBzeXNoLnBocCIsIlNZU1RFTURSSVZFIjoiQzoiLCJOT0RFX09QVElPTlMiOiItLW1heC1vbGQtc3BhY2Utc2l6ZT01MTIifQ=="
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "studio-presentation-media.spec.ts",
+      "file": "studio-presentation-media.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 11305,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 47\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1673.7999999821186,\u001b[39m\n\u001b[31m+     \"event\": \"play\",\u001b[39m\n\u001b[31m+     \"id\": 12,\u001b[39m\n\u001b[31m+     \"kind\": \"VIDEO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/1/file\",\u001b[39m\n\u001b[31m+     \"time\": 0.0139,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1673.7999999821186,\u001b[39m\n\u001b[31m+     \"event\": \"playing\",\u001b[39m\n\u001b[31m+     \"id\": 12,\u001b[39m\n\u001b[31m+     \"kind\": \"VIDEO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/1/file\",\u001b[39m\n\u001b[31m+     \"time\": 0.0139,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.0999999940395,\u001b[39m\n\u001b[31m+     \"event\": \"call:play\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": true,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.4000000059605,\u001b[39m\n\u001b[31m+     \"event\": \"play\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.4000000059605,\u001b[39m\n\u001b[31m+     \"event\": \"playing\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 47\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1673.7999999821186,\u001b[39m\n\u001b[31m+     \"event\": \"play\",\u001b[39m\n\u001b[31m+     \"id\": 12,\u001b[39m\n\u001b[31m+     \"kind\": \"VIDEO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/1/file\",\u001b[39m\n\u001b[31m+     \"time\": 0.0139,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1673.7999999821186,\u001b[39m\n\u001b[31m+     \"event\": \"playing\",\u001b[39m\n\u001b[31m+     \"id\": 12,\u001b[39m\n\u001b[31m+     \"kind\": \"VIDEO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/1/file\",\u001b[39m\n\u001b[31m+     \"time\": 0.0139,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.0999999940395,\u001b[39m\n\u001b[31m+     \"event\": \"call:play\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": true,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.4000000059605,\u001b[39m\n\u001b[31m+     \"event\": \"play\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.4000000059605,\u001b[39m\n\u001b[31m+     \"event\": \"playing\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-presentation-media.spec.ts:91:172",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-presentation-media.spec.ts",
+                      "column": 172,
+                      "line": 91
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 89 |\u001b[39m         \u001b[36mawait\u001b[39m expect\u001b[33m.\u001b[39mpoll(() \u001b[33m=>\u001b[39m page\u001b[33m.\u001b[39mevaluate(() \u001b[33m=>\u001b[39m (window \u001b[36mas\u001b[39m any)\u001b[33m.\u001b[39m__presentationProbe\u001b[33m.\u001b[39mnodes\u001b[33m.\u001b[39msome((n\u001b[33m:\u001b[39m \u001b[33mHTMLMediaElement\u001b[39m) \u001b[33m=>\u001b[39m \u001b[33m!\u001b[39mn\u001b[33m.\u001b[39mpaused)))\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 90 |\u001b[39m         \u001b[36mconst\u001b[39m closed \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m mark(page\u001b[33m,\u001b[39m \u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m \u001b[36mawait\u001b[39m button(page\u001b[33m,\u001b[39m \u001b[32m'Cerrar presentación'\u001b[39m)\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m \u001b[36mawait\u001b[39m paused(page)\u001b[33m;\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m350\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 91 |\u001b[39m         data \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m evidence(page\u001b[33m,\u001b[39m info\u001b[33m,\u001b[39m \u001b[32m'native-av-closed'\u001b[39m)\u001b[33m;\u001b[39m expect(data\u001b[33m.\u001b[39mevents\u001b[33m.\u001b[39mfilter((e\u001b[33m:\u001b[39m any) \u001b[33m=>\u001b[39m e\u001b[33m.\u001b[39mat \u001b[33m>\u001b[39m closed \u001b[33m&&\u001b[39m [\u001b[32m'play'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'playing'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'call:play'\u001b[39m]\u001b[33m.\u001b[39mincludes(e\u001b[33m.\u001b[39mevent)))\u001b[33m.\u001b[39mtoEqual([])\u001b[33m;\u001b[39m \u001b[36mawait\u001b[39m expect(modal(page))\u001b[33m.\u001b[39mtoHaveCount(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                                                                                                                            \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 92 |\u001b[39m     } \u001b[36mfinally\u001b[39m { cleanComposerBrands(user\u001b[33m.\u001b[39memail)\u001b[33m;\u001b[39m }\n \u001b[90m 93 |\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m 94 |\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-presentation-media.spec.ts",
+                        "column": 172,
+                        "line": 91
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 47\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1673.7999999821186,\u001b[39m\n\u001b[31m+     \"event\": \"play\",\u001b[39m\n\u001b[31m+     \"id\": 12,\u001b[39m\n\u001b[31m+     \"kind\": \"VIDEO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/1/file\",\u001b[39m\n\u001b[31m+     \"time\": 0.0139,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1673.7999999821186,\u001b[39m\n\u001b[31m+     \"event\": \"playing\",\u001b[39m\n\u001b[31m+     \"id\": 12,\u001b[39m\n\u001b[31m+     \"kind\": \"VIDEO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/1/file\",\u001b[39m\n\u001b[31m+     \"time\": 0.0139,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.0999999940395,\u001b[39m\n\u001b[31m+     \"event\": \"call:play\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": true,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.4000000059605,\u001b[39m\n\u001b[31m+     \"event\": \"play\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"at\": 1674.4000000059605,\u001b[39m\n\u001b[31m+     \"event\": \"playing\",\u001b[39m\n\u001b[31m+     \"id\": 11,\u001b[39m\n\u001b[31m+     \"kind\": \"AUDIO\",\u001b[39m\n\u001b[31m+     \"paused\": false,\u001b[39m\n\u001b[31m+     \"src\": \"http://localhost:8080/brands/1/studio/assets/2/file\",\u001b[39m\n\u001b[31m+     \"time\": 0,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  89 |         await expect.poll(() => page.evaluate(() => (window as any).__presentationProbe.nodes.some((n: HTMLMediaElement) => !n.paused))).toBe(true);\n  90 |         const closed = await mark(page, true); await button(page, 'Cerrar presentación').click(); await paused(page); await page.waitForTimeout(350);\n> 91 |         data = await evidence(page, info, 'native-av-closed'); expect(data.events.filter((e: any) => e.at > closed && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]); await expect(modal(page)).toHaveCount(0);\n     |                                                                                                                                                                            ^\n  92 |     } finally { cleanComposerBrands(user.email); }\n  93 | });\n  94 |\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-presentation-media.spec.ts:91:172"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-07T03:34:57.137Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\artifacts\\studio-presentation-media--ab662-d-close-release-every-media-desktop\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\artifacts\\studio-presentation-media--ab662-d-close-release-every-media-desktop\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0\\artifacts\\studio-presentation-media--ab662-d-close-release-every-media-desktop\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-presentation-media.spec.ts",
+                    "column": 172,
+                    "line": 91
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-d114dc667f3b1663a12a",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 69,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-68ed5c2de9e1e841582b",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 95,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 real fullscreen entry exit focus restoration and owned popup closure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-383e3f09ffad1fecbe10",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 129,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 pending real media preparation cancelled by close never publishes or plays late",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-8c07f19fa8c8712fffa7",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 142,
+          "column": 60
+        },
+        {
+          "title": "E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-aab48100c4967b17a73f",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 142,
+          "column": 60
+        },
+        {
+          "title": "E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-7628cf86fa30f02ef08c",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 69,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-c26cf37925b17ac1635b",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 95,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 real fullscreen entry exit focus restoration and owned popup closure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-0ea209e36dc1242ab08c",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 129,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 pending real media preparation cancelled by close never publishes or plays late",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-20554d4c7d6809e3face",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 142,
+          "column": 60
+        },
+        {
+          "title": "E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-98a3f5697dfef83a36a0",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 142,
+          "column": 60
+        },
+        {
+          "title": "E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-83ea4a15a48f7e25c0fd",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 69,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-fcf93cea6221fe99d2e7",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 95,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 real fullscreen entry exit focus restoration and owned popup closure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-446266f39c4ae5c5ee06",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 129,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 pending real media preparation cancelled by close never publishes or plays late",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-ef49c2a1393403e35e54",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 142,
+          "column": 60
+        },
+        {
+          "title": "E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "e5f2e78096893c0a2941-da7476ccf481200d7305",
+          "file": "studio-presentation-media.spec.ts",
+          "line": 142,
+          "column": 60
+        }
+      ]
+    },
+    {
+      "title": "studio-presentations.spec.ts",
+      "file": "studio-presentations.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-c907ac87c7786a68f51a",
+          "file": "studio-presentations.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-554c04710b5c0585a41c",
+          "file": "studio-presentations.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-d64633723324ff2298a8",
+          "file": "studio-presentations.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-cf570e183d8a3e08d452",
+          "file": "studio-presentations.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-ba5913dea60b87a68acc",
+          "file": "studio-presentations.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-52843982cc580910bdbc",
+          "file": "studio-presentations.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-ab5cea5a7ad7cd30caea",
+          "file": "studio-presentations.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-817bd64e17147a4bb815",
+          "file": "studio-presentations.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "fc09969ffada9a5e744a-ee9bd1f6ef782c91af60",
+          "file": "studio-presentations.spec.ts",
+          "line": 103,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-11-07T03:34:51.701Z",
+    "duration": 18404.381999999998,
+    "expected": 0,
+    "skipped": 23,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

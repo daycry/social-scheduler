@@ -1,0 +1,19 @@
+{
+  "state": "PRECLICK_ORACLE_BOUNDARY_PROVEN",
+  "closed_mark_browser_ms": 1668.5999999940395,
+  "clock_offset_interval_ms": [
+    14416.47000000596,
+    14418.08700000596
+  ],
+  "click_action_trace_ms": 16127.571,
+  "rejected_events": 5,
+  "latest_rejected_event_upper_trace_ms": 16092.48700001192,
+  "minimum_margin_before_click_ms": 35.083999988079086,
+  "all_rejected_events_definitely_before_click_dispatch": true,
+  "all_media_final_paused": true,
+  "trace_sha256": "3eafb1e3c88194b3754cfaa7fb25a2fe91a2b8399b120e3daf2f3cd8167d7534",
+  "media_evidence_sha256": "591f60cf8ed49603e900298e2b7952b100ebbe5319a42740ee18ae32aa771239",
+  "native_case_accepted": false,
+  "product_fix_proven_necessary": false,
+  "next": "Capture the close boundary at the actual trusted click before its handler, not before Playwright actionability waits. Preserve all no-post-close event assertions and real calls."
+}

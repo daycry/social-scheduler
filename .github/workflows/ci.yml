@@ -32,6 +32,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-studio.txt
+      - name: Private Studio font runtime
+        run: python scripts/studio/setup-runtime.py
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env && php artisan key:generate
       - run: npm ci && npm run build
@@ -39,3 +46,7 @@ jobs:
         run: vendor/bin/pint --test
       - name: Tests
         run: composer test
+      - name: Studio runtime contracts
+        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_setup.py' -v
+      - name: Studio font parser and process budgets
+        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_[fm]*.py' -v

@@ -1,0 +1,15 @@
+{
+  "reviewer": "root, directly viewed all three actual screenshots",
+  "scope": "Three reconstructed table diagnostic states only; no full axe or app acceptance",
+  "inspected": {
+    "baseline.png": "60c98c6dca7db125e45f6e362cbb73aaf362e9fe2f0ed06c1d13819841e867d2",
+    "empty-footer.png": "a10c8fc58fab226c9681d169c2d7fd70b90bad57e1c78e7b7599c5353181e562",
+    "one-row-control.png": "35c978e2809f0f0609dd839d4ec45bdf1ae33f308a14f1f654de76df016854a1"
+  },
+  "issues": [],
+  "alive_owned_pids": [],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  }
+}

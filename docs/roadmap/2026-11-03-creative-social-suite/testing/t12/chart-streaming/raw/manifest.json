@@ -1,0 +1,61 @@
+{
+  "time_utc": "2026-11-05T23:13:02.198419+00:00",
+  "status": "private prototype, not promoted, T12 remains open",
+  "source_sha256": {
+    "app\\Services\\Studio\\StudioChartData.php": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845",
+    "tests\\Feature\\Studio\\StudioChartDataTest.php": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0"
+  },
+  "dataset_fixture": {
+    "input_bytes": 25000000,
+    "sha256": "20f9d6b6754f93fb94fc301a0e137392bfed36673509703943d5f2e698c040a1",
+    "rows": 1000,
+    "columns": 100,
+    "first_cell_backslashes": 249,
+    "last_cell_backslashes": 248
+  },
+  "private_files": {
+    "bootstrap.php": "9aeecf9e8a6a2b82a520745df3d99bdf088e6876c9c4dffdab08e0b5397b4d55",
+    "CandidateChartData.php": "42d71155c93701c40330decfbd36747476ece7cde82a0f2e0c05c46d462e8430",
+    "LargeDatasetTest.php": "d16cadcbb0d1e395c39afe29d48d3ec07765ada6a5487ad59056e1e6fc94a63f",
+    "LegacyTest.php": "99532ddf52631738a5977adb8d93c33d50ebd7501cc3b0b4f2e913824a04fc84",
+    "StreamTest.php": "6171c2355dde8b53011b90041b1407f8894f56291b8beeb0828f6fd0e5f4a704",
+    "proposed\\StudioChartData.php": "06815dad551bc3f095341b4d602e2714e1048a4d552e500cb98dc7e20f15cf8c",
+    "proposed\\StudioChartDataTest.php": "07a3b2b259883c2e936ea5bfdb965df659e330532ef692bb1a79fbb0671f0c7f"
+  },
+  "final_verification": {
+    "tests": 67,
+    "passed": 67,
+    "assertions": 187,
+    "duration_ms": 14710,
+    "php_peak_bytes": 60817408,
+    "memory_limit": "256M",
+    "exit_code": 0,
+    "evidence": "green-all-final.txt"
+  },
+  "artifacts": {
+    "bootstrap.php": "9aeecf9e8a6a2b82a520745df3d99bdf088e6876c9c4dffdab08e0b5397b4d55",
+    "CandidateChartData.php": "42d71155c93701c40330decfbd36747476ece7cde82a0f2e0c05c46d462e8430",
+    "contract-addendum.md": "e295d3ded80813f81cd2de1457b2d8e4ad5fe4de11c6594f8a9a684d80fa6ccb",
+    "green-25MB.txt": "c8a0e1bae087f6c5c88753a4a81934e64285d8fabbf6caede3bd4a0e4fd1574e",
+    "green-52MB.txt": "669082e6661c5438f6c3a07b1ba40efdcb16249c670ae13b88bad7e3c09285b0",
+    "green-all-final.txt": "7b046020255d56f0cfe3b9a1fc3345e0173eebdccc49e1787695b9366042e6c9",
+    "green-extended.txt": "bb4df6e189237567685cb6e163d92a365a24970b49a770fdaebc5674f72a7fe9",
+    "green-final.txt": "873d189061da0fe3ee9059a0b2e7ae67fbabb3bfa3a928ccca2e43f8fc078724",
+    "green-initial.txt": "2ece152dae88962d900ddb2f64bbf58e8b62f50043002853407e6637fec860e5",
+    "LargeDatasetTest.php": "d16cadcbb0d1e395c39afe29d48d3ec07765ada6a5487ad59056e1e6fc94a63f",
+    "LegacyTest.php": "99532ddf52631738a5977adb8d93c33d50ebd7501cc3b0b4f2e913824a04fc84",
+    "pint-before.txt": "ee8bf6c05c0ccf9d7193a644ffdfe69d2b1639c15488a87edf8376bc350e3304",
+    "pint-final.txt": "e8cf1936187b198e3926645c7cecfb1c5b77cff79f816568577f714c5f9d62b2",
+    "pint-format.txt": "b6910a3f009c658a2d38ef8deb6a45f8822c2539d9ae2d4041dff2afdcbeee3b",
+    "red-0.txt": "3496ee6c9129fac4bd3f57aa16c7bbe358f05766c04812ca13717f2342c7899b",
+    "red-1.txt": "c61918c167b25f2fb46a8a2f237ff24e88367d414f702ddba2d5e29e5c41121a",
+    "red-2.txt": "59238758531f17c6e241517f774e26ee404a870f1995e0c05331db3b107d6321",
+    "red-3.txt": "39efe655815c133aae0abf316cffe85eb74b02e16d8a17159845743aed325149",
+    "red-export.txt": "ef413b3ec853d3bb49c00ce3270b8738f6aeb431c485c884f89d161801eb2cd6",
+    "red.txt": "78499dfb9a72b64bd261b408558102a5dcdf7124dc791fa1997eb98aea730aaf",
+    "service.patch": "5d05de8459b6c1e4a5e2b63447f000e47f20b28681ce074d8063aff4d0a41e3b",
+    "StreamTest.php": "6171c2355dde8b53011b90041b1407f8894f56291b8beeb0828f6fd0e5f4a704",
+    "tdd-evidence.md": "f889a8f68fc30b13c52e3bcea8ae7e7277d58ad05d965fa12a9b3ecd7667d4c5",
+    "tests.patch": "66d2bc20c7ad2eaaf7a5df4dbf8bb590aeb39ef37f2756be1cfc0a332c86f590"
+  }
+}

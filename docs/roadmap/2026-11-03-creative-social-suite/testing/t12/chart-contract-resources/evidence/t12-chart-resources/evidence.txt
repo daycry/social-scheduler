@@ -1,0 +1,10 @@
+T12 C2 chart registry evidence, 2026-11-06.
+Scope: only new resources/js/Studio/chart-resources.js and tests/frontend/studio-chart-resources.test.mjs, plus this evidence directory. No other source, ledger, document or Git mutations.
+RED: initial 9 behavior tests fail against importable explicit unimplemented registry stub; red.txt. Additional responseURL test fails Missing expected rejection; red-response-url.txt. LRU selection501 test fails 500 prepared selection budget exceeded; red-lru.txt.
+GREEN: node --max-old-space-size=512 tests/frontend/studio-chart-resources.test.mjs => 14 tests,14 pass,0 fail. Pure Node fake fetch/ReadableStream; real Node WebCrypto digests.
+Neighbor: node --max-old-space-size=512 --expose-gc tests/frontend/studio-bar-prepared.test.mjs =>8 tests,8 pass,0 fail.
+Tests 10-12 are characterization of already-green timeout/aggregate streaming/hostile data behavior, not claimed as new RED cycles.
+Environment: --test runner spawned subprocess EPERM; Node22 has no --test-isolation=none option. Direct invocation runs node:test in this same process. Initial neighbor invocation omitted required --expose-gc and was rerun correctly; no source modification for either environment limitation.
+Budget evidence uses metadata reservations and synthetic declared oversized chunk length; no claim of full52MB stress or allocated64MB payload. LRU fixture has501 legitimate selections against one1-row/9-series dataset; one fetch; completed preparations<=500; previously delivered evicted handle remains valid. Resources32refs/64M never LRU-evicted; in-flight entries count/reserve before reads. Projection pending promises are deduped and not evicted/cancelled by completed-selection LRU.
+Timeout callback is exercised with deterministic timer interception; it requests30000ms and aborts its own request. It is not a30-second wall-clock/HTTP exercise.
+No HTTP, browser, UI, PHP, build, DB, runtime installation or native export validation. No C3 or AV acceptance.

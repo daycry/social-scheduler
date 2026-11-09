@@ -1,0 +1,10 @@
+{
+  "baseline": "storage\\framework\\testing\\t11-ui-baseline",
+  "files": {
+    "resources/js/Pages/Studio/Editor.vue": "25cb7a2c0708d27a087abefaec76a74693cdb189231afec38c2e0d3bc41deb98",
+    "resources/js/Components/Studio/TimelinePanel.vue": "fe08b0ba0bd15f9db4e61d8669a44fa9899854d7e698103b45628f7bfb912dda",
+    "resources/js/Studio/timeline-preview.js": "8d10ec2558af0fc8edb9cfb4dc0ec308a345b7fac7f4026981d064489a4eef09",
+    "tests/frontend/studio-timeline.browser.test.mjs": "e705b411009488e5faa7125b26c69cba7f428e097bd1175b213fee620b27b14b",
+    "tests/e2e/studio-timeline.spec.ts": "af0ef3199bc62a94ab58489391c7f33f178523f88fa7b3280237a8a5e3609b3a"
+  }
+}

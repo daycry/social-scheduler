@@ -1,0 +1,46 @@
+{
+  "automatic_verdict": "FOCAL-PASS",
+  "planned_cases": 3,
+  "actual_cases": 3,
+  "cases": [
+    {
+      "project": "desktop",
+      "width": 1440,
+      "outcome": "passed"
+    },
+    {
+      "project": "mobile",
+      "width": 375,
+      "outcome": "passed"
+    },
+    {
+      "project": "mobile-360",
+      "width": 768,
+      "outcome": "passed"
+    }
+  ],
+  "global_acceptance": false,
+  "source_count": 370,
+  "downloads": 9,
+  "figure_count": 4,
+  "visual_review_pending": false,
+  "pdf_generated": true,
+  "scope": "E2E28.02 only, complete scenario at 375/768/1440; no errors/dense/client matrix/AV/other families/roadmap acceptance",
+  "resource": {
+    "physical_minimum_observed_bytes": 7373107200,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 92.04876579999109,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 934830080,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  }
+}

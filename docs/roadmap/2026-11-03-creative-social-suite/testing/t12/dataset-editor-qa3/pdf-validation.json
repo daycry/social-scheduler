@@ -1,0 +1,36 @@
+{
+  "pages": 20,
+  "rendered_from_pdf": true,
+  "visually_inspected": true,
+  "job_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 653496320,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "pdf_sha256": "154e2c960d632f9382b7fff78e62b0a77ad741ef5b55354649393c6e0fc25f08",
+  "all_pages_inspected": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "observation": "All20 pages inspected: prose, table, literal gate and embedded images present without clipping; narrow fullpage previews use original screenshots for fine detail."
+}

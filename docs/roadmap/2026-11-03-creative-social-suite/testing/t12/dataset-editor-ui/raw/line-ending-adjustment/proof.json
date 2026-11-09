@@ -1,0 +1,14 @@
+{
+  "resources/js/Pages/Studio/Index.vue": {
+    "before": "a65b48594216121a7abfd6a83cb296895a4cb2b50fee7598733c5bdc1bd172f6",
+    "after": "2ff87f28893febd71a17fefb1d065dcfc6ee5113eec6e0c16798bfd340339982",
+    "change": "CRLF to original LF only; logical lines identical",
+    "logical_lines_equal": true
+  },
+  "resources/js/Pages/Studio/Editor.vue": {
+    "before": "3e0d33b9b0a82410f068b42b4245f04bb5974022edf0ee92dcc32c56fee94f3f",
+    "after": "bcb8f2536e19fec1bdea3f134aa6296329a85862677024c22ccc5fc2d1ee47ad",
+    "change": "CRLF to original LF only; logical lines identical",
+    "logical_lines_equal": true
+  }
+}

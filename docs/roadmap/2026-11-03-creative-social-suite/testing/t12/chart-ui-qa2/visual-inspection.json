@@ -1,0 +1,22 @@
+{
+  "inspected": {
+    "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-bar-preview.png": "2bc26c39312b9cb1c2ef4c8360a9d9eee0423cf43222b5c73290fa9996a057fd",
+    "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column-preview.png": "2bc26c39312b9cb1c2ef4c8360a9d9eee0423cf43222b5c73290fa9996a057fd",
+    "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column.png": "cac2d56d44433cb16f1a68531f776252b2e1f5662c882872cab0e06532fb344f",
+    "images/failed-second-variant.png": "f79b2625b15a325ea972bb3bef09e2ca3692a531efa08b82708936924f01d1eb",
+    "images/column-preview-render.png": "d275246e3dd649c9cd87cee0713fd85514c263c4009614bb49ee3df215da6383",
+    "images/bar-preview-render.png": "8e9700e5d68d5df3e46dc43234c22b6fed74852b4a975f9c691e69962f09d467",
+    "pdf-pages/page-001.png": "00d5f5de93a7282026b0623d0cef6c0678404b60f005d8af1e58edbcb47db52e",
+    "pdf-pages/page-002.png": "ed9e3e4167882498685678a11dcf09719dae966fc5bab794e2e90ed7913ce1b2",
+    "pdf-pages/page-003.png": "75e5369f27be7b1a021aed6e79e20b428022a4d727f921f2bea3b7c0e8652af2",
+    "pdf-pages/page-004.png": "55778b2df6e6ca14a28a85e523b51208cbf0b2d4dd813c76460a3ddb51be3b63",
+    "pdf-pages/page-005.png": "0a44d8ca50d118d6a42b08d7fd1e7c89f98e40953be95a2c02eed1044723e6c4",
+    "pdf-pages/page-006.png": "b7582bf058b961fabf5bb67ea806a662bfd2c84371fa1ae95236c27d2550291d",
+    "pdf-pages/page-007.png": "e2a39fcd8e9233fe68f57e07cf76bd72973cd50c2c0dff11e3c68915023af409",
+    "pdf-pages/page-008.png": "78156dcabf3f47b96d792c8ebc2cb5e9b869358fbff1071968227f6f35b8dbf5"
+  },
+  "pdf_sha256": "5ba4c1ce0f08b7bbec643dda4e97ba5d0fb3b6aaa9d623f30459e8f24c32e721",
+  "reviewer": "root: all six figures and eight PDF pages inspected",
+  "issues": [],
+  "scope": "Failed attempt report only; actual chart quality/functional acceptance remains pending"
+}

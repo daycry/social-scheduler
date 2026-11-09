@@ -1,0 +1,72 @@
+[
+    {
+        "path":  "routes/studio.php",
+        "before_sha256":  "3E8A81ADD20A8207C0BC88EE63A8C7C8D5D7AA6746747E57363C8F8286E7C975",
+        "after_sha256":  "522908CB45D1AD2BCB52BA54E61D28FBABBE185DA27905A2BCB53322F9FB28DA"
+    },
+    {
+        "path":  "routes/studio-api.php",
+        "before_sha256":  "21A744B6B8AA492CA3C64BED4513CBA1EC7C3ADA31F5E02AE0016AA347F53C81",
+        "after_sha256":  "92BB223FA5164673663064445663C50C2A47DFB5B763DC75037926D1CBC97A6C"
+    },
+    {
+        "path":  "bootstrap/app.php",
+        "before_sha256":  "8B2959B3439E390C812739CC9D06FA41F2739A23E3F26748D728EEE9AC954F0A",
+        "after_sha256":  "D57D4AB0E0F0E18454866917C5DB162703C00CA728D209ED5D45462BB79CACA9"
+    },
+    {
+        "path":  "app/Mcp/Servers/SchedulerServer.php",
+        "before_sha256":  "FA3F77667890E1C98288CE6C96E45341EEE7221907B93DAD399CFC774E936223",
+        "after_sha256":  "11F14FA2B30AC3F82A00937C8521B304535637CB92D7929B8D698537B337C6CA"
+    },
+    {
+        "path":  "app/Mcp/Tools/SchedulerTool.php",
+        "before_sha256":  "2CAF1F6B4C4E15BB4E4A585EC6AB43052F707E9F25E7DC6AD4B74A8CA70621FF",
+        "after_sha256":  "3E20A66AF791477F0C430B28F235957B1FDCE98D0D69AD563188852AA87FFD77"
+    },
+    {
+        "path":  "tests/Feature/Studio/StudioApiMcpTest.php",
+        "before_sha256":  "FBD1F4B5EDAF051EE7C3C6EFA1619E1BDC0C96D341A49E9C1A83437A376DE047",
+        "after_sha256":  "04EDAEBD7026B630219A76EFC81944415BC51AB4F4E06AB47B6AAEF4CB213E62"
+    },
+    {
+        "path":  "app/Services/Studio/StudioDatasetActions.php",
+        "before_sha256":  null,
+        "after_sha256":  "0FA0BA8FF2C79E988D14BFDCF1BA59D8AB4385531C632AF22588C12B476D0841"
+    },
+    {
+        "path":  "app/Services/Studio/StudioDatasetInput.php",
+        "before_sha256":  null,
+        "after_sha256":  "B6D866BB36FF16D41045EDB9DDBEE6486E371F4F1A7B712A2A085BD52DE92E6E"
+    },
+    {
+        "path":  "app/Http/Controllers/Studio/StudioDatasetController.php",
+        "before_sha256":  null,
+        "after_sha256":  "954DA8B6E8D5759637584825CFC6A34F3158898AC8C2BA3A9A82764A3761EE15"
+    },
+    {
+        "path":  "app/Http/Middleware/LimitStudioDatasetPayload.php",
+        "before_sha256":  null,
+        "after_sha256":  "E4F1D64A9328C96AAAA2DE51BD387F2C1607AD300C7D3A17D0F6E090056F082F"
+    },
+    {
+        "path":  "app/Mcp/Tools/ManageStudioDataset.php",
+        "before_sha256":  null,
+        "after_sha256":  "47B8026D807D6EB238F225130E577B670104E16977FA9E3A27E36C8FDF3DCB90"
+    },
+    {
+        "path":  "routes/studio-datasets.php",
+        "before_sha256":  null,
+        "after_sha256":  "6D3CE41CD0393E2F91842B58839D33AFAF2072D68D0F324DDCC6EF15C45AEE6C"
+    },
+    {
+        "path":  "routes/studio-datasets-api.php",
+        "before_sha256":  null,
+        "after_sha256":  "AB6EABDABC40DEF69203645E22A85D4921543AB4AAEB8B0308EE5C3D4197ABE7"
+    },
+    {
+        "path":  "tests/Feature/Studio/StudioDatasetApiTest.php",
+        "before_sha256":  null,
+        "after_sha256":  "64CF9737CDB542E6931A2586B3870C8F6D03B30C76012915BC941CEC1E216259"
+    }
+]

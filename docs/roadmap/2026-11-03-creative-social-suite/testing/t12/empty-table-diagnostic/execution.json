@@ -1,0 +1,27 @@
+{
+  "state": "finished",
+  "supervisor_pid": 35860,
+  "app_pass_claim": false,
+  "node_pid": 35068,
+  "node_terminal": true,
+  "node_exit_code": 0,
+  "unchanged_sources": true,
+  "job_members_before_final_sample": [
+    35860
+  ],
+  "listening_server_created": false,
+  "network_profile": "offline_about_blank_all_requests_aborted",
+  "resource": {
+    "physical_minimum_observed_bytes": 8995942400,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 0.8232130999967922,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 269385728,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  }
+}

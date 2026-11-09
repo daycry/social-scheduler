@@ -1,0 +1,15 @@
+{
+  "phase": "e2e",
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "stats": {
+    "startTime": "2026-11-05T11:30:29.387Z",
+    "duration": 322470.005,
+    "expected": 42,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "errors": []
+}

@@ -1,0 +1,766 @@
+{
+  "scope": "six focal actual-renderer/Fabric cases; NO global QA/PDF/API/upload acceptance",
+  "sourceManifest": {
+    "state": "SOURCES_READY_NOT_EXECUTED",
+    "files": {
+      "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-axis-title-contract.md": "8dfe67c714ce8a7a325d84f51b27e7d9ed477c78d971b428e9529c43c3fb5e90",
+      "package-lock.json": "d679c1ba4d6dd50dc2c438152be2d481a34d1724b471117de5bc09a6e67db0cf",
+      "package.json": "9038fdb5bac0171aafa0945c84f83e206acda8b5167dc5d1727c60a6e08073c3",
+      "resources/js/Studio/api.js": "1e7e439a7edb164af42987a66a75dc5c0d30e33927701c664d220c930136daf1",
+      "resources/js/Studio/audio-api.js": "4a2d363635e48739495b9736fee697a305164c18dd1d111be4add29fa6129098",
+      "resources/js/Studio/audiovisual-plan.js": "369383570487177f45fb8fc492ff6656ef59d18529130e4a641152992cd8e1b5",
+      "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3",
+      "resources/js/Studio/canvas.js": "f8cecebe626b6a71a7a1e136d0dc4fda7ea6ec0d55c26a04262cc2e09752e7d5",
+      "resources/js/Studio/captions-renderer.js": "e3c3d466e2b7a7c183373e9e00cd75d1f4f324a4b08231bcdf61287bc81fb621",
+      "resources/js/Studio/captions.js": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5",
+      "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+      "resources/js/Studio/chart-renderer.js": "6b3c63d433d3201e40b58c3de7370152aeea14118a20c14613a9c6b1b5517e24",
+      "resources/js/Studio/chart-resources.js": "2cf35da3a99b5383d28531dc5868cc9b0877edfdf27658635743a294780c3526",
+      "resources/js/Studio/chart-scene.js": "14f83ca8bca340f2dc6791b87342582fd182ce712d69fef2908a55fbb4096511",
+      "resources/js/Studio/chart-spec.js": "03812080e151fb76dfe91eb0c1e939927c149e3f4cfc6f790f8df8d5cc2a5cc3",
+      "resources/js/Studio/dataset-client.js": "3ac5aee3dc974478aad68f425933c5dde25118710c02c6705e1a24677846a09e",
+      "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+      "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+      "resources/js/Studio/export-jobs.js": "e940b3852c631b7fe146d97cf0b519dd10c1503925a395c8fe1554be0226d76c",
+      "resources/js/Studio/exports.js": "cb5793ce4b6a99b405a1b21668387f8c0d69769888f7f3fafbe5b05e90fad167",
+      "resources/js/Studio/fonts.js": "0633cd444b867b41918be6ec349ba47966c8f8f50ec119adad4ebd23cf671787",
+      "resources/js/Studio/format-presets.js": "7bf92c74a3d6e415d5b346fd7b2011ce1b182260db62c8a1acc5709515c1f73f",
+      "resources/js/Studio/frame-renderer.js": "5221fd138df4f8634e9db11c54b39e7dee327c7e5069b208f24406be7beb1840",
+      "resources/js/Studio/frames.js": "e1d35ddbbed58dc4f5c15381f13453de442b08dce3ffd84295052701c9b43cc7",
+      "resources/js/Studio/history.js": "2386e89854cb2d1fb03ff1387881330b3772093f336492c694b4418d28b895d8",
+      "resources/js/Studio/previews.js": "220e7b01f5ab5e922303470d459606168b647db5862397a3ae855f363d5b6729",
+      "resources/js/Studio/project-render-entry.js": "6d8b1291a2d523074ccd2dd1259f529ca74aa36a89b54726a8a41c43a3b9dba8",
+      "resources/js/Studio/render-entry.js": "6ed0de5c3748f3ea7bf14ca11139daf544aa1809b1f418dc42528a629111167b",
+      "resources/js/Studio/templates.js": "a798404465894730ca6004e1fcec06662ceea1f15334ea84a8b43f9c69507189",
+      "resources/js/Studio/timeline-audio.js": "4aca2c96037799cdee170acabc1b264281f2605ed67e4156c9efee9cc93e6382",
+      "resources/js/Studio/timeline-preview.js": "112c4204cbea7156188de40ee949b58f35b18730169de1b50e13cfa6077eb19a",
+      "resources/js/Studio/timeline.js": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+      "storage/framework/testing/t12-chart-axis-title-diagnosis1/diagnosis.md": "986a588dcf24a80d96f1c4fcaa02d6ddbd7d81624c8261749f18e4fe9fbbf6ef",
+      "storage/framework/testing/t12-chart-axis-title-diagnosis1/phase4/DONE.md": "d5758543b98c71e7e2113f4ab5421584e8319a6e00874928ed57ad6dee95eb54",
+      "storage/framework/testing/t12-chart-axis-title-diagnosis1/phase4/non-title-after.json": "36a3f782479ca5bf7b27353362d3fe942b08a04523f93ccec64f53409e9b640f",
+      "storage/framework/testing/t12-chart-axis-title-diagnosis1/phase4/non-title-baseline.json": "36a3f782479ca5bf7b27353362d3fe942b08a04523f93ccec64f53409e9b640f",
+      "storage/framework/testing/t12-chart-axis-title-native1/browser-entry.js": "0f3ca0dce4b05b30490cbb67d0df2f26ecfd9db2a58350c7c029e0b14041418b",
+      "storage/framework/testing/t12-chart-axis-title-native1/cases.json": "ab5258e770cb33c6ddae97089a3b56e571cb3ad8e4835678e73d84fec0e92288",
+      "storage/framework/testing/t12-chart-axis-title-native1/PROPOSAL.md": "aee4a9d901bf6831d413b793b9d6a9b814de17a5bc674c3db4c6d388ba1164a8",
+      "storage/framework/testing/t12-chart-axis-title-native1/run.mjs": "e6f2dce127cd0a7817dec96ba72422c04c2b5a39f2cd2e09e59de09c6c094472",
+      "tests/e2e/support/studio-chart-observer.ts": "941b540ba3529712b12d302924e7fb3f57d48b109e6bcfb45ab6eb0c5817372d",
+      "tests/Fixtures/fonts/SpaceGrotesk-Variable.ttf": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "storage/framework/testing/t12-chart-axis-title-native1/check-fixtures.mjs": "67ce6f516e0c6676137bff99c4fa1b144aaf6cab3dd45878cbbd8fc59b894b0b",
+      "storage/framework/testing/t12-chart-axis-title-native1/revision1/valid-fixtures-final.json": "3926519f5be470535eee37128f1b79858d415e1028142404a60f40cffa43befe",
+      "storage/framework/testing/t12-chart-axis-title-native1/revision1/invalid-category-control.json": "63a12c7ece7368a3ca7d6fce8656bb31123c9388b02d0e1f1fa056739f07db5d"
+    },
+    "revision": "revision1"
+  },
+  "build7Receipt": {
+    "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-chart-axis-title-native1\\root-build7-receipt.json",
+    "sha256": "cca08ec7b62f15df6a0faf2d3c369f2361d3b4110423f2a536a0f84a8d583974"
+  },
+  "bundleSha256": "9a0f06f7a7bd0df204b2f9c7ec1f5e0a15bae4ae160c696044ff09b824c8bc3f",
+  "fontSha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+  "passed": 6,
+  "total": 6,
+  "results": [
+    {
+      "id": "column",
+      "checks": {
+        "orientation": true,
+        "uniformFit": true,
+        "sceneMatch": true,
+        "realInkContained": true,
+        "noNeighborTextOverlap": true,
+        "nativeMatrixFinite": true,
+        "font18": true,
+        "svgFontMatches": true
+      },
+      "scope": "focal native rendering only",
+      "semantic": {
+        "id": "y-title:5",
+        "type": "text",
+        "role": "y-title",
+        "text": "Valores",
+        "fontFamily": "Arial",
+        "font_id": 1,
+        "fontSize": 18,
+        "fontWeight": "normal",
+        "fontStyle": "normal",
+        "fill": "#111827",
+        "rotation": -90,
+        "x": 12.5,
+        "y": 66.5,
+        "width": 29.759999999999998,
+        "height": 308.8
+      },
+      "rootMatrix": [
+        1,
+        0,
+        0,
+        1,
+        1100,
+        850
+      ],
+      "transformedSemanticCorners": [
+        {
+          "x": 712.5,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 712.5,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "nativeFabric": {
+        "angle": -90,
+        "scaleX": 1,
+        "scaleY": 1,
+        "fontSize": 18,
+        "width": 62.801998901367185,
+        "height": 20.339999999999996,
+        "fontFamily": "StudioFont_T12_LocalFixture"
+      },
+      "ink": {
+        "method": "actual Fabric group.render Canvas2D alpha; title isolated by visibility, unclipped 2400x1800",
+        "pixels": 396,
+        "outside": 0,
+        "overlap": 0,
+        "border": 0,
+        "toleranceInScene": 1.4142135623730951,
+        "bounds": {
+          "minX": 720,
+          "minY": 790,
+          "maxX": 733,
+          "maxY": 851
+        },
+        "overlapThresholdAlpha": 16
+      },
+      "svgMetrics": {
+        "matrix": [
+          0,
+          -1,
+          1,
+          0,
+          727.3800048828125,
+          820.8999996185303
+        ],
+        "rootRemovedMatrix": [
+          0,
+          -1,
+          1,
+          0,
+          -372.6199951171875,
+          -29.100000381469727
+        ],
+        "layoutBBox": {
+          "x": -31.400999069213867,
+          "y": -12.345499992370605,
+          "width": 62.8125,
+          "height": 23
+        },
+        "effectiveFontInScene": 18,
+        "effectiveFontOnScreen": 18,
+        "distinction": "getBBox is layout envelope, alpha is painted ink"
+      },
+      "pass": true
+    },
+    {
+      "id": "bar",
+      "checks": {
+        "orientation": true,
+        "uniformFit": true,
+        "sceneMatch": true,
+        "realInkContained": true,
+        "noNeighborTextOverlap": true,
+        "nativeMatrixFinite": true,
+        "font18": true,
+        "svgFontMatches": true
+      },
+      "scope": "focal native rendering only",
+      "semantic": {
+        "id": "y-title:5",
+        "type": "text",
+        "role": "y-title",
+        "text": "Valores",
+        "fontFamily": "Arial",
+        "font_id": 1,
+        "fontSize": 18,
+        "fontWeight": "normal",
+        "fontStyle": "normal",
+        "fill": "#111827",
+        "rotation": -90,
+        "x": 12.5,
+        "y": 66.5,
+        "width": 29.759999999999998,
+        "height": 308.8
+      },
+      "rootMatrix": [
+        1,
+        0,
+        0,
+        1,
+        1100,
+        850
+      ],
+      "transformedSemanticCorners": [
+        {
+          "x": 712.5,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 712.5,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "nativeFabric": {
+        "angle": -90,
+        "scaleX": 1,
+        "scaleY": 1,
+        "fontSize": 18,
+        "width": 62.801998901367185,
+        "height": 20.339999999999996,
+        "fontFamily": "StudioFont_T12_LocalFixture"
+      },
+      "ink": {
+        "method": "actual Fabric group.render Canvas2D alpha; title isolated by visibility, unclipped 2400x1800",
+        "pixels": 396,
+        "outside": 0,
+        "overlap": 0,
+        "border": 0,
+        "toleranceInScene": 1.4142135623730951,
+        "bounds": {
+          "minX": 720,
+          "minY": 790,
+          "maxX": 733,
+          "maxY": 851
+        },
+        "overlapThresholdAlpha": 16
+      },
+      "svgMetrics": {
+        "matrix": [
+          0,
+          -1,
+          1,
+          0,
+          727.3800048828125,
+          820.8999996185303
+        ],
+        "rootRemovedMatrix": [
+          0,
+          -1,
+          1,
+          0,
+          -372.6199951171875,
+          -29.100000381469727
+        ],
+        "layoutBBox": {
+          "x": -31.400999069213867,
+          "y": -12.345499992370605,
+          "width": 62.8125,
+          "height": 23
+        },
+        "effectiveFontInScene": 18,
+        "effectiveFontOnScreen": 18,
+        "distinction": "getBBox is layout envelope, alpha is painted ink"
+      },
+      "pass": true
+    },
+    {
+      "id": "proportional",
+      "checks": {
+        "orientation": true,
+        "uniformFit": true,
+        "sceneMatch": true,
+        "realInkContained": true,
+        "noNeighborTextOverlap": true,
+        "nativeMatrixFinite": true,
+        "font18": true,
+        "svgFontMatches": true
+      },
+      "scope": "focal native rendering only",
+      "semantic": {
+        "id": "y-title:5",
+        "type": "text",
+        "role": "y-title",
+        "text": "Valores",
+        "fontFamily": "Arial",
+        "font_id": 1,
+        "fontSize": 18,
+        "fontWeight": "normal",
+        "fontStyle": "normal",
+        "fill": "#111827",
+        "rotation": -90,
+        "x": 12.5,
+        "y": 66.5,
+        "width": 29.759999999999998,
+        "height": 308.8
+      },
+      "rootMatrix": [
+        1,
+        0,
+        0,
+        1,
+        1100,
+        850
+      ],
+      "transformedSemanticCorners": [
+        {
+          "x": 712.5,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 712.5,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "nativeFabric": {
+        "angle": -90,
+        "scaleX": 1,
+        "scaleY": 1,
+        "fontSize": 18,
+        "width": 62.801998901367185,
+        "height": 20.339999999999996,
+        "fontFamily": "StudioFont_T12_LocalFixture"
+      },
+      "ink": {
+        "method": "actual Fabric group.render Canvas2D alpha; title isolated by visibility, unclipped 2400x1800",
+        "pixels": 396,
+        "outside": 0,
+        "overlap": 0,
+        "border": 0,
+        "toleranceInScene": 1.4142135623730951,
+        "bounds": {
+          "minX": 720,
+          "minY": 790,
+          "maxX": 733,
+          "maxY": 851
+        },
+        "overlapThresholdAlpha": 16
+      },
+      "svgMetrics": {
+        "matrix": [
+          0,
+          -1,
+          1,
+          0,
+          727.3800048828125,
+          820.8999996185303
+        ],
+        "rootRemovedMatrix": [
+          0,
+          -1,
+          1,
+          0,
+          -372.6199951171875,
+          -29.100000381469727
+        ],
+        "layoutBBox": {
+          "x": -31.400999069213867,
+          "y": -12.345499992370605,
+          "width": 62.8125,
+          "height": 23
+        },
+        "effectiveFontInScene": 18,
+        "effectiveFontOnScreen": 18,
+        "distinction": "getBBox is layout envelope, alpha is painted ink"
+      },
+      "pass": true
+    },
+    {
+      "id": "root-transform",
+      "checks": {
+        "orientation": true,
+        "uniformFit": true,
+        "sceneMatch": true,
+        "realInkContained": true,
+        "noNeighborTextOverlap": true,
+        "nativeMatrixFinite": true,
+        "font18": true,
+        "svgFontMatches": true
+      },
+      "scope": "focal native rendering only",
+      "semantic": {
+        "id": "y-title:5",
+        "type": "text",
+        "role": "y-title",
+        "text": "Valores",
+        "fontFamily": "Arial",
+        "font_id": 1,
+        "fontSize": 18,
+        "fontWeight": "normal",
+        "fontStyle": "normal",
+        "fill": "#111827",
+        "rotation": -90,
+        "x": 12.5,
+        "y": 66.5,
+        "width": 29.759999999999998,
+        "height": 308.8
+      },
+      "rootMatrix": [
+        0.6389084080378343,
+        0.48145201852163866,
+        -0.7522687789400604,
+        0.998294387559116,
+        1100,
+        850
+      ],
+      "transformedSemanticCorners": [
+        {
+          "x": 990.4643128208403,
+          "y": 480.2503227057672,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 1009.4782270440462,
+          "y": 494.5783347769712,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 777.1776281073555,
+          "y": 802.8516416552262,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 758.1637138841496,
+          "y": 788.5236295840223,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "nativeFabric": {
+        "angle": -90,
+        "scaleX": 1,
+        "scaleY": 1,
+        "fontSize": 18,
+        "width": 62.801998901367185,
+        "height": 20.339999999999996,
+        "fontFamily": "StudioFont_T12_LocalFixture"
+      },
+      "ink": {
+        "method": "actual Fabric group.render Canvas2D alpha; title isolated by visibility, unclipped 2400x1800",
+        "pixels": 585,
+        "outside": 0,
+        "overlap": 0,
+        "border": 0,
+        "toleranceInScene": 1.484082207965583,
+        "bounds": {
+          "minX": 854,
+          "minY": 610,
+          "maxX": 910,
+          "maxY": 671
+        },
+        "overlapThresholdAlpha": 16
+      },
+      "svgMetrics": {
+        "matrix": [
+          0.752299964427948,
+          -0.9983000159263611,
+          0.6388999819755554,
+          0.4814999997615814,
+          883.8250210877303,
+          641.5329415956354
+        ],
+        "rootRemovedMatrix": [
+          0.000026898252576623705,
+          -1.0000186103272486,
+          1.0000276830981016,
+          0.00003471236231988861,
+          -372.62952765390673,
+          -29.1134764622779
+        ],
+        "layoutBBox": {
+          "x": -31.400999069213867,
+          "y": -12.4506196975708,
+          "width": 62.79964828491211,
+          "height": 23.822526931762695
+        },
+        "effectiveFontInScene": 18.000334992401996,
+        "effectiveFontOnScreen": 22.50041873569699,
+        "distinction": "getBBox is layout envelope, alpha is painted ink"
+      },
+      "pass": true
+    },
+    {
+      "id": "long-private-font",
+      "checks": {
+        "orientation": true,
+        "uniformFit": true,
+        "sceneMatch": true,
+        "realInkContained": true,
+        "noNeighborTextOverlap": true,
+        "nativeMatrixFinite": true,
+        "font18": true,
+        "svgFontMatches": true
+      },
+      "scope": "focal native rendering only",
+      "semantic": {
+        "id": "y-title:5",
+        "type": "text",
+        "role": "y-title",
+        "text": "Valores originales de nuestra muestra local; comparación de las cantidades registradas en cada categoría durante la prueba de legibilidad vertical. Valores originales de nuestra muestra local y su distribución por categoría.",
+        "fontFamily": "Arial",
+        "font_id": 1,
+        "fontSize": 18,
+        "fontWeight": "normal",
+        "fontStyle": "normal",
+        "fill": "#111827",
+        "rotation": -90,
+        "x": 12.5,
+        "y": 66.5,
+        "width": 29.759999999999998,
+        "height": 308.8
+      },
+      "rootMatrix": [
+        1,
+        0,
+        0,
+        1,
+        1100,
+        850
+      ],
+      "transformedSemanticCorners": [
+        {
+          "x": 712.5,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 666.5,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 742.26,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 712.5,
+          "y": 975.3,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "nativeFabric": {
+        "angle": -90,
+        "scaleX": 0.16071079222787452,
+        "scaleY": 0.16071079222787452,
+        "fontSize": 18,
+        "width": 1921.4639895629869,
+        "height": 20.339999999999996,
+        "fontFamily": "StudioFont_T12_LocalFixture"
+      },
+      "ink": {
+        "method": "actual Fabric group.render Canvas2D alpha; title isolated by visibility, unclipped 2400x1800",
+        "pixels": 937,
+        "outside": 0,
+        "overlap": 0,
+        "border": 0,
+        "toleranceInScene": 1.4142135623730951,
+        "bounds": {
+          "minX": 725,
+          "minY": 666,
+          "maxX": 728,
+          "maxY": 975
+        },
+        "overlapThresholdAlpha": 16
+      },
+      "svgMetrics": {
+        "matrix": [
+          0,
+          -0.1606999933719635,
+          0.1606999933719635,
+          0,
+          727.3800048828125,
+          820.8999996185303
+        ],
+        "rootRemovedMatrix": [
+          0,
+          -0.1606999933719635,
+          0.1606999933719635,
+          0,
+          -372.6199951171875,
+          -29.100000381469727
+        ],
+        "layoutBBox": {
+          "x": -966.9547119140625,
+          "y": -13.013827323913574,
+          "width": 1927.0999755859375,
+          "height": 24.891101837158203
+        },
+        "effectiveFontInScene": 2.892599880695343,
+        "effectiveFontOnScreen": 2.892599880695343,
+        "distinction": "getBBox is layout envelope, alpha is painted ink"
+      },
+      "pass": true
+    },
+    {
+      "id": "tiny160",
+      "checks": {
+        "orientation": true,
+        "uniformFit": true,
+        "sceneMatch": true,
+        "realInkContained": true,
+        "noNeighborTextOverlap": true,
+        "nativeMatrixFinite": true,
+        "font18": true,
+        "svgFontMatches": true
+      },
+      "scope": "focal native rendering only",
+      "semantic": {
+        "id": "y-title:5",
+        "type": "text",
+        "role": "y-title",
+        "text": "Valores",
+        "fontFamily": "Arial",
+        "font_id": 1,
+        "fontSize": 18,
+        "fontWeight": "normal",
+        "fontStyle": "normal",
+        "fill": "#111827",
+        "rotation": -90,
+        "x": 4,
+        "y": 29.6,
+        "width": 11.136000000000001,
+        "height": 78.4
+      },
+      "rootMatrix": [
+        1,
+        0,
+        0,
+        1,
+        1100,
+        850
+      ],
+      "transformedSemanticCorners": [
+        {
+          "x": 1024,
+          "y": 799.6,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 1035.136,
+          "y": 799.6,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 1035.136,
+          "y": 878,
+          "z": 0,
+          "w": 1
+        },
+        {
+          "x": 1024,
+          "y": 878,
+          "z": 0,
+          "w": 1
+        }
+      ],
+      "nativeFabric": {
+        "angle": -90,
+        "scaleX": 0.5474926253687317,
+        "scaleY": 0.5474926253687317,
+        "fontSize": 18,
+        "width": 62.801998901367185,
+        "height": 20.339999999999996,
+        "fontFamily": "StudioFont_T12_LocalFixture"
+      },
+      "ink": {
+        "method": "actual Fabric group.render Canvas2D alpha; title isolated by visibility, unclipped 2400x1800",
+        "pixels": 183,
+        "outside": 0,
+        "overlap": 0,
+        "border": 0,
+        "toleranceInScene": 1.4142135623730951,
+        "bounds": {
+          "minX": 1025,
+          "minY": 822,
+          "maxX": 1033,
+          "maxY": 855
+        },
+        "overlapThresholdAlpha": 16
+      },
+      "svgMetrics": {
+        "matrix": [
+          0,
+          -0.5475000739097595,
+          0.5475000739097595,
+          0,
+          1029.568000793457,
+          838.8000001907349
+        ],
+        "rootRemovedMatrix": [
+          0,
+          -0.5475000739097595,
+          0.5475000739097595,
+          0,
+          -70.43199920654297,
+          -11.199999809265137
+        ],
+        "layoutBBox": {
+          "x": -31.400997161865234,
+          "y": -12.610337257385254,
+          "width": 62.785377502441406,
+          "height": 23.74428939819336
+        },
+        "effectiveFontInScene": 9.855001330375671,
+        "effectiveFontOnScreen": 9.855001330375671,
+        "distinction": "getBBox is layout envelope, alpha is painted ink"
+      },
+      "pass": true
+    }
+  ]
+}

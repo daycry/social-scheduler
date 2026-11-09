@@ -1,0 +1,42 @@
+# Dedicated audiovisual queue. Install only after configuring the application and native runtime.
+# The existing scheduler-worker@ instances keep their own sandbox and queues.
+[Unit]
+Description=Social Scheduler audiovisual Studio worker
+After=network.target mysql.service mariadb.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=USUARIO
+Group=USUARIO
+WorkingDirectory=/home/USUARIO/web/DOMINIO/app
+Environment=PHP_BIN=php
+ExecStart=/usr/bin/env ${PHP_BIN} artisan queue:work database --queue=studio --sleep=1 --tries=1 --timeout=120 --max-time=3600 --max-jobs=500
+Restart=always
+RestartSec=5
+TimeoutStopSec=130
+KillMode=control-group
+KillSignal=SIGTERM
+# Limit the whole worker tree, including the lightweight guardian and per-phase children.
+MemoryMax=3G
+MemorySwapMax=0
+OOMPolicy=kill
+TasksMax=512
+# Studio manages only UUID child groups inside this delegated unit. cgroup.kill is required.
+Delegate=yes
+ProtectControlGroups=no
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/USUARIO/web/DOMINIO/app/storage /home/USUARIO/web/DOMINIO/app/bootstrap/cache
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scheduler-studio
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+{
+  "html": "<table data-v-a61ea03b=\"\" class=\"w-full text-left text-xs\"><caption data-v-a61ea03b=\"\" class=\"sr-only\">Categorías y series seleccionadas, tipos y valores originales</caption><thead data-v-a61ea03b=\"\"><tr data-v-a61ea03b=\"\"><th data-v-a61ea03b=\"\" scope=\"col\" class=\"p-2\">Fila</th><th data-v-a61ea03b=\"\" scope=\"col\" class=\"p-2\">Año</th><th data-v-a61ea03b=\"\" scope=\"col\" class=\"p-2\">Serie 1</th></tr></thead><tbody data-v-a61ea03b=\"\"></tbody><tfoot data-v-a61ea03b=\"\"><tr data-v-a61ea03b=\"\"><td data-v-a61ea03b=\"\" colspan=\"3\" class=\"p-2\">Esta revisión no contiene filas.</td></tr></tfoot></table>",
+  "headers": [
+    {
+      "text": "Fila",
+      "scope": "col"
+    },
+    {
+      "text": "Año",
+      "scope": "col"
+    },
+    {
+      "text": "Serie 1",
+      "scope": "col"
+    }
+  ],
+  "tbodyRows": 0,
+  "footerRows": 1,
+  "footerText": "Esta revisión no contiene filas.",
+  "footerSpan": 3,
+  "role": null,
+  "hidden": false,
+  "allRows": 2,
+  "cells": [
+    {
+      "text": "Esta revisión no contiene filas.",
+      "colSpan": 3,
+      "section": "TFOOT"
+    }
+  ]
+}

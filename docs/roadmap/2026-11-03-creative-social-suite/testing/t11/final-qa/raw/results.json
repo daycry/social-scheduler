@@ -1,0 +1,2704 @@
+{
+  "config": {
+    "argv": [
+      "C:\\laragon\\bin\\nodejs\\node-v22\\node.exe",
+      "C:\\laragon\\www\\metricool\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "studio.spec.ts",
+      "studio-automation.spec.ts",
+      "studio-timeline.spec.ts",
+      "studio-audio-editor.spec.ts",
+      "studio-audio-resources.spec.ts",
+      "studio-frame-export.spec.ts",
+      "studio-native-export.spec.ts",
+      "studio-av-composite.spec.ts",
+      "metrics-quality.spec.ts",
+      "brand-reporting.spec.ts",
+      "all-brands.spec.ts"
+    ],
+    "configFile": "C:\\laragon\\www\\metricool\\playwright.config.ts",
+    "rootDir": "C:/laragon/www/metricool/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-2d90a00c-beeb-4866-833d-5c94848817ec/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-2d90a00c-beeb-4866-833d-5c94848817ec/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-2d90a00c-beeb-4866-833d-5c94848817ec/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-360",
+        "name": "mobile-360",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "desktop",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1"
+            ]
+          },
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "desktop"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "mobile",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1"
+            ]
+          },
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 375,
+            "height": 812
+          },
+          "isMobile": true,
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "mobile-360",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1"
+            ]
+          },
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 360,
+            "height": 740
+          },
+          "isMobile": true,
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "mobile-360"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "cwd": "C:\\laragon\\www\\metricool",
+      "command": "node tests/e2e/isolated/serve.cjs",
+      "url": "http://localhost:8080/up",
+      "reuseExistingServer": false,
+      "timeout": 90000,
+      "stdout": "ignore",
+      "stderr": "ignore",
+      "env": {
+        "E2E_GENERAL_ENV": "eyJQQVRIIjoiQzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFx0bXBcXGFyZzAtd2luZG93c1xcY29kZXgtYXJnMEVieEhQNTtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHBhY2thZ2VzXFxhcHAtc2VydmVyLWRhZW1vblxccmVsZWFzZXNcXDAuMTY2LjAteDg2XzY0LXBjLXdpbmRvd3MtbXN2Y1xcY29kZXgtcGF0aDtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwMHJSZnltO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXHN0YW5kYWxvbmVcXHJlbGVhc2VzXFwwLjE2Ni4wLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFdpbmRvd3NcXHN5c3RlbTMyO0M6XFxXaW5kb3dzO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2JlbTtDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdpbmRvd3NQb3dlclNoZWxsXFx2MS4wXFw7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxPcGVuU1NIXFw7QzpcXFByb2dyYW0gRmlsZXNcXE5WSURJQSBDb3Jwb3JhdGlvblxcTlZJRElBIEFwcFxcTnZETElTUjtDOlxcUHJvZ3JhbSBGaWxlcyAoeDg2KVxcTlZJRElBIENvcnBvcmF0aW9uXFxQaHlzWFxcQ29tbW9uO0M6XFxQcm9ncmFtIEZpbGVzXFxHaXRIdWIgQ0xJXFw7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXHBucG1cXGJpbjtDOlxcVXNlcnNcXGRheWNyXFwubG9jYWxcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxjb21wb3NlcjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGNtZDtDOlxcbGFyYWdvblxcYmluXFxnaXRcXG1pbmd3NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXHVzclxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG15c3FsXFxteXNxbC04LjQuMy13aW54NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxuZ3JvaztDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyO0M6XFxsYXJhZ29uXFxiaW5cXHBocFxccGhwLTguMy4zMy1XaW4zMi12czE2LXg2NDtDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzO0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTNcXFNjcmlwdHM7QzpcXGxhcmFnb25cXHVzclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxZYXJuXFxjb25maWdcXGdsb2JhbFxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXENvbXBvc2VyXFx2ZW5kb3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxucG07QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxPcGVuQUlcXENvZGV4XFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luZG93c0FwcHM7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFByb2dyYW1EYXRhXFxkYXljclxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbkdldFxcUGFja2FnZXNcXEd5YW4uRkZtcGVnX01pY3Jvc29mdC5XaW5nZXQuU291cmNlXzh3ZWt5YjNkOGJid2VcXGZmbXBlZy05LjAuMi1mdWxsX2J1aWxkXFxiaW47O0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcRG9ja2VyRGVza3RvcFxccmVzb3VyY2VzXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluXFxjb3BpbG90LXNoaW0iLCJQYXRoIjoiQzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFx0bXBcXGFyZzAtd2luZG93c1xcY29kZXgtYXJnMEVieEhQNTtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHBhY2thZ2VzXFxhcHAtc2VydmVyLWRhZW1vblxccmVsZWFzZXNcXDAuMTY2LjAteDg2XzY0LXBjLXdpbmRvd3MtbXN2Y1xcY29kZXgtcGF0aDtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwMHJSZnltO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXHN0YW5kYWxvbmVcXHJlbGVhc2VzXFwwLjE2Ni4wLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFdpbmRvd3NcXHN5c3RlbTMyO0M6XFxXaW5kb3dzO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2JlbTtDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdpbmRvd3NQb3dlclNoZWxsXFx2MS4wXFw7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxPcGVuU1NIXFw7QzpcXFByb2dyYW0gRmlsZXNcXE5WSURJQSBDb3Jwb3JhdGlvblxcTlZJRElBIEFwcFxcTnZETElTUjtDOlxcUHJvZ3JhbSBGaWxlcyAoeDg2KVxcTlZJRElBIENvcnBvcmF0aW9uXFxQaHlzWFxcQ29tbW9uO0M6XFxQcm9ncmFtIEZpbGVzXFxHaXRIdWIgQ0xJXFw7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXHBucG1cXGJpbjtDOlxcVXNlcnNcXGRheWNyXFwubG9jYWxcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxjb21wb3NlcjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXGNtZDtDOlxcbGFyYWdvblxcYmluXFxnaXRcXG1pbmd3NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxnaXRcXHVzclxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG15c3FsXFxteXNxbC04LjQuMy13aW54NjRcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxuZ3JvaztDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyO0M6XFxsYXJhZ29uXFxiaW5cXHBocFxccGhwLTguMy4zMy1XaW4zMi12czE2LXg2NDtDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzO0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTNcXFNjcmlwdHM7QzpcXGxhcmFnb25cXHVzclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxZYXJuXFxjb25maWdcXGdsb2JhbFxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXENvbXBvc2VyXFx2ZW5kb3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxucG07QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxPcGVuQUlcXENvZGV4XFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luZG93c0FwcHM7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFByb2dyYW1EYXRhXFxkYXljclxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbkdldFxcUGFja2FnZXNcXEd5YW4uRkZtcGVnX01pY3Jvc29mdC5XaW5nZXQuU291cmNlXzh3ZWt5YjNkOGJid2VcXGZmbXBlZy05LjAuMi1mdWxsX2J1aWxkXFxiaW47O0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcRG9ja2VyRGVza3RvcFxccmVzb3VyY2VzXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxNaWNyb3NvZnQgVlMgQ29kZVxcYmluXFxjb3BpbG90LXNoaW0iLCJTeXN0ZW1Sb290IjoiQzpcXFdpbmRvd3MiLCJTWVNURU1ST09UIjoiQzpcXFdpbmRvd3MiLCJXSU5ESVIiOiJDOlxcV2luZG93cyIsIlRFTVAiOiJDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcVGVtcCIsIlRNUCI6IkM6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxUZW1wIiwiQ09NU1BFQyI6IkM6XFxXaW5kb3dzXFxzeXN0ZW0zMlxcY21kLmV4ZSIsIlBBVEhFWFQiOiIuQ09NOy5FWEU7LkJBVDsuQ01EOy5WQlM7LlZCRTsuSlM7LkpTRTsuV1NGOy5XU0g7Lk1TQzsuQ1BMIiwiRTJFX0dFTkVSQUxfUlVOX1JPT1QiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC0yZDkwYTAwYy1iZWViLTQ4NjYtODMzZC01Yzk0ODQ4ODE3ZWMiLCJUNDNfUlVOX1JPT1QiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC0yZDkwYTAwYy1iZWViLTQ4NjYtODMzZC01Yzk0ODQ4ODE3ZWMiLCJBUFBfRU5WIjoiZTJlIiwiQVBQX0RFQlVHIjoidHJ1ZSIsIkFQUF9MT0NBTEUiOiJlcyIsIkFQUF9GQUxMQkFDS19MT0NBTEUiOiJlcyIsIkFQUF9VUkwiOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJBUFBfS0VZIjoiYmFzZTY0OlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTA9IiwiQVBQX0NPTkZJR19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkOTBhMDBjLWJlZWItNDg2Ni04MzNkLTVjOTQ4NDg4MTdlY1xcY29uZmlnLnBocCIsIkFQUF9TRVJWSUNFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkOTBhMDBjLWJlZWItNDg2Ni04MzNkLTVjOTQ4NDg4MTdlY1xcc2VydmljZXMucGhwIiwiQVBQX1BBQ0tBR0VTX0NBQ0hFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQ5MGEwMGMtYmVlYi00ODY2LTgzM2QtNWM5NDg0ODgxN2VjXFxwYWNrYWdlcy5waHAiLCJBUFBfRVZFTlRTX0NBQ0hFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQ5MGEwMGMtYmVlYi00ODY2LTgzM2QtNWM5NDg0ODgxN2VjXFxldmVudHMucGhwIiwiQVBQX1JPVVRFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkOTBhMDBjLWJlZWItNDg2Ni04MzNkLTVjOTQ4NDg4MTdlY1xccm91dGVzLnBocCIsIkxBUkFWRUxfU1RPUkFHRV9QQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQ5MGEwMGMtYmVlYi00ODY2LTgzM2QtNWM5NDg0ODgxN2VjIiwiREJfQ09OTkVDVElPTiI6InNxbGl0ZSIsIkRCX0RBVEFCQVNFIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQ5MGEwMGMtYmVlYi00ODY2LTgzM2QtNWM5NDg0ODgxN2VjXFxkYi5zcWxpdGUiLCJEQl9VUkwiOiIiLCJDQUNIRV9TVE9SRSI6ImZpbGUiLCJDQUNIRV9MSU1JVEVSX1NUT1JFIjoiZmlsZSIsIlNFU1NJT05fRFJJVkVSIjoiZGF0YWJhc2UiLCJTRVNTSU9OX0NPTk5FQ1RJT04iOiJzcWxpdGUiLCJRVUVVRV9DT05ORUNUSU9OIjoiZGF0YWJhc2UiLCJEQl9RVUVVRV9DT05ORUNUSU9OIjoic3FsaXRlIiwiU0VTU0lPTl9TRUNVUkVfQ09PS0lFIjoiZmFsc2UiLCJNQUlMX01BSUxFUiI6ImFycmF5IiwiTUVESUFfRElTSyI6ImxvY2FsIiwiU09DSUFMX0JBQ0tGSUxMX09OX0NPTk5FQ1QiOiJmYWxzZSIsIlRSVVNURURfUFJPWElFUyI6IiIsIkdPT0dMRV9DTElFTlRfSUQiOiJlMmUtZmFrZS1nb29nbGUiLCJHT09HTEVfQ0xJRU5UX1NFQ1JFVCI6ImUyZS1mYWtlLXNlY3JldCIsIk1FVEFfQVBQX0lEIjoiZTJlLWZha2UtbWV0YSIsIk1FVEFfQVBQX1NFQ1JFVCI6ImUyZS1mYWtlLXNlY3JldCIsIlRJS1RPS19DTElFTlRfS0VZIjoiZTJlLWZha2UtdGlrdG9rIiwiVElLVE9LX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJHT09HTEVfTE9HSU5fQ0xJRU5UX0lEIjoiZTJlLWZha2UtZ29vZ2xlLWxvZ2luIiwiR09PR0xFX0xPR0lOX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJNRVRBX0xPR0lOX0FQUF9JRCI6ImUyZS1mYWtlLW1ldGEtbG9naW4iLCJNRVRBX0xPR0lOX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJUSFJFQURTX0FQUF9JRCI6ImUyZS1mYWtlLXRocmVhZHMiLCJUSFJFQURTX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJHSVBIWV9BUElfS0VZIjoiIiwiQUlfQVNTSVNUQU5UX0VOQUJMRUQiOiJ0cnVlIiwiQU5USFJPUElDX0FQSV9LRVkiOiJlMmUtZmFrZS1hbnRocm9waWMiLCJNQ1BfT0FVVEhfUkVHSVNURVJfR0xPQkFMX1BFUl9IT1VSIjoiMTAwMDAwIiwiV0VCQVVUSE5fUlBfSUQiOiJsb2NhbGhvc3QiLCJXRUJBVVRITl9PUklHSU5TIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiVklFV19DT01QSUxFRF9QQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtMmQ5MGEwMGMtYmVlYi00ODY2LTgzM2QtNWM5NDg0ODgxN2VjXFx2aWV3cyIsIlBTWVNIX0NPTkZJRyI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLTJkOTBhMDBjLWJlZWItNDg2Ni04MzNkLTVjOTQ4NDg4MTdlY1xccHN5c2gucGhwIn0="
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "all-brands.spec.ts",
+      "file": "all-brands.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\all-brands.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7575,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:02.194Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\all-brands.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "476bfec9e1133cf8ed49-a499e8117560ac542714",
+          "file": "all-brands.spec.ts",
+          "line": 27,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\all-brands.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9235,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:19.951Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\all-brands.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "476bfec9e1133cf8ed49-c7b1658f6682e3162576",
+          "file": "all-brands.spec.ts",
+          "line": 27,
+          "column": 1
+        },
+        {
+          "title": "E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\all-brands.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8380,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:38.665Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\all-brands.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "476bfec9e1133cf8ed49-f8b85489e8659268a330",
+          "file": "all-brands.spec.ts",
+          "line": 27,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "brand-reporting.spec.ts",
+      "file": "brand-reporting.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Ads and reports retain the selected brand across navigation and report creation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6540,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:09.866Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "726f187762d27fc5d5b3-f2c00e4257135415129a",
+          "file": "brand-reporting.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Ads and reports retain the selected brand across navigation and report creation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6016,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:29.710Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "726f187762d27fc5d5b3-da38b4fb128a9dfd4fd1",
+          "file": "brand-reporting.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Ads and reports retain the selected brand across navigation and report creation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7490,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:47.162Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "726f187762d27fc5d5b3-38a207cff6cf491b014f",
+          "file": "brand-reporting.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "metrics-quality.spec.ts",
+      "file": "metrics-quality.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5095,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:16.432Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a4c3c93e021e965c668-6651096be39bd15d19e1",
+          "file": "metrics-quality.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4766,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:35.745Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a4c3c93e021e965c668-2fbc9d1bac55d6ceb042",
+          "file": "metrics-quality.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5653,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:54.673Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3a4c3c93e021e965c668-cca3217469b3ed65ddba",
+          "file": "metrics-quality.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-audio-editor.spec.ts",
+      "file": "studio-audio-editor.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10815,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:21.547Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "206dcdf16f84a72c2483-1108901edb76c4af97d8",
+          "file": "studio-audio-editor.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5416,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:32.370Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "206dcdf16f84a72c2483-a15dbbd6df14a91c4d3a",
+          "file": "studio-audio-editor.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9704,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:40.547Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "206dcdf16f84a72c2483-a794611756e204255444",
+          "file": "studio-audio-editor.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5981,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:50.258Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "206dcdf16f84a72c2483-1cd54b577384469b3e5f",
+          "file": "studio-audio-editor.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13716,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:43:00.349Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "206dcdf16f84a72c2483-75aecbb2c8e3a9870678",
+          "file": "studio-audio-editor.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7870,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:43:14.073Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "206dcdf16f84a72c2483-eb0baf80ea892ba7d270",
+          "file": "studio-audio-editor.spec.ts",
+          "line": 78,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-audio-resources.spec.ts",
+      "file": "studio-audio-resources.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio audio resources API: private binary upload, byte ranges and native browser playback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5125,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:37.806Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d60dd91e373e2be8392d-7caaf9c1aa76c5f71f1e",
+          "file": "studio-audio-resources.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "Studio audio resources API: private binary upload, byte ranges and native browser playback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5579,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:56.259Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d60dd91e373e2be8392d-39d47ffa13d38fd8bf6e",
+          "file": "studio-audio-resources.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "Studio audio resources API: private binary upload, byte ranges and native browser playback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6203,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:43:21.962Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d60dd91e373e2be8392d-dda1cd0f86c49cf37a39",
+          "file": "studio-audio-resources.spec.ts",
+          "line": 14,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-automation.spec.ts",
+      "file": "studio-automation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8623,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:42.950Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-2a8b7295eab101d3e60b",
+          "file": "studio-automation.spec.ts",
+          "line": 35,
+          "column": 1
+        },
+        {
+          "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13195,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:36:51.580Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-d1863ad3a18e29a2b788",
+          "file": "studio-automation.spec.ts",
+          "line": 96,
+          "column": 1
+        },
+        {
+          "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9362,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:40:01.858Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-b1e2e0d5ac7d333ad2ff",
+          "file": "studio-automation.spec.ts",
+          "line": 35,
+          "column": 1
+        },
+        {
+          "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15241,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:40:11.227Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-fc949b72c13ca8ccad01",
+          "file": "studio-automation.spec.ts",
+          "line": 96,
+          "column": 1
+        },
+        {
+          "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9816,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:43:28.186Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-3ba3441a411dd4f4606d",
+          "file": "studio-automation.spec.ts",
+          "line": 35,
+          "column": 1
+        },
+        {
+          "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15498,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:43:38.013Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-2265791b46a1f5f38d1d",
+          "file": "studio-automation.spec.ts",
+          "line": 96,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-av-composite.spec.ts",
+      "file": "studio-av-composite.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 30671,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:37:04.797Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e3a31045f10ccbb8a66-e072155286c54f3a29dd",
+          "file": "studio-av-composite.spec.ts",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 31085,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:40:26.506Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1e3a31045f10ccbb8a66-2ef1702cd2b081755966",
+          "file": "studio-av-composite.spec.ts",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 32811,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\nExpected substring: \u001b[32m\"\u001b[7mLis\u001b[27mta\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7mMP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reinten\u001b[27mta\u001b[7mr\u001b[27m\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\u001b[22m\n\u001b[2m    4 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"MP4 · Revisión 1ProcesandoProgreso: 90.91 %Cancelar\"\u001b[22m\n\u001b[2m    19 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\nExpected substring: \u001b[32m\"\u001b[7mLis\u001b[27mta\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7mMP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reinten\u001b[27mta\u001b[7mr\u001b[27m\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\u001b[22m\n\u001b[2m    4 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"MP4 · Revisión 1ProcesandoProgreso: 90.91 %Cancelar\"\u001b[22m\n\u001b[2m    19 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar\"\u001b[22m\n\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts:77:27",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts",
+                      "column": 27,
+                      "line": 77
+                    },
+                    "snippet": "  75 |         await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();\n  76 |         const row = dialog.getByRole('region', { name: `Exportación ${exported.id}`, exact: true });\n> 77 |         await expect(row).toContainText('Lista');\n     |                           ^\n  78 |         const ready = await page.evaluate(async id => (await (await fetch(`/studio/exports/${id}`, { headers: { Accept: 'application/json' } })).json()).export, exported.id);\n  79 |         expect(ready).toMatchObject({ status: 'ready', revision: design.revision, brand_id: brand.id }); expect(ready.media_ids).toHaveLength(1);\n  80 |         const [download] = await Promise.all([page.waitForEvent('download'), row.getByRole('link', { name: 'Descargar MP4', exact: true }).click()]);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts",
+                        "column": 27,
+                        "line": 77
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\nExpected substring: \u001b[32m\"\u001b[7mLis\u001b[27mta\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7mMP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reinten\u001b[27mta\u001b[7mr\u001b[27m\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\u001b[22m\n\u001b[2m    4 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"MP4 · Revisión 1ProcesandoProgreso: 90.91 %Cancelar\"\u001b[22m\n\u001b[2m    19 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar\"\u001b[22m\n\n\n  75 |         await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();\n  76 |         const row = dialog.getByRole('region', { name: `Exportación ${exported.id}`, exact: true });\n> 77 |         await expect(row).toContainText('Lista');\n     |                           ^\n  78 |         const ready = await page.evaluate(async id => (await (await fetch(`/studio/exports/${id}`, { headers: { Accept: 'application/json' } })).json()).export, exported.id);\n  79 |         expect(ready).toMatchObject({ status: 'ready', revision: design.revision, brand_id: brand.id }); expect(ready.media_ids).toHaveLength(1);\n  80 |         const [download] = await Promise.all([page.waitForEvent('download'), row.getByRole('link', { name: 'Descargar MP4', exact: true }).click()]);\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts:77:27"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:43:53.538Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\artifacts\\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\artifacts\\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\\artifacts\\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts",
+                    "column": 27,
+                    "line": 77
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "1e3a31045f10ccbb8a66-3acf7ed69adf813b1b31",
+          "file": "studio-av-composite.spec.ts",
+          "line": 16,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-frame-export.spec.ts",
+      "file": "studio-frame-export.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7136,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:37:35.492Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "68ef120af2dfad9badf7-7719337736d4e369d5f5",
+          "file": "studio-frame-export.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9452,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:40:57.610Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "68ef120af2dfad9badf7-fd51a6cca5ea8167e425",
+          "file": "studio-frame-export.spec.ts",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7028,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:44:27.671Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "68ef120af2dfad9badf7-8c8132b376266b7bd1c6",
+          "file": "studio-frame-export.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-native-export.spec.ts",
+      "file": "studio-native-export.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 19400,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:37:42.644Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3c79e8389e514b0733e7-3eaac0a91e2c3f7fd020",
+          "file": "studio-native-export.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "Studio native history: paginate real exports in one request per page and reopen without creating work",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6893,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:02.052Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3c79e8389e514b0733e7-55bc158d95ab0df7336d",
+          "file": "studio-native-export.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 19814,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:41:07.086Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3c79e8389e514b0733e7-a4487204c87f63649aeb",
+          "file": "studio-native-export.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "Studio native history: paginate real exports in one request per page and reopen without creating work",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5750,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:41:26.913Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3c79e8389e514b0733e7-f788d2b74b8b1ebc55ca",
+          "file": "studio-native-export.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 22112,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    },
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:44:34.806Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3c79e8389e514b0733e7-f40cba085ae2abc2c0fd",
+          "file": "studio-native-export.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "Studio native history: paginate real exports in one request per page and reopen without creating work",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10312,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:44:56.924Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "3c79e8389e514b0733e7-91c56aad0740fb292598",
+          "file": "studio-native-export.spec.ts",
+          "line": 86,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-timeline.spec.ts",
+      "file": "studio-timeline.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6740,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:08.956Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-d3e1dcf6fe509ca2bca0",
+          "file": "studio-timeline.spec.ts",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7721,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:15.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-f87932ecc2595f6dd759",
+          "file": "studio-timeline.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5465,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:23.433Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-50d380f24f4df2237497",
+          "file": "studio-timeline.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8682,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:28.905Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-1d6850e38cf74d7f303d",
+          "file": "studio-timeline.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: closing while media buffers cancels the pending playback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9058,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:37.596Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-d9e70010901baa3d87c8",
+          "file": "studio-timeline.spec.ts",
+          "line": 165,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7095,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:41:32.682Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-7d5791aa6ad7d6035565",
+          "file": "studio-timeline.spec.ts",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8220,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:41:39.784Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-b2c4113b5b7965cf6314",
+          "file": "studio-timeline.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5354,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:41:48.014Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-149c344c50d1570fba76",
+          "file": "studio-timeline.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8692,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:41:53.381Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-ec6183f0f22936071655",
+          "file": "studio-timeline.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: closing while media buffers cancels the pending playback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8325,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:02.080Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-2d340de5455fbc0b63f1",
+          "file": "studio-timeline.spec.ts",
+          "line": 165,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6006,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:07.254Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-e5fefbf70cdbabd5f528",
+          "file": "studio-timeline.spec.ts",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7428,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:13.269Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-d1decd5ac505f7ea1515",
+          "file": "studio-timeline.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5111,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:20.705Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-a042b65f14641768da9e",
+          "file": "studio-timeline.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8014,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:25.823Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-49b3365ae63f47e8f4b9",
+          "file": "studio-timeline.spec.ts",
+          "line": 133,
+          "column": 1
+        },
+        {
+          "title": "Studio timeline: closing while media buffers cancels the pending playback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8213,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [
+                    {
+                      "buffer": ""
+                    }
+                  ],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:33.845Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a00a8ab8b27212cc7da5-3ae5496dfa86e63c5515",
+          "file": "studio-timeline.spec.ts",
+          "line": 165,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio.spec.ts",
+      "file": "studio.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7431,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:46.831Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-81342f6b922c69eb82c1",
+          "file": "studio.spec.ts",
+          "line": 25,
+          "column": 1
+        },
+        {
+          "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8030,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:38:54.271Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-dbd6eba5fea36548bbd3",
+          "file": "studio.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7814,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:02.310Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-b80fc4e040d3e5cd0ca1",
+          "file": "studio.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Studio: a stale revision preserves local edits and can recover the server version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8374,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:39:10.143Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-23a521fe9272d0a8b9f9",
+          "file": "studio.spec.ts",
+          "line": 162,
+          "column": 1
+        },
+        {
+          "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6825,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:10.585Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-981ed5e394226c6bb8eb",
+          "file": "studio.spec.ts",
+          "line": 25,
+          "column": 1
+        },
+        {
+          "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7725,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:17.417Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-9918710a746d42523234",
+          "file": "studio.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6173,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:25.151Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-508e91f9485ddf71de24",
+          "file": "studio.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Studio: a stale revision preserves local edits and can recover the server version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6537,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:42:31.333Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-0f13d1a899cdb0b3c461",
+          "file": "studio.spec.ts",
+          "line": 162,
+          "column": 1
+        },
+        {
+          "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6201,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:42.214Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-527ecd56d51a85b60a56",
+          "file": "studio.spec.ts",
+          "line": 25,
+          "column": 1
+        },
+        {
+          "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6963,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:48.422Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-52aefa5b250c0d2068bf",
+          "file": "studio.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5629,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:45:55.392Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-26b4600539e9fec37fac",
+          "file": "studio.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Studio: a stale revision preserves local edits and can recover the server version",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-360",
+              "projectName": "mobile-360",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5966,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-05T19:46:01.030Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64bdea7002f9c9cea9f4-12e8762dddd8b369aec0",
+          "file": "studio.spec.ts",
+          "line": 162,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-05T19:35:50.714Z",
+    "duration": 618225.676,
+    "expected": 62,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

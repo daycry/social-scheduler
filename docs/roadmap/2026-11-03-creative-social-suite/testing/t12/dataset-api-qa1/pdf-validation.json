@@ -1,0 +1,34 @@
+{
+  "pages": 3,
+  "page_info": [
+    {
+      "page": 1,
+      "chars": 1797,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 2,
+      "chars": 2329,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 3,
+      "chars": 1429,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    }
+  ],
+  "rendered_from_pdf": true,
+  "visually_inspected": true,
+  "job_memory_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 625147904,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "pdf_sha256": "22455a8a8e76ac2eface3294dc7c4f482f7c58e3e3749dd05e3cdffdafc19445",
+  "visual_notes": "All3 rasterized PDF pages inspected: legible, repeated table header and final row on page2, no clipping or overlaps."
+}

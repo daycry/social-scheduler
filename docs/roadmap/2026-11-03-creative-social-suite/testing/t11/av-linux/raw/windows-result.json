@@ -1,0 +1,14 @@
+{
+  "mode": "windows",
+  "exit": 0,
+  "terminal": true,
+  "sources_match": true,
+  "passed": 4,
+  "skipped": 0,
+  "summary": [
+    "----------------------------------------------------------------------",
+    "Ran 4 tests in 0.263s",
+    "",
+    "OK"
+  ]
+}

@@ -398,9 +398,11 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
         canvas.requestRenderAll();
         notifySelection();
     };
-    const checked = element => validateDocument({ schema_version: documentData.schema_version, width: documentData.width, height: documentData.height,
+    // A lone element is validated on an empty page, so its connector ends would look dangling: keep them as given.
+    const checked = element => keepEnds(element, validateDocument({ schema_version: documentData.schema_version, width: documentData.width, height: documentData.height,
         ...(documentData.schema_version === 2 ? { timeline: { fps: documentData.timeline.fps, audio_tracks: [] } } : {}),
-        pages: [{ id: newId('validation_page'), background: '#ffffff', duration: currentPage.duration ?? 5, elements: [element] }] }).pages[0].elements[0];
+        pages: [{ id: newId('validation_page'), background: '#ffffff', duration: currentPage.duration ?? 5, elements: [element] }] }).pages[0].elements[0]);
+    const keepEnds = (source, result) => result.type === 'connector' ? { ...result, from: source.from ?? null, to: source.to ?? null } : result;
 
     async function commitNextBudget(nextElements, request, commit, live = () => true) {
         // The callback publishes in THIS continuation after the last version check.

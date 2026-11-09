@@ -18,9 +18,9 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 | Fase 1 | 1 | 3 | 33 % |
 | Fase 2 | 6 | 6 | 100 % |
 | Fase 3 | 3 | 7 | 43 % |
-| Fase 4 | 3 | 5 | 60 % |
+| Fase 4 | 4 | 5 | 80 % |
 | Fase 5 | 0 | 2 | 0 % |
-| **Total** | **13** | **23** | **57 %** |
+| **Total** | **14** | **23** | **61 %** |
 
 ## Fase 1 — Investigación y consistencia
 
@@ -535,14 +535,27 @@ Efecto colateral: el E2E `studio-collab.spec.ts` espera el error «No hay ningú
 - **Límites declarados**: ningún proveedor real; la lectura y respuesta de Threads, Bluesky y YouTube están verificadas contra `Http::fake` con la forma documentada de cada API y falta el smoke real (permisos nuevos de Threads exigen reconectar). `hide_status` de Threads solo marca como ocultas `HIDDEN` y `COVERED`. Los identificadores de Bluesky son URI `at://` y las de más de 100 caracteres (cuentas `did:web` largas) se omiten por el ancho de columna. Los competidores solo se refrescan con el cupo de Business Discovery; las publicaciones recogidas son las últimas 25 de cada cuenta, así que un rango antiguo puede quedar sin datos. El formulario de email guarda direcciones en la instalación (hay que cumplir la normativa de protección de datos y atender solicitudes de borrado a mano).
 
 ### T-21 — Ads e informes coherentes con la marca
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-11-09
+- **Changelog**: Ads usa siempre la cuenta, la caché y los filtros de la marca elegida; los informes tienen un constructor con bloques ordenables (KPIs por red, evolución, publicaciones destacadas, competidores, Ads y notas), plantillas por marca, vista previa, PDF descargable y envío programado semanal o mensual por email.
 - **Cubre (tests)**: E2E-06
-- **Verificación**: php vendor/bin/pest tests/Feature/Parity/AdsBrandContextTest.php tests/Feature/Reports; E2E-06 de marca seleccionada y generación. Constructor/reporting/Ads ampliados necesitan criterios y pruebas adicionales antes del cierre.
-- **Archivos**: `app/Services/AdsService.php`, `app/Http/Controllers/AdsController.php`, `resources/js/Pages/Ads/**`, `app/Http/Controllers/ReportController.php`, `resources/js/Pages/Reports/**`, `tests/**`
+- **Verificación**: `php vendor/bin/pest tests/Feature/Parity/AdsBrandContextTest.php tests/Feature/Reports` y E2E-06 de marca seleccionada y generación; ejecutada 2026-11-09, resultados en «Cierre T-21».
+- **Archivos**: `app/Services/AdsService.php`, `app/Http/Controllers/AdsController.php`, `resources/js/Pages/Ads/**`, `app/Http/Controllers/ReportController.php`, `app/Http/Controllers/ReportTemplateController.php`, `app/Http/Controllers/ReportScheduleController.php`, `app/Models/ReportTemplate.php`, `app/Models/ReportSchedule.php`, `app/Models/Report.php`, `app/Services/ReportService.php`, `app/Services/Reports/ReportBlocks.php`, `app/Jobs/SendScheduledReport.php`, `app/Console/Commands/SendScheduledReports.php`, `app/Mail/ScheduledReportMail.php`, `app/Mcp/Tools/GenerateReport.php`, `app/Mcp/Tools/GetReport.php`, `app/Providers/AppServiceProvider.php`, `config/reports.php`, `routes/web.php`, `routes/console.php`, `database/migrations/2026_12_02_090000_create_report_builder_tables.php`, `resources/views/reports/brand.blade.php`, `resources/views/mail/scheduled-report.blade.php`, `resources/js/Pages/Reports/**`, `tests/**`
 
 **Criterios de aceptación**
 
-- [ ] Cuenta origen, caché, filtros y selección inicial respetan marca; reporting ampliado y distribución.
+- [x] Cuenta origen, caché, filtros y selección inicial respetan marca; reporting ampliado y distribución.
+
+### Cierre T-21 — 2026-11-09 (método estándar)
+
+- **Había**: Ads con la conexión Meta de la marca seleccionada y caché por propietario/marca/conexión/credenciales (51/51 de la parcial), informes con marca y rango, PDF DomPDF fijo, descarga firmada y `generate_report`/`get_report` del MCP, sin constructor, plantillas, programación ni envío.
+- **Ads**: verificado y completado con un test de aislamiento: tras ver la marca A, la B con `ad_account=act_111` (de A) en la query solo recibe sus cuentas, campañas y totales (el JSON de `overview` no contiene nada de A). Sin cambios de producción: ya cumplía.
+- **Constructor**: bloques `kpis`, `evolution`, `top_posts`, `competitors`, `ads` y `text` (`ReportBlocks`, máx. 20, título 80, nota 2000, orden = orden del array); `reports.blocks` guarda los elegidos y el PDF los renderiza en ese orden reutilizando DomPDF (sin `blocks` sale el informe clásico). Competidores usa `CompetitorService::comparison` y Ads `AdsService::overview` siempre con la marca del informe; sin permiso de Ads el bloque muestra el motivo, nunca un 0. Las notas y títulos se escapan (`e()` + `nl2br`, sin HTML). Plantillas por marca (`report_templates`, único marca+nombre, máx. 50, rango relativo y comparación), vista previa JSON (`POST reports/preview`) y UI con subir/bajar/quitar accesibles.
+- **Distribución**: `report_schedules` semanal (lunes 08:00 de la marca, semana anterior) o mensual (día 1, mes anterior); destinatarios `email:rfc,strict` (máx. 5, sin saltos de línea, normalizados y sin duplicados); `reports:send-scheduled` horario reclama cada fila de forma atómica y encola `SendScheduledReport` (cola `reports`), que genera el PDF y envía un correo por destinatario con el PDF adjunto (≤ 10 MB) y un enlace firmado de 72 h (`reports.mail_link_hours`); tope de 20 correos al día por usuario (`RateLimiter`); marca o plantilla desaparecidas desactivan la programación. MCP: `generate_report` acepta `blocks` o `template_id` (de esa marca) y `get_report` devuelve los tipos de bloque.
+- **Seguridad**: plantillas y programaciones con `UserScope` (ajenas = 404, también marca ajena y plantilla de otra marca), limitadores propios `report-builder` (30/min) y `report-schedules` (10/min) por usuario, descarga solo con firma temporal (caducada = 403, probado con el enlace del email), `Mail::fake` y `Http::preventStrayRequests` en los tests.
+- **Pruebas**: RED→GREEN por TDD en `AdsBrandContextTest` (6/6), `ReportBuilderTest` (14/14) y `McpReportBlocksTest` (3/3); suite Reports/Mcp/Parity sin regresiones; Pest completo **3319 tests, 3310 pass, 9 skip, 21164 aserciones**; Pint `--test` passed; `npm run build` ok. E2E `report-builder.spec.ts` (bloques añadidos y reordenados, vista previa con la nota como texto, plantilla guardada y recargada, PDF descargado con bytes `%PDF`, programación con destinatario inválido rechazado y válido listado, cambio de marca sin mezclar vista previa/plantillas/programaciones, axe y 0 px de desbordamiento) más `brand-reporting.spec.ts`: 12/12 con `--repeat-each=2` en desktop, mobile y mobile-360. Como el servidor desechable no tiene worker, el E2E ejecuta el job de generación con el helper `artisan` existente.
+- **Defecto encontrado y corregido**: el campo de destinatarios quedaba comprimido a un ancho mínimo en móvil (el clic de «Descargar» caía en otro botón por el desplazamiento de layout); ahora ocupa el ancho completo hasta `sm`.
+- **Fuera de alcance (motivo)**: crear o editar campañas de Ads, y Google Ads / TikTok Ads, exigen aprobación de producto o cuentas de proveedor que no hay; Ads sigue siendo Meta de solo lectura. Tampoco hay panel de campañas propio ni «Metrifacts» de múltiples marcas en un solo informe. El envío real de email depende de la configuración SMTP del despliegue (T-23); aquí solo se prueba con `Mail::fake` y `MAIL_MAILER=array`.
 
 ## Fase 5 — Integración y cierre
 

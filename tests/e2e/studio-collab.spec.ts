@@ -66,7 +66,9 @@ test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se
         await panel.getByLabel('Email', { exact: true }).fill('nadie@example.test');
         await panel.getByLabel('Rol', { exact: true }).selectOption('commenter');
         await panel.getByRole('button', { name: 'Compartir', exact: true }).click();
-        await expect(panel.getByRole('alert')).toContainText('No hay ningún usuario registrado con ese email.');
+        // Respuesta uniforme: no revela si el email existe y no crea ningún acceso.
+        await expect(panel.getByRole('status').filter({ hasText: 'Si existe una cuenta con ese email, tendrá acceso a este diseño.' })).toBeVisible();
+        await expect(panel.getByTestId('studio-share-row')).toHaveCount(0);
         await panel.getByLabel('Email', { exact: true }).fill(guest.email);
         await panel.getByRole('button', { name: 'Compartir', exact: true }).click();
         await expect(panel.getByTestId('studio-share-row')).toContainText(guest.email);

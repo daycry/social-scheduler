@@ -557,6 +557,21 @@ Efecto colateral: el E2E `studio-collab.spec.ts` espera el error «No hay ningú
 - **Defecto encontrado y corregido**: el campo de destinatarios quedaba comprimido a un ancho mínimo en móvil (el clic de «Descargar» caía en otro botón por el desplazamiento de layout); ahora ocupa el ancho completo hasta `sm`.
 - **Fuera de alcance (motivo)**: crear o editar campañas de Ads, y Google Ads / TikTok Ads, exigen aprobación de producto o cuentas de proveedor que no hay; Ads sigue siendo Meta de solo lectura. Tampoco hay panel de campañas propio ni «Metrifacts» de múltiples marcas en un solo informe. El envío real de email depende de la configuración SMTP del despliegue (T-23); aquí solo se prueba con `Mail::fake` y `MAIL_MAILER=array`.
 
+## Revisión de dos lentes — intento 1: Fase 4 (T-21) — informes y Ads
+
+Lentes A+B+C (más una observación D) sobre T-21. Seis hallazgos, todos corregidos con TDD (RED→GREEN) y un commit por arreglo (los tres últimos comparten fichero de test y el job, así que sus commits no son independientes entre sí).
+
+| # | Gravedad | Hallazgo | Corrección | Prueba |
+|---|---|---|---|---|
+| 1 | Important | El bloque Ads usaba 7/30/90 días hasta hoy en vez del periodo del informe | `AdsService::overview(..., $range)` pasa `time_range` exacto; el informe (y la semana/mes naturales anteriores de las programaciones, en la zona de la marca) usa el mismo periodo que el resto; el PDF muestra «del X al Y» | Informe de enero generado en noviembre pide `since 2026-01-01`/`until 2026-01-31` y nunca la fecha actual |
+| 2 | Minor | Correo programado sin Reply-To ni baja | `Reply-To` del propietario, `List-Unsubscribe` + `List-Unsubscribe-Post` (un clic) con URL firmada por programación y destinatario, enlace en el cuerpo y «Recibes esto porque <propietario> te añadió» | Baja firmada quita solo a ese destinatario; sin firma o alterada = 403; el último destinatario pausa la programación |
+| 3 | Minor | Tope diario no atómico | `RateLimiter::increment` reserva el cupo antes de generar el PDF y `decrement` lo libera si se supera, falla la generación o salta una excepción | Contador exacto tras enviar, sin fugas con tope superado y a 0 tras un PDF fallido |
+| 4 | Minor | Enlaces del email vivos tras pausar/borrar | La URL firmada lleva `schedule`; la descarga exige la programación activa del propietario | Pausar o borrar → 404; reactivar → 200; el enlace manual sin programación sigue valiendo |
+| 5 | Minor | Plantilla duplicada en carrera = 500 | `UniqueConstraintViolationException` capturada en alta y edición → error de formulario | Inserción concurrente simulada en `creating`: error en `name` |
+| 6 | D | Comparación de competidores recalculada por bloque | Memoización por informe (competidores y Ads) | Dos bloques → `comparison` llamado una vez (Mockery `once`) |
+
+Verificación: Pest completo **3325 tests, 3316 pass, 9 skip, 21190 aserciones**; `ReportBuilderTest` 20/20; Pint `--test` passed; `npm run build` ok; E2E `report-builder.spec.ts` + `brand-reporting.spec.ts` 6/6 en desktop, mobile y mobile-360. **Gaps pendientes: 0 Critical, 0 Important, 0 Minor.** Sin Jira activado.
+
 ## Fase 5 — Integración y cierre
 
 ### T-22 — QA integral y revisión independiente

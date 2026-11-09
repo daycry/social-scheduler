@@ -4312,3 +4312,20 @@ Veredicto del intento 1: 1 Important y 5 Minor, todos corregidos con TDD (rojo p
 | 6 | Minor | `starts_on` sin límite inferior | 422 en español si es de hace más de un año (solo al crear o al cambiarlo); sin tope de veces, `dates()` salta hasta una semana antes de hoy | Tests de 422 y de serie antigua |
 
 Verificación del intento: `tests/Feature/Workflow` 54/54; `php artisan test --compact` 3256 tests, 3247 passed, 9 skipped; Pint y `npm run build` en verde; `workflow.spec.ts` 15/15 en desktop, mobile y mobile-360; `ledger-lint` exit 0.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-20) — inbox, competidores y SmartLinks
+
+Veredicto del intento 1: 1 Important y 5 Minor, todos corregidos con TDD (rojo primero en `tests/Feature/Inbox/T20ReviewTest.php`, 13 tests: 12 en rojo y 1 ya verde) y commits por arreglo.
+
+| Id | Gravedad | Hallazgo | Corrección | Evidencia |
+|---|---|---|---|---|
+| 1 | Important (CWE-770) | El sync del inbox gastaba el cupo de YouTube sin reservar nada para subir | `YouTubeInboxBudget`: contador propio por día del Pacífico, `social.inbox.youtube_daily_units` (2.000 ud por defecto), consultado antes y cargado después de cada llamada (lista 1 ud, respuesta 50 ud); el sync lee solo los 10 videos más recientes (`youtube_max_posts`), una pasada por hora y cuenta (`youtube_sync_minutes`) y corta al agotarse; responder sin presupuesto da error legible sin llamar | 4 tests: 10 videos, corte a 3 unidades con `YouTubeQuota` en 3 y vuelta al día siguiente, respuesta sin presupuesto sin tráfico, despachador una vez por hora |
+| 2 | Minor (CWE-200) | «Posts recientes» incluía posts de la papelera | `withoutGlobalScope(UserScope::class)` en vez de `withoutGlobalScopes()` | Test con post borrado |
+| 3 | Minor | Formulario de email: sin aviso al llenarse, sin borrado, lista borrada en cascada, consentimiento que prometía de más | Notificación `SmartLinkSubscribersFull` (base de datos, una vez por bloque); `DELETE smartlinks/{id}/subscribers/{sub}` y `.../subscribers` (solo propietario) con lista y confirmación en la UI; `smart_link_block_id` pasa a `nullOnDelete` (quitar el bloque conserva la lista y la UI lo confirma); el doble opt-in se descarta porque exige un servicio de correo real: el texto por defecto dice «No enviamos correo de confirmación» | 3 tests (aviso único, borrado uno a uno y todos con 404 a ajenos, lista conservada y texto) y E2E de la lista y el borrado ×3 |
+| 4 | Minor | `visible_from/until` sin rango y error de BD como «enlace en uso» | Rango entre hace un año y +10 años, siempre antes de 2038, con error en el campo propio y en español; solo `UniqueConstraintViolationException` sobre `slug` da «Ese enlace ya está en uso.» (con tilde), el resto de errores de BD se relanza | 3 tests (rango, error de BD relanzado, duplicado de slug). Los errores llegan como redirección con errores de sesión (formularios Inertia), no como 422 JSON |
+| 5 | Minor | Faltaba el tope de actualizaciones de competidores | `refreshPostsFor`: una vez cada 10 minutos por competidor y `refresh_per_hour` (60 por defecto, < 200/h de Graph) por usuario, con mensajes en español | Test con avance de reloj |
+| 6 | Minor | Responder a una respuesta de YouTube usaba la respuesta como `parentId` | `InboxService::reply` usa el comentario raíz (`parent_external_id`) y guarda la nueva respuesta colgada de él | Test con `Http::fake` |
+
+Limitaciones anotadas: el doble opt-in no existe (no hay envío de correo); el presupuesto del inbox es un contador local en caché, independiente del cupo real de Google; los topes de competidores viven en caché y no se comparten entre servidores sin caché común.
+
+Verificación del intento: `T20ReviewTest` 13/13; `php artisan test --compact` 3301 tests, 3292 passed, 9 skipped; Pint y `npm run build` en verde; `smartlinks-blocks`, `inbox-triage` y `competitors` en desktop, mobile y mobile-360 en verde (axe y 0 px de desbordamiento).

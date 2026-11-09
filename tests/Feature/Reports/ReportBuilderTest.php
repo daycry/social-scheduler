@@ -300,3 +300,72 @@ it('Templates: una carrera con el mismo nombre da error de formulario y no un 50
     });
     $this->actingAs($this->user)->post(route('report-templates.store'), ['brand_id' => $this->brand->id, 'name' => 'Carrera', 'blocks' => [['type' => 'kpis']], 'range_days' => 30])->assertSessionHasErrors('name');
 });
+
+function sentSchedule(array $recipients = ['a@example.com', 'b@example.com']): array
+{
+    $user = test()->user;
+    $t = makeTemplate($user, test()->brand, 'Mensual', [['type' => 'kpis']]);
+    $s = ReportSchedule::create(['user_id' => $user->id, 'brand_id' => test()->brand->id, 'report_template_id' => $t->id, 'frequency' => 'weekly', 'recipients' => $recipients, 'next_run_at' => now()]);
+    SendScheduledReport::dispatchSync($s->id);
+
+    return [$s, Report::withoutUserScope()->where('schedule_id', $s->id)->firstOrFail()];
+}
+
+it('Mail programado: Reply-To del propietario, baja de un clic firmada y texto de por que se recibe', function () {
+    Mail::fake();
+    [$s] = sentSchedule();
+
+    Mail::assertSent(ScheduledReportMail::class, function (ScheduledReportMail $m) {
+        $headers = $m->headers()->text;
+        $html = $m->render();
+
+        return $m->hasTo('a@example.com') && $m->hasReplyTo($this->user->email) && str_contains($headers['List-Unsubscribe'], 'signature=') && str_contains($headers['List-Unsubscribe'], urlencode('a@example.com'))
+            && ($headers['List-Unsubscribe-Post'] ?? null) === 'List-Unsubscribe=One-Click'
+            && str_contains($html, 'Recibes esto porque '.e($this->user->name).' te añadió') && str_contains($html, 'Darme de baja');
+    });
+
+    $url = URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'a@example.com']);
+    $this->get($url.'x')->assertForbidden();
+    $this->get(route('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'a@example.com']))->assertForbidden(); // sin firma
+    $this->post($url)->assertOk();
+    expect($s->fresh()->recipients)->toBe(['b@example.com'])->and($s->fresh()->active)->toBeTrue();
+
+    $this->get(URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'b@example.com']))->assertOk();
+    expect($s->fresh()->recipients)->toBe([])->and($s->fresh()->active)->toBeFalse();
+});
+
+it('Mail programado: el cupo diario se reserva antes de generar y se libera si el PDF falla o no cabe', function () {
+    Mail::fake();
+    $key = 'report-mail:'.$this->user->id;
+    config(['reports.mail_daily_limit' => 2]);
+    [$s] = sentSchedule();
+    expect(RateLimiter::attempts($key))->toBe(2);
+
+    // Sin cupo: no se genera ni se reserva nada mas.
+    $before = Report::withoutUserScope()->count();
+    SendScheduledReport::dispatchSync($s->id);
+    expect(RateLimiter::attempts($key))->toBe(2)->and(Report::withoutUserScope()->count())->toBe($before);
+
+    // PDF que falla: el cupo vuelve a su sitio.
+    RateLimiter::clear($key);
+    config(['reports.driver' => 'inexistente']);
+    SendScheduledReport::dispatchSync($s->id);
+    expect(RateLimiter::attempts($key))->toBe(0)->and($s->fresh()->last_error)->not->toBeNull();
+});
+
+it('Descarga por email: pausar o borrar la programacion invalida los enlaces ya enviados', function () {
+    Mail::fake();
+    [$s, $report] = sentSchedule();
+    $url = $report->signedDownloadUrl(60, $s->id);
+
+    $this->get($url)->assertOk();
+    $s->update(['active' => false]);
+    $this->get($url)->assertNotFound();
+    $s->update(['active' => true]);
+    $this->get($url)->assertOk();
+    $s->delete();
+    $this->get($url)->assertNotFound();
+
+    // Un enlace manual (sin programacion) sigue funcionando como antes.
+    $this->get($report->signedDownloadUrl(5))->assertOk();
+});

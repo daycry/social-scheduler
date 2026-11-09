@@ -16,6 +16,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Genera el PDF de una programacion (periodo cerrado anterior) y lo envia a cada destinatario por separado (nadie ve las
@@ -59,28 +60,39 @@ class SendScheduledReport implements ShouldQueue
         $key = 'report-mail:'.$user->id;
         $limit = (int) config('reports.mail_daily_limit', 20);
 
-        if (RateLimiter::attempts($key) + count($recipients) > $limit) {
+        // Cupo reservado de forma atomica ANTES de generar el PDF (dos envios simultaneos no lo sobrepasan); se libera si falla.
+        $reserved = count($recipients);
+
+        if (RateLimiter::increment($key, 86400, $reserved) > $limit) {
+            RateLimiter::decrement($key, 86400, $reserved);
             $schedule->update(['last_run_at' => now(), 'last_error' => 'Se alcanzo el limite diario de correos de informes. No se envio este informe.']);
 
             return;
         }
 
         $period = ReportSchedule::periodFor($schedule->frequency, $brand->timezone);
-        $report = $reports->create($user, $brand, 'pdf', $period, (string) ($template->compare ?: 'none'), ReportBlocks::normalize($template->blocks), $schedule->id);
-        $reports->generate($report);
+        try {
+            $report = $reports->create($user, $brand, 'pdf', $period, (string) ($template->compare ?: 'none'), ReportBlocks::normalize($template->blocks), $schedule->id);
+            $reports->generate($report);
+        } catch (\Throwable $e) {
+            RateLimiter::decrement($key, 86400, $reserved);
+
+            throw $e;
+        }
 
         if ($report->status !== Report::STATUS_READY) {
+            RateLimiter::decrement($key, 86400, $reserved);
             $schedule->update(['last_run_at' => now(), 'last_error' => ReportService::GENERIC_ERROR]);
 
             return;
         }
 
         $hours = max(1, (int) config('reports.mail_link_hours', 72));
-        $url = $report->signedDownloadUrl($hours * 60);
+        $url = $report->signedDownloadUrl($hours * 60, $schedule->id);
 
         foreach ($recipients as $to) {
-            RateLimiter::hit($key, 86400);
-            Mail::to($to)->send(new ScheduledReportMail($report, $brand->name, $url, $hours));
+            $unsubscribe = URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $schedule->id, 'email' => $to]);
+            Mail::to($to)->send(new ScheduledReportMail($report, $brand->name, $url, $hours, (string) $user->name, (string) $user->email, $unsubscribe));
         }
 
         $schedule->update(['last_run_at' => now(), 'last_error' => null]);

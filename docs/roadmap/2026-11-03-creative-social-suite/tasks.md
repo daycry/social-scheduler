@@ -504,6 +504,24 @@ Efecto colateral: el E2E `studio-collab.spec.ts` espera el error «No hay ningú
 
 - [ ] Matriz completa, regresiones, seguridad de permisos/datos, rendimiento y accesibilidad con evidencias; cada limitación externa permanece explícita.
 
+**E2E rojos revisados 2026-11-09** (inventario del usuario y pasada completa de `npx playwright test`; ningún fixme queda, el único `test.skip` es el condicional de móvil en `pages.spec.ts`):
+
+| Caso | Causa raíz (probada) | Corrección | Resultado |
+|---|---|---|---|
+| E2E28.01 | No era un cuelgue ni un defecto del guardado: la traza de red muestra 10 iteraciones con todas las peticiones 200 (~9 s cada una en el servidor PHP de un proceso) y el test corta a los 60 s de `timeout`; el repro mínimo (insertar, guardar, editar, deshacer, guardar, recargar x10 tipos, con y sin tipografía privada) pasa. | Reescrito estándar (sin `isolation`/observer/`delivered`/`runRoot`): configura, aplica, verifica el documento guardado, deshace, recarga y exporta SVG/PNG con `waitForEvent('download')`; `test.setTimeout(420_000)`. Se retiró además el recolector de respuestas de fuente del `beforeEach/afterEach`, que fallaba al recargar (`response.body()` tras navegar). | 3/3 proyectos en verde |
+| E2E28.02 | Dependía del observador nativo del arnés. | Sustituido por el E2E estándar de `studio-boards.spec.ts`, ampliado con la frontera de marca (404 de la tabla desde otra marca del mismo propietario) y de actor (404 al `render` de otro usuario). El antiguo se elimina. | 3/3 en verde |
+| E2E28.03 | `holdRealResponse` solo funciona con `frontend-hooks.cjs`, que `serve.cjs` no adjunta. | Reescrito estándar con `page.route` (`route.fetch()` y `fulfill` tras soltar la compuerta): Insertar desactivado durante la respuesta lenta, cancelar devuelve el foco, la respuesta tardía no reabre ni inserta, y la reapertura reutiliza la caché (1 petición). No apareció defecto de UI. | 3/3 en verde |
+| E2E27.01 mobile-360 | Axe devuelve `color-contrast` incomplete SIN nodos: error «Element midpoint exceeds the grid bounds» para una celda `text-slate-800` fuera del área visible de la tabla con scroll horizontal. No es un problema de contraste ni de solapamiento. | `auditDialog` acepta solo ese error exacto y mide el contraste real de cada nodo desde los estilos calculados (>= 4,5); cualquier otro incomplete sigue fallando. | 3/3 en verde |
+| Node (9 rojos + 3 derivados) | 4 `isolated server` y «caption private font»: `render.mjs` exige `studio-exports/<n>/<n>/<uuid>` con n >= 1 y los tests usaban `0/0`. «canonical chart files»: la URL sintética del renderizador es `https` y el test esperaba `http`. 464-466: el editor recibe `access.is_owner` desde T-13 y el fixture de readiness no lo aportaba. Los 3 `afterEach` de `studio-chart-delay` comprobaban un hook del spec que dejó de existir. | Tests actualizados (la verdad está en el código); retirados los tres del hook eliminado. | 651/651 |
+| `studio-collab` | T-13 hizo uniforme la respuesta de compartir (202, «Si existe una cuenta con ese email...») y no crea acceso. | El E2E comprueba el mensaje uniforme y que no aparece ninguna fila de acceso. | 3/3 en verde |
+| Dashboards (a11y x4, bluesky, threads) x3 | `definition-list`: `<p>` con los días observados dentro de un `div` de `dl` (`Dashboard/Network.vue`). Defecto real de accesibilidad. | La nota pasa dentro de su `dd`. | 21/21 en verde |
+| `studio-imaging` x2 x3 | Contraste real 4,34 de la insignia de formato (`text-slate-500` sobre `slate-100`, 10 px) en `StudioFontsDialog.vue`; y 2 incompletes de axe (chevron del `select` como imagen de fondo; nodo que «solapa» a otro). | `text-slate-600` en la insignia; la auditoría usa un viewport alto, scroll arriba y mide desde estilos calculados solo esos dos motivos de `color-contrast`. | 6/6 en verde |
+| `tiktok-audio` x2 x3 | Fotos/carruseles de TikTok solo se ofrecen con dominio verificado y el entorno desechable no lo declaraba. | `TIKTOK_VERIFIED_DOMAIN` ficticio en `tests/e2e/isolated/runtime.ts`. | 6/6 en verde |
+| `security` passkey (E2E-05) x3 | Chromium solo admite un autenticador virtual `internal` por entorno; el test crea dos. | El segundo dispositivo se simula como llave `usb` (`virtualAuthenticator(..., 'usb')`). | 3/3 en verde |
+| `composer` E2E-07 (mobile, intermitente) | Defecto real: la traza muestra `POST /library` (302), `POST /posts/validate` y solo después `GET /posts/create`; la validación en segundo plano gasta el aviso flash antes de pintarse. | `PostController::validatePost` hace `session()->reflash()`; test Pest de regresión (rojo sin el arreglo, verde con él). | 18/18 repeticiones en verde |
+
+Durante la pasada completa se actualizó además `studio-collab.spec.ts` al aviso del commit `948660e`.
+
 ### T-23 — Documentación, despliegue y entrega git
 - **Estado**: en-progreso
 - **Cubre (tests)**: M-01, M-02, M-03, M-04

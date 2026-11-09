@@ -76,7 +76,6 @@ const sendReply = (c) =>
             form.reset();
         },
     });
-const canHide = (c) => ['instagram', 'facebook'].includes(c.network);
 const toggleRead = (c) => router.post(route('inbox.read', c.id), { read: !c.read }, { preserveScroll: true });
 const toggleHide = (c) => router.post(route('inbox.hide', c.id), { hidden: !c.hidden }, { preserveScroll: true });
 const readAll = () => router.post(route('inbox.read-all'), { network: props.filters?.network ?? null }, { preserveScroll: true });
@@ -210,7 +209,7 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
                                     <button type="button" class="btn btn-secondary" @click="openReply(c)">Responder</button>
                                     <button type="button" class="underline" @click="toggleRead(c)">{{ c.read ? 'Marcar no leído' : 'Marcar leído' }}</button>
                                     <button type="button" class="underline" data-testid="toggle-close" @click="toggleClose(c)">{{ c.closed ? 'Reabrir' : 'Cerrar' }}</button>
-                                    <button v-if="canHide(c)" type="button" class="text-red-600 underline" @click="toggleHide(c)">{{ c.hidden ? 'Mostrar' : 'Ocultar' }}</button>
+                                    <button v-if="c.can_hide" type="button" class="text-red-600 underline" @click="toggleHide(c)">{{ c.hidden ? 'Mostrar' : 'Ocultar' }}</button>
                                 </div>
                             </div>
 

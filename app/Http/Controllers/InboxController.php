@@ -68,6 +68,7 @@ class InboxController extends Controller
                 'read' => $c->read_at !== null,
                 'hidden' => $c->hidden,
                 'closed' => $c->closed_at !== null,
+                'can_hide' => in_array($c->network->value, ['instagram', 'facebook'], true),
                 'assigned_user_id' => $c->assigned_user_id,
                 'labels' => $c->labels->pluck('label')->values(),
                 'notes' => $c->notes->map(fn (InboxCommentNote $n) => $this->notes->toArray($n))->values(),

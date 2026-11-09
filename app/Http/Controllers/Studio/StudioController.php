@@ -7,14 +7,17 @@ use App\Models\Brand;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
+use App\Models\User;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioAvControl;
+use App\Services\Studio\StudioCollab;
 use App\Services\Studio\StudioExports;
 use App\Services\Studio\StudioFonts;
 use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
+use App\Services\Studio\StudioSharedFiles;
 use App\Support\CurrentBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,13 +28,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudioController extends Controller
 {
-    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly StudioExports $exports) {}
+    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly StudioExports $exports, private readonly StudioCollab $collab, private readonly StudioSharedFiles $shared) {}
 
     public function index(Request $request): Response|JsonResponse
     {
         $brand = CurrentBrand::resolve($request);
         if ($brand === null) {
-            return Inertia::render('Studio/Index', ['brand' => null, 'designs' => ['data' => [], 'total' => 0, 'links' => []], 'kit' => null, 'assets' => [], 'folders' => [], 'filters' => []]);
+            return Inertia::render('Studio/Index', ['brand' => null, 'designs' => ['data' => [], 'total' => 0, 'links' => []], 'kit' => null, 'assets' => [], 'folders' => [], 'filters' => [], 'shared' => $this->collab->sharedWith($request->user())]);
         }
 
         return $this->indexBrand($request, $brand);
@@ -42,7 +45,7 @@ class StudioController extends Controller
         $filters = $request->validate(['query' => ['nullable', 'string', 'max:120'], 'folder_id' => ['nullable', 'integer', 'min:1'],
             'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean'], 'page' => ['nullable', 'integer', 'min:1']]);
         $designs = $this->studio->designs($request->user(), $brand, $filters)->toArray();
-        $props = $this->brandProps($request, $brand) + ['designs' => $designs, 'filters' => $filters];
+        $props = $this->brandProps($request, $brand) + ['designs' => $designs, 'filters' => $filters, 'shared' => $this->collab->sharedWith($request->user())];
 
         return $request->expectsJson() ? response()->json($props) : Inertia::render('Studio/Index', $props);
     }
@@ -62,7 +65,26 @@ class StudioController extends Controller
 
     public function edit(Request $request, Design $design): Response
     {
-        return Inertia::render('Studio/Editor', $this->editorProps($request, $design));
+        $props = $this->editorProps($request, $design);
+
+        // Lectores y comentaristas revisan el diseño sin el editor: no pueden modificar nada, y el servidor lo impide igualmente.
+        return Inertia::render($props['access']['can_edit'] ? 'Studio/Editor' : 'Studio/Review', $props);
+    }
+
+    public function sharedAsset(Request $request, Design $design, int $media): StreamedResponse
+    {
+        $role = $this->collab->role($request->user(), $design);
+        $owner = $this->collab->authorize($request->user(), $design, 'view');
+
+        return $this->shared->asset($owner, $design, $role, $media, $request->header('Range'));
+    }
+
+    public function sharedFont(Request $request, Design $design, int $font): StreamedResponse
+    {
+        $role = $this->collab->role($request->user(), $design);
+        $owner = $this->collab->authorize($request->user(), $design, 'view');
+
+        return $this->shared->font($owner, $design, $role, $font);
     }
 
     public function update(Request $request, Design $design): JsonResponse|RedirectResponse
@@ -201,34 +223,52 @@ class StudioController extends Controller
             : redirect()->route('posts.edit', $post);
     }
 
-    private function brandProps(Request $request, Brand $brand): array
+    private function brandProps(Request $request, Brand $brand, ?User $user = null): array
     {
-        $this->assets->assertBrand($request->user(), $brand);
-        $kit = $this->studio->kit($request->user(), $brand);
+        $user ??= $request->user();
+        $this->assets->assertBrand($user, $brand);
+        $kit = $this->studio->kit($user, $brand);
         $fonts = app(StudioFonts::class);
-        $kitFonts = $fonts->many($request->user(), $brand, array_values(array_filter($kit['font_ids'] ?? [])))
+        $kitFonts = $fonts->many($user, $brand, array_values(array_filter($kit['font_ids'] ?? [])))
             ->map(fn ($font) => $fonts->present($font))->values()->all();
 
         return ['brand' => $brand->only(['id', 'name', 'timezone']), 'kit' => $kit,
-            'assets' => $this->assets->list($request->user(), $brand)->map(fn ($asset) => $this->assets->present($brand, $asset))->all(),
-            'folders' => $this->studio->folders($request->user(), $brand),
-            'fonts' => collect(array_merge($fonts->listing($request->user(), $brand)['fonts'], $kitFonts))->unique('id')->values()->all()];
+            'assets' => $this->assets->list($user, $brand)->map(fn ($asset) => $this->assets->present($brand, $asset))->all(),
+            'folders' => $this->studio->folders($user, $brand),
+            'fonts' => collect(array_merge($fonts->listing($user, $brand)['fonts'], $kitFonts))->unique('id')->values()->all()];
     }
 
     private function editorProps(Request $request, Design $design): array
     {
         $data = $request->validate(['exports_page' => ['nullable', 'integer', 'min:1']]);
-        $design = $this->studio->owned($request->user(), $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $request->user()->id)->findOrFail($design->brand_id);
-        $history = $this->exports->paginated($request->user(), $design, (int) ($data['exports_page'] ?? 1));
+        $actor = $request->user();
+        $role = $this->collab->role($actor, $design);
+        $user = $this->collab->authorize($actor, $design, 'view');
+        $design = $this->studio->owned($user, $design);
+        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
+        $history = $this->exports->paginated($user, $design, (int) ($data['exports_page'] ?? 1));
 
-        $props = $this->brandProps($request, $brand);
+        $props = $this->brandProps($request, $brand, $user);
         $fonts = app(StudioFonts::class);
-        $ids = array_values(array_filter($this->studio->kit($request->user(), $brand)['font_ids'] ?? []));
-        $needed = array_merge($fonts->neededFor($request->user(), $brand, $design->document), $fonts->many($request->user(), $brand, $ids)->map(fn ($font) => $fonts->present($font))->values()->all());
+        $ids = array_values(array_filter($this->studio->kit($user, $brand)['font_ids'] ?? []));
+        $needed = array_merge($fonts->neededFor($user, $brand, $design->document), $fonts->many($user, $brand, $ids)->map(fn ($font) => $fonts->present($font))->values()->all());
         $props['fonts'] = collect(array_merge($props['fonts'], $needed))->unique('id')->values()->all();
+        $presented = $this->studio->present($actor, $design);
+        $access = $this->collab->summary($role, $design);
 
-        return $props + ['design' => $this->studio->present($request->user(), $design),
-            'exports' => $this->exports->presentMany($request->user(), $history->getCollection()), 'exports_pagination' => $this->exports->pageMetadata($history)];
+        if ($role !== 'owner') {
+            $routes = ['asset' => fn (int $id) => route('studio.shared.asset', ['design' => $design->id, 'media' => $id], false), 'font' => fn (int $id) => route('studio.shared.font', ['design' => $design->id, 'font' => $id], false)];
+            $rewritten = $this->shared->rewrite($design, $role, $props['assets'], $props['fonts'], $routes);
+            $props['assets'] = $rewritten['assets'];
+            $props['fonts'] = $rewritten['fonts'];
+            $presented['fonts'] = $this->shared->rewrite($design, $role, [], $presented['fonts'], $routes)['fonts'];
+            $props['folders'] = [];
+            $props['kit'] = ['palette' => $props['kit']['palette'], 'fonts' => $props['kit']['fonts'], 'font_ids' => $props['kit']['font_ids'] ?? [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+            $history = null;
+        }
+
+        return $props + ['design' => $presented, 'access' => $access,
+            'exports' => $history ? $this->exports->presentMany($user, $history->getCollection()) : [],
+            'exports_pagination' => $history ? $this->exports->pageMetadata($history) : ['current_page' => 1, 'last_page' => 1, 'per_page' => 50, 'total' => 0, 'has_more' => false]];
     }
 }

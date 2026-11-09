@@ -29,6 +29,7 @@ use App\Mcp\Tools\ListMedia;
 use App\Mcp\Tools\ManageBrandKit;
 use App\Mcp\Tools\ManageDesign;
 use App\Mcp\Tools\ManageDesignCaptions;
+use App\Mcp\Tools\ManageDesignCollaboration;
 use App\Mcp\Tools\ManageDesignExport;
 use App\Mcp\Tools\ManageDesignFolder;
 use App\Mcp\Tools\ManageStudioAudio;
@@ -105,5 +106,6 @@ class SchedulerServer extends Server
         ManageStudioAudio::class,
         ManageStudioDataset::class,
         ManageDesignCaptions::class,
+        ManageDesignCollaboration::class,
     ];
 }

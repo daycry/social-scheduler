@@ -131,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
             ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
             : Limit::none());
+        // Estudio: crear enlaces públicos de un diseño (10/min por usuario) y abrirlos o comentar sin sesión (60/min por IP).
+        RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('studio-link-view', fn (Request $request) => Limit::perMinute(60)->by('studio-link-view:'.$request->ip()));
         RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
             ->by('giphy:'.($request->user()?->id ?? $request->ip())));
 

@@ -3,7 +3,6 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Abilities;
-use App\Models\Studio\Design;
 use App\Models\User;
 use App\Services\Studio\StudioService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,7 +14,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 #[Description('Guarda nueva revisión del diseño. revision debe coincidir con la versión actual de get_design; 409 exige recargar y resolver cambios antes de reintentar. Conserva propiedades del documento. No publica. Requiere designs:write.')]
 class UpdateDesign extends SchedulerTool
 {
-    use StudioPayload;
+    use SharedDesign, StudioPayload;
 
     protected function ability(): string
     {
@@ -38,6 +37,6 @@ class UpdateDesign extends SchedulerTool
         $data = $request->validate(['design_id' => ['required', 'integer', 'min:1']]);
         $studio = app(StudioService::class);
 
-        return $studio->present($user, $studio->update($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño'), $request->all()), true);
+        return $studio->present($user, $studio->update($user, $this->accessibleDesign($user, $data['design_id']), $request->all()), true);
     }
 }

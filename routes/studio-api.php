@@ -7,6 +7,7 @@ use App\Http\Middleware\RequireApiAbility;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/studio-captions-api.php';
+require __DIR__.'/studio-collab-api.php';
 require __DIR__.'/studio-datasets-api.php';
 
 // The application loads this file with the stateless api middleware, without a second prefix.

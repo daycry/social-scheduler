@@ -7,10 +7,10 @@ use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignRevision;
 use App\Models\User;
 use App\Services\Studio\StudioService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 function studioDocument(array $elements = []): array
 {
@@ -215,7 +215,7 @@ test('Studio: services retain explicit ownership without an authenticated web se
     $service = app(StudioService::class);
     $design = $service->create($this->user, $this->brand, ['name' => 'Desde MCP', 'document' => studioDocument()]);
     expect($service->present($this->user, $design)['name'])->toBe('Desde MCP');
-    expect(fn () => $service->present(User::factory()->create(), $design))->toThrow(ModelNotFoundException::class);
+    expect(fn () => $service->present(User::factory()->create(), $design))->toThrow(NotFoundHttpException::class);
 });
 
 test('Studio: kit and folders are scoped to brand and require registered own logos', function () {

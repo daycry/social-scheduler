@@ -7,20 +7,23 @@ use App\Models\Brand;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
+use App\Models\User;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioAvControl;
+use App\Services\Studio\StudioCollab;
 use App\Services\Studio\StudioExports;
 use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
+use App\Services\Studio\StudioSharedFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudioApiController extends Controller
 {
-    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly StudioExports $exports) {}
+    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly StudioExports $exports, private readonly StudioCollab $collab, private readonly StudioSharedFiles $shared) {}
 
     public function index(Request $request, Brand $brand): JsonResponse
     {
@@ -43,13 +46,42 @@ class StudioApiController extends Controller
     public function show(Request $request, Design $design): JsonResponse
     {
         $data = $request->validate(['exports_page' => ['nullable', 'integer', 'min:1']]);
-        $design = $this->studio->owned($request->user(), $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $request->user()->id)->findOrFail($design->brand_id);
-        $history = $this->exports->paginated($request->user(), $design, (int) ($data['exports_page'] ?? 1));
+        $role = $this->collab->role($request->user(), $design);
+        $owner = $this->collab->authorize($request->user(), $design, 'view');
+        $design = $this->studio->owned($owner, $design);
+        $brand = Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($design->brand_id);
+        $history = $this->exports->paginated($owner, $design, (int) ($data['exports_page'] ?? 1));
+        $presented = $this->studio->present($request->user(), $design, true);
+        $assets = $this->assetData($request, $brand, $owner);
+        $kit = $this->studio->kit($owner, $brand);
+        $exports = $this->exports->presentMany($owner, $history->getCollection());
+        $pagination = $this->exports->pageMetadata($history);
+        if ($role !== 'owner') {
+            $routes = ['asset' => fn (int $id) => route('api.studio.shared.asset', ['design' => $design->id, 'media' => $id], false), 'font' => fn (int $id) => route('api.studio.shared.font', ['design' => $design->id, 'font' => $id], false)];
+            $assets = $this->shared->rewrite($design, $role, $assets, [], $routes, true)['assets'];
+            $presented['fonts'] = $this->shared->rewrite($design, $role, [], $presented['fonts'], $routes, true)['fonts'];
+            $kit = ['palette' => $kit['palette'], 'fonts' => $kit['fonts'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+            $exports = [];
+            $pagination = ['current_page' => 1, 'last_page' => 1, 'per_page' => 50, 'total' => 0, 'has_more' => false];
+        }
 
-        return response()->json($this->studio->present($request->user(), $design, true) + ['kit' => $this->studio->kit($request->user(), $brand),
-            'assets' => $this->assetData($request, $brand), 'exports' => $this->exports->presentMany($request->user(), $history->getCollection()),
-            'exports_pagination' => $this->exports->pageMetadata($history)]);
+        return response()->json($presented + ['kit' => $kit, 'assets' => $assets, 'exports' => $exports, 'exports_pagination' => $pagination]);
+    }
+
+    public function sharedAsset(Request $request, Design $design, int $media): StreamedResponse
+    {
+        $role = $this->collab->role($request->user(), $design);
+        $owner = $this->collab->authorize($request->user(), $design, 'view');
+
+        return $this->shared->asset($owner, $design, $role, $media, $request->header('Range'));
+    }
+
+    public function sharedFont(Request $request, Design $design, int $font): StreamedResponse
+    {
+        $role = $this->collab->role($request->user(), $design);
+        $owner = $this->collab->authorize($request->user(), $design, 'view');
+
+        return $this->shared->font($owner, $design, $role, $font);
     }
 
     public function update(Request $request, Design $design): JsonResponse
@@ -172,9 +204,9 @@ class StudioApiController extends Controller
         return response()->json(['post' => ['id' => $post->id, 'status' => $post->status->value, 'edit_url' => route('posts.edit', $post, absolute: false)]], 201);
     }
 
-    private function assetData(Request $request, Brand $brand): array
+    private function assetData(Request $request, Brand $brand, ?User $user = null): array
     {
-        return $this->assets->list($request->user(), $brand)->map(fn ($asset) => $this->assets->present($brand, $asset)
+        return $this->assets->list($user ?? $request->user(), $brand)->map(fn ($asset) => $this->assets->present($brand, $asset)
             + ['file_url' => route('api.studio.assets.file', ['brand' => $brand, 'media' => $asset->id], false)])->all();
     }
 }

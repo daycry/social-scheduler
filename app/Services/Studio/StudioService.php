@@ -7,6 +7,7 @@ use App\Models\Studio\BrandKit;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignFolder;
 use App\Models\Studio\DesignRevision;
+use App\Models\Studio\DesignShare;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class StudioService
 {
-    public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets) {}
+    public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab) {}
 
     public function designs(User $user, Brand $brand, array $filters = []): LengthAwarePaginator
     {
@@ -65,15 +66,21 @@ class StudioService
 
     public function update(User $user, Design $design, array $data, ?array $kitReference = null): Design
     {
+        $actor = $user;
+        $user = $this->collab->authorize($actor, $design, 'edit');
         $current = $this->owned($user, $design);
         $data = $this->input($data, true);
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
 
-        return DB::transaction(function () use ($user, $current, $data, $document, $folderId, $kitReference): Design {
+        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference): Design {
             $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
-            abort_if($locked->revision !== (int) $data['revision'], 409, 'El diseño cambió en otra sesión. Recarga la versión guardada antes de continuar.');
+            if ($locked->revision !== (int) $data['revision']) {
+                $last = DesignRevision::withoutUserScope()->where('design_id', $locked->id)->where('revision', $locked->revision)->first();
+                $by = $last?->author_id !== null ? User::query()->whereKey($last->author_id)->value('name') : null;
+                throw new StudioDesignConflict($locked->revision, $by);
+            }
             if ($kitReference !== null) {
                 $locked->kit_reference = self::reference($kitReference);
             } elseif (isset($data['kit_revision'])) {
@@ -87,7 +94,7 @@ class StudioService
             $locked->fill(['name' => trim($data['name']), 'document' => $document, 'revision' => $locked->revision + 1,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
                 'is_template' => $data['is_template'] ?? $locked->is_template, 'folder_id' => $folderId])->save();
-            $this->snapshot($locked);
+            $this->snapshot($locked, $actor->id);
 
             return $locked;
         });
@@ -100,6 +107,24 @@ class StudioService
 
         return $this->create($user, $brand, ['name' => $name ?? mb_substr($source->name, 0, 248).' (copia)', 'document' => $source->document,
             'folder_id' => $source->folder_id, 'is_template' => $source->is_template], $source->kit_reference ?? []);
+    }
+
+    /**
+     * «Guardar como copia» tras un conflicto: el trabajo local de quien edita se conserva en un diseño nuevo de la misma marca.
+     * La copia pertenece al propietario del original; si la guarda un editor, este conserva acceso de editor a ella.
+     */
+    public function saveCopy(User $actor, Design $design, array $data): Design
+    {
+        $owner = $this->collab->authorize($actor, $design, 'edit');
+        $source = $this->owned($owner, $design);
+        $brand = Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($source->brand_id);
+        $copy = $this->create($owner, $brand, ['name' => trim((string) ($data['name'] ?? '')) !== '' ? $data['name'] : mb_substr($source->name, 0, 240).' (copia)',
+            'document' => $data['document'] ?? $source->document, 'folder_id' => $source->folder_id, 'is_template' => false], $source->kit_reference ?? []);
+        if ($actor->id !== $owner->id) {
+            DesignShare::query()->create(['design_id' => $copy->id, 'owner_id' => $owner->id, 'user_id' => $actor->id, 'role' => 'editor']);
+        }
+
+        return $copy;
     }
 
     public function archive(User $user, Design $design): void
@@ -129,6 +154,8 @@ class StudioService
 
     public function present(User $user, Design $design, bool $api = false): array
     {
+        $role = $this->collab->role($user, $design);
+        $user = $this->collab->authorize($user, $design, 'view');
         $current = $this->owned($user, $design, $design->trashed());
 
         $data = $current->only(['id', 'user_id', 'brand_id', 'folder_id', 'name', 'document', 'revision', 'is_template', 'kit_reference', 'created_at', 'updated_at', 'deleted_at']);
@@ -136,7 +163,7 @@ class StudioService
             $data['kit_reference'] = self::reference($data['kit_reference']);
         }
 
-        return $data + ['template_fields' => StudioAutomation::fields($current->document), 'fonts' => app(StudioFonts::class)->neededFor($user, Brand::withoutUserScope()->findOrFail($current->brand_id), $current->document, $api)];
+        return $data + ['role' => $role, 'template_fields' => StudioAutomation::fields($current->document), 'fonts' => app(StudioFonts::class)->neededFor($user, Brand::withoutUserScope()->findOrFail($current->brand_id), $current->document, $api)];
     }
 
     /** Preserve legacy meaning without recapturing a newer brand kit or serializing an empty list. */
@@ -262,12 +289,40 @@ class StudioService
         return (int) $id;
     }
 
-    private function snapshot(Design $design): void
+    /** Historial de versiones del diseño (más reciente primero), para cualquiera con acceso de lectura. */
+    public function versions(User $user, Design $design): array
+    {
+        $owner = $this->collab->authorize($user, $design, 'view');
+        $current = $this->owned($owner, $design, $design->trashed());
+        $rows = DesignRevision::withoutUserScope()->where('design_id', $current->id)->orderByDesc('revision')->limit(100)->get(['id', 'revision', 'name', 'author_id', 'created_at']);
+        $names = User::query()->whereIn('id', $rows->pluck('author_id')->filter()->unique())->pluck('name', 'id');
+
+        return $rows->map(fn (DesignRevision $row) => ['revision' => $row->revision, 'name' => $row->name, 'author' => $row->author_id !== null ? ($names[$row->author_id] ?? null) : null,
+            'created_at' => $row->created_at?->toIso8601String(), 'current' => $row->revision === $current->revision])->all();
+    }
+
+    /** Restaura una versión como una revisión nueva (el historial no se reescribe) con el mismo control de conflicto que un guardado. */
+    public function restoreVersion(User $user, Design $design, int $version, mixed $expectedRevision): Design
+    {
+        $owner = $this->collab->authorize($user, $design, 'edit');
+        $snapshot = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('user_id', $owner->id)->where('revision', $version)->first();
+        if ($snapshot === null) {
+            throw ValidationException::withMessages(['version' => ['La versión no existe en este diseño.']]);
+        }
+        $data = ['name' => $snapshot->name, 'document' => $snapshot->document, 'revision' => $expectedRevision];
+        if ($snapshot->kit_reference !== null) {
+            $data['kit_revision'] = $version;
+        }
+
+        return $this->update($user, $design, $data);
+    }
+
+    private function snapshot(Design $design, ?int $authorId = null): void
     {
         $ids = array_values(array_unique(array_merge(StudioFonts::idsFromDocument($design->document), array_filter($design->kit_reference['font_ids'] ?? [], fn ($id) => $id !== null))));
         $fonts = StudioFont::withoutUserScope()->where('user_id', $design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
         abort_unless($fonts->count() === count($ids), 422, 'Las tipografías deben pertenecer a esta marca.');
-        $revision = DesignRevision::create(['user_id' => $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
+        $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $authorId ?? $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
         foreach ($ids as $id) {
             DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
         }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Studio\StudioFontController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/studio-datasets.php';
+require __DIR__.'/studio-collab.php';
 
 // Loaded by routes/web.php and inherits its web middleware.
 Route::middleware(['auth', 'verified'])->group(function () {

@@ -11,6 +11,7 @@ use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
 use App\Models\Brand;
 use App\Models\Campaign;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
@@ -23,6 +24,7 @@ use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
+use App\Support\TargetMedia;
 use App\Support\TextLength;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -237,6 +239,9 @@ class PostController extends Controller
                     + ($mode !== TextLength::CHARS ? ['count' => $mode] : [])
                     + (isset($text['advise_hashtags']) ? ['advise_hashtags' => $text['advise_hashtags']] : [])];
             }),
+            // Que metadatos de media admite cada tipo (T-17): el panel «Personalizar media» solo ofrece alt y portada donde la red los publica.
+            'mediaMeta' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(fn (ContentType $t) => [$t->value => ['alt' => TargetMedia::supportsAlt($t), 'cover' => TargetMedia::supportsCover($t)]]),
+            'altMax' => TargetMedia::ALT_MAX,
             // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
             'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()
                 ->mapWithKeys(fn (ContentType $t) => [$t->value => config("media_specs.types.{$t->value}.first_comment.max")])->filter(),
@@ -278,11 +283,16 @@ class PostController extends Controller
             'scheduled_at' => $post->scheduled_at?->copy()->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d\TH:i'),
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media' => $post->media()->get()->map->toPublicArray()->values(),
+            // Archivos que usa la media propia de algun destino (y sus portadas): el cliente los resuelve por id para mostrarlos (T-17).
+            'target_media_assets' => MediaAsset::withoutUserScope()->where('user_id', $post->user_id)
+                ->whereIn('id', $targets->flatMap(fn (PostTarget $t) => collect($t->media ?? [])->flatMap(fn ($m) => [$m['id'] ?? null, $m['cover_id'] ?? null]))->filter()->unique()->all())
+                ->get()->map->toPublicArray()->values(),
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'id' => $t->id,
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
                 'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
+                'media' => $t->media, // media propia del destino: null = hereda la comun; lista {id, alt, cover_id} (T-17)
                 'options' => $t->options ?? new \stdClass,
                 'status' => $t->status->value,
                 'status_label' => $t->status->label(),

@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import TextEditor from '@/Components/Composer/TextEditor.vue';
+import TargetMediaPanel from '@/Components/Composer/TargetMediaPanel.vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { countChars } from '@/Composables/textCount';
 
@@ -146,6 +147,8 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
                     </div>
                 </div>
             </div>
+            <!-- Media propia de la red (T-17) -->
+            <TargetMediaPanel v-if="active" :key="active.key" :row="active" />
         </div>
         <p class="text-right text-xs text-slate-600">{{ count }} caracteres</p>
     </div>

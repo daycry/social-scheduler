@@ -22,6 +22,8 @@ const props = defineProps({
     typeLabels: { type: Object, default: () => ({}) },
     limits: Object,
     firstCommentMax: { type: Object, default: () => ({}) },
+    mediaMeta: { type: Object, default: () => ({}) },
+    altMax: { type: Number, default: 1000 },
     presets: Object,
     drivePicker: { type: Object, default: null },
     giphy: { type: Object, default: () => ({ enabled: false }) },

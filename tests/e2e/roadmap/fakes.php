@@ -70,6 +70,11 @@ class T43Publisher implements Publisher
                 return 'transient';
             }
             $state['records'][$id] ??= ['id' => 't43-external-'.$id, 'created_at' => now()->toIso8601String()];
+            // T-17: lo que la red recibe de media (ids, orden, alt, portada y huella de los bytes) para comprobar la media efectiva del destino.
+            $state['records'][$id]['media'] = array_map(fn ($m) => [
+                'id' => $m->id, 'alt' => $m->alt, 'cover_id' => $m->cover?->id,
+                'sha1' => $m->disk !== null && $m->path !== null ? sha1((string) \Illuminate\Support\Facades\Storage::disk($m->disk)->get($m->path)) : null,
+            ], $request->media);
             if (str_contains((string) $request->text, 't43-timeout') && $state['calls'][$id] === 1) {
                 return 'timeout';
             }

@@ -35,6 +35,8 @@ export function useComposer(props) {
             // `null` = vinculado al texto común (plantilla); una cadena = texto propio de esta red (C-03).
             text: t.text ?? null,
             first_comment: t.first_comment ?? '',
+            // Media propia del destino (T-17): `null` = hereda la común; una lista [{ id, alt, cover_id }] = su selección, orden, alt y portada.
+            media: t.media ? t.media.map((m) => ({ id: m.id, alt: m.alt ?? '', cover_id: m.cover_id ?? null })) : null,
             options: { ...(t.options ?? {}) },
         })),
     });
@@ -56,7 +58,11 @@ export function useComposer(props) {
             previews.value[asset.id] = url;
         }
     };
+    // Archivos que solo usa la media propia de algún destino (o que se quitaron de la común después): se resuelven por id.
+    const extraAssets = ref([...(props.post?.target_media_assets ?? [])]);
     const removeMedia = (id) => {
+        const gone = mediaItems.value.find((m) => m.id === id);
+        if (gone && !extraAssets.value.some((m) => m.id === id)) extraAssets.value.push(gone);
         mediaItems.value = mediaItems.value.filter((m) => m.id !== id);
         form.media = form.media.filter((m) => m !== id);
     };
@@ -65,7 +71,46 @@ export function useComposer(props) {
         if (to < 0 || to >= form.media.length) return;
         [form.media[index], form.media[to]] = [form.media[to], form.media[index]];
     };
-    const mediaById = (id) => mediaItems.value.find((m) => m.id === id);
+    const mediaById = (id) => mediaItems.value.find((m) => m.id === id) ?? extraAssets.value.find((m) => m.id === id);
+
+    // Media por destino (T-17). Un destino sin `media` hereda la común; «Personalizar» la copia para editarla sola; «Volver a la común»
+    // la descarta. La media EFECTIVA de un destino es lo que se valida, se previsualiza y se publica.
+    const mediaMeta = computed(() => props.mediaMeta ?? {});
+    const altMax = computed(() => props.altMax ?? 1000);
+    const hasOwnMedia = (target) => Array.isArray(target?.media);
+    const effectiveMedia = (target) => (hasOwnMedia(target) ? target.media : form.media.map((id) => ({ id, alt: '', cover_id: null })));
+    const customizeMedia = (target) => { target.media = form.media.map((id) => ({ id, alt: '', cover_id: null })); };
+    const resetMedia = (target) => { target.media = null; };
+    const moveTargetMedia = (target, index, delta) => {
+        const to = index + delta;
+        if (!hasOwnMedia(target) || to < 0 || to >= target.media.length) return;
+        [target.media[index], target.media[to]] = [target.media[to], target.media[index]];
+    };
+    const removeTargetMedia = (target, index) => { target.media.splice(index, 1); };
+    // Biblioteca de media del usuario (la misma lista `media.index` del selector): se carga una vez, al abrir el selector de una red.
+    const libraryItems = ref([]);
+    const libraryState = ref('idle'); // idle | loading | ready | error
+    const loadLibrary = async () => {
+        if (libraryState.value === 'loading' || libraryState.value === 'ready') return;
+        libraryState.value = 'loading';
+        try {
+            const response = await fetch(route('media.index'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error(String(response.status));
+            libraryItems.value = (await response.json()).media ?? [];
+            libraryState.value = 'ready';
+        } catch {
+            libraryState.value = 'error';
+        }
+    };
+    const addTargetMedia = (target, id) => {
+        if (!id || target.media.some((m) => m.id === id)) return;
+        const asset = mediaById(id) ?? libraryItems.value.find((m) => m.id === id);
+        if (asset && !mediaById(id)) extraAssets.value.push(asset);
+        target.media.push({ id, alt: '', cover_id: null });
+    };
+    // Archivos que se pueden añadir a la media propia de un destino: los de la común y los de la biblioteca que aún no están en su lista.
+    const addableMedia = (target) => [...mediaItems.value, ...libraryItems.value.filter((m) => !mediaItems.value.some((x) => x.id === m.id))]
+        .filter((m) => !target.media?.some((x) => x.id === m.id));
 
     // Cuentas -> destinos
     const targetFor = (accountId) => form.targets.find((t) => t.account_id === accountId);
@@ -127,7 +172,7 @@ export function useComposer(props) {
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
             const type = typesOf(account.network)[0]?.value;
-            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', options: presetOptions(account, type) });
+            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', media: null, options: presetOptions(account, type) });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }
@@ -273,9 +318,12 @@ export function useComposer(props) {
     // Primera media con vista previa local (imagen o vídeo recién subidos): { url, kind }.
     // Si no hay vista previa local (post reabierto, creado por MCP o elegido de la biblioteca), se usa el fichero guardado.
     const previewOf = (id) => previews.value[id] ?? mediaById(id)?.preview_url ?? null;
+    // La vista previa de una red muestra la media EFECTIVA de su pestaña (la propia o la común) y el alt que se publicará.
+    const previewTarget = computed(() => form.targets.find((t) => t.account_id === currentTab.value) ?? null);
+    const previewItems = computed(() => effectiveMedia(previewTarget.value).map((m) => ({ ...m, asset: mediaById(m.id), url: previewOf(m.id) })));
     const firstPreview = computed(() => {
-        const id = form.media.find((m) => previewOf(m));
-        return id === undefined ? null : { url: previewOf(id), kind: mediaById(id)?.kind ?? 'image' };
+        const item = previewItems.value.find((m) => m.url);
+        return item ? { url: item.url, kind: item.asset?.kind ?? 'image', alt: item.alt || '' } : null;
     });
     const charCount = computed(() => countChars(form.text));
 
@@ -354,6 +402,7 @@ export function useComposer(props) {
         campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
         post, brand, accounts, contentTypes, limits, drivePicker, giphyEnabled, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
+        mediaMeta, altMax, hasOwnMedia, effectiveMedia, customizeMedia, resetMedia, moveTargetMedia, removeTargetMedia, addTargetMedia, addableMedia, loadLibrary, libraryState, previewItems, previewTarget,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
         NOTES_MAX, savingNotes, notesError, notesSaved, saveNotes,

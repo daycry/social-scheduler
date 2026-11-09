@@ -12,9 +12,13 @@ import { chartDialog, chartSelect, setup, dataset, choose, configure, apply, edi
 import { delivered, observeSvg, privateFontReference } from './support/studio-chart-observer';
 osEnvironment.applyTo(environment);
 const policies=new WeakMap<Page,any>(),fontReads=new WeakMap<Page,Promise<any>[]>();
-// E2E28.01-03 are fixme: they assert against the server-side observer log and fixtures of the abandoned QA harness
-// (support/studio-chart-observer.ts waits for rows that the standard server never writes). The standard replacements are in
-// studio-boards.spec.ts: chart bound to a saved table (client SVG) and chart exported on the server as SVG, PNG and PDF.
+// E2E28.01-03 run as fixme. Evidence (attempt 2, standard server, desktop/mobile/mobile-360 all 6/6 red when un-fixme'd):
+// - E2E28.03: support/studio-chart-delay.ts `holdRealResponse` waits for `hold-captured-real-response` rows that only
+//   isolated/charts/frontend-hooks.cjs writes; the standard serve.cjs never attaches that hook (expect.poll 0 vs 1).
+// - E2E28.01: the 10-kind loop stalls on a page fetch (`read` -> `web`, or the save status stays "Guardando…" for 60 s) on the
+//   single-process PHP listener, before it reaches the harness-only `delivered()` observer; not reproduced as a UI defect.
+// - E2E28.02: needs the native-observer log (studio-chart-observer.ts:113).
+// Standard replacements live in studio-boards.spec.ts (chart bound to a saved table; chart exported on the server as SVG, PNG, PDF).
 test.beforeEach(async({page},info)=>{const policy=isolation.state();policies.set(page,policy);fontReads.set(page,[]);(page as any).__chartHolds=[];await isolation.install(page,policy);page.on('response',response=>{if(response.request().method()!=='GET'||!/^\/brands\/\d+\/studio\/fonts\/\d+\/file$/.test(new URL(response.url()).pathname))return;const index=fontReads.get(page)!.length;const task=(async()=>{const bytes=await response.body();fs.writeFileSync(info.outputPath(`private-font-response-${index}.woff2`),bytes);return{path:new URL(response.url()).pathname,status:response.status(),mime:response.headers()['content-type'],signature:bytes.subarray(0,4).toString(),bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')};})();fontReads.get(page)!.push(task);task.catch(()=>{});});});
 test.afterEach(async({page},info)=>{
  const failures:unknown[]=[],cleanup:any[]=[];

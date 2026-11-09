@@ -65,6 +65,15 @@ export const MODULES = [
         side: [{ key: 'smartlinks', label: 'Mi página de enlaces', icon: 'link', match: ['smartlinks.*'], href: (c) => c.route('smartlinks.index', c.q) }],
     },
     {
+        key: 'sites',
+        label: 'Sitios',
+        icon: 'folder',
+        match: ['sites.*'],
+        when: (c) => c.has('sites.index'),
+        href: (c) => c.route('sites.index', c.q),
+        side: [{ key: 'sites', label: 'Mis sitios', icon: 'folder', match: ['sites.*'], href: (c) => c.route('sites.index', c.q) }],
+    },
+    {
         key: 'inbox',
         label: 'Inbox',
         icon: 'inbox',

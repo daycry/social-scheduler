@@ -260,7 +260,7 @@ test('Studio: a chart bound to a saved table is inserted, saved, reopened and ex
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', async ({ page }, info) => {
+test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', async ({ page, browser }, info) => {
     test.setTimeout(180_000);
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
@@ -323,5 +323,24 @@ test('Studio: a chart bound to a saved table is exported on the server as SVG, P
         expect(files.pdf.subarray(0, 5).toString()).toBe('%PDF-');
         expect(files.pdf.length).toBeGreaterThan(1500);
         expect((await PDFDocument.load(files.pdf)).getPageCount()).toBe(1);
+
+        // Brand boundary: the same dataset id through another brand of the same owner is not found.
+        const otherBrand = seedComposerBrand(user.email, `studio-chart-server-other-${stamp()}-${info.project.name}`);
+        // APIRequestContext: the expected 404 must not show up as a browser console error of the editor page.
+        const foreign = (await page.request.get(`/brands/${otherBrand.id}/studio/datasets/${dataset.data.dataset.id}/table`, { headers: { Accept: 'application/json' } })).status();
+        expect(foreign).toBe(404);
+        // Actor boundary: another user cannot queue a render of this design nor read its export.
+        const context = await browser.newContext({ baseURL: 'http://localhost:8080' });
+        try {
+            const actor = await context.newPage();
+            await loginAs(actor, e2eUser(info.project.name === 'desktop' ? 'mobile' : 'desktop'));
+            await actor.goto('/studio');
+            const denied = await actor.evaluate(async ({ design }) => {
+                const token = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
+                const response = await fetch(`/studio/designs/${design.id}/render`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify({ revision: design.revision, format: 'svg', pages: [design.page] }) });
+                return response.status;
+            }, { design });
+            expect(denied).toBe(404);
+        } finally { await context.close(); }
     } finally { cleanComposerBrands(user.email); }
 });

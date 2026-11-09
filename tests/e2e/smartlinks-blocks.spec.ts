@@ -51,7 +51,7 @@ test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formula
     await page.getByLabel('Texto del bloque 6').fill('Últimas publicaciones');
     await page.getByLabel('Texto del bloque 7').fill('Programado');
     // Visible solo en el futuro lejano: no aparece en la página pública.
-    await page.getByLabel('Visible desde del bloque 7').fill('2037-01-01T10:00');
+    await page.getByLabel('Visible desde del bloque 7').fill('2030-01-01T10:00');
     await expectNoOverflow(page);
     await page.getByRole('button', { name: 'Guardar' }).click();
     await settle(page);
@@ -102,5 +102,13 @@ test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formula
     await settle(page);
     await expect(page.getByTestId('block-clicks').first()).toContainText('1 clics');
     await expect(page.getByText('1 suscritos')).toBeVisible();
+
+    // El propietario ve la lista y puede borrar a un suscriptor (T-20, revisión).
+    await expect(page.getByTestId('subscribers')).toContainText('lector@example.com');
+    await expectNoOverflow(page);
+    await axeSeriousCritical(page, 'SmartLinks (suscriptores)');
+    await page.getByRole('button', { name: 'Eliminar a lector@example.com' }).click();
+    await settle(page);
+    await expect(page.getByTestId('subscribers')).toHaveCount(0);
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });

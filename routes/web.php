@@ -168,6 +168,7 @@ Route::get('reports/{report}/download/{owner}', [ReportController::class, 'downl
 
 require __DIR__.'/parity.php';
 require __DIR__.'/studio.php';
+require __DIR__.'/post-workflow.php';
 
 Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
     ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:60,1'])->name('studio.exports.download');

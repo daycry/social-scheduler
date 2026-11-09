@@ -25,6 +25,8 @@ class PostRequest extends FormRequest
             // Campaña del post (C-03): omitida = no se toca; nula = quitarla. Que sea de la marca y del usuario lo valida PostService::plan().
             'campaign_id' => ['nullable', 'integer'],
             'schedule' => ['required', 'boolean'],
+            // Aprobacion (T-19): el post nace como borrador pendiente de aprobar y no se programa hasta estar aprobado.
+            'requires_approval' => ['nullable', 'boolean'],
             // «Publicar ahora»: programa con la fecha del servidor y encola tras el commit (PostService::publishNow, ADR-005).
             'publish_now' => ['nullable', 'boolean'],
             'media' => ['nullable', 'array', 'max:35'],
@@ -34,6 +36,8 @@ class PostRequest extends FormRequest
             'targets.*.content_type' => ['required', 'string', 'max:40'],
             // Texto propio del destino (C-03): `null` = vinculado a la plantilla. El maximo real por red lo pone MediaValidator.
             'targets.*.text' => ['nullable', 'string', 'max:70000'],
+            // Publicacion manual (T-19): el destino no se envia a la red; a la hora se avisa y el usuario lo marca como publicado.
+            'targets.*.manual' => ['nullable', 'boolean'],
             // Primer comentario del destino (C-01b): el maximo real por red lo pone PostService::plan() con `media_specs`.
             'targets.*.first_comment' => ['nullable', 'string', 'max:10000'],
             // Media propia del destino (T-17): ausente o null = hereda la comun; lista = esos archivos en ese orden, con alt y portada propios.

@@ -133,6 +133,9 @@ class AppServiceProvider extends ServiceProvider
             : Limit::none());
         // Estudio: crear enlaces públicos de un diseño (10/min por usuario) y abrirlos o comentar sin sesión (60/min por IP).
         RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
+        // Colaboradores de marca (T-19): invitaciones 10/min por usuario; lotes de publicaciones 10/min por usuario.
+        RateLimiter::for('brand-collaborators', fn (Request $request) => Limit::perMinute(10)->by('brand-collaborators:'.($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('post-batches', fn (Request $request) => Limit::perMinute(10)->by('post-batches:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('studio-shares', fn (Request $request) => Limit::perMinute(10)->by('studio-shares:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('studio-copies', fn (Request $request) => Limit::perMinute(10)->by('studio-copies:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute(10)->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));

@@ -277,6 +277,9 @@ class PostController extends Controller
             'text' => $post->text,
             'notes' => $post->notes,
             'campaign_id' => $post->campaign_id,
+            'approval_status' => $post->approval_status,
+            'approval_comment' => $post->approval_comment,
+            'series_id' => $post->series_id,
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.
@@ -292,6 +295,7 @@ class PostController extends Controller
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
                 'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
+                'manual' => (bool) $t->manual, // publicacion manual (T-19): no se envia a la red
                 'media' => $t->media, // media propia del destino: null = hereda la comun; lista {id, alt, cover_id} (T-17)
                 'options' => $t->options ?? new \stdClass,
                 'status' => $t->status->value,

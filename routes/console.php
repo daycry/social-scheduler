@@ -4,6 +4,7 @@ use App\Jobs\CollectCompetitorSnapshots;
 use App\Jobs\CollectSnapshots;
 use App\Jobs\DispatchDuePosts;
 use App\Jobs\GenerateAutolistPosts;
+use App\Jobs\GenerateSeriesOccurrences;
 use App\Jobs\RefreshPostMetrics;
 use App\Jobs\RefreshTokens;
 use App\Jobs\SyncInboxComments;
@@ -58,6 +59,9 @@ Schedule::job(new GenerateAutolistPosts)->dailyAt((string) config('social.autoli
 
 // Inbox de comentarios (PA-10): sincroniza los comentarios de las publicaciones propias de IG/FB. Cola `poll`.
 Schedule::job(new SyncInboxComments)->cron('*/'.max(5, (int) config('social.inbox.sync_minutes', 15)).' * * * *')->name('sync-inbox-comments')->withoutOverlapping();
+
+// Series recurrentes (T-19): materializa las ocurrencias de los proximos dias (idempotente por serie y fecha) y limpia claves de idempotencia.
+Schedule::call(fn () => app(GenerateSeriesOccurrences::class)())->hourly()->name('generate-series-occurrences')->withoutOverlapping(10);
 
 // Servidor OAuth del MCP (CA-31): clientes sin token vivo en 30 dias y codigos caducados.
 Schedule::command('mcp:oauth-prune')->dailyAt('04:40')->name('mcp-oauth-prune')->withoutOverlapping();

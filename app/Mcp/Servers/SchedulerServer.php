@@ -3,7 +3,9 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddCommentNote;
+use App\Mcp\Tools\ApprovePost;
 use App\Mcp\Tools\AttachDesignAsset;
+use App\Mcp\Tools\BatchPosts;
 use App\Mcp\Tools\CancelPost;
 use App\Mcp\Tools\CreateDesign;
 use App\Mcp\Tools\CreatePost;
@@ -26,19 +28,26 @@ use App\Mcp\Tools\ListCampaigns;
 use App\Mcp\Tools\ListComments;
 use App\Mcp\Tools\ListDesigns;
 use App\Mcp\Tools\ListMedia;
+use App\Mcp\Tools\ListPendingApprovals;
+use App\Mcp\Tools\ManageBrandCollaborators;
 use App\Mcp\Tools\ManageBrandKit;
 use App\Mcp\Tools\ManageDesign;
 use App\Mcp\Tools\ManageDesignCaptions;
 use App\Mcp\Tools\ManageDesignCollaboration;
 use App\Mcp\Tools\ManageDesignExport;
 use App\Mcp\Tools\ManageDesignFolder;
+use App\Mcp\Tools\ManagePostSeries;
 use App\Mcp\Tools\ManageStudioAudio;
 use App\Mcp\Tools\ManageStudioDataset;
 use App\Mcp\Tools\ManageStudioFont;
+use App\Mcp\Tools\MarkPostPublished;
 use App\Mcp\Tools\ProcessStudioImage;
 use App\Mcp\Tools\PublishPostNow;
+use App\Mcp\Tools\RejectPost;
 use App\Mcp\Tools\ReplyComment;
+use App\Mcp\Tools\RequestPostApproval;
 use App\Mcp\Tools\ReschedulePost;
+use App\Mcp\Tools\RetryPost;
 use App\Mcp\Tools\SearchInstagramAudio;
 use App\Mcp\Tools\SuggestHashtags;
 use App\Mcp\Tools\UpdateDesign;
@@ -107,5 +116,14 @@ class SchedulerServer extends Server
         ManageStudioDataset::class,
         ManageDesignCaptions::class,
         ManageDesignCollaboration::class,
+        ListPendingApprovals::class,
+        RequestPostApproval::class,
+        ApprovePost::class,
+        RejectPost::class,
+        MarkPostPublished::class,
+        RetryPost::class,
+        BatchPosts::class,
+        ManagePostSeries::class,
+        ManageBrandCollaborators::class,
     ];
 }

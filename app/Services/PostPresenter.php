@@ -28,10 +28,15 @@ class PostPresenter
             'scheduled_at_utc' => $post->scheduled_at?->copy()->utc()->toIso8601String(),
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),
             'timezone' => $tz,
+            // Aprobacion (T-19): nulo = no requiere aprobacion.
+            'approval_status' => $post->approval_status,
+            'approval_comment' => $post->approval_comment,
+            'series_id' => $post->series_id,
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media_ids' => $post->media->pluck('id')->values()->all(),
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'account_id' => $t->social_account_id,
+                'target_id' => $t->id,
                 'network' => $t->network->value,
                 'content_type' => $t->content_type->value,
                 // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
@@ -50,6 +55,9 @@ class PostPresenter
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,
                 'external_url' => $t->external_url,
+                // Publicacion manual (T-19): `manual_pending` = vencido y avisado, a la espera de que el usuario lo marque como publicado.
+                'manual' => (bool) $t->manual,
+                'manual_pending' => $t->manual && $t->manual_notified_at !== null && ! $t->status->isFinal(),
             ])->values()->all(),
         ];
     }

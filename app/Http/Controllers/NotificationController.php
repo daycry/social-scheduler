@@ -23,6 +23,7 @@ class NotificationController extends Controller
                 'excerpt' => $n->data['excerpt'] ?? null,
                 'scheduled_at' => $n->data['scheduled_at'] ?? null,
                 'post_id' => $n->data['post_id'] ?? null,
+                'url' => $n->data['url'] ?? null,
                 'brand_id' => $n->data['brand_id'] ?? null,
                 'read' => $n->read_at !== null,
                 'created_at' => $n->created_at?->toIso8601String(),

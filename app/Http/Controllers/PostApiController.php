@@ -112,7 +112,7 @@ class PostApiController extends Controller
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
                 'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [],
-                'text' => $t->text, 'first_comment' => $t->first_comment, 'media' => $t->media,
+                'text' => $t->text, 'first_comment' => $t->first_comment, 'media' => $t->media, 'manual' => $t->manual,
             ])->all(),
         ];
     }

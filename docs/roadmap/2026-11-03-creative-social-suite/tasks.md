@@ -4246,3 +4246,14 @@ Corrección por TDD (RED observado antes del arreglo en los gaps de PHP; en los 
 | 1-9 | — | Gaps del intento 1 | T-12 | Validados por la revisión; se mantienen | ver intento 1 |
 
 **Verificación:** Pest 3143 tests, 3134 pass, 9 skipped, 19347 aserciones; Pint passed; build ok; `node --test` de `studio-board` y `studio-chart-delay` 18/18; Playwright `studio-boards` + `studio-charts` en desktop, mobile y mobile-360: 15 pass, 9 fixme.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-17) — media por destino
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| G1 | Important (CWE-672) | Una media usada solo por la lista `media` o el `cover_id` de un destino no estaba en `post_media`: se podía borrar y `PublishRequestFactory` la omitía en silencio | T-17 | `MediaAsset::usedByPosts()` (pivote + lista y portada de destinos no publicados) bloquea `MediaUploadService::delete` (y con él `pruneAbandoned`) y `StudioAvRegistrationCleanup` con el mismo mensaje; al publicar, una media o portada efectiva que falta lanza `PermanentPublishException` («ya no existe») y falla el destino | Pest `TargetMediaReviewTest` G1 ×4 (RED 3 de 4, GREEN) |
+| G2 | Important | `PATCH /api/v1/posts/{id}` reemplazaba el post entero | T-17 | PATCH fusiona lo enviado sobre el estado actual y valida con `PostRequest`; solo `notes`/`campaign_id` van por `updateNotes`/`updateCampaign` (valen también con el post publicado) | Pest «PATCH parcial» (RED 422, GREEN): `{notes:"x"}` conserva texto, destinos y media; un PATCH inválido no cambia nada |
+| G3 | Minor | `TargetMediaPanel` ocultaba alt/portada al cambiar de tipo pero seguía enviándolos | T-17 | `pruneTargetMedia` los limpia del estado del destino al cambiar el tipo y al cargar | E2E `target-media.spec.ts` «al cambiar el tipo…» (RED, GREEN): la validación no envía el alt |
+| F1 | Fuera de lente | La API REST no auditaba | T-17 | `get_post`/`create_post`/`update_post` con canal `api` en `AuditLog`, como el MCP | Pest «registra en la auditoría» (RED, GREEN) |
+
+**Verificación:** Pest 3202 tests, 3193 pass, 9 skipped, 20052 aserciones; Pint passed; build ok; `target-media.spec.ts` (3 tests) + `composer.spec.ts` en desktop, mobile y mobile-360: 90 pass.

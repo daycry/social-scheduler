@@ -69,6 +69,9 @@ function generalBootstrap(): Application
             'mail.default' => 'array', 'reports.branding.logo' => null,
             'dompdf.options.font_cache' => $root.'/font-cache', 'dompdf.options.temp_dir' => $root.'/pdf-temp',
             'social.backfill_on_connect' => false,
+            // Off by default (TikTok then offers Video only). A test that needs photos creates `<run root>/tiktok-domain-on`
+            // for its duration; the domain is fictitious and never contacted.
+            ...(is_file($root.'/tiktok-domain-on') ? ['social.tiktok.verified_domain' => 'https://media.example.test'] : []),
             // Read-only, pinned weights; all image input/output stays in this run's storage.
             'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/birefnet-general-lite.onnx',
         ]);

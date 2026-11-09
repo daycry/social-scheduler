@@ -405,20 +405,6 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - **Resto de Studio**: `studio.spec.ts`, `studio-boards.spec.ts`, `studio-automation.spec.ts`, `studio-presentations.spec.ts`, `studio-presentation-tools.spec.ts` y `studio-datasets.spec.ts` en los 3 proyectos: 62 pass, 1 fallo conocido anterior a este cambio (E2E27.01 en mobile-360, axe «incomplete» del diálogo de tablas de datos, ya registrado en T-12).
 - **Límites declarados**: no hay edición en tiempo real ni CRDT (el conflicto se resuelve con recargar o copia, como pedía el alcance). Los invitados no exportan, no guardan plantillas, no generan variantes ni aplican el kit (solo el propietario; la UI oculta esos botones y el servidor responde 404). Las menciones del buzón de paridad 3 no se reutilizan: los avisos de comentario van al propietario y a los participantes del hilo como notificación en base de datos. Los comentarios de enlace son de invitado (nombre libre, sin identidad verificada). Compartir revela, solo al propietario, si un email está registrado (necesario para el mensaje de error). Pendiente para `documenter`: guía API/MCP (`docs/guias/estudio-api-mcp.md`, `docs/modulos/mcp.md`) y `docs/api/creative-suite.openapi.yaml` no se han actualizado con los endpoints nuevos.
 
-## Revisión de dos lentes — intento 1: Fase 3 (T-13) — colaboración
-
-| # | Grado | Gap | Tarea | Corrección | Evidencia |
-|---|---|---|---|---|---|
-| 1 | Important (CWE-770) | La lista de comentarios era ascendente con límite 1000: un enlace público llenaba la tabla y los nuevos dejaban de verse (`comment: null` en el 201); un aviso por comentario | T-13 | Tope de 500 comentarios abiertos (y 2000 totales) con 422 en español; lista de los 1000 más recientes en orden cronológico; throttle de 10/min por token de enlace además del de IP; un aviso por destinatario, diseño y ventana de 10 min | Pest «tope de comentarios abiertos…» y «límite propio» de enlace; `StudioCollaborationTest` 23/23; Pest focal con `StudioApiMcpTest` y `StudioBackendTest` 70/70, 854 aserciones; Pint passed; `npm run build` ok |
-| 2 | Important (CWE-204) | `POST shares` sin throttle y con mensaje distinto para email inexistente | T-13 | `throttle:studio-shares` 10/min por usuario (web y API); respuesta uniforme 202 «Si existe una cuenta con ese email, tendrá acceso a este diseño.» (también para el propio propietario); no se crea nada si no existe; web, API y MCP | Pest «respuesta no revela…» (misma respuesta existente/inexistente/propio) y «invitar tiene límite» (429 a la 11ª) |
-| 3 | Minor (CWE-285) | Un editor invitado podía cambiar `is_template` y `folder_id` | T-13 | El servicio ignora ambos campos si el actor no es el propietario y `present` oculta la carpeta; `folders` ya iba vacío | Pest «editor invitado no cambia carpeta ni plantilla» |
-| 4 | Minor (CWE-598) | `/d/{token}` sin cabeceras anti-fuga | T-13 | Middleware `StudioLinkHeaders` (`Referrer-Policy: no-referrer`, `Cache-Control: no-store, private`, `X-Robots-Tag: noindex`) en todo el grupo del enlace | Pest «no filtra el token por Referer, caché ni buscadores» |
-| 5 | Minor (carrera) | Invitación concurrente al mismo email daba 500 y los topes de 50/20 no aguantaban concurrencia | T-13 | `lockForUpdate` sobre la fila del diseño dentro de la transacción de `share` y `createLink` (con el unique ya serializado) | Cubierto por la misma lógica en Pest (alta idempotente repetida, topes); la concurrencia real no se ejercita en SQLite en memoria |
-| 6 | Minor (CWE-770) | `saveCopy` sin throttle y copia y acceso en pasos separados | T-13 | `throttle:studio-copies` 10/min (web y API); copia y share de editor en una sola transacción | Pest «invitar tiene límite por usuario y copiar también» |
-| 7 | Fuera de lente | Lectores y comentaristas recibían tipografías de la marca y la paleta del kit | T-13 | En web, API y MCP, kit vacío y solo las tipografías del documento para no editores; el editor mantiene paleta y kit | Pest «no reciben paleta ni tipografías del kit» |
-
-Efecto colateral: el E2E `studio-collab.spec.ts` espera el error «No hay ningún usuario registrado con ese email.», que ya no existe por el gap 2; no se ha tocado ni ejecutado (Playwright en uso por otro agente) y debe actualizarse a la respuesta uniforme.
-
 ### T-14 — IA creativa y automatizaciones
 - **Estado**: borrador
 - **Verificación**: Trabajo real de proveedor/modelo configurado, errores/cuotas y archivo resultante comprobado; separar mocks de smoke real. Pendiente de implementar/ejecutar.
@@ -442,6 +428,20 @@ Efecto colateral: el E2E `studio-collab.spec.ts` espera el error «No hay ningú
 **Criterios de aceptación**
 
 - [ ] OAuth por cuenta/marca, capacidades por plan, diseños/retorno/exportación y vínculos externos explícitos.
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-13) — colaboración
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important (CWE-770) | La lista de comentarios era ascendente con límite 1000: un enlace público llenaba la tabla y los nuevos dejaban de verse (`comment: null` en el 201); un aviso por comentario | T-13 | Tope de 500 comentarios abiertos (y 2000 totales) con 422 en español; lista de los 1000 más recientes en orden cronológico; throttle de 10/min por token de enlace además del de IP; un aviso por destinatario, diseño y ventana de 10 min | Pest «tope de comentarios abiertos…» y «límite propio» de enlace; `StudioCollaborationTest` 23/23; Pest focal con `StudioApiMcpTest` y `StudioBackendTest` 70/70, 854 aserciones; Pint passed; `npm run build` ok |
+| 2 | Important (CWE-204) | `POST shares` sin throttle y con mensaje distinto para email inexistente | T-13 | `throttle:studio-shares` 10/min por usuario (web y API); respuesta uniforme 202 «Si existe una cuenta con ese email, tendrá acceso a este diseño.» (también para el propio propietario); no se crea nada si no existe; web, API y MCP | Pest «respuesta no revela…» (misma respuesta existente/inexistente/propio) y «invitar tiene límite» (429 a la 11ª) |
+| 3 | Minor (CWE-285) | Un editor invitado podía cambiar `is_template` y `folder_id` | T-13 | El servicio ignora ambos campos si el actor no es el propietario y `present` oculta la carpeta; `folders` ya iba vacío | Pest «editor invitado no cambia carpeta ni plantilla» |
+| 4 | Minor (CWE-598) | `/d/{token}` sin cabeceras anti-fuga | T-13 | Middleware `StudioLinkHeaders` (`Referrer-Policy: no-referrer`, `Cache-Control: no-store, private`, `X-Robots-Tag: noindex`) en todo el grupo del enlace | Pest «no filtra el token por Referer, caché ni buscadores» |
+| 5 | Minor (carrera) | Invitación concurrente al mismo email daba 500 y los topes de 50/20 no aguantaban concurrencia | T-13 | `lockForUpdate` sobre la fila del diseño dentro de la transacción de `share` y `createLink` (con el unique ya serializado) | Cubierto por la misma lógica en Pest (alta idempotente repetida, topes); la concurrencia real no se ejercita en SQLite en memoria |
+| 6 | Minor (CWE-770) | `saveCopy` sin throttle y copia y acceso en pasos separados | T-13 | `throttle:studio-copies` 10/min (web y API); copia y share de editor en una sola transacción | Pest «invitar tiene límite por usuario y copiar también» |
+| 7 | Fuera de lente | Lectores y comentaristas recibían tipografías de la marca y la paleta del kit | T-13 | En web, API y MCP, kit vacío y solo las tipografías del documento para no editores; el editor mantiene paleta y kit | Pest «no reciben paleta ni tipografías del kit» |
+
+Efecto colateral: el E2E `studio-collab.spec.ts` espera el error «No hay ningún usuario registrado con ese email.», que ya no existe por el gap 2; no se ha tocado ni ejecutado (Playwright en uso por otro agente) y debe actualizarse a la respuesta uniforme.
 
 ## Fase 4 — Profundidad de gestión social
 

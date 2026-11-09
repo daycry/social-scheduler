@@ -114,13 +114,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('export/posts.csv', [ExportController::class, 'posts'])->middleware('throttle:30,1')->name('exports.posts');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
-    Route::post('reports/preview', [ReportController::class, 'preview'])->middleware('throttle:20,1')->name('reports.preview');
+    Route::post('reports/preview', [ReportController::class, 'preview'])->middleware('throttle:report-builder')->name('reports.preview');
     // Constructor (T-21): plantillas por marca y envios programados por email. `throttle` acota altas/cambios de destinatarios.
-    Route::post('report-templates', [ReportTemplateController::class, 'store'])->middleware('throttle:20,1')->name('report-templates.store');
-    Route::put('report-templates/{template}', [ReportTemplateController::class, 'update'])->middleware('throttle:20,1')->whereNumber('template')->name('report-templates.update');
+    Route::post('report-templates', [ReportTemplateController::class, 'store'])->middleware('throttle:report-builder')->name('report-templates.store');
+    Route::put('report-templates/{template}', [ReportTemplateController::class, 'update'])->middleware('throttle:report-builder')->whereNumber('template')->name('report-templates.update');
     Route::delete('report-templates/{template}', [ReportTemplateController::class, 'destroy'])->whereNumber('template')->name('report-templates.destroy');
-    Route::post('report-schedules', [ReportScheduleController::class, 'store'])->middleware('throttle:10,1')->name('report-schedules.store');
-    Route::put('report-schedules/{schedule}', [ReportScheduleController::class, 'update'])->middleware('throttle:10,1')->whereNumber('schedule')->name('report-schedules.update');
+    Route::post('report-schedules', [ReportScheduleController::class, 'store'])->middleware('throttle:report-schedules')->name('report-schedules.store');
+    Route::put('report-schedules/{schedule}', [ReportScheduleController::class, 'update'])->middleware('throttle:report-schedules')->whereNumber('schedule')->name('report-schedules.update');
     Route::delete('report-schedules/{schedule}', [ReportScheduleController::class, 'destroy'])->whereNumber('schedule')->name('report-schedules.destroy');
     Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');
     Route::delete('reports/{report}', [ReportController::class, 'destroy'])->whereNumber('report')->name('reports.destroy');

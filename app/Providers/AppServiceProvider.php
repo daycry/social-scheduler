@@ -132,6 +132,10 @@ class AppServiceProvider extends ServiceProvider
             ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
             : Limit::none());
         // Estudio: crear enlaces públicos de un diseño (10/min por usuario) y abrirlos o comentar sin sesión (60/min por IP).
+        // Constructor de informes (T-21): cada grupo con su propia cuenta por usuario (un `throttle:N,1` anonimo comparte cubo entre rutas).
+        RateLimiter::for('report-builder', fn (Request $request) => Limit::perMinute(30)->by('report-builder:'.($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('report-schedules', fn (Request $request) => Limit::perMinute(10)->by('report-schedules:'.($request->user()?->id ?? $request->ip())));
+
         RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
         // Colaboradores de marca (T-19): invitaciones 10/min por usuario; lotes de publicaciones 10/min por usuario.
         RateLimiter::for('brand-collaborators', fn (Request $request) => Limit::perMinute(10)->by('brand-collaborators:'.($request->user()?->id ?? $request->ip())));

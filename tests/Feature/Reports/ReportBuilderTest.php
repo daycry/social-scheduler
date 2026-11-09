@@ -252,3 +252,18 @@ it('Schedules: una programacion cuya marca o plantilla no coincide se desactiva 
     Mail::assertNothingSent();
     expect($s->fresh()->active)->toBeFalse();
 });
+
+it('Schedules: el alta y el cambio de destinatarios tienen limite por minuto por usuario', function () {
+    $t = makeTemplate($this->user, $this->brand);
+    $s = ReportSchedule::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'report_template_id' => $t->id, 'frequency' => 'weekly', 'recipients' => ['a@example.com'], 'next_run_at' => now()->addDay()]);
+
+    $this->actingAs($this->user);
+    foreach (range(1, 10) as $i) {
+        $this->put(route('report-schedules.update', $s), ['recipients' => ["u$i@example.com"]])->assertRedirect();
+    }
+    $this->put(route('report-schedules.update', $s), ['recipients' => ['otro@example.com']])->assertStatus(429);
+    expect($s->fresh()->recipients)->toBe(['u10@example.com']);
+
+    // Otro usuario tiene su propio cupo.
+    $this->actingAs($this->stranger)->put(route('report-schedules.update', $s), ['active' => false])->assertNotFound();
+});

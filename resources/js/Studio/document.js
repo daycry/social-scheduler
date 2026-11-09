@@ -2,7 +2,7 @@ import { normalizeTimelineDocument } from './timeline.js';
 import { normalizeChartSpec } from './chart-spec.js';
 
 /** The persisted document is application data, never executable Fabric JSON. */
-export const ELEMENT_TYPES = Object.freeze(['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart']);
+export const ELEMENT_TYPES = Object.freeze(['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart', 'table', 'connector']);
 export const DOCUMENT_LIMITS = Object.freeze({ bytes: 2 * 1024 * 1024, pages: 100, elements: 500, depth: 8, minSize: 40, maxSize: 8000 });
 const copy = value => JSON.parse(JSON.stringify(value));
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value) && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -39,22 +39,35 @@ export function newElement(type = 'rect', patch = {}) {
     if (type === 'image' || type === 'video') Object.assign(element, { asset_id: null, cropX: 0, cropY: 0, filters: {} });
     if (type === 'video') Object.assign(element, { trimStart: 0, trimEnd: null, volume: 1, muted: false });
     if (type === 'chart') Object.assign(element, { name: 'Gráfico', width: 800, height: 500 });
+    if (type === 'table') Object.assign(element, { name: 'Tabla', width: 900, height: 240, table: defaultTable() });
+    if (type === 'connector') Object.assign(element, { name: 'Conector', width: 300, height: 0, from: null, to: null, route: 'straight', arrow: 'end', points: [[0, 0], [300, 0]], fill: '#00000000', stroke: '#7c3aed', strokeWidth: 4 });
     return Object.assign(element, patch);
+}
+
+export function defaultTable() {
+    return { rows: [['Concepto', 'Enero', 'Febrero'], ['Ventas', '120', '140'], ['Visitas', '900', '1050']], header: true, fontSize: 28, textColor: '#111827', headerFill: '#7c3aed', headerColor: '#ffffff', cellFill: '#ffffff', borderColor: '#cbd5e1', align: 'left' };
 }
 
 export function blankDocument(width = 1080, height = 1080) {
     return validateDocument({ schema_version: 1, width, height, pages: [{ id: newId('page'), name: 'Página 1', background: '#ffffff', duration: 5, elements: [] }] });
 }
 
-function replaceElementIds(element) {
-    element.id = newId(element.type);
-    if (element.type === 'group') element.elements.forEach(replaceElementIds);
+/** Give copies fresh ids and keep connectors attached to the copies that live beside them. */
+export function renameElements(elements) {
+    const renamed = new Map();
+    const visit = element => { const id = newId(element.type); renamed.set(element.id, id); element.id = id; if (element.type === 'group') element.elements.forEach(visit); };
+    const relink = element => {
+        if (element.type === 'connector') for (const key of ['from', 'to']) element[key] = renamed.get(element[key]) ?? null;
+        if (element.type === 'group') element.elements.forEach(relink);
+    };
+    elements.forEach(visit);
+    elements.forEach(relink);
 }
 
 export function duplicatePage(page) {
     const result = copy(page);
     result.id = newId('page');
-    result.elements.forEach(replaceElementIds);
+    renameElements(result.elements);
     return result;
 }
 
@@ -132,10 +145,28 @@ export function normalizeFill(value, path = 'color') {
     }) };
 }
 
+function normalizeTable(value, path) {
+    keys(value, ['rows', 'header', 'fontSize', 'textColor', 'headerFill', 'headerColor', 'cellFill', 'borderColor', 'align'], path);
+    if (!Array.isArray(value.rows) || value.rows.length < 1 || value.rows.length > 30) fail(`${path}.rows`, 'la tabla debe tener entre 1 y 30 filas.');
+    const columns = Array.isArray(value.rows[0]) ? value.rows[0].length : 0;
+    if (columns < 1 || columns > 12) fail(`${path}.rows`, 'la tabla debe tener entre 1 y 12 columnas.');
+    const defaults = defaultTable();
+    const result = {
+        rows: value.rows.map((row, i) => {
+            if (!Array.isArray(row) || row.length !== columns) fail(`${path}.rows.${i}`, 'todas las filas deben tener el mismo número de columnas.');
+            return row.map((cell, j) => text(cell, 500, `${path}.rows.${i}.${j}`));
+        }),
+        header: bool(value.header, `${path}.header`, true), fontSize: number(value.fontSize, 8, 200, `${path}.fontSize`, defaults.fontSize),
+        align: oneOf(value.align, ['left', 'center', 'right'], `${path}.align`, 'left'),
+    };
+    for (const key of ['textColor', 'headerFill', 'headerColor', 'cellFill', 'borderColor']) result[key] = color(value[key] ?? defaults[key], `${path}.${key}`);
+    return result;
+}
+
 const commonKeys = ['id', 'type', 'name', 'x', 'y', 'width', 'height', 'scaleX', 'scaleY', 'rotation', 'skewX', 'skewY', 'opacity', 'locked', 'visible', 'fill', 'stroke', 'strokeWidth', 'flipX', 'flipY', 'shadow'];
 const typeKeys = {
     text: ['text', 'fontFamily', 'font_id', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign', 'underline', 'lineHeight', 'charSpacing'],
-    rect: ['radius'], ellipse: [], triangle: [], line: ['x1', 'y1', 'x2', 'y2'], path: ['path'], chart: ['chart'],
+    rect: ['radius'], ellipse: [], triangle: [], line: ['x1', 'y1', 'x2', 'y2'], path: ['path'], chart: ['chart'], table: ['table'], connector: ['from', 'to', 'route', 'arrow', 'points'],
     image: ['asset_id', 'cropX', 'cropY', 'filters', 'mask'], video: ['asset_id', 'cropX', 'cropY', 'filters', 'trimStart', 'trimEnd', 'volume', 'muted'], group: ['elements'],
 };
 
@@ -170,6 +201,20 @@ function normalizeElement(value, path, ids, count, depth) {
         if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) fail(`${path}.chart`, 'configuración propia requerida.');
         try { result.chart = normalizeChartSpec(descriptor.value); }
         catch (error) { fail(`${path}.chart`, error.message); }
+    }
+    if (type === 'table') result.table = normalizeTable(value.table, `${path}.table`);
+    if (type === 'connector') {
+        for (const key of ['from', 'to']) {
+            if (value[key] != null && (typeof value[key] !== 'string' || !idPattern.test(value[key]))) fail(`${path}.${key}`, 'identificador de extremo inválido.');
+            result[key] = value[key] ?? null;
+        }
+        result.route = oneOf(value.route, ['straight', 'elbow'], `${path}.route`, 'straight');
+        result.arrow = oneOf(value.arrow, ['none', 'end', 'both'], `${path}.arrow`, 'end');
+        if (!Array.isArray(value.points) || value.points.length < 2 || value.points.length > 4) fail(`${path}.points`, 'el conector necesita entre 2 y 4 puntos.');
+        result.points = value.points.map((point, i) => {
+            if (!Array.isArray(point) || point.length !== 2) fail(`${path}.points.${i}`, 'cada punto debe ser [x, y].');
+            return point.map(coordinate => number(coordinate, -32000, 32000, `${path}.points.${i}`));
+        });
     }
     if (type === 'rect') result.radius = number(value.radius, 0, 16000, `${path}.radius`, 0);
     if (type === 'line') for (const [key, fallback] of Object.entries({ x1: 0, y1: 0, x2: result.width, y2: result.height })) result[key] = number(value[key], -32000, 32000, `${path}.${key}`, fallback);

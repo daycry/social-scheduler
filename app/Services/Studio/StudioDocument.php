@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 /** Validates our public scene format, never a renderer's executable class graph. */
 class StudioDocument
 {
-    public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart'];
+    public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart', 'table', 'connector'];
 
     public static function blank(int $width = 1080, int $height = 1080): array
     {
@@ -107,6 +107,8 @@ class StudioDocument
                 'video' => ['asset_id', 'cropX', 'cropY', 'filters', 'trimStart', 'trimEnd', 'volume', 'muted'],
                 'group' => ['elements'],
                 'chart' => ['chart'],
+                'table' => ['table'],
+                'connector' => ['from', 'to', 'route', 'arrow', 'points'],
                 default => [],
             };
             $this->keys($element, [...$common, ...$extra], $p);
@@ -163,6 +165,12 @@ class StudioDocument
                 $this->optionalEnum($element, 'fontStyle', ['normal', 'italic'], $p);
                 $this->optionalEnum($element, 'textAlign', ['left', 'center', 'right', 'justify'], $p);
                 $this->optionalBool($element, 'underline', $p);
+            }
+            if ($type === 'table') {
+                $this->table($element['table'] ?? null, $p.'.table');
+            }
+            if ($type === 'connector') {
+                $this->connector($element, $p);
             }
             if ($type === 'rect') {
                 $this->optionalNumber($element, 'radius', 0, 16000, $p);
@@ -223,6 +231,49 @@ class StudioDocument
             if ($type === 'group') {
                 $this->ensure(! empty($element['elements']), $p.'.elements', 'El grupo debe contener elementos.');
                 $this->elements($element['elements'] ?? null, $p.'.elements', $depth + 1, $count, $seen, $needed);
+            }
+        }
+    }
+
+    private function table(mixed $table, string $path): void
+    {
+        $this->ensure(is_array($table), $path, 'La tabla debe ser un objeto.');
+        $this->keys($table, ['rows', 'header', 'fontSize', 'textColor', 'headerFill', 'headerColor', 'cellFill', 'borderColor', 'align'], $path);
+        $rows = $table['rows'] ?? null;
+        $this->ensure(is_array($rows) && array_is_list($rows) && count($rows) >= 1 && count($rows) <= 30, $path.'.rows', 'La tabla debe tener entre 1 y 30 filas.');
+        $columns = is_array($rows[0] ?? null) && array_is_list($rows[0]) ? count($rows[0]) : 0;
+        $this->ensure($columns >= 1 && $columns <= 12, $path.'.rows', 'La tabla debe tener entre 1 y 12 columnas.');
+        foreach ($rows as $i => $row) {
+            $this->ensure(is_array($row) && array_is_list($row) && count($row) === $columns, $path.'.rows.'.$i, 'Todas las filas deben tener el mismo número de columnas.');
+            foreach ($row as $j => $cell) {
+                $this->ensure(is_string($cell) && mb_strlen($cell) <= 500, $path.'.rows.'.$i.'.'.$j, 'Cada celda admite hasta 500 caracteres.');
+            }
+        }
+        $this->optionalBool($table, 'header', $path);
+        $this->optionalNumber($table, 'fontSize', 8, 200, $path);
+        $this->optionalEnum($table, 'align', ['left', 'center', 'right'], $path);
+        foreach (['textColor', 'headerFill', 'headerColor', 'cellFill', 'borderColor'] as $key) {
+            if (array_key_exists($key, $table)) {
+                $this->ensure($this->isColor($table[$key]), $path.'.'.$key, 'El color de la tabla debe ser hexadecimal.');
+            }
+        }
+    }
+
+    private function connector(array $element, string $path): void
+    {
+        foreach (['from', 'to'] as $key) {
+            if (array_key_exists($key, $element) && $element[$key] !== null) {
+                $this->ensure(is_string($element[$key]) && preg_match('/^[a-zA-Z0-9_-]{1,64}$/D', $element[$key]) === 1, $path.'.'.$key, 'El extremo del conector debe ser un identificador de elemento.');
+            }
+        }
+        $this->optionalEnum($element, 'route', ['straight', 'elbow'], $path);
+        $this->optionalEnum($element, 'arrow', ['none', 'end', 'both'], $path);
+        $points = $element['points'] ?? null;
+        $this->ensure(is_array($points) && array_is_list($points) && count($points) >= 2 && count($points) <= 4, $path.'.points', 'El conector necesita entre 2 y 4 puntos.');
+        foreach ($points as $i => $point) {
+            $this->ensure(is_array($point) && array_is_list($point) && count($point) === 2, $path.'.points.'.$i, 'Cada punto debe ser [x, y].');
+            foreach ($point as $number) {
+                $this->number($number, -32000, 32000, $path.'.points.'.$i);
             }
         }
     }

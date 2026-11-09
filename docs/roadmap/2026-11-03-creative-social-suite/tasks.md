@@ -418,8 +418,8 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - **Estado**: completado
 - **Cerrada**: 2026-11-10
 - **Changelog**: Nuevos «Sitios»: cada marca puede construir una web de varias páginas con menú, texto, imágenes, galería, video de YouTube, diseños del estudio, formulario de contacto, preguntas frecuentes y encuestas, con el tema de su kit de marca. Se previsualiza en móvil, tablet y escritorio, se publica en /s/{enlace} sin tocar lo publicado al editar, y se protege con contraseña o enlaces con token revocables.
-- **Archivos**: `database/migrations/2026_12_03_090000_create_sites_tables.php`, `app/Models/Site.php`, `app/Models/SiteToken.php`, `app/Support/SiteRichText.php`, `app/Support/SiteView.php`, `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SiteRenderer.php`, `app/Http/Controllers/SiteController.php`, `app/Http/Controllers/PublicSiteController.php`, `routes/sites.php`, `routes/web.php`, `resources/views/sites/**`, `resources/js/Pages/Sites/Index.vue`, `resources/js/Pages/Sites/Edit.vue`, `resources/js/navigation.js`, `app/Mcp/Abilities.php`, `app/Mcp/Tools/ManageSite.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Sites/SiteTest.php`, `tests/e2e/sites.spec.ts`
-- **Verificación**: Ejecutada 2026-11-10 con el método estándar. `SiteTest` 17/17 (172 aserciones); `php artisan test --compact` 3342 tests, 3333 passed, 9 skipped; Pint `--test` y `npm run build` en verde. E2E con servidor propio en el puerto 8080 (comprobado libre antes): `sites.spec.ts` + `smartlinks-blocks.spec.ts` en desktop, mobile y mobile-360 (3 de 3 por proyecto, axe serio/crítico sin hallazgos y 0 px de desbordamiento); `studio.spec.ts` 4/4, `studio-collab.spec.ts` 1/1 y `pages.spec.ts` 34/34 (33 + 1 omitido en móvil, como antes) en los 3 proyectos tras añadir «Sitios» a la navegación.
+- **Archivos**: `database/migrations/2026_12_03_090000_create_sites_tables.php`, `database/migrations/2026_12_03_090100_site_public_slug_messages_and_history.php`, `app/Notifications/SiteMessagesFull.php`, `app/Support/SafeUrl.php`, `app/Services/SmartLinkService.php`, `tests/Feature/Parity/SmartLinkBlocksTest.php`, `app/Models/Site.php`, `app/Models/SiteToken.php`, `app/Support/SiteRichText.php`, `app/Support/SiteView.php`, `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SiteRenderer.php`, `app/Http/Controllers/SiteController.php`, `app/Http/Controllers/PublicSiteController.php`, `routes/sites.php`, `routes/web.php`, `resources/views/sites/**`, `resources/js/Pages/Sites/Index.vue`, `resources/js/Pages/Sites/Edit.vue`, `resources/js/navigation.js`, `app/Mcp/Abilities.php`, `app/Mcp/Tools/ManageSite.php`, `app/Mcp/Servers/SchedulerServer.php`, `tests/Feature/Sites/SiteTest.php`, `tests/e2e/sites.spec.ts`
+- **Verificación**: Ejecutada 2026-11-10 con el método estándar. `SiteTest` 21/21; `php artisan test --compact` 3346 tests, 3337 passed, 9 skipped (tras la revisión); Pint `--test` y `npm run build` en verde. E2E con servidor propio en el puerto 8080 (comprobado libre antes): `sites.spec.ts` + `smartlinks-blocks.spec.ts` en desktop, mobile y mobile-360 (3 de 3 por proyecto, axe serio/crítico sin hallazgos y 0 px de desbordamiento); `studio.spec.ts` 4/4, `studio-collab.spec.ts` 1/1 y `pages.spec.ts` 34/34 (33 + 1 omitido en móvil, como antes) en los 3 proyectos tras añadir «Sitios» a la navegación.
 
 **Criterios de aceptación**
 
@@ -448,6 +448,21 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 | Dominio propio del cliente | Fuera de alcance | Requiere DNS/TLS en el servidor |
 | Aviso por correo de mensajes del formulario | Fuera de alcance | Los mensajes se leen y borran en el panel; sin correo ni terceros |
 | Edición colaborativa del sitio | Fuera de alcance | Solo el propietario de la marca |
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-15) — sitios publicados
+
+Revisión A+B+C del 2026-11-10, hallazgos corregidos con TDD (`SiteTest` 21/21) y commits por arreglo.
+
+| # | Gravedad | Hallazgo | Corrección |
+|---|---|---|---|
+| 1 | Important (CWE-610) | El slug del borrador cambiaba la dirección pública al guardar | `sites.slug` es el del borrador y `public_slug` el publicado: solo `publish` lo copia. Los slugs antiguos pasan a `site_slug_history` (reservados para ese sitio: nadie más puede registrarlos) y responden 301 a la dirección actual conservando página y consulta (`?t=`). Test: cambiar el slug no rompe `/s/promo` ni `?t=`; tras republicar redirige y otro usuario no registra `promo` |
+| 2 | Important (CWE-770) | Formulario bloqueado para siempre a 500 mensajes; el editor mostraba 50 | Tope FIFO (se descartan los más antiguos, el formulario nunca se bloquea) con un aviso en BD al propietario una sola vez (`SiteMessagesFull`, se rearma al borrar); paginación de 20, «Borrar leídos» y «Borrar todos»; límite por sitio (30/hora) además del de cliente (5/10 min); IPv6 por /64 |
+| 3 | Minor | Voto con reserva no atómica | `Cache::add` reserva el voto antes de registrarlo; IPv6 por /64 |
+| 4 | Minor | Contraseña con comprobación y golpe separados | `RateLimiter::hit` reserva el intento antes de verificar (también para tokens) y tope global de 50 fallos/15 min por sitio |
+| 5 | Minor (CWE-20) | `strip_tags` mutilaba texto legítimo | Quitado de `SiteRichText::clean` y de `SmartLinkService::clean`; todo se pinta escapado. Test «precio 1 <2 y 3> 0»; SmartLinks 168/168 tras actualizar 3 aserciones del saneado antiguo |
+| 6 | Fuera de lente | `SafeUrl` admitía espacios Unicode en el host | Rechaza cualquier `\p{Z}` en el host (NBSP, U+2003, U+3000) |
+
+Verificación: `php artisan test --compact` 3346 tests, 3337 passed, 9 skipped; Pint `--test` y `npm run build` en verde; E2E `sites.spec.ts` + `smartlinks-blocks.spec.ts` 3/3 en desktop, mobile y mobile-360.
 
 ### T-16 — Integración externa oficial de Canva
 - **Estado**: borrador

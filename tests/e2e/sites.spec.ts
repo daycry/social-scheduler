@@ -141,7 +141,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await expect(frame.getByText('Vista previa del borrador')).toBeVisible();
     await expect(frame.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Contacto' })).toBeVisible();
     await expect(frame.locator('script')).toHaveCount(0);
-    await expect(frame.getByText('<script>')).toHaveCount(0);
+    await expect(frame.getByText('<script>alert(1)</script>')).toHaveCount(1); // texto literal, escapado: nunca se ejecuta
     await frame.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Contacto' }).click();
     await expect(frame.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
     await expectNoOverflow(page);

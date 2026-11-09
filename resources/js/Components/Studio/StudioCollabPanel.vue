@@ -184,9 +184,7 @@ const restore = version => run(async () => {
                 <label v-if="guest" class="block space-y-1 text-xs" :for="`${idPrefix}-guest`">Tu nombre<input :id="`${idPrefix}-guest`" v-model="guestName" maxlength="80" class="field w-full text-xs" required /></label>
                 <label class="block text-xs" :for="`${idPrefix}-body`">Nuevo comentario</label>
                 <textarea :id="`${idPrefix}-body`" v-model="body" rows="3" maxlength="2000" class="field w-full text-xs" required />
-                <label class="block space-y-1 text-xs" :for="`${idPrefix}-anchor`">Dónde se aplica
-                    <select :id="`${idPrefix}-anchor`" v-model="anchor" class="field w-full text-xs"><option value="design">Todo el diseño</option><option value="page" :disabled="!pageId">Página actual{{ pageId ? ` (${pageName(pageId)})` : '' }}</option><option value="element" :disabled="!elementId">Elemento seleccionado{{ elementId ? ` (${elementId})` : '' }}</option></select>
-                </label>
+                <div class="space-y-1 text-xs"><label class="block" :for="`${idPrefix}-anchor`">Dónde se aplica</label><select :id="`${idPrefix}-anchor`" v-model="anchor" class="field w-full text-xs"><option value="design">Todo el diseño</option><option value="page" :disabled="!pageId">Página actual{{ pageId ? ` (${pageName(pageId)})` : '' }}</option><option value="element" :disabled="!elementId">Elemento seleccionado{{ elementId ? ` (${elementId})` : '' }}</option></select></div>
                 <button type="submit" class="btn-primary text-xs" :disabled="busy || !body.trim() || (guest && !guestName.trim())">Publicar comentario</button>
             </form>
             <p v-else class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">Tu acceso es de solo lectura: puedes ver los comentarios pero no escribir.</p>
@@ -196,7 +194,7 @@ const restore = version => run(async () => {
             <form class="space-y-2" @submit.prevent="share">
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Invitar a un usuario registrado</h3>
                 <label class="block space-y-1 text-xs" :for="`${idPrefix}-email`">Email<input :id="`${idPrefix}-email`" v-model="shareEmail" type="email" autocomplete="off" class="field w-full text-xs" required /></label>
-                <label class="block space-y-1 text-xs" :for="`${idPrefix}-role`">Rol<select :id="`${idPrefix}-role`" v-model="shareRole" class="field w-full text-xs"><option v-for="[id, label] in roles" :key="id" :value="id">{{ label }}</option></select></label>
+                <div class="space-y-1 text-xs"><label class="block" :for="`${idPrefix}-role`">Rol</label><select :id="`${idPrefix}-role`" v-model="shareRole" class="field w-full text-xs"><option v-for="[id, label] in roles" :key="id" :value="id">{{ label }}</option></select></div>
                 <button type="submit" class="btn-primary text-xs" :disabled="busy || !shareEmail.trim()">Compartir</button>
             </form>
             <ul class="space-y-2" aria-label="Personas con acceso">
@@ -209,7 +207,7 @@ const restore = version => run(async () => {
             </ul>
             <form class="space-y-2 border-t border-slate-200 pt-4" @submit.prevent="createLink">
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Enlace público</h3>
-                <label class="block space-y-1 text-xs" :for="`${idPrefix}-link-role`">Permiso del enlace<select :id="`${idPrefix}-link-role`" v-model="linkRole" class="field w-full text-xs"><option value="reader">Solo lectura</option><option value="commenter">Lectura y comentarios</option></select></label>
+                <div class="space-y-1 text-xs"><label class="block" :for="`${idPrefix}-link-role`">Permiso del enlace</label><select :id="`${idPrefix}-link-role`" v-model="linkRole" class="field w-full text-xs"><option value="reader">Solo lectura</option><option value="commenter">Lectura y comentarios</option></select></div>
                 <label class="block space-y-1 text-xs" :for="`${idPrefix}-link-expires`">Caduca el (opcional)<input :id="`${idPrefix}-link-expires`" v-model="linkExpires" type="date" class="field w-full text-xs" /></label>
                 <button type="submit" class="btn-secondary text-xs" :disabled="busy">Crear enlace</button>
             </form>

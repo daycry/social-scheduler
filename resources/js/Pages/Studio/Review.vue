@@ -66,9 +66,7 @@ const roleText = computed(() => props.access.role_label.toLowerCase());
                         <p v-else-if="failed[pageId]" role="alert" class="py-10 text-center text-sm text-red-800">No se ha podido dibujar esta página.</p>
                         <p v-else role="status" class="py-10 text-center text-sm text-slate-600">{{ rendering ? 'Preparando la página…' : 'Página no disponible.' }}</p>
                     </div>
-                    <label v-if="access.can_comment && elements.length" class="block space-y-1 text-xs" for="review-element">Elemento al que se refiere el comentario (opcional)
-                        <select id="review-element" v-model="elementId" class="field w-full text-xs"><option value="">Ninguno</option><option v-for="item in elements" :key="item.id" :value="item.id">{{ item.label }}</option></select>
-                    </label>
+                    <div v-if="access.can_comment && elements.length" class="space-y-1 text-xs"><label class="block" for="review-element">Elemento al que se refiere el comentario (opcional)</label><select id="review-element" v-model="elementId" class="field w-full text-xs"><option value="">Ninguno</option><option v-for="item in elements" :key="item.id" :value="item.id">{{ item.label }}</option></select></div>
                 </section>
                 <aside class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4" aria-label="Comentarios y versiones">
                     <StudioCollabPanel :design-id="design.id" :link="link" :access="access" :pages="pages" :page-id="pageId" :element-id="elementId || null" :revision="design.revision" id-prefix="review" />

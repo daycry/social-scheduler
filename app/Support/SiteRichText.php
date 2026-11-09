@@ -15,7 +15,7 @@ final class SiteRichText
     /** Texto guardado: sin etiquetas ni caracteres de control/formato (se conservan los saltos de linea). */
     public static function clean(mixed $value, int $max = self::MAX): string
     {
-        $text = strip_tags((string) $value);
+        $text = (string) $value; // sin strip_tags: todo se escapa al pintar y 1 <2 y 3> 0 es texto legitimo
         $text = str_replace(["\r\n", "\r", "\t"], ["\n", "\n", ' '], $text);
         $text = (string) preg_replace('/[^\P{Cc}\n]|[\p{Cf}\p{Zl}\p{Zp}]/u', '', $text);
         $text = (string) preg_replace("/[ \t]+/u", ' ', $text);

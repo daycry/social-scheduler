@@ -96,8 +96,8 @@ test('XSS: etiquetas y textos se sanean al guardar y se escapan al pintar; la ge
     ], ['title' => 'T <script>x</script>', 'bio' => '<b onclick=1>bio</b>'])->assertSessionHasNoErrors();
 
     $link = SmartLink::query()->firstOrFail();
-    expect($link->blocks[0]->label)->not->toContain('<')->and($link->blocks[0]->label)->toBe('Ofertaalert(2)')
-        ->and($link->blocks[1]->data['cta'])->not->toContain('<');
+    // Se guarda como texto (sin strip_tags: «1 <2 y 3> 0» es legitimo) y TODO se escapa al pintar.
+    expect($link->blocks[0]->label)->toBe('<img src=x onerror=alert(1)>Oferta<script>alert(2)</script>');
 
     slPublic();
     $html = $this->get('/l/mi-marca')->assertOk()->getContent();
@@ -256,8 +256,8 @@ test('Posts recientes: solo publicadas de la marca con URL https, texto saneado 
     slPublic();
 
     $posts = app(SmartLinkService::class)->recentPosts(SmartLink::query()->withoutGlobalScopes()->firstOrFail(), 5);
-    expect(collect($posts)->pluck('text')->all())->toBe(['Primero negrita', 'Segundo']);
-    $this->get('/l/mi-marca')->assertSee('Primero negrita')->assertSee('https://instagram.com/p/1', false)->assertDontSee('Borrador')->assertDontSee('De otra marca')->assertDontSee('javascript:', false);
+    expect(collect($posts)->pluck('text')->all())->toBe(['Primero <b>negrita</b>', 'Segundo']);
+    $this->get('/l/mi-marca')->assertSee('Primero &lt;b&gt;negrita&lt;/b&gt;', false)->assertSee('https://instagram.com/p/1', false)->assertDontSee('Borrador')->assertDontSee('De otra marca')->assertDontSee('javascript:', false);
 });
 
 test('Validaciones de tipo y aislamiento: imagen ajena, iconos invalidos, tipo desconocido y datos no http', function () {

@@ -123,7 +123,7 @@ class SmartLinkService
     /** Texto de usuario saneado: sin etiquetas, sin caracteres de control o formato Unicode y con espacios colapsados. */
     public static function clean(mixed $value, int $max = 100): string
     {
-        $text = strip_tags((string) $value);
+        $text = (string) $value; // sin strip_tags: se escapa al pintar (Blade/Vue) y 1 <2 y 3> 0 es texto legitimo
         $text = (string) preg_replace('/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]+/u', ' ', $text);
 
         return mb_substr(trim((string) preg_replace('/\s+/u', ' ', $text)), 0, $max);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
+use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
@@ -217,7 +218,13 @@ class PostController extends Controller
                 ] : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
-                'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),
+                'can_comment' => match ($a->network) {
+                    Network::YouTube => YouTubePublisher::canComment($a),
+                    Network::LinkedIn => LinkedInPublisher::canComment($a),
+                    default => true,
+                },
+                // Motivo visible cuando el primer comentario esta desactivado en esta cuenta (LinkedIn perfil sin r_member_social).
+                'comment_note' => $a->network === Network::LinkedIn ? LinkedInPublisher::commentNote($a) : null,
                 // Red apagada en esta instalacion (p. ej. BLUESKY_ENABLED=false): la cuenta sigue conectada pero no se puede elegir.
                 'available' => $a->network->isAvailable(),
             ])->values(),

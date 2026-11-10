@@ -33,6 +33,7 @@ beforeEach(function () {
     $mk = fn (Network $n, string $name, array $meta = []) => SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => $n, 'name' => $name, 'meta' => $meta]);
     $this->ig = $mk(Network::Instagram, 'ana_ig');
     $this->li = $mk(Network::LinkedIn, 'Ana LinkedIn', ['kind' => 'profile', 'author_urn' => 'urn:li:person:abc']);
+    $this->li->forceFill(['scopes' => ['w_member_social', 'r_member_social']])->save();
     $this->page = $mk(Network::LinkedIn, 'Acme SL', ['kind' => 'page', 'author_urn' => 'urn:li:organization:777']);
     $this->pin = $mk(Network::Pinterest, 'ana_pins', ['boards' => [['id' => '549755885175', 'name' => 'Recetas']]]);
     $this->img = MediaAsset::factory()->for($this->user)->create(['original_name' => 'a.jpg', 'width' => 400, 'height' => 400]);
@@ -158,4 +159,31 @@ test('T-18: sin las credenciales de la app, la red sale no configurada y create_
 
     $r = aocCreate('api', aocPayload([['account_id' => $this->pin->id, 'content_type' => 'pinterest_pin', 'options' => ['pinterest_board_id' => '1']]]));
     expect($r['ok'])->toBeFalse();
+});
+
+test('T-18 contrato: el primer comentario en un perfil de LinkedIn sin r_member_social se rechaza con su motivo en los tres canales', function (string $channel) {
+    $this->li->forceFill(['scopes' => ['w_member_social']])->save();
+
+    $r = aocCreate($channel, aocPayload([['account_id' => $this->li->id, 'content_type' => 'linkedin_image', 'first_comment' => 'Mas info']]));
+
+    expect($r['ok'])->toBeFalse()->and(json_encode($r['errors'], JSON_UNESCAPED_UNICODE))->toContain('r_member_social');
+    expect(Post::withoutUserScope()->count())->toBe(0);
+})->with(['web', 'api', 'mcp']);
+
+test('T-18: el compositor anuncia can_comment y el motivo, y Conexiones el aviso reconecta-antes-de sin bloquear', function () {
+    $this->li->forceFill(['scopes' => ['w_member_social'], 'token_expires_at' => now()->addDays(3), 'refresh_token' => null])->save();
+    $far = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::LinkedIn, 'name' => 'Lejos', 'token_expires_at' => now()->addDays(40), 'refresh_token' => null, 'meta' => ['kind' => 'profile', 'author_urn' => 'urn:li:person:z']]);
+    $refreshable = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::LinkedIn, 'name' => 'Renovable', 'token_expires_at' => now()->addDays(3), 'refresh_token' => 'R', 'meta' => ['kind' => 'profile', 'author_urn' => 'urn:li:person:y']]);
+    app('auth')->forgetGuards();
+
+    $this->actingAs($this->user)->get(route('brands.posts.create', $this->brand))->assertInertia(function (Assert $page) {
+        $accounts = collect($page->toArray()['props']['accounts'])->keyBy('id');
+        expect($accounts[$this->li->id]['can_comment'])->toBeFalse()->and($accounts[$this->li->id]['comment_note'])->toContain('r_member_social')
+            ->and($accounts[$this->page->id]['can_comment'])->toBeTrue()->and($accounts[$this->page->id]['comment_note'])->toBeNull();
+    });
+    $this->actingAs($this->user)->get(route('brands.connections.index', $this->brand))->assertInertia(function (Assert $page) use ($far, $refreshable) {
+        $accounts = collect($page->toArray()['props']['accounts'])->keyBy('id');
+        expect($accounts[$this->li->id]['reconnect_before'])->not->toBeNull()->and($accounts[$this->li->id]['status'])->toBe('activa')
+            ->and($accounts[$far->id]['reconnect_before'])->toBeNull()->and($accounts[$refreshable->id]['reconnect_before'])->toBeNull();
+    });
 });

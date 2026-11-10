@@ -41,8 +41,9 @@ onBeforeUnmount(() => unregisterField(self));
         <InputLabel :for="id" value="Primer comentario (opcional)" />
         <p :id="`${id}-hint`" class="text-xs text-slate-600">Se publica como comentario de la cuenta justo después de publicar. No se guarda en la biblioteca.</p>
         <p v-if="blocked" class="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900" role="status" data-testid="first-comment-reconnect">
-            Reconecta el canal para comentar: la conexión actual no tiene el permiso de comentarios. En Conexiones, pulsa «+ Conectar» en la tarjeta de YouTube.
-            <Link :href="route('brands.connections.index', brand.id)" class="link">Ir a conexiones</Link>
+            <template v-if="account.comment_note">{{ account.comment_note }}</template>
+            <template v-else>Reconecta el canal para comentar: la conexión actual no tiene el permiso de comentarios. En Conexiones, pulsa «+ Conectar» en la tarjeta de YouTube.
+            <Link :href="route('brands.connections.index', brand.id)" class="link">Ir a conexiones</Link></template>
         </p>
         <textarea
             :id="id"

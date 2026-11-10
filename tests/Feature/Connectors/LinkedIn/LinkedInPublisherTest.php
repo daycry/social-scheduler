@@ -4,6 +4,8 @@ use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
+use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
@@ -197,4 +199,61 @@ test('el primer comentario se publica con el actor del autor y se puede localiza
     expect($id)->toBe('urn:li:comment:(urn:li:share:7001,55)');
     Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r['actor'] === 'urn:li:person:abc123' && $r['message']['text'] === 'Mas info');
     expect($this->publisher->findOwnComment($this->account, 'urn:li:share:7001', 'Mas info'))->toBe('urn:li:comment:(urn:li:share:7001,55)');
+});
+
+test('perfil sin r_member_social: no busca; con id guardado lo devuelve; sin comprobar y tras enviar falla sin duplicar', function () {
+    Http::fake();
+    $profile = NewNetworksFake::linkedinAccount(['scopes' => ['w_member_social']]);
+
+    expect($this->publisher->findPublished($profile, liRequest(ContentType::LinkedInText, 'Hola')))->toBeNull();
+    $withId = new PublishRequest(targetId: 1, type: ContentType::LinkedInText, text: 'Hola', media: [], reference: 'urn:li:share:555', since: now()->subMinute());
+    expect($this->publisher->findPublished($profile, $withId)->externalId)->toBe('urn:li:share:555');
+    expect(fn () => $this->publisher->findPublished($profile, liRequest(ContentType::LinkedInText, 'Hola', progress: ['posting' => true])))
+        ->toThrow(PermanentPublishException::class, 'comprobar');
+    Http::assertNothingSent();
+});
+
+test('perfil con r_member_social busca; un 403 de la busqueda es no verificable, no un fallo permanente', function () {
+    Http::fake(['api.linkedin.com/rest/posts*' => Http::response(['message' => 'no'], 403)]);
+    $profile = NewNetworksFake::linkedinAccount();
+
+    expect($this->publisher->findPublished($profile, liRequest(ContentType::LinkedInText, 'Hola')))->toBeNull();
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), 'q=author'));
+    expect(fn () => $this->publisher->findPublished($profile, liRequest(ContentType::LinkedInText, 'Hola', progress: ['posting' => true])))
+        ->toThrow(PermanentPublishException::class, 'comprobar');
+});
+
+test('publicar anota el envio antes de la peticion y guarda el id al terminar', function () {
+    Http::fake(['api.linkedin.com/rest/posts' => Http::response('', 201, ['x-restli-id' => 'urn:li:share:901'])]);
+    $saved = [];
+
+    $this->publisher->publish($this->account, liRequest(ContentType::LinkedInText, 'x', checkpoint: function ($ref, $progress) use (&$saved) {
+        $saved[] = [$ref, $progress];
+    }));
+
+    expect($saved[0])->toBe([null, ['assets' => [], 'posting' => true]])->and($saved[1][0])->toBe('urn:li:share:901');
+});
+
+test('el primer comentario en perfil sin r_member_social esta desactivado con motivo y no llama a la red', function () {
+    Http::fake();
+    $profile = NewNetworksFake::linkedinAccount(['scopes' => ['w_member_social']]);
+
+    expect(LinkedInPublisher::canComment($profile))->toBeFalse()->and(LinkedInPublisher::commentNote($profile))->toContain('r_member_social')
+        ->and(LinkedInPublisher::canComment($this->account))->toBeTrue()->and(LinkedInPublisher::canComment(NewNetworksFake::linkedinAccount(['scopes' => []], 'page')))->toBeTrue();
+    expect(fn () => $this->publisher->comment($profile, 'urn:li:share:1', 'x'))->toThrow(CommentNotAllowedException::class, 'r_member_social');
+    expect(fn () => $this->publisher->findOwnComment($profile, 'urn:li:share:1', 'x'))->toThrow(CommentNotAllowedException::class);
+    Http::assertNothingSent();
+});
+
+test('el comentario va sin el escape de los posts y una pagina llena sin coincidencia es inconclusa', function () {
+    Http::fake(['api.linkedin.com/rest/socialActions/*' => Http::sequence()
+        ->push(['commentUrn' => 'urn:li:comment:1'], 201)
+        ->push(['elements' => array_map(fn ($i) => ['actor' => 'urn:li:person:otro', 'message' => ['text' => "c$i"]], range(1, 50))])
+        ->push(['elements' => [['actor' => 'urn:li:person:abc123', 'message' => ['text' => 'Hola (x) #tag_1'], 'commentUrn' => 'urn:li:comment:9']]]),
+    ]);
+
+    $this->publisher->comment($this->account, 'urn:li:share:7', 'Hola (x) #tag_1');
+    Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r['message']['text'] === 'Hola (x) #tag_1');
+    expect(fn () => $this->publisher->findOwnComment($this->account, 'urn:li:share:7', 'Hola (x) #tag_1'))->toThrow(CommentSearchInconclusiveException::class);
+    expect($this->publisher->findOwnComment($this->account, 'urn:li:share:7', 'Hola (x) #tag_1'))->toBe('urn:li:comment:9');
 });

@@ -8,6 +8,7 @@ use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\CommentNotAllowedException;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Enums\ContentType;
@@ -32,6 +33,9 @@ class LinkedInPublisher implements FirstCommenter, Publisher
     /** Cuantas publicaciones recientes se revisan al buscar un duplicado. */
     private const RECENT = 10;
 
+    /** Comentarios que se revisan al buscar el primer comentario propio. */
+    private const COMMENTS_PAGE = 50;
+
     public function __construct(private readonly LinkedInClient $client = new LinkedInClient) {}
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
@@ -43,7 +47,10 @@ class LinkedInPublisher implements FirstCommenter, Publisher
         }
         $author = $this->author($account);
 
-        $content = $this->content($account, $request, $author, $token);
+        [$content, $assets] = $this->content($account, $request, $author, $token);
+        // Desde aqui un fallo de red puede haber dejado la publicacion creada sin que lo sepamos: se anota antes de enviar para que un
+        // reintento sin forma de comprobarlo (perfil sin `r_member_social`) no cree un duplicado a ciegas (ver `findPublished`).
+        $request->checkpoint(null, ['assets' => $assets, 'posting' => true]);
         $body = [
             'author' => $author,
             'commentary' => self::escape((string) $request->text),
@@ -59,6 +66,8 @@ class LinkedInPublisher implements FirstCommenter, Publisher
             throw new PermanentPublishException('LinkedIn acepto la publicacion pero no devolvio su identificador.', 'sin_id');
         }
 
+        $request->checkpoint($urn, ['assets' => $assets]);
+
         return PublishResult::published($urn, 'https://www.linkedin.com/feed/update/'.$urn.'/', ['visibility' => $body['visibility']]);
     }
 
@@ -66,9 +75,25 @@ class LinkedInPublisher implements FirstCommenter, Publisher
     {
         $this->assertSupported($request);
         $author = $this->author($account);
-        $response = $this->client->api('GET', 'rest/posts', (string) $account->access_token, query: [
-            'author' => $author, 'q' => 'author', 'count' => self::RECENT, 'sortBy' => 'LAST_MODIFIED',
-        ], headers: ['X-RestLi-Method' => 'FINDER'], read: true);
+        // Un id ya guardado (la creacion respondio pero el job no llego a cerrarse) es la prueba mas fiable y no necesita permisos de lectura.
+        if ($request->reference !== null && preg_match('/^urn:li:(share|ugcPost):\d+$/D', $request->reference)) {
+            return PublishResult::published($request->reference, 'https://www.linkedin.com/feed/update/'.$request->reference.'/');
+        }
+        // Listar las publicaciones del autor exige `r_member_social` (perfil) o `r_organization_social` (pagina). Sin el permiso NO se busca.
+        if (! self::canRead($account)) {
+            return $this->unverifiable($request);
+        }
+        try {
+            $response = $this->client->api('GET', 'rest/posts', (string) $account->access_token, query: [
+                'author' => $author, 'q' => 'author', 'count' => self::RECENT, 'sortBy' => 'LAST_MODIFIED',
+            ], headers: ['X-RestLi-Method' => 'FINDER'], read: true);
+        } catch (PermanentPublishException $e) {
+            // Un 403 de la busqueda NO es un fallo de la publicacion: es «no verificable» (no se publica a ciegas ni se falla para siempre).
+            if ($e->errorCode === 'permisos') {
+                return $this->unverifiable($request);
+            }
+            throw $e;
+        }
 
         $text = self::escape((string) $request->text);
         $since = $request->since?->getTimestamp();
@@ -83,11 +108,53 @@ class LinkedInPublisher implements FirstCommenter, Publisher
         return null;
     }
 
+    /**
+     * ¿Puede esta cuenta dejar y localizar el primer comentario? En una pagina si; en un perfil solo con `r_member_social` (sin el no se puede
+     * comprobar si ya existe, y un reintento duplicaria el comentario). La UI desactiva el campo con `commentNote`.
+     */
+    public static function canComment(SocialAccount $account): bool
+    {
+        return self::canRead($account);
+    }
+
+    public static function commentNote(SocialAccount $account): ?string
+    {
+        return self::canComment($account) ? null : 'El primer comentario en un perfil personal de LinkedIn necesita el permiso r_member_social, que LinkedIn concede solo a apps aprobadas. Sin el no se puede evitar un comentario duplicado en un reintento, asi que esta desactivado.';
+    }
+
+    /** ¿Tiene la cuenta permiso para leer sus publicaciones y comentarios? Paginas: Community Management; perfil: `r_member_social`. */
+    public static function canRead(SocialAccount $account): bool
+    {
+        if (($account->meta['kind'] ?? 'profile') === 'page') {
+            return true;
+        }
+
+        return in_array('r_member_social', (array) $account->scopes, true);
+    }
+
+    /**
+     * No hay forma de saber si LinkedIn ya publico. Si un intento anterior llego a enviar la peticion (`progress.posting`) y no hay id guardado,
+     * se falla con un mensaje claro en vez de duplicar; si nunca se envio nada, se puede publicar.
+     */
+    private function unverifiable(PublishRequest $request): ?PublishResult
+    {
+        if (($request->progress['posting'] ?? false) === true) {
+            throw new PermanentPublishException('No se puede comprobar en LinkedIn si la publicacion ya salio (falta el permiso de lectura) y un intento anterior pudo enviarla. Comprueba tu perfil: si esta publicada, marca «Ya esta publicada»; si no, publica de nuevo.', 'no_verificable');
+        }
+
+        return null;
+    }
+
     public function comment(SocialAccount $account, string $externalId, string $text): string
     {
+        if (! self::canComment($account)) {
+            throw new CommentNotAllowedException((string) self::commentNote($account), 'permisos');
+        }
         $response = $this->client->api('POST', 'rest/socialActions/'.rawurlencode($externalId).'/comments', (string) $account->access_token, [
             'actor' => $this->author($account),
-            'message' => ['text' => self::escape($text)],
+            // El comentario va SIN el escape de los posts (`commentary` usa el formato «little text»; `message.text` de socialActions es texto plano).
+            // ⚠️ A confirmar en el smoke real: si LinkedIn interpretara los reservados, habria que escapar aqui tambien.
+            'message' => ['text' => $text],
         ]);
         $id = (string) ($response->json('commentUrn') ?? $response->json('id') ?? $response->header('x-restli-id'));
         if ($id === '') {
@@ -99,13 +166,20 @@ class LinkedInPublisher implements FirstCommenter, Publisher
 
     public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
     {
-        $response = $this->client->api('GET', 'rest/socialActions/'.rawurlencode($externalId).'/comments', (string) $account->access_token, query: ['count' => 50], read: true);
+        if (! self::canComment($account)) {
+            throw new CommentNotAllowedException((string) self::commentNote($account), 'permisos');
+        }
+        $response = $this->client->api('GET', 'rest/socialActions/'.rawurlencode($externalId).'/comments', (string) $account->access_token, query: ['count' => self::COMMENTS_PAGE], read: true);
         $author = $this->author($account);
-        $wanted = self::escape($text);
-        foreach ((array) ($response->json('elements') ?? []) as $comment) {
-            if (($comment['actor'] ?? null) === $author && (string) ($comment['message']['text'] ?? '') === $wanted) {
+        $elements = (array) ($response->json('elements') ?? []);
+        foreach ($elements as $comment) {
+            if (($comment['actor'] ?? null) === $author && (string) ($comment['message']['text'] ?? '') === $text) {
                 return (string) ($comment['commentUrn'] ?? $comment['id'] ?? '') ?: null;
             }
+        }
+        // Una pagina llena sin coincidencia: puede haber mas comentarios y no se sabe si ya existe. No se crea otro a ciegas.
+        if (count($elements) >= self::COMMENTS_PAGE) {
+            throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: la publicacion tiene mas de '.self::COMMENTS_PAGE.' comentarios. Comprueba en LinkedIn si ya esta; si lo esta, pulsa «Ya esta publicado».', 'busqueda_inconclusa');
         }
 
         return null;
@@ -156,10 +230,10 @@ class LinkedInPublisher implements FirstCommenter, Publisher
     }
 
     /** Sube la media (o reutiliza los URN ya subidos) y devuelve el bloque `content` de la publicacion. */
-    private function content(SocialAccount $account, PublishRequest $request, string $author, string $token): ?array
+    private function content(SocialAccount $account, PublishRequest $request, string $author, string $token): array
     {
         if ($request->type === ContentType::LinkedInText) {
-            return null;
+            return [null, []];
         }
 
         $assets = (array) ($request->progress['assets'] ?? []);
@@ -172,15 +246,15 @@ class LinkedInPublisher implements FirstCommenter, Publisher
         }
 
         if ($request->type === ContentType::LinkedInCarousel) {
-            return ['multiImage' => ['images' => array_map(
+            return [['multiImage' => ['images' => array_map(
                 fn (string $urn, PublishMedia $m) => ['id' => $urn] + ($m->alt !== null && $m->alt !== '' ? ['altText' => $m->alt] : []),
                 $assets, $request->media,
-            )]];
+            )]], $assets];
         }
 
         $media = $request->media[0];
 
-        return ['media' => ['id' => $assets[0]] + ($media->alt !== null && $media->alt !== '' && ! $media->isVideo() ? ['altText' => $media->alt] : [])];
+        return [['media' => ['id' => $assets[0]] + ($media->alt !== null && $media->alt !== '' && ! $media->isVideo() ? ['altText' => $media->alt] : [])], $assets];
     }
 
     private function uploadImage(PublishMedia $media, string $author, string $token): string

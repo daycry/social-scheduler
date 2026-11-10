@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
+use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Facebook\FacebookPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
@@ -888,6 +889,8 @@ class PostService
                 $max = config("media_specs.types.{$type->value}.first_comment.max");
                 if ($max === null) {
                     $errors[$key][] = "{$account->network->label()} no admite primer comentario en este tipo de contenido.";
+                } elseif ($account->network === Network::LinkedIn && ! LinkedInPublisher::canComment($account)) {
+                    $errors[$key][] = (string) LinkedInPublisher::commentNote($account);
                 } elseif (mb_strlen($firstComment) > (int) $max) {
                     $errors[$key][] = "El primer comentario admite como maximo $max caracteres en {$account->network->label()} (tiene ".mb_strlen($firstComment).').';
                 }

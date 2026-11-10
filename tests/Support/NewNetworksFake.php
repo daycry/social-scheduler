@@ -34,7 +34,7 @@ final class NewNetworksFake
 
         return SocialAccount::factory()->for($user)->create($over + [
             'brand_id' => $brand->id, 'network' => Network::LinkedIn, 'external_id' => $kind === 'page' ? 'org-777' : 'abc123', 'name' => 'Ana LinkedIn',
-            'access_token' => 'LI-TOKEN', 'refresh_token' => null, 'token_expires_at' => now()->addDays(60), 'scopes' => ['w_member_social'],
+            'access_token' => 'LI-TOKEN', 'refresh_token' => null, 'token_expires_at' => now()->addDays(60), 'scopes' => ['w_member_social', 'r_member_social'],
             'meta' => ['kind' => $kind, 'author_urn' => $kind === 'page' ? 'urn:li:organization:777' : 'urn:li:person:abc123'],
         ]);
     }

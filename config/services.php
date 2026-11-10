@@ -76,6 +76,24 @@ return [
         'client_secret' => env('THREADS_APP_SECRET'),
     ],
 
+    /*
+    | LinkedIn (T-18): app de LinkedIn Developers con «Share on LinkedIn» (perfil, w_member_social) y, para paginas, «Community Management API»
+    | (aprobacion de LinkedIn). Sin LINKEDIN_CLIENT_ID la red no se ofrece. Redirect URI: ${APP_URL}/connections/linkedin/callback.
+    */
+    'linkedin' => [
+        'client_id' => env('LINKEDIN_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
+    ],
+
+    /*
+    | Pinterest (T-18): app de Pinterest Developers (API v5). Las apps nuevas empiezan en acceso de prueba (sandbox) hasta que Pinterest las
+    | aprueba. Sin PINTEREST_APP_ID la red no se ofrece. Redirect URI: ${APP_URL}/connections/pinterest/callback.
+    */
+    'pinterest' => [
+        'client_id' => env('PINTEREST_APP_ID'),
+        'client_secret' => env('PINTEREST_APP_SECRET'),
+    ],
+
     'tiktok' => [
         'client_key' => env('TIKTOK_CLIENT_KEY'),
         'client_secret' => env('TIKTOK_CLIENT_SECRET'),

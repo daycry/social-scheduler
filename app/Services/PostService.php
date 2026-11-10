@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\Meta\Facebook\FacebookPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestPostOptions;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
@@ -620,6 +622,7 @@ class PostService
     private const BOOLEAN_OPTIONS = [
         'share_to_feed', 'shorts_hashtag', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media',
         'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc', 'auto_add_music',
+        'linkedin_disable_reshare',
     ];
 
     /**
@@ -632,7 +635,7 @@ class PostService
      */
     public static function normalizeOptions(array $options): array
     {
-        $options = InstagramPostOptions::normalize($options);
+        $options = LinkedInPostOptions::normalize(InstagramPostOptions::normalize($options));
         foreach (self::BOOLEAN_OPTIONS as $key) {
             if (array_key_exists($key, $options) && $options[$key] !== null) {
                 $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];
@@ -652,7 +655,7 @@ class PostService
     private function optionErrors(ContentType $type, SocialAccount $account, array $options): array
     {
         $asked = fn (string $k) => array_key_exists($k, $options) && ! in_array($options[$k], [null, false, [], ''], true);
-        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type));
+        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type), LinkedInPostOptions::errors($options, $type, $account), PinterestPostOptions::errors($options, $type));
 
         if ($type->network() !== Network::YouTube) {
             foreach (self::YOUTUBE_OPTIONS as $k) {

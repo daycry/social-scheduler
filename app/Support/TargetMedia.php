@@ -21,10 +21,11 @@ final class TargetMedia
     private const ALT_TYPES = [
         ContentType::InstagramImage, ContentType::InstagramCarousel, ContentType::FacebookPhoto,
         ContentType::ThreadsImage, ContentType::ThreadsCarousel, ContentType::BlueskyPost,
+        ContentType::LinkedInImage, ContentType::LinkedInCarousel, ContentType::PinterestPin,
     ];
 
     /** Tipos que publican una portada (imagen) para un video. */
-    private const COVER_TYPES = [ContentType::InstagramReel, ContentType::YouTubeVideo, ContentType::YouTubeShort];
+    private const COVER_TYPES = [ContentType::InstagramReel, ContentType::YouTubeVideo, ContentType::YouTubeShort, ContentType::PinterestVideo];
 
     public static function supportsAlt(ContentType $type): bool
     {

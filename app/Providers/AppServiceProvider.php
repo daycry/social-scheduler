@@ -9,12 +9,16 @@ use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\LinkedIn\LinkedInConnector;
+use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Meta\Insights as MetaInsights;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestConnector;
+use App\Connectors\Pinterest\PinterestPublisher;
 use App\Connectors\Threads\ThreadsConnector;
 use App\Connectors\Threads\ThreadsInsights;
 use App\Connectors\Threads\ThreadsPublisher;
@@ -83,6 +87,15 @@ class AppServiceProvider extends ServiceProvider
                 $registry->register($this->app->make(ThreadsConnector::class))
                     ->registerPublisher(Network::Threads, $this->app->make(ThreadsPublisher::class))
                     ->registerInsights(Network::Threads, $this->app->make(ThreadsInsights::class));
+            }
+
+            // LinkedIn y Pinterest (T-18): solo con su app configurada (config/env, vacia por defecto) y su interruptor encendido.
+            if (Network::LinkedIn->isAvailable()) {
+                $linkedin = $this->app->make(LinkedInPublisher::class);
+                $registry->register($this->app->make(LinkedInConnector::class))->registerPublisher(Network::LinkedIn, $linkedin);
+            }
+            if (Network::Pinterest->isAvailable()) {
+                $registry->register($this->app->make(PinterestConnector::class))->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class));
             }
 
             return $registry;

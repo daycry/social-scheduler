@@ -197,5 +197,58 @@ return [
                 'min_fps' => 23, 'max_fps' => 60, 'max_width' => 1920, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'],
             ],
         ],
+
+        // ---------------------------------------------------------------- LinkedIn (T-18)
+        // Posts API (REST, `commentary` hasta 3000 caracteres). Imagenes JPEG/PNG/GIF y videos MP4 (3 s a 30 min). Varias imagenes = `multiImage` (2 a 20).
+        // Primer comentario: `socialActions/{urn}/comments` (hasta 1250 caracteres).
+        'linkedin_text' => [
+            'label' => 'una publicacion de texto de LinkedIn',
+            'media' => ['min' => 0, 'max' => 0, 'kinds' => []],
+            'text' => ['max' => 3000, 'required' => true],
+            'first_comment' => ['max' => 1250],
+        ],
+        'linkedin_image' => [
+            'label' => 'una imagen de LinkedIn',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
+            'text' => ['max' => 3000, 'required' => false],
+            'first_comment' => ['max' => 1250],
+            'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/gif'], 'max_bytes' => 36 * $mb],
+        ],
+        'linkedin_carousel' => [
+            'label' => 'una publicacion de varias imagenes de LinkedIn',
+            'media' => ['min' => 2, 'max' => 20, 'kinds' => ['image']],
+            'text' => ['max' => 3000, 'required' => false],
+            'first_comment' => ['max' => 1250],
+            'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/gif'], 'max_bytes' => 36 * $mb],
+        ],
+        'linkedin_video' => [
+            'label' => 'un video de LinkedIn',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
+            'text' => ['max' => 3000, 'required' => false],
+            'first_comment' => ['max' => 1250],
+            'video' => ['mimes' => ['video/mp4'], 'max_bytes' => 500 * $mb, 'min_duration' => 3, 'max_duration' => 1800],
+        ],
+
+        // ---------------------------------------------------------------- Pinterest (T-18)
+        // API v5: descripcion hasta 800, titulo hasta 100 (opcion), alt hasta 500. Imagen JPEG/PNG de hasta 20 MB; carrusel de 2 a 5 imagenes;
+        // video MP4/MOV de 4 s a 15 min y 2 GB, con portada opcional. Sin primer comentario (la API v5 no comenta pines).
+        'pinterest_pin' => [
+            'label' => 'un pin de imagen de Pinterest',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
+            'text' => ['max' => 800, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 20 * $mb],
+        ],
+        'pinterest_carousel' => [
+            'label' => 'un pin de carrusel de Pinterest',
+            'media' => ['min' => 2, 'max' => 5, 'kinds' => ['image']],
+            'text' => ['max' => 800, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 20 * $mb],
+        ],
+        'pinterest_video' => [
+            'label' => 'un pin de video de Pinterest',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
+            'text' => ['max' => 800, 'required' => false],
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 2048 * $mb, 'min_duration' => 4, 'max_duration' => 900],
+        ],
     ],
 ];

@@ -68,6 +68,9 @@ class AnalyticsService
         'bluesky' => [Metric::FOLLOWERS, Metric::POST_COUNT],
         // Visitas al perfil (no visualizaciones: Threads no da `views` de cuenta, null y nunca 0) y los totales del dia.
         'threads' => [Metric::FOLLOWERS, Metric::PROFILE_VIEWS, Metric::INTERACTIONS, Metric::LIKES, Metric::COMMENTS, Metric::SHARES, Metric::CLICKS],
+        // Solo publican (T-18): sin lector de metricas todavia.
+        'linkedin' => [Metric::FOLLOWERS],
+        'pinterest' => [Metric::FOLLOWERS],
     ];
 
     /** Publicaciones que lista la pagina de una red por defecto (las de mas interacciones); ver `social.analytics.dashboard_posts`. */

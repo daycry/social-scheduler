@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestPostOptions;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
@@ -207,6 +209,8 @@ class PostController extends Controller
                 'status' => $a->status,
                 'audio' => AudioCapabilities::forAccount($a),
                 'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
+                'linkedin' => $a->network === Network::LinkedIn ? LinkedInPostOptions::capabilities($a) : null,
+                'pinterest' => $a->network === Network::Pinterest ? PinterestPostOptions::capabilities($a) : null,
                 'instagram_audio' => $a->network === Network::Instagram ? [
                     'available' => InstagramAudio::unavailableReason($a) === null,
                     'reason' => InstagramAudio::unavailableReason($a),

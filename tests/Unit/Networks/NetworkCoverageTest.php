@@ -83,6 +83,14 @@ test('Threads, configurada y encendida, se ofrece y tiene todas sus superficies,
     }
 });
 
+test('LinkedIn y Pinterest, configuradas, se ofrecen y tienen todas sus superficies, icono incluido', function () {
+    config(['services.linkedin.client_id' => 'LIAPP1', 'services.pinterest.client_id' => 'PIAPP1']);
+    app()->forgetInstance(ConnectorRegistry::class);
+
+    expect(Network::offered())->toContain(Network::LinkedIn)->toContain(Network::Pinterest)
+        ->and(surfaceGaps('linkedin'))->toBe([])->and(surfaceGaps('pinterest'))->toBe([]);
+});
+
 test('ninguna pagina repite una lista fija de redes fuera de NetworkIcon.vue', function () {
     $offenders = [];
     $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(resource_path('js'), FilesystemIterator::SKIP_DOTS));

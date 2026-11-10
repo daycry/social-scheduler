@@ -79,7 +79,7 @@ it('Dashboard: la pagina por red muestra crecimiento y no disponible', function 
 });
 
 it('Dashboard: red desconocida o sin cuentas', function () {
-    $this->actingAs($this->user)->get('/dashboard/linkedin')->assertNotFound();
+    $this->actingAs($this->user)->get('/dashboard/mastodon')->assertNotFound();
 
     $this->actingAs($this->user)->get(route('dashboard.network', ['network' => 'youtube']))
         ->assertOk()->assertInertia(fn (Assert $p) => $p->has('detail.accounts', 0));

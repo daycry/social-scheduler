@@ -78,6 +78,19 @@ class PostRequest extends FormRequest
             'targets.*.options.brand_organic_toggle' => ['nullable', 'boolean'],
             'targets.*.options.brand_content_toggle' => ['nullable', 'boolean'],
             'targets.*.options.is_aigc' => ['nullable', 'boolean'],
+            // T-18: ubicacion y etiquetas de Instagram, LinkedIn (visibilidad, comparticion) y Pinterest (tablero, titulo, enlace). El detalle por red
+            // (formas, coordenadas, paginas sin CONNECTIONS, tablero obligatorio) lo valida PostService::optionErrors con el mismo texto en web, API y MCP.
+            'targets.*.options.location_id' => ['nullable'],
+            'targets.*.options.user_tags' => ['nullable', 'array', 'max:20'],
+            'targets.*.options.user_tags.*' => ['nullable', 'array:username,x,y'],
+            'targets.*.options.user_tags.*.username' => ['nullable', 'string', 'max:64'],
+            'targets.*.options.user_tags.*.x' => ['nullable', 'numeric'],
+            'targets.*.options.user_tags.*.y' => ['nullable', 'numeric'],
+            'targets.*.options.linkedin_visibility' => ['nullable', 'string', 'max:20'],
+            'targets.*.options.linkedin_disable_reshare' => ['nullable', 'boolean'],
+            'targets.*.options.pinterest_board_id' => ['nullable'],
+            'targets.*.options.pinterest_title' => ['nullable', 'string', 'max:1000'],
+            'targets.*.options.pinterest_link' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

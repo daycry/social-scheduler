@@ -28,6 +28,13 @@ enum ContentType: string
     case ThreadsImage = 'threads_image';
     case ThreadsVideo = 'threads_video';
     case ThreadsCarousel = 'threads_carousel';
+    case LinkedInText = 'linkedin_text';
+    case LinkedInImage = 'linkedin_image';
+    case LinkedInCarousel = 'linkedin_carousel';
+    case LinkedInVideo = 'linkedin_video';
+    case PinterestPin = 'pinterest_pin';
+    case PinterestCarousel = 'pinterest_carousel';
+    case PinterestVideo = 'pinterest_video';
 
     public function network(): Network
     {
@@ -38,6 +45,8 @@ enum ContentType: string
             self::TikTokVideo, self::TikTokPhoto => Network::TikTok,
             self::BlueskyPost, self::BlueskyVideo => Network::Bluesky,
             self::ThreadsText, self::ThreadsImage, self::ThreadsVideo, self::ThreadsCarousel => Network::Threads,
+            self::LinkedInText, self::LinkedInImage, self::LinkedInCarousel, self::LinkedInVideo => Network::LinkedIn,
+            self::PinterestPin, self::PinterestCarousel, self::PinterestVideo => Network::Pinterest,
         };
     }
 
@@ -62,6 +71,13 @@ enum ContentType: string
             self::ThreadsImage => 'Imagen',
             self::ThreadsVideo => 'Vídeo',
             self::ThreadsCarousel => 'Carrusel',
+            self::LinkedInText => 'Texto',
+            self::LinkedInImage => 'Imagen',
+            self::LinkedInCarousel => 'Varias imágenes',
+            self::LinkedInVideo => 'Vídeo',
+            self::PinterestPin => 'Pin de imagen',
+            self::PinterestCarousel => 'Pin de carrusel',
+            self::PinterestVideo => 'Pin de vídeo',
         };
     }
 
@@ -87,6 +103,13 @@ enum ContentType: string
             self::ThreadsImage => 'Una sola imagen con texto opcional',
             self::ThreadsVideo => 'Un vídeo de hasta 5 minutos con texto opcional',
             self::ThreadsCarousel => 'De 2 a 20 imágenes o vídeos',
+            self::LinkedInText => 'Solo texto, de hasta 3000 caracteres',
+            self::LinkedInImage => 'Una imagen con texto opcional',
+            self::LinkedInCarousel => 'De 2 a 20 imágenes',
+            self::LinkedInVideo => 'Un vídeo MP4 con texto opcional',
+            self::PinterestPin => 'Una imagen en un tablero',
+            self::PinterestCarousel => 'De 2 a 5 imágenes en un tablero',
+            self::PinterestVideo => 'Un vídeo en un tablero, con portada opcional',
         };
     }
 
@@ -111,6 +134,8 @@ enum ContentType: string
             self::ThreadsImage => ['Imagen JPEG o PNG de hasta 8 MB. Threads la descarga de una URL temporal de esta app.'],
             self::ThreadsVideo => ['MP4 o MOV con H.264 o HEVC, de 23 a 60 fps, de hasta 5 minutos y 1 GB. Se procesa tras enviarlo y puede tardar unos minutos.'],
             self::ThreadsCarousel => ['De 2 a 20 elementos, imágenes (JPEG o PNG) o vídeos mezclados. Cuenta como una sola publicación en el límite de 250 al día.'],
+            self::LinkedInText, self::LinkedInImage, self::LinkedInCarousel, self::LinkedInVideo => ['Hasta 3000 caracteres. Se publica como perfil personal o como página de empresa según la cuenta conectada; las páginas exigen el permiso de Community Management de LinkedIn.'],
+            self::PinterestPin, self::PinterestCarousel, self::PinterestVideo => ['Todo pin necesita un tablero (board_id), descripción de hasta 800 caracteres, título de hasta 100 y enlace de destino opcional. Las apps nuevas de Pinterest empiezan en acceso de prueba (solo sandbox) hasta que Pinterest las aprueba.'],
             default => [],
         };
     }

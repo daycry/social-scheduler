@@ -14,6 +14,9 @@ return [
         'bluesky' => (int) env('SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS', 1),
         // El token largo de Threads dura 60 dias y solo se renueva con >= 24 h de antiguedad: 7 dias de margen, como Meta.
         'threads' => (int) env('SOCIAL_REFRESH_MARGIN_THREADS_HOURS', 168),
+        // LinkedIn: el token dura 60 dias (7 dias de margen). Pinterest: 30 dias el acceso y 60 el refresh (3 dias de margen).
+        'linkedin' => (int) env('SOCIAL_REFRESH_MARGIN_LINKEDIN_HOURS', 168),
+        'pinterest' => (int) env('SOCIAL_REFRESH_MARGIN_PINTEREST_HOURS', 72),
     ],
 
     /* Cola donde corre el refresco de tokens (ver config/queue.php names). */
@@ -133,6 +136,40 @@ return [
     | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
     | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
     */
+    /*
+    | LinkedIn (T-18). Versionado mensual de la API REST (`LinkedIn-Version: AAAAMM`, hay que subirlo cuando LinkedIn retire la vigente).
+    | `scopes` del perfil personal: openid/profile (nombre) y w_member_social (publicar). Las paginas piden ademas los de Community
+    | Management (`page_scopes`), que LinkedIn aprueba aparte: sin ellos solo se conecta el perfil personal.
+    */
+    'linkedin' => [
+        'enabled' => (bool) env('LINKEDIN_ENABLED', true),
+        'auth_host' => env('LINKEDIN_AUTH_HOST', 'https://www.linkedin.com'),
+        'api_host' => env('LINKEDIN_API_HOST', 'https://api.linkedin.com'),
+        'api_version' => env('LINKEDIN_API_VERSION', '202511'),
+        'scopes' => ['openid', 'profile', 'w_member_social'],
+        'page_scopes' => ['w_organization_social', 'r_organization_social', 'rw_organization_admin'],
+        'text_max' => 3000,
+        'image_max_bytes' => 36152320,
+        'video_max_bytes' => 500 * 1024 * 1024,
+        // Tamano de cada parte de una subida de video (LinkedIn la fija en 4 MB; se respeta firstByte/lastByte de la respuesta).
+        'upload_timeout' => (int) env('LINKEDIN_UPLOAD_TIMEOUT', 60),
+    ],
+
+    /*
+    | Pinterest (T-18): API v5. Los pines exigen un tablero (`board_id`). El token de acceso dura 30 dias y el de refresco 60.
+    */
+    'pinterest' => [
+        'enabled' => (bool) env('PINTEREST_ENABLED', true),
+        'auth_host' => env('PINTEREST_AUTH_HOST', 'https://www.pinterest.com'),
+        'api_host' => env('PINTEREST_API_HOST', 'https://api.pinterest.com'),
+        'scopes' => ['boards:read', 'pins:read', 'pins:write', 'user_accounts:read'],
+        'title_max' => 100,
+        'description_max' => 800,
+        'alt_max' => 500,
+        'link_max' => 2048,
+        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 60),
+    ],
+
     'threads' => [
         /* Apagar Threads sin tocar codigo: la red desaparece de Conexiones, el compositor, los filtros, el MCP y la reprogramacion. */
         'enabled' => (bool) env('THREADS_ENABLED', true),
@@ -217,6 +254,9 @@ return [
             'bluesky' => 'UTC',
             // Los valores de la serie diaria de Threads acaban a las 08:00 UTC (medianoche del Pacifico) ⚠️ a confirmar en el smoke.
             'threads' => 'America/Los_Angeles',
+            // Sin lector de metricas todavia (T-18): la zona es la de referencia.
+            'linkedin' => 'UTC',
+            'pinterest' => 'UTC',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -249,6 +289,8 @@ return [
             'bluesky' => 0,
             // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
             'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
+            'linkedin' => 0,
+            'pinterest' => 0,
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),

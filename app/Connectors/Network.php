@@ -17,6 +17,8 @@ enum Network: string
     case TikTok = 'tiktok';
     case Bluesky = 'bluesky';
     case Threads = 'threads';
+    case LinkedIn = 'linkedin';
+    case Pinterest = 'pinterest';
 
     /** Conexion por redireccion OAuth. */
     public const AUTH_OAUTH = 'oauth';
@@ -32,6 +34,8 @@ enum Network: string
             self::TikTok => 'tiktok',
             self::Bluesky => 'bluesky',
             self::Threads => 'threads',
+            self::LinkedIn => 'linkedin',
+            self::Pinterest => 'pinterest',
         };
     }
 
@@ -44,6 +48,8 @@ enum Network: string
             self::TikTok => 'TikTok',
             self::Bluesky => 'Bluesky',
             self::Threads => 'Threads',
+            self::LinkedIn => 'LinkedIn',
+            self::Pinterest => 'Pinterest',
         };
     }
 
@@ -57,6 +63,8 @@ enum Network: string
             self::TikTok => 'TT',
             self::Bluesky => 'BS',
             self::Threads => 'TH',
+            self::LinkedIn => 'LI',
+            self::Pinterest => 'PI',
         };
     }
 
@@ -70,6 +78,8 @@ enum Network: string
             self::TikTok => '#111827',
             self::Bluesky => '#0a7aff',
             self::Threads => '#000000',
+            self::LinkedIn => '#0a66c2',
+            self::Pinterest => '#e60023',
         };
     }
 
@@ -111,6 +121,9 @@ enum Network: string
         return match ($this) {
             self::Bluesky => (bool) config('social.bluesky.enabled', true),
             self::Threads => (bool) config('social.threads.enabled', true) && (string) config('services.threads.client_id') !== '',
+            // LinkedIn y Pinterest (T-18): sin las credenciales de su app (config/env, vacias por defecto) la red sale «no configurada».
+            self::LinkedIn => (bool) config('social.linkedin.enabled', true) && (string) config('services.linkedin.client_id') !== '',
+            self::Pinterest => (bool) config('social.pinterest.enabled', true) && (string) config('services.pinterest.client_id') !== '',
             default => true,
         };
     }

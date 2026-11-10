@@ -13,7 +13,8 @@ class RunStudioAiJob implements ShouldQueue
 
     public int $tries = 1;
 
-    public int $timeout = 400;
+    /** Plazos encadenados: job (110 s) < --timeout del worker (120 s) < retry_after (180 s); ver docs/arquitectura.md. */
+    public int $timeout = 110;
 
     public function __construct(public readonly int $aiJobId)
     {

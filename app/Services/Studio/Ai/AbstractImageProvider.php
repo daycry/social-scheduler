@@ -45,9 +45,15 @@ abstract class AbstractImageProvider implements ImageProvider
         return $this->key;
     }
 
-    protected function http(): PendingRequest
+    /** Una llamada nunca dura mas que `timeout` ni que lo que queda del presupuesto del job. */
+    protected function http(?float $deadline = null): PendingRequest
     {
-        return Http::timeout((int) config('studio.ai.timeout', 120))->connectTimeout(15)->acceptJson();
+        $timeout = (int) config('studio.ai.timeout', 90);
+        if ($deadline !== null) {
+            $timeout = max(5, min($timeout, (int) floor($deadline - microtime(true))));
+        }
+
+        return Http::timeout($timeout)->connectTimeout(15)->acceptJson();
     }
 
     /** @param callable(): Response $send */
@@ -55,8 +61,10 @@ abstract class AbstractImageProvider implements ImageProvider
     {
         try {
             $response = $send();
-        } catch (ConnectionException) {
-            throw new AiProviderException('timeout', true);
+        } catch (ConnectionException $e) {
+            // Solo un fallo ANTERIOR al envio (DNS, conexion, TLS) es seguro de repetir. Un timeout de lectura o un corte tras enviar
+            // es ambiguo: el proveedor pudo generar y cobrar la imagen, y repetir el POST la cobraria otra vez (CWE-770).
+            throw $this->beforeSend($e->getMessage()) ? new AiProviderException('timeout', true) : new AiProviderException('timeout_ambiguous');
         }
         if ($response->successful()) {
             return $response;
@@ -69,6 +77,17 @@ abstract class AbstractImageProvider implements ImageProvider
         $after = $retryable ? max(0, min((int) config('studio.ai.max_retry_after', 30), (int) $response->header('Retry-After'))) : 0;
 
         throw new AiProviderException($code, $retryable, $after, $status);
+    }
+
+    private function beforeSend(string $message): bool
+    {
+        if (preg_match('/cURL error (\d+)/', $message, $m) !== 1) {
+            return false;
+        }
+        $errno = (int) $m[1];
+
+        return in_array($errno, [5, 6, 7, 35, 51, 58, 59, 60, 77], true)
+            || ($errno === 28 && preg_match('/Connection timed out|Resolving timed out|SSL connection timeout/i', $message) === 1);
     }
 
     /** @param array<string, mixed>|null $body */

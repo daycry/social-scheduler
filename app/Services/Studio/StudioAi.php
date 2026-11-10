@@ -6,6 +6,7 @@ use App\Jobs\Studio\RunStudioAiJob;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\StudioAiJob;
+use App\Models\Studio\StudioAsset;
 use App\Models\User;
 use App\Services\MediaUploadService;
 use App\Services\Studio\Ai\AiImageRequest;
@@ -128,7 +129,8 @@ class StudioAi
         $key = $data['idempotency_key'] ?? null;
 
         return DB::transaction(function () use ($user, $brand, $provider, $payload, $fingerprint, $key, $source, $inputSha, $kind, $prompt): StudioAiJob {
-            Brand::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($brand->id);
+            // La cuota es por usuario y proveedor: el candado es por usuario (no por marca) para que dos marcas no la superen a la vez.
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             if ($key !== null && ($existing = StudioAiJob::withoutUserScope()->where('user_id', $user->id)->where('idempotency_key', $key)->first())) {
                 if ($existing->fingerprint !== $fingerprint || (int) $existing->brand_id !== (int) $brand->id) {
                     throw ValidationException::withMessages(['idempotency_key' => ['Esa clave de idempotencia ya se usó con otra petición.']]);
@@ -206,26 +208,38 @@ class StudioAi
             if (! $provider?->configured()) {
                 throw new AiProviderException('not_configured');
             }
-            $request = $this->buildRequest($user, $brand, $job);
-            $images = $this->callWithRetries($provider, $request, $job);
+            $deadline = microtime(true) + (int) config('studio.ai.budget', 100);
+            $request = $this->buildRequest($user, $brand, $job, $deadline);
+            $images = $this->callWithRetries($provider, $request, $job, $deadline);
             foreach ($images as $bytes) {
                 $created[] = $this->store($user, $brand, $job, $bytes);
             }
-            StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
+            $done = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'ready', 'output_media_ids' => json_encode(array_map(fn (MediaAsset $m) => $m->id, $created)), 'error_code' => null, 'error' => null]);
-        } catch (\Throwable $e) {
-            foreach ($created as $media) {
-                try {
-                    app(MediaUploadService::class)->delete($media);
-                } catch (\Throwable) { // Conserva lo que ya use una publicacion.
-                }
+            if ($done !== 1) {
+                // Otro proceso (failed() del worker) ya cerro el trabajo como error: no dejar recursos huerfanos.
+                $this->discard($created);
             }
+        } catch (\Throwable $e) {
+            $this->discard($created);
             $code = $e instanceof AiProviderException ? $e->errorCode : ($e instanceof ValidationException ? 'source_unavailable' : 'processing_failed');
             if (! $e instanceof AiProviderException) {
                 Log::warning('studio.ai_job_failed', ['job' => $id, 'exception' => $e::class]);
             }
             StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'failed', 'error_code' => $code, 'error' => $e instanceof AiProviderException ? $e->getMessage() : self::errorMessage($code)]);
+        }
+    }
+
+    /** @param list<MediaAsset> $media */
+    private function discard(array $media): void
+    {
+        foreach ($media as $item) {
+            try {
+                StudioAsset::withoutUserScope()->where('media_asset_id', $item->id)->delete();
+                app(MediaUploadService::class)->delete($item);
+            } catch (\Throwable) { // Conserva lo que ya use una publicacion.
+            }
         }
     }
 
@@ -238,14 +252,14 @@ class StudioAi
         };
     }
 
-    private function buildRequest(User $user, Brand $brand, StudioAiJob $job): AiImageRequest
+    private function buildRequest(User $user, Brand $brand, StudioAiJob $job, float $deadline): AiImageRequest
     {
         $params = (array) $job->params;
         $style = self::STYLES[$params['style'] ?? 'natural'] ?? '';
         $prompt = trim($job->prompt.' '.$style);
         $aspect = (string) ($params['aspect'] ?? '1:1');
         if ($job->kind === 'generate') {
-            return new AiImageRequest('generate', $prompt, $aspect, $job->count);
+            return new AiImageRequest('generate', $prompt, $aspect, $job->count, deadline: $deadline);
         }
         $source = $this->assets->owned($user, $brand, (int) $job->source_media_id);
         if (! hash_equals((string) $job->input_sha256, $this->hash($source))) {
@@ -256,16 +270,16 @@ class StudioAi
         if ($job->kind === 'edit') {
             $rect = (array) $params['mask'];
 
-            return new AiImageRequest('edit', $prompt, self::nearest($w, $h), $job->count, $png, ImageCanvas::mask($w, $h, $rect));
+            return new AiImageRequest('edit', $prompt, self::nearest($w, $h), $job->count, $png, ImageCanvas::mask($w, $h, $rect), $deadline);
         }
         if ($job->kind === 'outpaint') {
             [$canvas, $mask, $cw, $ch] = ImageCanvas::outpaint($png, $aspect, $side);
             $prompt = trim('Amplía la escena de forma natural rellenando las zonas transparentes, manteniendo el estilo, la iluminación y la parte existente sin cambios. '.$prompt);
 
-            return new AiImageRequest('outpaint', $prompt, $aspect, $job->count, $canvas, $mask);
+            return new AiImageRequest('outpaint', $prompt, $aspect, $job->count, $canvas, $mask, $deadline);
         }
 
-        return new AiImageRequest('variation', trim('Crea una variación de esta imagen conservando su composición y su tema. '.$prompt), self::nearest($w, $h), $job->count, $png);
+        return new AiImageRequest('variation', trim('Crea una variación de esta imagen conservando su composición y su tema. '.$prompt), self::nearest($w, $h), $job->count, $png, deadline: $deadline);
     }
 
     private static function nearest(int $w, int $h): string
@@ -276,7 +290,7 @@ class StudioAi
     }
 
     /** @return list<string> */
-    private function callWithRetries(ImageProvider $provider, AiImageRequest $request, StudioAiJob $job): array
+    private function callWithRetries(ImageProvider $provider, AiImageRequest $request, StudioAiJob $job, float $deadline): array
     {
         $attempts = max(1, (int) config('studio.ai.attempts', 3));
         $backoff = array_values((array) config('studio.ai.backoff', [2, 6]));
@@ -293,8 +307,12 @@ class StudioAi
                 if (! $e->retryable || $n >= $attempts) {
                     throw $e;
                 }
-                $wait = max($e->retryAfter, (int) ($backoff[$n - 1] ?? end($backoff) ?: 1));
-                Sleep::for(min($wait, (int) config('studio.ai.max_retry_after', 30)))->seconds();
+                $wait = min(max($e->retryAfter, (int) ($backoff[$n - 1] ?? end($backoff) ?: 1)), (int) config('studio.ai.max_retry_after', 30));
+                // El reintento (espera + una llamada minima) debe caber en el presupuesto del job; si no, se falla con el ultimo error.
+                if (microtime(true) + $wait + 15 > $deadline) {
+                    throw $e;
+                }
+                Sleep::for($wait)->seconds();
             }
         }
     }

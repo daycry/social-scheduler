@@ -21,8 +21,11 @@ class OpenAiImages extends AbstractImageProvider
     {
         $base = rtrim((string) $this->config['endpoint'], '/');
         $fields = ['model' => $this->model(), 'prompt' => $request->prompt, 'n' => $request->count, 'size' => self::SIZES[$request->aspect] ?? '1024x1024'];
+        if (filled($this->config['quality'] ?? null)) {
+            $fields['quality'] = (string) $this->config['quality'];
+        }
         $response = $this->send(function () use ($request, $base, $fields) {
-            $http = $this->http()->withToken($this->secret());
+            $http = $this->http($request->deadline)->withToken($this->secret());
             if ($request->image === null) {
                 return $http->post($base.'/images/generations', $fields);
             }
@@ -57,6 +60,7 @@ class OpenAiImages extends AbstractImageProvider
 
         return match (true) {
             in_array($status, [401, 403], true) => 'invalid_key',
+            $status === 404 || str_contains($code, 'model_not_found') => 'model_unavailable',
             $status === 429 && str_contains($code, 'insufficient_quota') => 'quota',
             $status === 429 => 'rate_limited',
             $status >= 500 => 'server',

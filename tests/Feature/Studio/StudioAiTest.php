@@ -10,6 +10,7 @@ use App\Services\Studio\StudioAi;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioDocument;
 use App\Services\Studio\StudioService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -87,9 +88,9 @@ test('generar con OpenAI crea un trabajo en cola y al ejecutarlo guarda un recur
 
     $job = $this->getJson($this->url.'/'.$created['id'])->assertOk()->assertJsonPath('job.status', 'ready')->assertJsonCount(2, 'job.output_assets')->json('job');
     Http::assertSent(fn (Request $r) => $r->url() === 'https://api.openai.com/v1/images/generations' && $r->hasHeader('Authorization', 'Bearer sk-test-secret-openai')
-        && $r['model'] === 'gpt-image-1' && $r['n'] === 2 && $r['size'] === '1536x1024' && str_contains($r['prompt'], 'Un faro al amanecer') && str_contains($r['prompt'], 'Fotografía'));
+        && $r['model'] === 'gpt-image-2.5-sunburst' && $r['n'] === 2 && $r['size'] === '1536x1024' && str_contains($r['prompt'], 'Un faro al amanecer') && str_contains($r['prompt'], 'Fotografía'));
     $asset = $job['output_assets'][0];
-    expect($asset['ai'])->toMatchArray(['provider' => 'openai', 'model' => 'gpt-image-1'])->and($asset['ai']['prompt'])->toContain('faro')
+    expect($asset['ai'])->toMatchArray(['provider' => 'openai', 'model' => 'gpt-image-2.5-sunburst'])->and($asset['ai']['prompt'])->toContain('faro')
         ->and($asset['mime'])->toBe('image/png');
     $stored = MediaAsset::withoutUserScope()->findOrFail($asset['id']);
     expect($stored->source)->toBe('ai')->and(Storage::disk('local')->get($stored->path))->toStartWith("\x89PNG");
@@ -362,4 +363,56 @@ test('texto: sugiere texto alternativo enviando la imagen reducida a Claude', fu
     });
     config(['social.ai.vision' => false]);
     $this->postJson('/brands/'.$this->brand->id.'/studio/ai-text', ['action' => 'alt_text', 'media_id' => $this->image->id])->assertUnprocessable();
+});
+
+// ---- Revisión de dos lentes, intento 1 ----
+
+test('un timeout de lectura NO se reintenta (el POST pudo cobrarse), falla con aviso claro y no devuelve la cuota', function () {
+    $calls = 0;
+    Http::fake(['api.openai.com/*' => function () use (&$calls) {
+        $calls++;
+
+        throw new ConnectionException('cURL error 28: Operation timed out after 60000 milliseconds with 0 bytes received');
+    }]);
+    $job = ($this->run)(['kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer']);
+    expect($job->status)->toBe('failed')->and($job->error_code)->toBe('timeout_ambiguous')->and($job->error)->toContain('puede haber generado la imagen')->and($job->attempts)->toBe(1)->and($calls)->toBe(1);
+    $this->getJson('/brands/'.$this->brand->id.'/studio/ai')->assertJsonPath('providers.0.remaining', 19);
+});
+
+test('un fallo de conexion anterior al envio si se reintenta', function () {
+    Http::fake(['api.openai.com/*' => Http::sequence()->pushFailedConnection('cURL error 7: Failed to connect to api.openai.com port 443')->push(openAiOk())]);
+    $job = ($this->run)(['kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer']);
+    expect($job->status)->toBe('ready')->and($job->attempts)->toBe(2);
+});
+
+test('un modelo inexistente dice Modelo no disponible y no pide revisar la descripcion', function () {
+    Http::fake(['api.openai.com/*' => Http::response(['error' => ['code' => 'model_not_found', 'message' => 'x']], 404)]);
+    $job = ($this->run)(['kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer']);
+    expect($job->error_code)->toBe('model_unavailable')->and($job->error)->toContain('Modelo no disponible')->and($job->error)->not->toContain('descripción');
+});
+
+test('los modelos por defecto son IDs vigentes de las APIs (gpt-image-1 esta retirado)', function () {
+    expect(config('studio.ai.providers.openai.model'))->toBe('gpt-image-2.5-sunburst')->and(config('studio.ai.providers.google.model'))->toBe('gemini-nano-banana-2.1');
+});
+
+test('no se reintenta si la espera no cabe en el presupuesto de tiempo del job y el job cumple timeout menor que el worker', function () {
+    config(['studio.ai.budget' => 5]);
+    Http::fake(['api.openai.com/*' => Http::response(['error' => ['code' => 'rate_limit_exceeded']], 429, ['Retry-After' => '30'])]);
+    $job = ($this->run)(['kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer']);
+    expect($job->status)->toBe('failed')->and($job->error_code)->toBe('rate_limited')->and($job->attempts)->toBe(1);
+    expect((new RunStudioAiJob(1))->timeout)->toBeLessThan(120);
+});
+
+test('si failed() ya marco el trabajo y el primer worker termina, no quedan recursos huerfanos', function () {
+    $id = $this->actingAs($this->user)->postJson($this->url, ['kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer'])->json('job.id');
+    Http::fake(['api.openai.com/*' => function () use ($id) {
+        (new RunStudioAiJob($id))->failed(new RuntimeException('timeout del worker'));
+
+        return Http::response(openAiOk());
+    }]);
+    app(StudioAi::class)->process($id);
+    expect(StudioAiJob::withoutUserScope()->find($id)->status)->toBe('failed')->and(MediaAsset::withoutUserScope()->where('source', 'ai')->count())->toBe(0);
+    // Un segundo worker no reclama un trabajo ya tomado.
+    app(StudioAi::class)->process($id);
+    Http::assertSentCount(1);
 });

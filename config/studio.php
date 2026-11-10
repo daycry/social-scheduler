@@ -31,13 +31,16 @@ return [
     */
     'ai' => [
         'max_prompt' => 1000,
-        'max_variants' => 4,
+        'max_variants' => 3,
         'max_active_jobs' => 5,
         'max_input_bytes' => 20 * 1024 * 1024,
         'max_output_bytes' => 30 * 1024 * 1024,
         'max_output_pixels' => 36000000,
         'max_edit_side' => 1536,
-        'timeout' => (int) env('STUDIO_AI_TIMEOUT', 120),
+        /* Plazos encadenados (docs/arquitectura.md): job 110 s < worker --timeout 120 s < retry_after 180 s. `budget` es el tiempo total de
+           llamadas al proveedor dentro del job; `timeout` el maximo de UNA llamada. Un reintento solo se programa si cabe en el presupuesto. */
+        'budget' => (int) env('STUDIO_AI_BUDGET', 100),
+        'timeout' => (int) env('STUDIO_AI_TIMEOUT', 90),
         /* Intentos totales ante 429/5xx/cortes y espera (s) antes de cada reintento. */
         'attempts' => 3,
         'backoff' => [2, 6],
@@ -47,7 +50,9 @@ return [
             'openai' => [
                 'label' => 'OpenAI Images',
                 'key' => env('STUDIO_AI_OPENAI_KEY', env('OPENAI_API_KEY')),
-                'model' => env('STUDIO_AI_OPENAI_MODEL', 'gpt-image-1'),
+                /* gpt-image-1 esta retirado (ficha del modelo, 2026-11-10); ID vigente de la guia de imagenes de OpenAI. */
+                'model' => env('STUDIO_AI_OPENAI_MODEL', 'gpt-image-2.5-sunburst'),
+                'quality' => env('STUDIO_AI_OPENAI_QUALITY', 'medium'),
                 'endpoint' => 'https://api.openai.com/v1',
                 'daily_limit' => (int) env('STUDIO_AI_OPENAI_DAILY_LIMIT', 20),
             ],

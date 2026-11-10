@@ -12,5 +12,6 @@ final class AiImageRequest
         public readonly int $count,
         public readonly ?string $image = null,
         public readonly ?string $mask = null,
+        public readonly ?float $deadline = null,
     ) {}
 }

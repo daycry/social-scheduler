@@ -23,6 +23,9 @@ class GoogleImages extends AbstractImageProvider
     {
         $images = [];
         for ($i = 0; $i < $request->count; $i++) {
+            if ($images !== [] && $request->deadline !== null && $request->deadline - microtime(true) < 30) {
+                break; // No cabe otra variante en el presupuesto del job.
+            }
             try {
                 $images[] = $this->one($request);
             } catch (AiProviderException $e) {
@@ -42,7 +45,7 @@ class GoogleImages extends AbstractImageProvider
         if ($request->image !== null) {
             $input[] = ['type' => 'image', 'mime_type' => 'image/png', 'data' => base64_encode($request->image)];
         }
-        $response = $this->send(fn () => $this->http()->withHeaders(['x-goog-api-key' => $this->secret(), 'Api-Revision' => (string) ($this->config['api_revision'] ?? '2026-05-20')])
+        $response = $this->send(fn () => $this->http($request->deadline)->withHeaders(['x-goog-api-key' => $this->secret(), 'Api-Revision' => (string) ($this->config['api_revision'] ?? '2026-05-20')])
             ->post(rtrim((string) $this->config['endpoint'], '/').'/interactions', [
                 'model' => $this->model(), 'input' => $input,
                 'response_format' => ['type' => 'image', 'mime_type' => 'image/png', 'aspect_ratio' => $request->aspect],
@@ -84,6 +87,7 @@ class GoogleImages extends AbstractImageProvider
         $message = strtolower((string) ($body['error']['message'] ?? '').' '.(string) ($body['error']['status'] ?? ''));
 
         return match (true) {
+            $status === 404 || preg_match('/model.*(not found|not supported)|not found.*model/', $message) === 1 => 'model_unavailable',
             in_array($status, [401, 403], true) || str_contains($message, 'api key not valid') || str_contains($message, 'api_key_invalid') => 'invalid_key',
             $status === 429 && preg_match('/billing|per day|daily|check your plan/', $message) === 1 => 'quota',
             $status === 429 => 'rate_limited',

@@ -252,6 +252,28 @@ test('Studio imaging: real background inference preserves original and a masked 
         await exporter.getByRole('button', { name: 'Descargar', exact: true }).click();
         const artifact = await download;
         await artifact.saveAs(info.outputPath('masked-filtered-design.png'));
+        // The downloaded PNG itself carries the mask and the sepia filter: decode it and measure the pixels of the image box.
+        const exportedBytes = fs.readFileSync(info.outputPath('masked-filtered-design.png'));
+        const doc = (await readDesign(page, id)).document;
+        const box = { x: saved.x, y: saved.y, width: saved.width, height: saved.height };
+        const exported = await page.evaluate(async ({ encoded, box }) => {
+            const image = await createImageBitmap(new Blob([Uint8Array.from(atob(encoded), c => c.charCodeAt(0))], { type: 'image/png' }));
+            const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+            const context = canvas.getContext('2d')!; context.drawImage(image, 0, 0);
+            const pixel = (x: number, y: number) => Array.from(context.getImageData(Math.round(x), Math.round(y), 1, 1).data);
+            const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+            const samples: number[][] = [];
+            for (let dx = -12; dx <= 12; dx += 6) for (let dy = -12; dy <= 12; dy += 6) samples.push(pixel(cx + dx, cy + dy));
+            return { width: image.width, height: image.height, corner: pixel(box.x + 2, box.y + 2), outside: pixel(box.x - 4, box.y - 4), centre: samples };
+        }, { encoded: exportedBytes.toString('base64'), box });
+        expect(exported.width).toBe(doc.width); expect(exported.height).toBe(doc.height);
+        // Ellipse mask: the bounding-box corner lies outside the ellipse, so it shows the page background, like the point outside the box.
+        expect(exported.corner).toEqual(exported.outside);
+        // Sepia: every opaque sample of the subject has the warm cast (red >= green >= blue), with a real colour spread.
+        const opaque = exported.centre.filter(p => p[3] > 200);
+        expect(opaque.length).toBeGreaterThan(0);
+        for (const [r, g, b] of opaque) { expect(r).toBeGreaterThanOrEqual(g); expect(g).toBeGreaterThanOrEqual(b); }
+        expect(opaque.some(([r, , b]) => r - b > 10)).toBe(true);
         await exporter.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
         await page.screenshot({ path: info.outputPath('image-editor.png'), fullPage: true });
     } finally { cleanComposerBrands(user.email); }

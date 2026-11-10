@@ -3,7 +3,7 @@ import EmptyState from '@/Components/EmptyState.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 
-defineProps({ brands: Array });
+defineProps({ brands: Array, flash: { type: Object, default: () => ({}) } });
 
 const remove = (brand) => {
     if (confirm(`¿Eliminar la marca «${brand.name}»?`)) {
@@ -22,6 +22,9 @@ const remove = (brand) => {
                 <Link :href="route('brands.create')" class="btn-primary">Nueva marca</Link>
             </div>
         </template>
+
+        <p v-if="flash.success" class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
+        <p v-if="flash.error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ flash.error }}</p>
 
         <EmptyState
             v-if="brands.length === 0"

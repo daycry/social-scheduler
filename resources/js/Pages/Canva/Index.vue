@@ -178,7 +178,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                     <h2 id="canva-create" class="font-semibold text-slate-900">Crear en Canva</h2>
                     <form class="flex flex-wrap items-end gap-3" @submit.prevent="createDesign">
                         <label class="text-sm font-medium text-slate-900">Formato
-                            <select v-model="createFormat" class="field mt-1 block" :disabled="!features.create?.available">
+                            <select v-model="createFormat" data-testid="canva-create-format" class="field mt-1 block" :disabled="!features.create?.available">
                                 <option v-for="f in canva.formats" :key="f.key" :value="f.key">{{ f.label }} · {{ f.width }}×{{ f.height }}</option>
                             </select>
                         </label>

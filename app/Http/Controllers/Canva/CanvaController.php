@@ -38,6 +38,7 @@ class CanvaController extends Controller
         return Inertia::render('Canva/Index', [
             'brand' => ['id' => $brand->id, 'name' => $brand->name],
             'canva' => $this->state($request, $brand),
+            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
             'focus' => preg_match('/^[A-Za-z0-9_-]{4,40}$/', (string) $request->query('design')) ? (string) $request->query('design') : null,
         ]);
     }

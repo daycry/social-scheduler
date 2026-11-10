@@ -82,3 +82,43 @@ function generalFakeAi(): void
         },
     ]);
 }
+
+/**
+ * T-16: Canva falso para la bateria E2E. Atiende OAuth (token, revocacion), perfil, capacidades, disenos (listar, buscar, crear), exportaciones
+ * y la descarga del fichero exportado (PNG real de 96x96) sin salir nunca a la red. `<run root>/canva-pro` anade la capacidad de PNG transparente.
+ */
+function generalFakeCanva(string $root): void
+{
+    $png = static function (): string {
+        $image = imagecreatetruecolor(96, 96);
+        imagefill($image, 0, 0, imagecolorallocate($image, 14, 165, 233));
+        imagefilledellipse($image, 48, 48, 56, 56, imagecolorallocate($image, 250, 250, 250));
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean();
+    };
+    $design = static fn (string $id, string $title) => [
+        'id' => $id, 'title' => $title, 'updated_at' => 1790000000,
+        'urls' => ['edit_url' => "https://www.canva.com/api/design/token-$id/edit", 'view_url' => "https://www.canva.com/api/design/token-$id/view"],
+    ];
+    $all = [$design('DAFe2eRebaj1', 'Rebajas E2E'), $design('DAFe2eHisto2', 'Historia E2E')];
+    Http::fake([
+        'api.canva.com/rest/v1/oauth/token' => Http::response(['access_token' => 'e2e-canva-access', 'refresh_token' => 'e2e-canva-refresh', 'token_type' => 'Bearer', 'expires_in' => 14400, 'scope' => implode(' ', (array) config('services.canva.scopes'))]),
+        'api.canva.com/rest/v1/oauth/revoke' => Http::response('', 200),
+        'api.canva.com/rest/v1/users/me/profile' => Http::response(['profile' => ['display_name' => 'Cuenta Canva E2E']]),
+        'api.canva.com/rest/v1/users/me/capabilities' => fn () => Http::response(['capabilities' => is_file($root.'/canva-pro') ? ['export_png_transparency'] : []]),
+        'api.canva.com/rest/v1/designs*' => function (Request $request) use ($all, $design) {
+            if ($request->method() === 'POST') {
+                return Http::response(['design' => $design('DAFe2eNuevo3', (string) ($request['title'] ?? 'Nuevo')) + ['thumbnail' => null]]);
+            }
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $needle = mb_strtolower((string) ($query['query'] ?? ''));
+
+            return Http::response(['items' => array_values(array_filter($all, fn ($d) => $needle === '' || str_contains(mb_strtolower($d['title']), $needle)))]);
+        },
+        'api.canva.com/rest/v1/exports' => Http::response(['job' => ['id' => 'e2e-export-1', 'status' => 'in_progress']]),
+        'api.canva.com/rest/v1/exports/*' => Http::response(['job' => ['id' => 'e2e-export-1', 'status' => 'success', 'urls' => ['https://export-download.canva.com/e2e/rebajas.png?X-Amz-Signature=e2e']]]),
+        'export-download.canva.com/*' => fn () => Http::response($png(), 200, ['Content-Type' => 'image/png']),
+    ]);
+}

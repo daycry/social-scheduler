@@ -46,6 +46,7 @@ return [
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
             // Debe superar el timeout del job mas largo (RefreshSocialAccount: 100 s) y el --timeout del worker (120 s).
+            // Debe ser mayor que el --timeout del worker (120 s), que a su vez supera el $timeout de los jobs (110 s, tambien RunStudioAiJob de la IA del estudio).
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 180),
             'after_commit' => false,
         ],

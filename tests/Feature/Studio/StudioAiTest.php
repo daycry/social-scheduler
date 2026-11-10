@@ -416,3 +416,10 @@ test('si failed() ya marco el trabajo y el primer worker termina, no quedan recu
     app(StudioAi::class)->process($id);
     Http::assertSentCount(1);
 });
+
+test('el editor solo anuncia la IA al propietario y con algun proveedor configurado', function () {
+    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'D', 'document' => StudioDocument::blank()]);
+    $this->actingAs($this->user)->get('/studio/designs/'.$design->id.'/edit')->assertInertia(fn ($page) => $page->where('ai_configured', true));
+    config(['studio.ai.providers.openai.key' => '', 'studio.ai.providers.google.key' => '']);
+    $this->get('/studio/designs/'.$design->id.'/edit')->assertInertia(fn ($page) => $page->where('ai_configured', false));
+});

@@ -8,6 +8,7 @@ use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
 use App\Models\User;
+use App\Services\Studio\Ai\AiProviders;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioAvControl;
@@ -268,7 +269,7 @@ class StudioController extends Controller
             $history = null;
         }
 
-        return $props + ['design' => $presented, 'access' => $access,
+        return $props + ['design' => $presented, 'access' => $access, 'ai_configured' => $role === 'owner' && app(AiProviders::class)->anyConfigured(),
             'exports' => $history ? $this->exports->presentMany($user, $history->getCollection()) : [],
             'exports_pagination' => $history ? $this->exports->pageMetadata($history) : ['current_page' => 1, 'last_page' => 1, 'per_page' => 50, 'total' => 0, 'has_more' => false]];
     }

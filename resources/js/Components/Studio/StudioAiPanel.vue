@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { studioRequest } from '@/Studio/api';
 
 const props = defineProps({
     brandId: Number, designId: Number, revision: Number, isTemplate: Boolean, assets: { type: Array, default: () => [] },
-    presetMediaId: { type: Number, default: null }, presetToken: { type: Number, default: 0 },
+    presetMediaId: { type: Number, default: null }, presetToken: { type: Number, default: 0 }, active: { type: Boolean, default: false },
 });
 const emit = defineEmits(['ready', 'add', 'text']);
 
@@ -112,7 +112,9 @@ async function suggestAlt() {
 }
 async function copyAlt() { try { await navigator.clipboard.writeText(text.alt); } catch { /* el texto sigue visible para copiarlo a mano */ } }
 
-onMounted(load);
+// La configuracion solo se pide al abrir la pestaña por primera vez (no en cada apertura del editor).
+let loaded = false;
+watch(() => props.active, open => { if (open && !loaded) { loaded = true; load(); } }, { immediate: true });
 onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
 </script>
 

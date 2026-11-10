@@ -59,4 +59,4 @@ Las transiciones válidas están en `App\Enums\PostStatus::allowedNext()`. `publ
 
 ## Colas
 
-Cinco colas en `config/queue.php` (`QUEUE_NAMES`): `publish`, `poll`, `metrics`, `reports` y `media` (importación de media desde URL o Drive, con su propio worker `ss-media`). Plazos encadenados: `$timeout` del job (110 s) < `--timeout` del worker (120 s) < `retry_after` (180 s, `DB_QUEUE_RETRY_AFTER`). Ver [publicación](modulos/publicacion.md).
+Cinco colas en `config/queue.php` (`QUEUE_NAMES`): `publish`, `poll`, `metrics`, `reports` y `media` (importación de media desde URL o Drive, con su propio worker `ss-media`). Plazos encadenados: `$timeout` del job (110 s) < `--timeout` del worker (120 s) < `retry_after` (180 s, `DB_QUEUE_RETRY_AFTER`). Los trabajos de IA creativa del estudio (T-14, `RunStudioAiJob`) van en la cola `media` y cumplen la misma regla: `$timeout` del job 110 s, con un presupuesto de llamadas al proveedor de 100 s (`studio.ai.budget`, una llamada máx. 90 s) y reintentos solo si caben en él; un timeout de lectura tras enviar el POST no se reintenta (el proveedor pudo cobrarlo) y no devuelve cuota. Ver [publicación](modulos/publicacion.md).

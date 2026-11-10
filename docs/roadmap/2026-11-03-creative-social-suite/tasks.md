@@ -1,5 +1,5 @@
 ---
-estado: en-progreso
+estado: completado
 creado: 2026-11-03
 actualizado: 2026-11-10
 spec: spec.md
@@ -19,8 +19,8 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 | Fase 2 | 6 | 6 | 100 % |
 | Fase 3 | 7 | 7 | 100 % |
 | Fase 4 | 5 | 5 | 100 % |
-| Fase 5 | 1 | 2 | 50 % |
-| **Total** | **22** | **23** | **96 %** |
+| Fase 5 | 2 | 2 | 100 % |
+| **Total** | **23** | **23** | **100 %** |
 
 ## Fase 1 — Investigación y consistencia
 
@@ -803,17 +803,21 @@ No hay `fixme`. No se ha repetido la pasada completa tras las correcciones (1,8 
 **Cierre T-22 (2026-11-10, pasada final sobre HEAD congelado, tras todas las correcciones de la auditoría global)**: `npm run build` exit 0; Pest 3581 tests, 3572 passed, 9 skipped, 22 753 aserciones (`testing/t22/pest-final.txt`); E2E completo 774 tests en desktop/375/360: 772 passed, 2 skipped (condicionales de móvil de `pages.spec.ts`), 0 failed, 0 flaky, 1,5 h (`testing/t22/e2e-final-list.txt`); `qa-gate.py` sobre el JSON real: **VERDE**, exit 0 (`testing/t22/qa-gate-final.json`). Los dos rojos intermitentes de la pasada anterior (`security` E2E-03 y `studio-captions` mobile-360) coincidieron con agentes recompilando assets y cambiando código durante esa pasada; no se repitieron en la final. Auditoría global con Claude Code CLI: código (3 gaps: 2 Important, 1 Minor, más el endurecimiento de colaboradores, todos corregidos con test rojo previo; ver «Revisión de dos lentes — intento 1: Fase QA (T-22)») y documentación (corregida en T-23). Cero Critical/Important pendientes. Limitaciones externas: los smokes reales (LinkedIn, Pinterest, opciones de IG, IA OpenAI/Google, Canva, inbox de Threads/YouTube/Bluesky) siguen siendo del usuario y están en `docs/referencia/pendientes-manuales.md`.
 
 ### T-23 — Documentación, despliegue y entrega git
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-11-10
+- **Changelog**: Documentación al día con el código: módulos nuevos del estudio, IA, Canva, media por red, workflow y sitios; MCP con sus 57 herramientas y 15 abilities; OpenAPI de todo `/api/v1`; despliegue con seis colas y variables nuevas; y la PR #19 lista para revisión.
 - **Cubre (tests)**: M-01, M-02, M-03, M-04
 - **Verificación**: Enlaces/docs/ledger lint, diff limpio, commits y push de la rama y PR verificable; requisitos de servidor documentados. No cerrar despliegue por tener PR.
 - **Archivos**: `docs/**`, `CONTINUE-HERE.md`, `README.md`, `CHANGELOG*`, `.gitattributes`
 
 **Criterios de aceptación**
 
-- [ ] Guías web/API/MCP, dependencias/render/colas, commits, push y PR; no afirmar producción verificada sin sus pruebas.
-- [ ] Tras implementar el roadmap, ejecutar ClaudeCLI sobre aplicación completa y documentación, registrar hallazgos, verificar/corregir los confirmados y repetir las comprobaciones afectadas. No sustituirlo por revisión del último diff ni por ClaudeDesktop.
+- [x] Guías web/API/MCP, dependencias/render/colas, commits, push y PR; no afirmar producción verificada sin sus pruebas.
+- [x] Tras implementar el roadmap, ejecutar ClaudeCLI sobre aplicación completa y documentación, registrar hallazgos, verificar/corregir los confirmados y repetir las comprobaciones afectadas. No sustituirlo por revisión del último diff ni por ClaudeDesktop.
 
 **Evidencia parcial de documentación (2026-11-10, sin completar T-23)**: corregidos los hallazgos de la auditoría independiente de la documentación contra el código. `docs/modulos/mcp.md` (57 herramientas, 15 abilities y conjuntos predefinidos) y `estudio-api-mcp.md`; `docs/api/creative-suite.openapi.yaml` con las 38 rutas que faltaban (validado con `openapi-lint.py`, 0 errores); `despliegue.md`, `arquitectura.md`, `configuracion.md` y los `.env*.example`; `informes.md`, `inbox.md`, `conexiones.md`, `decisiones-por-red.md`, `pendientes-manuales.md` (CS-M-01..08, solo simulaciones) y README/índices; páginas nuevas de Estudio, IA del estudio, Canva, LinkedIn y Pinterest, media por destino, flujo de trabajo y Sitios. Código: descripciones de `inbox:*`, `studio` en `QUEUE_NAMES` y `RenderStudioDesign::$timeout` 110 s. CHANGELOG con parity-3 y creative-suite (composer-parity y presets-ui no tienen campos Changelog). Pest filtrado (Mcp, Queue, Health, Studio, Infra, Series, Approval) 1.105 tests en verde tras ajustar `InfraTest`; Pint y comprobador de enlaces sin hallazgos. Pendiente: commits (sin push), ClaudeCLI final y PR.
+
+**Cierre T-23 (2026-11-10)**: auditoría global con Claude Code CLI de la aplicación completa (código: revisor de contexto fresco sobre `main...HEAD`) y de la documentación (contraste con `route:list`, `app/Mcp/**`, `config/*.php`, 320 enlaces internos sin roturas). Hallazgos confirmados y corregidos: código en c51194f, 2fb1ce8, c2a3967, ad16062, 4729190 y la coherencia `count` 1-3 de `generate_studio_image`; documentación en 8ec60fd. Comprobaciones afectadas repetidas en la pasada final de T-22 (Pest 3572/9, E2E 772/0/2, qa-gate VERDE). `CONTINUE-HERE.md` reescrito con el estado real. Rama subida y PR [#19](https://github.com/daycry/social-scheduler/pull/19) actualizada y marcada lista para revisión (apilada sobre #18; el merge es del usuario). No se afirma producción verificada: los smokes reales CS-M-01..08 y el despliegue con el worker `studio` siguen pendientes del usuario.
 
 ## Revisión de dos lentes — intento 1: métricas (T-03) — un gap Important confirmado
 

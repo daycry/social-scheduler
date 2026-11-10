@@ -5,7 +5,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
-### Added — iniciativa `creative-social-suite` (2026-11-03, en curso)
+### Added — iniciativa `creative-social-suite` (2026-11-03)
 
 - **T-01 — Inventario y evidencia de referencia** El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.
 - **T-02 — Contratos y arquitectura UI/API/MCP** Define los contratos versionados del documento y API con propiedad, revisiones y estados de exportación compartidos.
@@ -28,6 +28,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - **T-19 — Aprobaciones, publicación manual, recurrencia y lotes** Las publicaciones pueden pedir aprobación (aprobar o rechazar con comentario, por el propietario o por aprobadores invitados), tener destinos de publicación manual con aviso y marcado, repetirse en series diaria, semanal o mensual, gestionarse en lote con resultado por elemento y reintentarse sin duplicar, desde la web, la API y el MCP.
 - **T-20 — Inbox, competidores y SmartLinks ampliados** El inbox lee y responde comentarios de Threads, Bluesky y YouTube además de Instagram y Facebook, con filtros, etiquetas, asignación, cierre, lotes y respuestas guardadas; los competidores se comparan por rango con ranking, publicaciones destacadas y CSV; y los SmartLinks admiten imagen, video de YouTube, separador, iconos sociales, formulario de email, posts recientes, visibilidad programada y clics por bloque.
 - **T-21 — Ads e informes coherentes con la marca** Ads usa siempre la cuenta, la caché y los filtros de la marca elegida; los informes tienen un constructor con bloques ordenables (KPIs por red, evolución, publicaciones destacadas, competidores, Ads y notas), plantillas por marca, vista previa, PDF descargable y envío programado semanal o mensual por email.
+- **T-22 — QA integral y revisión independiente** Pest, tests de frontend y E2E en escritorio y dos móviles con accesibilidad, más una auditoría global independiente de código y documentación con sus hallazgos corregidos (baja de informes, fallos de series, N+1 de aprobaciones y permiso de colaboradores).
+- **T-23 — Documentación, despliegue y entrega git** Documentación al día con el código: módulos nuevos del estudio, IA, Canva, media por red, workflow y sitios; MCP con 57 herramientas y 15 abilities; OpenAPI de todo `/api/v1`; despliegue con seis colas y las variables nuevas.
 
 ### Added — iniciativa `metricool-parity-3` (2026-10-26)
 

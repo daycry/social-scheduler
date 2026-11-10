@@ -771,6 +771,33 @@ Verificación: Pest completo **3325 tests, 3316 pass, 9 skip, 21190 aserciones**
 
 Durante la pasada completa se actualizó además `studio-collab.spec.ts` al aviso del commit `948660e`.
 
+**Matriz QA integral 2026-11-10** (evidencia en `testing/t22/`; T-22 sigue `en-progreso`: la revisión independiente global y el cierre no son de esta pasada).
+
+| Capa | Resultado | Evidencia |
+|---|---|---|
+| Pest completo (`php artisan test --compact`) | 3575 tests: 3566 passed, 9 skipped, 22 710 aserciones, 386 s | `pest.txt` |
+| Node (`node --expose-gc --test --experimental-test-isolation=none tests/frontend/*.test.mjs`; no existe `npm test`) | 651/651. Sin `--expose-gc` falla 1 (G5 lifecycle exige la bandera: error de invocación, no defecto) | `node.txt` |
+| E2E completo, desktop | 255 passed, 2 failed, 1 skipped | `e2e-full.txt`, `e2e-full-summary.json` |
+| E2E completo, mobile (375) | 254 passed, 2 failed, 2 skipped | idem |
+| E2E completo, mobile-360 | 254 passed, 2 failed, 2 skipped | idem |
+| `qa-gate.py` sobre el JSON real de la pasada completa (774 tests, 1,8 h) | NO-VERDE (763 passed, 6 failed, 5 skipped, 0 flaky), exit 1 | `qa-gate-full.json` |
+| Repetición de los 3 ficheros afectados (`gif-picker`, `security`, `studio-captions`, 3 proyectos) | 42/42, `qa-gate` VERDE exit 0 | `e2e-rerun.txt`, `qa-gate-rerun.json` |
+| Accesibilidad (axe) | Incluida en los E2E (`a11y.spec.ts`, dashboards, diálogos, GIF picker); sin violaciones abiertas en la pasada | `e2e-full.txt` |
+| Rendimiento | Sin presupuesto propio en esta pasada; solo duraciones de Pest/E2E arriba | n/a |
+| `ledger-lint.py` | 0 incoherencias, 3 avisos (tamaño del ledger y Changelog de T-22/T-23) | salida local |
+
+Skipped (5, todos esperados): 3 del segundo caso de `gif-picker` E2E-09 (serial, depende del primero que falló) y 2 condicionales de móvil en `pages.spec.ts`.
+
+| Rojo de la pasada completa | Causa raíz | Corrección | Resultado |
+|---|---|---|---|
+| `gif-picker` E2E-09 x3 | Violación de modo estricto: `getByText('1. giphy-gato1.mp4')` resuelve ahora 2 nodos (lista de `MediaSection` y `PreviewPanel` `preview-media-item`). La app funciona; el selector era ambiguo. | `tests/e2e/gif-picker.spec.ts:145` usa `.first()` | 3/3 en verde, y su segundo caso ya no queda sin ejecutar |
+| `security` E2E-03 (desktop, mobile) | Intermitente bajo carga: el `expect.poll` de `submitChallenge` (`security.spec.ts:42`, 10 s) no vio vaciarse el campo durante la pasada larga; en mobile-360 de la misma pasada y en la repetición pasa 3/3. No se probó una causa de app. | Ninguna | Pasa en aislamiento 3/3; vigilar |
+| `studio-captions` render (mobile-360) | Export en estado `failed` en una sola ejecución de la pasada larga (`studio-captions.spec.ts:186`); desktop y mobile de la misma pasada pasan y la repetición pasa 3/3. Causa de fondo no determinada (sin traza de servidor conservada); se trata como intermitente del entorno. | Ninguna | Pasa en aislamiento 3/3; vigilar |
+
+No hay `fixme`. No se ha repetido la pasada completa tras las correcciones (1,8 h): el veredicto global de `qa-gate` sobre una sola pasada es NO-VERDE y la verde corresponde a la repetición dirigida.
+
+**Limitaciones externas (no verificadas, del usuario):** smokes reales de LinkedIn, Pinterest, Instagram, OpenAI y Google AI, Canva, y bandeja de entrada de Threads y YouTube. Todo lo anterior se ha ejecutado contra servidor desechable, proveedores simulados y sin red externa, Docker, workers, scheduler ni ngrok.
+
 ### T-23 — Documentación, despliegue y entrega git
 - **Estado**: en-progreso
 - **Cubre (tests)**: M-01, M-02, M-03, M-04

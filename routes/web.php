@@ -173,7 +173,11 @@ require __DIR__.'/auth.php';
 
 // Descarga de informes SOLO con firma (T-42 / Fase 9): sin sesion, para que la use tambien un agente MCP. La firma
 // (5 min) cubre el id del informe y su dueno; el controlador comprueba que coinciden, que el informe esta `ready` y audita.
-Route::match(['get', 'post'], 'report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'unsubscribe'])
+// Baja de informes programados: el GET solo confirma (sin efectos); el POST firmado (RFC 8058 one-click) da de baja y
+// esta fuera de CSRF en bootstrap/app.php. Misma URL firmada para ambos.
+Route::get('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'confirmUnsubscribe'])
+    ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe.confirm');
+Route::post('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'unsubscribe'])
     ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe');
 Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
     ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');

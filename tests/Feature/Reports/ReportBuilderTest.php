@@ -15,6 +15,9 @@ use App\Models\User;
 use App\Services\CompetitorService;
 use App\Services\Reports\ReportBlocks;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -326,12 +329,45 @@ it('Mail programado: Reply-To del propietario, baja de un clic firmada y texto d
 
     $url = URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'a@example.com']);
     $this->get($url.'x')->assertForbidden();
-    $this->get(route('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'a@example.com']))->assertForbidden(); // sin firma
+    $this->get(route('report-schedules.unsubscribe.confirm', ['schedule' => $s->id, 'email' => 'a@example.com']))->assertForbidden(); // sin firma
+    $this->post($url.'x')->assertForbidden();
     $this->post($url)->assertOk();
     expect($s->fresh()->recipients)->toBe(['b@example.com'])->and($s->fresh()->active)->toBeTrue();
 
-    $this->get(URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'b@example.com']))->assertOk();
+    $this->post(URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'b@example.com']))->assertOk();
     expect($s->fresh()->recipients)->toBe([])->and($s->fresh()->active)->toBeFalse();
+});
+
+it('Baja programada: el GET firmado solo confirma (los escaneres de correo no dan de baja) y el boton hace POST', function () {
+    Mail::fake();
+    [$s] = sentSchedule();
+    $url = URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $s->id, 'email' => 'a@example.com']);
+
+    $this->get($url)->assertOk()->assertSee('a@example.com')->assertSee('method="POST"', false)->assertSee('action="'.e($url).'"', false);
+    $this->get($url)->assertOk();
+    expect($s->fresh()->recipients)->toBe(['a@example.com', 'b@example.com']);
+
+    $this->post($url)->assertOk()->assertSee('Ya no recibirás');
+    expect($s->fresh()->recipients)->toBe(['b@example.com']);
+});
+
+it('Baja programada: el POST one-click de RFC 8058 no pasa por CSRF y el resto de POST si', function () {
+    $csrf = new class(app(), app('encrypter')) extends PreventRequestForgery
+    {
+        protected function runningUnitTests()
+        {
+            return false; // en tests el middleware se salta solo; aqui se fuerza
+        }
+    };
+    $run = function (string $path) use ($csrf) {
+        $request = Request::create($path, 'POST', ['List-Unsubscribe' => 'One-Click']);
+        $request->setLaravelSession(app('session.store'));
+
+        return $csrf->handle($request, fn () => response('ok'));
+    };
+
+    expect($run('/report-schedules/5/unsubscribe')->getContent())->toBe('ok');
+    expect(fn () => $run('/report-schedules'))->toThrow(TokenMismatchException::class);
 });
 
 it('Mail programado: el cupo diario se reserva antes de generar y se libera si el PDF falla o no cabe', function () {

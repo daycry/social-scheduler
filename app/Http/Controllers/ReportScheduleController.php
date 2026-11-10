@@ -7,7 +7,7 @@ use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\Response as HttpResponse;
 
 /** Informes programados (T-21): PDF semanal o mensual por email. Aislados por usuario; la plantilla debe ser de la misma marca. */
 class ReportScheduleController extends Controller
@@ -81,8 +81,16 @@ class ReportScheduleController extends Controller
         return to_route('reports.index', ['brand_id' => $brandId])->with('success', 'Programacion eliminada.');
     }
 
-    /** Baja con enlace firmado (sin sesion): quita a ESE destinatario de ESA programacion; si no queda ninguno, la pausa. Idempotente. */
-    public function unsubscribe(Request $request, int $schedule): Response
+    /** Pagina de confirmacion de la baja (GET firmado): sin efectos secundarios, para que escaneres y prefetchers de correo no den de baja a nadie. */
+    public function confirmUnsubscribe(Request $request, int $schedule): HttpResponse
+    {
+        return response()->view('reports.unsubscribe', [
+            'done' => false, 'email' => mb_strtolower(trim((string) $request->query('email'))), 'action' => $request->fullUrl(),
+        ], 200, ['X-Robots-Tag' => 'noindex']);
+    }
+
+    /** Baja con enlace firmado (POST, sin sesion ni CSRF: RFC 8058 one-click; la firma protege): quita a ESE destinatario de ESA programacion; si no queda ninguno, la pausa. Idempotente. */
+    public function unsubscribe(Request $request, int $schedule): HttpResponse
     {
         $email = mb_strtolower(trim((string) $request->query('email')));
         $model = ReportSchedule::withoutUserScope()->find($schedule);
@@ -92,7 +100,7 @@ class ReportScheduleController extends Controller
             $model->update($left === [] ? ['recipients' => [], 'active' => false] : ['recipients' => $left]);
         }
 
-        return response('Listo: ya no recibirás este informe programado.', 200, ['Content-Type' => 'text/plain; charset=UTF-8', 'X-Content-Type-Options' => 'nosniff']);
+        return response()->view('reports.unsubscribe', ['done' => true, 'email' => $email, 'action' => ''], 200, ['X-Robots-Tag' => 'noindex']);
     }
 
     /**

@@ -102,13 +102,13 @@ class ApprovalService
     {
         $brands = $this->collab->approverBrandIds($user);
 
-        return Post::withoutUserScope()->where(fn ($q) => $q->where('user_id', $user->id)->when($brands !== [], fn ($q) => $q->orWhereIn('brand_id', $brands)));
+        return Post::withoutUserScope()->with(['brand', 'targets', 'media', 'user:id,name'])->where(fn ($q) => $q->where('user_id', $user->id)->when($brands !== [], fn ($q) => $q->orWhereIn('brand_id', $brands)));
     }
 
     /** @return array<string, mixed> */
     public function present(Post $post): array
     {
-        $post->loadMissing(['brand', 'targets', 'media']);
+        $post->loadMissing(['brand', 'targets', 'media', 'user:id,name']);
         $tz = $post->brand?->timezone ?: 'UTC';
 
         return [
@@ -120,7 +120,7 @@ class ApprovalService
             'approval_comment' => $post->approval_comment,
             // Version del contenido que se pide aprobar: aprobar o rechazar exige devolverla (CWE-367).
             'content_signature' => $post->approval_signature,
-            'requested_by' => (string) User::query()->whereKey($post->user_id)->value('name'),
+            'requested_by' => (string) $post->user?->name,
             'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),
             'networks' => $post->targets->map(fn ($t) => $t->network->label())->unique()->values()->all(),
             'media_count' => $post->media->count(),

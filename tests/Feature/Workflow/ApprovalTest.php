@@ -17,6 +17,7 @@ use App\Services\PublishOutcomes;
 use App\Services\PublishRequestFactory;
 use App\Services\SocialAccountService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -184,4 +185,29 @@ test('invitar es uniforme: la respuesta no distingue un email registrado de otro
         $last = $this->actingAs($this->owner)->postJson(route('workflow.collaborators.store', $this->brand->id), ['email' => "n$i@ejemplo.test"]);
     }
     expect($last->status())->toBe(429);
+});
+
+test('la cola de aprobaciones no hace mas consultas al crecer: marca, destinos, media y solicitante van en carga ansiosa', function () {
+    $queries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($this->approver)->getJson(route('workflow.approvals.pending'))->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+
+    foreach (range(1, 2) as $i) {
+        approvalPost(['requires_approval' => true]);
+    }
+    $few = $queries();
+
+    foreach (range(1, 6) as $i) {
+        approvalPost(['requires_approval' => true]);
+    }
+    $many = $queries();
+
+    expect($many)->toBe($few);
+    $this->actingAs($this->approver)->getJson(route('workflow.approvals.pending'))->assertJsonCount(8, 'pending')->assertJsonPath('pending.0.requested_by', $this->owner->name);
 });

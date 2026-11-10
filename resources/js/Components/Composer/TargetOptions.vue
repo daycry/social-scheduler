@@ -35,7 +35,8 @@ const hasOptions = (account) => {
     if (firstCommentMax.value[t.content_type] != null) return true; // primer comentario (C-01b)
     if (account.audio?.embedded_video_types?.includes(t.content_type)) return true;
     return t.content_type === 'instagram_reel' || t.content_type === 'facebook_text'
-        || account.network === 'youtube' || account.network === 'tiktok';
+        || account.network === 'youtube' || account.network === 'tiktok' || account.network === 'linkedin' || account.network === 'pinterest'
+        || ['instagram_image', 'instagram_carousel'].includes(t.content_type);
 };
 </script>
 
@@ -60,6 +61,44 @@ const hasOptions = (account) => {
                 <InputLabel :for="`fb-title-${account.id}`" value="Título de Facebook (opcional)" />
                 <input :id="`fb-title-${account.id}`" v-model="targetFor(account.id).options.facebook_title" :disabled="!editable" type="text" maxlength="255" class="field mt-1" @keydown.enter.prevent />
                 <p class="mt-1 text-xs text-slate-600">Título del vídeo o Reel, independiente del texto de la publicación.</p>
+            </div>
+            <!-- Instagram (T-18): ubicación por id de lugar de Facebook (la app no busca lugares). -->
+            <div v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)">
+                <InputLabel :for="`ig-location-${account.id}`" value="Id de ubicación (opcional)" />
+                <input :id="`ig-location-${account.id}`" v-model="targetFor(account.id).options.location_id" :disabled="!editable" type="text" inputmode="numeric" maxlength="20" pattern="[0-9]*" class="field mt-1" @keydown.enter.prevent />
+                <p class="mt-1 text-xs text-slate-600">Id numérico del lugar de Facebook. Las etiquetas de usuario con coordenadas se envían por la API o el MCP (<code>user_tags</code>).</p>
+            </div>
+            <div v-if="account.network === 'linkedin'" class="space-y-2">
+                <div>
+                    <InputLabel :for="`li-visibility-${account.id}`" value="Visibilidad" />
+                    <select :id="`li-visibility-${account.id}`" :value="targetFor(account.id).options.linkedin_visibility ?? 'PUBLIC'" :disabled="!editable" class="field mt-1 w-auto" @change="targetFor(account.id).options.linkedin_visibility = $event.target.value">
+                        <option value="PUBLIC">Público</option>
+                        <option v-if="account.linkedin?.visibilities?.includes('CONNECTIONS')" value="CONNECTIONS">Solo mis contactos</option>
+                    </select>
+                    <p v-if="account.linkedin?.kind === 'page'" class="mt-1 text-xs text-slate-600">Las páginas de empresa publican siempre en abierto.</p>
+                </div>
+                <label class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3">
+                    <span>Impedir que se comparta de nuevo</span>
+                    <input type="checkbox" class="composer-preset-toggle" :disabled="!editable" :checked="targetFor(account.id).options.linkedin_disable_reshare === true" @change="targetFor(account.id).options.linkedin_disable_reshare = $event.target.checked" />
+                </label>
+            </div>
+            <div v-if="account.network === 'pinterest'" class="space-y-2">
+                <div>
+                    <InputLabel :for="`pi-board-${account.id}`" value="Tablero (obligatorio)" />
+                    <select v-if="account.pinterest?.boards?.length" :id="`pi-board-${account.id}`" v-model="targetFor(account.id).options.pinterest_board_id" :disabled="!editable" class="field mt-1" required>
+                        <option value="" disabled>Elige un tablero</option>
+                        <option v-for="board in account.pinterest.boards" :key="board.id" :value="board.id">{{ board.name }}</option>
+                    </select>
+                    <input v-else :id="`pi-board-${account.id}`" v-model="targetFor(account.id).options.pinterest_board_id" :disabled="!editable" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="30" class="field mt-1" required @keydown.enter.prevent />
+                </div>
+                <div>
+                    <InputLabel :for="`pi-title-${account.id}`" value="Título del pin (por defecto, la primera línea del texto)" />
+                    <input :id="`pi-title-${account.id}`" v-model="targetFor(account.id).options.pinterest_title" :disabled="!editable" type="text" maxlength="100" class="field mt-1" @keydown.enter.prevent />
+                </div>
+                <div>
+                    <InputLabel :for="`pi-link-${account.id}`" value="Enlace de destino (opcional)" />
+                    <input :id="`pi-link-${account.id}`" v-model="targetFor(account.id).options.pinterest_link" :disabled="!editable" type="url" class="field mt-1" placeholder="https://" @keydown.enter.prevent />
+                </div>
             </div>
             <div v-if="account.network === 'youtube'" class="space-y-2">
                 <div>

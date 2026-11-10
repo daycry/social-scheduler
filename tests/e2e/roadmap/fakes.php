@@ -76,6 +76,10 @@ class T43Publisher implements Publisher
                 'id' => $m->id, 'alt' => $m->alt, 'cover_id' => $m->cover?->id,
                 'sha1' => $m->disk !== null && $m->path !== null ? sha1((string) Storage::disk($m->disk)->get($m->path)) : null,
             ], $request->media);
+            // T-18: opciones y texto que recibe la red simulada, para comprobar el contrato por destino.
+            $state['records'][$id]['options'] = $request->options;
+            $state['records'][$id]['type'] = $request->type->value;
+            $state['records'][$id]['text'] = $request->text;
             if (str_contains((string) $request->text, 't43-timeout') && $state['calls'][$id] === 1) {
                 return 'timeout';
             }

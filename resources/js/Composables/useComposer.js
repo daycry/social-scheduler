@@ -144,6 +144,10 @@ export function useComposer(props) {
             if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('collaborators');
             if (account?.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(t.content_type)) keep.add('facebook_title');
             if (account?.network === 'youtube') ['category_id', 'tags'].forEach((k) => keep.add(k));
+            if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('location_id');
+            if (account?.network === 'instagram' && t.content_type === 'instagram_image') keep.add('user_tags');
+            if (account?.network === 'linkedin') ['linkedin_visibility', 'linkedin_disable_reshare'].forEach((k) => keep.add(k));
+            if (account?.network === 'pinterest') ['pinterest_board_id', 'pinterest_title', 'pinterest_link'].forEach((k) => keep.add(k));
             for (const key of MANAGED_KEYS) {
                 if (key in t.options && !keep.has(key)) delete t.options[key];
             }

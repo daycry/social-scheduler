@@ -82,7 +82,7 @@ function generalBootstrap(): Application
     }
     Http::preventStrayRequests();
     $registry = new ConnectorRegistry;
-    foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads]] as $provider => $networks) {
+    foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
         $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));
         foreach ($networks as $network) {
             $registry->registerPublisher($network, new T43Publisher($root));

@@ -16,12 +16,13 @@ class ManageBrandCollaborators extends SchedulerTool
 {
     protected function ability(): string
     {
-        return Abilities::POSTS_WRITE;
+        return Abilities::POSTS_APPROVE;
     }
 
     protected function abilityFor(Request $request): string
     {
-        return in_array($request->get('action'), ['list'], true) ? Abilities::POSTS_READ : Abilities::POSTS_WRITE;
+        // Invitar o retirar aprobadores concede o quita el acceso a posts pendientes de la marca: exige posts:approve, no basta posts:write.
+        return in_array($request->get('action'), ['list'], true) ? Abilities::POSTS_READ : Abilities::POSTS_APPROVE;
     }
 
     protected function resource(): ?string

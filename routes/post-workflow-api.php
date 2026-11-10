@@ -17,6 +17,9 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
     Route::middleware(RequireApiAbility::class.':posts:approve')->group(function () {
         Route::post('posts/{post}/approval/approve', [PostWorkflowController::class, 'approve'])->whereNumber('post')->name('approval.approve');
         Route::post('posts/{post}/approval/reject', [PostWorkflowController::class, 'reject'])->whereNumber('post')->name('approval.reject');
+        // Invitar o retirar aprobadores decide quien ve y decide los pendientes de la marca: posts:approve, no basta posts:write.
+        Route::post('brands/{brand}/collaborators', [PostWorkflowController::class, 'invite'])->whereNumber('brand')->middleware('throttle:brand-collaborators')->name('collaborators.store');
+        Route::delete('brands/{brand}/collaborators/{collaborator}', [PostWorkflowController::class, 'revoke'])->whereNumber(['brand', 'collaborator'])->name('collaborators.destroy');
     });
     Route::middleware(RequireApiAbility::class.':posts:write')->group(function () {
         Route::post('posts/{post}/approval/request', [PostWorkflowController::class, 'requestApproval'])->whereNumber('post')->name('approval.request');
@@ -26,7 +29,5 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
         Route::post('series', [PostWorkflowController::class, 'seriesStore'])->middleware('throttle:30,1')->name('series.store');
         Route::patch('series/{series}', [PostWorkflowController::class, 'seriesUpdate'])->whereNumber('series')->name('series.update');
         Route::delete('series/{series}', [PostWorkflowController::class, 'seriesCancel'])->whereNumber('series')->name('series.cancel');
-        Route::post('brands/{brand}/collaborators', [PostWorkflowController::class, 'invite'])->whereNumber('brand')->middleware('throttle:brand-collaborators')->name('collaborators.store');
-        Route::delete('brands/{brand}/collaborators/{collaborator}', [PostWorkflowController::class, 'revoke'])->whereNumber(['brand', 'collaborator'])->name('collaborators.destroy');
     });
 });

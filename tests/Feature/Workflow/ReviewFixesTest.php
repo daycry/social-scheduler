@@ -157,3 +157,25 @@ test('6. starts_on no puede estar mas de un anio en el pasado y una serie antigu
     expect($dates[0])->toBeGreaterThanOrEqual('2026-11-02')->and(end($dates))->toBe('2026-11-12');
     expect(PostSeries::withoutUserScope()->count())->toBe(1);
 });
+
+test('invitar o retirar aprobadores por API y MCP exige posts:approve; posts:write no basta y listar sigue con posts:read', function () {
+    $write = $this->owner->createToken('w', ['posts:write', 'posts:read'])->plainTextToken;
+    $approve = $this->owner->createToken('a', ['posts:approve', 'posts:read'])->plainTextToken;
+    $url = "/api/v1/brands/{$this->brand->id}/collaborators";
+
+    app('auth')->forgetGuards();
+    $this->withToken($write)->postJson($url, ['email' => 'nuevo@ejemplo.test'])->assertForbidden();
+    app('auth')->forgetGuards();
+    $this->withToken($write)->deleteJson("$url/1")->assertForbidden();
+    [$denied] = $this->callTool($write, 'manage_brand_collaborators', ['action' => 'invite', 'brand_id' => $this->brand->id, 'email' => 'nuevo@ejemplo.test']);
+    [$deniedRevoke] = $this->callTool($write, 'manage_brand_collaborators', ['action' => 'revoke', 'brand_id' => $this->brand->id, 'collaborator_id' => 1]);
+    [$list] = $this->callTool($write, 'manage_brand_collaborators', ['action' => 'list', 'brand_id' => $this->brand->id]);
+    app('auth')->forgetGuards();
+    $this->withToken($write)->getJson($url)->assertOk();
+    expect([$denied, $deniedRevoke, $list])->toBe([true, true, false]);
+
+    app('auth')->forgetGuards();
+    $this->withToken($approve)->postJson($url, ['email' => 'nuevo@ejemplo.test'])->assertStatus(202);
+    [$ok] = $this->callTool($approve, 'manage_brand_collaborators', ['action' => 'invite', 'brand_id' => $this->brand->id, 'email' => 'otro@ejemplo.test']);
+    expect($ok)->toBeFalse();
+});

@@ -148,6 +148,13 @@ return [
         'api_version' => env('LINKEDIN_API_VERSION', '202511'),
         'scopes' => ['openid', 'profile', 'w_member_social'],
         'page_scopes' => ['w_organization_social', 'r_organization_social', 'rw_organization_admin'],
+        // Community Management API (paginas): LinkedIn la aprueba aparte. Sin ella (por defecto) solo se pide el perfil y no se listan paginas.
+        'community_management' => (bool) env('LINKEDIN_COMMUNITY_MANAGEMENT', false),
+        // `r_member_social` (leer publicaciones/comentarios del perfil): LinkedIn solo lo da a apps aprobadas. Sin el no hay busqueda de
+        // idempotencia ni primer comentario en perfiles personales.
+        'member_read' => (bool) env('LINKEDIN_R_MEMBER_SOCIAL', false),
+        // Dias de antelacion con que la UI avisa «reconecta antes de» en cuentas cuyo token no se puede renovar.
+        'reconnect_notice_days' => (int) env('LINKEDIN_RECONNECT_NOTICE_DAYS', 7),
         'text_max' => 3000,
         'image_max_bytes' => 36152320,
         'video_max_bytes' => 500 * 1024 * 1024,

@@ -124,6 +124,9 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                         <span class="block text-slate-500">Requiere auditoría aprobada de TikTok. Desactivado: los vídeos se envían como borrador a tu bandeja y los terminas de publicar en la app.</span>
                                     </span>
                                 </label>
+                                <p v-if="a.reconnect_before && a.status === 'activa'" class="mt-1 text-xs text-amber-700" data-testid="reconnect-before" role="status">
+                                    Reconecta antes del {{ new Date(a.reconnect_before).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) }}: LinkedIn no permite renovar el acceso automáticamente. Mientras tanto sigue publicando.
+                                </p>
                                 <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
                                     Las publicaciones programadas se conservan, pero no se enviarán hasta que reconectes<template v-if="a.auth_kind === 'credentials'"> (pulsa «+ Conectar» con una app password nueva)</template>.
                                     <span v-if="a.last_error">({{ a.last_error }})</span>

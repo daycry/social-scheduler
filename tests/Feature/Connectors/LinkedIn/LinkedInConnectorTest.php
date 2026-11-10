@@ -6,6 +6,8 @@ use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\LinkedIn\LinkedInConnector;
 use App\Connectors\Network;
+use App\Jobs\RefreshSocialAccount;
+use App\Services\SocialAccountService;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\NewNetworksFake;
@@ -23,7 +25,8 @@ test('es un conector OAuth del proveedor linkedin, con su red y margen de renova
         ->and($this->connector->refreshMarginHours())->toBe(168);
 });
 
-test('la URL de autorizacion lleva el state, el redirect y los permisos de perfil y de paginas, sin secreto', function () {
+test('la URL de autorizacion con Community Management pide tambien los permisos de paginas, sin secreto', function () {
+    config(['social.linkedin.community_management' => true]);
     $url = $this->connector->authorizationUrl('STATE1', 'https://app.test/connections/linkedin/callback');
 
     expect($url)->toStartWith('https://www.linkedin.com/oauth/v2/authorization?')
@@ -34,6 +37,7 @@ test('la URL de autorizacion lleva el state, el redirect y los permisos de perfi
 });
 
 test('canjea el codigo y ofrece el perfil y las paginas que administra', function () {
+    config(['social.linkedin.community_management' => true]);
     Http::fake([
         'www.linkedin.com/oauth/v2/accessToken' => Http::response(['access_token' => 'LI-NEW', 'expires_in' => 5184000, 'scope' => 'openid,profile,w_member_social,w_organization_social']),
         'api.linkedin.com/v2/userinfo' => Http::response(['sub' => 'abc123', 'name' => 'Ana Lopez']),
@@ -98,4 +102,45 @@ test('sin credenciales de la app la red no se ofrece ni se registra el conector'
 
     expect(Network::LinkedIn->isAvailable())->toBeFalse()->and(Network::offered())->not->toContain(Network::LinkedIn)
         ->and(Network::availableValues())->not->toContain('linkedin');
+});
+
+test('por defecto (sin Community Management) solo se pide el perfil y no se listan paginas', function () {
+    $url = $this->connector->authorizationUrl('S1', 'https://app.test/cb');
+
+    expect($url)->toContain('w_member_social')->toContain('openid')->not->toContain('w_organization_social')->not->toContain('rw_organization_admin')->not->toContain('r_member_social');
+
+    Http::fake([
+        'www.linkedin.com/oauth/v2/accessToken' => Http::response(['access_token' => 'LI-NEW', 'expires_in' => 5184000]),
+        'api.linkedin.com/v2/userinfo' => Http::response(['sub' => 'abc123', 'name' => 'Ana Lopez']),
+    ]);
+    expect($this->connector->exchangeCode('C', 'https://app.test/cb'))->toHaveCount(1);
+    Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'organizationAcls'));
+});
+
+test('r_member_social solo se pide si la app lo tiene configurado', function () {
+    config(['social.linkedin.member_read' => true]);
+
+    expect($this->connector->authorizationUrl('S1', 'https://app.test/cb'))->toContain('r_member_social');
+});
+
+test('sin refresh_token la cuenta no se adelanta: solo hay trabajo cuando el token ya caduco', function () {
+    $registry = app(ConnectorRegistry::class);
+    $soon = NewNetworksFake::linkedinAccount(['token_expires_at' => now()->addDays(3)]);
+    $expired = NewNetworksFake::linkedinAccount(['token_expires_at' => now()->subMinute()]);
+    $withRefresh = NewNetworksFake::linkedinAccount(['refresh_token' => 'R', 'token_expires_at' => now()->addDays(3)]);
+
+    expect($this->connector->refreshMarginHoursFor($soon))->toBe(0)->and($this->connector->refreshMarginHoursFor($withRefresh))->toBe(168)
+        ->and(RefreshSocialAccount::needsWork($soon, $registry))->toBeFalse()
+        ->and(RefreshSocialAccount::needsWork($expired, $registry))->toBeTrue()
+        ->and(RefreshSocialAccount::needsWork($withRefresh, $registry))->toBeTrue();
+});
+
+test('el job no marca requiere_reconexion una cuenta sin refresh_token con el token aun valido, y si al caducar', function () {
+    $soon = NewNetworksFake::linkedinAccount(['token_expires_at' => now()->addDays(3)]);
+    (new RefreshSocialAccount($soon->id))->handle(app(ConnectorRegistry::class), app(SocialAccountService::class));
+    expect($soon->fresh()->status)->toBe('activa');
+
+    $expired = NewNetworksFake::linkedinAccount(['token_expires_at' => now()->subMinute()]);
+    (new RefreshSocialAccount($expired->id))->handle(app(ConnectorRegistry::class), app(SocialAccountService::class));
+    expect($expired->fresh()->status)->toBe('requiere_reconexion');
 });

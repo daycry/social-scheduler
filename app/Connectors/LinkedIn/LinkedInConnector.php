@@ -3,6 +3,7 @@
 namespace App\Connectors\LinkedIn;
 
 use App\Connectors\Contracts\OAuthConnector;
+use App\Connectors\Contracts\PerAccountRefreshMargin;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ConnectorException;
@@ -18,7 +19,7 @@ use Carbon\CarbonImmutable;
  * programa de partner reciben `refresh_token`: sin el, la renovacion no es posible y se pide reconectar antes de que caduque.
  * `meta.author_urn` es el autor de las publicaciones (`urn:li:person:…` u `urn:li:organization:…`); `meta.kind` = profile | page.
  */
-class LinkedInConnector implements OAuthConnector
+class LinkedInConnector implements OAuthConnector, PerAccountRefreshMargin
 {
     /** Maximo de paginas que se ofrecen en una conexion. */
     private const MAX_PAGES = 20;
@@ -40,6 +41,25 @@ class LinkedInConnector implements OAuthConnector
         return (int) config('social.refresh_margin_hours.linkedin', 168);
     }
 
+    /**
+     * Sin `refresh_token` no hay forma de renovar: la cuenta sigue publicando hasta que el token caduque de verdad (o LinkedIn responda 401)
+     * y solo entonces se marca `requiere_reconexion`. La UI avisa «reconecta antes de» unos dias antes (`reconnect_notice_days`).
+     */
+    public function refreshMarginHoursFor(SocialAccount $account): int
+    {
+        return (string) $account->refresh_token === '' ? 0 : $this->refreshMarginHours();
+    }
+
+    /** Permisos que se piden: el perfil siempre; `r_member_social` solo si la app lo tiene; los de paginas solo con Community Management. */
+    public static function requestedScopes(): array
+    {
+        return array_values(array_merge(
+            (array) config('social.linkedin.scopes'),
+            config('social.linkedin.member_read') ? ['r_member_social'] : [],
+            config('social.linkedin.community_management') ? (array) config('social.linkedin.page_scopes') : [],
+        ));
+    }
+
     public function authorizationUrl(string $state, string $redirectUri, bool $rerequest = false): string
     {
         return rtrim((string) config('social.linkedin.auth_host'), '/').'/oauth/v2/authorization?'.http_build_query([
@@ -47,7 +67,7 @@ class LinkedInConnector implements OAuthConnector
             'client_id' => config('services.linkedin.client_id'),
             'redirect_uri' => $redirectUri,
             'state' => $state,
-            'scope' => implode(' ', array_merge((array) config('social.linkedin.scopes'), (array) config('social.linkedin.page_scopes'))),
+            'scope' => implode(' ', self::requestedScopes()),
         ], '', '&', PHP_QUERY_RFC3986);
     }
 
@@ -62,7 +82,7 @@ class LinkedInConnector implements OAuthConnector
         ]);
 
         $access = (string) $token['access_token'];
-        $scopes = array_values(array_filter(preg_split('/[\s,]+/', (string) ($token['scope'] ?? '')) ?: [])) ?: (array) config('social.linkedin.scopes');
+        $scopes = array_values(array_filter(preg_split('/[\s,]+/', (string) ($token['scope'] ?? '')) ?: [])) ?: self::requestedScopes();
         $common = [
             'accessToken' => $access,
             'refreshToken' => ! empty($token['refresh_token']) ? (string) $token['refresh_token'] : null,
@@ -95,7 +115,7 @@ class LinkedInConnector implements OAuthConnector
             refreshExpiresAt: $common['refreshExpiresAt'], scopes: $common['scopes'],
         )];
 
-        foreach ($this->pages($access) as $page) {
+        foreach (config('social.linkedin.community_management') ? $this->pages($access) : [] as $page) {
             $candidates[] = new ConnectionCandidate(
                 network: Network::LinkedIn,
                 externalId: 'org-'.$page['id'],

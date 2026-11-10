@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\PerAccountRefreshMargin;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Models\SocialAccount;
@@ -66,8 +67,10 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         }
 
         // Sin caducidad conocida (p. ej. token de Pagina de Meta) no hay nada que renovar.
-        return $account->token_expires_at !== null
-            && $account->token_expires_at->lte(now()->addHours($connectors->forNetwork($account->network)->refreshMarginHours()));
+        $connector = $connectors->forNetwork($account->network);
+        $margin = $connector instanceof PerAccountRefreshMargin ? $connector->refreshMarginHoursFor($account) : $connector->refreshMarginHours();
+
+        return $account->token_expires_at !== null && $account->token_expires_at->lte(now()->addHours($margin));
     }
 
     /** Motivo permanente conocido sin llamar a la red (acceso a datos / refresh token vencidos). */

@@ -56,7 +56,10 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
         <template #header>
             <div class="flex items-center justify-between">
                 <h1 class="text-xl font-bold text-slate-900">Conexiones · {{ brand.name }}</h1>
-                <Link :href="route('brands.show', brand.id)" class="link text-sm">Volver a la marca</Link>
+                <div class="flex items-center gap-4 text-sm">
+                    <Link :href="route('canva.index', brand.id)" class="link" data-testid="canva-link">Canva</Link>
+                    <Link :href="route('brands.show', brand.id)" class="link">Volver a la marca</Link>
+                </div>
             </div>
         </template>
 

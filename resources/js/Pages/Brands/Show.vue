@@ -20,6 +20,7 @@ defineProps({ brand: Object });
                 <div class="space-x-4">
                     <Link :href="route('brands.posts.create', brand.id)" class="link">Nueva publicación</Link>
                     <Link :href="route('brands.connections.index', brand.id)" class="link">Conexiones</Link>
+                    <Link :href="route('canva.index', brand.id)" class="link">Canva</Link>
                     <Link :href="route('brands.edit', brand.id)" class="link">Editar</Link>
                 </div>
             </div>

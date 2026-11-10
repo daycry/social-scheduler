@@ -4454,7 +4454,7 @@ Verificación del intento: `T20ReviewTest` 13/13; `php artisan test --compact` 3
 
 ## Revisión de dos lentes — intento 1: Fase 4 (T-18) — LinkedIn, Pinterest y opciones
 
-Corregido con las pruebas por delante de cada rama (los tests nuevos cubren cada rama; los de LinkedIn conector/publicador pasaron de 34 a 43, el contrato de opciones de 50 a 54). Sin red real: `Http::fake`.
+Corregido con tests escritos junto al código, sin RED previo registrado salvo en el punto 4 (los tests nuevos cubren cada rama; los de LinkedIn conector/publicador pasaron de 34 a 43, el contrato de opciones de 50 a 54). Sin red real: `Http::fake`.
 
 | # | Sev. | Hallazgo | Corrección | Evidencia |
 |---|---|---|---|---|

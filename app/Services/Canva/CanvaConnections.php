@@ -4,6 +4,7 @@ namespace App\Services\Canva;
 
 use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
+use App\Models\Canva\CanvaJob;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -80,8 +81,10 @@ class CanvaConnections
         $name = in_array('profile:read', $scopes, true) ? $this->safely(fn () => $this->client->profileName($token['access_token'])) : null;
         $capabilities = in_array('profile:read', $scopes, true) ? $this->safely(fn () => $this->client->capabilities($token['access_token'])) : null;
 
-        return DB::transaction(function () use ($user, $brand, $token, $scopes, $name, $capabilities): CanvaConnection {
+        $previous = null;
+        $saved = DB::transaction(function () use ($user, $brand, $token, $scopes, $name, $capabilities, &$previous): CanvaConnection {
             $connection = CanvaConnection::withoutUserScope()->where('brand_id', $brand->id)->first() ?? new CanvaConnection;
+            $previous = $connection->exists ? ($connection->refresh_token ?: $connection->access_token) : null;
             $connection->forceFill([
                 'user_id' => $user->id, 'brand_id' => $brand->id,
                 'access_token' => $token['access_token'], 'refresh_token' => $token['refresh_token'],
@@ -91,6 +94,21 @@ class CanvaConnections
 
             return $connection;
         });
+        // Los tokens anteriores dejan de servir (CWE-613): revocacion en best-effort, nunca impide conectar.
+        if ($previous !== null) {
+            $this->revokeQuietly($previous);
+        }
+
+        return $saved;
+    }
+
+    private function revokeQuietly(string $token): void
+    {
+        try {
+            $this->client->revoke($token);
+        } catch (\Throwable) {
+            // La revocacion remota es accesoria.
+        }
     }
 
     public function find(User $user, Brand $brand): ?CanvaConnection
@@ -104,11 +122,21 @@ class CanvaConnections
         if ($connection === null) {
             return false;
         }
-        $token = $connection->access_token;
-        $refresh = $connection->refresh_token;
-        $connection->delete();
-        if (CanvaClient::configured()) {
-            $this->client->revoke($refresh ?: $token);
+        // Con el candado del refresco se relee la conexion: se revoca siempre el refresh token VIGENTE (CWE-613).
+        $revoke = Cache::lock('canva.refresh.'.$connection->id, 15)->block(10, function () use ($connection): ?string {
+            $current = CanvaConnection::withoutUserScope()->find($connection->id);
+            if ($current === null) {
+                return null;
+            }
+            $token = $current->refresh_token ?: $current->access_token;
+            $current->delete();
+
+            return $token;
+        });
+        CanvaJob::withoutUserScope()->where('brand_id', $brand->id)->whereIn('status', [CanvaJob::QUEUED, CanvaJob::PROCESSING])
+            ->update(['status' => CanvaJob::FAILED, 'error_code' => 'not_connected', 'error' => 'Canva se desconectó mientras se procesaba el trabajo.']);
+        if ($revoke !== null && CanvaClient::configured()) {
+            $this->revokeQuietly($revoke);
         }
 
         return true;

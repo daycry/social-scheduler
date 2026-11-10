@@ -10,6 +10,7 @@ use App\Models\Canva\CanvaJob;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\MediaUploadService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -28,6 +29,9 @@ class CanvaJobs
 
     /** Estado intermedio: Canva ya exporto y las descargas a la biblioteca estan en curso. */
     public const IMPORTING = 'importing';
+
+    /** Motivos de CanvaException que se pueden reintentar sin dar el trabajo por perdido. */
+    public const TRANSIENT = ['unreachable', 'unavailable', 'rate_limited'];
 
     private const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 
@@ -96,6 +100,12 @@ class CanvaJobs
      */
     public function process(int $jobId): bool
     {
+        // Un solo paso a la vez por trabajo: un reintento o un duplicado no crea dos veces el job remoto ni los recursos.
+        return Cache::lock('canva.job.'.$jobId, 120)->block(5, fn () => $this->step($jobId));
+    }
+
+    private function step(int $jobId): bool
+    {
         $job = CanvaJob::withoutUserScope()->find($jobId);
         if ($job === null || ! in_array($job->status, [CanvaJob::QUEUED, CanvaJob::PROCESSING], true)) {
             return false;
@@ -109,6 +119,11 @@ class CanvaJobs
             $token = $this->connections->accessToken($connection);
             $remote = $job->canva_job_id === null ? $this->begin($job, $token) : $this->poll($job, $token);
         } catch (CanvaException $e) {
+            // Red caida, 5xx o limite de Canva: transitorio, el job de cola reintenta con espera y el trabajo sigue vivo.
+            if (in_array($e->reason, self::TRANSIENT, true)) {
+                throw $e;
+            }
+
             return $this->fail($job, $e->reason, $e->getMessage());
         }
 
@@ -215,10 +230,21 @@ class CanvaJobs
             return false;
         }
 
-        $user = User::findOrFail($job->user_id);
+        $user = User::find($job->user_id);
+        if ($user === null) {
+            return $this->fail($job, 'not_connected', 'El usuario ya no existe.');
+        }
         $base = Str::limit(preg_replace('/[\\\\\/:*?"<>|\x00-\x1f]+/u', ' ', (string) ($job->title ?: 'Diseño de Canva')) ?? 'Diseño de Canva', 120, '');
-        $ids = [];
+        // Idempotente: lo creado en un intento anterior se reutiliza (y se persiste tras cada recurso) para no duplicar ni dejar huerfanos.
+        $ids = array_values((array) $job->output_media_ids);
         foreach ($urls as $i => $url) {
+            if (isset($ids[$i]) && ($existing = MediaAsset::withoutUserScope()->where('user_id', $job->user_id)->find($ids[$i])) !== null) {
+                if ($existing->status === MediaAsset::STATUS_PENDING) {
+                    dispatch(new ImportRemoteMedia($existing->id, $url)); // unico por recurso: no se duplica si ya estaba en cola
+                }
+
+                continue;
+            }
             try {
                 $name = trim($base).(count($urls) > 1 ? ' ('.($i + 1).')' : '').'.'.($job->format === 'jpg' ? 'jpg' : $job->format);
                 $asset = $this->uploads->beginImport($user, MediaAsset::SOURCE_CANVA, $this->stripQuery($url), $name);
@@ -227,7 +253,8 @@ class CanvaJobs
             }
             $asset->origin = ['provider' => 'canva', 'design_id' => $job->design_id, 'url' => CanvaDesigns::designLink((string) $job->design_id), 'title' => $job->title, 'job_id' => $job->id];
             $asset->save();
-            $ids[] = $asset->id;
+            $ids[$i] = $asset->id;
+            $job->forceFill(['output_media_ids' => $ids])->save();
             // `dispatch(new ...)`: la URL firmada de Canva viaja en el payload CIFRADO del job, no en argumentos variadicos.
             dispatch(new ImportRemoteMedia($asset->id, $url));
         }

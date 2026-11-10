@@ -157,9 +157,17 @@ class CanvaClient
             throw new CanvaException('No se pudo contactar con Canva. Inténtalo de nuevo en unos minutos.', 502, 'unreachable');
         }
         if (! $response->successful()) {
-            throw new CanvaException($response->status() >= 500
-                ? 'Canva no responde ahora mismo. Inténtalo de nuevo más tarde.'
-                : 'Canva ha rechazado la autorización. Vuelve a conectar la cuenta.', $response->status() >= 500 ? 502 : 401, 'token_rejected');
+            $status = $response->status();
+            // Solo un 400/401 con invalid_grant (o credenciales invalidas) caduca la conexion; 5xx, 429 y demas son transitorios y se reintentan.
+            if (in_array($status, [400, 401], true) && in_array((string) $response->json('error'), ['invalid_grant', 'invalid_client', 'unauthorized_client'], true)) {
+                throw new CanvaException('Canva ha rechazado la autorización. Vuelve a conectar la cuenta.', 401, 'token_rejected');
+            }
+
+            throw match (true) {
+                $status === 429 => new CanvaException('Canva está limitando las peticiones. Espera un minuto e inténtalo de nuevo.', 429, 'rate_limited'),
+                $status >= 500 => new CanvaException('Canva no responde ahora mismo. Inténtalo de nuevo más tarde.', 502, 'unavailable'),
+                default => new CanvaException('Canva no ha aceptado la autorización. Inténtalo de nuevo.', 422, 'token_error'),
+            };
         }
         $json = (array) $response->json();
         if (! is_string($json['access_token'] ?? null) || $json['access_token'] === '') {

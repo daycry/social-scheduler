@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Canva;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
-use App\Services\Canva\CanvaCapabilities;
-use App\Services\Canva\CanvaClient;
 use App\Services\Canva\CanvaConnections;
 use App\Services\Canva\CanvaDesigns;
 use App\Services\Canva\CanvaException;
+use App\Services\Canva\CanvaIntegration;
 use App\Services\Canva\CanvaJobs;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +28,7 @@ class CanvaController extends Controller
         private readonly CanvaConnections $connections,
         private readonly CanvaDesigns $designs,
         private readonly CanvaJobs $jobs,
+        private readonly CanvaIntegration $integration,
     ) {}
 
     public function index(Request $request, Brand $brand): InertiaResponse
@@ -175,30 +175,7 @@ class CanvaController extends Controller
     /** @return array<string, mixed> */
     private function state(Request $request, Brand $brand): array
     {
-        $configured = CanvaClient::configured();
-        $connection = $configured ? $this->connections->find($request->user(), $brand) : null;
-        $base = ['configured' => $configured, 'connected' => false, 'status' => $configured ? 'disconnected' : 'not_configured', 'name' => null, 'features' => [], 'capabilities_known' => false, 'formats' => [], 'jobs' => []];
-        if ($connection === null) {
-            return $base;
-        }
-        if ($connection->status !== 'active') {
-            return ['status' => 'expired', 'name' => $connection->display_name] + $base;
-        }
-        $caps = [];
-        $known = false;
-        try {
-            $caps = $this->connections->capabilities($connection);
-            $known = $connection->capabilities_at !== null;
-        } catch (CanvaException) {
-            // Sin capacidades conocidas las funciones de plan se ofrecen desactivadas; el resto sigue funcionando.
-        }
-
-        return [
-            'connected' => true, 'status' => 'active', 'name' => $connection->display_name, 'capabilities_known' => $known,
-            'features' => CanvaCapabilities::features($caps, array_values((array) $connection->scopes)),
-            'formats' => collect(CanvaDesigns::FORMATS)->map(fn ($f, $key) => ['key' => $key] + $f)->values()->all(),
-            'jobs' => array_map(fn ($j) => $this->jobs->present($j), $this->jobs->recent($request->user(), $brand)),
-        ] + $base;
+        return $this->integration->state($request->user(), $brand);
     }
 
     private function owned(Request $request, Brand $brand): void
@@ -208,18 +185,7 @@ class CanvaController extends Controller
 
     private function active(Request $request, Brand $brand): CanvaConnection
     {
-        if (! CanvaClient::configured()) {
-            throw new CanvaException('La integración con Canva no está configurada en esta instalación.', 404, 'not_configured');
-        }
-        $connection = $this->connections->find($request->user(), $brand);
-        if ($connection === null) {
-            throw new CanvaException('Esta marca no está conectada a Canva.', 409, 'not_connected');
-        }
-        if ($connection->status !== 'active') {
-            throw new CanvaException('La conexión con Canva ha caducado. Vuelve a conectar la cuenta.', 401, 'unauthorized');
-        }
-
-        return $connection;
+        return $this->integration->active($request->user(), $brand);
     }
 
     private function guard(callable $call): JsonResponse

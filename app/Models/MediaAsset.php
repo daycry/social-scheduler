@@ -80,10 +80,31 @@ class MediaAsset extends Model
             ->contains(fn (PostTarget $t) => collect($t->media)->contains(fn ($m) => ($m['id'] ?? null) === $this->id || ($m['cover_id'] ?? null) === $this->id));
     }
 
-    /** ¿La usa alguna publicacion, por la media comun o por la propia de un destino? */
+    /**
+     * Media que una serie recurrente activa usa en su contenido (`post_series.payload`: media comun, y media y portada de cada destino): las
+     * ocurrencias futuras la necesitan aunque aun no existan como post. Comparacion en PHP por el mismo motivo que arriba.
+     */
+    public function usedBySeries(): bool
+    {
+        return PostSeries::withoutUserScope()->where('user_id', $this->user_id)->where('status', PostSeries::ACTIVE)->get(['id', 'payload'])
+            ->contains(function (PostSeries $s) {
+                $payload = (array) $s->payload;
+                $ids = array_map('intval', (array) ($payload['media'] ?? []));
+                foreach ((array) ($payload['targets'] ?? []) as $t) {
+                    foreach ((array) ($t['media'] ?? []) as $m) {
+                        $ids[] = (int) ($m['id'] ?? 0);
+                        $ids[] = (int) ($m['cover_id'] ?? 0);
+                    }
+                }
+
+                return in_array($this->id, $ids, true);
+            });
+    }
+
+    /** ¿La usa alguna publicacion (media comun o propia de un destino) o una serie recurrente activa? */
     public function usedByPosts(): bool
     {
-        return $this->posts()->exists() || $this->usedByTargetMedia();
+        return $this->posts()->exists() || $this->usedByTargetMedia() || $this->usedBySeries();
     }
 
     public function isVideo(): bool

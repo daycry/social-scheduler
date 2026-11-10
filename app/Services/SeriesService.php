@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\PostSeries;
 use App\Models\PostSeriesOccurrence;
 use App\Models\User;
+use App\Notifications\SeriesGenerationFailed;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
@@ -119,6 +120,7 @@ class SeriesService
         $horizon = $now->setTimezone($tz)->startOfDay()->addDays(self::HORIZON_DAYS);
 
         $created = 0;
+        $failure = null;
         foreach ($this->dates($series, $horizon) as $date) {
             $at = CarbonImmutable::parse($date.' '.$series->time_local, $tz);
             if ($at->utc()->lte($now)) {
@@ -139,12 +141,38 @@ class SeriesService
                 });
             } catch (QueryException) {
                 continue; // otra ejecucion la creo entre medias
-            } catch (PostValidationException) {
-                continue; // p. ej. cuenta desconectada: se reintenta en la siguiente pasada, sin duplicar
+            } catch (PostValidationException $e) {
+                // p. ej. cuenta desconectada: se reintenta en la siguiente pasada, sin duplicar. El fallo NO se traga: queda en la serie y se avisa.
+                $failure ??= $e->getMessage();
             }
         }
 
+        $this->recordOutcome($series, $brand, $user, $failure);
+
         return $created;
+    }
+
+    /**
+     * Deja el resultado de la pasada en la serie: el motivo del fallo (visible en la UI, la API y el MCP) o lo limpia si esta vez no hubo
+     * ninguno. Se avisa al usuario solo si el motivo es nuevo, para no repetir el aviso cada hora. Las fechas que pasan mientras la serie
+     * falla NO se recuperan: `generate()` salta las pasadas, asi que al arreglarse la causa la serie sigue desde la proxima fecha futura.
+     */
+    private function recordOutcome(PostSeries $series, Brand $brand, User $user, ?string $failure): void
+    {
+        if ($failure === null) {
+            if ($series->last_error !== null) {
+                $series->forceFill(['last_error' => null, 'last_error_at' => null])->save();
+            }
+
+            return;
+        }
+
+        $changed = $series->last_error !== $failure;
+        $series->forceFill(['last_error' => mb_substr($failure, 0, 1000), 'last_error_at' => now()])->save();
+
+        if ($changed) {
+            $user->notify(new SeriesGenerationFailed($series->id, $brand->id, (string) $brand->name, mb_substr($failure, 0, 300), (string) ($series->payload['text'] ?? '')));
+        }
     }
 
     /** Fechas locales (Y-m-d) de la serie hasta `$until`, respetando fin por fecha y por numero de veces. @return list<string> */
@@ -214,6 +242,8 @@ class SeriesService
             'ends_on' => $series->ends_on?->format('Y-m-d'),
             'max_occurrences' => $series->max_occurrences,
             'status' => $series->status,
+            'last_error' => $series->last_error,
+            'last_error_at' => $series->last_error_at?->toIso8601String(),
             'text' => $series->payload['text'] ?? null,
             'targets' => collect($series->payload['targets'] ?? [])->map(fn ($t) => Arr::only($t, ['account_id', 'content_type', 'manual']))->all(),
             'generated' => $rows->count(),

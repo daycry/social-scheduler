@@ -4,17 +4,20 @@ use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Jobs\GenerateSeriesOccurrences;
 use App\Models\Brand;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostSeries;
 use App\Models\PostSeriesOccurrence;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\SeriesGenerationFailed;
 use App\Services\PostService;
 use App\Services\SeriesService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
 // T-19 recurrencia: reglas diaria/semanal/mensual, fin por fecha o numero de veces, idempotencia por (serie, fecha) y zona de la marca.
@@ -149,4 +152,44 @@ test('semanal sin dias: usa el dia de la semana del inicio y la ocurrencia pasad
     $s = app(SeriesService::class)->create($this->user, $this->brand, seriesInput(['weekdays' => [], 'starts_on' => '2026-11-02', 'max_occurrences' => 3]));
 
     expect($s->weekdays)->toBe([1])->and(seriesDates($s))->toBe(['2026-11-16']); // 02 y 09 ya pasaron (cuentan); queda la 3.ª
+});
+
+test('una serie que falla al generar deja el motivo en la serie, avisa una sola vez y lo limpia al arreglarse', function () {
+    Notification::fake();
+    $series = app(SeriesService::class)->create($this->user, $this->brand, seriesInput(['frequency' => 'diaria', 'weekdays' => null, 'max_occurrences' => null]));
+    expect($series->last_error)->toBeNull();
+
+    $this->fb->delete(); // la cuenta destino desaparece
+    $later = CarbonImmutable::now('UTC')->addDays(10);
+    expect(app(SeriesService::class)->generate($series->fresh(), $later))->toBe(0);
+
+    $series = $series->fresh();
+    expect($series->status)->toBe(PostSeries::ACTIVE)->and($series->last_error)->not->toBeNull()->and($series->last_error_at)->not->toBeNull();
+    Notification::assertSentToTimes($this->user, SeriesGenerationFailed::class, 1);
+
+    app(SeriesService::class)->generate($series->fresh(), $later); // mismo motivo: no se repite el aviso
+    Notification::assertSentToTimes($this->user, SeriesGenerationFailed::class, 1);
+
+    $this->actingAs($this->user)->getJson(route('workflow.series.show', $series->id))->assertOk()->assertJsonPath('series.last_error', $series->last_error);
+
+    $this->fb = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
+    $s = $series->fresh();
+    $s->forceFill(['payload' => array_replace($s->payload, ['targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']]])])->save();
+    expect(app(SeriesService::class)->generate($s->fresh(), $later))->toBeGreaterThan(0)->and($s->fresh()->last_error)->toBeNull();
+});
+
+test('la media de una serie activa cuenta como en uso y la de una cancelada ya no', function () {
+    $media = MediaAsset::factory()->for($this->user)->create();
+    $cover = MediaAsset::factory()->for($this->user)->create();
+    $free = MediaAsset::factory()->for($this->user)->create();
+    expect($media->usedByPosts())->toBeFalse();
+
+    $series = PostSeries::withoutUserScope()->create([
+        'user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'frequency' => 'diaria', 'time_local' => '10:00', 'starts_on' => '2026-11-10', 'status' => PostSeries::ACTIVE,
+        'payload' => ['text' => 'x', 'media' => [$media->id], 'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text', 'media' => [['id' => $cover->id, 'cover_id' => $cover->id]]]]],
+    ]);
+
+    expect($media->usedByPosts())->toBeTrue()->and($cover->usedByPosts())->toBeTrue()->and($free->usedByPosts())->toBeFalse();
+    $series->forceFill(['status' => PostSeries::CANCELLED])->save();
+    expect($media->usedByPosts())->toBeFalse();
 });

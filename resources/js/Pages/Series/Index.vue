@@ -191,6 +191,9 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                             <span class="text-sm font-medium text-slate-900">{{ freq(s) }} a las {{ s.time_local }}</span>
                             <span class="text-xs text-slate-600">desde {{ s.starts_on }} · {{ ends(s) }} · {{ s.generated }} generadas</span>
                         </div>
+                        <p v-if="s.last_error" class="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-800" role="alert" :data-testid="`series-last-error-${s.id}`">
+                            No se han podido generar publicaciones: {{ s.last_error }} Las fechas que pasen mientras tanto no se recuperan; al corregirlo, la serie sigue desde la próxima fecha.
+                        </p>
                         <p class="mt-1 line-clamp-2 text-sm text-slate-800">{{ s.text || '(sin texto)' }}</p>
                         <ul class="mt-2 flex flex-wrap gap-1.5">
                             <li v-for="o in s.occurrences.slice(0, 12)" :key="o.date" class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs">

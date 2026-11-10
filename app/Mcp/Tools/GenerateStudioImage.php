@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('generate_studio_image')]
-#[Description('IA creativa del estudio (T-14). Requiere la ability studio:ai y consume la cuota diaria del proveedor. action=status lista los proveedores configurados (OpenAI Images, Google), sus operaciones y la cuota restante; si ninguno esta configurado no hay funcion de IA. action=start encola un trabajo asincrono: kind generate (prompt, aspect, style, count 1-4), edit (media_id propio + prompt + mask {x,y,width,height} en fracciones 0-1; solo proveedores con mascara), outpaint (media_id + aspect de destino) o variation (media_id). Admite idempotency_key. action=get consulta el trabajo por job_id: queued, processing, ready o failed con error_code y mensaje en español; en ready, output_assets son recursos nuevos de la marca (con proveedor, modelo y prompt). El original no se modifica. Nunca recibe claves ni URLs.')]
+#[Description('IA creativa del estudio (T-14). Requiere la ability studio:ai y consume la cuota diaria del proveedor. action=status lista los proveedores configurados (OpenAI Images, Google), sus operaciones y la cuota restante; si ninguno esta configurado no hay funcion de IA. action=start encola un trabajo asincrono: kind generate (prompt, aspect, style, count 1-3), edit (media_id propio + prompt + mask {x,y,width,height} en fracciones 0-1; solo proveedores con mascara), outpaint (media_id + aspect de destino) o variation (media_id). Admite idempotency_key. action=get consulta el trabajo por job_id: queued, processing, ready o failed con error_code y mensaje en español; en ready, output_assets son recursos nuevos de la marca (con proveedor, modelo y prompt). El original no se modifica. Nunca recibe claves ni URLs.')]
 class GenerateStudioImage extends SchedulerTool
 {
     protected function ability(): string
@@ -33,7 +33,7 @@ class GenerateStudioImage extends SchedulerTool
             'prompt' => $schema->string()->description('Descripcion (obligatoria en generate y edit)'),
             'aspect' => $schema->string()->enum(StudioAi::ASPECTS)->description('Proporcion; en outpaint, la de destino'),
             'style' => $schema->string()->enum(array_keys(StudioAi::STYLES)),
-            'count' => $schema->integer()->min(1)->max(4)->description('Variantes (1-4)'),
+            'count' => $schema->integer()->min(1)->max(3)->description('Variantes (1-3)'),
             'media_id' => $schema->integer()->min(1)->description('Imagen de esta marca (edit, outpaint, variation)'),
             'mask' => $schema->object()->description('Zona a editar {x,y,width,height} en fracciones 0-1 de la imagen'),
             'idempotency_key' => $schema->string()->description('8-64 caracteres [A-Za-z0-9_-]; repetir la peticion devuelve el mismo trabajo'),

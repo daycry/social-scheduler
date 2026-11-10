@@ -15,23 +15,32 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 
 | Fase | Completadas | Total | Progreso |
 |---|---:|---:|---:|
-| Fase 1 | 1 | 3 | 33 % |
+| Fase 1 | 3 | 3 | 100 % |
 | Fase 2 | 6 | 6 | 100 % |
 | Fase 3 | 5 | 7 | 71 % |
 | Fase 4 | 5 | 5 | 100 % |
 | Fase 5 | 0 | 2 | 0 % |
-| **Total** | **17** | **23** | **74 %** |
+| **Total** | **19** | **23** | **83 %** |
 
 ## Fase 1 — Investigación y consistencia
 
 ### T-01 — Inventario y evidencia de referencia
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-11-10
+- **Changelog**: El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.
 - **Archivos**: `docs/roadmap/2026-11-03-creative-social-suite/**`
-- **Verificación**: REA public Canva `ev_2837561e17e0c1d8f941b44c65501af862c5e255f6ae25ec79446deb3b38b632` observa barrera Cloudflare 403; no editor. Edge autenticado observado por UI Automation, separado de REA, sin modificar diseños. Inventario de repo por tres agentes de lectura. Fuentes oficiales en inventario.
+- **Verificación**: Cierre estándar 2026-11-10 (ver «Cierre T-01»): matrices M01-M22 y C01-C28 reescritas en `reference-inventory.md` con estado, tarea y evidencia; cada nombre de test/E2E citado comprobado en `tests/`; decisiones abiertas (X, GBP, Twitch) y M02 explícitas; `ledger-lint` exit 0.
 
 **Criterios de aceptación**
 
-- [ ] Matrices completas con evidencia, cobertura, límites y funciones premium identificadas.
+- [x] Matrices completas con evidencia, cobertura, límites y funciones premium identificadas.
+
+### Cierre T-01 — 2026-11-10 (método estándar)
+
+- **Cambio de método**: se sustituye lo que dependía de REA, UI Automation del Edge del usuario y «tres agentes de lectura» (evidencia del método antiguo, sin repetir) por el inventario de la documentación ya guardada (`docs/referencia/metricool-analisis-*.md`, fuentes oficiales y ledger) contrastado con el repositorio actual. No se usaron capturas ni datos de la sesión real de ninguna aplicación de referencia.
+- **Había**: inventario fechado 2026-11-03 con columnas «estado actual y brecha» sin evidencia por fila y casi todo lo posterior (T-13 a T-21) marcado «Pendiente».
+- **Hecho**: dos matrices (22 funciones sociales, 28 creativas) con **Estado** (Cubierta / Parcial / Fuera), **Tarea**, **Evidencia** (suite o E2E con su cifra de cierre) y **Límite**; los nombres de tests y specs citados existen en `tests/`. M02 queda **Parcial**: LinkedIn y Pinterest cubiertas por contrato; X, Google Business y Twitch **Fuera** y listadas en «Decisiones abiertas» como pendientes del usuario (más smokes reales, T-14 y T-16). Premium: C16 (PPTX), C24, C26 y C27 con su límite de licencia o proveedor.
+- **Premium identificado**: sin derechos sobre catálogos de pago de Canva; Autofill/Brand Templates y exportación según plan de la cuenta conectada (T-16, borrador).
 
 ### T-02 — Contratos y arquitectura UI/API/MCP
 - **Estado**: completado
@@ -44,16 +53,26 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 - [x] Contratos explícitos antes de endpoints; servicios compartidos.
 
 ### T-03 — Auditoría y corrección de métricas
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-11-10
+- **Changelog**: Las métricas de redes sin lector de analítica (LinkedIn y Pinterest) se muestran como no disponibles en lugar de «sin datos» permanente, y un contrato por red garantiza que lo desconocido es nulo, nunca cero.
 - **Cubre (tests)**: E2E-01, M-01
 - **Archivos**: `app/Analytics/**`, `app/Services/AnalyticsService.php`, `app/Services/AggregateAnalytics.php`, `app/Services/CampaignAnalytics.php`, `app/Connectors/**`, `app/Jobs/CollectAccountSnapshot.php`, `app/Jobs/RefreshPostMetrics.php`, `app/Jobs/BackfillMetrics.php`, `app/Jobs/CollectSnapshots.php`, `resources/js/Pages/Dashboard/**`, `resources/js/Components/KpiCard.vue`, `resources/js/Components/MetricQuality.vue`, `tests/**`
 - **Verificación**: RED/GREEN por defecto confirmado, contratos de proveedor, cobertura y frescura; contraste de lectura real cuando disponible, sin inventar métricas.
 
 **Criterios de aceptación**
 
-- [ ] Tasas, flujos/stocks, nulos, fechas, paginación y presentación auditados.
+- [x] Tasas, flujos/stocks, nulos, fechas, paginación y presentación auditados.
 - **Evidencia parcial**: RED 4/4 cálculos (`ced8e9`); GREEN correcciones 4/4. Cobertura RED 3/3 → GREEN 4/4, 107 aserciones. Regresión analytics 91/91, 532 aserciones (`f45c53`); web/MCP 26/26, 398. UI calidad RED 3/3 (`823aa4`) → GREEN 3/3 (`45d27d`). Informe de contraste real en `testing/metrics/audit-2026-11-03.md`; ningún write de snapshots reales. Revisión y QA local correctas; siguen abiertos el contraste integral por proveedor y la operación de recolección del VPS.
 - **RED:** `tests/Feature/Backfill/BackfillTest.php::a continuation across midnight keeps the original closed-day range` omitía `2026-10-27`: cuatro snapshots en lugar de los cinco solicitados cuando una continuación cruzaba medianoche · 2026-11-04 (`02bfb7`). GREEN `32f74c`: **33/33, 110 aserciones** de Backfill/Snapshots tras conservar `throughDate` al despachar continuaciones. La lectura del nuevo atributo tolera payloads antiguos sin él. Esta corrección no diagnostica ni modifica la cola del VPS; revisión independiente pendiente junto a T-09.
+
+### Cierre T-03 — 2026-11-10 (método estándar)
+
+- **Cambio de método**: lo que quedaba abierto («contraste integral por proveedor» y «paginación de todos los proveedores», que dependían de lecturas reales y de la operación del VPS) se sustituye por la verificación estándar: contratos de proveedor con `Http::fake` (nada de red real, sin BD real ni `.env`) y tests de cálculo. El contraste real de lectura (informe 2026-11-03) se conserva como histórico y no se repite; la operación del VPS no se certifica aquí.
+- **Inventario**: criterios de cálculo, nulos, cobertura/frescura, comparaciones y agregación entre marcas ya verificados (RED/GREEN y dos lentes arriba). Contratos por proveedor ya existentes: Meta `MetaInsightsTest` (usa `views`/`page_media_view`/`page_follows`, nunca `impressions`/`page_impressions`/`page_fans` según metricool.GOT-004; métrica rechazada = null; límites de uso = transitorio), Threads 20, Bluesky 10, TikTok 7, YouTube 7 (flujos sin filas = null; suscriptores ocultos = no disponibles; paginación y rangos ≤ 30 días en Meta/Facebook).
+- **Faltaba**: contrato transversal por red y comprobar que LinkedIn y Pinterest (T-18, sin lector) no se leen como «sin datos» eterno.
+- **RED**: `tests/Feature/Analytics/ProviderMetricsContractTest.php::networks without a metrics reader report unsupported and null, never zero` falla: `AnalyticsService::SUPPORTED` declaraba `followers` para `linkedin` y `pinterest`, pero ningún lector los recoge; la cobertura salía `no_data` (y «desactualizada» para siempre) en vez de `unsupported` · 2026-11-10. GREEN: `SUPPORTED` de ambas redes pasa a `[]`; 4/4 del fichero (80 aserciones) y `Analytics`+`Unit/Analytics`+`Dashboard`+`Mcp` 355/355 (2508 aserciones). Los otros tres tests del fichero (todas las redes declaran flujos sin métricas retiradas, delta con base 0 o nula, comparación de todas las marcas sin base cero falsa) pasaban ya: son guardas de regresión.
+- **Verificación final (2026-11-10)**: `vendor/bin/pest` 3472 tests, 3463 pass, 9 skip, 22022 aserciones (antes 3459/9; +4 del contrato nuevo); `vendor/bin/pint --test` passed; `npm run build` ok; Playwright `metrics-quality`, `all-brands` y `campaigns` (E2E-04/06/07) **12/12** en desktop, mobile y mobile-360 con el servidor propio (puerto 8080 libre antes); `ledger-lint` exit 0. Las comprobaciones contra proveedores reales y el VPS siguen siendo del usuario.
 
 ## Fase 2 — Estudio gráfico por marca
 

@@ -1,6 +1,7 @@
 # Inventario funcional de referencia y cobertura de la suite
 
-Fecha: 2026-11-03. Este inventario conserva el alcance completo solicitado y separa la existencia de código, las pruebas locales y los requisitos de proveedores externos. Las funciones pendientes continúan en el ledger; esta entrega no acredita paridad completa con Canva o Metricool.
+Actualizado: 2026-11-10 (método estándar). Cada función del inventario lleva su **estado** (Cubierta / Parcial / Fuera), la **tarea** que la cubre y la **evidencia** (test Pest, `node --test` o E2E Playwright). Cubierta significa «verificada con servicio real local y `Http::fake`»: el smoke contra el proveedor real lo ejecuta el usuario y no se da por hecho. Este inventario no usa capturas ni datos de la sesión real de ninguna aplicación de referencia: se apoya solo en la documentación ya guardada (`docs/referencia/metricool-analisis-*.md`, fuentes oficiales enlazadas y el ledger).
+
 
 ## Evidencia utilizada
 
@@ -14,69 +15,72 @@ Fecha: 2026-11-03. Este inventario conserva el alcance completo solicitado y sep
 
 El inventario de las funciones de pago se apoya en documentación oficial. La cuenta Canva Free no permite observar todos sus comportamientos premium; esos detalles conservan esa limitación. Las plantillas nativas del proyecto son originales y no se copian catálogos privados de las aplicaciones de referencia.
 
+
+Nota de método: la tabla anterior es evidencia **histórica ya guardada** (2026-11-03); no se ha vuelto a observar ninguna aplicación externa. Lo que dependía de aceptaciones del método antiguo (arneses nativos, presupuestos de 900 s) se sustituye por la verificación estándar de cada tarea, citada en la columna «Evidencia» de las matrices.
+
 ## Gestión social
 
-«Previa» significa capacidad existente con evidencia en los ledgers anteriores, que no se vuelve a atribuir a una ejecución de esta iniciativa. Web/API/MCP indica el canal disponible, no una garantía universal para todas las redes.
+Estado: **Cubierta** (implementada y verificada), **Parcial** (con límite declarado) o **Fuera** (sin implementar, con motivo). Los números son los del cierre de cada tarea en el [ledger](tasks.md). «Previa» = capacidad anterior a esta iniciativa, con suites propias que siguen verdes (Pest completo 3459 pass, 9 skip, 2026-11-10).
 
-| ID | Capacidad | Estado actual y brecha concreta | Canales | Tarea |
-|---|---|---|---|---|
-| M01 | Marcas y conexiones | Previa: marcas con zona horaria y propiedad; seis redes implementadas. Smokes reales de Bluesky/Threads siguen pendientes del usuario. | Web/MCP | T-18 |
-| M02 | X/Twitter, LinkedIn, Pinterest, Google Business y Twitch | Pendientes como conectores completos. Mantener autorización, scopes, publicación y métricas de cada proveedor por separado. | Pendiente | T-18 |
-| M03 | Compositor global y presets por destino | Previa: texto, medios, ajustes globales y por cuenta; colaboradores/IA Instagram y título Facebook incorporados en iniciativa anterior. | Web/MCP | T-17/18 |
-| M04 | Música en publicaciones | Previa: búsqueda paginada y selección cuando el contrato de la red admite audio; archivos con audio ya mezclado usan el flujo multimedia. No equivale a disponer de todos los catálogos para cualquier cuenta/red. | Web/MCP | T-18 |
-| M05 | Medios diferentes por destino | Pendiente: el formulario actual comparte la lista de media. Se necesita persistencia, validación y publicación con overrides reales. | Pendiente | T-17 |
-| M06 | Preview por red | Parcial: previews actuales; falta fidelidad por formato y opciones de cada destino. | Web | T-17 |
-| M07 | Portadas, alt, localización y etiquetado | Parcial por conector. Inventariar campos por red/formato antes de anunciarlos como universales. | Parcial | T-18 |
-| M08 | Calendario/lista/mejores horas | Previa: vistas, creación, reprogramación y recomendaciones con datos disponibles. | Web/MCP | T-19 |
-| M09 | Aprobación y roles | Pendiente: propietario único no constituye un flujo de aprobación de equipo. | Pendiente | T-13/19 |
-| M10 | Publicación manual y notificaciones | Pendiente: estados, avisos y confirmación del usuario para formatos no publicables automáticamente. | Pendiente | T-19 |
-| M11 | Recurrencia, autolistas y lotes | Parcial: autolistas/CSV existentes; faltan recurrencias y automatización integral con idempotencia. | Parcial | T-19 |
-| M12 | Biblioteca, textos, hashtags y notas | Previa: reutilización de contenidos y media por usuario; Studio añade pertenencia explícita de recursos a una marca. | Web/MCP | T-09/17 |
-| M13 | Analítica de cuentas | Correcciones nuevas: pares de engagement, selección YouTube, comparación compatible, cobertura/frescura y avisos UI. Recolección operativa local presenta brecha; VPS sin comprobar. | Web/API/MCP | T-03 |
-| M14 | Analítica de publicaciones | Previa con límites: publicaciones propias y presupuesto de lectura reciente, no todo el universo nativo. Ampliar importación histórica y cobertura por proveedor. | Web/MCP | T-03 |
-| M15 | Analítica de todas las marcas/campañas | Previa más corrección de engagement de campañas y calidad de comparación; conservar el aislamiento de propietario. | Web/API/MCP | T-03 |
-| M16 | Competidores | Parcial: cobertura actual centrada en Instagram. Pendiente ampliar proveedores y comparaciones compatibles. | Web/MCP parcial | T-20 |
-| M17 | Inbox | Parcial: comentarios Facebook/Instagram. DMs y acciones adicionales requieren contratos/scopes de proveedor; no se simulan conversaciones. | Web/MCP parcial | T-20 |
-| M18 | Informes y distribución | Previa: PDF/CSV por marca. Pendientes constructor avanzado, plantillas y distribución ampliada. Revisar selección de marca actual. | Web/MCP | T-21 |
-| M19 | Ads | Parcial: lectura Meta; origen/caché deben respetar marca. Gestión de campañas y Google/TikTok Ads no implementadas. | Web | T-21 |
-| M20 | SmartLinks | Parcial: módulo existente. Pendientes bloques enriquecidos, profundidad de editor y automatización. | Web | T-20 |
-| M21 | Equipos/clientes y permisos | Pendiente: roles y pertenencia real, invitaciones y aislamiento verificable de colaboradores. | Pendiente | T-13 |
-| M22 | Integraciones/API/MCP | MCP previo 27 herramientas; esta iniciativa añade nueve del estudio y API v1 compartida. No confundir esta cobertura con todas las funciones de los dos productos. | Web/API/MCP | T-08 |
+| ID | Capacidad | Estado | Tarea | Evidencia | Límite o brecha |
+|---|---|---|---|---|---|
+| M01 | Marcas y conexiones | Cubierta | T-18 | `RefreshTokens`/`SocialAccount`/OAuth/Connection 262/262; `NewNetworksOAuthFlow` 3; E2E `oauth.spec.ts` | Smokes reales de Bluesky, Threads, LinkedIn y Pinterest pendientes del usuario. |
+| M02 | X/Twitter, LinkedIn, Pinterest, Google Business y Twitch | **Parcial** | T-18 | LinkedIn: `LinkedInConnectorTest` 8 + `LinkedInPublisherTest` 26; Pinterest: `PinterestConnectorTest` 19; `AdvancedOptionsContractTest` 50/50 (web, API, MCP); E2E `linkedin-pinterest.spec.ts` 9/9 | LinkedIn y Pinterest: **Cubiertas por contrato**. **X, Google Business y Twitch: Fuera, pendientes de decisión del usuario** (X exige plan de pago de la API; GBP exige aprobación de acceso; Twitch es analítica de streams, no publicación). Sin conector de ninguna de las tres. Métricas de LinkedIn/Pinterest: Fuera (sin lector; `unsupported`, `null`, nunca 0; `ProviderMetricsContractTest`). |
+| M03 | Compositor global y presets por destino | Cubierta | T-17/18 | `TargetMediaContractTest` 13/13, `AdvancedOptionsContractTest` 50/50, E2E `composer.spec.ts`, `composer-presets.spec.ts` | `user_tags` de Instagram solo por API/MCP (la web no tiene editor de coordenadas). |
+| M04 | Música en publicaciones | Cubierta (previa) | T-18 | E2E `instagram-audio.spec.ts`; suites de audio de Instagram | Búsqueda y selección solo donde el contrato de la red admite audio; no equivale a todos los catálogos. |
+| M05 | Medios diferentes por destino | Cubierta | T-17 | `TargetMediaTest` 14/14 (payload por publicador: bytes, orden, alt), `TargetMediaContractTest` 13/13, YouTube 56/56, E2E `target-media.spec.ts` | La media propia no se guarda en plantillas de la biblioteca. |
+| M06 | Preview por red | Cubierta | T-17 | E2E `target-media.spec.ts` y `composer.spec.ts` (3 proyectos) | Sin recorte ni relación de aspecto por destino (no existían, no se inventaron). |
+| M07 | Portadas, alt, localización y etiquetado | Parcial | T-17/18 | Tabla de redes y opciones de «Cierre T-18»; `AdvancedOptionsContractTest`, `InstagramPresetsPublishTest` | Portada solo en Reel de Instagram y YouTube; alt donde la API lo admite; ubicación y etiquetas solo Instagram (imagen); sin búsqueda de lugares; Facebook `place` fuera. |
+| M08 | Calendario/lista/mejores horas | Cubierta (previa) | T-19 | E2E `calendar-views.spec.ts`, `natural-schedule.spec.ts` | Recomendaciones con los datos disponibles. |
+| M09 | Aprobación y roles | Cubierta | T-13/19 | `ApprovalTest` 11/11; `StudioCollaborationTest` 17/17 | Rol único `aprobador` por marca; las ocurrencias de una serie nacen sin aprobación. |
+| M10 | Publicación manual y notificaciones | Cubierta | T-19 | `ManualPublishTest` 7/7 | Solo aviso en la aplicación (sin recordatorio repetido ni correo). |
+| M11 | Recurrencia, autolistas y lotes | Cubierta | T-19 | `SeriesTest` 8/8; `tests/Feature/Workflow` 46 tests; MCP `batch_posts`, `manage_post_series` | Sin cron ni worker reales en E2E (job invocado a mano). OpenAPI no ampliada con estos endpoints. |
+| M12 | Biblioteca, textos, hashtags y notas | Cubierta (previa) | T-09/17 | E2E `hashtags.spec.ts`, `media-import.spec.ts`; `StudioBackendTest` (media por marca) | — |
+| M13 | Analítica de cuentas | Cubierta | T-03 | `MetricsCorrectnessTest`, `MetricsCoverageTest` (5), `ProviderMetricsContractTest` (4), `CalculatorTest`; E2E `metrics-quality.spec.ts` | Operación de recolección del VPS sin comprobar; contraste con proveedor real solo de lectura (informe 2026-11-03). |
+| M14 | Analítica de publicaciones | Parcial | T-03 | Lectores por proveedor con `Http::fake`: Meta, Threads, Bluesky, TikTok, YouTube | Solo publicaciones propias y presupuesto de lectura reciente, no todo el universo nativo. |
+| M15 | Analítica de todas las marcas/campañas | Cubierta | T-03 | `AggregateAnalyticsTest`, `AllBrandsFlowTest`; E2E `all-brands.spec.ts`, `campaigns.spec.ts` | Aislamiento de propietario verificado. |
+| M16 | Competidores | Parcial | T-20 | `CompetitorRangeTest` 8/8; E2E `competitors.spec.ts` | Solo Instagram (Business Discovery): no hay datos públicos de terceros en otras redes. |
+| M17 | Inbox | Parcial | T-20 | `InboxProvidersTest` 13/13; E2E `inbox-triage.spec.ts`, `inbox-notes.spec.ts` | Instagram, Facebook, Threads, Bluesky y YouTube. **Fuera**: TikTok (sin API pública) y mensajes directos de Meta (requieren revisión de la app). Threads, Bluesky y YouTube solo por contrato simulado. |
+| M18 | Informes y distribución | Cubierta | T-21 | `ReportBuilderTest` 14/14, `McpReportBlocksTest` 3/3; E2E `report-builder.spec.ts`, `brand-reporting.spec.ts` | Email real depende del SMTP del despliegue (T-23). |
+| M19 | Ads | Parcial | T-21 | `AdsBrandContextTest` 6/6, `AdsTest` | Meta de solo lectura. **Fuera**: gestión de campañas, Google Ads y TikTok Ads. |
+| M20 | SmartLinks | Cubierta | T-20 | `SmartLinkBlocksTest` 11/11 | Sin paridad API/MCP de SmartLinks. |
+| M21 | Equipos/clientes y permisos | Parcial | T-13/19 | `StudioCollaborationTest` 17/17, `ApprovalTest` | Roles de diseño (propietario, editor, comentarista, lector) y de marca (`aprobador`); no hay organizaciones. |
+| M22 | Integraciones/API/MCP | Cubierta | T-08/19/20/21 | `StudioApiMcpTest`, `AdvancedOptionsContractTest`; herramientas MCP del estudio, flujo, informes e inbox | No es paridad con todas las funciones de los dos productos. |
 
 Referencias oficiales de alcance social: [introducción de Metricool](https://help.metricool.com/es/conoce-metricool-p0zdh), [planes premium](https://metricool.com/es/premium/), [roles y permisos](https://help.metricool.com/es/roles-y-permisos-en-metricool-rhljq), [SmartLinks](https://help.metricool.com/es/smartlinks-en-metricool-guia-completa-p7p83), [conexión de plataformas](https://help.metricool.com/es/como-conectar-las-redes-sociales-y-las-plataformas-de-anuncios-a-metricool-qrkvn) y [límites de su MCP](https://help.metricool.com/faqs-about-the-metricool-mcp-1i3w0). La aplicación propia puede exponer por MCP funciones adicionales; no se atribuyen al MCP de referencia.
 
 ## Estudio creativo
 
-| ID | Capacidad | Estado actual y brecha concreta | Web/API/MCP | Tarea |
-|---|---|---|---|---|
-| C01 | Catálogo y carpetas por marca | Nuevo: crear/listar/buscar/duplicar/archivar/restaurar, carpeta y paginación. Sin miniaturas persistentes de cada diseño todavía. | Sí | T-04/06/08 |
-| C02 | Documento propio y revisiones | Nuevo: JSON tipado versionado, snapshots inmutables, guardado optimista 409. No se ejecuta JSON de Fabric externo. | Sí | T-04 |
-| C03 | Lienzo, selección y geometría | Nuevo: selección simple/múltiple, mover/escalar/rotar/sesgar, alinear, ordenar y reflejar. | Web; geometría declarativa API/MCP | T-05/06 |
-| C04 | Capas, grupos y bloqueo | Nuevo: grupos anidados, capas, visibilidad y bloqueo con serialización y pruebas de matrices reales. | Web; documento API/MCP | T-05/06 |
-| C05 | Texto y tipografía | Nuevo: contenido, familia, tamaño, peso, cursiva, subrayado, alineación, espaciado. Familias dependen de fuentes instaladas; no hay catálogo/carga de fuentes propias. | Web; documento API/MCP | T-05/10 |
-| C06 | Formas y dibujo | Nuevo: formas, líneas, trazos tipados y dibujo. Pendientes conectores inteligentes y bibliotecas enriquecidas. | Web; documento API/MCP | T-05/12 |
-| C07 | Imágenes y recursos | Nuevo: subida real, asociación de media por marca y proxy privado con rangos; el MCP permite adjuntar media ya lista antes de usarla en un diseño. | Sí | T-04/08/10 |
-| C08 | Crop, filtros, sombra y gradientes | Nuevo: recorte, brillo/contraste/saturación/desenfoque y filtros, sombras, opacidad y gradientes. Pendientes máscaras complejas y edición fotográfica avanzada. | Web; documento API/MCP | T-05/10 |
-| C09 | Quitar fondo/edición localizada | Pendiente: pipeline real y proveedor/modelo configurado. No se entrega una imagen sin modificar como si fuera un resultado. | Pendiente | T-10/14 |
-| C10 | Undo/redo y recuperación | Nuevo: historial local, autosave en cola, conflicto sin sobrescribir y copia JSON local de recuperación. Historial persistido por revisiones; falta interfaz avanzada para compararlas. | Web; revisiones API/MCP | T-04/06/13 |
-| C11 | Páginas | Nuevo: añadir/duplicar/borrar/ordenar, cambiar de página sin introducir respuestas de cargas antiguas. | Web; documento API/MCP | T-05/06 |
-| C12 | Plantillas y marca | Nuevo: 14 plantillas originales, biblioteca propia por marca, campos literales, copias independientes, kit aplicable y selector real de logos. Referencia trazable conservada con undo/redo. | Sí, servicios comunes web/API/MCP | T-09 |
-| C13 | Redimensionar y variantes | Nuevo: canvas/contain/cover con geometría proporcional, todas las páginas y hasta doce variantes transaccionales; reapertura y exportación reales. El contenido de campos es común al lote; automatización de datasets por fila sigue en T-14. | Sí, servicios comunes web/API/MCP | T-09/14 |
-| C14 | PNG/JPEG/WebP | Nuevo: píxeles reales, escala/calidad/fondo transparente, subida validada y uso como borrador. Revisión y páginas vinculadas. | Sí | T-07/08 |
-| C15 | SVG/PDF | Nuevo: SVG con medios embebidos y PDF multipágina rasterizado; no PDF vectorial editable. Descarga privada temporal en servidor. | Sí | T-07/08 |
-| C16 | PPTX y otros formatos | Pendiente: exportación real con contrato específico y prueba de apertura. | Pendiente | T-12 |
-| C17 | Vídeo básico en lienzo | Implementado: recurso, trim/rate/loop, división, fotograma temporal, volumen/muted y reproducción sincronizada. Exportación audiovisual disponible; aceptación final T-11 pendiente. | Web; documento y export API/MCP | T-11 |
-| C18 | Timeline/audio/transiciones/subtítulos | Timeline, pistas, mezcla y transiciones implementados con medidas A/V. Subtítulos SRT/WebVTT: codec, datos, operaciones web/API/MCP, interfaz y render implementados con pruebas focales; regresión en tres viewports, revisión y QA independiente pendientes. ASR/traducción sigue en T-14 sobre el mismo contrato, sin eliminar este requisito. [Contrato](t11-captions-contract.md), [QA original NO-VERDE](testing/t11/final-qa/report.md). | Web/API/MCP; subtítulos aún sin aceptación completa | T-11/14 |
-| C19 | MP4/GIF | Implementado web/API/MCP: cola, progreso, cancel/retry, descarga y borrador, con duración/codec/audio/frames medidos en casos concretos. QA independiente62/63 conserva el fallo compuesto mobile-360; corrección SQLite revisada y focal posterior correcto. Nueva QA conjunta pendiente, sin borrar el resultado anterior. | Web/API/MCP, aceptación final pendiente | T-11 |
-| C20 | Presentaciones | Parcial: páginas y plantillas panorámicas; faltan modo presentar/notas/temporizador y exportaciones específicas. | Parcial | T-12 |
-| C21 | Documentos | Pendiente: flujo de texto refluible, tablas y páginas, distinto de texto colocado sobre un lienzo. | Pendiente | T-12 |
-| C22 | Pizarras y gráficos | Parcial: dibujo/formas; faltan pizarra expandible, conectores y datos/gráficos editables. | Pendiente | T-12 |
-| C23 | Comentarios y colaboración | Pendiente: roles, invitaciones, comentarios, enlaces y concurrencia real con dos clientes. | Pendiente | T-13 |
-| C24 | IA generativa y asistencia | Pendiente: trabajos reales, resultados, costes/errores y credenciales del proveedor configurado. No basta con una UI de chat vacía. | Pendiente | T-14 |
-| C25 | Sitios web/interactividad | Pendiente: editor específico, preview responsive, navegación, hosting/publicación y acceso. | Pendiente | T-15 |
-| C26 | Stock, apps y recursos premium | Parcial: subida propia y fuentes externas ya integradas. No hay derechos automáticos sobre catálogos de pago de Canva. Cada proveedor conserva licencia y acceso. | Parcial | T-10/16 |
-| C27 | Integración oficial Canva | Pendiente: OAuth, selección de marca/cuenta, editor externo de retorno, jobs y plan/capacidades elegibles. | Pendiente | T-16 |
-| C28 | Automatización creativa por API/MCP | Nuevo: nueve herramientas nativas para diseños/kits/recursos/render, con paginación y exportación sin abrir la web. Automatizaciones avanzadas conservan sus tareas abiertas. | Sí para el alcance actual | T-08/09 |
+| ID | Capacidad | Estado | Tarea | Evidencia | Límite o brecha |
+|---|---|---|---|---|---|
+| C01 | Catálogo y carpetas por marca | Cubierta | T-04/06/08 | `StudioBackendTest`, `studio.spec.ts` | Sin miniaturas persistentes por diseño. |
+| C02 | Documento propio y revisiones | Cubierta | T-04 | `StudioBackendTest` (409 optimista, snapshots) | No se ejecuta JSON de Fabric externo. |
+| C03 | Lienzo, selección y geometría | Cubierta | T-05/06 | `node --test` documento/geometría; `studio.spec.ts` | — |
+| C04 | Capas, grupos y bloqueo | Cubierta | T-05/06 | `node --test` documento; `studio.spec.ts` | — |
+| C05 | Texto y tipografía | Cubierta | T-05/10 | `StudioFontsTest` 19/19; `studio-advanced-rendering` | Fuentes propias por marca (WOFF2 normalizado). |
+| C06 | Formas y dibujo | Cubierta | T-05/12 | `StudioTablesConnectorsTest` 16/16; `studio-boards.spec.ts` 9/9 | Conectores rectos o en ángulo enganchados a formas. |
+| C07 | Imágenes y recursos | Cubierta | T-04/08/10 | `StudioBackendTest`, `StudioApiMcpTest`; `studio-imaging` 3/3 proyectos | — |
+| C08 | Crop, filtros, sombra y gradientes | Cubierta | T-05/10 | `studio-advanced-rendering`; E2E `studio-imaging` (píxeles del PNG) | Sin edición fotográfica avanzada. |
+| C09 | Quitar fondo/edición localizada | Cubierta | T-10 | `test_background.py` 3/3 (BiRefNet local); `StudioImageJobsTest` 14/14; E2E `studio-imaging` con inferencia real | Sin relleno generativo ni borrador mágico (requieren proveedor o pesos: T-14). |
+| C10 | Undo/redo y recuperación | Cubierta | T-04/06/13 | `StudioCollaborationTest` (historial, restauración, 409 con dos clientes) | — |
+| C11 | Páginas | Cubierta | T-05/06 | `studio.spec.ts` | — |
+| C12 | Plantillas y marca | Cubierta | T-09 | 14 plantillas originales, kit por marca; suites de T-09 | — |
+| C13 | Redimensionar y variantes | Cubierta | T-09 | Variantes transaccionales (hasta doce) | Datasets por fila: T-14 (borrador). |
+| C14 | PNG/JPEG/WebP | Cubierta | T-07/08 | E2E `studio.spec.ts` (firmas y dimensiones reales) | — |
+| C15 | SVG/PDF | Cubierta | T-07/08 | E2E `studio.spec.ts`, `studio-boards.spec.ts` | PDF rasterizado, no vectorial editable. |
+| C16 | PPTX y otros formatos | **Fuera** | T-12 | — | Sin exportación PPTX; no se anuncia. |
+| C17 | Vídeo básico en lienzo | Cubierta | T-11 | Suites de T-11 y `studio-av-composite.spec.ts` | — |
+| C18 | Timeline/audio/transiciones/subtítulos | Parcial | T-11 | Subtítulos SRT/WebVTT manuales | ASR y traducción: Fuera, T-14 (borrador). |
+| C19 | MP4/GIF | Cubierta | T-11 | Jobs con cancel/retry/descarga/borrador; medidas A/V en casos concretos | — |
+| C20 | Presentaciones | Cubierta | T-12 | `studio-presentations.spec.ts`, `studio-presentation-tools.spec.ts` (sesión, notas, audiencia, temporizador) | Sin exportación PPTX (C16). |
+| C21 | Documentos | Cubierta | T-12 | Texto refluible y tablas: `StudioTablesConnectorsTest` 16/16 | — |
+| C22 | Pizarras y gráficos | Cubierta | T-12 | `studio-boards.spec.ts` 9/9; gráficos enlazados a datasets | `studio-charts.spec.ts` en `test.fixme` por depender del arnés abandonado; E2E-28 cubierto en `studio-boards.spec.ts`. |
+| C23 | Comentarios y colaboración | Cubierta | T-13 | `StudioCollaborationTest` 17/17 (418 aserciones) | Sin edición en tiempo real; invitados no exportan. |
+| C24 | IA generativa y asistencia | **Fuera** | T-14 (borrador) | — | Sin proveedor configurado; no se simula con UI vacía. |
+| C25 | Sitios web/interactividad | Cubierta | T-15 | `SiteTest`; E2E de sitios con CSP y 0 errores de consola | Sin dominio propio ni aviso por correo. |
+| C26 | Stock, apps y recursos premium | Parcial | T-10/16 | Subida propia y fuentes externas integradas | Sin derechos sobre catálogos de pago de Canva. |
+| C27 | Integración oficial Canva | **Fuera** | T-16 (borrador) | — | Pendiente: OAuth, retorno y capacidades del plan. |
+| C28 | Automatización creativa por API/MCP | Cubierta | T-08/09 | `StudioApiMcpTest` | Automatizaciones avanzadas ligadas a T-14. |
 
 Referencias oficiales de edición: [diseños](https://www.canva.dev/docs/apps/designs/), [elementos](https://www.canva.dev/docs/apps/elements/), [edición](https://www.canva.dev/docs/apps/design-editing/), [capas](https://www.canva.com/help/finding-and-arranging-layers/), [bloqueo](https://www.canva.com/help/lock-and-unlock-elements/), [kit](https://www.canva.com/help/brand-kit/), [plantillas de marca](https://www.canva.com/help/using-brand-templates/), [imágenes](https://www.canva.com/help/image-settings/), [vídeo](https://www.canva.com/help/creating-and-editing-videos/), [presentaciones](https://www.canva.com/en_gb/help/presentation-modes/), [pizarras](https://www.canva.com/en_gb/help/expand-to-whiteboard/) y [sitios](https://www.canva.com/help/publishing-canva-websites/).
 
@@ -90,6 +94,16 @@ La API oficial de exportación enumera formatos según su contrato; no se asume 
 
 Autofill/Brand Templates amplió la elegibilidad a Pro y planes superiores en septiembre de 2026; no se conserva la antigua suposición de Enterprise como único plan. Se comprobarán las capacidades de la cuenta realmente conectada al implementar T-16. [Anuncio oficial](https://community.canva.dev/t/autofill-apis-are-now-available-on-canva-pro-and-above/8922).
 
+## Decisiones abiertas (pendientes del usuario)
+
+| Tema | Estado | Qué falta |
+|---|---|---|
+| X/Twitter | Fuera | Decidir si se contrata el plan de pago de la API v2; sin él no hay credenciales ni forma de verificar el flujo. |
+| Google Business Profile | Fuera | Solicitar la aprobación de acceso a la API del proveedor. |
+| Twitch | Fuera | Es analítica de streams (`/evolution-twitch`), no publicación; decidir si se quiere un lector de métricas. |
+| Smokes reales | Pendientes | Bluesky, Threads, LinkedIn, Pinterest, Instagram (`location_id`, `user_tags`), alt/portada por red; un `Http::fake` no acredita la autorización del proveedor. |
+| T-14 (IA) y T-16 (Canva) | Borrador | Proveedor/modelo de IA y cuenta/app de Canva Connect; sin ellos no se implementan. |
+
 ## Puertas de cierre
 
-Cada fila pendiente necesita servicio real, persistencia, autorización, contrato API/MCP cuando corresponda, UI usable y prueba del resultado. Una prueba con HTTP simulado no sustituye el smoke del proveedor; una captura de un botón no acredita su comportamiento. El estado global sigue **en progreso** hasta resolver la matriz, las revisiones y los criterios del [ledger](tasks.md).
+Cada fila pendiente necesita servicio real, persistencia, autorización, contrato API/MCP cuando corresponda, UI usable y prueba del resultado. Una prueba con HTTP simulado no sustituye el smoke del proveedor; una captura de un botón no acredita su comportamiento. El estado global sigue **en progreso** hasta cerrar T-14, T-16, T-22 y T-23 (ledger).

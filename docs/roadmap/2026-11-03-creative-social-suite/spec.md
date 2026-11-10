@@ -1,7 +1,7 @@
 ---
-estado: en-progreso
+estado: implementada
 creado: 2026-11-03
-actualizado: 2026-11-04
+actualizado: 2026-11-10
 ---
 
 # Suite social y creativa por marcas

@@ -101,8 +101,25 @@ class AiAssistant
         return $this->validatedProposal($text, $brand, $zone, $now, $offered);
     }
 
+    /**
+     * Automatizaciones de texto del estudio (T-14): misma clave, modelo, limite diario y reembolso que `suggest()`. El llamante redacta
+     * el sistema y el contenido (texto o bloques con imagen) y valida la respuesta.
+     *
+     * @param  string|list<array<string, mixed>>  $content
+     *
+     * @throws PostValidationException IA desactivada, limite diario o fallo del servicio (mensaje legible)
+     */
+    public function complete(User $user, string $field, string $system, string|array $content, int $maxTokens = 800): string
+    {
+        if (! $this->enabled()) {
+            throw new PostValidationException([$field => ['El asistente IA no está activado.']]);
+        }
+
+        return $this->send($this->consume($user, $field), $field, $system, $content, $maxTokens);
+    }
+
     /** @param array{0: string, 1: string} $keys */
-    private function send(array $keys, string $field, string $system, string $content, int $maxTokens): string
+    private function send(array $keys, string $field, string $system, string|array $content, int $maxTokens): string
     {
         try {
             $response = Http::timeout((int) config('social.ai.timeout', 30))->acceptJson()
@@ -289,7 +306,7 @@ class AiAssistant
     }
 
     /** Quita emails, telefonos y enlaces del brief: no se envian a un tercero. */
-    private function redact(string $brief): string
+    public function redact(string $brief): string
     {
         $brief = preg_replace('/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/u', '[email]', $brief) ?? $brief;
         $brief = preg_replace('~https?://\S+|www\.\S+~iu', '[enlace]', $brief) ?? $brief;

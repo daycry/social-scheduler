@@ -64,7 +64,16 @@ class StudioAssets
     public function present(Brand $brand, MediaAsset $asset): array
     {
         return array_replace($asset->toPublicArray(), ['preview_url' => route('studio.assets.file', ['brand' => $brand->id, 'media' => $asset->id], absolute: false)])
-            + ($asset->kind === MediaAsset::KIND_AUDIO ? ['audio_codec' => $asset->audio_codec] : []);
+            + ($asset->kind === MediaAsset::KIND_AUDIO ? ['audio_codec' => $asset->audio_codec] : [])
+            + ($asset->source === 'ai' ? ['ai' => $this->aiMeta($asset)] : []);
+    }
+
+    /** Proveedor, modelo y prompt con los que se genero un recurso de IA (T-14); sin datos si el registro no es legible. */
+    private function aiMeta(MediaAsset $asset): array
+    {
+        $meta = json_decode((string) $asset->source_ref, true);
+
+        return is_array($meta) ? array_intersect_key($meta, array_flip(['provider', 'model', 'prompt'])) : [];
     }
 
     /** Same-origin private proxy works for local and R2 assets without exposing bucket credentials or relying on CORS. */

@@ -30,6 +30,9 @@ final class Abilities
 
     public const SITES_WRITE = 'sites:write';
 
+    /** IA creativa del estudio (T-14): generar y editar imagenes con un proveedor de pago configurado. No basta designs:write. */
+    public const STUDIO_AI = 'studio:ai';
+
     /** @return array<string, string> ability => descripcion para la UI */
     public static function all(): array
     {
@@ -46,6 +49,7 @@ final class Abilities
             self::INBOX_WRITE => 'Responder a comentarios de Instagram y Facebook y anadirles notas internas',
             self::SITES_READ => 'Leer los sitios publicados de las marcas y su URL',
             self::SITES_WRITE => 'Publicar y despublicar los sitios de las marcas',
+            self::STUDIO_AI => 'Generar y editar imagenes con IA en el estudio (consume la cuota del proveedor configurado)',
         ];
     }
 

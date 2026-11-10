@@ -55,4 +55,5 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
 });
 
 require __DIR__.'/studio-images-api.php';
+require __DIR__.'/studio-ai-api.php';
 require __DIR__.'/studio-audio-api.php';

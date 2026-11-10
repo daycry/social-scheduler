@@ -47,5 +47,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/studio-images.php';
+require __DIR__.'/studio-ai.php';
 require __DIR__.'/studio-audio.php';
 require __DIR__.'/studio-captions.php';

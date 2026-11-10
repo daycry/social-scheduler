@@ -149,6 +149,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('report-builder', fn (Request $request) => Limit::perMinute(30)->by('report-builder:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('report-schedules', fn (Request $request) => Limit::perMinute(10)->by('report-schedules:'.($request->user()?->id ?? $request->ip())));
 
+        // IA creativa del estudio (T-14): cada llamada puede costar dinero al proveedor; limite por usuario ademas de la cuota diaria.
+        RateLimiter::for('studio-ai', fn (Request $request) => Limit::perMinute(6)->by('studio-ai:'.($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('studio-ai-text', fn (Request $request) => Limit::perMinute(12)->by('studio-ai-text:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
         // Colaboradores de marca (T-19): invitaciones 10/min por usuario; lotes de publicaciones 10/min por usuario.
         RateLimiter::for('brand-collaborators', fn (Request $request) => Limit::perMinute(10)->by('brand-collaborators:'.($request->user()?->id ?? $request->ip())));

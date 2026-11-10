@@ -1,0 +1,962 @@
+
+Running 774 tests using 1 worker
+
+[1/774] [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › portada
+[2/774] [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › login
+[3/774] [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › registro
+[4/774] [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › recuperar contraseña
+[5/774] [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › privacidad
+[6/774] [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › términos
+[7/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard
+[8/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard instagram
+[9/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard facebook
+[10/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard youtube
+[11/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard tiktok
+[12/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario
+[13/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario lista
+[14/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario mes
+[15/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › marcas
+[16/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › nueva marca
+[17/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › informes
+[18/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › api-keys
+[19/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › avisos
+[20/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › perfil
+[21/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › confirmar contraseña
+[22/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › mejores horas
+[23/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › biblioteca
+[24/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › papelera
+[25/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › aprobaciones
+[26/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › series
+[27/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › smartlinks
+[28/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › competidores
+[29/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › autolistas
+[30/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › inbox
+[31/774] [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › meta ads
+[32/774] [desktop] › tests\e2e\a11y.spec.ts:78:5 › axe · seguridad de cuenta › login con el botón de passkey
+[33/774] [desktop] › tests\e2e\a11y.spec.ts:84:5 › axe · seguridad de cuenta › reto 2FA: código y código de recuperación
+[34/774] [desktop] › tests\e2e\a11y.spec.ts:98:5 › axe · seguridad de cuenta › Perfil → Seguridad: sin 2FA, QR, códigos, 2FA activo, diálogo y passkeys
+[35/774] [desktop] › tests\e2e\a11y.spec.ts:168:5 › axe · login social, cuentas vinculadas y consentimiento › login con «Continuar con Google» y «Continuar con Facebook», y con un rechazo en pantalla
+[36/774] [desktop] › tests\e2e\a11y.spec.ts:181:5 › axe · login social, cuentas vinculadas y consentimiento › Perfil → Cuentas vinculadas: sin vincular, vinculada y diálogo de desvincular
+[37/774] [desktop] › tests\e2e\a11y.spec.ts:200:5 › axe · login social, cuentas vinculadas y consentimiento › consentimiento OAuth: pantalla de autorización y pantalla de error
+[38/774] [desktop] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo
+[39/774] [desktop] › tests\e2e\bluesky.spec.ts:26:1 › E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde
+[40/774] [desktop] › tests\e2e\bluesky.spec.ts:62:1 › E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página
+[41/774] [desktop] › tests\e2e\bluesky.spec.ts:80:1 › E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red)
+[42/774] [desktop] › tests\e2e\bluesky.spec.ts:113:1 › E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300
+[43/774] [desktop] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation
+[44/774] [desktop] › tests\e2e\calendar-views.spec.ts:46:1 › E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar
+[45/774] [desktop] › tests\e2e\calendar-views.spec.ts:106:1 › E2E-02 · la vista por defecto se aplica al abrir el calendario
+[46/774] [desktop] › tests\e2e\calendar-views.spec.ts:130:1 › E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)
+[47/774] [desktop] › tests\e2e\campaigns.spec.ts:37:1 › E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo
+[48/774] [desktop] › tests\e2e\campaigns.spec.ts:101:1 › E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días
+[49/774] [desktop] › tests\e2e\canva.spec.ts:55:1 › Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar
+[50/774] [desktop] › tests\e2e\canva.spec.ts:72:1 › Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar
+[51/774] [desktop] › tests\e2e\canva.spec.ts:159:1 › Canva: con un plan de pago el PNG transparente se activa y la exportación lo pide
+[52/774] [desktop] › tests\e2e\competitors.spec.ts:27:1 › E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV
+[53/774] [desktop] › tests\e2e\composer-presets.spec.ts:5:1 › Presets: global and network panels keep values and reveal collapsed validation fields
+[54/774] [desktop] › tests\e2e\composer-presets.spec.ts:80:1 › Presets: validation opens a collapsed global panel and focuses its date field
+[55/774] [desktop] › tests\e2e\composer-presets.spec.ts:104:1 › Presets: errors panel can collapse and retains correction links
+[56/774] [desktop] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: create retains rejected work and starts another publication cleanly
+[57/774] [desktop] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: edit retains rejected work and starts another publication cleanly
+[58/774] [desktop] › tests\e2e\composer.spec.ts:59:1 › E2E-01 · compositor a pantalla completa con pastillas de red
+[59/774] [desktop] › tests\e2e\composer.spec.ts:102:1 › E2E-02 · contadores por red y tope de hashtags
+[60/774] [desktop] › tests\e2e\composer.spec.ts:138:1 › E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado
+[61/774] [desktop] › tests\e2e\composer.spec.ts:196:1 › E2E-03 · confirmación al salir con cambios sin guardar
+[62/774] [desktop] › tests\e2e\composer.spec.ts:238:1 › E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres
+[63/774] [desktop] › tests\e2e\composer.spec.ts:261:1 › E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas
+[64/774] [desktop] › tests\e2e\composer.spec.ts:274:1 › E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar
+[65/774] [desktop] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: mismo mes
+[66/774] [desktop] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: cambio de mes
+[67/774] [desktop] › tests\e2e\composer.spec.ts:350:1 › E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca
+[68/774] [desktop] › tests\e2e\composer.spec.ts:462:1 › E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar
+[69/774] [desktop] › tests\e2e\composer.spec.ts:498:1 › E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar
+[70/774] [desktop] › tests\e2e\composer.spec.ts:571:1 › E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación
+[71/774] [desktop] › tests\e2e\composer.spec.ts:610:1 › E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada
+[72/774] [desktop] › tests\e2e\composer.spec.ts:641:1 › E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir
+[73/774] [desktop] › tests\e2e\composer.spec.ts:661:1 › E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca
+[74/774] [desktop] › tests\e2e\composer.spec.ts:691:1 › E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor
+[75/774] [desktop] › tests\e2e\composer.spec.ts:711:1 › E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)
+[76/774] [desktop] › tests\e2e\composer.spec.ts:735:1 › A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos
+[77/774] [desktop] › tests\e2e\composer.spec.ts:770:1 › E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado
+[78/774] [desktop] › tests\e2e\composer.spec.ts:857:1 › E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra
+[79/774] [desktop] › tests\e2e\composer.spec.ts:915:1 › E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite
+[80/774] [desktop] › tests\e2e\composer.spec.ts:1002:1 › E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML
+[81/774] [desktop] › tests\e2e\composer.spec.ts:1040:1 › E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía
+[82/774] [desktop] › tests\e2e\composer.spec.ts:1118:1 › E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post
+[83/774] [desktop] › tests\e2e\composer.spec.ts:1144:1 › E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario
+[84/774] [desktop] › tests\e2e\composer.spec.ts:1225:1 › E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco
+[85/774] [desktop] › tests\e2e\csv-export.spec.ts:44:1 › E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada
+[86/774] [desktop] › tests\e2e\first-comment.spec.ts:38:1 › E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo
+[87/774] [desktop] › tests\e2e\first-comment.spec.ts:75:1 › E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo
+[88/774] [desktop] › tests\e2e\first-comment.spec.ts:88:1 › E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino
+[89/774] [desktop] › tests\e2e\first-comment.spec.ts:123:1 › E2E-04 · un comentario publicado no se edita ni se reintenta
+[90/774] [desktop] › tests\e2e\first-comment.spec.ts:135:1 › E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación
+[91/774] [desktop] › tests\e2e\first-comment.spec.ts:165:1 › E2E-04 · sin envío previo no se ofrecen las salidas de duplicado
+[92/774] [desktop] › tests\e2e\flows.spec.ts:12:1 › registro: crea la cuenta y pide verificar el correo
+[93/774] [desktop] › tests\e2e\flows.spec.ts:47:5 › con sesión de un usuario e2e-sec-* › marca → borrador → calendario/lista → papelera → restaurar → biblioteca
+[94/774] [desktop] › tests\e2e\flows.spec.ts:111:5 › con sesión de un usuario e2e-sec-* › SmartLink: crear con un bloque, abrir sin sesión y el clic redirige
+[95/774] [desktop] › tests\e2e\flows.spec.ts:163:5 › con sesión de un usuario e2e-sec-* › API keys: crear y revocar
+[96/774] [desktop] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy
+[97/774] [desktop] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)
+[98/774] [desktop] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican
+[99/774] [desktop] › tests\e2e\hashtags.spec.ts:25:1 › E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta
+[100/774] [desktop] › tests\e2e\hashtags.spec.ts:76:1 › E2E-06 · sin histórico se explica y el menú sigue siendo utilizable
+[101/774] [desktop] › tests\e2e\hashtags.spec.ts:89:1 › E2E-06 · se avisa al superar el máximo de hashtags de Instagram
+[102/774] [desktop] › tests\e2e\inbox-notes.spec.ts:26:1 › E2E-01 · notas del inbox: alta, insignia, filtro y borrado
+[103/774] [desktop] › tests\e2e\inbox-triage.spec.ts:28:1 › E2E-20a · cobertura por red, filtro por red y por estado
+[104/774] [desktop] › tests\e2e\inbox-triage.spec.ts:63:1 › E2E-20b · etiquetas, asignación y filtros
+[105/774] [desktop] › tests\e2e\inbox-triage.spec.ts:101:1 › E2E-20c · lote (leer y cerrar) y respuestas guardadas
+[106/774] [desktop] › tests\e2e\instagram-audio.spec.ts:30:1 › Audio Reel: search select volumes save reopen and remove
+[107/774] [desktop] › tests\e2e\instagram-audio.spec.ts:65:1 › Audio Reel: empty errors and closing preserve the existing choice
+[108/774] [desktop] › tests\e2e\instagram-audio.spec.ts:82:1 › Audio Reel: typing searches and loading more preserves results with retry and filter reset
+[109/774] [desktop] › tests\e2e\instagram-audio.spec.ts:128:1 › Audio Reel: changing a query invalidates slow responses and closing cancels pending typing
+[110/774] [desktop] › tests\e2e\instagram-audio.spec.ts:157:1 › Audio Reel: preview never autoplays defaults are visible and format change clears the track
+[111/774] [desktop] › tests\e2e\instagram-grid.spec.ts:40:1 › E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio
+[112/774] [desktop] › tests\e2e\linkedin-pinterest.spec.ts:51:1 › T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas
+[113/774] [desktop] › tests\e2e\linkedin-pinterest.spec.ts:74:1 › T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado
+[114/774] [desktop] › tests\e2e\linkedin-pinterest.spec.ts:116:1 › T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar
+[115/774] [desktop] › tests\e2e\media-import.spec.ts:36:1 › E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset
+[116/774] [desktop] › tests\e2e\media-import.spec.ts:78:1 › E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza
+[117/774] [desktop] › tests\e2e\media-import.spec.ts:126:1 › E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al terminar la media pasa a la publicación
+[118/774] [desktop] › tests\e2e\media-import.spec.ts:151:1 › E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar
+[119/774] [desktop] › tests\e2e\media-import.spec.ts:168:1 › E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve
+[120/774] [desktop] › tests\e2e\media-import.spec.ts:198:1 › E2E-08 · un aviso de atasco se descarta con «Descartar»
+[121/774] [desktop] › tests\e2e\media-import.spec.ts:216:1 › E2E-08 · se puede cancelar una importación en curso
+[122/774] [desktop] › tests\e2e\media-import.spec.ts:234:1 › E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google
+[123/774] [desktop] › tests\e2e\media-import.spec.ts:298:1 › E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google
+[124/774] [desktop] › tests\e2e\media-import.spec.ts:325:1 › E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error
+[125/774] [desktop] › tests\e2e\media-import.spec.ts:338:1 › E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje
+[126/774] [desktop] › tests\e2e\media-import.spec.ts:353:1 › E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic
+[127/774] [desktop] › tests\e2e\media-import.spec.ts:364:1 › E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real)
+[128/774] [desktop] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison
+[129/774] [desktop] › tests\e2e\natural-schedule.spec.ts:69:1 › E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes
+[130/774] [desktop] › tests\e2e\natural-schedule.spec.ts:112:1 › E2E-07 · descartar la propuesta no cambia nada
+[131/774] [desktop] › tests\e2e\natural-schedule.spec.ts:129:1 › E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha
+[132/774] [desktop] › tests\e2e\natural-schedule.spec.ts:145:1 › E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta
+[133/774] [desktop] › tests\e2e\natural-schedule.spec.ts:160:1 › E2E-07 · con la IA desactivada el campo no aparece
+[134/774] [desktop] › tests\e2e\oauth.spec.ts:111:5 › MCP OAuth · API (sin interfaz) › API-01 · metadatos y 401 con WWW-Authenticate (CA-12, CA-13, CA-14)
+[135/774] [desktop] › tests\e2e\oauth.spec.ts:127:5 › MCP OAuth · API (sin interfaz) › API-02 · DCR: 201 con loopback y 400 con una redirect_uri pública (CA-15)
+[136/774] [desktop] › tests\e2e\oauth.spec.ts:141:5 › MCP OAuth · navegador › E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)
+[137/774] [desktop] › tests\e2e\oauth.spec.ts:199:5 › MCP OAuth · navegador › E2E-06 · 2FA en mitad del flujo y «Denegar» (CA-16, CA-19)
+[138/774] [desktop] › tests\e2e\oauth.spec.ts:244:5 › MCP OAuth · navegador › E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)
+[139/774] [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › portada
+[140/774] [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › login
+[141/774] [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › registro
+[142/774] [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › recuperar contraseña
+[143/774] [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › privacidad
+[144/774] [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › términos
+[145/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard
+[146/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard instagram
+[147/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard facebook
+[148/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard youtube
+[149/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard tiktok
+[150/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario
+[151/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario lista
+[152/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario mes
+[153/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › marcas
+[154/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › nueva marca
+[155/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › informes
+[156/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › api-keys
+[157/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › avisos
+[158/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › perfil
+[159/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › confirmar contraseña
+[160/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › mejores horas
+[161/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › biblioteca
+[162/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › papelera
+[163/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › aprobaciones
+[164/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › series
+[165/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › smartlinks
+[166/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › competidores
+[167/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › autolistas
+[168/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › inbox
+[169/774] [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › meta ads
+[170/774] [desktop] › tests\e2e\pages.spec.ts:28:5 › páginas autenticadas › conexiones de la marca, crear publicación y editar marca
+[171/774] [desktop] › tests\e2e\pages.spec.ts:43:5 › páginas autenticadas › axe en el calendario (solo lectura)
+[172/774] [desktop] › tests\e2e\pages.spec.ts:50:5 › páginas autenticadas › el shell enlaza los módulos nuevos
+[173/774] [desktop] › tests\e2e\report-builder.spec.ts:17:1 › Report builder: blocks, template, PDF download, schedule and brand isolation
+[174/774] [desktop] › tests\e2e\saved-texts.spec.ts:51:1 › E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado
+[175/774] [desktop] › tests\e2e\saved-texts.spec.ts:91:1 › E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor
+[176/774] [desktop] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)
+[177/774] [desktop] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)
+[178/774] [desktop] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03)
+[179/774] [desktop] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04)
+[180/774] [desktop] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)
+[181/774] [desktop] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06)
+[182/774] [desktop] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06)
+[183/774] [desktop] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)
+[184/774] [desktop] › tests\e2e\sites.spec.ts:61:1 › E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar
+[185/774] [desktop] › tests\e2e\sites.spec.ts:302:1 › E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques
+[186/774] [desktop] › tests\e2e\smartlinks-blocks.spec.ts:26:1 › E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque
+[187/774] [desktop] › tests\e2e\social.spec.ts:57:5 › Login social · entrar › E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02)
+[188/774] [desktop] › tests\e2e\social.spec.ts:80:5 › Login social · entrar › E2E-01 · una segunda entrada con la identidad ya vinculada vuelve a entrar
+[189/774] [desktop] › tests\e2e\social.spec.ts:91:5 › Login social · entrar › E2E-02 · Google con 2FA: pide el reto, no hay sesión antes y el TOTP lleva al destino (CA-06)
+[190/774] [desktop] › tests\e2e\social.spec.ts:113:5 › Login social · entrar › E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09)
+[191/774] [desktop] › tests\e2e\social.spec.ts:153:5 › Cuentas vinculadas · perfil › E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07)
+[192/774] [desktop] › tests\e2e\social.spec.ts:184:5 › Cuentas vinculadas · perfil › E2E-04 · una identidad ya vinculada a otro usuario da error y no cambia nada (CA-07)
+[193/774] [desktop] › tests\e2e\social.spec.ts:203:5 › Cuentas vinculadas · perfil › E2E-04 · desvincular bloquea la identidad: ni el login con ella ni Google por email la recuperan (CA-08)
+[194/774] [desktop] › tests\e2e\studio-ai.spec.ts:37:1 › Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion
+[195/774] [desktop] › tests\e2e\studio-ai.spec.ts:59:1 › Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text
+[196/774] [desktop] › tests\e2e\studio-ai.spec.ts:141:1 › Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude
+[197/774] [desktop] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track
+[198/774] [desktop] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds
+[199/774] [desktop] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback
+[200/774] [desktop] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports
+[201/774] [desktop] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export
+[202/774] [desktop] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[203/774] [desktop] › tests\e2e\studio-boards.spec.ts:36:1 › Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF
+[204/774] [desktop] › tests\e2e\studio-boards.spec.ts:160:1 › Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented
+[205/774] [desktop] › tests\e2e\studio-boards.spec.ts:220:1 › Studio: a chart bound to a saved table is inserted, saved, reopened and exported
+[206/774] [desktop] › tests\e2e\studio-boards.spec.ts:263:1 › Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF
+[207/774] [desktop] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors
+[208/774] [desktop] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[209/774] [desktop] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts
+[210/774] [desktop] › tests\e2e\studio-charts.spec.ts:44:1 › E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font
+[211/774] [desktop] › tests\e2e\studio-charts.spec.ts:57:1 › E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility
+[212/774] [desktop] › tests\e2e\studio-charts.spec.ts:89:1 › E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded
+[213/774] [desktop] › tests\e2e\studio-collab.spec.ts:42:1 › Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso
+[214/774] [desktop] › tests\e2e\studio-datasets.spec.ts:136:1 › E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes
+[215/774] [desktop] › tests\e2e\studio-datasets.spec.ts:145:1 › E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file
+[216/774] [desktop] › tests\e2e\studio-datasets.spec.ts:153:1 › E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo
+[217/774] [desktop] › tests\e2e\studio-datasets.spec.ts:167:1 › E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation
+[218/774] [desktop] › tests\e2e\studio-datasets.spec.ts:179:1 › E2E27.05 delayed real reads writes close selection brand discard keyboard and focus
+[219/774] [desktop] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output
+[220/774] [desktop] › tests\e2e\studio-imaging.spec.ts:112:1 › Studio imaging: real private font upload, preview, search, kit, archive and protected deletion
+[221/774] [desktop] › tests\e2e\studio-imaging.spec.ts:186:1 › Studio imaging: real background inference preserves original and a masked filtered result persists and exports
+[222/774] [desktop] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft
+
+
+
+
+[223/774] [desktop] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work
+[224/774] [desktop] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media
+
+
+[225/774] [desktop] › tests\e2e\studio-presentation-media.spec.ts:102:1 › E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only
+[226/774] [desktop] › tests\e2e\studio-presentation-media.spec.ts:136:1 › E2E-29 real fullscreen entry exit focus restoration and owned popup closure
+[227/774] [desktop] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late
+
+
+[228/774] [desktop] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late
+
+
+[229/774] [desktop] › tests\e2e\studio-presentation-tools.spec.ts:83:1 › E2E-29 P3 paused laser pen erase TTL page and blackout compose actual pixels; audience and fullscreen include tools
+[230/774] [desktop] › tests\e2e\studio-presentation-tools.spec.ts:143:1 › E2E-29 P3 timer uses a real own WAV with native start pause resume reset visibility volume mute loop and finish
+[231/774] [desktop] › tests\e2e\studio-presentation-tools.spec.ts:186:1 › E2E-29 P3 pending own timer audio is cancelled by a real close and cannot publish or play after release
+[232/774] [desktop] › tests\e2e\studio-presentations.spec.ts:41:1 › E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen
+[233/774] [desktop] › tests\e2e\studio-presentations.spec.ts:70:1 › E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup
+[234/774] [desktop] › tests\e2e\studio-presentations.spec.ts:103:1 › E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable
+[235/774] [desktop] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document
+[236/774] [desktop] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed
+
+
+[237/774] [desktop] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo
+[238/774] [desktop] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts
+
+
+[239/774] [desktop] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback
+
+
+[240/774] [desktop] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library
+[241/774] [desktop] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand
+[242/774] [desktop] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design
+[243/774] [desktop] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version
+[244/774] [desktop] › tests\e2e\target-media.spec.ts:69:1 › T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado
+[245/774] [desktop] › tests\e2e\target-media.spec.ts:149:1 › T-17 · el error de la media propia nombra la red y bloquea Programar
+[246/774] [desktop] › tests\e2e\target-media.spec.ts:167:1 › T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian
+[247/774] [desktop] › tests\e2e\threads.spec.ts:29:1 › E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde
+[248/774] [desktop] › tests\e2e\threads.spec.ts:48:1 › E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red
+[249/774] [desktop] › tests\e2e\threads.spec.ts:77:1 › E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras
+[250/774] [desktop] › tests\e2e\threads.spec.ts:105:1 › E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8
+[251/774] [desktop] › tests\e2e\threads.spec.ts:133:1 › E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)
+[252/774] [desktop] › tests\e2e\tiktok-audio.spec.ts:26:1 › TikTok photo music: explicit choice persists and switching to video removes it
+[253/774] [desktop] › tests\e2e\tiktok-audio.spec.ts:48:1 › TikTok creator failure stops automatic retries and the retry button can recover
+[254/774] [desktop] › tests\e2e\workflow.spec.ts:48:1 › aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario
+[255/774] [desktop] › tests\e2e\workflow.spec.ts:115:1 › destino manual: el aviso trae el contenido y se marca como publicado con una URL https
+[256/774] [desktop] › tests\e2e\workflow.spec.ts:151:1 › serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse
+[257/774] [desktop] › tests\e2e\workflow.spec.ts:194:1 › lote: reprogramar y cancelar con un resultado parcial por elemento
+[258/774] [desktop] › tests\e2e\workflow.spec.ts:229:1 › reintento: un destino con error vuelve a programarse una sola vez
+[259/774] [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › portada
+[260/774] [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › login
+[261/774] [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › registro
+[262/774] [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › recuperar contraseña
+[263/774] [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › privacidad
+[264/774] [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › términos
+[265/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard
+[266/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard instagram
+[267/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard facebook
+[268/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard youtube
+[269/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard tiktok
+[270/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario
+[271/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario lista
+[272/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario mes
+[273/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › marcas
+[274/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › nueva marca
+[275/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › informes
+[276/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › api-keys
+[277/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › avisos
+[278/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › perfil
+[279/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › confirmar contraseña
+[280/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › mejores horas
+[281/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › biblioteca
+[282/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › papelera
+[283/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › aprobaciones
+[284/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › series
+[285/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › smartlinks
+[286/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › competidores
+[287/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › autolistas
+[288/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › inbox
+[289/774] [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › meta ads
+[290/774] [mobile] › tests\e2e\a11y.spec.ts:78:5 › axe · seguridad de cuenta › login con el botón de passkey
+[291/774] [mobile] › tests\e2e\a11y.spec.ts:84:5 › axe · seguridad de cuenta › reto 2FA: código y código de recuperación
+[292/774] [mobile] › tests\e2e\a11y.spec.ts:98:5 › axe · seguridad de cuenta › Perfil → Seguridad: sin 2FA, QR, códigos, 2FA activo, diálogo y passkeys
+[293/774] [mobile] › tests\e2e\a11y.spec.ts:168:5 › axe · login social, cuentas vinculadas y consentimiento › login con «Continuar con Google» y «Continuar con Facebook», y con un rechazo en pantalla
+[294/774] [mobile] › tests\e2e\a11y.spec.ts:181:5 › axe · login social, cuentas vinculadas y consentimiento › Perfil → Cuentas vinculadas: sin vincular, vinculada y diálogo de desvincular
+[295/774] [mobile] › tests\e2e\a11y.spec.ts:200:5 › axe · login social, cuentas vinculadas y consentimiento › consentimiento OAuth: pantalla de autorización y pantalla de error
+[296/774] [mobile] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo
+[297/774] [mobile] › tests\e2e\bluesky.spec.ts:26:1 › E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde
+[298/774] [mobile] › tests\e2e\bluesky.spec.ts:62:1 › E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página
+[299/774] [mobile] › tests\e2e\bluesky.spec.ts:80:1 › E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red)
+[300/774] [mobile] › tests\e2e\bluesky.spec.ts:113:1 › E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300
+[301/774] [mobile] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation
+[302/774] [mobile] › tests\e2e\calendar-views.spec.ts:46:1 › E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar
+[303/774] [mobile] › tests\e2e\calendar-views.spec.ts:106:1 › E2E-02 · la vista por defecto se aplica al abrir el calendario
+[304/774] [mobile] › tests\e2e\calendar-views.spec.ts:130:1 › E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)
+[305/774] [mobile] › tests\e2e\campaigns.spec.ts:37:1 › E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo
+[306/774] [mobile] › tests\e2e\campaigns.spec.ts:101:1 › E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días
+[307/774] [mobile] › tests\e2e\canva.spec.ts:55:1 › Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar
+[308/774] [mobile] › tests\e2e\canva.spec.ts:72:1 › Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar
+[309/774] [mobile] › tests\e2e\canva.spec.ts:159:1 › Canva: con un plan de pago el PNG transparente se activa y la exportación lo pide
+[310/774] [mobile] › tests\e2e\competitors.spec.ts:27:1 › E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV
+[311/774] [mobile] › tests\e2e\composer-presets.spec.ts:5:1 › Presets: global and network panels keep values and reveal collapsed validation fields
+[312/774] [mobile] › tests\e2e\composer-presets.spec.ts:80:1 › Presets: validation opens a collapsed global panel and focuses its date field
+[313/774] [mobile] › tests\e2e\composer-presets.spec.ts:104:1 › Presets: errors panel can collapse and retains correction links
+[314/774] [mobile] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: create retains rejected work and starts another publication cleanly
+[315/774] [mobile] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: edit retains rejected work and starts another publication cleanly
+[316/774] [mobile] › tests\e2e\composer.spec.ts:59:1 › E2E-01 · compositor a pantalla completa con pastillas de red
+[317/774] [mobile] › tests\e2e\composer.spec.ts:102:1 › E2E-02 · contadores por red y tope de hashtags
+[318/774] [mobile] › tests\e2e\composer.spec.ts:138:1 › E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado
+[319/774] [mobile] › tests\e2e\composer.spec.ts:196:1 › E2E-03 · confirmación al salir con cambios sin guardar
+[320/774] [mobile] › tests\e2e\composer.spec.ts:238:1 › E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres
+[321/774] [mobile] › tests\e2e\composer.spec.ts:261:1 › E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas
+[322/774] [mobile] › tests\e2e\composer.spec.ts:274:1 › E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar
+[323/774] [mobile] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: mismo mes
+[324/774] [mobile] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: cambio de mes
+[325/774] [mobile] › tests\e2e\composer.spec.ts:350:1 › E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca
+[326/774] [mobile] › tests\e2e\composer.spec.ts:462:1 › E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar
+[327/774] [mobile] › tests\e2e\composer.spec.ts:498:1 › E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar
+[328/774] [mobile] › tests\e2e\composer.spec.ts:571:1 › E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación
+[329/774] [mobile] › tests\e2e\composer.spec.ts:610:1 › E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada
+[330/774] [mobile] › tests\e2e\composer.spec.ts:641:1 › E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir
+[331/774] [mobile] › tests\e2e\composer.spec.ts:661:1 › E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca
+[332/774] [mobile] › tests\e2e\composer.spec.ts:691:1 › E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor
+[333/774] [mobile] › tests\e2e\composer.spec.ts:711:1 › E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)
+[334/774] [mobile] › tests\e2e\composer.spec.ts:735:1 › A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos
+[335/774] [mobile] › tests\e2e\composer.spec.ts:770:1 › E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado
+[336/774] [mobile] › tests\e2e\composer.spec.ts:857:1 › E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra
+[337/774] [mobile] › tests\e2e\composer.spec.ts:915:1 › E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite
+[338/774] [mobile] › tests\e2e\composer.spec.ts:1002:1 › E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML
+[339/774] [mobile] › tests\e2e\composer.spec.ts:1040:1 › E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía
+[340/774] [mobile] › tests\e2e\composer.spec.ts:1118:1 › E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post
+[341/774] [mobile] › tests\e2e\composer.spec.ts:1144:1 › E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario
+[342/774] [mobile] › tests\e2e\composer.spec.ts:1225:1 › E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco
+[343/774] [mobile] › tests\e2e\csv-export.spec.ts:44:1 › E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada
+[344/774] [mobile] › tests\e2e\first-comment.spec.ts:38:1 › E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo
+[345/774] [mobile] › tests\e2e\first-comment.spec.ts:75:1 › E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo
+[346/774] [mobile] › tests\e2e\first-comment.spec.ts:88:1 › E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino
+[347/774] [mobile] › tests\e2e\first-comment.spec.ts:123:1 › E2E-04 · un comentario publicado no se edita ni se reintenta
+[348/774] [mobile] › tests\e2e\first-comment.spec.ts:135:1 › E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación
+[349/774] [mobile] › tests\e2e\first-comment.spec.ts:165:1 › E2E-04 · sin envío previo no se ofrecen las salidas de duplicado
+[350/774] [mobile] › tests\e2e\flows.spec.ts:12:1 › registro: crea la cuenta y pide verificar el correo
+[351/774] [mobile] › tests\e2e\flows.spec.ts:47:5 › con sesión de un usuario e2e-sec-* › marca → borrador → calendario/lista → papelera → restaurar → biblioteca
+[352/774] [mobile] › tests\e2e\flows.spec.ts:111:5 › con sesión de un usuario e2e-sec-* › SmartLink: crear con un bloque, abrir sin sesión y el clic redirige
+[353/774] [mobile] › tests\e2e\flows.spec.ts:163:5 › con sesión de un usuario e2e-sec-* › API keys: crear y revocar
+[354/774] [mobile] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy
+[355/774] [mobile] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)
+[356/774] [mobile] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican
+[357/774] [mobile] › tests\e2e\hashtags.spec.ts:25:1 › E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta
+[358/774] [mobile] › tests\e2e\hashtags.spec.ts:76:1 › E2E-06 · sin histórico se explica y el menú sigue siendo utilizable
+[359/774] [mobile] › tests\e2e\hashtags.spec.ts:89:1 › E2E-06 · se avisa al superar el máximo de hashtags de Instagram
+[360/774] [mobile] › tests\e2e\inbox-notes.spec.ts:26:1 › E2E-01 · notas del inbox: alta, insignia, filtro y borrado
+[361/774] [mobile] › tests\e2e\inbox-triage.spec.ts:28:1 › E2E-20a · cobertura por red, filtro por red y por estado
+[362/774] [mobile] › tests\e2e\inbox-triage.spec.ts:63:1 › E2E-20b · etiquetas, asignación y filtros
+[363/774] [mobile] › tests\e2e\inbox-triage.spec.ts:101:1 › E2E-20c · lote (leer y cerrar) y respuestas guardadas
+[364/774] [mobile] › tests\e2e\instagram-audio.spec.ts:30:1 › Audio Reel: search select volumes save reopen and remove
+[365/774] [mobile] › tests\e2e\instagram-audio.spec.ts:65:1 › Audio Reel: empty errors and closing preserve the existing choice
+[366/774] [mobile] › tests\e2e\instagram-audio.spec.ts:82:1 › Audio Reel: typing searches and loading more preserves results with retry and filter reset
+[367/774] [mobile] › tests\e2e\instagram-audio.spec.ts:128:1 › Audio Reel: changing a query invalidates slow responses and closing cancels pending typing
+[368/774] [mobile] › tests\e2e\instagram-audio.spec.ts:157:1 › Audio Reel: preview never autoplays defaults are visible and format change clears the track
+[369/774] [mobile] › tests\e2e\instagram-grid.spec.ts:40:1 › E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio
+[370/774] [mobile] › tests\e2e\linkedin-pinterest.spec.ts:51:1 › T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas
+[371/774] [mobile] › tests\e2e\linkedin-pinterest.spec.ts:74:1 › T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado
+[372/774] [mobile] › tests\e2e\linkedin-pinterest.spec.ts:116:1 › T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar
+[373/774] [mobile] › tests\e2e\media-import.spec.ts:36:1 › E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset
+[374/774] [mobile] › tests\e2e\media-import.spec.ts:78:1 › E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza
+[375/774] [mobile] › tests\e2e\media-import.spec.ts:126:1 › E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al terminar la media pasa a la publicación
+[376/774] [mobile] › tests\e2e\media-import.spec.ts:151:1 › E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar
+[377/774] [mobile] › tests\e2e\media-import.spec.ts:168:1 › E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve
+[378/774] [mobile] › tests\e2e\media-import.spec.ts:198:1 › E2E-08 · un aviso de atasco se descarta con «Descartar»
+[379/774] [mobile] › tests\e2e\media-import.spec.ts:216:1 › E2E-08 · se puede cancelar una importación en curso
+[380/774] [mobile] › tests\e2e\media-import.spec.ts:234:1 › E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google
+[381/774] [mobile] › tests\e2e\media-import.spec.ts:298:1 › E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google
+[382/774] [mobile] › tests\e2e\media-import.spec.ts:325:1 › E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error
+[383/774] [mobile] › tests\e2e\media-import.spec.ts:338:1 › E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje
+[384/774] [mobile] › tests\e2e\media-import.spec.ts:353:1 › E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic
+[385/774] [mobile] › tests\e2e\media-import.spec.ts:364:1 › E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real)
+[386/774] [mobile] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison
+[387/774] [mobile] › tests\e2e\natural-schedule.spec.ts:69:1 › E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes
+[388/774] [mobile] › tests\e2e\natural-schedule.spec.ts:112:1 › E2E-07 · descartar la propuesta no cambia nada
+[389/774] [mobile] › tests\e2e\natural-schedule.spec.ts:129:1 › E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha
+[390/774] [mobile] › tests\e2e\natural-schedule.spec.ts:145:1 › E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta
+[391/774] [mobile] › tests\e2e\natural-schedule.spec.ts:160:1 › E2E-07 · con la IA desactivada el campo no aparece
+[392/774] [mobile] › tests\e2e\oauth.spec.ts:111:5 › MCP OAuth · API (sin interfaz) › API-01 · metadatos y 401 con WWW-Authenticate (CA-12, CA-13, CA-14)
+[393/774] [mobile] › tests\e2e\oauth.spec.ts:127:5 › MCP OAuth · API (sin interfaz) › API-02 · DCR: 201 con loopback y 400 con una redirect_uri pública (CA-15)
+[394/774] [mobile] › tests\e2e\oauth.spec.ts:141:5 › MCP OAuth · navegador › E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)
+[395/774] [mobile] › tests\e2e\oauth.spec.ts:199:5 › MCP OAuth · navegador › E2E-06 · 2FA en mitad del flujo y «Denegar» (CA-16, CA-19)
+[396/774] [mobile] › tests\e2e\oauth.spec.ts:244:5 › MCP OAuth · navegador › E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)
+[397/774] [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › portada
+[398/774] [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › login
+[399/774] [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › registro
+[400/774] [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › recuperar contraseña
+[401/774] [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › privacidad
+[402/774] [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › términos
+[403/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard
+[404/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard instagram
+[405/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard facebook
+[406/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard youtube
+[407/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard tiktok
+[408/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario
+[409/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario lista
+[410/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario mes
+[411/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › marcas
+[412/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › nueva marca
+[413/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › informes
+[414/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › api-keys
+[415/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › avisos
+[416/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › perfil
+[417/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › confirmar contraseña
+[418/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › mejores horas
+[419/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › biblioteca
+[420/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › papelera
+[421/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › aprobaciones
+[422/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › series
+[423/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › smartlinks
+[424/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › competidores
+[425/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › autolistas
+[426/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › inbox
+[427/774] [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › meta ads
+[428/774] [mobile] › tests\e2e\pages.spec.ts:28:5 › páginas autenticadas › conexiones de la marca, crear publicación y editar marca
+[429/774] [mobile] › tests\e2e\pages.spec.ts:43:5 › páginas autenticadas › axe en el calendario (solo lectura)
+[430/774] [mobile] › tests\e2e\pages.spec.ts:50:5 › páginas autenticadas › el shell enlaza los módulos nuevos
+[431/774] [mobile] › tests\e2e\report-builder.spec.ts:17:1 › Report builder: blocks, template, PDF download, schedule and brand isolation
+[432/774] [mobile] › tests\e2e\saved-texts.spec.ts:51:1 › E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado
+[433/774] [mobile] › tests\e2e\saved-texts.spec.ts:91:1 › E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor
+[434/774] [mobile] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)
+[435/774] [mobile] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)
+[436/774] [mobile] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03)
+[437/774] [mobile] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04)
+[438/774] [mobile] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)
+[439/774] [mobile] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06)
+[440/774] [mobile] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06)
+[441/774] [mobile] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)
+[442/774] [mobile] › tests\e2e\sites.spec.ts:61:1 › E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar
+[443/774] [mobile] › tests\e2e\sites.spec.ts:302:1 › E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques
+[444/774] [mobile] › tests\e2e\smartlinks-blocks.spec.ts:26:1 › E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque
+[445/774] [mobile] › tests\e2e\social.spec.ts:57:5 › Login social · entrar › E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02)
+[446/774] [mobile] › tests\e2e\social.spec.ts:80:5 › Login social · entrar › E2E-01 · una segunda entrada con la identidad ya vinculada vuelve a entrar
+[447/774] [mobile] › tests\e2e\social.spec.ts:91:5 › Login social · entrar › E2E-02 · Google con 2FA: pide el reto, no hay sesión antes y el TOTP lleva al destino (CA-06)
+[448/774] [mobile] › tests\e2e\social.spec.ts:113:5 › Login social · entrar › E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09)
+[449/774] [mobile] › tests\e2e\social.spec.ts:153:5 › Cuentas vinculadas · perfil › E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07)
+[450/774] [mobile] › tests\e2e\social.spec.ts:184:5 › Cuentas vinculadas · perfil › E2E-04 · una identidad ya vinculada a otro usuario da error y no cambia nada (CA-07)
+[451/774] [mobile] › tests\e2e\social.spec.ts:203:5 › Cuentas vinculadas · perfil › E2E-04 · desvincular bloquea la identidad: ni el login con ella ni Google por email la recuperan (CA-08)
+[452/774] [mobile] › tests\e2e\studio-ai.spec.ts:37:1 › Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion
+[453/774] [mobile] › tests\e2e\studio-ai.spec.ts:59:1 › Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text
+[454/774] [mobile] › tests\e2e\studio-ai.spec.ts:141:1 › Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude
+[455/774] [mobile] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track
+[456/774] [mobile] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds
+[457/774] [mobile] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback
+[458/774] [mobile] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports
+[459/774] [mobile] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export
+[460/774] [mobile] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[461/774] [mobile] › tests\e2e\studio-boards.spec.ts:36:1 › Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF
+[462/774] [mobile] › tests\e2e\studio-boards.spec.ts:160:1 › Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented
+[463/774] [mobile] › tests\e2e\studio-boards.spec.ts:220:1 › Studio: a chart bound to a saved table is inserted, saved, reopened and exported
+[464/774] [mobile] › tests\e2e\studio-boards.spec.ts:263:1 › Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF
+[465/774] [mobile] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors
+[466/774] [mobile] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[467/774] [mobile] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts
+[468/774] [mobile] › tests\e2e\studio-charts.spec.ts:44:1 › E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font
+[469/774] [mobile] › tests\e2e\studio-charts.spec.ts:57:1 › E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility
+[470/774] [mobile] › tests\e2e\studio-charts.spec.ts:89:1 › E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded
+[471/774] [mobile] › tests\e2e\studio-collab.spec.ts:42:1 › Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso
+[472/774] [mobile] › tests\e2e\studio-datasets.spec.ts:136:1 › E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes
+[473/774] [mobile] › tests\e2e\studio-datasets.spec.ts:145:1 › E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file
+[474/774] [mobile] › tests\e2e\studio-datasets.spec.ts:153:1 › E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo
+[475/774] [mobile] › tests\e2e\studio-datasets.spec.ts:167:1 › E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation
+[476/774] [mobile] › tests\e2e\studio-datasets.spec.ts:179:1 › E2E27.05 delayed real reads writes close selection brand discard keyboard and focus
+[477/774] [mobile] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output
+[478/774] [mobile] › tests\e2e\studio-imaging.spec.ts:112:1 › Studio imaging: real private font upload, preview, search, kit, archive and protected deletion
+[479/774] [mobile] › tests\e2e\studio-imaging.spec.ts:186:1 › Studio imaging: real background inference preserves original and a masked filtered result persists and exports
+[480/774] [mobile] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft
+
+
+
+
+[481/774] [mobile] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work
+[482/774] [mobile] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media
+
+
+[483/774] [mobile] › tests\e2e\studio-presentation-media.spec.ts:102:1 › E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only
+[484/774] [mobile] › tests\e2e\studio-presentation-media.spec.ts:136:1 › E2E-29 real fullscreen entry exit focus restoration and owned popup closure
+[485/774] [mobile] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late
+
+
+[486/774] [mobile] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late
+
+
+[487/774] [mobile] › tests\e2e\studio-presentation-tools.spec.ts:83:1 › E2E-29 P3 paused laser pen erase TTL page and blackout compose actual pixels; audience and fullscreen include tools
+[488/774] [mobile] › tests\e2e\studio-presentation-tools.spec.ts:143:1 › E2E-29 P3 timer uses a real own WAV with native start pause resume reset visibility volume mute loop and finish
+[489/774] [mobile] › tests\e2e\studio-presentation-tools.spec.ts:186:1 › E2E-29 P3 pending own timer audio is cancelled by a real close and cannot publish or play after release
+[490/774] [mobile] › tests\e2e\studio-presentations.spec.ts:41:1 › E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen
+[491/774] [mobile] › tests\e2e\studio-presentations.spec.ts:70:1 › E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup
+[492/774] [mobile] › tests\e2e\studio-presentations.spec.ts:103:1 › E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable
+[493/774] [mobile] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document
+[494/774] [mobile] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed
+
+
+[495/774] [mobile] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo
+[496/774] [mobile] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts
+
+
+[497/774] [mobile] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback
+
+
+[498/774] [mobile] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library
+[499/774] [mobile] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand
+[500/774] [mobile] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design
+[501/774] [mobile] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version
+[502/774] [mobile] › tests\e2e\target-media.spec.ts:69:1 › T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado
+[503/774] [mobile] › tests\e2e\target-media.spec.ts:149:1 › T-17 · el error de la media propia nombra la red y bloquea Programar
+[504/774] [mobile] › tests\e2e\target-media.spec.ts:167:1 › T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian
+[505/774] [mobile] › tests\e2e\threads.spec.ts:29:1 › E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde
+[506/774] [mobile] › tests\e2e\threads.spec.ts:48:1 › E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red
+[507/774] [mobile] › tests\e2e\threads.spec.ts:77:1 › E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras
+[508/774] [mobile] › tests\e2e\threads.spec.ts:105:1 › E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8
+[509/774] [mobile] › tests\e2e\threads.spec.ts:133:1 › E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)
+[510/774] [mobile] › tests\e2e\tiktok-audio.spec.ts:26:1 › TikTok photo music: explicit choice persists and switching to video removes it
+[511/774] [mobile] › tests\e2e\tiktok-audio.spec.ts:48:1 › TikTok creator failure stops automatic retries and the retry button can recover
+[512/774] [mobile] › tests\e2e\workflow.spec.ts:48:1 › aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario
+[513/774] [mobile] › tests\e2e\workflow.spec.ts:115:1 › destino manual: el aviso trae el contenido y se marca como publicado con una URL https
+[514/774] [mobile] › tests\e2e\workflow.spec.ts:151:1 › serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse
+[515/774] [mobile] › tests\e2e\workflow.spec.ts:194:1 › lote: reprogramar y cancelar con un resultado parcial por elemento
+[516/774] [mobile] › tests\e2e\workflow.spec.ts:229:1 › reintento: un destino con error vuelve a programarse una sola vez
+[517/774] [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › portada
+[518/774] [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › login
+[519/774] [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › registro
+[520/774] [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › recuperar contraseña
+[521/774] [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › privacidad
+[522/774] [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › términos
+[523/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard
+[524/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard instagram
+[525/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard facebook
+[526/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard youtube
+[527/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard tiktok
+[528/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario
+[529/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario lista
+[530/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario mes
+[531/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › marcas
+[532/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › nueva marca
+[533/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › informes
+[534/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › api-keys
+[535/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › avisos
+[536/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › perfil
+[537/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › confirmar contraseña
+[538/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › mejores horas
+[539/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › biblioteca
+[540/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › papelera
+[541/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › aprobaciones
+[542/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › series
+[543/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › smartlinks
+[544/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › competidores
+[545/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › autolistas
+[546/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › inbox
+[547/774] [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › meta ads
+[548/774] [mobile-360] › tests\e2e\a11y.spec.ts:78:5 › axe · seguridad de cuenta › login con el botón de passkey
+[549/774] [mobile-360] › tests\e2e\a11y.spec.ts:84:5 › axe · seguridad de cuenta › reto 2FA: código y código de recuperación
+[550/774] [mobile-360] › tests\e2e\a11y.spec.ts:98:5 › axe · seguridad de cuenta › Perfil → Seguridad: sin 2FA, QR, códigos, 2FA activo, diálogo y passkeys
+[551/774] [mobile-360] › tests\e2e\a11y.spec.ts:168:5 › axe · login social, cuentas vinculadas y consentimiento › login con «Continuar con Google» y «Continuar con Facebook», y con un rechazo en pantalla
+[552/774] [mobile-360] › tests\e2e\a11y.spec.ts:181:5 › axe · login social, cuentas vinculadas y consentimiento › Perfil → Cuentas vinculadas: sin vincular, vinculada y diálogo de desvincular
+[553/774] [mobile-360] › tests\e2e\a11y.spec.ts:200:5 › axe · login social, cuentas vinculadas y consentimiento › consentimiento OAuth: pantalla de autorización y pantalla de error
+[554/774] [mobile-360] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo
+[555/774] [mobile-360] › tests\e2e\bluesky.spec.ts:26:1 › E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde
+[556/774] [mobile-360] › tests\e2e\bluesky.spec.ts:62:1 › E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página
+[557/774] [mobile-360] › tests\e2e\bluesky.spec.ts:80:1 › E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red)
+[558/774] [mobile-360] › tests\e2e\bluesky.spec.ts:113:1 › E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300
+[559/774] [mobile-360] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation
+[560/774] [mobile-360] › tests\e2e\calendar-views.spec.ts:46:1 › E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar
+[561/774] [mobile-360] › tests\e2e\calendar-views.spec.ts:106:1 › E2E-02 · la vista por defecto se aplica al abrir el calendario
+[562/774] [mobile-360] › tests\e2e\calendar-views.spec.ts:130:1 › E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)
+[563/774] [mobile-360] › tests\e2e\campaigns.spec.ts:37:1 › E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo
+[564/774] [mobile-360] › tests\e2e\campaigns.spec.ts:101:1 › E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días
+[565/774] [mobile-360] › tests\e2e\canva.spec.ts:55:1 › Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar
+[566/774] [mobile-360] › tests\e2e\canva.spec.ts:72:1 › Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar
+[567/774] [mobile-360] › tests\e2e\canva.spec.ts:159:1 › Canva: con un plan de pago el PNG transparente se activa y la exportación lo pide
+[568/774] [mobile-360] › tests\e2e\competitors.spec.ts:27:1 › E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV
+[569/774] [mobile-360] › tests\e2e\composer-presets.spec.ts:5:1 › Presets: global and network panels keep values and reveal collapsed validation fields
+[570/774] [mobile-360] › tests\e2e\composer-presets.spec.ts:80:1 › Presets: validation opens a collapsed global panel and focuses its date field
+[571/774] [mobile-360] › tests\e2e\composer-presets.spec.ts:104:1 › Presets: errors panel can collapse and retains correction links
+[572/774] [mobile-360] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: create retains rejected work and starts another publication cleanly
+[573/774] [mobile-360] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: edit retains rejected work and starts another publication cleanly
+[574/774] [mobile-360] › tests\e2e\composer.spec.ts:59:1 › E2E-01 · compositor a pantalla completa con pastillas de red
+[575/774] [mobile-360] › tests\e2e\composer.spec.ts:102:1 › E2E-02 · contadores por red y tope de hashtags
+[576/774] [mobile-360] › tests\e2e\composer.spec.ts:138:1 › E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado
+[577/774] [mobile-360] › tests\e2e\composer.spec.ts:196:1 › E2E-03 · confirmación al salir con cambios sin guardar
+[578/774] [mobile-360] › tests\e2e\composer.spec.ts:238:1 › E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres
+[579/774] [mobile-360] › tests\e2e\composer.spec.ts:261:1 › E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas
+[580/774] [mobile-360] › tests\e2e\composer.spec.ts:274:1 › E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar
+[581/774] [mobile-360] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: mismo mes
+[582/774] [mobile-360] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: cambio de mes
+[583/774] [mobile-360] › tests\e2e\composer.spec.ts:350:1 › E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca
+[584/774] [mobile-360] › tests\e2e\composer.spec.ts:462:1 › E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar
+[585/774] [mobile-360] › tests\e2e\composer.spec.ts:498:1 › E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar
+[586/774] [mobile-360] › tests\e2e\composer.spec.ts:571:1 › E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación
+[587/774] [mobile-360] › tests\e2e\composer.spec.ts:610:1 › E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada
+[588/774] [mobile-360] › tests\e2e\composer.spec.ts:641:1 › E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir
+[589/774] [mobile-360] › tests\e2e\composer.spec.ts:661:1 › E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca
+[590/774] [mobile-360] › tests\e2e\composer.spec.ts:691:1 › E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor
+[591/774] [mobile-360] › tests\e2e\composer.spec.ts:711:1 › E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)
+[592/774] [mobile-360] › tests\e2e\composer.spec.ts:735:1 › A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos
+[593/774] [mobile-360] › tests\e2e\composer.spec.ts:770:1 › E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado
+[594/774] [mobile-360] › tests\e2e\composer.spec.ts:857:1 › E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra
+[595/774] [mobile-360] › tests\e2e\composer.spec.ts:915:1 › E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite
+[596/774] [mobile-360] › tests\e2e\composer.spec.ts:1002:1 › E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML
+[597/774] [mobile-360] › tests\e2e\composer.spec.ts:1040:1 › E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía
+[598/774] [mobile-360] › tests\e2e\composer.spec.ts:1118:1 › E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post
+[599/774] [mobile-360] › tests\e2e\composer.spec.ts:1144:1 › E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario
+[600/774] [mobile-360] › tests\e2e\composer.spec.ts:1225:1 › E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco
+[601/774] [mobile-360] › tests\e2e\csv-export.spec.ts:44:1 › E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada
+[602/774] [mobile-360] › tests\e2e\first-comment.spec.ts:38:1 › E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo
+[603/774] [mobile-360] › tests\e2e\first-comment.spec.ts:75:1 › E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo
+[604/774] [mobile-360] › tests\e2e\first-comment.spec.ts:88:1 › E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino
+[605/774] [mobile-360] › tests\e2e\first-comment.spec.ts:123:1 › E2E-04 · un comentario publicado no se edita ni se reintenta
+[606/774] [mobile-360] › tests\e2e\first-comment.spec.ts:135:1 › E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación
+[607/774] [mobile-360] › tests\e2e\first-comment.spec.ts:165:1 › E2E-04 · sin envío previo no se ofrecen las salidas de duplicado
+[608/774] [mobile-360] › tests\e2e\flows.spec.ts:12:1 › registro: crea la cuenta y pide verificar el correo
+[609/774] [mobile-360] › tests\e2e\flows.spec.ts:47:5 › con sesión de un usuario e2e-sec-* › marca → borrador → calendario/lista → papelera → restaurar → biblioteca
+[610/774] [mobile-360] › tests\e2e\flows.spec.ts:111:5 › con sesión de un usuario e2e-sec-* › SmartLink: crear con un bloque, abrir sin sesión y el clic redirige
+[611/774] [mobile-360] › tests\e2e\flows.spec.ts:163:5 › con sesión de un usuario e2e-sec-* › API keys: crear y revocar
+[612/774] [mobile-360] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy
+[613/774] [mobile-360] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)
+[614/774] [mobile-360] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican
+[615/774] [mobile-360] › tests\e2e\hashtags.spec.ts:25:1 › E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta
+[616/774] [mobile-360] › tests\e2e\hashtags.spec.ts:76:1 › E2E-06 · sin histórico se explica y el menú sigue siendo utilizable
+[617/774] [mobile-360] › tests\e2e\hashtags.spec.ts:89:1 › E2E-06 · se avisa al superar el máximo de hashtags de Instagram
+[618/774] [mobile-360] › tests\e2e\inbox-notes.spec.ts:26:1 › E2E-01 · notas del inbox: alta, insignia, filtro y borrado
+[619/774] [mobile-360] › tests\e2e\inbox-triage.spec.ts:28:1 › E2E-20a · cobertura por red, filtro por red y por estado
+[620/774] [mobile-360] › tests\e2e\inbox-triage.spec.ts:63:1 › E2E-20b · etiquetas, asignación y filtros
+[621/774] [mobile-360] › tests\e2e\inbox-triage.spec.ts:101:1 › E2E-20c · lote (leer y cerrar) y respuestas guardadas
+[622/774] [mobile-360] › tests\e2e\instagram-audio.spec.ts:30:1 › Audio Reel: search select volumes save reopen and remove
+[623/774] [mobile-360] › tests\e2e\instagram-audio.spec.ts:65:1 › Audio Reel: empty errors and closing preserve the existing choice
+[624/774] [mobile-360] › tests\e2e\instagram-audio.spec.ts:82:1 › Audio Reel: typing searches and loading more preserves results with retry and filter reset
+[625/774] [mobile-360] › tests\e2e\instagram-audio.spec.ts:128:1 › Audio Reel: changing a query invalidates slow responses and closing cancels pending typing
+[626/774] [mobile-360] › tests\e2e\instagram-audio.spec.ts:157:1 › Audio Reel: preview never autoplays defaults are visible and format change clears the track
+[627/774] [mobile-360] › tests\e2e\instagram-grid.spec.ts:40:1 › E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio
+[628/774] [mobile-360] › tests\e2e\linkedin-pinterest.spec.ts:51:1 › T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas
+[629/774] [mobile-360] › tests\e2e\linkedin-pinterest.spec.ts:74:1 › T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado
+[630/774] [mobile-360] › tests\e2e\linkedin-pinterest.spec.ts:116:1 › T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar
+[631/774] [mobile-360] › tests\e2e\media-import.spec.ts:36:1 › E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset
+[632/774] [mobile-360] › tests\e2e\media-import.spec.ts:78:1 › E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza
+[633/774] [mobile-360] › tests\e2e\media-import.spec.ts:126:1 › E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al terminar la media pasa a la publicación
+[634/774] [mobile-360] › tests\e2e\media-import.spec.ts:151:1 › E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar
+[635/774] [mobile-360] › tests\e2e\media-import.spec.ts:168:1 › E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve
+[636/774] [mobile-360] › tests\e2e\media-import.spec.ts:198:1 › E2E-08 · un aviso de atasco se descarta con «Descartar»
+[637/774] [mobile-360] › tests\e2e\media-import.spec.ts:216:1 › E2E-08 · se puede cancelar una importación en curso
+[638/774] [mobile-360] › tests\e2e\media-import.spec.ts:234:1 › E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google
+[639/774] [mobile-360] › tests\e2e\media-import.spec.ts:298:1 › E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google
+[640/774] [mobile-360] › tests\e2e\media-import.spec.ts:325:1 › E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error
+[641/774] [mobile-360] › tests\e2e\media-import.spec.ts:338:1 › E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje
+[642/774] [mobile-360] › tests\e2e\media-import.spec.ts:353:1 › E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic
+[643/774] [mobile-360] › tests\e2e\media-import.spec.ts:364:1 › E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real)
+[644/774] [mobile-360] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison
+[645/774] [mobile-360] › tests\e2e\natural-schedule.spec.ts:69:1 › E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes
+[646/774] [mobile-360] › tests\e2e\natural-schedule.spec.ts:112:1 › E2E-07 · descartar la propuesta no cambia nada
+[647/774] [mobile-360] › tests\e2e\natural-schedule.spec.ts:129:1 › E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha
+[648/774] [mobile-360] › tests\e2e\natural-schedule.spec.ts:145:1 › E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta
+[649/774] [mobile-360] › tests\e2e\natural-schedule.spec.ts:160:1 › E2E-07 · con la IA desactivada el campo no aparece
+[650/774] [mobile-360] › tests\e2e\oauth.spec.ts:111:5 › MCP OAuth · API (sin interfaz) › API-01 · metadatos y 401 con WWW-Authenticate (CA-12, CA-13, CA-14)
+[651/774] [mobile-360] › tests\e2e\oauth.spec.ts:127:5 › MCP OAuth · API (sin interfaz) › API-02 · DCR: 201 con loopback y 400 con una redirect_uri pública (CA-15)
+[652/774] [mobile-360] › tests\e2e\oauth.spec.ts:141:5 › MCP OAuth · navegador › E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)
+[653/774] [mobile-360] › tests\e2e\oauth.spec.ts:199:5 › MCP OAuth · navegador › E2E-06 · 2FA en mitad del flujo y «Denegar» (CA-16, CA-19)
+[654/774] [mobile-360] › tests\e2e\oauth.spec.ts:244:5 › MCP OAuth · navegador › E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)
+[655/774] [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › portada
+[656/774] [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › login
+[657/774] [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › registro
+[658/774] [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › recuperar contraseña
+[659/774] [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › privacidad
+[660/774] [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › términos
+[661/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard
+[662/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard instagram
+[663/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard facebook
+[664/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard youtube
+[665/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard tiktok
+[666/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario
+[667/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario lista
+[668/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario mes
+[669/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › marcas
+[670/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › nueva marca
+[671/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › informes
+[672/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › api-keys
+[673/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › avisos
+[674/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › perfil
+[675/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › confirmar contraseña
+[676/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › mejores horas
+[677/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › biblioteca
+[678/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › papelera
+[679/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › aprobaciones
+[680/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › series
+[681/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › smartlinks
+[682/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › competidores
+[683/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › autolistas
+[684/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › inbox
+[685/774] [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › meta ads
+[686/774] [mobile-360] › tests\e2e\pages.spec.ts:28:5 › páginas autenticadas › conexiones de la marca, crear publicación y editar marca
+[687/774] [mobile-360] › tests\e2e\pages.spec.ts:43:5 › páginas autenticadas › axe en el calendario (solo lectura)
+[688/774] [mobile-360] › tests\e2e\pages.spec.ts:50:5 › páginas autenticadas › el shell enlaza los módulos nuevos
+[689/774] [mobile-360] › tests\e2e\report-builder.spec.ts:17:1 › Report builder: blocks, template, PDF download, schedule and brand isolation
+[690/774] [mobile-360] › tests\e2e\saved-texts.spec.ts:51:1 › E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado
+[691/774] [mobile-360] › tests\e2e\saved-texts.spec.ts:91:1 › E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor
+[692/774] [mobile-360] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)
+[693/774] [mobile-360] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)
+[694/774] [mobile-360] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03)
+[695/774] [mobile-360] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04)
+[696/774] [mobile-360] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)
+[697/774] [mobile-360] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06)
+[698/774] [mobile-360] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06)
+[699/774] [mobile-360] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)
+[700/774] [mobile-360] › tests\e2e\sites.spec.ts:61:1 › E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar
+[701/774] [mobile-360] › tests\e2e\sites.spec.ts:302:1 › E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques
+[702/774] [mobile-360] › tests\e2e\smartlinks-blocks.spec.ts:26:1 › E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque
+[703/774] [mobile-360] › tests\e2e\social.spec.ts:57:5 › Login social · entrar › E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02)
+[704/774] [mobile-360] › tests\e2e\social.spec.ts:80:5 › Login social · entrar › E2E-01 · una segunda entrada con la identidad ya vinculada vuelve a entrar
+[705/774] [mobile-360] › tests\e2e\social.spec.ts:91:5 › Login social · entrar › E2E-02 · Google con 2FA: pide el reto, no hay sesión antes y el TOTP lleva al destino (CA-06)
+[706/774] [mobile-360] › tests\e2e\social.spec.ts:113:5 › Login social · entrar › E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09)
+[707/774] [mobile-360] › tests\e2e\social.spec.ts:153:5 › Cuentas vinculadas · perfil › E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07)
+[708/774] [mobile-360] › tests\e2e\social.spec.ts:184:5 › Cuentas vinculadas · perfil › E2E-04 · una identidad ya vinculada a otro usuario da error y no cambia nada (CA-07)
+[709/774] [mobile-360] › tests\e2e\social.spec.ts:203:5 › Cuentas vinculadas · perfil › E2E-04 · desvincular bloquea la identidad: ni el login con ella ni Google por email la recuperan (CA-08)
+[710/774] [mobile-360] › tests\e2e\studio-ai.spec.ts:37:1 › Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion
+[711/774] [mobile-360] › tests\e2e\studio-ai.spec.ts:59:1 › Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text
+[712/774] [mobile-360] › tests\e2e\studio-ai.spec.ts:141:1 › Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude
+[713/774] [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track
+[714/774] [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds
+[715/774] [mobile-360] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback
+[716/774] [mobile-360] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports
+[717/774] [mobile-360] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export
+[718/774] [mobile-360] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[719/774] [mobile-360] › tests\e2e\studio-boards.spec.ts:36:1 › Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF
+[720/774] [mobile-360] › tests\e2e\studio-boards.spec.ts:160:1 › Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented
+[721/774] [mobile-360] › tests\e2e\studio-boards.spec.ts:220:1 › Studio: a chart bound to a saved table is inserted, saved, reopened and exported
+[722/774] [mobile-360] › tests\e2e\studio-boards.spec.ts:263:1 › Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF
+[723/774] [mobile-360] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors
+[724/774] [mobile-360] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[725/774] [mobile-360] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts
+[726/774] [mobile-360] › tests\e2e\studio-charts.spec.ts:44:1 › E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font
+[727/774] [mobile-360] › tests\e2e\studio-charts.spec.ts:57:1 › E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility
+[728/774] [mobile-360] › tests\e2e\studio-charts.spec.ts:89:1 › E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded
+[729/774] [mobile-360] › tests\e2e\studio-collab.spec.ts:42:1 › Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso
+[730/774] [mobile-360] › tests\e2e\studio-datasets.spec.ts:136:1 › E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes
+[731/774] [mobile-360] › tests\e2e\studio-datasets.spec.ts:145:1 › E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file
+[732/774] [mobile-360] › tests\e2e\studio-datasets.spec.ts:153:1 › E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo
+[733/774] [mobile-360] › tests\e2e\studio-datasets.spec.ts:167:1 › E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation
+[734/774] [mobile-360] › tests\e2e\studio-datasets.spec.ts:179:1 › E2E27.05 delayed real reads writes close selection brand discard keyboard and focus
+[735/774] [mobile-360] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output
+[736/774] [mobile-360] › tests\e2e\studio-imaging.spec.ts:112:1 › Studio imaging: real private font upload, preview, search, kit, archive and protected deletion
+[737/774] [mobile-360] › tests\e2e\studio-imaging.spec.ts:186:1 › Studio imaging: real background inference preserves original and a masked filtered result persists and exports
+[738/774] [mobile-360] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft
+
+
+
+
+[739/774] [mobile-360] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work
+[740/774] [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media
+
+
+[741/774] [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:102:1 › E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only
+[742/774] [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:136:1 › E2E-29 real fullscreen entry exit focus restoration and owned popup closure
+[743/774] [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late
+
+
+[744/774] [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late
+
+
+[745/774] [mobile-360] › tests\e2e\studio-presentation-tools.spec.ts:83:1 › E2E-29 P3 paused laser pen erase TTL page and blackout compose actual pixels; audience and fullscreen include tools
+[746/774] [mobile-360] › tests\e2e\studio-presentation-tools.spec.ts:143:1 › E2E-29 P3 timer uses a real own WAV with native start pause resume reset visibility volume mute loop and finish
+[747/774] [mobile-360] › tests\e2e\studio-presentation-tools.spec.ts:186:1 › E2E-29 P3 pending own timer audio is cancelled by a real close and cannot publish or play after release
+[748/774] [mobile-360] › tests\e2e\studio-presentations.spec.ts:41:1 › E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen
+[749/774] [mobile-360] › tests\e2e\studio-presentations.spec.ts:70:1 › E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup
+[750/774] [mobile-360] › tests\e2e\studio-presentations.spec.ts:103:1 › E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable
+[751/774] [mobile-360] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document
+[752/774] [mobile-360] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed
+
+
+[753/774] [mobile-360] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo
+[754/774] [mobile-360] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts
+
+
+[755/774] [mobile-360] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback
+
+
+[756/774] [mobile-360] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library
+[757/774] [mobile-360] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand
+[758/774] [mobile-360] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design
+[759/774] [mobile-360] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version
+[760/774] [mobile-360] › tests\e2e\target-media.spec.ts:69:1 › T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado
+[761/774] [mobile-360] › tests\e2e\target-media.spec.ts:149:1 › T-17 · el error de la media propia nombra la red y bloquea Programar
+[762/774] [mobile-360] › tests\e2e\target-media.spec.ts:167:1 › T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian
+[763/774] [mobile-360] › tests\e2e\threads.spec.ts:29:1 › E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde
+[764/774] [mobile-360] › tests\e2e\threads.spec.ts:48:1 › E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red
+[765/774] [mobile-360] › tests\e2e\threads.spec.ts:77:1 › E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras
+[766/774] [mobile-360] › tests\e2e\threads.spec.ts:105:1 › E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8
+[767/774] [mobile-360] › tests\e2e\threads.spec.ts:133:1 › E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)
+[768/774] [mobile-360] › tests\e2e\tiktok-audio.spec.ts:26:1 › TikTok photo music: explicit choice persists and switching to video removes it
+[769/774] [mobile-360] › tests\e2e\tiktok-audio.spec.ts:48:1 › TikTok creator failure stops automatic retries and the retry button can recover
+[770/774] [mobile-360] › tests\e2e\workflow.spec.ts:48:1 › aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario
+[771/774] [mobile-360] › tests\e2e\workflow.spec.ts:115:1 › destino manual: el aviso trae el contenido y se marca como publicado con una URL https
+[772/774] [mobile-360] › tests\e2e\workflow.spec.ts:151:1 › serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse
+[773/774] [mobile-360] › tests\e2e\workflow.spec.ts:194:1 › lote: reprogramar y cancelar con un resultado parcial por elemento
+[774/774] [mobile-360] › tests\e2e\workflow.spec.ts:229:1 › reintento: un destino con error vuelve a programarse una sola vez
+  2 skipped
+  772 passed (1.5h)

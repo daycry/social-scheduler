@@ -19,8 +19,8 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 | Fase 2 | 6 | 6 | 100 % |
 | Fase 3 | 7 | 7 | 100 % |
 | Fase 4 | 5 | 5 | 100 % |
-| Fase 5 | 0 | 2 | 0 % |
-| **Total** | **21** | **23** | **91 %** |
+| Fase 5 | 1 | 2 | 50 % |
+| **Total** | **22** | **23** | **96 %** |
 
 ## Fase 1 — Investigación y consistencia
 
@@ -744,14 +744,16 @@ Verificación: Pest completo **3325 tests, 3316 pass, 9 skip, 21190 aserciones**
 ## Fase 5 — Integración y cierre
 
 ### T-22 — QA integral y revisión independiente
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-11-10
+- **Changelog**: QA integral de toda la suite: Pest, tests de frontend y E2E en escritorio y dos móviles con accesibilidad, más una auditoría global independiente de código y documentación con sus hallazgos corregidos.
 - **Archivos**: `playwright.config.ts`, `tests/e2e/isolated/**`, `tests/e2e/studio.spec.ts`, `tests/e2e/metrics-quality.spec.ts`, `tests/e2e/brand-reporting.spec.ts`, `docs/roadmap/2026-11-03-creative-social-suite/testing/**`
 - **Cubre (tests)**: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06
 - **Verificación**: Revisión adversarial A/B/C/D según selector, suites focales/completa apropiadas, E2E del test-plan.md y qa-gate sobre JSON real; cero gaps Critical/Important pendientes.
 
 **Criterios de aceptación**
 
-- [ ] Matriz completa, regresiones, seguridad de permisos/datos, rendimiento y accesibilidad con evidencias; cada limitación externa permanece explícita.
+- [x] Matriz completa, regresiones, seguridad de permisos/datos, rendimiento y accesibilidad con evidencias; cada limitación externa permanece explícita.
 
 **E2E rojos revisados 2026-11-09** (inventario del usuario y pasada completa de `npx playwright test`; ningún fixme queda, el único `test.skip` es el condicional de móvil en `pages.spec.ts`):
 
@@ -797,6 +799,8 @@ Skipped (5, todos esperados): 3 del segundo caso de `gif-picker` E2E-09 (serial,
 No hay `fixme`. No se ha repetido la pasada completa tras las correcciones (1,8 h): el veredicto global de `qa-gate` sobre una sola pasada es NO-VERDE y la verde corresponde a la repetición dirigida.
 
 **Limitaciones externas (no verificadas, del usuario):** smokes reales de LinkedIn, Pinterest, Instagram, OpenAI y Google AI, Canva, y bandeja de entrada de Threads y YouTube. Todo lo anterior se ha ejecutado contra servidor desechable, proveedores simulados y sin red externa, Docker, workers, scheduler ni ngrok.
+
+**Cierre T-22 (2026-11-10, pasada final sobre HEAD congelado, tras todas las correcciones de la auditoría global)**: `npm run build` exit 0; Pest 3581 tests, 3572 passed, 9 skipped, 22 753 aserciones (`testing/t22/pest-final.txt`); E2E completo 774 tests en desktop/375/360: 772 passed, 2 skipped (condicionales de móvil de `pages.spec.ts`), 0 failed, 0 flaky, 1,5 h (`testing/t22/e2e-final-list.txt`); `qa-gate.py` sobre el JSON real: **VERDE**, exit 0 (`testing/t22/qa-gate-final.json`). Los dos rojos intermitentes de la pasada anterior (`security` E2E-03 y `studio-captions` mobile-360) coincidieron con agentes recompilando assets y cambiando código durante esa pasada; no se repitieron en la final. Auditoría global con Claude Code CLI: código (3 gaps: 2 Important, 1 Minor, más el endurecimiento de colaboradores, todos corregidos con test rojo previo; ver «Revisión de dos lentes — intento 1: Fase QA (T-22)») y documentación (corregida en T-23). Cero Critical/Important pendientes. Limitaciones externas: los smokes reales (LinkedIn, Pinterest, opciones de IG, IA OpenAI/Google, Canva, inbox de Threads/YouTube/Bluesky) siguen siendo del usuario y están en `docs/referencia/pendientes-manuales.md`.
 
 ### T-23 — Documentación, despliegue y entrega git
 - **Estado**: en-progreso

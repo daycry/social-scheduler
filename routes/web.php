@@ -180,6 +180,7 @@ Route::get('reports/{report}/download/{owner}', [ReportController::class, 'downl
 
 require __DIR__.'/parity.php';
 require __DIR__.'/sites.php';
+require __DIR__.'/canva.php';
 require __DIR__.'/studio.php';
 require __DIR__.'/post-workflow.php';
 

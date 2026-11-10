@@ -151,6 +151,9 @@ class AppServiceProvider extends ServiceProvider
 
         // IA creativa del estudio (T-14): cada llamada puede costar dinero al proveedor; limite por usuario ademas de la cuota diaria.
         RateLimiter::for('studio-ai', fn (Request $request) => Limit::perMinute(6)->by('studio-ai:'.($request->user()?->id ?? $request->ip())));
+        // Canva (T-16): llamadas a la API de Canva por usuario; conectar/retorno mas estricto.
+        RateLimiter::for('canva', fn (Request $request) => Limit::perMinute(30)->by('canva:'.($request->user()?->id ?? $request->ip())));
+        RateLimiter::for('canva-connect', fn (Request $request) => Limit::perMinute(10)->by('canva-connect:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('studio-ai-text', fn (Request $request) => Limit::perMinute(12)->by('studio-ai-text:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
         // Colaboradores de marca (T-19): invitaciones 10/min por usuario; lotes de publicaciones 10/min por usuario.

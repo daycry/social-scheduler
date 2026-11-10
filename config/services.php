@@ -68,6 +68,27 @@ return [
     ],
 
     /*
+    | Canva Connect API (T-16): integracion oficial por marca (OAuth 2.0 con PKCE). Sin `CANVA_CLIENT_ID` y `CANVA_CLIENT_SECRET` la funcion
+    | aparece como «no configurada». El secreto NUNCA va al navegador. Redirect URL a registrar en Canva Developers:
+    | ${APP_URL}/canva/callback; Return URL (navegacion de retorno): ${APP_URL}/canva/return. Exportar solo lee del diseno; nada se compra ni se publica.
+    */
+    'canva' => [
+        'client_id' => env('CANVA_CLIENT_ID'),
+        'client_secret' => env('CANVA_CLIENT_SECRET'),
+        'api_base' => 'https://api.canva.com/rest/v1',
+        'authorize_url' => 'https://www.canva.com/api/oauth/authorize',
+        'scopes' => ['profile:read', 'design:meta:read', 'design:content:read', 'design:content:write', 'asset:read', 'asset:write'],
+        /* Hosts desde los que se descargan los ficheros exportados (cada salto de redireccion debe cumplirlo, ademas de UrlGuard). */
+        'download_host_pattern' => '/^(?:[a-z0-9-]+\.)*canva\.com$/',
+        /* Sondeo acotado de los trabajos de Canva: como mucho `max_polls` consultas, esperando `poll_delay` segundos entre ellas. */
+        'max_polls' => 40,
+        'poll_delay' => 3,
+        'max_active_jobs' => 3,
+        'max_pages' => 10,
+        'timeout' => 20,
+    ],
+
+    /*
     | Threads (C-02, D2): la app de Meta tiene DOS pares de ID y secreto; aqui van los de Threads (Configuracion > Basica > «Threads App ID»).
     | Sin `THREADS_APP_ID` la red no se ofrece. Redirect URI: ${APP_URL}/connections/threads/callback.
     */

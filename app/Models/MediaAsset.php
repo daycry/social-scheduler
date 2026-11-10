@@ -33,6 +33,8 @@ class MediaAsset extends Model
 
     public const SOURCE_GIPHY = 'giphy';
 
+    public const SOURCE_CANVA = 'canva';
+
     public const KIND_IMAGE = 'image';
 
     public const KIND_VIDEO = 'video';
@@ -46,7 +48,7 @@ class MediaAsset extends Model
 
     protected $attributes = ['source' => self::SOURCE_UPLOAD];
 
-    protected $hidden = ['upload_id', 'source_ref', 'import_state'];
+    protected $hidden = ['upload_id', 'source_ref', 'import_state', 'origin'];
 
     protected function casts(): array
     {
@@ -58,6 +60,7 @@ class MediaAsset extends Model
             'duration' => 'float',
             'fps' => 'float',
             'import_state' => 'array',
+            'origin' => 'array',
         ];
     }
 
@@ -133,6 +136,8 @@ class MediaAsset extends Model
             'status' => $this->status,
             'error' => $this->error,
             'source' => $this->source,
+            // Origen explicito de un recurso importado de Canva (T-16): id del diseño y enlace, nada mas.
+            'origin' => $this->source === self::SOURCE_CANVA ? $this->publicOrigin() : null,
             // Progreso de una importacion remota (barra de progreso). Nunca la URL, el validador ni el resto de `import_state`.
             'bytes' => $this->import_state['bytes'] ?? null,
             'total' => $this->import_state['total'] ?? null,
@@ -140,6 +145,22 @@ class MediaAsset extends Model
             'runs' => $this->import_state['runs'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
             'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
+        ];
+    }
+
+    /** @return array{provider: string, label: string, design_id: ?string, url: ?string, title: ?string}|null */
+    public function publicOrigin(): ?array
+    {
+        $origin = (array) $this->origin;
+        if (($origin['provider'] ?? null) !== 'canva') {
+            return null;
+        }
+
+        return [
+            'provider' => 'canva', 'label' => 'Canva',
+            'design_id' => is_string($origin['design_id'] ?? null) ? $origin['design_id'] : null,
+            'url' => is_string($origin['url'] ?? null) ? $origin['url'] : null,
+            'title' => is_string($origin['title'] ?? null) ? $origin['title'] : null,
         ];
     }
 }

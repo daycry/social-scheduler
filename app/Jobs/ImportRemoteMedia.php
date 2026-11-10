@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\MediaAsset;
+use App\Services\Canva\CanvaSource;
 use App\Services\Media\DriveFileSource;
 use App\Services\Media\GiphySource;
 use App\Services\Media\RemoteMediaImporter;
@@ -81,6 +82,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
         return match ($asset->source) {
             MediaAsset::SOURCE_URL => new UrlSource(app(UrlGuard::class), $this->reference),
             MediaAsset::SOURCE_GIPHY => new GiphySource(app(UrlGuard::class), $this->reference),
+            MediaAsset::SOURCE_CANVA => new CanvaSource(app(UrlGuard::class), $this->reference),
             MediaAsset::SOURCE_DRIVE => new DriveFileSource(app(UrlGuard::class), $this->reference, (string) $this->token),
             default => throw new \LogicException("Origen de importacion desconocido: {$asset->source}"),
         };

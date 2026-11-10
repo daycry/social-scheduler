@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/posts-api.php';
 require __DIR__.'/post-workflow-api.php';
+require __DIR__.'/canva-api.php';
 require __DIR__.'/studio-captions-api.php';
 require __DIR__.'/studio-collab-api.php';
 require __DIR__.'/studio-datasets-api.php';

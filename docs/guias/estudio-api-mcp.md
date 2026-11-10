@@ -1,6 +1,6 @@
 # Estudio nativo: API, MCP y render en servidor
 
-Actualizado: 2026-11-05. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; La interfaz, API y MCP incorporan MP4/GIF en el árbol de trabajo; la QA integral del padre sigue pendiente.
+Actualizado: 2026-11-10. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; La interfaz, API y MCP incorporan MP4/GIF; la [QA integral local de T-07/T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada. Las pruebas locales no acreditan el despliegue en el VPS.
 
 Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
 
@@ -15,6 +15,9 @@ La API está en `/api/v1`; MCP en `/mcp`. Ambos aceptan una API key personal com
 | `stats:read` | Consultar métricas mediante la API o `get_stats`. |
 | `brands:read` | Usar las herramientas previas `list_brands` y `list_media`. |
 | `posts:write` | Importar un archivo con la herramienta previa `import_media_from_url`; crear una publicación con `create_post`. |
+| `canva:read` | Estado de Canva de una marca, diseños de Canva y trabajos de importación (`manage_canva`, `GET /brands/{brand}/canva*`). Ver [Canva](../modulos/canva.md). |
+| `canva:write` | Exportar un diseño de Canva a la biblioteca o enviar un recurso a Canva (`manage_canva`, `POST .../canva/exports` y `.../canva/uploads`). No compra ni publica nada. |
+| `studio:ai` | Generar y editar imágenes con IA (`generate_studio_image`, `/brands/{brand}/ai*`). Consume la cuota del proveedor; `designs:write` no basta. Ver [IA del estudio](../modulos/estudio-ia.md). |
 
 `designs:write` no concede automáticamente `designs:read`. Para un flujo completo de diseño y seguimiento selecciona ambas. El preset «Publicar» incluye las abilities de lectura, pero debes añadir `designs:write` si quieres crear diseños. Todos los recursos se comprueban contra el usuario de la key y la marca correspondiente.
 
@@ -56,7 +59,7 @@ Estos son fotogramas locales de páginas. Las transiciones entre páginas y la m
 
 ## API: rutas y respuestas
 
-El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP actual del árbol de trabajo:41herramientas.
+El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP del servidor: 57 herramientas (paginadas de 30 en 30).
 
 Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve el paginador en el nivel superior: `.data`, `.current_page`, `.last_page`, `.total`. Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
 
@@ -215,7 +218,7 @@ Envía ese cuerpo a `POST /api/v1/designs/{template}/instantiate`. Los envoltori
 
 Para redimensionar, envía `revision`, `width`, `height` y `mode` (`canvas`, `contain` o `cover`). Para variantes, envía `revision` y `variants: [{name,width,height,mode}]`; añade `fields` si la fuente contiene campos y `apply_brand_kit` si corresponde. Se permiten hasta doce variantes, con un máximo acumulado de 8 MiB de documentos y 20000 elementos. Si falla una variante no se crea ninguna.
 
-MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo actual contiene42herramientas, incluidas las ampliaciones de fuentes, imagen, audio, subtítulos y datasets. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
+MCP reutiliza `manage_design` con acciones `template`, `instantiate`, `resize`, `variants` y `apply-kit`, además de las anteriores. El resto de argumentos son los del servicio compartido, junto a `design_id`; se requiere `designs:write`. El catálogo del servidor contiene 57 herramientas, incluidas las ampliaciones de fuentes, imagen, audio, subtítulos y datasets. El [contrato de automatización](../roadmap/2026-11-03-creative-social-suite/t09-automation.md) detalla estilos, copias, modos y conflictos.
 
 Al restaurar desde el historial un documento anterior a un cambio de kit, `PATCH /designs/{design}` y MCP `update_design` admiten `kit_revision`: número de una revisión guardada del mismo diseño. El servidor recupera de ella la referencia del kit; no acepta referencias de otro diseño o usuario. El editor conserva ese dato en undo/redo, guardado y recuperación para que las aplicaciones posteriores del kit reconozcan los estilos restaurados. Sin ese argumento, una actualización conserva la referencia actual.
 
@@ -310,7 +313,7 @@ MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, des
 
 ## MCP: herramientas de diseño y flujo de trabajo
 
-El servidor del árbol de trabajo anuncia42herramientas en total. `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
+El servidor registra 57 herramientas en total (incluidas las sociales). `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
 
 ```bash
 curl --fail "$BASE/mcp" \
@@ -390,7 +393,7 @@ El modelo se instala en `storage/app/private/studio-models/birefnet-general-lite
 
 En el editor, **Tipografías de marca** permite subir, buscar, previsualizar, archivar/restaurar y eliminar fuentes sin referencias. El selector de texto y la identidad de marca utilizan los archivos de esa marca. `font_id` positivo en texto identifica el archivo, mientras `fontFamily` conserva su familia; `font_ids` en el kit se alinea con `fonts`. No inventes IDs ni uses una URL externa: `get_design` devuelve la metadata necesaria y el renderer recibe los bytes verificados. Una fuente archivada usada por un diseño continúa cargándose. Un archivo ausente o corrupto produce un error explícito.
 
-MCP incorpora `manage_studio_font` (`list/get/upload/archive/restore/delete`; upload `file_base64` y `name` opcional) y `process_studio_image` (`start/get`). Con la ampliación posterior de audio, el catálogo total contiene42herramientas: sigue `nextCursor`. Para quitar fondo, registra primero el `media_id` como recurso de la marca; `start` devuelve `{job}` y `get` devuelve `queued`, `processing`, `ready` o `failed`. `ready` incluye una nueva `output_asset`, que se puede añadir con su ID al diseño; conserva el original. Errores de instalación o procesamiento incluyen `error_code` y mensaje, sin rutas privadas. La interfaz consulta periódicamente hasta cinco minutos y permite volver a consultar después. Ocultar el panel no cancela el worker.
+MCP incorpora `manage_studio_font` (`list/get/upload/archive/restore/delete`; upload `file_base64` y `name` opcional) y `process_studio_image` (`start/get`). El catálogo total del servidor son 57 herramientas: sigue `nextCursor` (`tools/list` pagina de 30 en 30). Para quitar fondo, registra primero el `media_id` como recurso de la marca; `start` devuelve `{job}` y `get` devuelve `queued`, `processing`, `ready` o `failed`. `ready` incluye una nueva `output_asset`, que se puede añadir con su ID al diseño; conserva el original. Errores de instalación o procesamiento incluyen `error_code` y mensaje, sin rutas privadas. La interfaz consulta periódicamente hasta cinco minutos y permite volver a consultar después. Ocultar el panel no cancela el worker.
 
 Las imágenes admiten `mask: {type: "ellipse"}` o `mask: {type: "rounded_rect", radius: 24}` además de los filtros y el recorte tipados del documento. La máscara y el archivo de fuente se conservan al guardar/reabrir y al exportar PNG/JPEG/WebP/SVG/PDF.
 
@@ -469,7 +472,7 @@ El estilo común admite familia del sistema o `font_id` de la misma marca, tama�
 
 Los separadores de cues SRT/WebVTT admiten dos o más saltos de línea consecutivos, incluidos archivos CRLF. En el documento se conservan los saltos y el texto original. Si un cue contiene líneas vacías iniciales, finales o internas, la descarga SRT/VTT pide editarlas: el formato no puede conservarlas sin ambigüedad, y el exportador no las recorta ni modifica la pista o su render. Los espacios, tabuladores, Unicode y los saltos entre líneas no vacías sí se conservan.
 
-La herramienta MCP dedicada `manage_design_captions` utiliza estas mismas operaciones con `design_id`. `action:get` y `action:export` requieren `designs:read`; las mutaciones requieren `designs:write`. `export` devuelve `{revision,format,filename,mime,text}` sin rutas privadas. SRT/VTT no se añaden a los siete formatos de `export_design`; este último sigue gestionando las salidas visuales y audiovisuales. El catálogo del árbol contiene42herramientas y mantiene paginación de30.
+La herramienta MCP dedicada `manage_design_captions` utiliza estas mismas operaciones con `design_id`. `action:get` y `action:export` requieren `designs:read`; las mutaciones requieren `designs:write`. `export` devuelve `{revision,format,filename,mime,text}` sin rutas privadas. SRT/VTT no se añaden a los siete formatos de `export_design`; este último sigue gestionando las salidas visuales y audiovisuales. El catálogo del servidor contiene 57 herramientas y mantiene paginación de 30.
 
 Al exportar páginas, los runs contiguos conservan un único reloj fuente. Una página A de2s exportada sola conserva un cue1,8–1,95s entero aunque tuviera una transición original. En transiciones del resultado entre runs disjuntos, la fuente visual de subtítulos cambia en el punto medio del solapamiento para evitar duplicación o atenuación; el documento original permanece intacto.
 
@@ -508,7 +511,7 @@ La herramienta MCP `manage_studio_dataset` admite `list`, `get`, `create`, `repl
 {"action":"rows","brand_id":12,"dataset_id":23,"revision":1,"offset":0,"limit":50}
 ```
 
-La acción MCP `import` recibe `text` en lugar de un archivo. `export` devuelve `download_url`, revisión, SHA y formato; el enlace requiere un bearer con `designs:read`. Los clientes con mensajes pequeños pueden usar la API multipart autenticada. Todavía no existe un protocolo de chunks para datasets. El catálogo actual contiene42 herramientas y se obtiene acumulando páginas de30 con `nextCursor`.
+La acción MCP `import` recibe `text` en lugar de un archivo. `export` devuelve `download_url`, revisión, SHA y formato; el enlace requiere un bearer con `designs:read`. Los clientes con mensajes pequeños pueden usar la API multipart autenticada. Todavía no existe un protocolo de chunks para datasets. El catálogo actual contiene 57 herramientas y se obtiene acumulando páginas de 30 con `nextCursor`.
 
 Los cuerpos JSON de datasets se limitan a53MiB antes de decodificar; el transporte MCP permite160MiB para envoltorios Unicode habituales. El dataset conserva su límite de52MB. Multipart requiere configurar el servidor para aceptar al menos64MiB. El ensayo TCP local aceptó una tabla JSON de52.000.000bytes mediante un envoltorio MCP de155.970.107bytes; PHP512MiB tuvo un pico de asignador465.567.744bytes. CSVmultipart25.000.000bytes también se comprobó porTCP. La aplicación no aumenta automáticamente la memoria de producción; estas pruebas no certifican FPM, proxy o VPS del usuario.
 

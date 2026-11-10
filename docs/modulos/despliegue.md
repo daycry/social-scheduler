@@ -29,6 +29,11 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 - HestiaCP con Nginx + PHP-FPM 8.4/8.5 y MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED` para varios workers).
 - Extensiones PHP: `mbstring intl pdo_mysql bcmath gd curl xml zip` y, para las passkeys, `openssl` y `sodium` (ver [Seguridad de cuenta](#seguridad-de-cuenta-2fa-y-passkeys)). Composer 2 y Node 22. En el PHP de **consola**, `pcntl` sin desactivar (lo necesita `queue:work`; ver [Cron y workers](#cron-y-workers)).
 - `ffprobe` en el PATH de PHP-FPM y de los workers (`FFPROBE_BINARY`). `ffmpeg` (`FFMPEG_BINARY`) es **recomendado**: recomprime con poca memoria las fotos de más de 2 MB para Bluesky; sin él se usa GD, que carga la imagen entera.
+- **Runtime del Estudio** (render, quitar fondo y MP4/GIF; detalle en la [guía del estudio](../guias/estudio-api-mcp.md) y en [Estudio](estudio.md)):
+  - Node nativo y las dependencias JavaScript de ejecución (`playwright`, `fabric`, `pdf-lib`) en el host de los workers, con `npm run build` (genera `public/build/studio-renderer.js`).
+  - **Chromium de Playwright** instalado en runtime (`npx playwright install --with-deps chromium`) y las fuentes del sistema que usen los diseños. `STUDIO_CHROMIUM_PATH` y `PLAYWRIGHT_BROWSERS_PATH` si se comparte la ubicación.
+  - **Python ≥ 3.12 con el modelo de quitar fondos**: `python3 scripts/studio/setup-runtime.py --download-model` y `--check` (modelo `birefnet-general-lite.onnx`, 224 MB, fuera de Git). `STUDIO_PYTHON_BINARY` si no se usa el entorno privado por defecto.
+  - **Worker `studio` (MP4/GIF)**: FFmpeg/ffprobe, y un kernel con **cgroupv2** (Linux ≥ 5.14, `cgroup.kill`) y una unidad systemd con `Delegate=yes`: ver [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
 - Almacenamiento de media: **disco local del servidor** (este despliegue, ver [Almacenamiento de media](#almacenamiento-de-media)) o un bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
 
 ## Pasos
@@ -36,7 +41,7 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 1. Dominio, TLS y BD con los comandos `v-add-web-domain`, `v-add-letsencrypt-domain`, `v-add-database` (plantilla `laravel`, docroot `public/`).
 2. Ajustes de Nginx (`deploy/hestia/nginx-overrides.conf`) y PHP-FPM (`upload_max_filesize=512M`, `post_max_size=512M`, `memory_limit=256M`, `max_execution_time=300`; con media local las subidas pasan por PHP).
 3. Primera instalación: clonar, `cp .env.production.example .env`, `chmod 600 .env`, `composer install --no-dev`, `key:generate`, `migrate --force`.
-4. Scheduler y workers: cuatro tareas en el cron de Hestia, o el scheduler en cron y los workers en systemd (ver [Cron y workers](#cron-y-workers)).
+4. Scheduler y workers: cuatro tareas en el cron de Hestia (más el worker `studio` si se exportan MP4/GIF, que no cabe en el cron: ver más abajo), o el scheduler en cron y los workers en systemd (ver [Cron y workers](#cron-y-workers)).
 5. Comprobar que procesan: `app:queue-probe` y `app:health`.
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
 7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
@@ -126,7 +131,7 @@ Qué hace cada opción:
 | `flock -n <lock>` | Si el worker anterior sigue trabajando, el nuevo no arranca: nunca hay dos a la vez sobre la misma cola. `~/tmp` existe en Hestia y es privado del usuario |
 | `--stop-when-empty` | El worker termina al vaciar la cola, en vez de quedarse vivo |
 | `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min) |
-| `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
+| `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces. El `$timeout` de cada job (≤ 110 s) es menor que este valor, que a su vez es menor que `retry_after` (180 s) |
 
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
 
@@ -136,7 +141,7 @@ Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y
 
 ### Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2 y 3 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
 
 Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola:
 
@@ -144,9 +149,24 @@ Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la 
 sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media
 ```
 
-Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). No hace falta ningún worker nuevo: `QUEUE_NAMES` sigue siendo `publish,poll,metrics,reports,media`.
+La cola `studio` (MP4/GIF) **no** usa esta plantilla: tiene su propia unidad, descrita en [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
 
-Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). `--timeout` (120 s) debe ser mayor que el job más largo y menor que `retry_after` (180 s). Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`.
+Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). Las redes añadidas después (LinkedIn y Pinterest) también publican por `publish` y su refresco de token va por `poll`. Para esas colas no hace falta ningún worker nuevo, pero el Estudio añade uno: el de la cola `studio`. `QUEUE_NAMES` por defecto es `publish,poll,metrics,reports,media,studio` (seis colas).
+
+Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: `$timeout` de cada job (hasta 110 s; 100 s en los jobs de Canva y de fases audiovisuales) < `--timeout` del worker (120 s) < `retry_after` de la cola (180 s, `DB_QUEUE_RETRY_AFTER`), y `TimeoutStopSec` de systemd (130 s) > `--timeout`. Si el job no fuera estrictamente menor que el worker, este lo mataría antes de que el job pudiera fallar limpiamente. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`.
+
+### Worker de la cola studio (MP4 y GIF)
+
+Las exportaciones audiovisuales del Estudio (MP4 y GIF) se encolan en la cola **`studio`** (`config('studio.av.queue')`), separada de `media` (importaciones, exportaciones estáticas PNG/PDF, IA y Canva). Necesita su propio worker, que **no puede ir en el cron de Hestia** porque exige `Delegate=yes` y cgroupv2:
+
+```bash
+sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
+# Ajustar User=, Group=, WorkingDirectory=, ReadWritePaths= y PHP_BIN a los reales del dominio
+systemd-analyze verify /etc/systemd/system/scheduler-studio.service
+sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-studio
+```
+
+La unidad ejecuta `queue:work database --queue=studio --tries=1 --timeout=120`, con `MemoryMax=3G`, `OOMPolicy=kill`, `KillMode=control-group` y `Delegate=yes`. Está **preparada y sin instalar** en el VPS (CS-M-07 en [pendientes manuales](../referencia/pendientes-manuales.md)). Detalle y requisitos en `deploy/systemd/README.md`.
 
 ### Comprobar que los workers procesan
 
@@ -323,6 +343,23 @@ curl -si -X POST <APP_URL>/oauth/register -H 'Content-Type: application/json' \
 
 Cada registro de prueba deja un cliente en `oauth_clients`; `php artisan mcp:oauth-prune` (programado a diario) limpia los antiguos sin uso.
 
+### Redirect URIs de los conectores de redes y de Canva
+
+Se registran en la app de cada red (`<APP_URL>` con esquema HTTPS). Son distintas de las del login social de la sección siguiente:
+
+| Proveedor | Redirect URI | Variables |
+|---|---|---|
+| Meta (Facebook e Instagram) | `<APP_URL>/connections/meta/callback` | `META_APP_ID`, `META_APP_SECRET` |
+| Google (YouTube) | `<APP_URL>/connections/google/callback` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| TikTok | `<APP_URL>/connections/tiktok/callback` | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` |
+| Threads | `<APP_URL>/connections/threads/callback` | `THREADS_APP_ID`, `THREADS_APP_SECRET` |
+| LinkedIn | `<APP_URL>/connections/linkedin/callback` | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
+| Pinterest | `<APP_URL>/connections/pinterest/callback` | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` |
+| Canva (Redirect URL) | `<APP_URL>/canva/callback` | `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` |
+| Canva (Return URL, navegación de retorno) | `<APP_URL>/canva/return` | las mismas |
+
+Bluesky no usa redirección (handle + app password). Guías: [Threads](../guias/threads-app-meta.md), [LinkedIn y Pinterest](../guias/linkedin-pinterest.md), [Canva](canva.md).
+
 ### Redirect URIs de los proveedores de login
 
 Se registran en cada app con credenciales **propias del login** (distintas de las de los conectores de redes):
@@ -398,5 +435,7 @@ El comando solo desactiva el 2FA (no cambia la contraseña ni las API keys del M
 | `sodium` en el PHP local | verificado (`php -m`) |
 | `Authorization` y `/.well-known/oauth-*` en Nginx/Hestia (el `curl` de arriba) | pendiente (M-07 del plan de pruebas de login social y OAuth) |
 | Redirect URIs y login real con Google y Facebook | pendiente (M-01 y M-02 del mismo plan) |
+| Redirect URIs, OAuth y publicación real en Threads, LinkedIn, Pinterest y Canva | pendiente (P3-M-02 y CS-M-01..03); solo probado con simulaciones |
+| Worker `studio`, Chromium/Playwright, Python con modelo de fondos y cgroupv2 en el VPS | pendiente (CS-M-07, CS-M-08) |
 | `systemd-analyze verify` y reinicio del worker | pendiente (VPS) |
 | Disco `r2` contra Cloudflare R2 real | pendiente (credenciales) |

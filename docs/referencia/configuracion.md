@@ -38,7 +38,7 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `DB_CONNECTION` ... `DB_PASSWORD` | `mysql`, `127.0.0.1`, `3306`, `metricool`, `root` | MariaDB >= 10.6 / MySQL >= 8.0 |
 | `QUEUE_CONNECTION` | `database` | Sin Redis |
 | `DB_QUEUE_RETRY_AFTER` | `180` | Debe superar el `--timeout` del worker (120 s) |
-| `QUEUE_NAMES` | `publish,poll,metrics,reports,media` | Colas que atienden los workers; `media` es la de las importaciones por URL y Drive |
+| `QUEUE_NAMES` | `publish,poll,metrics,reports,media,studio` | Colas vigiladas por `app:queue-probe` y `app:health`; `media` es la de las importaciones, exportaciones estáticas, IA y Canva, y `studio` la de MP4/GIF (worker propio) |
 | `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» (también sin `GOOGLE_PICKER_APP_ID`) ([guía](../guias/google-cloud-picker-drive.md)) |
 | `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
 | `GIPHY_API_KEY` | vacío | Clave *beta* de Giphy (100 llamadas/hora); vacía = sin botón «GIF» en el compositor. La usa solo el servidor ([medios](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b)) |
@@ -94,8 +94,25 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `THREADS_AUTH_HOST`, `THREADS_GRAPH_HOST`, `THREADS_API_VERSION` | `https://threads.com`, `https://graph.threads.com` y `v1.0` (en `config/social.php`, por si Meta los cambia) |
 | `THREADS_TOKEN_HEADER` | `false`. `true` manda el token de la API en `Authorization: Bearer` en lugar del cuerpo/query documentados; activarlo solo si el smoke (M-02) confirma que Threads lo acepta |
 | `THREADS_PUBLISH_QUOTA` | `250`. Publicaciones por 24 h si la API no devuelve el total |
+| `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | ID y secreto de la app de LinkedIn Developers. Sin `LINKEDIN_CLIENT_ID` la red no se ofrece. Guía: [LinkedIn y Pinterest](../guias/linkedin-pinterest.md) |
+| `LINKEDIN_ENABLED` | `true`. `false` retira LinkedIn de Conexiones, compositor, filtros y MCP (las cuentas se conservan) |
+| `LINKEDIN_COMMUNITY_MANAGEMENT` | `false`. `true` pide los scopes de páginas (`w_organization_social`, `r_organization_social`, `rw_organization_admin`); solo con la Community Management API aprobada por LinkedIn. Sin él solo se conecta el perfil personal |
+| `LINKEDIN_R_MEMBER_SOCIAL` | `false`. `true` pide `r_member_social` (leer publicaciones y comentarios del perfil); solo apps aprobadas. Sin él, un perfil personal no tiene búsqueda de idempotencia ni primer comentario |
+| `LINKEDIN_AUTH_HOST`, `LINKEDIN_API_HOST`, `LINKEDIN_API_VERSION` | `https://www.linkedin.com`, `https://api.linkedin.com` y `202511` (versión mensual de la API REST; hay que subirla cuando LinkedIn retire la vigente) |
+| `LINKEDIN_RECONNECT_NOTICE_DAYS`, `LINKEDIN_UPLOAD_TIMEOUT` | `7` días de aviso «reconecta antes de» y `60` s por parte de subida de vídeo |
+| `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | ID y secreto de la app de Pinterest Developers (API v5). Sin `PINTEREST_APP_ID` la red no se ofrece |
+| `PINTEREST_ENABLED` | `true`. `false` retira Pinterest de la aplicación (las cuentas se conservan) |
+| `PINTEREST_AUTH_HOST`, `PINTEREST_API_HOST`, `PINTEREST_UPLOAD_TIMEOUT` | `https://www.pinterest.com`, `https://api.pinterest.com` y `60` s |
+| `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` | Cliente de Canva Developers (OAuth 2.0 con PKCE). Sin ellos Canva aparece «no configurada». Ver [Canva](../modulos/canva.md) |
+| `OPENAI_API_KEY`, `GEMINI_API_KEY` | Claves de la IA del estudio. Cada proveedor solo se ofrece si tiene clave. Ver [IA del estudio](../modulos/estudio-ia.md) |
+| `STUDIO_AI_OPENAI_KEY`, `STUDIO_AI_GOOGLE_KEY` | Clave específica de la IA del estudio; si se define, manda sobre `OPENAI_API_KEY` / `GEMINI_API_KEY` |
+| `STUDIO_AI_OPENAI_MODEL`, `STUDIO_AI_GOOGLE_MODEL` | `gpt-image-2.5-sunburst` y `gemini-nano-banana-2.1` |
+| `STUDIO_AI_OPENAI_QUALITY` | `medium` |
+| `STUDIO_AI_OPENAI_DAILY_LIMIT`, `STUDIO_AI_GOOGLE_DAILY_LIMIT` | `20` imágenes al día por usuario y proveedor. `STUDIO_AI_USER_LIMITS` (JSON, p. ej. `{"12":{"openai":5}}`) ajusta por usuario |
+| `STUDIO_AI_BUDGET`, `STUDIO_AI_TIMEOUT` | `100` s de llamadas al proveedor por trabajo y `90` s como máximo por llamada (el trabajo dura 110 s) |
+| `STUDIO_FONT_DISK` | `local`. Disco de las tipografías privadas del estudio |
 
-Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
+Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok,threads,linkedin,pinterest}/callback` y, para Canva, `${APP_URL}/canva/callback` (Redirect URL) y `${APP_URL}/canva/return` (Return URL).
 
 ## Refresco de tokens
 
@@ -106,6 +123,8 @@ Redirect URIs: `${APP_URL}/connections/{meta,google,tiktok}/callback`.
 | `SOCIAL_REFRESH_MARGIN_TIKTOK_HOURS` | `6` | Access de 24 h |
 | `SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS` | `1` | La sesión de Bluesky dura minutos; se renueva con el refresh token |
 | `SOCIAL_REFRESH_MARGIN_THREADS_HOURS` | `168` | Token largo de 60 días; la renovación exige ≥ 24 h de antigüedad |
+| `SOCIAL_REFRESH_MARGIN_LINKEDIN_HOURS` | `168` | Token de 60 días; 7 días de margen |
+| `SOCIAL_REFRESH_MARGIN_PINTEREST_HOURS` | `72` | Acceso de 30 días y refresh de 60; 3 días de margen |
 | `SOCIAL_REFRESH_QUEUE` | `poll` | |
 | `SOCIAL_HTTP_TIMEOUT` | `15` | Segundos por llamada a una red |
 | `SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES` | `12` | ≈ 6 h de fallos seguidos antes de pedir reconexión |

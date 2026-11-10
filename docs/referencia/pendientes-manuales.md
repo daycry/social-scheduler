@@ -50,6 +50,23 @@ Pruebas con cuentas, claves y juicio del usuario de la iniciativa [metricool-par
 
 Despliegue de esta iniciativa: rellenar en el `.env` de producción `THREADS_APP_ID`/`THREADS_APP_SECRET` y `GIPHY_API_KEY` (opcionales: sin ellos la red o el botón no aparecen), comprobar `ffprobe` y `ffmpeg` en el PATH de PHP-FPM y de los workers, y ejecutar `php artisan migrate`.
 
+## creative-social-suite
+
+Pruebas con cuentas, claves, el VPS y juicio del usuario de la iniciativa [creative-social-suite](../roadmap/2026-11-03-creative-social-suite/tasks.md) (ledger y smokes detallados por tarea en su `tasks.md`; plan en su [test-plan](../roadmap/2026-11-03-creative-social-suite/test-plan.md)). **Todo lo de esta tabla está probado solo con simulaciones** (`Http::fake`, el Canva falso y los proveedores falsos del servidor E2E): ningún agente ha hablado con las APIs reales ni con el VPS.
+
+| Id | Qué hacer | Criterio de aceptación | Tareas |
+|---|---|---|---|
+| CS-M-01 | **Smoke real de Canva** ([módulo](../modulos/canva.md)). Registrar la app en Canva Developers (scopes, Redirect URL `<APP_URL>/canva/callback`, Return URL `<APP_URL>/canva/return`), definir `CANVA_CLIENT_ID`/`CANVA_CLIENT_SECRET`, conectar con una cuenta Free y otra Pro, listar y crear diseños, volver desde el editor, exportar PNG/JPG/PDF/MP4, enviar un recurso y desconectar | Funciones según el plan con su motivo; el retorno resalta el diseño; la exportación llega a la biblioteca con «Origen: Canva»; si el host de descarga real no cumple `download_host_pattern`, se ajusta; el token queda revocado en Canva | T-16 |
+| CS-M-02 | **Smoke real de LinkedIn** ([guía](../guias/linkedin-pinterest.md)). Registrar la app (Share on LinkedIn y Sign In with LinkedIn using OpenID Connect; Community Management API para páginas), OAuth con perfil y con una página, publicar texto, imagen, varias imágenes y vídeo, primer comentario; probar `LINKEDIN_COMMUNITY_MANAGEMENT` y `LINKEDIN_R_MEMBER_SOCIAL` solo si LinkedIn los aprobó | Publicaciones visibles en LinkedIn; la versión `LINKEDIN_API_VERSION` sigue vigente; sin los interruptores el perfil sigue publicando | T-18 |
+| CS-M-03 | **Smoke real de Pinterest** ([guía](../guias/linkedin-pinterest.md)). Registrar la app (acceso de prueba hasta su aprobación), OAuth, publicar un pin de imagen, un carrusel y un vídeo con portada en un tablero real | Pines en el tablero elegido; sin tablero la app rechaza el destino antes de publicar | T-18 |
+| CS-M-04 | **IA del estudio con proveedores reales** ([módulo](../modulos/estudio-ia.md)). Con `OPENAI_API_KEY` y `GEMINI_API_KEY`: generar, rellenar una zona con máscara, ampliar el lienzo y crear variaciones con los modelos por defecto `gpt-image-2.5-sunburst` y `gemini-nano-banana-2.1`; probar cuota agotada, clave inválida y descripción rechazada; con `ANTHROPIC_API_KEY`, titulares, relleno de plantilla y texto alternativo | Imágenes guardadas en los recursos de la marca; mensajes de cuota y error claros; un 429 transitorio se reintenta sin duplicar cuota | T-14 |
+| CS-M-05 | **Opciones de Instagram**: publicar con `location_id` y con `user_tags` (solo imagen) en una cuenta real | La ubicación y las etiquetas aparecen en la publicación; el error de un id inválido es legible | T-18 |
+| CS-M-06 | **Inbox de Threads, YouTube y Bluesky** ([inbox](../modulos/inbox.md)): reconectar para conceder `threads_read_replies`/`threads_manage_replies` y `youtube.force-ssl`, sincronizar y responder desde la app en cada red | Los comentarios se leen y la respuesta aparece en la red; el consumo de cupo de YouTube es el esperado | T-20 |
+| CS-M-07 | **Worker `studio` en el VPS** ([despliegue](../modulos/despliegue.md#worker-de-la-cola-studio-mp4-y-gif)): instalar `deploy/systemd/scheduler-studio.service` (cgroupv2 con `Delegate=yes`), Node nativo, FFmpeg/ffprobe y Chromium de Playwright; exportar un MP4 y un GIF reales y comprobar la recuperación tras matar el worker | `systemd-analyze verify` sin errores; el MP4/GIF llega a la biblioteca; el límite de memoria corta el árbol completo | T-07, T-11 |
+| CS-M-08 | **Render del estudio, quitar fondo y fuentes en el VPS**: Chromium de Playwright, Python con el modelo `birefnet-general-lite.onnx` y las tipografías de marca en el servidor | Exportación PNG/PDF y quitar fondo reales; las fuentes subidas se ven en el render | T-07, T-10 |
+
+Despliegue de esta iniciativa: ver [despliegue](../modulos/despliegue.md) (redirect URIs nuevas, colas `media` y `studio`, requisitos de runtime) y las variables nuevas en [configuración](configuracion.md).
+
 ## Pendientes del servidor MCP
 
 | Id | Qué hacer |

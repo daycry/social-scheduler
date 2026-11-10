@@ -1,6 +1,6 @@
-# Inbox de comentarios (Instagram y Facebook)
+# Inbox de comentarios (Instagram, Facebook, Threads, YouTube y Bluesky)
 
-Buzón de los comentarios de las publicaciones **propias** ya publicadas: leer, marcar leído, responder y ocultar/mostrar. Sin mensajes directos.
+Buzón de los comentarios (Instagram, Facebook, Threads, YouTube y Bluesky; TikTok queda fuera, ver «Cobertura por red») de las publicaciones **propias** ya publicadas: leer, marcar leído, responder y ocultar/mostrar. Sin mensajes directos.
 
 | Pieza | Ruta |
 |---|---|

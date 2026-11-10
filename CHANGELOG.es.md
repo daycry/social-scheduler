@@ -5,6 +5,108 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — iniciativa `creative-social-suite` (2026-11-03, en curso)
+
+- **T-01 — Inventario y evidencia de referencia** El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.
+- **T-02 — Contratos y arquitectura UI/API/MCP** Define los contratos versionados del documento y API con propiedad, revisiones y estados de exportación compartidos.
+- **T-03 — Auditoría y corrección de métricas** Las métricas de redes sin lector de analítica (LinkedIn y Pinterest) se muestran como no disponibles en lugar de «sin datos» permanente, y un contrato por red garantiza que lo desconocido es nulo, nunca cero.
+- **T-04 — Diseños, recursos, kits, carpetas y revisiones** Añade diseños, carpetas, kits, recursos y revisiones por marca con validación tipada y conflicto optimista.
+- **T-05 — Motor de edición y documento propio** Añade el motor gráfico, grupos, capas, historial, páginas y catorce plantillas originales con serialización propia.
+- **T-06 — Experiencia del estudio y navegación** Incorpora catálogo y editor responsive por marca con guardado automático, recuperación de conflictos y herramientas accesibles.
+- **T-07 — Exportación real y uso en publicaciones** Exporta PNG, JPEG, WebP, SVG y PDF reales y reutiliza imágenes validadas en borradores de su marca.
+- **T-08 — API pública y herramientas MCP del estudio y analítica** Expone API v1 y nueve herramientas MCP del estudio con permisos, gestión de carpetas, render servidor e historiales paginados.
+- **T-09 — Plantillas y automatización de kits por marca** Añade plantillas propias con campos literales, aplicación trazable del kit, redimensionado proporcional y variantes independientes por web, API y MCP.
+- **T-10 — Tipografías, archivos, búsqueda y edición avanzada de imágenes** Permite subir tipografías propias por marca y usarlas en textos y kits, y editar imágenes con recorte, máscara, filtros y quitar fondo con un modelo local, con el resultado conservado al exportar.
+- **T-11 — Vídeo, audio, timeline y render MP4/GIF** Añade timeline audiovisual, mezcla, subtítulos manuales y exportaciones MP4/GIF con revisiones, trabajos reanudables y uso en borradores de su marca.
+- **T-12 — Presentaciones, documentos, pizarras y gráficos** Añade tablas editables, conectores que siguen a las formas y el formato Pizarra al Estudio, con documentos A4, gráficos y presentaciones que se guardan, reabren y exportan a PNG, SVG y PDF.
+- **T-13 — Colaboración, comentarios, roles y enlaces** Permite compartir un diseño por email como lector, comentarista o editor, o con un enlace revocable, con comentarios en hilo, historial de versiones y aviso de conflicto con opción de guardar como copia.
+- **T-14 — IA creativa y automatizaciones** Nueva pestaña «IA» en el estudio: genera imágenes desde una descripción, rellena una zona, amplía el lienzo y crea variaciones con OpenAI o Google (si el servidor tiene su clave), con estados en cola, en curso, listo y error; los resultados quedan en los recursos de la marca. Con Claude propone titulares y copies, rellena una plantilla desde una lista y sugiere texto alternativo.
+- **T-15 — Publicación de sitios y contenido interactivo** Nuevos «Sitios»: cada marca puede construir una web de varias páginas con menú, texto, imágenes, galería, video de YouTube, diseños del estudio, formulario de contacto, preguntas frecuentes y encuestas, con el tema de su kit de marca. Se previsualiza en móvil, tablet y escritorio, se publica en /s/{enlace} sin tocar lo publicado al editar, y se protege con contraseña o enlaces con token revocables.
+- **T-16 — Integración externa oficial de Canva** Nueva integración con Canva por marca: conectas tu cuenta de Canva, ves qué permite tu plan, listas y buscas tus diseños, creas uno con el tamaño de un formato social, lo abres en Canva y, al volver, la app te lleva a ese diseño; puedes exportarlo (PNG, JPG, MP4 o PDF) a la biblioteca, que lo guarda con «Origen: Canva» y un enlace al diseño, y enviar recursos de la biblioteca a Canva. No compra ni publica nada.
+- **T-17 — Media/metadatos por destino y preview por red** Cada red de una publicación puede llevar su propia media, en su orden y con su texto alternativo y portada, desde el compositor, la API y el MCP, con una previsualización por red de lo que se publicará.
+- **T-18 — Opciones avanzadas y redes adicionales** Se pueden conectar y publicar en LinkedIn (perfil y páginas) y Pinterest (pines en un tablero), con visibilidad de LinkedIn, tablero, título y enlace de Pinterest, ubicación y etiquetas de usuario en Instagram y primer comentario en LinkedIn, desde la web, la API y el MCP.
+- **T-19 — Aprobaciones, publicación manual, recurrencia y lotes** Las publicaciones pueden pedir aprobación (aprobar o rechazar con comentario, por el propietario o por aprobadores invitados), tener destinos de publicación manual con aviso y marcado, repetirse en series diaria, semanal o mensual, gestionarse en lote con resultado por elemento y reintentarse sin duplicar, desde la web, la API y el MCP.
+- **T-20 — Inbox, competidores y SmartLinks ampliados** El inbox lee y responde comentarios de Threads, Bluesky y YouTube además de Instagram y Facebook, con filtros, etiquetas, asignación, cierre, lotes y respuestas guardadas; los competidores se comparan por rango con ranking, publicaciones destacadas y CSV; y los SmartLinks admiten imagen, video de YouTube, separador, iconos sociales, formulario de email, posts recientes, visibilidad programada y clics por bloque.
+- **T-21 — Ads e informes coherentes con la marca** Ads usa siempre la cuenta, la caché y los filtros de la marca elegida; los informes tienen un constructor con bloques ordenables (KPIs por red, evolución, publicaciones destacadas, competidores, Ads y notas), plantillas por marca, vista previa, PDF descargable y envío programado semanal o mensual por email.
+
+### Added — iniciativa `metricool-parity-3` (2026-10-26)
+
+- **T-01 — Migración, modelo y factoría de `InboxCommentNote`** Los comentarios del inbox admiten notas internas que se conservan al resincronizar.
+- **T-02 — `InboxNoteService`, request, controlador y rutas de notas** Se pueden añadir y borrar notas internas en los comentarios del inbox (hasta 2.000 caracteres).
+- **T-03 — UI del inbox: hilo de notas, alta, borrado, insignia «con nota» y filtro** El inbox muestra un hilo de notas internas bajo cada comentario, con insignia «con nota» y filtro «Solo con nota».
+- **T-04 — MCP: notas en `list_comments` y herramienta `add_comment_note`** Los asistentes MCP ven las notas internas en list_comments y pueden añadir una con add_comment_note.
+- **T-05 — Pest de integración CA-17: la nota sobrevive al resync del inbox** La nota interna de un comentario del inbox no se pierde ni se duplica al resincronizar.
+- **T-06 — E2E del inbox con notas y axe** Cobertura E2E del flujo de notas del inbox (alta, insignia, filtro y borrado) con accesibilidad y móvil.
+- **T-07 — Documentación y revisión de robustez de C-04d** Documentadas las notas internas del inbox para usuarios y para asistentes MCP.
+- **T-08 — Migración, modelo y factoría de `CalendarView`** Base de datos de las vistas guardadas del calendario: nombre, filtros y vista por defecto.
+- **T-09 — `CalendarViewService`, request, controlador y rutas CRUD** Se pueden guardar, renombrar, borrar y fijar por defecto vistas del calendario con marca, red, estado y vista.
+- **T-10 — UI del calendario: selector de vistas, guardar, renombrar, borrar y vista por defecto** El calendario tiene un menú «Vistas»: guarda los filtros actuales, aplica una vista, la renombra, la borra o la fija por defecto.
+- **T-11 — MCP: `list_calendar_views` y parámetro `view` en `get_calendar`** Los asistentes MCP pueden listar las vistas guardadas del calendario y pedir get_calendar con view=<id>.
+- **T-12 — Pest de integración CA-11 (vistas guardadas)** Cobertura de extremo a extremo de las vistas guardadas del calendario en web y MCP.
+- **T-13 — E2E de vistas guardadas con axe** Cobertura E2E del flujo de vistas guardadas del calendario (guardar, aplicar, renombrar, borrar y por defecto) con accesibilidad y móvil.
+- **T-14 — Documentación y revisión de robustez de C-03a** Documentadas las vistas guardadas del calendario para usuarios y para asistentes MCP.
+- **T-15 — Contrato segregado: `OAuthConnector`, `CredentialConnector` y `credential_secret`** Preparado el contrato de conexión para redes con contraseña de aplicación: el secreto se guarda cifrado y nunca se muestra.
+- **T-16 — Catálogo de redes en `Network` y `shell.networks`** Las redes tienen un catálogo único (nombre, color, proveedor y forma de conexión) que alimenta rutas, IA, MCP y la interfaz.
+- **T-17 — Listas del frontend leen el catálogo y el icono de Bluesky** Calendario, panel, portada y pestañas de red leen las redes del catálogo y ya hay icono de Bluesky.
+- **T-18 — Test de superficies de red y conteo de reglas de media** Una red nueva ya no puede salir a medias: un test de integridad exige tipos, métricas, zona, icono, color y etiqueta.
+- **T-19 — `BlueskyClient` y `BlueskySession` (sesión, refresco y bloqueo)** Las cuentas de Bluesky mantienen la sesión viva: se renueva sola y, si caduca, se recrea con la app password guardada cifrada.
+- **T-20 — Ruta, controlador y formulario de credenciales en Conexiones** En Conexiones se puede conectar Bluesky con el handle y una app password, con errores claros y sin guardar la contraseña a la vista.
+- **T-21 — Tipos, reglas de media y conteo de grafemas de Bluesky** Bluesky admite publicaciones de hasta 300 caracteres (grafemas, con 4 imágenes) y vídeos MP4; un vídeo por encima del tope se rechaza al guardar.
+- **T-22 — Recompresión de imágenes (> tope) con GD** Las imágenes de más de 2 MB se recomprimen en una copia para Bluesky (la original no se toca) y, si no se pueden reducir, se avisa al guardar.
+- **T-23 — `BlueskyPublisher`: texto, `Facets` e imágenes** Se puede publicar en Bluesky texto con enlaces, hashtags y menciones, y hasta 4 imágenes (las grandes se recomprimen).
+- **T-24 — Vídeo de Bluesky: `uploadVideo`, `getJobStatus` y límites** Bluesky publica vídeos: comprueba el email verificado y el cupo diario, sube el MP4 y espera a que Bluesky lo procese.
+- **T-25 — Idempotencia por `rkey` TID, `findPublished` y errores traducidos** Un reintento tras un corte de red ya no duplica la publicación en Bluesky: se comprueba si el registro existe antes de volver a crearlo.
+- **T-26 — `BlueskyInsights` y métricas (`POST_COUNT`)** Las cuentas de Bluesky muestran seguidores y publicaciones, y cada post sus me gusta, comentarios y compartidos; las visualizaciones figuran como no disponibles.
+- **T-27 — Pest de integración de Bluesky (CA-01..CA-06) y regresión de las otras redes** Pruebas de extremo a extremo de Bluesky (conexión, texto, imágenes, vídeo, reintentos y métricas) sin romper Meta, Google ni TikTok.
+- **T-28 — E2E de Bluesky: conexión y superficies con axe** Comprobado en el navegador que Bluesky se puede conectar, y que aparece en calendario, panel y compositor de forma accesible y sin desbordes.
+- **T-29 — Documentación y revisión de robustez de Bluesky** Documentado cómo funciona Bluesky: conexión y sesión, tipos y límites (300 grafemas, 2 MB, 50 MB), idempotencia y métricas.
+- **T-31 — `AggregateAnalytics`: suma por métrica con `null`, tabla por marca y por red** «Todas las marcas» suma la analítica de las marcas del usuario por métrica, con «no disponible» si ninguna tiene dato.
+- **T-32 — Página «Todas las marcas» y selector en el dashboard** Nueva página «Todas las marcas» con totales, gráfica por red y tabla por marca, accesible desde el resumen cuando hay más de una marca.
+- **T-33 — MCP: `get_stats` sin marca** La herramienta MCP get_stats, sin indicar marca, devuelve los totales de todas tus marcas con una fila por marca, igual que la web.
+- **T-34 — Pest de integración CA-12** Cubierta de extremo a extremo la analítica «Todas las marcas»: misma suma en la web y en el MCP.
+- **T-35 — E2E de «Todas las marcas» con axe** Probada en el navegador la página «Todas las marcas» (totales, tabla, gráfica, periodo y accesibilidad) en escritorio y móvil.
+- **T-36 — Documentación y revisión de robustez de C-03b** Documentada la analítica «Todas las marcas» (web y MCP): días UTC, acumulado, «no disponible» y caché.
+- **T-37 — Extraer `CsvWriter` de `ReportService::csv()` sin cambiar su salida** Sin cambios visibles: el CSV de los informes sale igual, ahora con un escritor compartido que neutraliza fórmulas (=, +, -, @).
+- **T-38 — CSV de la analítica (marca y todas)** Se puede descargar en CSV la analítica de una marca o de todas (UTF-8 con BOM, separador «;», sin dato = celda vacía).
+- **T-39 — CSV de publicaciones desde la vista Lista (filtros, vista guardada, métricas y tope)** La vista Lista tiene «Exportar CSV»: descarga las publicaciones del filtro (o de la vista guardada) con las métricas del último dato y avisa si pasan de 5.000 filas.
+- **T-40 — Pest de integración CA-13** Cubierto de extremo a extremo que el CSV de la lista tiene las mismas publicaciones que se ven con el filtro y que los textos con = salen neutralizados.
+- **T-41 — E2E de la descarga de CSV** Probada en el navegador la descarga del CSV de la lista: BOM, separador «;», solo las publicaciones del filtro y fórmulas neutralizadas.
+- **T-42 — Documentación y revisión de robustez de C-03c** Documentada la exportación a CSV (columnas, tope de 5.000 filas, fórmulas neutralizadas y Excel) en los módulos y la guía de usuario.
+- **T-43 — `HashtagStats`: extracción, cruce con *snapshots*, ranking y caché** Nuevo servicio que sugiere hashtags a partir de tu propio historial: solo los usados al menos 2 veces, ordenados por cuánto mejoran las interacciones sobre tu media, sin usar IA.
+- **T-44 — Endpoint y chips de hashtags en el compositor** El compositor tiene un botón «Hashtags» con tus mejores etiquetas históricas: un clic las inserta en el cursor y avisa si superas el máximo de la red.
+- **T-45 — MCP: `suggest_hashtags`** Nueva herramienta MCP suggest_hashtags: devuelve los hashtags de tu histórico con más rendimiento para una marca (y red opcional), sin usar IA.
+- **T-46 — Pest de integración CA-14** Cubierto con pruebas de integración que las sugerencias de hashtags salen igual en la web, el compositor y el MCP, ordenadas por rendimiento.
+- **T-47 — E2E de hashtags con axe** Al insertar un hashtag sugerido se coloca con un espacio a cada lado, y el menú de hashtags se ve completo en el móvil.
+- **T-48 — Documentación y revisión de robustez de C-04a** Documentadas las sugerencias de hashtags: salen de tu propio historial (mínimo 2 usos, máximo por red), sin IA, en el compositor y por MCP.
+- **T-49 — `AiAssistant::proposeSchedule()`: prompt, salida JSON, redacción y validación** El asistente de IA puede traducir una frase como «el viernes a las 18 en Instagram y Bluesky» a una fecha y unas redes, que tú confirmas antes de aplicarlas.
+- **T-50 — Endpoint y UI de «Escribe cuándo» en `ScheduleSection`** En el compositor, «Escribe cuándo» entiende frases como «el viernes a las 18 en Instagram y Bluesky», muestra la propuesta y solo la aplica cuando pulsas Aplicar.
+- **T-51 — Pest con respuestas simuladas (CA-16): tabla de frases y zonas** Probado con 11 frases y 3 zonas horarias (Madrid, México y Tokio) que la fecha propuesta se interpreta en la zona de la marca y no en UTC.
+- **T-52 — E2E de programar en lenguaje natural con axe** Comprobado de extremo a extremo, en escritorio y móvil, que «Escribe cuándo» muestra la propuesta y no cambia nada hasta que pulsas Aplicar.
+- **T-53 — Documentación y revisión de robustez de C-04c** Documentado «Escribe cuándo»: qué se envía a Anthropic, que solo propone una fecha, el límite diario compartido y la defensa frente a instrucciones escondidas en la frase.
+- **T-54 — Verificar los ⚠️ de la Threads API y fijar los límites** Verificados con la documentación oficial de Meta los límites de Threads: 500 caracteres (emojis por bytes), carrusel de 2 a 20, 250 publicaciones al día y las métricas disponibles.
+- **T-55 — `ThreadsConnector`, `ThreadsClient` y `GraphErrors`** Se puede conectar una cuenta de Threads por OAuth: el token dura 60 días y se renueva solo antes de caducar. Si falta THREADS_APP_ID o THREADS_ENABLED=false, la red no aparece.
+- **T-56 — Tipos, reglas de media y conteo de Threads** Threads tiene sus cuatro tipos (texto, imagen, vídeo y carrusel) con sus límites: 500 caracteres contando los emojis por bytes, imagen de 8 MB, vídeo de 5 minutos y carrusel de 2 a 20.
+- **T-57 — `ThreadsPublisher`: contenedores, carrusel, sondeo y publicación** Las publicaciones de Threads (texto, imagen, vídeo y carrusel de hasta 20) se crean, se esperan hasta que Threads las procesa y se publican; si falla, el motivo sale en español.
+- **T-58 — Idempotencia y cuota de publicación de Threads** Threads respeta su límite de 250 publicaciones al día (la publicación espera en vez de fallar) y un reintento tras un corte de red no duplica el post.
+- **T-59 — `ThreadsInsights`: post, cuenta y rango** Las estadísticas de Threads llegan al panel: visitas al perfil, me gusta, respuestas, compartidos, clics en enlaces y seguidores, y por publicación vistas e interacciones.
+- **T-60 — Superficies de Threads: icono, pestañas, MCP, IA e informe** Threads aparece en el compositor, el calendario, el panel, los informes y el asistente MCP con su icono; si se apaga o no está configurada, desaparece de todos esos sitios.
+- **T-61 — Pest de integración de Threads (CA-07..CA-09)** Probado de punta a punta el flujo de Threads (conectar, programar, publicar texto, imagen, vídeo y carrusel, cuota y métricas) sin tocar la red real.
+- **T-62 — E2E de Threads: superficies con axe (CA-10)** Comprobado en el navegador (escritorio y móvil) que Threads se ve bien junto a Bluesky: Conexiones, calendario con su filtro, panel con visitas al perfil y compositor con el límite de 500.
+- **T-63 — Documentación y revisión de robustez de Threads** Documentado cómo funciona Threads: conexión y renovación del token de 60 días, tipos y límites verificados, cuota de 250 al día, idempotencia, métricas y el interruptor para apagarlo.
+- **T-65 — `GiphyClient` y *proxy* (búsqueda, tendencias, caché, límite y errores)** La búsqueda de GIFs de Giphy pasa por el servidor (la clave no se expone), con caché, tope de llamadas por hora y mensajes claros.
+- **T-66 — `GifPicker.vue`: búsqueda, cuadrícula, teclado, atribución y estados** El compositor tiene un botón GIF (solo con la clave de Giphy) que abre un buscador accesible con «Powered by GIPHY» y añade el GIF elegido como vídeo.
+- **T-67 — Importar el MP4 elegido con `ImportRemoteMedia` y lista permitida de hosts** El GIF elegido se descarga en segundo plano como MP4 solo desde los servidores de Giphy, pasando por las mismas protecciones que las importaciones por URL.
+- **T-68 — Compatibilidad por red de los GIF (duración mínima y avisos)** Los GIF de menos de 3 segundos se rechazan en Reels de Instagram y Facebook y en TikTok con el mínimo exigido; Bluesky y Threads los aceptan como vídeo.
+- **T-69 — Pest de integración CA-15** Probado de punta a punta que buscar «gato» en el buscador de GIFs y elegir uno importa su MP4 como media de la publicación.
+- **T-70 — E2E del buscador de GIFs con axe** El buscador de GIFs queda probado en escritorio y móvil, con accesibilidad (axe) y Giphy simulado.
+- **T-71 — Documentación y revisión de robustez de C-04b** La guía y la documentación explican el buscador de GIFs, los GIF cortos en Reels y TikTok y la atribución a Giphy.
+- **T-72 — Paridad MCP: Bluesky y Threads en `list_accounts` y `create_post`** El servidor MCP describe las seis redes (Instagram, Facebook, YouTube, TikTok, Bluesky y Threads) y valida Bluesky y Threads con las mismas reglas que el compositor; sigue en 25 herramientas.
+- **T-73 — Guía para el usuario: app password de Bluesky** Nueva guía para crear la app password de Bluesky, conectarla, publicar vídeo (email verificado y cupo diario) y revocarla.
+- **T-74 — Guía para el usuario: app de Meta para Threads (ID, secreto y tester)** Nueva guía para crear la app de Meta de Threads: caso de uso, ID y secreto propios de Threads, URI de redirección, tester y qué hacer si Meta pidiera revisión.
+- **T-75 — Guía para el usuario: clave de Giphy y atribución** Nueva guía para activar el buscador de GIFs: crear la clave de Giphy, límites, atribución «Powered by GIPHY» obligatoria y advertencias sobre los términos de uso.
+- **T-76 — Documentación y despliegue: variables de `.env`, colas y recuento de herramientas** Documentadas las variables nuevas de despliegue (Bluesky, Threads, Giphy, ffmpeg), las colas y las cifras reales del README (25 herramientas, tests y documentos).
+- **T-77 — Regresión final: Pest completo, Playwright en los 3 proyectos y Pint** Regresión completa en verde antes de la PR: Pest, Playwright en escritorio y móvil, y Pint.
+
 ### Added — iniciativa `metricool-parity-2` (2026-10-24)
 
 - **T-01 — Migración, modelo y factoría de `SavedText`** Nueva tabla de textos guardados por usuario, con marca opcional («Todas las marcas»). (`database/migrations/*_create_saved_texts_table.php`, `app/Models/SavedText.php`, `database/factories/SavedTextFactory.php`)

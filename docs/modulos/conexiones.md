@@ -1,13 +1,13 @@
 # Conexiones por red
 
-Cada marca (`Brand`) conecta cuentas de Meta (Facebook + Instagram), Google (YouTube), TikTok, Bluesky y Threads. Meta, Google, TikTok y Threads se conectan por OAuth; Bluesky con handle + app password (sin redirección). Los conectores usan el cliente `Http` de Laravel, sin SDK.
+Cada marca (`Brand`) conecta cuentas de Meta (Facebook + Instagram), Google (YouTube), TikTok, Bluesky, Threads, LinkedIn y Pinterest. Meta, Google, TikTok, Threads, LinkedIn y Pinterest se conectan por OAuth; Bluesky con handle + app password (sin redirección). Los conectores usan el cliente `Http` de Laravel, sin SDK.
 
 ## Contrato y catálogo de redes
 
 El contrato está segregado (`app/Connectors/Contracts/`):
 
 - `Connector`: lo común (`provider()`, `networks()`, `refresh()`, `refreshMarginHours()`). `RefreshSocialAccount` solo conoce esto.
-- `OAuthConnector extends Connector`: `authorizationUrl()` y `exchangeCode()`. Lo implementan Meta, Google, TikTok y Threads. `OAuthController` responde 404 si el proveedor no es un `OAuthConnector`.
+- `OAuthConnector extends Connector`: `authorizationUrl()` y `exchangeCode()`. Lo implementan Meta, Google, TikTok, Threads, LinkedIn (`LinkedInConnector`) y Pinterest (`PinterestConnector`). `OAuthController` responde 404 si el proveedor no es un `OAuthConnector`.
 - `CredentialConnector extends Connector`: `credentialFields()` y `connectWithCredentials()`. Lo implementa Bluesky. Lo usa `CredentialConnectionController`.
 
 `App\Connectors\Network` es el **catálogo**: `label()`, `shortLabel()`, `color()`, `provider()`, `authKind()` (`oauth` o `credentials`), `providers()` y `offered()` (las redes con conector registrado). El shell de Inertia (`shell.networks`), las rutas, la IA y las descripciones del MCP leen de ahí, y el frontend usa `useNetworks()`. Los mapas de datos por red (`Metric::EXPECTED_FLOWS`, `AnalyticsService::SUPPORTED`, reglas de media, zona horaria) se quedan en su sitio y `tests/Unit/Networks/NetworkCoverageTest.php` falla si una red ofrecida no tiene todas sus superficies. Para añadir una red: caso en `Network`, tipos en `ContentType` y `config/media_specs.php`, entradas en `Metric` y `AnalyticsService`, zona en `config/social.php`, glifo en `NetworkIcon.vue` y registro en `AppServiceProvider`.
@@ -24,6 +24,8 @@ El contrato está segregado (`app/Connectors/Contracts/`):
 | Google | `app/Connectors/Google/GoogleConnector.php` |
 | TikTok | `app/Connectors/TikTok/TikTokConnector.php` |
 | Bluesky | `app/Connectors/Bluesky/{BlueskyConnector,BlueskySession,BlueskyClient,BlueskyPublisher,BlueskyInsights,Facets,Tid,BlueskyErrors}.php` |
+| LinkedIn | `app/Connectors/LinkedIn/{LinkedInConnector,LinkedInClient,LinkedInPublisher,LinkedInPostOptions}.php` ([guía](../guias/linkedin-pinterest.md)) |
+| Pinterest | `app/Connectors/Pinterest/{PinterestConnector,PinterestClient,PinterestPublisher,PinterestPostOptions}.php` ([guía](../guias/linkedin-pinterest.md)) |
 | Threads | `app/Connectors/Threads/{ThreadsConnector,ThreadsClient,ThreadsPublisher,ThreadsInsights}.php`, `app/Connectors/Meta/GraphErrors.php` (tabla de códigos compartida con `GraphClient`) |
 | Controladores | `app/Http/Controllers/OAuth/OAuthController.php`, `CredentialConnectionController.php` |
 | Cuentas | `app/Models/SocialAccount.php`, `app/Services/SocialAccountService.php` |
@@ -33,12 +35,12 @@ El contrato está segregado (`app/Connectors/Contracts/`):
 ## Flujo
 
 1. El usuario pulsa **Conectar** en la marca: `POST brands/{brand}/connections/{provider}/connect`. Es POST con CSRF porque iniciar OAuth cambia el estado de la sesión.
-2. La red redirige a `GET connections/{provider}/callback` (`provider` ∈ `meta`, `google`, `tiktok`).
+2. La red redirige a `GET connections/{provider}/callback` (`provider` ∈ `meta`, `google`, `tiktok`, `threads`, `linkedin`, `pinterest`).
 3. El conector canjea el código, lista las cuentas candidatas y, si hay varias, el usuario elige (`brands.connections.select`).
 4. Los tokens se guardan cifrados en `social_accounts`.
 5. Si `SOCIAL_BACKFILL_ON_CONNECT` está activo, se encola el histórico inicial (ver [analítica](analitica.md)).
 
-Redirect URIs a registrar en cada app (de `.env.example`): `${APP_URL}/connections/meta/callback`, `.../google/callback`, `.../tiktok/callback`. `APP_URL` debe ser HTTPS.
+Redirect URIs a registrar en cada app (de `.env.example`): `${APP_URL}/connections/meta/callback`, `.../google/callback`, `.../tiktok/callback`, `.../threads/callback`, `.../linkedin/callback` y `.../pinterest/callback`. `APP_URL` debe ser HTTPS (lista completa, con Canva, en [despliegue](despliegue.md#redirect-uris-de-los-conectores-de-redes-y-de-canva)).
 
 ## Bluesky (handle + app password)
 
@@ -71,11 +73,13 @@ Threads es un conector **propio** (`provider = threads`), no una red del proveed
 | Google | `youtube`, `youtube.readonly`, `yt-analytics.readonly` | `access_type=offline` + `prompt=consent`; exige `refresh_token`. |
 | TikTok | `user.info.basic`, `video.upload`, `video.publish` | `video.upload` es obligatorio (modo borrador por defecto). `creator_info/query` se llama con cuerpo `{}` y es best-effort. |
 | Bluesky | — (app password; `scopes = ['atproto']`) | Sin OAuth: `CredentialConnector`. Sesión con refresco y recreación (ver arriba). |
+| LinkedIn | `openid`, `profile`, `w_member_social`; páginas (con `LINKEDIN_COMMUNITY_MANAGEMENT`): `w_organization_social`, `r_organization_social`, `rw_organization_admin`; `r_member_social` con `LINKEDIN_R_MEMBER_SOCIAL` | Perfil siempre; páginas solo con Community Management aprobado. Ver [guía](../guias/linkedin-pinterest.md). |
+| Pinterest | `boards:read`, `pins:read`, `pins:write`, `user_accounts:read` | API v5; tablero obligatorio en cada pin; acceso de prueba hasta la aprobación. Ver [guía](../guias/linkedin-pinterest.md). |
 | Threads | `threads_basic`, `threads_content_publish`, `threads_manage_insights` (`social.threads.scopes`) | OAuth en `threads.com` con el ID y el secreto **de Threads**; token largo de 60 días sin `refresh_token`; sin App Review solo publican los *testers* de la app. |
 
 ## Estados de cuenta y refresco
 
-`RefreshTokens` corre cada 30 min y renueva con margen: Meta 168 h, Google 1 h, TikTok 6 h, Bluesky 1 h, Threads 168 h (`SOCIAL_REFRESH_MARGIN_*_HOURS`).
+`RefreshTokens` corre cada 30 min y renueva con margen: Meta 168 h, Google 1 h, TikTok 6 h, Bluesky 1 h, Threads 168 h, LinkedIn 168 h y Pinterest 72 h (`SOCIAL_REFRESH_MARGIN_*_HOURS`). LinkedIn sin `refresh_token` no se renueva: la UI avisa «reconecta antes de».
 
 - Fallo **permanente** (`invalid_grant`, 401, `data_access_expires_at` o `refresh_expires_at` vencidos): la cuenta pasa a `requiere_reconexion` al instante y se envía `ReconnectRequired`.
 - Fallo **transitorio** (5xx, red): se cuenta en `refresh_failures`; tras `SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES` (12, ≈ 6 h) seguidos escala a `requiere_reconexion`.

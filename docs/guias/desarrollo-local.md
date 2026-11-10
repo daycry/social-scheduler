@@ -25,7 +25,7 @@ El host virtual de Laragon debe apuntar a `public/`; recarga Apache desde Larago
 La cola es `database`, así que sin worker nada se publica. En local:
 
 ```bash
-php artisan queue:work database --queue=publish,poll,metrics,reports
+php artisan queue:work database --queue=publish,poll,metrics,reports,media,studio
 php artisan schedule:work          # sustituye al cron de producción
 ```
 

@@ -37,6 +37,8 @@ jobs:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: requirements-studio.txt
+      - name: ffmpeg/ffprobe for Studio audio and video
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: Private Studio font runtime
         run: python scripts/studio/setup-runtime.py
       - run: composer install --no-interaction --prefer-dist

@@ -142,7 +142,7 @@ test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e impo
     await page.keyboard.press('Enter');
 
     // Se importa el MP4 por el servidor, el modal se cierra y la media entra en el post.
-    await expect(page.getByText('1. giphy-gato1.mp4')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('1. giphy-gato1.mp4').first()).toBeVisible({ timeout: 20_000 });
     expect(seen.imported).toBe(MP4);
     await expect(dialog).toBeHidden();
     await expect(button).toBeFocused();

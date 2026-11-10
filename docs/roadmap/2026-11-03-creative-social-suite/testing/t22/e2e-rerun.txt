@@ -1,0 +1,58 @@
+npm notice run npx
+npm notice run playwright test gif-picker.spec.ts security.spec.ts studio-captions.spec.ts
+
+Running 42 tests using 1 worker
+
+  ✓   1 [desktop] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy (5.1s)
+  ✓   2 [desktop] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) (7.7s)
+  ✓   3 [desktop] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican (4.6s)
+  ✓   4 [desktop] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01) (8.5s)
+  ✓   5 [desktop] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02) (8.3s)
+  ✓   6 [desktop] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) (16.4s)
+  ✓   7 [desktop] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04) (16.0s)
+  ✓   8 [desktop] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05) (9.9s)
+  ✓   9 [desktop] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06) (13.5s)
+  ✓  10 [desktop] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06) (5.8s)
+  ✓  11 [desktop] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07) (2.6s)
+  ✓  12 [desktop] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors (9.5s)
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+
+  ✓  13 [desktop] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade (1.2m)
+  ✓  14 [desktop] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts (6.4s)
+  ✓  15 [mobile] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy (5.1s)
+  ✓  16 [mobile] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) (7.8s)
+  ✓  17 [mobile] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican (4.7s)
+  ✓  18 [mobile] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01) (8.3s)
+  ✓  19 [mobile] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02) (8.0s)
+  ✓  20 [mobile] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) (27.6s)
+  ✓  21 [mobile] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04) (16.1s)
+  ✓  22 [mobile] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05) (10.8s)
+  ✓  23 [mobile] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06) (11.4s)
+  ✓  24 [mobile] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06) (5.5s)
+  ✓  25 [mobile] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07) (2.7s)
+  ✓  26 [mobile] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors (9.0s)
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+
+  ✓  27 [mobile] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade (1.2m)
+  ✓  28 [mobile] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts (6.5s)
+  ✓  29 [mobile-360] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy (5.2s)
+  ✓  30 [mobile-360] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) (7.7s)
+  ✓  31 [mobile-360] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican (4.4s)
+  ✓  32 [mobile-360] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01) (8.5s)
+  ✓  33 [mobile-360] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02) (8.1s)
+  ✓  34 [mobile-360] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) (16.3s)
+  ✓  35 [mobile-360] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04) (16.8s)
+  ✓  36 [mobile-360] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05) (10.9s)
+  ✓  37 [mobile-360] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06) (11.9s)
+  ✓  38 [mobile-360] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06) (5.9s)
+  ✓  39 [mobile-360] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07) (2.5s)
+  ✓  40 [mobile-360] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors (9.2s)
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+
+  ✓  41 [mobile-360] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade (1.2m)
+  ✓  42 [mobile-360] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts (6.1s)
+
+  42 passed (9.8m)

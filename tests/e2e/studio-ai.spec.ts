@@ -99,7 +99,7 @@ test('Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir
 
     // 4. El recurso esta en la biblioteca de la marca con proveedor, modelo y prompt, y es un PNG real.
     const meta = JSON.parse(artisan(String.raw`$m = App\Models\MediaAsset::withoutUserScope()->findOrFail(${assetId}); echo json_encode(['source' => $m->source, 'ref' => json_decode($m->source_ref, true), 'mime' => $m->mime, 'png' => str_starts_with(Illuminate\Support\Facades\Storage::disk($m->disk)->get($m->path), "\x89PNG"), 'linked' => App\Models\Studio\StudioAsset::withoutUserScope()->where('media_asset_id', $m->id)->exists()]);`));
-    expect(meta).toMatchObject({ source: 'ai', mime: 'image/png', png: true, linked: true, ref: { provider: 'openai', model: 'gpt-image-1' } });
+    expect(meta).toMatchObject({ source: 'ai', mime: 'image/png', png: true, linked: true, ref: { provider: 'openai', model: 'gpt-image-2.5-sunburst' } });
     expect(meta.ref.prompt).toContain('taza de café');
     await openAi(page);
 

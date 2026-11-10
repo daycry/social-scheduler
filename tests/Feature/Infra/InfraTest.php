@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 test('queues publish, poll, metrics and reports are configured', function () {
-    expect(config('queue.names'))->toBe(['publish', 'poll', 'metrics', 'reports', 'media']);
+    expect(config('queue.names'))->toBe(['publish', 'poll', 'metrics', 'reports', 'media', 'studio']);
     expect(config('queue.connections.database.driver'))->toBe('database');
 });
 
@@ -115,11 +115,11 @@ test('database queue persists a probe job per queue and a worker processes it', 
 
     Artisan::call('app:queue-probe');
     expect(DB::table('jobs')->pluck('queue')->sort()->values()->all())
-        ->toBe(['media', 'metrics', 'poll', 'publish', 'reports']);
+        ->toBe(['media', 'metrics', 'poll', 'publish', 'reports', 'studio']);
 
     Artisan::call('queue:work', [
         'connection' => 'database',
-        '--queue' => 'publish,poll,metrics,reports,media',
+        '--queue' => 'publish,poll,metrics,reports,media,studio',
         '--stop-when-empty' => true,
         '--memory' => 1024, // el worker de prueba corre dentro del proceso de Pest: con la suite grande superaba los 128 MB por defecto y paraba tras el primer job
     ]);
@@ -195,7 +195,7 @@ test('empty QUEUE_NAMES falls back to the default queues', function () {
     unset($_ENV['QUEUE_NAMES']);
     putenv('QUEUE_NAMES');
 
-    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports', 'media']);
+    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports', 'media', 'studio']);
 });
 
 test('stale heartbeat is detected', function () {

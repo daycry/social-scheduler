@@ -72,6 +72,11 @@ function generalBootstrap(): Application
             // Off by default (TikTok then offers Video only). A test that needs photos creates `<run root>/tiktok-domain-on`
             // for its duration; the domain is fictitious and never contacted.
             ...(is_file($root.'/tiktok-domain-on') ? ['social.tiktok.verified_domain' => 'https://media.example.test'] : []),
+            // T-14: proveedor de imagen falso. Con `<run root>/studio-ai-on` los dos proveedores quedan «configurados» con claves ficticias y
+            // sus peticiones las atiende generalFakeAi() (PNG real pequeño); sin la bandera no hay claves y la UI muestra «no configurado».
+            // `studio-ai-text-off` apaga el asistente de texto para comprobar su vista «no configurado».
+            ...(is_file($root.'/studio-ai-on') ? ['studio.ai.providers.openai.key' => 'e2e-fake-openai-key', 'studio.ai.providers.google.key' => 'e2e-fake-google-key', 'studio.ai.backoff' => [0, 0]] : []),
+            ...(is_file($root.'/studio-ai-text-off') ? ['social.ai.enabled' => false] : []),
             // Read-only, pinned weights; all image input/output stays in this run's storage.
             'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/birefnet-general-lite.onnx',
         ]);
@@ -81,6 +86,9 @@ function generalBootstrap(): Application
         throw new RuntimeException('T43 resolved an unexpected database.');
     }
     Http::preventStrayRequests();
+    if (is_file($root.'/studio-ai-on')) {
+        generalFakeAi();
+    }
     $registry = new ConnectorRegistry;
     foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
         $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));

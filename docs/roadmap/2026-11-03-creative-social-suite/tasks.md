@@ -17,10 +17,10 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 |---|---:|---:|---:|
 | Fase 1 | 1 | 3 | 33 % |
 | Fase 2 | 6 | 6 | 100 % |
-| Fase 3 | 4 | 7 | 57 % |
+| Fase 3 | 5 | 7 | 71 % |
 | Fase 4 | 4 | 5 | 80 % |
 | Fase 5 | 0 | 2 | 0 % |
-| **Total** | **15** | **23** | **65 %** |
+| **Total** | **16** | **23** | **70 %** |
 
 ## Fase 1 — Investigación y consistencia
 
@@ -135,7 +135,9 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 ## Fase 3 — Capacidades creativas avanzadas
 
 ### T-10 — Tipografías, archivos, búsqueda y edición avanzada de imágenes
-- **Estado**: en-progreso
+- **Estado**: completado
+- **Cerrada**: 2026-11-10
+- **Changelog**: Permite subir tipografías propias por marca y usarlas en textos y kits, y editar imágenes con recorte, máscara, filtros y quitar fondo con un modelo local, con el resultado conservado al exportar.
 - **Cubre (tests)**: E2E-09, E2E-10
 - **Verificación**: Fuentes reales, aislamiento, máscaras/filtros/crop y jobs web/API/MCP implementados y con pruebas focales. Revisión A/B/C/D intento 2 sin gaps de corrección pendientes. Falta inferencia real con el nuevo techo de memoria y QA final integrada; no cerrar con pruebas previas al cambio de presupuesto.
 - **Archivos**: `app/Models/Studio/**`, `app/Services/Studio/**`, `app/Jobs/Studio/**`, `app/Http/Controllers/Studio/**`, `app/Mcp/**`, `routes/studio*.php`, `database/migrations/*studio*`, `config/studio.php`, `resources/js/Studio/**`, `resources/js/Pages/Studio/**`, `resources/js/Components/Studio/**`, `scripts/studio/**`, `tests/**`, `docs/**`, `requirements-studio.txt`, `.github/workflows/ci.yml`, `.gitignore`, `.gitattributes`
@@ -155,7 +157,25 @@ Autorizado por la petición de integrar clones funcionales de Metricool/Canva, i
 
 **Criterios de aceptación**
 
-- [ ] Recursos por marca, fuentes cargadas realmente, recorte/máscara, filtros y quitar fondo con resultados comprobados.
+- [x] Recursos por marca, fuentes cargadas realmente, recorte/máscara, filtros y quitar fondo con resultados comprobados.
+
+### Cierre T-10 — 2026-11-10 (método estándar)
+
+- **Cambio de método**: se sustituye lo que dependía de arneses nativos, Job 3/6/7 GiB, presupuestos de 900 s, guards, `qa1/qa2/build` y evidencias raw. Lo que el ledger dejaba «pendiente de aceptación» (inferencia real bajo techo de memoria, QA integrada) se verifica con Pest, `unittest` del runtime, `node --test` y Playwright con el servidor propio (puerto 8080 libre antes de ejecutar), con el modelo local `storage/app/private/studio-models/birefnet-general-lite.onnx`. No se descargó nada.
+- **Inventario previo**: todas las capacidades estaban implementadas; la evidencia era del arnés antiguo. **Faltaba** solo la comprobación en píxeles del PNG exportado (máscara y sepia) en el E2E; se añadió.
+
+| Capacidad | Evidencia estándar |
+|---|---|
+| Fuentes privadas por marca: subida real, WOFF2 normalizado, vista previa, búsqueda, archivar/restaurar, kit `font_ids`, borrado protegido (409), aislamiento, API y MCP | Pest `StudioFontsTest` 19/19 (136 aserciones); E2E `studio-imaging` caso fuentes 3/3 proyectos (carga real `document.fonts`, GET del WOFF2, descarga PNG, DELETE 409, axe) |
+| Fuente cargada realmente al renderizar y exportar | `node --test` `studio-advanced-rendering` (glifos distintos con WOFF2 real, SVG con bytes exactos) y `studio-export-font-cache` 2/2 (1 GET por fuente); conjunto de 22/22 |
+| Recursos por marca (subida, búsqueda en la biblioteca, aislamiento entre marcas, archivo privado) | Pest `StudioBackendTest` (registro de media por marca, 404 cruzado, 422 pendiente); E2E subida + `Buscar recursos` en `studio-imaging` 3/3 |
+| Recorte y máscara (elipse, rectángulo redondeado), rechazo de recorte fuera de píxeles | Pest `StudioFontsTest` (máscara tipada, recorte fuera 422); `studio-advanced-rendering` (esquinas sin píxeles, recorte fuera rechazado); E2E guardado y reapertura idénticos |
+| Filtros (brillo, contraste, saturación, desenfoque, gris, sepia, invertir) | `studio-advanced-rendering` «cada filtro cambia los píxeles»; `studio-document-filter-roundtrip`; E2E: **nuevo** PNG exportado medido en píxeles (esquina de la elipse = fondo de página; muestras del sujeto con r≥g≥b y dispersión >10) 3/3 |
+| Quitar fondo con inferencia real | `tests/studio_runtime/test_background.py` 3/3 (BiRefNet local, fotografía real, original intacto); E2E `studio-imaging` con inferencia real (alfa fondo <30, sujeto >220, SHA del original idéntico) 3/3; Pest `StudioImageJobsTest` 14/14 + EXIF 2/2 |
+| Servicios compartidos web/API/MCP de imágenes y fuentes | Pest `StudioApiMcpTest`, `StudioFontsTest` y `StudioImageJobsTest`: 36/36 (220 aserciones) en el conjunto de fuentes+imágenes |
+
+- **Verificación final**: `vendor/bin/pest` 3346 tests, 3337 pass, 9 skipped, 21401 aserciones; `vendor/bin/pint --test` passed; `npm run build` ok; `node --expose-gc --test tests/frontend/*.test.mjs` 651/651; `unittest` runtime (background, font_probe, setup) 3/3, 2/2, 3/3; Playwright `studio-imaging.spec.ts` + `studio.spec.ts` 18/18 en desktop, mobile y mobile-360 (axe y sin desbordamiento); ledger-lint exit 0.
+- **Fuera de alcance (y por qué)**: modelos de IA de imagen más pesados (otros segmentadores, super-resolución, relleno generativo, borrador mágico) requieren un proveedor o una descarga de pesos; solo se usa el BiRefNet local ya presente. El techo de memoria del worker (6 GiB en Windows) no se re-certifica con arnés nativo: la inferencia real corrió en la ejecución estándar sin fallo. La revisión adversarial posterior la lanza el usuario.
 
 ### T-11 — Vídeo, audio, timeline y render MP4/GIF
 - **Estado**: completado

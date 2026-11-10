@@ -79,7 +79,7 @@ Referencias oficiales de alcance social: [introducción de Metricool](https://he
 | C24 | IA generativa y asistencia | **Fuera** | T-14 (borrador) | — | Sin proveedor configurado; no se simula con UI vacía. |
 | C25 | Sitios web/interactividad | Cubierta | T-15 | `SiteTest`; E2E de sitios con CSP y 0 errores de consola | Sin dominio propio ni aviso por correo. |
 | C26 | Stock, apps y recursos premium | Parcial | T-10/16 | Subida propia y fuentes externas integradas | Sin derechos sobre catálogos de pago de Canva. |
-| C27 | Integración oficial Canva | **Fuera** | T-16 (borrador) | — | Pendiente: OAuth, retorno y capacidades del plan. |
+| C27 | Integración oficial Canva | Cubierta por contrato | T-16 | `tests/Feature/Canva` (OAuth con PKCE, capacidades, diseños, retorno firmado, exportación, API y MCP) y E2E `canva.spec.ts` con Canva falso | Sin app registrada ni smoke real (pendiente del usuario); no verifica la firma del `correlation_jwt`; Brand Templates y Autofill desactivados con motivo; el PDF no entra en la biblioteca. |
 | C28 | Automatización creativa por API/MCP | Cubierta | T-08/09 | `StudioApiMcpTest` | Automatizaciones avanzadas ligadas a T-14. |
 
 Referencias oficiales de edición: [diseños](https://www.canva.dev/docs/apps/designs/), [elementos](https://www.canva.dev/docs/apps/elements/), [edición](https://www.canva.dev/docs/apps/design-editing/), [capas](https://www.canva.com/help/finding-and-arranging-layers/), [bloqueo](https://www.canva.com/help/lock-and-unlock-elements/), [kit](https://www.canva.com/help/brand-kit/), [plantillas de marca](https://www.canva.com/help/using-brand-templates/), [imágenes](https://www.canva.com/help/image-settings/), [vídeo](https://www.canva.com/help/creating-and-editing-videos/), [presentaciones](https://www.canva.com/en_gb/help/presentation-modes/), [pizarras](https://www.canva.com/en_gb/help/expand-to-whiteboard/) y [sitios](https://www.canva.com/help/publishing-canva-websites/).
@@ -102,8 +102,8 @@ Autofill/Brand Templates amplió la elegibilidad a Pro y planes superiores en se
 | Google Business Profile | Fuera | Solicitar la aprobación de acceso a la API del proveedor. |
 | Twitch | Fuera | Es analítica de streams (`/evolution-twitch`), no publicación; decidir si se quiere un lector de métricas. |
 | Smokes reales | Pendientes | Bluesky, Threads, LinkedIn, Pinterest, Instagram (`location_id`, `user_tags`), alt/portada por red; un `Http::fake` no acredita la autorización del proveedor. |
-| T-14 (IA) y T-16 (Canva) | Borrador | Proveedor/modelo de IA y cuenta/app de Canva Connect; sin ellos no se implementan. |
+| Smokes de T-14 (IA) y T-16 (Canva) | Pendientes | Claves del proveedor de IA y app registrada en Canva Developers con su cuenta; implementados con contrato y mocks, falta el smoke real. |
 
 ## Puertas de cierre
 
-Cada fila pendiente necesita servicio real, persistencia, autorización, contrato API/MCP cuando corresponda, UI usable y prueba del resultado. Una prueba con HTTP simulado no sustituye el smoke del proveedor; una captura de un botón no acredita su comportamiento. El estado global sigue **en progreso** hasta cerrar T-14, T-16, T-22 y T-23 (ledger).
+Cada fila pendiente necesita servicio real, persistencia, autorización, contrato API/MCP cuando corresponda, UI usable y prueba del resultado. Una prueba con HTTP simulado no sustituye el smoke del proveedor; una captura de un botón no acredita su comportamiento. El estado global sigue **en progreso** hasta cerrar T-22 y T-23 (ledger).

@@ -3,7 +3,7 @@
 ## Workers systemd
 
 `scheduler-worker@.service` es una unidad plantilla: la instancia es la cola que atiende
-(`publish`, `poll`, `metrics`, `reports`). Parametros: `--max-time=3600 --max-jobs=500` (el worker se recicla
+(`publish`, `poll`, `metrics`, `reports`, `media`; `studio` tiene su propia unidad, ver abajo). Parametros: `--max-time=3600 --max-jobs=500` (el worker se recicla
 solo para evitar fugas de memoria), `Restart=always`, `RestartSec=5`. La unidad va sandboxeada
 (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`): solo escribe en `storage/` y `bootstrap/cache`
 (`ReadWritePaths=`). El PHP CLI se fija con `Environment=PHP_BIN=` (mismo valor que `PHP_BIN` en `deploy.sh`).
@@ -17,7 +17,7 @@ sudo sed -i 's#USUARIO#<usuario hestia>#g; s#DOMINIO#<dominio>#g; s#PHP_BIN=php#
 sudo systemctl edit --full scheduler-worker@.service   # revisar
 systemd-analyze verify /etc/systemd/system/scheduler-worker@.service   # sin errores
 sudo systemctl daemon-reload
-sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports
+sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media
 ```
 
 Con varios workers sobre la misma cola, exigir MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED`);
@@ -37,7 +37,7 @@ Para exportaciones estáticas con varias páginas, Studio utiliza PHP `ZipArchiv
 
 ## Worker audiovisual de Studio (preparado, sin instalar)
 
-`scheduler-studio.service` es una unidad dedicada a la cola `database/studio`, separada de las colas actuales y del modelo de quitar fondos. Requiere cgroupv2 con `cgroup.kill` (Linux≥5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker/guardián/procesos de fase; `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad. No reserva3GiB al arrancar.
+`scheduler-studio.service` es una unidad dedicada a la cola `database/studio` (`queue:work database --queue=studio`), separada de las colas actuales y del modelo de quitar fondos. Requiere cgroupv2 con `cgroup.kill` (Linux≥5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker/guardián/procesos de fase; `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad. No reserva3GiB al arrancar.
 
 `Delegate=yes` permite crear únicamente subgrupos UUID en la raíz de esa unidad. Por ello su `ProtectControlGroups=no` difiere del worker genérico; los permisos kernel de usuario siguen impidiendo tocar los cgroups de otras unidades. El supervisor verifica propietario, límite heredado y disponibilidad de kill antes de abrir Node. La limpieza usa `cgroup.kill` del subgrupo propio, nunca nombres de procesos ni un kill global. Los workers existentes no cambian.
 
@@ -69,6 +69,7 @@ mkdir -p -m 700 ~/.cache/sched
 ```cron
 * * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/publish.lock php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
 */5 * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/metrics.lock php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
+* * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/media.lock php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
 ```
 
 Latencia maxima de publicacion = 1 minuto. Es suficiente para el uso personal, pero preferible usar systemd. En cron, usar la ruta absoluta del PHP deseado en lugar de `php`.

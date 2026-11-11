@@ -134,7 +134,7 @@ estado: pendiente
 
 - **Descripción**: Añadir el cron/worker de la cola `studio` en Hestia y la unidad `scheduler-worker@media` en systemd; unificar la documentación de colas entre ambos.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -147,19 +147,21 @@ estado: pendiente
 - **Verificación**: `php artisan test --compact --filter=DeployQueuesDocTest` → verde
 
 **Criterios de aceptación**
-- [ ] La doc de Hestia lista un worker para cada cola que usa el código (`default`, `media`, `studio`…)
-- [ ] La doc de systemd incluye `scheduler-worker@media`
-- [ ] Un test lee `app/Jobs/**` y falla si una cola usada no aparece en `deploy/*/README.md`
+- [x] La doc de Hestia lista un worker para cada cola que usa el código (`default`, `media`, `studio`…)
+- [x] La doc de systemd incluye `scheduler-worker@media`
+- [x] Un test lee `app/Jobs/**` y falla si una cola usada no aparece en `deploy/*/README.md`
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: Hestia 5.1-bis (worker studio por unidad systemd, resumen cola→worker, WORKER_UNITS), systemd README con scheduler-worker@media y --queue=studio, cabecera de la plantilla, deploy.sh y docs/modulos/despliegue.md alineados. DeployQueuesDocTest: 4 tests verdes (falla si se retira studio de Hestia). Pest completo al final de la sesión.
 
 **Notas**: Tamaño S. Solo documentación y plantillas: sin VPS. La comprobación en el servidor real queda para el usuario (E-18).
 

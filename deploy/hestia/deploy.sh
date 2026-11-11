@@ -11,7 +11,7 @@
 #   COMPOSER      comando composer (por defecto: composer)
 #   NPM           comando npm (por defecto: npm)
 #   SKIP_BUILD    1 = no compilar assets (solo si public/build/manifest.json llega por otro medio)
-#   WORKER_UNITS  unidades systemd a reiniciar tras queue:restart (por defecto: vacio)
+#   WORKER_UNITS  unidades systemd a reiniciar tras queue:restart (por defecto: vacio; p. ej. scheduler-worker@media scheduler-studio)
 #
 # Orden: la app entra en mantenimiento ANTES de tocar codigo, vendor o esquema. Si algo falla
 # antes de cambiar el codigo se vuelve a levantar; si falla despues, se queda en mantenimiento

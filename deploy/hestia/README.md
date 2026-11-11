@@ -57,7 +57,7 @@ El scheduler (`schedule:run`, cada minuto) solo **encola** el trabajo; los **wor
 
 ### 5.1 Opción A: desde el panel de Hestia (cron), la de este despliegue
 
-En **Hestia → usuario → CRON → Añadir tarea**, cuatro tareas. `<USUARIO>`/`<DOMINIO>` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
+En **Hestia → usuario → CRON → Añadir tarea**, cuatro tareas (más el worker `studio`, que es una unidad systemd: ver 5.1-bis). `<USUARIO>`/`<DOMINIO>` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
 
 **Antes de crear los workers: `pcntl` en el PHP de consola.** `queue:work` usa `pcntl_signal` para cortar un job colgado (`--timeout`) y pararse limpio. Hestia lo deja en `disable_functions`, y el worker falla con `Call to undefined function Illuminate\Queue\pcntl_signal()`. Se habilita **solo en el PHP de consola** (`cli`), no en el de la web (PHP-FPM), como root:
 
@@ -101,13 +101,27 @@ Qué hace cada opción:
 | `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min). El de `media` va cada minuto con `280` y el `flock` evita el solape |
 | `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
 
+### 5.1-bis Worker de la cola `studio` (MP4/GIF)
+
+La cola `studio` (exportaciones audiovisuales del Estudio) tiene su propio worker y **no puede ir en el cron de Hestia**: el supervisor de fases exige cgroupv2 con `Delegate=yes` y `MemoryMax=3G`, que solo da una unidad systemd. Instálalo, como root, junto a los cron anteriores (el cron 4 sigue atendiendo `media`):
+
+```bash
+sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
+# Ajustar User=, Group=, WorkingDirectory=, ReadWritePaths= y PHP_BIN a los reales del dominio (ver deploy/systemd/README.md)
+sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-studio
+```
+
+La unidad ejecuta `php artisan queue:work database --queue=studio --sleep=1 --tries=1 --timeout=120 --max-time=3600 --max-jobs=500`. Sin ella, las exportaciones MP4/GIF quedan «en cola». Si el VPS no puede ofrecer cgroupv2, esas exportaciones no están disponibles; el resto de colas no depende de ella. Para reiniciarla en cada despliegue: `WORKER_UNITS="scheduler-studio" bash deploy/hestia/deploy.sh`.
+
+Resumen de colas y quién las atiende: `publish`, `poll` (cron 2), `metrics`, `reports` (cron 3), `media` (cron 4) y `studio` (unidad `scheduler-studio`).
+
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
 
 Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
 
 ### 5.2 Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2 y 3 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene); `studio` siempre va por su unidad (5.1-bis). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
 
 ### 5.3 Comprobar que los workers procesan
 
@@ -137,7 +151,7 @@ Los comandos escriben su salida en `~/tmp` del usuario (`ss-schedule.log`, `ss-p
 | Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las cuatro tareas |
 | `Call to undefined function … pcntl_signal()` | `pcntl` desactivado en el PHP de consola | Ver «Antes de crear los workers» arriba |
 | Publicaciones que salen con minutos de retraso y `dispatch-due-posts` no aparece cada minuto en el log | Bloqueo de solapamiento enganchado (p. ej. tras lanzar `schedule:run` a mano a la vez que el cron) | `php artisan schedule:clear-cache` y no lanzar `schedule:run` a mano con el cron activo |
-| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log` o `ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
+| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log` o `ss-media.log` (para `studio`: `journalctl -u scheduler-studio`); procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
 
 ## 5 bis. Primer usuario [VPS]
 
@@ -176,7 +190,7 @@ Para cambiar la contraseña más tarde, desde **Perfil**. Si se pierde, repite e
 ```bash
 bash deploy/hestia/deploy.sh --dry-run   # lista los pasos sin ejecutar nada
 bash deploy/hestia/deploy.sh             # despliega: pull, composer, migrate, caches, queue:restart, health
-WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll" bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
+WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@media scheduler-studio" bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
 ```
 
 Orden: `artisan down` -> fetch/pull -> composer -> `npm ci && npm run build` (gate: existe `public/build/manifest.json`) -> migrate -> caches

@@ -141,7 +141,7 @@ Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y
 
 ### Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene); `studio` va siempre por su unidad. Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
 
 Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola:
 
@@ -153,7 +153,7 @@ La cola `studio` (MP4/GIF) **no** usa esta plantilla: tiene su propia unidad, de
 
 Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). Las redes añadidas después (LinkedIn y Pinterest) también publican por `publish` y su refresco de token va por `poll`. Para esas colas no hace falta ningún worker nuevo, pero el Estudio añade uno: el de la cola `studio`. `QUEUE_NAMES` por defecto es `publish,poll,metrics,reports,media,studio` (seis colas).
 
-Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: `$timeout` de cada job (hasta 110 s; 100 s en los jobs de Canva y de fases audiovisuales) < `--timeout` del worker (120 s) < `retry_after` de la cola (180 s, `DB_QUEUE_RETRY_AFTER`), y `TimeoutStopSec` de systemd (130 s) > `--timeout`. Si el job no fuera estrictamente menor que el worker, este lo mataría antes de que el job pudiera fallar limpiamente. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`.
+Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: `$timeout` de cada job (hasta 110 s; 100 s en los jobs de Canva y de fases audiovisuales) < `--timeout` del worker (120 s) < `retry_after` de la cola (180 s, `DB_QUEUE_RETRY_AFTER`), y `TimeoutStopSec` de systemd (130 s) > `--timeout`. Si el job no fuera estrictamente menor que el worker, este lo mataría antes de que el job pudiera fallar limpiamente. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`; con el worker de `studio` instalado, añade `scheduler-studio`.
 
 ### Worker de la cola studio (MP4 y GIF)
 

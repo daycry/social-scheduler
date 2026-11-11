@@ -36,9 +36,11 @@ Opciones por destino: `linkedin_visibility` (`PUBLIC` o `CONNECTIONS`; las pági
 |---|---|
 | `pinterest_pin` | 1 imagen JPEG o PNG de hasta 20 MB; texto alternativo hasta 500 |
 | `pinterest_carousel` | 2 a 5 imágenes |
-| `pinterest_video` | 1 MP4 o MOV de 4 s a 15 min y hasta 2 GB, con portada opcional |
+| `pinterest_video` | 1 MP4 o MOV de 4 s a 15 min y hasta 512 MB (Pinterest admite 2 GB; el tope es de esta instalación), con portada opcional |
 
 Opciones: `pinterest_title` (hasta 100), descripción (el texto, hasta 800) y `pinterest_link` (https, hasta 2048). Pinterest no tiene primer comentario en la API v5.
+
+El vídeo se sube en streaming (nunca entero en memoria) a la URL prefirmada que devuelve `POST /v5/media`, en una sola petición de hasta `PINTEREST_UPLOAD_TIMEOUT` segundos (`100` por defecto, dentro de los 110 s del job). Un vídeo de más de 512 MB se rechaza al programar, no a mitad de la publicación. Contrato de subida sin verificar contra la documentación de Pinterest (es una SPA sin texto accesible desde aquí): queda para el smoke M-01.
 
 ## Fuera de alcance
 

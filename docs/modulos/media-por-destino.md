@@ -41,6 +41,8 @@ Borrar un archivo usado por un destino sin publicar, por una portada, por una se
 | Texto alternativo (`alt`) | Instagram (imagen y carrusel), Facebook (foto), Threads (imagen y carrusel), Bluesky, LinkedIn (imagen y varias imágenes) y Pinterest (pin de imagen) |
 | Portada (`cover_id`) | Reel de Instagram, YouTube (miniatura de hasta 2 MB) y vídeo de Pinterest |
 
+El vídeo de Pinterest (hasta 512 MB) se sube en streaming desde el disco de media; se rechaza al programar si pesa más.
+
 Stories, TikTok y el vídeo de Facebook rechazan el `alt` con un error en español. La portada de YouTube es de mejor esfuerzo (no se reintenta). La media propia no se guarda en las plantillas de la biblioteca.
 
 ## API y MCP

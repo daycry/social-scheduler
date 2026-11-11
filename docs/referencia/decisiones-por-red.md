@@ -129,5 +129,6 @@ Añadidas en T-18 (creative-social-suite). Guía de alta, scopes e interruptores
 | Primer comentario | Sí (1250 caracteres) | No (la API v5 no comenta pines) |
 | Métricas | Sin lector: «no disponible» | Sin lector: «no disponible» |
 | Fuera | Portada de vídeo (`uploadThumbnail`) | — |
+| Vídeo (A-05) | — | Subida en streaming a la URL prefirmada; tope de 512 MB (Pinterest admite 2 GB) y timeout de 100 s dentro del job de 110 s |
 
 X (Twitter, API de pago), Google Business Profile (aprobación de acceso) y Twitch (analítica de streams) quedan como deuda pendiente de decisión del usuario.

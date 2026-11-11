@@ -283,33 +283,37 @@ estado: en-progreso
 ### T-07 — Pinterest: subida de vídeo en streaming
 
 - **Descripción**: Sustituir `Storage::get` por subida en streaming (recurso multipart o por pasos), bajar el tope de 2 GB a un valor seguro y fijar un timeout acorde.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los vídeos de Pinterest se suben en streaming sin cargarlos enteros en memoria; el tope baja a 512 MB y un vídeo mayor se rechaza al programar.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`
+- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `config/social.php`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
 - **Cubre**: A-05
 - **Cubre (tests)**: M-01
 - **Verificación**: `php artisan test --compact --filter=PinterestVideoStreamingTest` → verde
 
 **Criterios de aceptación**
-- [ ] La subida no carga el vídeo entero en memoria (test con límite de memoria o stream verificado)
-- [ ] Tope y timeout de vídeo de Pinterest ajustados en `config/media_specs.php` y documentados
-- [ ] Un vídeo por encima del tope se rechaza en validación, no a mitad de publicación
+- [x] La subida no carga el vídeo entero en memoria (test con límite de memoria o stream verificado)
+- [x] Tope y timeout de vídeo de Pinterest ajustados en `config/media_specs.php` y documentados
+- [x] Un vídeo por encima del tope se rechaza en validación, no a mitad de publicación
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: RED inicial: el test de stream fallaba (el contenido iba como string de `Storage::get`). Tras el cambio `PinterestVideoStreamingTest` 3/3 y `tests/Feature/Connectors/Pinterest` 22/22 verdes (`php artisan test --compact tests/Feature/Connectors/Pinterest`). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
+
+**Decisiones**: `Storage::readStream` + multipart con el recurso (Guzzle lo envía con Content-Length, sin cargarlo). Tope de vídeo 2 GB a 512 MB y `PINTEREST_UPLOAD_TIMEOUT` 60 a 100 s (< 110 s del job; 512 MB en 100 s exige ~5 MB/s). La validación (`MediaValidator`) ya rechaza por `max_bytes` al programar. Contrato del endpoint `/v5/media` (`upload_url` + `upload_parameters` a S3, `file` el último campo) **sin verificar** contra la documentación de Pinterest: developers.pinterest.com es una SPA y no devolvió texto aquí; queda para el smoke M-01. El test de memoria mide el pico (48 MB de fichero, crecimiento < 16 MB).
 
 **Notas**: Tamaño M. Sin red: `Http::fake` con recuento de bytes. La verificación contra Pinterest sandbox es el smoke M-01 del usuario. **A la espera (no bloquea la fase)**: Contrato real de Pinterest (sandbox) sin verificar: queda para el smoke M-01.
 

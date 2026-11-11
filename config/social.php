@@ -174,7 +174,8 @@ return [
         'description_max' => 800,
         'alt_max' => 500,
         'link_max' => 2048,
-        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 60),
+        /* Segundos de UNA subida de video en streaming: dentro de los 110 s del job (el tope de `media_specs.pinterest_video` esta calculado para ello). */
+        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 100),
     ],
 
     'threads' => [

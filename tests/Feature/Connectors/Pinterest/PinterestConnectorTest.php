@@ -159,7 +159,8 @@ test('un video se registra, se sube con los parametros prefirmados y queda proce
 
     $first = $this->publisher->publish($account, $request);
     expect($first->isProcessing())->toBeTrue()->and($first->reference)->toBe('8001')->and($this->publisher)->toBeInstanceOf(StatusPoller::class);
-    Http::assertSent(fn (Request $r) => str_contains($r->url(), 'amazonaws.com') && str_contains($r->body(), 'name="key"') && str_contains($r->body(), 'VIDEOBYTES'));
+    // El video va como stream (Guzzle lo cierra al enviarlo: no se relee el cuerpo); el contenido en streaming se cubre en PinterestVideoStreamingTest.
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), 'amazonaws.com') && collect($r->data())->pluck('name')->all() === ['key', 'policy', 'file']);
 
     $request = piRequest(ContentType::PinterestVideo, 'Video', [piVideo($cover)], reference: '8001');
     expect($this->publisher->poll($account, $request)->isProcessing())->toBeTrue();

@@ -102,7 +102,7 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `LINKEDIN_RECONNECT_NOTICE_DAYS`, `LINKEDIN_UPLOAD_TIMEOUT` | `7` días de aviso «reconecta antes de» y `60` s por parte de subida de vídeo |
 | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | ID y secreto de la app de Pinterest Developers (API v5). Sin `PINTEREST_APP_ID` la red no se ofrece |
 | `PINTEREST_ENABLED` | `true`. `false` retira Pinterest de la aplicación (las cuentas se conservan) |
-| `PINTEREST_AUTH_HOST`, `PINTEREST_API_HOST`, `PINTEREST_UPLOAD_TIMEOUT` | `https://www.pinterest.com`, `https://api.pinterest.com` y `60` s |
+| `PINTEREST_AUTH_HOST`, `PINTEREST_API_HOST`, `PINTEREST_UPLOAD_TIMEOUT` | `https://www.pinterest.com`, `https://api.pinterest.com` y `100` s (subida del vídeo en streaming, una petición dentro de los 110 s del job; el tope de vídeo es de 512 MB en `config/media_specs.php`) |
 | `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` | Cliente de Canva Developers (OAuth 2.0 con PKCE). Sin ellos Canva aparece «no configurada». Ver [Canva](../modulos/canva.md) |
 | `OPENAI_API_KEY`, `GEMINI_API_KEY` | Claves de la IA del estudio. Cada proveedor solo se ofrece si tiene clave. Ver [IA del estudio](../modulos/estudio-ia.md) |
 | `STUDIO_AI_OPENAI_KEY`, `STUDIO_AI_GOOGLE_KEY` | Clave específica de la IA del estudio; si se define, manda sobre `OPENAI_API_KEY` / `GEMINI_API_KEY` |

@@ -80,8 +80,9 @@ class PinterestClient
      * Sube el video a la URL prefirmada que dio `POST /v5/media` (multipart: primero los campos de `upload_parameters`, el fichero al final).
      *
      * @param  array<string, scalar>  $parameters
+     * @param  resource  $stream  flujo del video (nunca su contenido en un string: ver PinterestPublisher)
      */
-    public function upload(string $url, array $parameters, string $bytes, string $mime): void
+    public function upload(string $url, array $parameters, $stream, string $mime): void
     {
         $this->assertUploadUrl($url);
 
@@ -89,10 +90,10 @@ class PinterestClient
         foreach ($parameters as $name => $value) {
             $parts[] = ['name' => (string) $name, 'contents' => (string) $value];
         }
-        $parts[] = ['name' => 'file', 'contents' => $bytes, 'filename' => 'video', 'headers' => ['Content-Type' => $mime]];
+        $parts[] = ['name' => 'file', 'contents' => $stream, 'filename' => 'video', 'headers' => ['Content-Type' => $mime]];
 
         try {
-            $response = Http::timeout((int) config('social.pinterest.upload_timeout', 60))->asMultipart()->post($url, $parts);
+            $response = Http::timeout((int) config('social.pinterest.upload_timeout', 100))->asMultipart()->post($url, $parts);
         } catch (ConnectionException) {
             throw new TransientPublishException('No se pudo subir el video a Pinterest (tiempo agotado o red).', 'red');
         }

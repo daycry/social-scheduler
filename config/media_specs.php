@@ -248,7 +248,8 @@ return [
             'label' => 'un pin de video de Pinterest',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 800, 'required' => false],
-            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 2048 * $mb, 'min_duration' => 4, 'max_duration' => 900],
+            // Tope de esta instalacion (Pinterest admite hasta 2 GB): una subida en streaming de 512 MB cabe en `social.pinterest.upload_timeout` (100 s) a ~5 MB/s.
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 512 * $mb, 'min_duration' => 4, 'max_duration' => 900],
         ],
     ],
 ];

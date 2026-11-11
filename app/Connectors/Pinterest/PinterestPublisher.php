@@ -45,7 +45,19 @@ class PinterestPublisher implements Publisher, StatusPoller
         }
         $mediaId = (string) $registered['media_id'];
         $request->checkpoint($mediaId);
-        $this->client->upload((string) $registered['upload_url'], (array) ($registered['upload_parameters'] ?? []), (string) Storage::disk($media->disk)->get($media->path), $media->mime);
+
+        // En streaming: el video (hasta `media_specs.pinterest_video.max_bytes`) nunca se carga entero en memoria.
+        $stream = Storage::disk($media->disk)->readStream($media->path);
+        if (! is_resource($stream)) {
+            throw new PermanentPublishException('El video no esta disponible en el almacenamiento para subirlo a Pinterest.', 'media_no_disponible');
+        }
+        try {
+            $this->client->upload((string) $registered['upload_url'], (array) ($registered['upload_parameters'] ?? []), $stream, $media->mime);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
 
         return PublishResult::processing($mediaId, ['media_status' => 'registered']);
     }

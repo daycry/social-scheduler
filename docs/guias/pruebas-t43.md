@@ -8,8 +8,8 @@ T-43 valida los doce flujos originales de Social Scheduler y los bloques MCP API
 
 | Configuración | Entorno | Comando |
 |---|---|---|
-| `playwright.roadmap.config.ts` | SQLite nueva por ejecución, conectores simulados y usuarios `e2e-sec-roadmap-*`; servidor en `http://localhost:8081` | `npx playwright test -c playwright.roadmap.config.ts` |
-| `playwright.config.ts` | Batería general; SQLite y recursos desechables, cuatro usuarios ficticios y servidor propio en `http://localhost:8080` | `npm run test:e2e` |
+| `playwright.roadmap.config.ts` | SQLite nueva por ejecución, conectores simulados y usuarios `e2e-sec-roadmap-*`; servidor en `http://localhost:8081` (`E2E_ROADMAP_PORT` lo cambia) | `npm run test:e2e:roadmap` (equivale a `npx playwright test -c playwright.roadmap.config.ts`) |
+| `playwright.config.ts` | Batería general; SQLite y recursos desechables, cuatro usuarios ficticios y servidor propio en `http://localhost:8080`, o `E2E_PORT`, o un puerto libre si 8080 está ocupado | `npm run test:e2e` |
 
 Para validar T-43, elige la configuración explícita `playwright.roadmap.config.ts`. La batería general usa ahora su propio adaptador aislado en `tests/e2e/isolated/`: tres usuarios para los escenarios mutables y un cuarto de solo lectura con marca y cuentas ficticias. Sus bookends operan únicamente sobre la SQLite desechable. No necesita las credenciales de la cuenta demo.
 

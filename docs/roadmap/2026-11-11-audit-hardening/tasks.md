@@ -545,32 +545,37 @@ estado: en-progreso
 ### T-13 — Puerto libre para E2E e integración de configs de Playwright
 
 - **Descripción**: Sustituir el puerto 8080 fijo por `E2E_PORT` o un puerto libre, e integrar en la batería (o borrar) las tres configs de Playwright huérfanas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los E2E ya no fallan si el puerto 8080 está ocupado: usan E2E_PORT o un puerto libre; la batería de T-43 tiene su script npm y se retiran dos configs de Playwright duplicadas.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
-- **Tiempo IA (ejec.)**: est. 0.8h · real —
+- **Tiempo IA (ejec.)**: est. 0.8h · real 0.6h (estimado)
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-12
 - **Tipo**: test
-- **Archivos**: `tests/e2e/isolated/runtime.ts`, `tests/e2e/isolated/serve.cjs`, `playwright.config.ts`, `playwright.roadmap.config.ts`, `playwright.audio.config.ts`, `playwright.presets.config.ts`, `package.json`
+- **Archivos**: `tests/e2e/isolated/runtime.ts`, `tests/e2e/isolated/serve.cjs`, `playwright.config.ts`, `playwright.roadmap.config.ts`, `playwright.audio.config.ts`, `playwright.presets.config.ts`, `package.json`, `tsconfig.json`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`, `tests/e2e/isolated/bookends.guard.ts`, `tests/e2e/studio-boards.spec.ts`, `docs/guias/desarrollo-local.md`, `docs/guias/pruebas-t43.md`, `docs/stack.md`, `README.md`, `.env.example`
 - **Cubre**: E-03, E-17
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde con 8080 ocupado · `grep -rn "8080" tests/e2e/isolated` → sin coincidencias fijas
 
 **Criterios de aceptación**
-- [ ] El runtime E2E arranca en un puerto libre (o `E2E_PORT`) y no falla si 8080 está ocupado
-- [ ] Cada config huérfana tiene proyecto/script en la batería o se elimina con motivo en el changelog
+- [x] El runtime E2E arranca en un puerto libre (o `E2E_PORT`) y no falla si 8080 está ocupado
+- [x] Cada config huérfana tiene proyecto/script en la batería o se elimina con motivo en el changelog
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: puerto 8080 comprobado libre antes de lanzar (`netstat`). `E2E_PORT=18765 npx playwright test tests/e2e/pages.spec.ts --workers=1 --project=desktop` → 34 passed (el `results.json` de la ejecución muestra `localhost:18765`). Con 8080 OCUPADO por un listener ficticio y sin `E2E_PORT` → 34 passed y el run usó `localhost:59224` (puerto libre elegido). Ambas con `E2E_PURGE=0` para no activar la purga sobre el repo real. `grep -rn 8080 tests/e2e/isolated` → solo el puerto preferido de `runtime.ts` y datos de `http-server.test.cjs`. `npx tsc --noEmit -p .` sin errores nuevos (los de `.cjs` sin tipos son previos). Un solo spec corto, no la batería ni Pest (instrucción del coordinador).
+
+**Decisiones**: `runtime.ts` fija el puerto una vez (E2E_PORT validado 1024-65535, o 8080 si libre, o efímero del SO) y lo escribe en `process.env.E2E_PORT` para que los workers, que reevalúan el módulo, hereden el mismo; `APP_URL`/`WEBAUTHN_ORIGINS` salen de `baseURL`, el RP ID sigue siendo `localhost` (no lleva puerto). `serve.cjs`, `bootstrap.php` (regex `localhost:<puerto>`), `fakes.php` (`APP_URL`), `bookends.guard.ts` y `studio-boards.spec.ts` ya no fijan 8080. Quedan con 8080 a propósito: `record-passkey-vector.ts` y el vector de passkeys (se grabó contra ese origen; el test Pest comprueba el origen del vector) y los tests Pest/PHP que usan 8080 como dato.
+Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.json`): **`playwright.roadmap.config.ts` se INTEGRA** — la citan `README.md`, `docs/guias/pruebas-t43.md` y `docs/stack.md` como la vía de la QA de T-43; añadido `npm run test:e2e:roadmap` y puerto configurable `E2E_ROADMAP_PORT` (defecto 8081). **`playwright.audio.config.ts` y `playwright.presets.config.ts` se ELIMINAN**: ningún doc vigente, CI ni script las usa (solo ledgers/informes históricos de 2026-10-31), `presets` solo reexporta `audio` con un `grep`, y `audio` solo filtra `instagram-audio`/`tiktok-audio`, specs que la config general ya ejecuta; la única diferencia (`TIKTOK_VERIFIED_DOMAIN`) ya la cubre `tiktok-audio.spec.ts` con su fichero-señal que el servidor lee en cada petición. Retiradas también de `tsconfig.json`. Para pasar solo esos specs: `npx playwright test tests/e2e/instagram-audio.spec.ts tests/e2e/tiktok-audio.spec.ts`.
 
 **Notas**: Tamaño S. Una sola ejecución de Playwright a la vez (GOT-005).
 

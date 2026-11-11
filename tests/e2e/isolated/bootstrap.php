@@ -24,7 +24,7 @@ function generalRoot(bool $initialize = false): string
     $root = str_replace('\\', '/', (string) getenv('E2E_GENERAL_RUN_ROOT'));
     if ($root !== str_replace('\\', '/', (string) getenv('T43_RUN_ROOT'))
         || ! preg_match('#/run-general-[a-f0-9-]{36}$#', $root)
-        || getenv('APP_URL') !== 'http://localhost:8080'
+        || ! preg_match('#^http://localhost:\d+$#', (string) getenv('APP_URL'))
         || str_replace('\\', '/', (string) getenv('PSYSH_CONFIG')) !== $root.'/psysh.php') {
         throw new RuntimeException('General E2E requires its own disposable local environment.');
     }

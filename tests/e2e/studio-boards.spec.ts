@@ -330,7 +330,7 @@ test('Studio: a chart bound to a saved table is exported on the server as SVG, P
         const foreign = (await page.request.get(`/brands/${otherBrand.id}/studio/datasets/${dataset.data.dataset.id}/table`, { headers: { Accept: 'application/json' } })).status();
         expect(foreign).toBe(404);
         // Actor boundary: another user cannot queue a render of this design nor read its export.
-        const context = await browser.newContext({ baseURL: 'http://localhost:8080' });
+        const context = await browser.newContext({ baseURL: info.project.use.baseURL });
         try {
             const actor = await context.newPage();
             await loginAs(actor, e2eUser(info.project.name === 'desktop' ? 'mobile' : 'desktop'));

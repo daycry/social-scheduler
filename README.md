@@ -86,12 +86,12 @@ npx tsc --noEmit -p .    # tipos de los tests E2E
 npm run test:unit        # tests de Node sin navegador (tests/frontend)
 npm run test:browser     # tests de Node con Chromium
 node scripts/test/purge-testing.mjs --dry-run # limpieza de storage/framework/testing (ver docs/guias/testing.md)
-npx playwright test -c playwright.roadmap.config.ts # T-43: SQLite desechable en localhost:8081
+npm run test:e2e:roadmap # T-43: SQLite desechable en localhost:8081 (E2E_ROADMAP_PORT)
 ```
 
 CI (`.github/workflows/ci.yml`) ejecuta Pint y la suite Pest en cada push y PR.
 
-La batería general (`npm run test:e2e`) usa un servidor propio en `localhost:8080`, SQLite y almacenamiento desechables y cuatro usuarios de prueba. La QA de T-77 del 2026-10-31 pasa 502 casos y omite los dos previstos del shell de escritorio en móvil, sin fallos ni flaky. La [guía de T-43](docs/guias/pruebas-t43.md) explica qué configuración elegir y dónde quedan las evidencias.
+La batería general (`npm run test:e2e`) usa un servidor propio en `localhost:8080` (o `E2E_PORT`; si 8080 está ocupado, un puerto libre), SQLite y almacenamiento desechables y cuatro usuarios de prueba. La QA de T-77 del 2026-10-31 pasa 502 casos y omite los dos previstos del shell de escritorio en móvil, sin fallos ni flaky. La [guía de T-43](docs/guias/pruebas-t43.md) explica qué configuración elegir y dónde quedan las evidencias.
 
 ## Documentación
 

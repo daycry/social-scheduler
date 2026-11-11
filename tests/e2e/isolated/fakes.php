@@ -14,7 +14,7 @@ class GeneralBlueskyConnector extends BlueskyConnector
 {
     public function connectWithCredentials(array $input): array
     {
-        return (new T43Connector('bluesky', [Network::Bluesky]))->exchangeCode('fake-local-code', 'http://localhost:8080');
+        return (new T43Connector('bluesky', [Network::Bluesky]))->exchangeCode('fake-local-code', (string) getenv('APP_URL'));
     }
 
     public function refresh(SocialAccount $account): RefreshResult

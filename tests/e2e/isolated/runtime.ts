@@ -1,9 +1,29 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 
-export const baseURL = 'http://localhost:8080';
+import { execFileSync } from 'node:child_process';
+
+// The port is E2E_PORT or, by default, a free one chosen once. Playwright re-evaluates this module in every worker,
+// so the choice is written back to process.env and inherited instead of being drawn again.
+export const DEFAULT_PORT = 8080;
+function freePort(): number {
+    // Prefer 8080 when it is free (stable URL for local debugging); otherwise ask the OS for an ephemeral port.
+    const probe = `const n=require('node:net');const t=(p,c)=>{const s=n.createServer();s.once('error',()=>c(0));s.listen(p,'127.0.0.1',()=>{const a=s.address().port;s.close(()=>c(a));});};t(${DEFAULT_PORT},a=>a?console.log(a):t(0,b=>console.log(b)));`;
+    return Number(execFileSync(process.execPath, ['-e', probe], { encoding: 'utf8' }).trim());
+}
+export const port = (() => {
+    const requested = process.env.E2E_PORT;
+    if (requested !== undefined && requested !== '') {
+        const value = Number(requested);
+        if (!Number.isInteger(value) || value < 1024 || value > 65535) throw new Error(`E2E_PORT must be an integer between 1024 and 65535 (got "${requested}").`);
+        return value;
+    }
+    return freePort();
+})();
+process.env.E2E_PORT = String(port);
+export const baseURL = `http://localhost:${port}`;
 if (process.env.E2E_NO_SERVER || (process.env.E2E_BASE_URL && process.env.E2E_BASE_URL !== baseURL)) {
-    throw new Error('General E2E requires its managed disposable server at http://localhost:8080.');
+    throw new Error(`General E2E requires its managed disposable server at ${baseURL}.`);
 }
 
 const prefix = path.resolve('storage/framework/testing/t43');

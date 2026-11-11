@@ -15,6 +15,7 @@ const WORKFLOW = {
     collaborator_invited: 'Invitación para aprobar',
     collaborator_revoked: 'Acceso retirado',
     series_failed: 'Una serie no se ha podido generar',
+    media_missing: 'Falta un archivo en una publicación',
 };
 const title = (n) => WORKFLOW[n.type] ?? (n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'first_comment_failed' ? `No se pudo dejar el primer comentario en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
 </script>

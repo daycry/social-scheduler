@@ -418,6 +418,11 @@ class PostService
      *
      * @return array{post: Post, retried: int, skipped: int}
      */
+    /** `error_code` de un destino al que le falta un archivo de su media (migracion T-06): no se reintenta hasta editar su media. */
+    public const MEDIA_MISSING = 'media_inexistente';
+
+    public const MEDIA_MISSING_RETRY = 'A un destino le falta un archivo de su media: editalo y vuelve a elegir la media antes de reintentar.';
+
     public function retryFailed(User $user, Post $post): array
     {
         $this->assertOwns($user, $post);
@@ -427,11 +432,19 @@ class PostService
 
         $retried = [];
         $skipped = 0;
-        DB::transaction(function () use ($post, &$retried, &$skipped) {
+        $blocked = 0;
+        DB::transaction(function () use ($post, &$retried, &$skipped, &$blocked) {
             $targets = PostTarget::withoutUserScope()->where('post_id', $post->id)->orderBy('id')->lockForUpdate()->get();
             $locked = Post::withoutUserScope()->lockForUpdate()->findOrFail($post->id);
             foreach ($targets as $target) {
                 if ($target->status !== PostStatus::Failed || ! $target->content_type->network()->isAvailable()) {
+                    $skipped++;
+
+                    continue;
+                }
+                // Marcado por la migracion de T-06 (falta un archivo de su media): reintentarlo publicaria otra cosa; hay que editar la media.
+                if ($target->error_code === self::MEDIA_MISSING) {
+                    $blocked++;
                     $skipped++;
 
                     continue;
@@ -450,6 +463,10 @@ class PostService
                 });
             }
         });
+
+        if ($retried === [] && $blocked > 0) {
+            throw new PostValidationException(['media' => [self::MEDIA_MISSING_RETRY]]);
+        }
 
         return ['post' => $post->fresh(['targets', 'media']), 'retried' => count($retried), 'skipped' => $skipped];
     }

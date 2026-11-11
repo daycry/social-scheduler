@@ -3478,3 +3478,15 @@ Verificación: Pest focal (`Retention`, `StudioRendererTest`, `StudioBackendTest
 | 6 | Important | Borrar una cuenta en MySQL puede chocar con las FK `restrict` por el orden de las cascadas | T-06 | `User::deleting` vacía explícitamente `post_media`, `post_target_media`, `post_series_media` y `autolist_item_media` de la media del usuario (y las portadas) antes de borrarlo; lo usa `ProfileController::destroy` y cualquier otro borrado | test «borrar un usuario con posts, media por destino, series y autolistas…» (verde en SQLite, que no reproduce el orden de InnoDB; la comprobación en MySQL queda en pendientes manuales) |
 
 Verificación: `MediaDeleteReferencesTest` 11/11; Pest focal (Posts, Media, Workflow, Parity, Studio, Sites, Auth, Profile, Mcp, Library, Retention, Isolation) y Pint; Pest completo y Playwright, del coordinador. T-06 sigue `en-revision`.
+
+## Revisión de dos lentes — intento 2: Fase 1 (T-06) — gaps corregidos
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 2a | Important | El reintento publicaba la lista recortada de un destino marcado `media_inexistente` | T-06 | `PostService::retryFailed` salta esos destinos (`MEDIA_MISSING`) y, si no queda ninguno reintentable, lanza `PostValidationException` (422 en web y API; error del MCP `retry_post`, mismo servicio); `CalendarService`: `can_retry` falso y nuevo `retry_blocked` con el motivo, que `Calendar/Index.vue` muestra junto a la fila. Editar el destino (siempre `fresh` si estaba fallido) limpia el código | `MediaMissingRetryTest` 3 tests (rojo: 200 en web/API/MCP y `can_retry` true) |
+| 2b | Important | La migración no recalculaba `posts.status` ni avisaba | T-06 | Recalcula el estado del post con la regla de `Post::syncStatus` (sin eventos) e inserta una fila en `notifications` (`PostMediaMissing`, «Falta el archivo X en la publicación Y», visible en Avisos con título `media_missing`) | test de migración con programada [A, B] y B borrada (rojo: post `borrador`/sin notificación) |
+| N1 | Minor | Se marcaban fallidos borradores y destinos en vuelo | T-06 | Solo `programada` pasa a `fallida`; un borrador conserva su estado y pierde los ids inexistentes; `publicando`/`procesando`/`fallida` no se tocan; todo se registra en el log | test «la migración no marca fallidos los borradores ni toca los destinos en vuelo» (rojo: borrador → fallida) |
+| N2 | Minor | La purga hacía commit separado del DELETE del usuario | T-06 | `User::delete()` envuelve purga y borrado en una transacción (vale para `ProfileController::destroy` y cualquier otro borrado) | test «la purga … son atómicos» con un listener que falla (rojo: 0 filas tras el fallo) |
+| UX | Minor | El error de borrado de un export decía «se usa en una publicación» | T-06 | `MediaAsset::usageReason()` distingue publicación, serie activa, autolista y exportación reciente del estudio; `MediaUploadService::delete` lo usa | test «el error de borrado distingue el motivo» (rojo) |
+
+Verificación: `MediaDeleteReferencesTest` + `MediaMissingRetryTest` 17/17; Pest focal; Pint; `npm run build`. Pest completo y Playwright, del coordinador. T-06 sigue `en-revision`.

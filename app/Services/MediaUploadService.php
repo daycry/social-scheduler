@@ -337,8 +337,8 @@ class MediaUploadService
                     return; // ya borrada por otra peticion
                 }
 
-                if ($locked->usedByPosts()) {
-                    throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
+                if (($reason = $locked->usageReason()) !== null) {
+                    throw new \DomainException($reason);
                 }
 
                 $locked->releasePublishedTargetMedia();

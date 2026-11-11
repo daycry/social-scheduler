@@ -62,7 +62,7 @@ test('borrar una media usada por un destino sin publicar, como portada, por una 
     $item->save();
 
     foreach ([$inTarget, $asCover, $inSeries, $inAutolist] as $m) {
-        expect(fn () => $svc->delete($m))->toThrow(DomainException::class, 'se usa en una publicacion');
+        expect(fn () => $svc->delete($m))->toThrow(DomainException::class, 'El archivo se usa en');
         expect(MediaAsset::withoutUserScope()->find($m->id))->not->toBeNull();
     }
 });
@@ -151,7 +151,7 @@ test('la media de un export listo reciente bloquea el borrado; la de uno antiguo
     mdrExport($this->user, $this->brand, $old, 'ready', now()->subDays(31)->toDateTimeString());
     mdrExport($this->user, $this->brand, $failed, 'failed');
 
-    expect(fn () => app(MediaUploadService::class)->delete($recent))->toThrow(DomainException::class, 'se usa en una publicacion');
+    expect(fn () => app(MediaUploadService::class)->delete($recent))->toThrow(DomainException::class, 'El archivo se usa en');
     expect($recent->usedByPosts())->toBeTrue()->and($old->usedByPosts())->toBeFalse()->and($failed->usedByPosts())->toBeFalse();
 });
 
@@ -169,6 +169,9 @@ test('la migracion no descarta en silencio la media huerfana de un destino sin p
     $s = DB::table('post_targets')->where('id', $scheduled->id)->first();
     expect($s->status)->toBe(PostStatus::Failed->value)->and($s->error_code)->toBe('media_inexistente')->and($s->error_message)->toContain((string) $b->id);
     Log::shouldHaveReceived('warning')->once();
+    expect(DB::table('posts')->where('id', $scheduled->post_id)->value('status'))->toBe(PostStatus::Failed->value);
+    $note = DB::table('notifications')->where('notifiable_id', $this->user->id)->first();
+    expect($note)->not->toBeNull()->and($note->data)->toContain('Falta el archivo '.$b->id);
     expect(DB::table('post_targets')->where('id', $published->id)->value('status'))->toBe(PostStatus::Published->value);
     expect(PostTarget::withoutUserScope()->find($published->id)->media)->toBe([['id' => $a->id, 'alt' => null, 'cover_id' => null]]);
 });
@@ -209,4 +212,52 @@ test('borrar un usuario con posts, media por destino, series y autolistas no fal
     foreach (['post_target_media', 'post_series_media', 'autolist_item_media', 'post_media', 'media_assets', 'post_targets'] as $table) {
         expect(DB::table($table)->count())->toBe(0, $table);
     }
+});
+
+test('la migracion no marca fallidos los borradores ni toca los destinos en vuelo', function () {
+    $a = ($this->asset)();
+    $b = ($this->asset)();
+    $mk = fn (PostStatus $st) => ($this->target)($st, [['id' => $a->id, 'alt' => null, 'cover_id' => null], ['id' => $b->id, 'alt' => null, 'cover_id' => null]]);
+    $draft = $mk(PostStatus::Draft);
+    $processing = $mk(PostStatus::Processing);
+    $migration = require database_path('migrations/2026_12_18_090000_create_post_target_media_tables.php');
+    $migration->down();
+    DB::table('media_assets')->where('id', $b->id)->delete();
+    Log::spy();
+    $migration->up();
+
+    expect(DB::table('post_targets')->where('id', $draft->id)->value('status'))->toBe(PostStatus::Draft->value)
+        ->and(PostTarget::withoutUserScope()->find($draft->id)->media)->toBe([['id' => $a->id, 'alt' => null, 'cover_id' => null]])
+        ->and(DB::table('post_targets')->where('id', $processing->id)->value('status'))->toBe(PostStatus::Processing->value)
+        ->and(DB::table('post_targets')->where('id', $processing->id)->value('error_code'))->toBeNull();
+    Log::shouldHaveReceived('warning')->atLeast()->twice();
+});
+
+test('la purga de referencias y el borrado del usuario son atomicos', function () {
+    $m = ($this->asset)();
+    ($this->target)(PostStatus::Draft, [['id' => $m->id, 'alt' => null, 'cover_id' => null]]);
+    User::deleting(fn () => throw new RuntimeException('falla el borrado'));
+
+    expect(fn () => $this->user->delete())->toThrow(RuntimeException::class);
+    expect(DB::table('post_target_media')->count())->toBe(1)->and(User::query()->find($this->user->id))->not->toBeNull();
+});
+
+test('el error de borrado distingue el motivo', function () {
+    config(['studio.export_media_guard_days' => 30]);
+    $svc = app(MediaUploadService::class);
+    $exp = ($this->asset)();
+    $ser = ($this->asset)();
+    $aut = ($this->asset)();
+    mdrExport($this->user, $this->brand, $exp);
+    PostSeries::withoutUserScope()->create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'frequency' => 'diaria', 'time_local' => '10:00', 'starts_on' => '2026-11-10', 'status' => PostSeries::ACTIVE, 'payload' => ['media' => [$ser->id]]]);
+    $list = Autolist::query()->forceCreate(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'name' => 'L', 'targets' => [], 'slots' => []]);
+    $item = new AutolistItem(['text' => 'x', 'media' => [$aut->id]]);
+    $item->user_id = $this->user->id;
+    $item->autolist_id = $list->id;
+    $item->position = 1;
+    $item->save();
+
+    expect(fn () => $svc->delete($exp))->toThrow(DomainException::class, 'exportacion reciente del estudio')
+        ->and(fn () => $svc->delete($ser))->toThrow(DomainException::class, 'serie')
+        ->and(fn () => $svc->delete($aut))->toThrow(DomainException::class, 'autolista');
 });

@@ -114,7 +114,19 @@ class MediaAsset extends Model
     /** ¿La usa alguna publicacion (media comun o propia de un destino), una serie recurrente activa, una autolista o un export reciente? */
     public function usedByPosts(): bool
     {
-        return $this->posts()->exists() || $this->usedByTargetMedia() || $this->usedBySeries() || $this->usedByAutolist() || $this->usedByExport();
+        return $this->usageReason() !== null;
+    }
+
+    /** Motivo legible por el que no se puede borrar (`null` = libre). El orden es el de la consulta: la mas barata primero. */
+    public function usageReason(): ?string
+    {
+        return match (true) {
+            $this->posts()->exists() || $this->usedByTargetMedia() => 'El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.',
+            $this->usedBySeries() => 'El archivo se usa en una serie recurrente activa; quitalo de ella o cancela la serie antes de borrarlo.',
+            $this->usedByAutolist() => 'El archivo se usa en una autolista; quitalo de su cola antes de borrarlo.',
+            $this->usedByExport() => 'El archivo se usa en una exportacion reciente del estudio; espera a que pase la ventana de proteccion o elimina la exportacion.',
+            default => null,
+        };
     }
 
     /**

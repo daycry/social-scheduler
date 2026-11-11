@@ -31,6 +31,12 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         });
     }
 
+    /** Purga de referencias y borrado en una sola transaccion: si el borrado falla, no queda la cuenta a medio vaciar. */
+    public function delete()
+    {
+        return DB::transaction(fn () => parent::delete());
+    }
+
     /**
      * Las FK `restrict` de las referencias a media (`post_media`, `post_target_media`, `post_series_media`, `autolist_item_media`) no
      * dependen del orden de las cascadas de InnoDB al borrar la cuenta: se vacian explicitamente ANTES de que caiga el usuario

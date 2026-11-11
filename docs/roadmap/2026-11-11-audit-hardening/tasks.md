@@ -39,7 +39,7 @@ estado: en-progreso
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — Riesgo inmediato | 0 | 11 | 0% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
+| Fase 1 — Riesgo inmediato | 3 | 11 | 27% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
 | Fase 2 — CI y red de tests | 0 | 8 | 0% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
 | Fase 3 — Funciones incompletas | 0 | 16 | 0% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
 | Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
@@ -47,7 +47,7 @@ estado: en-progreso
 | Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **0** | **100** | **0%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
+| **TOTAL** | **3** | **100** | **3%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -64,7 +64,8 @@ estado: en-progreso
 - **Descripción**: Actualizar `symfony/*` y `laravel/framework` (13.37 → 13.42) para cerrar los 11 avisos de `composer audit` y comprobar que nada se rompe.
 - **Changelog**: Actualizadas las dependencias de Symfony y Laravel (13.42) para cerrar 11 avisos de seguridad conocidos; sin cambios visibles.
 - **Cerrada**: 2026-11-11
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-11
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -80,16 +81,16 @@ estado: en-progreso
 - [x] `composer audit` sin avisos de seguridad
 - [x] Suite Pest completa en verde tras la actualización
 - [x] `composer.lock` con versiones de Symfony ≥ las corregidas (7.4.22 o superior)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `composer update symfony/* laravel/framework --with-all-dependencies` (laravel 13.37.0 → 13.42.0; symfony 7.4.16-7.4.21 → 7.4.22/7.4.23; sin paquetes fijados). `composer audit` → `No security vulnerability advisories found`. Pest: 3581 tests, 3572 passed, 9 skipped (sin fallos). `npm run build` OK. Playwright aplazado al cierre de fase.
 
@@ -99,7 +100,8 @@ estado: en-progreso
 
 - **Descripción**: Mover `Http::preventStrayRequests()` a `TestCase::setUp` para que ningún test salga a la red; arreglar los ~234 ficheros que hoy dependen de ello sin saberlo.
 - **Changelog**:
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-11
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -115,16 +117,16 @@ estado: en-progreso
 - [x] `Http::preventStrayRequests()` se aplica globalmente en `TestCase`
 - [x] Ningún test hace peticiones reales (los que las necesitaban usan `Http::fake`)
 - [x] Los tests de integración con servidor local (si los hay) declaran su excepción explícita
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `Http::preventStrayRequests()` en `TestCase::setUp`; solo fallaban BlueskySsrfTest y UrlSourceRealHandlerTest (servidor local), que declaran `Http::allowStrayRequests()`. Pest completo: 3581 tests, 3572 passed, 9 skipped, 0 fallos. Pint OK. Playwright aplazado al cierre de fase.
 
@@ -134,7 +136,8 @@ estado: en-progreso
 
 - **Descripción**: Añadir el cron/worker de la cola `studio` en Hestia y la unidad `scheduler-worker@media` en systemd; unificar la documentación de colas entre ambos.
 - **Changelog**:
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-11
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -150,16 +153,16 @@ estado: en-progreso
 - [x] La doc de Hestia lista un worker para cada cola que usa el código (`default`, `media`, `studio`…)
 - [x] La doc de systemd incluye `scheduler-worker@media`
 - [x] Un test lee `app/Jobs/**` y falla si una cola usada no aparece en `deploy/*/README.md`
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: Hestia 5.1-bis (worker studio por unidad systemd, resumen cola→worker, WORKER_UNITS), systemd README con scheduler-worker@media y --queue=studio, cabecera de la plantilla, deploy.sh y docs/modulos/despliegue.md alineados. DeployQueuesDocTest: 4 tests verdes (falla si se retira studio de Hestia). Pest completo al final de la sesión.
 
@@ -3394,6 +3397,19 @@ estado: en-progreso
 **Notas**: Tamaño S. No se hace commit ni merge desde el plan.
 
 ---
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-01, T-02, T-03) — gaps corregidos
+
+T-01 y T-02 sin gaps. Los gaps de T-03 y su corrección:
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | La cola `default` no tiene worker en ninguna doc de despliegue: `PasskeyAdded` (`ShouldQueue` sin `onQueue`) caía en `default` y nadie la procesaba | T-03 | Elegida la opción robusta: `PasskeyAdded` va por `publishing.queue` (`publish`, la de menor latencia y con worker en todos los despliegues). No se añadió `default`: sería un worker más que mantener y dependería de que `QUEUE_NAMES` lo incluya. Revisados todos los `ShouldQueue` de `app/`: el único sin cola era `PasskeyAdded` (`QueueProbeJob` la fija quien lo despacha) | `PasskeyAdded.php`; Pest `--filter='DeployQueuesDocTest\|Passkey'` 78 verdes; el test sale en rojo («no documenta un worker para la cola `default`») con el cambio revertido |
+| 2 | Minor | `DeployQueuesDocTest` solo miraba `app/Jobs` y `onQueue(...)` | T-03 | Escanea todo `app/`: `onQueue(...)`, `push(..., queue:)` (p. ej. `StudioAvQueue`) y `ShouldQueue` sin cola explícita = `default` | `DeployQueuesDocTest.php` |
+| 3 | Minor | `studio` en Hestia contaba como documentada por una mención | T-03 | El test exige `systemctl enable --now scheduler-studio` en el README de Hestia | `DeployQueuesDocTest.php` |
+| 4 | Doc | `deploy/hestia/README.md` se contradecía sobre `WORKER_UNITS` | T-03 | Unificado: no hace falta para los cron, sí para las unidades systemd instaladas (`scheduler-studio`, `scheduler-worker@…`); igual en `docs/modulos/despliegue.md` | grep `WORKER_UNITS` |
+
+Estado: T-01, T-02 y T-03 pasan a `completado` (2026-11-11) con los criterios que no dependen del Playwright de fase marcados. El criterio «Pest verde y Playwright de los specs afectados» queda sin marcar en ellas: el Pest está verde (ver evidencia) y el E2E se pasará al cerrar la fase 1.
 
 ## Revisión de dos lentes — intento 1: Fase 1 (T-04, T-05) — gaps corregidos
 

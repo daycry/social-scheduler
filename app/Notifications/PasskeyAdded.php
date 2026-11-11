@@ -13,6 +13,8 @@ use Illuminate\Notifications\Notification;
  * quien la creo, la fecha y una IP aproximada (nunca material de la credencial).
  *
  * Por cola y solo `mail`: un fallo del SMTP no puede romper el alta. Guarda datos escalares.
+ * Va por la cola `publish` (la de menor latencia, con worker en todos los despliegues): sin cola explicita caeria en
+ * `default`, que ningun worker documentado atiende.
  */
 class PasskeyAdded extends Notification implements ShouldQueue
 {
@@ -27,6 +29,7 @@ class PasskeyAdded extends Notification implements ShouldQueue
     public function __construct(public readonly string $passkeyName, public readonly string $at, ?string $ip)
     {
         $this->maskedIp = self::maskIp($ip);
+        $this->onQueue((string) config('publishing.queue', 'publish'));
     }
 
     /** @return list<string> */

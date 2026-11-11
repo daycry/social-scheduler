@@ -117,7 +117,7 @@ Resumen de colas y quién las atiende: `publish`, `poll` (cron 2), `metrics`, `r
 
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
 
-Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
+Al actualizar no hay que tocar las tareas de cron: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo. `WORKER_UNITS` solo hace falta para las unidades systemd que tengas instaladas (`scheduler-studio`, o `scheduler-worker@…` si usas la opción B).
 
 ### 5.2 Opción B: systemd (procesos siempre vivos)
 

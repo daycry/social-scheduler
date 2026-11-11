@@ -1,30 +1,44 @@
 <?php
 
 /**
- * Auditoria A-06: cada cola que usan los jobs debe tener su worker documentado en Hestia y en systemd,
+ * Auditoria A-06: cada cola que usa el codigo de app/ debe tener su worker documentado en Hestia y en systemd,
  * para que no vuelva a quedar una cola (media, studio...) sin nadie que la procese.
  */
 
-/** @return list<string> */
-function queuesUsedByJobs(): array
+/**
+ * Colas que usa el codigo de `app/`: `onQueue(...)`, `push(..., queue: ...)` y todo `ShouldQueue` sin cola explicita (= `default`).
+ *
+ * @return list<string>
+ */
+function queuesUsedByApp(): array
 {
     $queues = [];
-    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path('Jobs'), FilesystemIterator::SKIP_DOTS));
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path(), FilesystemIterator::SKIP_DOTS));
+    $named = "(?:\(string\)\s*)?(?:config\(\s*'([^']+)'\s*,\s*'([^']+)'\s*\)|'([^']+)')";
 
     foreach ($iterator as $file) {
         if ($file->getExtension() !== 'php') {
             continue;
         }
         $code = file_get_contents($file->getPathname());
+        $declared = false;
 
-        // onQueue(config('clave', 'defecto')) -> valor efectivo de la config; onQueue('literal') -> literal.
-        if (preg_match_all("/onQueue\(\s*(?:\(string\)\s*)?config\(\s*'([^']+)'\s*,\s*'([^']+)'\s*\)/", $code, $m, PREG_SET_ORDER)) {
+        // onQueue(config('clave', 'defecto')) / push(..., queue: config(...)) -> valor efectivo; literal -> literal.
+        foreach (["/onQueue\(\s*$named/", "/\bqueue:\s*$named/"] as $regex) {
+            preg_match_all($regex, $code, $m, PREG_SET_ORDER);
             foreach ($m as $hit) {
-                $queues[] = (string) config($hit[1], $hit[2]);
+                $declared = true;
+                $queues[] = ($hit[1] ?? '') !== '' ? (string) config($hit[1], $hit[2]) : $hit[3];
             }
         }
-        if (preg_match_all("/onQueue\(\s*'([^']+)'\s*\)/", $code, $m)) {
-            array_push($queues, ...$m[1]);
+
+        // QueueProbeJob no fija cola: la elige `app:queue-probe` al despacharlo (una por cola real), no cae en `default`.
+        if (basename($file->getPathname()) === 'QueueProbeJob.php') {
+            continue;
+        }
+
+        if (! $declared && preg_match('/implements[^{]*\bShouldQueue\b/', $code)) {
+            $queues[] = (string) config('queue.connections.database.queue', 'default');
         }
     }
 
@@ -45,22 +59,25 @@ function mentionsQueueWorker(string $doc, string $queue): bool
     return (bool) preg_match('/--queue=(?:[a-z_]+,)*'.preg_quote($queue, '/').'(?![a-z_])/', $doc);
 }
 
-test('los jobs usan las colas esperadas (el escaner no es vacuo)', function () {
-    expect(queuesUsedByJobs())->toContain('publish', 'poll', 'metrics', 'reports', 'media', 'studio');
+test('el codigo usa las colas esperadas (el escaner no es vacuo)', function () {
+    expect(queuesUsedByApp())->toContain('publish', 'poll', 'metrics', 'reports', 'media', 'studio');
 });
 
-test('cada cola usada por los jobs tiene un worker documentado en Hestia', function () {
+test('cada cola usada por el codigo tiene un worker documentado en Hestia', function () {
     $hestia = deployDoc('deploy/hestia/README.md');
 
-    foreach (queuesUsedByJobs() as $queue) {
+    foreach (queuesUsedByApp() as $queue) {
         expect(mentionsQueueWorker($hestia, $queue))->toBeTrue("deploy/hestia/README.md no documenta un worker para la cola `$queue`");
     }
+
+    // `studio` no cabe en el cron: Hestia debe traer el paso de instalacion de su unidad, no solo mencionarla.
+    expect($hestia)->toContain('systemctl enable --now scheduler-studio');
 });
 
-test('cada cola usada por los jobs tiene un worker documentado en systemd', function () {
+test('cada cola usada por el codigo tiene un worker documentado en systemd', function () {
     $systemd = deployDoc('deploy/systemd/README.md');
 
-    foreach (queuesUsedByJobs() as $queue) {
+    foreach (queuesUsedByApp() as $queue) {
         $documented = mentionsQueueWorker($systemd, $queue) || str_contains($systemd, "scheduler-worker@$queue");
         expect($documented)->toBeTrue("deploy/systemd/README.md no documenta un worker para la cola `$queue`");
     }

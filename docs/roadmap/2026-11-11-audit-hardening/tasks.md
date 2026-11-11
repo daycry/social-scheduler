@@ -291,7 +291,7 @@ estado: en-progreso
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `app/Connectors/Support/KnownSizeStream.php`, `app/Connectors/Pinterest/PinterestUploadRejectedException.php`, `config/media_specs.php`, `config/social.php`, `docs/modulos/despliegue.md`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
+- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `app/Connectors/Support/KnownSizeStream.php`, `app/Services/PublishOutcomes.php`, `tests/Feature/Publishing/**`, `app/Connectors/Pinterest/PinterestUploadRejectedException.php`, `config/media_specs.php`, `config/social.php`, `docs/modulos/despliegue.md`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
 - **Cubre**: A-05
 - **Cubre (tests)**: M-01
 - **Verificación**: `php artisan test --compact --filter=PinterestVideoStreamingTest` → verde
@@ -313,7 +313,7 @@ estado: en-progreso
 
 **Evidencia**: RED inicial: el test de stream fallaba (el contenido iba como string de `Storage::get`). Tras el cambio `PinterestVideoStreamingTest` 3/3 y `tests/Feature/Connectors/Pinterest` 22/22 verdes (`php artisan test --compact tests/Feature/Connectors/Pinterest`). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
 
-**Decisiones**: `Storage::readStream` + multipart con el recurso (Guzzle lo envía con Content-Length, sin cargarlo). Tope de vídeo 2 GB a 512 MB y `PINTEREST_UPLOAD_TIMEOUT` 60 a 100 s (< 110 s del job; 512 MB en 100 s exige ~5 MB/s). La validación (`MediaValidator`) ya rechaza por `max_bytes` al programar. Contrato del endpoint `/v5/media` (`upload_url` + `upload_parameters` a S3, `file` el último campo) **sin verificar** contra la documentación de Pinterest: developers.pinterest.com es una SPA y no devolvió texto aquí; queda para el smoke M-01. El test de memoria mide el pico (48 MB de fichero, crecimiento < 16 MB).
+**Decisiones**: `Storage::readStream` + multipart con el recurso (Guzzle lo envía con Content-Length, sin cargarlo). Tope de vídeo 2 GB a **128 MB** y `PINTEREST_UPLOAD_TIMEOUT` 60 a 100 s, acotado al presupuesto del paso (85 s del job de 110 s, registro incluido): 128 MB caben a ~2,5 MB/s con ~55 s de margen en el peor caso. Se descartó el paso propio en cola `media` (~600 s) porque exige cambiar `--timeout`/`--max-time` de los workers y `retry_after` (180 s) en producción, no verificable aquí (revisión intento 2, N4). La validación (`MediaValidator`) ya rechaza por `max_bytes` al programar. Contrato del endpoint `/v5/media` (`upload_url` + `upload_parameters` a S3, `file` el último campo) **sin verificar** contra la documentación de Pinterest: developers.pinterest.com es una SPA y no devolvió texto aquí; queda para el smoke M-01. El test de memoria mide el pico (48 MB de fichero, crecimiento < 16 MB).
 
 **Notas**: Tamaño M. Sin red: `Http::fake` con recuento de bytes. La verificación contra Pinterest sandbox es el smoke M-01 del usuario. **A la espera (no bloquea la fase)**: Contrato real de Pinterest (sandbox) sin verificar: queda para el smoke M-01.
 
@@ -3524,3 +3524,13 @@ Verificación: filtro `Pinterest|LinkedIn|TikTok|HealthCheckTest|InfraTest|Queue
 | N4 | Important | 512 MB no cabe en el presupuesto del paso (6-7 MB/s en un solo POST) | T-07 | **Se elige el tope de 128 MB** (`media_specs`) en lugar del paso propio: un job en cola `media` de ~600 s exigiría cambiar en producción el worker (`--timeout=120`, `--max-time=280`) y `retry_after` de la conexión `database` (180 s) más sus crons y `DeployQueuesDocTest`: cambios de infraestructura que no se pueden verificar aquí y arriesgan los workers existentes. 128 MB caben con ~55 s de margen peor caso a ~2,5 MB/s. Documentado en la guía de Pinterest | test de validación 128/129 MB y el de «supera 128 MB»; documentación actualizada |
 
 Verificación: `tests/Feature/Connectors/Pinterest` 32/32; Pest focal (Pinterest, Publishing, Jobs, Deploy, Infra); Pint. Pest completo y Playwright, del coordinador. T-07 y T-08 siguen `en-revision`.
+
+### Intento 3: Minor cerrados (T-07)
+
+| # | Grado | Gap | Corrección | Evidencia |
+|---|---|---|---|---|
+| G1 | Minor | El «re-registro una sola vez» solo valía dentro de un job | Contador `pinterest_registrations` en `progress` (persiste entre reintentos, cuota y reconexión; el `checkpoint` que limpia la URL lo conserva). Con 2 registros hechos no se registra otro: `subida_rechazada` | `PinterestVideoUploadRobustnessTest` «el contador de registros persiste…» y «el contador sobrevive al checkpoint…» (rojos) |
+| G2 | Minor (CWE-312) | La URL firmada quedaba en `progress` en fallos que no pasaban por el `catch` del publisher | Punto común: `PublishOutcomes::failed` (al que llegan también `transient` agotado y el camino `exhausted`) quita de `progress` `pinterest_upload` y `upload_url` (Pinterest y TikTok) y conserva el resto. Un reintento manual ya reinicia el progreso (`freshAttempt`) | `FailedProgressScrubTest` (2, rojos) |
+| G3 | Minor | La «Decisión» de T-07 seguía con 512 MB y ~5 MB/s | Reescrita con 128 MB, ~2,5 MB/s y la justificación del paso propio descartado | este ledger |
+
+Verificación: filtro `Pinterest|TikTok|Publishing|FailedProgressScrub|PublishOutcomes|Retry` 361/361; Pint. T-07 y T-08 siguen `en-revision`.

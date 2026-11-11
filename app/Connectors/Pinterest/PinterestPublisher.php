@@ -28,6 +28,9 @@ class PinterestPublisher implements Publisher, StatusPoller
 {
     private const RECENT = 25;
 
+    /** Registros de media por destino (el primero + un re-registro si la URL caduca o se rechaza). */
+    private const MAX_REGISTRATIONS = 2;
+
     public function __construct(private readonly PinterestClient $client = new PinterestClient) {}
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
@@ -59,8 +62,7 @@ class PinterestPublisher implements Publisher, StatusPoller
         try {
             $mediaId = $this->registerAndUpload($request, $token, $media, $disk, $size, $budget);
         } catch (PermanentPublishException $e) {
-            $request->checkpoint(null, []); // la URL prefirmada no se queda guardada en un destino fallido
-
+            // La URL prefirmada la quita `PublishOutcomes::failed` (por cualquier camino de fallo); el contador de registros se conserva.
             throw $e;
         }
 
@@ -118,6 +120,18 @@ class PinterestPublisher implements Publisher, StatusPoller
 
     // ------------------------------------------------------------------ interno
 
+    /** Registros de media ya hechos para este destino: persiste en `progress` (sobrevive a reintentos, cuota y reconexion). */
+    private function registrations(PublishRequest $request): int
+    {
+        return (int) ($request->progress['pinterest_registrations'] ?? 0);
+    }
+
+    /** @return array<string, int> */
+    private function registrationsProgress(PublishRequest $request): array
+    {
+        return ['pinterest_registrations' => $this->registrations($request)];
+    }
+
     private function tooBig(int $max): PermanentPublishException
     {
         return new PermanentPublishException('El video supera '.intdiv($max, 1024 * 1024).' MB para Pinterest.', 'video_grande');
@@ -140,8 +154,14 @@ class PinterestPublisher implements Publisher, StatusPoller
                 return (string) $request->reference;
             } catch (PinterestUploadRejectedException $e) {
                 Log::notice('pinterest.upload_url_rejected', ['target_id' => $request->targetId, 'status' => $e->status]);
-                $request->checkpoint(null, []);
+                $request->checkpoint(null, $this->registrationsProgress($request)); // limpia la URL y conserva el contador
             }
+        }
+
+        // «Registrar de nuevo una sola vez» vale para toda la vida del destino, no solo para este job: maximo 2 registros.
+        $registrations = $this->registrations($request);
+        if ($registrations >= self::MAX_REGISTRATIONS) {
+            throw new PermanentPublishException('Pinterest rechazo la subida del video varias veces: reprograma la publicacion.', 'subida_rechazada');
         }
 
         // Registrar (hasta `http_timeout`) + subir (minimo `upload_min_seconds`) tienen que caber en el paso: si no, se reprograma limpio.
@@ -158,7 +178,7 @@ class PinterestPublisher implements Publisher, StatusPoller
         $url = (string) $registered['upload_url'];
         $parameters = (array) ($registered['upload_parameters'] ?? []);
         // La URL prefirmada queda en el progreso (con su hora de emision) para que un reintento no registre otro media.
-        $request->checkpoint($mediaId, ['pinterest_upload' => ['url' => $url, 'parameters' => $parameters, 'issued_at' => now()->timestamp]]);
+        $request->checkpoint($mediaId, ['pinterest_upload' => ['url' => $url, 'parameters' => $parameters, 'issued_at' => now()->timestamp], 'pinterest_registrations' => $registrations + 1]);
 
         try {
             $this->upload($media, $disk, $size, $budget, $url, $parameters);

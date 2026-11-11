@@ -226,7 +226,7 @@ test('si la subida con la URL recien registrada es rechazada, falla claro y perm
     } catch (PermanentPublishException $e) {
         expect($e->errorCode)->not->toBe('permisos')->and($e->getMessage())->toContain('rechazo la subida');
     }
-    expect(pinRegistrations($state))->toBe(1)->and(end($saved))->toBe([]);   // el progreso con la URL firmada se vacia
+    expect(pinRegistrations($state))->toBe(1);   // la URL firmada la limpia PublishOutcomes::failed (FailedProgressScrubTest)
 });
 
 test('tras subir bien, el progreso (con la URL firmada) se vacia', function () {
@@ -235,4 +235,35 @@ test('tras subir bien, el progreso (con la URL firmada) se vacia', function () {
     $result = app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest(pinMedia(), '8100', pinSaved(30)));
 
     expect($result->progress)->toBe([]);
+});
+
+test('el contador de registros persiste y, al pasar de 2, falla sin registrar mas medias', function () {
+    $state = pinRealHandler();
+    $media = pinMedia();
+
+    expect(fn () => app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media, null, ['pinterest_registrations' => 2])))
+        ->toThrow(PermanentPublishException::class, 'rechazo la subida');
+    expect(pinRegistrations($state))->toBe(0);
+
+    // Con una URL guardada vigente que se rechaza y 2 registros ya hechos: tampoco se registra otro.
+    $state->log = [];
+    $state->uploadStatus = [403];
+    expect(fn () => app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media, '8100', pinSaved(30) + ['pinterest_registrations' => 2])))
+        ->toThrow(PermanentPublishException::class);
+    expect(pinRegistrations($state))->toBe(0);
+});
+
+test('el contador sobrevive al checkpoint que limpia la URL rechazada y se incrementa al registrar', function () {
+    $state = pinRealHandler();
+    $state->uploadStatus = [403, 204];
+    $saved = [];
+    $media = pinMedia();
+    $request = new PublishRequest(targetId: 1, type: ContentType::PinterestVideo, text: 'V', media: [$media], options: ['pinterest_board_id' => '549755885175'], reference: '8100', since: now()->subMinute(), progress: pinSaved(30) + ['pinterest_registrations' => 1], checkpoint: function ($ref, $progress) use (&$saved) {
+        $saved[] = $progress;
+    });
+
+    app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), $request);
+
+    expect($saved[0])->toBe(['pinterest_registrations' => 1])
+        ->and($saved[1]['pinterest_registrations'])->toBe(2)->and($saved[1])->toHaveKey('pinterest_upload');
 });

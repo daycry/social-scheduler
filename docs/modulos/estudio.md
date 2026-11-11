@@ -44,6 +44,8 @@ Tablas privadas versionadas por marca (`datasets`, `manage_studio_dataset`): has
 
 Cada exportación queda vinculada a la revisión guardada. **Guardar en biblioteca** sube los ficheros validados y **Usar en publicación** crea un borrador de la marca con ellos (nunca publica solo). Quitar fondo usa un modelo local (BiRefNet general lite) con Python; no se descarga nada durante una petición.
 
+**Historial de revisiones.** Los guardados explícitos («Guardar ahora», Ctrl+S, al salir del editor), restaurar y aplicar kit crean una revisión. El autoguardado del mismo autor dentro del intervalo mínimo (`STUDIO_REVISION_MIN_INTERVAL`, 300 s) reescribe la revisión reciente en lugar de añadir otra. `model:prune` conserva las últimas N revisiones de cada diseño y la última de cada día, y borra el resto junto con sus usos de tipografía (una tipografía solo usada por historial podado se puede borrar).
+
 ## Más módulos del estudio
 
 - [IA del estudio](estudio-ia.md): generar y editar imágenes con OpenAI y Google, cuotas.

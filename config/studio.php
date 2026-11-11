@@ -10,6 +10,8 @@ return [
         'lease_seconds' => 180,
         'disk' => ['snapshot' => 8 * 1024 ** 3, 'pcm' => 8 * 1024 ** 3, 'segment' => 8 * 1024 ** 3, 'output' => 8 * 1024 ** 3],
     ],
+    // Autoguardado (A-07): un autoguardado del mismo autor dentro de este intervalo (s) reescribe la revision reciente en vez de crear otra.
+    'revisions' => ['min_interval_seconds' => (int) env('STUDIO_REVISION_MIN_INTERVAL', 300)],
     'fonts' => [
         'disk' => env('STUDIO_FONT_DISK', 'local'),
         'max_bytes' => 8 * 1024 * 1024,

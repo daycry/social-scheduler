@@ -70,3 +70,13 @@ Schedule::call(fn () => app(GenerateSeriesOccurrences::class)())->hourly()->name
 
 // Servidor OAuth del MCP (CA-31): clientes sin token vivo en 30 dias y codigos caducados.
 Schedule::command('mcp:oauth-prune')->dailyAt('04:40')->name('mcp-oauth-prune')->withoutOverlapping();
+
+// Retencion (A-08, config/retention.php): poda por lotes las tablas con MassPrunable (auditoria, intentos, trabajos del estudio y Canva,
+// revisiones del estudio) y las notificaciones leidas antiguas.
+Schedule::command('model:prune')->dailyAt('04:50')->name('model-prune')->withoutOverlapping();
+Schedule::call(function (): void {
+    $days = (int) config('retention.notifications_days');
+    if ($days > 0) {
+        DB::table('notifications')->whereNotNull('read_at')->where('read_at', '<', now()->subDays($days))->delete();
+    }
+})->dailyAt('04:55')->name('notifications-prune')->withoutOverlapping();

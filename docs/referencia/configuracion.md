@@ -162,6 +162,26 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 
 **Aprobadas por el usuario el 2026-10-31 (T-41)**: las secciones actuales del informe (`cover`, `summary`, `networks`, `top_posts`, `notes`, en `config/reports.php`) y su diseño. No hay variable para la lista de secciones: se cambia en el fichero. La aprobación se refiere al PDF de muestra; la comprobación de métricas reales de M-03 sigue pendiente.
 
+## Retención y revisiones del estudio
+
+`model:prune` (programado a diario, 04:50) poda por lotes las tablas con retención de `config/retention.php`. Un plazo `0` desactiva la poda de esa tabla. `audit_logs` se conserva un año por defecto porque la pantalla de auditoría la mostrará.
+
+| Variable | Defecto | Explicación |
+|---|---|---|
+| `RETENTION_AUDIT_LOGS_DAYS` | `365` | Registro de auditoría |
+| `RETENTION_PUBLISH_ATTEMPTS_DAYS` | `365` | Intentos de publicación (base de la tasa de éxito) |
+| `RETENTION_NOTIFICATIONS_DAYS` | `90` | Notificaciones **leídas** |
+| `RETENTION_STUDIO_AI_JOBS_DAYS` | `90` | Trabajos de IA del estudio terminados |
+| `RETENTION_STUDIO_IMAGE_JOBS_DAYS` | `30` | Trabajos de imagen (quitar fondo) terminados |
+| `RETENTION_CANVA_JOBS_DAYS` | `90` | Trabajos de Canva terminados |
+| `RETENTION_STUDIO_EXPORTS_DAYS` | `30` | Exportaciones del estudio fallidas o canceladas (las listas conservan su fichero) |
+| `RETENTION_STUDIO_AV_STEPS_DAYS` | `14` | Pasos de espacios de trabajo de audio/vídeo caducados |
+| `RETENTION_REVISIONS_KEEP_LAST` | `50` | Revisiones más recientes que se conservan por diseño |
+| `RETENTION_REVISIONS_DAILY_DAYS` | `90` | Se conserva además la última revisión de cada día durante estos días |
+| `STUDIO_REVISION_MIN_INTERVAL` | `300` | Segundos: un autoguardado del mismo autor dentro de este intervalo reescribe la revisión reciente (0 = una revisión por autoguardado) |
+
+La poda de revisiones borra también sus filas de `studio_font_usages`, de modo que una tipografía usada solo por historial podado vuelve a poder borrarse. Requiere MySQL 8 / MariaDB 10.2+ (funciones de ventana).
+
 ## Variables de MCP y analítica (fuera de `.env.example`)
 
 | Variable | Defecto | Explicación |

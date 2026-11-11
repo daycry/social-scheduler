@@ -168,34 +168,38 @@ estado: en-progreso
 ### T-04 — Poda de tablas y retención de revisiones del estudio
 
 - **Descripción**: `MassPrunable` en las ocho tablas con retención en `config/retention.php` y `model:prune` diario; las revisiones del estudio se crean con intervalo mínimo o al cerrar sesión, con retención (últimas N + diarias) y poda de `studio_font_usages`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las tablas de histórico se podan a diario según su retención y el historial de revisiones del estudio ya no crece con cada autoguardado; las tipografías de revisiones antiguas se pueden borrar.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `config/retention.php`, `app/Models/AuditLog.php`, `app/Models/PublishAttempt.php`, `app/Models/StudioAiJob.php`, `app/Models/StudioImageJob.php`, `app/Models/CanvaJob.php`, `app/Models/StudioDesignExport.php`, `app/Models/StudioAvStep.php`, `app/Models/DesignRevision.php`, `app/Services/Studio/StudioService.php`, `app/Services/Studio/StudioFonts.php`, `resources/js/Pages/Studio/Editor.vue`, `routes/console.php`, `docs/modulos/estudio.md`, `docs/modulos/despliegue.md`
+- **Archivos**: `config/retention.php`, `app/Models/AuditLog.php`, `app/Models/PublishAttempt.php`, `app/Models/StudioAiJob.php`, `app/Models/StudioImageJob.php`, `app/Models/CanvaJob.php`, `app/Models/StudioDesignExport.php`, `app/Models/StudioAvStep.php`, `app/Models/DesignRevision.php`, `app/Services/Studio/StudioService.php`, `app/Services/Studio/StudioFonts.php`, `resources/js/Pages/Studio/Editor.vue`, `routes/console.php`, `docs/modulos/estudio.md`, `docs/modulos/despliegue.md`, `app/Models/Concerns/PrunesByAge.php`, `config/studio.php`, `database/migrations/*_add_retention_indexes.php`, `docs/referencia/configuracion.md`, `.env.example`, `.env.production.example`, `tests/Feature/Retention/RetentionPruneTest.php`, `tests/Feature/Retention/DesignRevisionRetentionTest.php`
 - **Cubre**: A-08, A-07
 - **Cubre (tests)**: E2E-02
 - **Verificación**: `php artisan test --compact --filter=RetentionPruneTest` → verde · `php artisan test --compact --filter=DesignRevisionRetentionTest` → verde · `php artisan model:prune --pretend` → lista las ocho tablas sin errores
 
 **Criterios de aceptación**
-- [ ] Cada modelo listado implementa `MassPrunable` con retención configurable y `model:prune` está programado
-- [ ] El autoguardado no crea más de una revisión por intervalo mínimo; quedan las últimas N y una diaria
-- [ ] Una tipografía solo usada por revisiones podadas se puede borrar
-- [ ] Sin cambio en el contenido visible del editor
+- [x] Cada modelo listado implementa `MassPrunable` con retención configurable y `model:prune` está programado
+- [x] El autoguardado no crea más de una revisión por intervalo mínimo; quedan las últimas N y una diaria
+- [x] Una tipografía solo usada por revisiones podadas se puede borrar
+- [x] Sin cambio en el contenido visible del editor
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: RetentionPruneTest + DesignRevisionRetentionTest: 9 tests verdes (retención por modelo, intervalo mínimo, últimas N + diaria, `studio_font_usages` podado por cascada y tipografía borrable tras la poda). `php artisan test tests/Feature/Studio`: 657 tests, 648 passed, 9 skipped. `model:prune --pretend` sobre SQLite migrada de cero: sin errores y lista los modelos (contra la BD .env no se pudo: MySQL local apagado). Migración de índices reversible (migrate + rollback --step=1 OK). Pint OK. Playwright no lanzado (decisión de la sesión; Editor.vue solo añade `autosave` al PATCH).
+
+**Decisiones**: el autoguardado (`autosave: true`) del mismo autor dentro de `studio.revisions.min_interval_seconds` (300 s) reescribe la revisión reciente (conserva siempre la 1); «Guardar ahora», Ctrl+S, salir, restaurar y kit crean revisión. Exportaciones: solo se podan las fallidas/canceladas sin fichero (las listas tienen fichero en disco que `MassPrunable` no borra). Notificaciones: tarea programada aparte (modelo de Laravel sin clase propia). Poda de revisiones usa funciones de ventana (MySQL 8/MariaDB 10.2+).
 
 **Notas**: Tamaño M. Cuidado con `audit_logs`: la retención por defecto debe ser generosa (≥ 365 d) porque F-01 la mostrará. No tocar los datos del usuario 28: los tests usan fábricas.
 

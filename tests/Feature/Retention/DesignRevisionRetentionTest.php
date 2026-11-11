@@ -1,0 +1,114 @@
+<?php
+
+use App\Models\Brand;
+use App\Models\Studio\Design;
+use App\Models\Studio\DesignRevision;
+use App\Models\Studio\StudioFont;
+use App\Models\User;
+use App\Services\Studio\StudioFonts;
+use App\Services\Studio\StudioService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+
+function retentionDocument(string $text = 'Hola'): array
+{
+    return ['schema_version' => 1, 'width' => 1080, 'height' => 1080, 'pages' => [
+        ['id' => 'page_1', 'name' => 'Primera', 'background' => '#ffffff', 'duration' => 5, 'elements' => [
+            ['id' => 'title', 'type' => 'text', 'x' => 20, 'y' => 30, 'width' => 600, 'height' => 100, 'text' => $text, 'fill' => '#111827', 'fontFamily' => 'Arial', 'fontSize' => 64],
+        ]],
+    ]];
+}
+
+function revisionRows(Design $design): array
+{
+    return DesignRevision::withoutUserScope()->where('design_id', $design->id)->orderBy('revision')->pluck('revision')->all();
+}
+
+function saveDesign(object $test, Design $design, string $text, bool $autosave): Design
+{
+    return $test->studio->update($test->user, $design, ['name' => 'Diseño', 'document' => retentionDocument($text), 'revision' => $design->revision, 'autosave' => $autosave]);
+}
+
+function retentionFont(object $test): StudioFont
+{
+    Storage::disk('local')->put('fonts/f.woff2', 'x');
+
+    return StudioFont::withoutUserScope()->create(['user_id' => $test->user->id, 'brand_id' => $test->brand->id, 'name' => 'F', 'family' => 'Fuente', 'style' => 'normal', 'weight' => 400,
+        'format' => 'woff2', 'mime' => 'font/woff2', 'size' => 10, 'sha256' => str_repeat('a', 64), 'source_sha256' => str_repeat('b', 64), 'disk' => 'local', 'path' => 'fonts/f.woff2', 'status' => 'ready']);
+}
+
+beforeEach(function () {
+    Storage::fake('local');
+    $this->user = User::factory()->create();
+    $this->brand = Brand::factory()->for($this->user)->create();
+    $this->actingAs($this->user);
+    $this->studio = app(StudioService::class);
+    $this->design = $this->studio->create($this->user, $this->brand, ['name' => 'Diseño', 'document' => retentionDocument()]);
+});
+
+test('autosaves within the minimum interval rewrite the recent revision instead of adding one', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = saveDesign($this, $this->design, 'uno', true);
+    $design = saveDesign($this, $design, 'dos', true);
+    $design = saveDesign($this, $design, 'tres', true);
+
+    expect($design->revision)->toBe(4)->and(revisionRows($design))->toBe([1, 4]);
+    $latest = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 4)->first();
+    expect($latest->document['pages'][0]['elements'][0]['text'])->toBe('tres');
+});
+
+test('an explicit save or an expired interval always creates a revision', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = saveDesign($this, $this->design, 'uno', true);
+    $design = saveDesign($this, $design, 'manual', false);
+    expect(revisionRows($design))->toBe([1, 2, 3]);
+
+    $this->travel(10)->minutes();
+    $design = saveDesign($this, $design, 'tarde', true);
+    expect(revisionRows($design))->toBe([1, 2, 3, 4]);
+});
+
+test('a zero interval disables coalescing', function () {
+    config(['studio.revisions.min_interval_seconds' => 0]);
+    $design = saveDesign($this, $this->design, 'uno', true);
+    $design = saveDesign($this, $design, 'dos', true);
+    expect(revisionRows($design))->toBe([1, 2, 3]);
+});
+
+test('pruning keeps the last N revisions and one per day, and drops the rest with their font usages', function () {
+    config(['retention.design_revisions.keep_last' => 3, 'retention.design_revisions.daily_days' => 30]);
+    $font = retentionFont($this);
+    DesignRevision::withoutUserScope()->where('design_id', $this->design->id)->delete();
+
+    // 12 revisiones: dos por día durante 6 días (a las 09:00 y a las 18:00).
+    foreach (range(1, 12) as $n) {
+        $at = now()->subDays(intdiv(12 - $n, 2))->setTime($n % 2 === 0 ? 18 : 9, 0);
+        $row = DesignRevision::withoutUserScope()->create(['user_id' => $this->user->id, 'author_id' => $this->user->id, 'design_id' => $this->design->id, 'revision' => $n, 'name' => 'x',
+            'document' => retentionDocument(), 'kit_reference' => null, 'created_at' => $at, 'updated_at' => $at]);
+        DB::table('studio_font_usages')->insert(['user_id' => $this->user->id, 'font_id' => $font->id, 'revision_id' => $row->id]);
+    }
+
+    $this->artisan('model:prune', ['--model' => [DesignRevision::class]])->assertSuccessful();
+
+    // Últimas 3 (10, 11, 12) más la última de cada día (2, 4, 6, 8, 10, 12).
+    expect(revisionRows($this->design))->toBe([2, 4, 6, 8, 10, 11, 12])
+        ->and(DB::table('studio_font_usages')->count())->toBe(7);
+});
+
+test('a font only used by pruned revisions can be deleted afterwards', function () {
+    config(['retention.design_revisions.keep_last' => 1, 'retention.design_revisions.daily_days' => 1]);
+    $font = retentionFont($this);
+    DesignRevision::withoutUserScope()->where('design_id', $this->design->id)->update(['created_at' => now()->subDays(10)]);
+    $old = DesignRevision::withoutUserScope()->where('design_id', $this->design->id)->first();
+    DB::table('studio_font_usages')->insert(['user_id' => $this->user->id, 'font_id' => $font->id, 'revision_id' => $old->id]);
+    $design = saveDesign($this, $this->design, 'nuevo', false);
+
+    expect(fn () => app(StudioFonts::class)->delete($this->user, $this->brand, $font->id))->toThrow(HttpException::class);
+
+    $this->artisan('model:prune', ['--model' => [DesignRevision::class]])->assertSuccessful();
+    expect(revisionRows($design))->toBe([2]);
+
+    app(StudioFonts::class)->delete($this->user, $this->brand, $font->id);
+    expect(StudioFont::withoutUserScope()->whereKey($font->id)->exists())->toBeFalse();
+});

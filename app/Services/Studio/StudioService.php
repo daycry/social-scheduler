@@ -78,7 +78,9 @@ class StudioService
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
 
-        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference): Design {
+        $coalesce = ($data['autosave'] ?? false) === true && $kitReference === null && ! isset($data['kit_revision']);
+
+        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference, $coalesce): Design {
             $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
             if ($locked->revision !== (int) $data['revision']) {
                 $last = DesignRevision::withoutUserScope()->where('design_id', $locked->id)->where('revision', $locked->revision)->first();
@@ -98,7 +100,7 @@ class StudioService
             $locked->fill(['name' => trim($data['name']), 'document' => $document, 'revision' => $locked->revision + 1,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
                 'is_template' => $data['is_template'] ?? $locked->is_template, 'folder_id' => $folderId])->save();
-            $this->snapshot($locked, $actor->id);
+            $this->snapshot($locked, $actor->id, $coalesce);
 
             return $locked;
         });
@@ -278,6 +280,7 @@ class StudioService
         if ($updating) {
             $rules['revision'] = ['required', 'integer', 'min:1'];
             $rules['kit_revision'] = ['sometimes', 'integer', 'min:1'];
+            $rules['autosave'] = ['sometimes', 'boolean'];
         }
         $data = Validator::make($data, $rules)->validate();
         if (trim($data['name']) === '') {
@@ -327,12 +330,29 @@ class StudioService
         return $this->update($user, $design, $data);
     }
 
-    private function snapshot(Design $design, ?int $authorId = null): void
+    /**
+     * Guarda la revisión del diseño. Un autoguardado ($coalesce) del mismo autor dentro del intervalo mínimo
+     * (`studio.revisions.min_interval_seconds`) reescribe la revisión reciente en lugar de crear otra; los guardados
+     * explícitos, al cerrar la sesión, restaurar o aplicar kit siempre crean revisión (A-07).
+     */
+    private function snapshot(Design $design, ?int $authorId = null, bool $coalesce = false): void
     {
         $ids = array_values(array_unique(array_merge(StudioFonts::idsFromDocument($design->document), array_filter($design->kit_reference['font_ids'] ?? [], fn ($id) => $id !== null))));
         $fonts = StudioFont::withoutUserScope()->where('user_id', $design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
         abort_unless($fonts->count() === count($ids), 422, 'Las tipografías deben pertenecer a esta marca.');
-        $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $authorId ?? $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
+        $author = $authorId ?? $design->user_id;
+        $attributes = ['author_id' => $author, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference];
+        $interval = (int) config('studio.revisions.min_interval_seconds', 300);
+        $revision = null;
+        if ($coalesce && $interval > 0) {
+            $latest = DesignRevision::withoutUserScope()->where('design_id', $design->id)->orderByDesc('revision')->first();
+            if ($latest !== null && $latest->revision > 1 && (int) $latest->author_id === (int) $author && $latest->created_at !== null && $latest->created_at->gt(now()->subSeconds($interval))) {
+                $latest->update($attributes);
+                DB::table('studio_font_usages')->where('revision_id', $latest->id)->delete();
+                $revision = $latest;
+            }
+        }
+        $revision ??= DesignRevision::create($attributes + ['user_id' => $design->user_id, 'design_id' => $design->id]);
         foreach ($ids as $id) {
             DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
         }

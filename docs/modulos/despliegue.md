@@ -228,6 +228,10 @@ Si sigue en «no disponible», en este orden:
 - `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min.
 - `/up`: solo prueba que PHP responde.
 
+## Retención de datos
+
+`model:prune` está programado a diario (04:50) y poda `audit_logs`, `publish_attempts`, los trabajos de IA/imagen/Canva terminados, exportaciones fallidas del estudio, pasos AV caducados y revisiones del estudio según `config/retention.php` (variables `RETENTION_*`, referencia en [configuración](../referencia/configuracion.md)). Las notificaciones leídas se podan en una tarea programada aparte. Comprobación sin borrar: `php artisan model:prune --pretend`. Necesita el cron del scheduler (opción A).
+
 ## Almacenamiento de media
 
 **Este despliegue usa el disco local del servidor** (`MEDIA_DISK=local`, decisión del 2026-10-23). R2 sigue soportado: para usarlo, `MEDIA_DISK=r2` y las variables `R2_*`.

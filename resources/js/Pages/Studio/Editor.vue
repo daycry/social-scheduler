@@ -377,7 +377,7 @@ function removeAudio() {
 
 function scheduleSave() {
     clearTimeout(timer);
-    if (!conflict.value) timer = setTimeout(() => { saveNow(); }, 1200);
+    if (!conflict.value) timer = setTimeout(() => { saveNow(true); }, 1200);
 }
 function commit() {
     invalidatePreview();
@@ -385,7 +385,8 @@ function commit() {
     changeVersion++; dirty.value = true; status.value = conflict.value ? 'Conflicto de revisión' : 'Cambios pendientes';
     scheduleSave();
 }
-async function saveNow() {
+// `autosave === true` marca el guardado automatico: el servidor lo funde con la revision reciente del mismo autor (A-07).
+async function saveNow(autosave = false) {
     clearTimeout(timer);
     if (notesError.value) { error.value = notesError.value; return false; }
     if (conflict.value) return false;
@@ -396,7 +397,7 @@ async function saveNow() {
     status.value = 'Guardando…';
     pendingSave = (async () => {
         try {
-            const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, folder_id: props.design.folder_id, kit_revision: saved.kit_revision });
+            const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, folder_id: props.design.folder_id, kit_revision: saved.kit_revision, autosave: autosave === true });
             revision.value = result.design.revision;
             templateFields.value = result.design.template_fields ?? [];
             if (version === changeVersion) { dirty.value = false; status.value = 'Guardado'; }

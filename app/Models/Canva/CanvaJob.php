@@ -3,12 +3,25 @@
 namespace App\Models\Canva;
 
 use App\Models\Concerns\BelongsToUser;
+use App\Models\Concerns\PrunesByAge;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /** Trabajo asincrono contra Canva (T-16): exportar un diseno a la biblioteca o enviar un recurso a Canva. */
 class CanvaJob extends Model
 {
     use BelongsToUser;
+    use PrunesByAge;
+
+    protected static function retentionKey(): string
+    {
+        return 'canva_jobs_days';
+    }
+
+    protected static function pruneScope(Builder $query): Builder
+    {
+        return $query->whereIn('status', [self::READY, self::FAILED]);
+    }
 
     public const KIND_EXPORT = 'export';
 

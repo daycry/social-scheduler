@@ -244,33 +244,37 @@ estado: en-progreso
 ### T-06 — Referencias de media con FK: `post_target_media`
 
 - **Descripción**: Crear la tabla `post_target_media` con `restrictOnDelete` y migrar los datos existentes; mientras tanto, el borrado de un `MediaAsset` comprueba también `autolist_items`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Borrar un archivo que usa un destino, una serie activa o una autolista se rechaza con un aviso claro y la base de datos lo garantiza; la media propia de cada destino pasa a una tabla relacional sin cambiar la API.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-04
 - **Tipo**: db
-- **Archivos**: `database/migrations/*_create_post_target_media_table.php`, `app/Models/MediaAsset.php`, `app/Models/PostTarget.php`, `app/Services/MediaUploadService.php`, `app/Services/PostService.php`, `app/Models/AutolistItem.php`, `docs/modulos/media.md`
+- **Archivos**: `database/migrations/*_create_post_target_media_table.php`, `app/Models/MediaAsset.php`, `app/Models/PostTarget.php`, `app/Services/MediaUploadService.php`, `app/Services/PostService.php`, `app/Models/AutolistItem.php`, `app/Models/PostSeries.php`, `app/Models/PostTargetMedia.php`, `database/migrations/2026_12_18_090000_create_post_target_media_tables.php`, `tests/Feature/Media/MediaDeleteReferencesTest.php`, `tests/Feature/Posts/TargetMediaReviewTest.php`, `tests/Feature/Posts/AdvancedOptionsContractTest.php`, `docs/modulos/media.md`, `docs/modulos/media-por-destino.md`
 - **Cubre**: A-12
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=MediaDeleteReferencesTest` → verde · `php artisan migrate:fresh --env=testing --force` → sin errores (SQLite)
 
 **Criterios de aceptación**
-- [ ] Borrar un media referenciado por un post, serie, autolista o export falla con mensaje claro y sin recorrer todas las filas en PHP
-- [ ] La migración de datos es reversible y conserva todas las referencias existentes
-- [ ] `autolist_items` forma parte de la comprobación de uso
+- [x] Borrar un media referenciado por un post, serie, autolista o export falla con mensaje claro y sin recorrer todas las filas en PHP
+- [x] La migración de datos es reversible y conserva todas las referencias existentes
+- [x] `autolist_items` forma parte de la comprobación de uso
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `MediaDeleteReferencesTest` 7/7 verde (RED inicial: tabla inexistente, comprobación hidrataba filas, FK sin efecto). Pest focal (Posts, Media, Workflow, Parity, Mcp, Library, Isolation, Publishing, Retention): 1158 tests, 0 fallos; antes, Connectors/Studio/Instagram/Sites/Calendar/Jobs/Infra/Auth también verdes (2808 tests, único fallo era un test que borraba la fila saltándose la FK, ajustado). `migrate:fresh` + `migrate:rollback --step=1` + `migrate` sobre SQLite fichero scratch: sin errores (`migrate:fresh --env=testing` no aplica: ese entorno apunta a MySQL no disponible aquí). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
+
+**Decisiones**: (1) `post_target_media(post_target_id cascade, media_asset_id restrict, cover_id restrict null, alt, position)` + `post_targets.has_own_media` (distingue «hereda» de «lista propia vacía»); se elimina `post_targets.media`. `PostTarget::$media` pasa a ser un `Attribute` (get/set) con `$appends`: forma pública intacta, así `PostService`, API, MCP y compositor no cambian; la lista se vuelca al guardar el destino. (2) Series y autolistas: se mantiene el JSON como contenido y se añade un índice relacional derivado con FK restrict (`post_series_media` solo con series activas, `autolist_item_media`), mantenido por los modelos en `saved`; una consulta indexada con `whereJson` no cubriría la media anidada en `targets[].media` de forma portable y no daría FK. (3) `studio_design_exports.media_ids` queda en JSON sin FK: son salidas renderizadas que el export ya trata como ausentes (`StudioExports::createPost` valida propiedad al usarlas) y bloquear el borrado de un render por un export histórico no aporta. (4) Destinos publicados: sus filas se sueltan antes de borrar (`releasePublishedTargetMedia`, dos sentencias), como antes los ignoraba la comprobación. (5) Migración: reversible (`down` reconstruye el JSON); ids huérfanos se descartan y portadas huérfanas quedan en null; probada solo con fábricas, nunca con datos del usuario 28.
 
 **Notas**: Tamaño M. Mismo contrato visible: el cambio es de integridad. La migración se prueba solo con fábricas, nunca con datos del usuario 28.
 

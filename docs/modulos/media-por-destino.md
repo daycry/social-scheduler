@@ -12,6 +12,12 @@ Cada red de una publicación puede llevar su propia media, en su propio orden y 
 
 `App\Support\TargetMedia` es la única función que resuelve la media efectiva; la leen `PostService`, `PublishRequestFactory` y `PostPresenter`. La respuesta de la API incluye por destino `media` (lo guardado) y `effective_media` (lo que se publica).
 
+## Almacenamiento y borrado
+
+La media propia se guarda en la tabla relacional `post_target_media` (`post_target_id`, `media_asset_id`, `cover_id`, `alt`, `position`), con clave foránea `restrict` hacia `media_assets` tanto para el archivo como para la portada; `post_targets.has_own_media` distingue «hereda» (`false`) de «lista propia, también vacía» (`true`). `PostTarget::$media` conserva su forma pública (`null` o lista de `{id, alt, cover_id}`), así que la API, el MCP y las props del compositor no cambian. La escritura sustituye la lista completa al guardar el destino.
+
+Borrar un archivo usado por un destino sin publicar, por una portada, por una serie activa o por una autolista falla con «El archivo se usa en una publicación»; la comprobación es una consulta indexada (`MediaAsset::usedByPosts()`), no un recorrido de filas, y la FK lo garantiza aunque se salte el servicio. Las referencias de destinos ya publicados se sueltan al borrar (el historial no necesita el archivo). Las series (`post_series.payload`) y los elementos de autolista (`autolist_items.media`) siguen guardando su contenido en JSON, con un índice relacional derivado (`post_series_media`, `autolist_item_media`) mantenido por sus modelos. `studio_design_exports.media_ids` queda en JSON sin FK: son salidas renderizadas que el export ya trata como ausentes si faltan.
+
 ```json
 {
   "brand_id": 7, "schedule": false, "text": "Novedades",

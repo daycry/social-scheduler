@@ -9,7 +9,7 @@ Dos modos según `MEDIA_DISK`. Con **`local`** (producción actual) el navegador
 | Iniciar (valida MIME y tamaño) | `POST media` | `MediaUploadService::initiate()` |
 | Subida (R2 prefirmado; en local `PUT media/{asset}/upload`) | — | `MediaController::upload` |
 | Completar | `POST media/{asset}/complete` | `complete()` → `finalize()` |
-| Borrar | `DELETE media/{asset}` | `delete()` |
+| Borrar | `DELETE media/{asset}` | `delete()` — rechaza (409) un archivo en uso: publicación, media por destino, serie activa o autolista; ver [media por destino](media-por-destino.md#almacenamiento-y-borrado) |
 
 A partir de `MEDIA_MULTIPART_THRESHOLD` (32 MiB) se usa multipart con partes de `MEDIA_PART_SIZE` (16 MiB). En `complete` se compara el objeto real con el tamaño declarado y con `max_bytes`; si excede, se borra.
 

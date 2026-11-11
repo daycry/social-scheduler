@@ -11,6 +11,7 @@ use App\Services\MediaUploadService;
 use App\Services\PostService;
 use App\Services\PublishRequestFactory;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -54,6 +55,8 @@ test('G1: una media sin ninguna referencia sigue pudiendo borrarse', function ()
 });
 
 test('G1: si una media efectiva falta al publicar, el destino falla con un error claro', function () {
+    // Con la FK restrict (T-06) la fila ya no se puede borrar mientras un destino la lista: se simula una referencia huerfana heredada.
+    DB::statement('PRAGMA defer_foreign_keys = ON'); // la transaccion del test no confirma: la violacion no llega a comprobarse
     MediaAsset::withoutUserScope()->whereKey($this->b->id)->delete();
 
     expect(fn () => app(PublishRequestFactory::class)->make($this->post->targets()->first()))

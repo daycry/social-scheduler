@@ -341,6 +341,7 @@ class MediaUploadService
                     throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
                 }
 
+                $locked->releasePublishedTargetMedia();
                 $locked->delete();
             });
         } catch (QueryException) {

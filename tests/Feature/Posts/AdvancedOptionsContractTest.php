@@ -92,7 +92,7 @@ test('T-18 contrato: LinkedIn, Pinterest y las opciones de Instagram se guardan 
         ->and($options[$this->pin->id])->toBe(['pinterest_board_id' => '549755885175', 'pinterest_title' => 'Tarta', 'pinterest_link' => 'https://example.com/receta'])
         ->and($options[$this->ig->id])->toBe(['location_id' => '213385402', 'user_tags' => [['username' => 'amigo', 'x' => 0.25, 'y' => 0.75]]]);
     expect(PostTarget::withoutUserScope()->where('social_account_id', $this->li->id)->value('first_comment'))->toBe('Mas info');
-    expect(PostTarget::withoutUserScope()->where('social_account_id', $this->page->id)->value('media'))->toBe([['id' => $this->img->id, 'alt' => 'Logo de Acme', 'cover_id' => null]]);
+    expect(PostTarget::withoutUserScope()->where('social_account_id', $this->page->id)->first()->media)->toBe([['id' => $this->img->id, 'alt' => 'Logo de Acme', 'cover_id' => null]]);
 })->with(['web', 'api', 'mcp']);
 
 dataset('opcionesInvalidas', [

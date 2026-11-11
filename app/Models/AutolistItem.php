@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToUser;
 use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 /** Elemento de la cola de una autolista: una plantilla de la Biblioteca o un texto con media propios. */
 class AutolistItem extends Model
@@ -17,6 +18,27 @@ class AutolistItem extends Model
     protected function casts(): array
     {
         return ['media' => 'array', 'last_used_at' => 'datetime', 'times_used' => 'integer', 'position' => 'integer'];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn (AutolistItem $i) => $i->syncMediaIndex());
+    }
+
+    /** Indice relacional (`autolist_item_media`, FK restrict) de la media propia del elemento; el JSON `media` sigue siendo el contenido (T-06). */
+    public function syncMediaIndex(): void
+    {
+        if (! $this->wasRecentlyCreated && ! $this->wasChanged('media')) {
+            return;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $this->media))));
+        $ids = $ids === [] ? [] : MediaAsset::withoutUserScope()->whereIn('id', $ids)->pluck('id')->all();
+        DB::transaction(function () use ($ids) {
+            DB::table('autolist_item_media')->where('autolist_item_id', $this->id)->delete();
+            if ($ids !== []) {
+                DB::table('autolist_item_media')->insert(array_map(fn ($id) => ['autolist_item_id' => $this->id, 'media_asset_id' => $id], $ids));
+            }
+        });
     }
 
     public function autolist(): BelongsTo

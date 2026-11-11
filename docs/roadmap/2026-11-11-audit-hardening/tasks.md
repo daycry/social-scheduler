@@ -14,7 +14,7 @@ generacion:
   ratio_usado: 300000
   # ventana compartida con improvement-plan.md
 verificacion: obligatoria
-estado: pendiente
+estado: en-progreso
 ---
 
 # Checklist de Tareas — Endurecimiento y ampliación tras la auditoría integral
@@ -64,7 +64,7 @@ estado: pendiente
 - **Descripción**: Actualizar `symfony/*` y `laravel/framework` (13.37 → 13.42) para cerrar los 11 avisos de `composer audit` y comprobar que nada se rompe.
 - **Changelog**: Actualizadas las dependencias de Symfony y Laravel (13.42) para cerrar 11 avisos de seguridad conocidos; sin cambios visibles.
 - **Cerrada**: 2026-11-11
-- **Estado**: completado
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -99,7 +99,7 @@ estado: pendiente
 
 - **Descripción**: Mover `Http::preventStrayRequests()` a `TestCase::setUp` para que ningún test salga a la red; arreglar los ~234 ficheros que hoy dependen de ello sin saberlo.
 - **Changelog**:
-- **Estado**: completado
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -134,14 +134,14 @@ estado: pendiente
 
 - **Descripción**: Añadir el cron/worker de la cola `studio` en Hestia y la unidad `scheduler-worker@media` en systemd; unificar la documentación de colas entre ambos.
 - **Changelog**:
-- **Estado**: completado
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-01
 - **Tipo**: devops
-- **Archivos**: `deploy/hestia/README.md`, `deploy/systemd/README.md`, `deploy/systemd/scheduler-worker@.service`, `deploy/systemd/scheduler-studio.service`, `docs/modulos/despliegue.md`, `tests/Feature/Deploy/DeployQueuesDocTest.php`
+- **Archivos**: `deploy/hestia/README.md`, `deploy/hestia/deploy.sh`, `deploy/systemd/README.md`, `deploy/systemd/scheduler-worker@.service`, `deploy/systemd/scheduler-studio.service`, `docs/modulos/despliegue.md`, `tests/Feature/Deploy/DeployQueuesDocTest.php`
 - **Cubre**: A-06
 - **Cubre (tests)**: M-06
 - **Verificación**: `php artisan test --compact --filter=DeployQueuesDocTest` → verde

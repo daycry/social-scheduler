@@ -4,7 +4,7 @@ Sin respaldos, perder el VPS o la BD borra publicaciones, cuentas y tokens cifra
 
 | Fichero | Qué hace |
 |---|---|
-| `backup.sh` | `mysqldump` + copia de `storage/app`, ambos comprimidos y **cifrados** (AES-256, PBKDF2) con una frase que vive fuera del repo; copia opcional a un destino externo; rotación local |
+| `backup.sh` | `mysqldump` + copia de `storage/app`, ambos comprimidos y **cifrados** (AES-256-CBC, PBKDF2 de 600000 iteraciones) con una frase que vive fuera del repo; copia opcional a un destino externo; rotación local |
 | `restore.sh` | Descifra y restaura sobre una BD **vacía** (con confirmación explícita) y/o `storage/app` |
 | `php artisan app:backup-verify` | Falla (exit 1) si el último respaldo falta, está incompleto o tiene más de 26 h (`BACKUP_MAX_AGE_HOURS`) |
 
@@ -29,13 +29,15 @@ Variables del script (`backup.sh --help`): `BACKUP_DIR` (por defecto `storage/ba
 
 - **Local:** `backup.sh` borra los `db-*.enc` y `media-*.enc` con más de `BACKUP_KEEP_DAYS` días (14). El destino que es una ruta se poda igual.
 - **Remoto (R2/S3/B2/rsync):** no se borra desde el script (una clave de solo escritura no debe poder borrar). Pon una regla de ciclo de vida en el bucket: p. ej. 30 días de diarios; guarda un mensual 12 meses copiándolo a otro prefijo.
+- **Integridad:** cada fichero cifrado lleva un `.hmac` (HMAC-SHA256 con una subclave derivada de la frase; CBC solo no autentica). `restore.sh` lo verifica **antes** de descifrar y se niega si no coincide (fichero alterado, corrupto o frase equivocada). Los respaldos anteriores, sin `.hmac` y con 10000 iteraciones, siguen restaurándose con un aviso.
+- **Marcas de frescura:** `last-backup` (respaldo completo; es la que mira `app:backup-verify`) se escribe **solo cuando todo, incluida la copia externa, ha ido bien**; si la copia externa falla, `backup.sh` sale con código distinto de 0 y `app:backup-verify` acaba avisando por antigüedad. `backup.sh --db-only` (volcado previo de `deploy.sh`) escribe su propia marca `last-db-backup` y no pisa la del completo.
 - Cada respaldo es independiente (volcado completo y copia completa): para restaurar solo hace falta el par `db-*` y `media-*` de la misma marca de tiempo.
 
 ## Restaurar (probado con una BD de pruebas)
 
 ```bash
 export BACKUP_PASSFILE=$HOME/.backup-passphrase
-# 1. Trae los ficheros del destino externo (rclone copy / rsync / cp) a una carpeta local.
+# 1. Trae los ficheros del destino externo (rclone copyto / rsync / cp) a una carpeta local.
 # 2. BD vacía (la restauración se niega si tiene tablas; --force para sobrescribir) y el mismo APP_KEY en .env.
 bash deploy/backup/restore.sh --db db-AAAAMMDDTHHMMSSZ.sql.gz.enc --media media-AAAAMMDDTHHMMSSZ.tar.gz.enc
 php artisan migrate --force && php artisan app:health

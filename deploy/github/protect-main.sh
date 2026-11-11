@@ -15,7 +15,8 @@
 #   CHECK_CONTEXT    nombre del check requerido (por defecto: tests, el job `tests` de .github/workflows/ci.yml;
 #                    en la lista de checks de una PR aparece como "CI / tests", pero la API usa solo el nombre del job)
 #   APPROVALS        aprobaciones requeridas en la PR (por defecto 0: un solo desarrollador no puede aprobar la suya)
-#   ENFORCE_ADMINS   true = tambien obliga a los administradores (por defecto false, para poder desbloquear una urgencia)
+#   ENFORCE_ADMINS   true (por defecto) = tambien obliga a los administradores; con un unico desarrollador (que es admin) es lo que
+#                    cierra A-02. Para un hotfix: ENFORCE_ADMINS=false bash deploy/github/protect-main.sh, o --revert, y volver a aplicarlo
 set -euo pipefail
 
 DRY_RUN=0; REVERT=0; YES=0
@@ -24,7 +25,7 @@ for arg in "$@"; do
         --dry-run) DRY_RUN=1 ;;
         --revert) REVERT=1 ;;
         --yes) YES=1 ;;
-        -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
         *) echo "Argumento desconocido: $arg" >&2; exit 2 ;;
     esac
 done
@@ -33,7 +34,7 @@ command -v gh >/dev/null 2>&1 || { echo "!! Falta la CLI de GitHub (gh)." >&2; e
 BRANCH="${BRANCH:-main}"
 CHECK_CONTEXT="${CHECK_CONTEXT:-tests}"
 APPROVALS="${APPROVALS:-0}"
-ENFORCE_ADMINS="${ENFORCE_ADMINS:-false}"
+ENFORCE_ADMINS="${ENFORCE_ADMINS:-true}"
 case "$ENFORCE_ADMINS" in true|false) ;; *) echo "!! ENFORCE_ADMINS debe ser true o false." >&2; exit 2 ;; esac
 case "$APPROVALS" in ''|*[!0-9]*) echo "!! APPROVALS debe ser un entero >= 0." >&2; exit 2 ;; esac
 REPO="${REPO:-$(gh repo view --json nameWithOwner --jq .nameWithOwner)}"

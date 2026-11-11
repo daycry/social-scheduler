@@ -25,13 +25,18 @@ jobs:
         run: |
           title="CI en rojo en main"
           existing="$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")"
-          if [ "$CONCLUSION" = "failure" ]; then
-            body="El workflow CI ha fallado en main (commit ${SHA}). Ejecucion: ${RUN_URL}"
-            if [ -n "$existing" ]; then
-              gh issue comment "$existing" --body "$body"
-            else
-              gh issue create --title "$title" --body "$body"
-            fi
-          elif [ "$CONCLUSION" = "success" ] && [ -n "$existing" ]; then
-            gh issue close "$existing" --comment "CI en verde de nuevo (commit ${SHA}). Ejecucion: ${RUN_URL}"
-          fi
+          case "$CONCLUSION" in
+            failure|cancelled|timed_out|startup_failure)
+              body="El workflow CI no ha terminado en verde en main (resultado: ${CONCLUSION}, commit ${SHA}). Ejecucion: ${RUN_URL}"
+              if [ -n "$existing" ]; then
+                gh issue comment "$existing" --body "$body"
+              else
+                gh issue create --title "$title" --body "$body"
+              fi
+              ;;
+            success)
+              if [ -n "$existing" ]; then
+                gh issue close "$existing" --comment "CI en verde de nuevo (commit ${SHA}). Ejecucion: ${RUN_URL}"
+              fi
+              ;;
+          esac

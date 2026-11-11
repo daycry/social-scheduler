@@ -10,7 +10,7 @@
 set -euo pipefail
 umask 077
 
-DB=""; MEDIA=""; MEDIA_TARGET=""; YES=0; FORCE=0
+DB=""; MEDIA=""; DB_LEGACY=0; MEDIA_LEGACY=0; MEDIA_TARGET=""; YES=0; FORCE=0
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --db) DB="${2:?falta el fichero}"; shift 2 ;;
@@ -47,7 +47,36 @@ env_get() {
     value="${value%\"}"; value="${value#\"}"; value="${value%\'}"; value="${value#\'}"
     printf '%s' "$value"
 }
-decrypt() { openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$PASS_PATH"; }
+cnf_escape() {
+    local v="${1//\/\\}"
+    printf '%s' "${v//\"/\\\"}"
+}
+HMAC_KEY="$({ printf 'backup-hmac-v1:'; cat "$BACKUP_PASSFILE"; } | openssl dgst -sha256 -r | cut -d' ' -f1 | tr -d '\r')"
+
+# Verifica el HMAC-SHA256 del fichero cifrado ANTES de descifrar. Un respaldo con .hmac usa PBKDF2 de 600000 iteraciones;
+# uno anterior (sin .hmac, 10000 iteraciones y sin autenticar) sigue admitido con un aviso.
+LEGACY=0
+verify_file() {
+    local file="$1" expected actual
+    if [ ! -r "$file.hmac" ]; then
+        echo "!! $file no tiene .hmac: respaldo anterior sin autenticar; se restaura igualmente." >&2
+        LEGACY=1
+        return 0
+    fi
+    expected="$(tr -d '\r\n ' < "$file.hmac")"
+    actual="$(openssl dgst -sha256 -mac HMAC -macopt "hexkey:$HMAC_KEY" -r < "$file" | cut -d' ' -f1 | tr -d '\r')"
+    if [ "$expected" != "$actual" ]; then
+        echo "!! El HMAC de $file no coincide: fichero alterado, corrupto o frase equivocada. No se restaura." >&2
+        exit 1
+    fi
+}
+decrypt() {
+    if [ "$LEGACY" -eq 1 ]; then
+        openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$PASS_PATH"
+    else
+        openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass "file:$PASS_PATH"
+    fi
+}
 
 echo "Se va a restaurar:"
 if [ -n "$DB" ]; then echo "  BD    : $(env_get DB_DATABASE) en $(env_get DB_HOST) <- $DB"; fi
@@ -60,13 +89,17 @@ fi
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# Todo se verifica antes de tocar nada.
+[ -z "$DB" ] || { LEGACY=0; verify_file "$DB"; DB_LEGACY=$LEGACY; }
+[ -z "$MEDIA" ] || { LEGACY=0; verify_file "$MEDIA"; MEDIA_LEGACY=$LEGACY; }
+
 if [ -n "$DB" ]; then
     {
         echo "[client]"
-        echo "user=\"$(env_get DB_USERNAME)\""
-        echo "password=\"$(env_get DB_PASSWORD)\""
-        echo "host=\"$(env_get DB_HOST)\""
-        echo "port=\"$(env_get DB_PORT)\""
+        echo "user=\"$(cnf_escape "$(env_get DB_USERNAME)")\""
+        echo "password=\"$(cnf_escape "$(env_get DB_PASSWORD)")\""
+        echo "host=\"$(cnf_escape "$(env_get DB_HOST)")\""
+        echo "port=\"$(cnf_escape "$(env_get DB_PORT)")\""
     } > "$WORK/my.cnf"
     mysql_run() { "$MYSQL_BIN" --defaults-extra-file="$WORK/my.cnf" "$@"; }
     tables="$(mysql_run -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()" "$(env_get DB_DATABASE)")"
@@ -75,13 +108,13 @@ if [ -n "$DB" ]; then
         exit 1
     fi
     echo "-> restaurando la BD"
-    decrypt < "$DB" | gunzip -c | mysql_run "$(env_get DB_DATABASE)"
+    LEGACY=$DB_LEGACY; decrypt < "$DB" | gunzip -c | mysql_run "$(env_get DB_DATABASE)"
 fi
 
 if [ -n "$MEDIA" ]; then
     echo "-> restaurando la media en $MEDIA_TARGET"
     mkdir -p "$MEDIA_TARGET"
-    decrypt < "$MEDIA" | gunzip -c | tar -C "$MEDIA_TARGET" -xf -
+    LEGACY=$MEDIA_LEGACY; decrypt < "$MEDIA" | gunzip -c | tar -C "$MEDIA_TARGET" -xf -
 fi
 
 echo "== Restauracion completada. Ejecuta: php artisan migrate --force && php artisan app:health =="

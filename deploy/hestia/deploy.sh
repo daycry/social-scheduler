@@ -72,12 +72,13 @@ if [ "$MODE" = "deploy" ]; then
     STEPS+=(
         "code|git checkout $BRANCH && git merge --ff-only \$TARGET_REV && record_deploy"
         "swap|swap_build"
-        "discover|$PHP_BIN artisan package:discover --ansi"
+        "discover|rm -f bootstrap/cache/*.php && $PHP_BIN artisan package:discover --ansi"
         "migrate|$PHP_BIN artisan migrate --force"
         "cache|$PHP_BIN artisan config:cache && $PHP_BIN artisan route:cache && $PHP_BIN artisan view:cache && $PHP_BIN artisan event:cache"
         "link|$PHP_BIN artisan storage:link"
         "queue|$PHP_BIN artisan queue:restart"
         "up|$PHP_BIN artisan up"
+        "done|mark_deploy complete"
     )
     SMOKE=(
         "test -f $MANIFEST"
@@ -85,12 +86,12 @@ if [ "$MODE" = "deploy" ]; then
     )
 else
     STEPS=(
-        "down|$PHP_BIN artisan down --retry=30 --refresh=15"
+        "down|maintenance_on"
         "code|rollback_code"
-        "discover|$PHP_BIN artisan package:discover --ansi"
+        "discover|rm -f bootstrap/cache/*.php && $PHP_BIN artisan package:discover --ansi"
         "cache|$PHP_BIN artisan optimize:clear && $PHP_BIN artisan config:cache && $PHP_BIN artisan route:cache && $PHP_BIN artisan view:cache && $PHP_BIN artisan event:cache"
         "queue|$PHP_BIN artisan queue:restart"
-        "up|$PHP_BIN artisan up"
+        "up|maintenance_off"
     )
     SMOKE=("$PHP_BIN artisan app:health --skip-scheduler")
 fi
@@ -169,26 +170,53 @@ build_stage() {
     fi
 }
 
-# Guarda de donde venimos (para `rollback`) una vez que el codigo ya cambio.
+# Modo mantenimiento SIN arrancar Laravel (el rollback no puede depender de que la version rota arranque):
+# mismo fichero y formato que escribe `artisan down` (storage/framework/down).
+maintenance_on() {
+    mkdir -p "$APP_DIR/storage/framework"
+    printf '%s\n' '{"except":[],"redirect":null,"retry":30,"refresh":15,"secret":null,"status":503,"template":null}' > "$APP_DIR/storage/framework/down"
+}
+maintenance_off() { rm -f "$APP_DIR/storage/framework/down"; }
+
+# Estado del ultimo despliegue (clave=valor). status: incomplete (en curso o fallido), complete, rolledback.
+state_get() { sed -n "s/^$1=//p" "$STATE_FILE" 2>/dev/null | tail -n1 || true; }
+mark_deploy() {
+    local tmp="$STATE_FILE.tmp"
+    [ -f "$STATE_FILE" ] || return 0
+    { grep -v '^status=' "$STATE_FILE" || true; echo "status=$1"; } > "$tmp"
+    mv "$tmp" "$STATE_FILE"
+}
+
+# Guarda de donde venimos (para `rollback`) una vez que el codigo ya cambio, y aparta el vendor y el build actuales.
+# Si el despliegue anterior quedo INCOMPLETO (fallo y reintento), el punto de vuelta original se conserva tal cual:
+# el vendor y el build que hay ahora son los del intento fallido y no deben sobrescribirlo.
 record_deploy() {
     mkdir -p "$STATE_DIR"
+    if [ "$(state_get status)" = "incomplete" ] && [ -d "$PREV_DIR" ]; then
+        echo "   despliegue anterior incompleto: se conserva el punto de vuelta original ($(state_get prev_rev))"
+        PREV_REV="$(state_get prev_rev)"
+    else
+        rm -rf "$PREV_DIR"
+        mkdir -p "$PREV_DIR"
+        [ ! -d vendor ] || mv vendor "$PREV_DIR/vendor"
+        if [ "$SKIP_BUILD" != "1" ] && [ -d public/build ]; then mv public/build "$PREV_DIR/build"; fi
+    fi
     {
         echo "prev_rev=$PREV_REV"
         echo "new_rev=$(git rev-parse HEAD)"
         echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        echo "dump=$(sed -n 's/^db=//p' "${BACKUP_DIR:-$APP_DIR/storage/backups}/last-backup" 2>/dev/null | tail -n1 || true)"
+        echo "dump=$(sed -n 's/^db=//p' "${BACKUP_DIR:-$APP_DIR/storage/backups}/last-db-backup" 2>/dev/null | tail -n1 || true)"
+        echo "status=incomplete"
     } > "$STATE_FILE"
     CODE_CHANGED=1
 }
 
-# Intercambio de vendor y public/build: dos `mv` en el mismo disco; el anterior queda en $PREV_DIR para rollback.
+# Pone el vendor y el build compilados (el anterior ya esta apartado en $PREV_DIR por record_deploy).
 swap_build() {
-    rm -rf "$PREV_DIR"
-    mkdir -p "$PREV_DIR"
-    [ ! -d vendor ] || mv vendor "$PREV_DIR/vendor"
+    rm -rf vendor
     mv "$STAGE_DIR/tree/vendor" vendor
     if [ "$SKIP_BUILD" != "1" ]; then
-        [ ! -d public/build ] || mv public/build "$PREV_DIR/build"
+        rm -rf public/build
         mv "$STAGE_DIR/tree/public/build" public/build
     fi
     rm -rf "$STAGE_DIR"
@@ -198,14 +226,15 @@ swap_build() {
 rollback_code() {
     local prev_rev
     [ -r "$STATE_FILE" ] || { echo "!! No hay $STATE_FILE: no hay despliegue previo que deshacer." >&2; return 1; }
-    prev_rev="$(sed -n 's/^prev_rev=//p' "$STATE_FILE")"
+    prev_rev="$(state_get prev_rev)"
     [ -n "$prev_rev" ] && [ "$prev_rev" != "desconocido" ] || { echo "!! La revision anterior no esta registrada." >&2; return 1; }
     echo "   volviendo a $prev_rev (git reset --keep: no pisa cambios locales)"
     git reset --keep "$prev_rev"
     if [ -d "$PREV_DIR/vendor" ]; then rm -rf vendor; mv "$PREV_DIR/vendor" vendor; fi
     if [ -d "$PREV_DIR/build" ]; then rm -rf public/build; mv "$PREV_DIR/build" public/build; fi
+    mark_deploy rolledback
     echo "   La BD NO se revierte sola. Si el despliegue anadio migraciones incompatibles, restaura el volcado previo:" >&2
-    echo "   Volcado previo: $(sed -n 's/^dump=//p' "$STATE_FILE") (en la carpeta de respaldos; restore.sh sobre BD vacia o con --force; pierde lo escrito desde el despliegue)." >&2
+    echo "   Volcado previo: $(state_get dump) (en la carpeta de respaldos; restore.sh sobre BD vacia o con --force; pierde lo escrito desde el despliegue)." >&2
 }
 
 # ---------------------------------------------------------------- preflight (antes de tocar nada)

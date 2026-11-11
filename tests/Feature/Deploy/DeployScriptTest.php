@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Process\ProcessResult;
 use Illuminate\Support\Facades\Process;
 
 /**
@@ -85,4 +86,153 @@ it('el rollback se puede ensayar en seco y no hace nada', function () {
         ->and($result->output())->toContain('Nada se ha modificado')
         ->and(array_slice($m[1], 0, 2))->toBe(['down', 'code'])
         ->and($m[1])->toContain('up');
+});
+
+/**
+ * Ensayo completo con php, composer, npm y gh falsos y un origin git local: sin VPS, sin servicios reales.
+ *
+ * @return array{root: string, app: string, env: array<string, string>}
+ */
+function deploySandbox(): array
+{
+    $root = str_replace('\\', '/', sys_get_temp_dir()).'/deploy-rt-'.uniqid();
+    $app = "$root/app";
+    $git = fn (string $dir, array $args) => Process::path($dir)->run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'core.autocrlf=false', ...$args])->throw();
+
+    File::makeDirectory($root.'/bin', 0777, true);
+    $git($root, ['init', '-q', '-b', 'main', '--bare', 'origin.git']);
+    $git($root, ['clone', '-q', 'origin.git', 'app']);
+    File::makeDirectory("$app/storage/logs", 0777, true);
+    file_put_contents("$app/storage/logs/.gitignore", "*\n");
+    file_put_contents("$app/.gitignore", ".env\n/vendor\n/public/build\n/bootstrap/cache/*.php\n/storage/framework/down\n");
+    file_put_contents("$app/f.txt", "uno\n");
+    file_put_contents("$app/composer.json", '{}');
+    file_put_contents("$app/package.json", '{}');
+    $git($app, ['add', '-A']);
+    $git($app, ['commit', '-q', '-m', 'uno']);
+    $git($app, ['push', '-q', 'origin', 'main']);
+    file_put_contents("$app/.env", "APP_KEY=x\n");
+    File::makeDirectory("$app/vendor");
+    File::makeDirectory("$app/public/build", 0777, true);
+    File::makeDirectory("$app/bootstrap/cache", 0777, true);
+    file_put_contents("$app/vendor/marker", 'v1');
+    file_put_contents("$app/public/build/manifest.json", '{}');
+    file_put_contents("$app/public/build/old.txt", 'old');
+
+    $git($root, ['clone', '-q', 'origin.git', 'other']);
+    file_put_contents("$root/other/f.txt", "dos\n");
+    $git("$root/other", ['commit', '-q', '-am', 'dos']);
+    $git("$root/other", ['push', '-q', 'origin', 'main']);
+
+    // php falso: composer instala un vendor con la marca FAKE_VENDOR; con `broken` ninguna orden artisan arranca;
+    // package:discover falla si queda un bootstrap/cache/packages.php obsoleto; migrate falla con FAIL_MIGRATE=1.
+    file_put_contents("$root/bin/php", <<<'SH'
+#!/bin/sh
+echo "php $*" >> "$LOG"
+case "$*" in
+  *composer*install*) mkdir -p vendor; printf '%s' "${FAKE_VENDOR:-v2}" > vendor/marker; exit 0 ;;
+  *artisan*) grep -q broken vendor/marker 2>/dev/null && { echo "version rota" >&2; exit 1; } ;;
+esac
+case "$*" in
+  *package:discover*) [ -f bootstrap/cache/packages.php ] && { echo "bootstrap/cache obsoleto" >&2; exit 1; } ;;
+  *migrate*) [ "${FAIL_MIGRATE:-0}" = 1 ] && exit 1 ;;
+esac
+exit 0
+SH);
+    file_put_contents("$root/bin/composer", "#!/bin/sh\nexit 0\n");
+    file_put_contents("$root/bin/npm", <<<'SH'
+#!/bin/sh
+[ "$1" = run ] && { mkdir -p public/build; echo '{}' > public/build/manifest.json; echo new > public/build/new.txt; }
+exit 0
+SH);
+    file_put_contents("$root/bin/gh", "#!/bin/sh\necho \"\${GH_STATE:-success}\"\n");
+    foreach (['php', 'composer', 'npm', 'gh'] as $bin) {
+        chmod("$root/bin/$bin", 0755);
+    }
+
+    return ['root' => $root, 'app' => $app, 'env' => [
+        'APP_DIR' => $app, 'LOG' => "$root/log", 'SKIP_BACKUP' => '1',
+        'PATH' => "$root/bin".PATH_SEPARATOR.getenv('PATH'),
+    ]];
+}
+
+function runDeploy(array $sandbox, array $extraEnv = [], string ...$args): ProcessResult
+{
+    return Process::path($sandbox['app'])->env($extraEnv + $sandbox['env'])->timeout(120)->run(['bash', base_path('deploy/hestia/deploy.sh'), ...$args]);
+}
+
+function appHead(array $sandbox): string
+{
+    return trim(Process::path($sandbox['app'])->run(['git', 'log', '-1', '--format=%s'])->output());
+}
+
+it('un despliegue correcto limpia bootstrap/cache antes de package:discover y se niega con la CI en rojo', function () {
+    if (! bashAvailable()) {
+        $this->markTestSkipped('Necesita bash.');
+    }
+    $sb = deploySandbox();
+    file_put_contents("{$sb['app']}/bootstrap/cache/packages.php", '<?php // obsoleto');
+
+    $red = runDeploy($sb, ['GH_STATE' => 'failure']);
+    expect($red->successful())->toBeFalse()
+        ->and(appHead($sb))->toBe('uno')
+        ->and(file_get_contents("{$sb['app']}/vendor/marker"))->toBe('v1');
+
+    $ok = runDeploy($sb);
+    expect($ok->successful())->toBeTrue($ok->errorOutput())
+        ->and(appHead($sb))->toBe('dos')
+        ->and(file_get_contents("{$sb['app']}/vendor/marker"))->toBe('v2')
+        ->and(file_exists("{$sb['app']}/public/build/new.txt"))->toBeTrue()
+        ->and(file_exists("{$sb['app']}/storage/framework/down"))->toBeFalse();
+
+    File::deleteDirectory($sb['root']);
+});
+
+it('el rollback pone el modo mantenimiento sin arrancar Laravel y funciona con una version rota', function () {
+    if (! bashAvailable()) {
+        $this->markTestSkipped('Necesita bash.');
+    }
+    $sb = deploySandbox();
+
+    // Version nueva rota: ningun artisan arranca tras el cambio de vendor.
+    $bad = runDeploy($sb, ['FAKE_VENDOR' => 'broken']);
+    expect($bad->successful())->toBeFalse()->and(appHead($sb))->toBe('dos');
+
+    file_put_contents("{$sb['app']}/bootstrap/cache/packages.php", '<?php // obsoleto');
+    file_put_contents($sb['root'].'/log', '');
+    $rollback = runDeploy($sb, [], 'rollback');
+
+    expect($rollback->successful())->toBeTrue($rollback->errorOutput())
+        ->and(appHead($sb))->toBe('uno')
+        ->and(file_get_contents("{$sb['app']}/vendor/marker"))->toBe('v1')
+        ->and(file_exists("{$sb['app']}/public/build/old.txt"))->toBeTrue()
+        ->and(file_exists("{$sb['app']}/storage/framework/down"))->toBeFalse()
+        // Ni down ni up pasan por php en el rollback: no dependen de que la version rota arranque.
+        ->and(file_get_contents($sb['root'].'/log'))->not->toContain('artisan down')->not->toContain('artisan up');
+
+    File::deleteDirectory($sb['root']);
+});
+
+it('reejecutar el despliegue tras un fallo conserva el punto de vuelta original', function () {
+    if (! bashAvailable()) {
+        $this->markTestSkipped('Necesita bash.');
+    }
+    $sb = deploySandbox();
+
+    $first = runDeploy($sb, ['FAIL_MIGRATE' => '1']);
+    expect($first->successful())->toBeFalse();
+    expect(file_get_contents("{$sb['app']}/storage/logs/.deploy/last-deploy"))->toContain('status=incomplete');
+
+    $second = runDeploy($sb, ['FAIL_MIGRATE' => '1']);
+    expect($second->successful())->toBeFalse()
+        ->and(file_get_contents("{$sb['app']}/storage/logs/.deploy/last-deploy"))->toContain('prev_rev='.trim(Process::path($sb['app'])->run(['git', 'rev-parse', 'HEAD~1'])->output()));
+
+    $rollback = runDeploy($sb, [], 'rollback');
+    expect($rollback->successful())->toBeTrue($rollback->errorOutput())
+        ->and(appHead($sb))->toBe('uno')
+        ->and(file_get_contents("{$sb['app']}/vendor/marker"))->toBe('v1')
+        ->and(file_exists("{$sb['app']}/public/build/old.txt"))->toBeTrue()
+        ->and(file_exists("{$sb['app']}/public/build/new.txt"))->toBeFalse();
+
+    File::deleteDirectory($sb['root']);
 });

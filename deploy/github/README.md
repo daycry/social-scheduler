@@ -5,7 +5,7 @@
 | Pieza | Qué hace |
 |---|---|
 | `protect-main.sh` | Protege `main` en GitHub: PR obligatoria, check requerido `tests`, rama al día, sin force-push ni borrado |
-| `.github/workflows/ci-failure-notify.yml` | Si el workflow `CI` falla en un push a `main`, abre (o comenta) la issue «CI en rojo en main»; GitHub avisa por correo a quien vigila el repo. La cierra sola cuando vuelve a verde |
+| `.github/workflows/ci-failure-notify.yml` | Si el workflow `CI` termina en `failure`, `cancelled`, `timed_out` o `startup_failure` en un push a `main`, abre (o comenta) la issue «CI en rojo en main»; GitHub avisa por correo a quien vigila el repo. La cierra sola cuando vuelve a verde |
 
 ## Estado requerido: `CI / tests`
 
@@ -20,9 +20,13 @@ bash deploy/github/protect-main.sh               # pide escribir «main» para c
 gh api repos/<owner>/<repo>/branches/main/protection   # comprobar
 ```
 
-Es idempotente (repetirlo deja el mismo estado). Opciones por variable: `APPROVALS` (por defecto 0; con un solo desarrollador no puedes aprobar tu propia PR), `ENFORCE_ADMINS=true` (obliga también a administradores; por defecto `false` para poder desbloquear una urgencia), `CHECK_CONTEXT`, `BRANCH`, `REPO`. Sin terminal interactiva exige `--yes`.
+Es idempotente (repetirlo deja el mismo estado). Opciones por variable: `APPROVALS` (por defecto 0; con un solo desarrollador no puedes aprobar tu propia PR), `ENFORCE_ADMINS` (por defecto **`true`**: obliga también a los administradores; con un único desarrollador, que es administrador, es lo que cierra A-02: sin esto podría empujar a `main` o saltarse la CI), `CHECK_CONTEXT`, `BRANCH`, `REPO`. Sin terminal interactiva exige `--yes`.
 
 Efecto práctico: `main` solo recibe cambios por PR y con `tests` en verde sobre la última versión de `main`; el despliegue (`deploy/hestia/deploy.sh`) además comprueba que el commit tenga la CI verde.
+
+## Hotfix urgente con la CI rota
+
+Con `ENFORCE_ADMINS=true` ni el administrador salta la protección. Para un hotfix puntual: `ENFORCE_ADMINS=false bash deploy/github/protect-main.sh` (relaja solo a los administradores; sigue exigiendo PR) o `--revert` (quita todo); en cuanto termines, vuelve a aplicar `bash deploy/github/protect-main.sh`.
 
 ## Revertir
 

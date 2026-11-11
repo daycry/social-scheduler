@@ -242,7 +242,7 @@ Detalle en [`deploy/hestia/README.md`](../../deploy/hestia/README.md#6-despliegu
 
 La CI estuvo 6 días en rojo en `main` sin verse (A-02). Guía: [`deploy/github/README.md`](../../deploy/github/README.md).
 
-- `bash deploy/github/protect-main.sh` (lo ejecuta el usuario con permisos de administrador; `--dry-run` primero) deja `main` con PR obligatoria, check requerido `tests` (se muestra como `CI / tests`: workflow `CI`, job `tests`) y rama al día. Es idempotente, imprime lo que va a hacer y pide confirmación explícita; `--revert` la quita.
+- `bash deploy/github/protect-main.sh` (lo ejecuta el usuario con permisos de administrador; `--dry-run` primero) deja `main` con PR obligatoria (también para administradores: `ENFORCE_ADMINS=true`; para un hotfix, `ENFORCE_ADMINS=false` o `--revert`), check requerido `tests` (se muestra como `CI / tests`: workflow `CI`, job `tests`) y rama al día. Es idempotente, imprime lo que va a hacer y pide confirmación explícita; `--revert` la quita.
 - `.github/workflows/ci-failure-notify.yml` abre una issue «CI en rojo en main» cuando `CI` falla en un push a `main` y la cierra al volver a verde.
 - `deploy.sh` se niega a desplegar un commit sin CI verde (`--force-unverified` lo salta de forma explícita).
 
@@ -250,7 +250,7 @@ La CI estuvo 6 días en rojo en `main` sin verse (A-02). Guía: [`deploy/github/
 
 Guía completa (configuración, rotación, restauración y `APP_KEY`): [`deploy/backup/README.md`](../../deploy/backup/README.md).
 
-- **Qué se respalda:** `mysqldump` de la BD y `storage/app` (media y adjuntos con disco local), comprimidos y cifrados (AES-256) con una frase guardada fuera del repo. El `.env` y la `APP_KEY` **no** van en el respaldo: guárdalos en un gestor de secretos; sin la misma `APP_KEY`, los tokens y secretos 2FA restaurados son ilegibles.
+- **Qué se respalda:** `mysqldump` de la BD y `storage/app` (media y adjuntos con disco local), comprimidos y cifrados (AES-256, PBKDF2 600000 iteraciones, con HMAC verificado en la restauración) con una frase guardada fuera del repo. El `.env` y la `APP_KEY` **no** van en el respaldo: guárdalos en un gestor de secretos; sin la misma `APP_KEY`, los tokens y secretos 2FA restaurados son ilegibles.
 - **Destino externo (`BACKUP_DEST`):** ruta montada, `usuario@host:ruta` (rsync) o `rclone:remoto:ruta` (R2/S3). Cron diario del usuario del dominio con `bash deploy/backup/backup.sh`.
 - **Rotación:** 14 días locales (`BACKUP_KEEP_DAYS`); en remoto, regla de ciclo de vida del bucket (el script no borra en remoto).
 - **Restaurar:** `deploy/backup/restore.sh --db … --media …` sobre una BD vacía, con confirmación explícita; ensayado con una BD de prueba (`BackupVerifyTest`). La prueba contra MySQL real y el destino externo siguen pendientes (M-04).

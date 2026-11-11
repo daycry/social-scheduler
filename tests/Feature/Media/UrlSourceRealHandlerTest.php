@@ -147,6 +147,8 @@ afterAll(function () {
 });
 
 beforeEach(function () {
+    // Excepcion explicita a la guardia global de TestCase: este fichero habla con un servidor HTTP local (127.0.0.1) a proposito.
+    Http::allowStrayRequests();
     Storage::fake('local');
     config(['filesystems.media' => 'local']);
     $this->user = User::factory()->create();

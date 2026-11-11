@@ -1,0 +1,39 @@
+# Protección de `main` y aviso de CI en rojo (A-02)
+
+**Por qué:** `main` no tenía protección y la CI estuvo **6 días en rojo sin que nadie lo viera**: se podía fusionar con los tests fallando y nadie recibía aviso. Dos piezas lo cierran:
+
+| Pieza | Qué hace |
+|---|---|
+| `protect-main.sh` | Protege `main` en GitHub: PR obligatoria, check requerido `tests`, rama al día, sin force-push ni borrado |
+| `.github/workflows/ci-failure-notify.yml` | Si el workflow `CI` falla en un push a `main`, abre (o comenta) la issue «CI en rojo en main»; GitHub avisa por correo a quien vigila el repo. La cierra sola cuando vuelve a verde |
+
+## Estado requerido: `CI / tests`
+
+En la lista de checks de una PR se ve como **`CI / tests`** (workflow `CI`, job `tests` de `.github/workflows/ci.yml`). La API de protección de ramas usa solo el **nombre del job**: `tests`. Es lo que configura el script (`CHECK_CONTEXT`, por defecto `tests`); comprobado con `gh api repos/<owner>/<repo>/commits/main/check-runs --jq '.check_runs[].name'`.
+
+## Aplicarlo (lo hace el usuario, con permisos de administrador del repo)
+
+```bash
+gh auth status                                   # sesión con permiso de admin
+bash deploy/github/protect-main.sh --dry-run     # muestra la configuración actual y la que aplicaría; no cambia nada
+bash deploy/github/protect-main.sh               # pide escribir «main» para confirmar
+gh api repos/<owner>/<repo>/branches/main/protection   # comprobar
+```
+
+Es idempotente (repetirlo deja el mismo estado). Opciones por variable: `APPROVALS` (por defecto 0; con un solo desarrollador no puedes aprobar tu propia PR), `ENFORCE_ADMINS=true` (obliga también a administradores; por defecto `false` para poder desbloquear una urgencia), `CHECK_CONTEXT`, `BRANCH`, `REPO`. Sin terminal interactiva exige `--yes`.
+
+Efecto práctico: `main` solo recibe cambios por PR y con `tests` en verde sobre la última versión de `main`; el despliegue (`deploy/hestia/deploy.sh`) además comprueba que el commit tenga la CI verde.
+
+## Revertir
+
+```bash
+bash deploy/github/protect-main.sh --revert      # quita la protección (pide confirmación)
+```
+
+o, en GitHub, Settings → Branches → regla de `main` → Delete.
+
+## Avisos de fallos de Actions
+
+- La issue automática solo se crea con fallos del workflow `CI` en push a `main` (no en ramas ni PR, donde el fallo ya se ve en la propia PR).
+- Complemento sin código: en GitHub → Settings → Notifications → Actions, activa «Send notifications for failed workflows only» (correo/web) para tus propias ejecuciones. Y vigila el repo («Watch» → Custom → Issues) para recibir la issue.
+- El workflow `workflow_run` solo se ejecuta cuando está en la rama por defecto: empieza a funcionar tras fusionarlo en `main`.

@@ -234,6 +234,14 @@ Si sigue en «no disponible», en este orden:
 - **Correo al fallar un job:** con `HEALTH_ALERT_EMAIL` definido, cada job que agota sus reintentos envía un correo con el nombre del job, la cola y la clase de la excepción (nunca el payload), como máximo uno cada `HEALTH_ALERT_THROTTLE_MINUTES` (60). Requiere el correo configurado (`MAIL_*`).
 - `/up`: solo prueba que PHP responde.
 
+## Protección de `main` y CI
+
+La CI estuvo 6 días en rojo en `main` sin verse (A-02). Guía: [`deploy/github/README.md`](../../deploy/github/README.md).
+
+- `bash deploy/github/protect-main.sh` (lo ejecuta el usuario con permisos de administrador; `--dry-run` primero) deja `main` con PR obligatoria, check requerido `tests` (se muestra como `CI / tests`: workflow `CI`, job `tests`) y rama al día. Es idempotente, imprime lo que va a hacer y pide confirmación explícita; `--revert` la quita.
+- `.github/workflows/ci-failure-notify.yml` abre una issue «CI en rojo en main» cuando `CI` falla en un push a `main` y la cierra al volver a verde.
+- `deploy.sh` se niega a desplegar un commit sin CI verde (`--force-unverified` lo salta de forma explícita).
+
 ## Copias de seguridad
 
 Guía completa (configuración, rotación, restauración y `APP_KEY`): [`deploy/backup/README.md`](../../deploy/backup/README.md).

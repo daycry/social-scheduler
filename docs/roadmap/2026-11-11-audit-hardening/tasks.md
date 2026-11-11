@@ -396,33 +396,37 @@ estado: en-progreso
 ### T-10 — Protección de `main` y avisos de fallos de Actions
 
 - **Descripción**: Dejar preparado el comando `gh api` que protege `main` (PR obligatoria, estado requerido `CI / tests`) y un aviso de fallos de Actions; la aplicación en GitHub la hace el usuario.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Hay un script para proteger main (PR y tests en verde obligatorios) y un aviso automático por issue cuando la CI falla en main.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-09
 - **Tipo**: devops
-- **Archivos**: `deploy/github/protect-main.sh`, `deploy/github/README.md`, `.github/workflows/ci.yml`, `docs/modulos/despliegue.md`
+- **Archivos**: `deploy/github/protect-main.sh`, `deploy/github/README.md`, `.github/workflows/ci.yml`, `.github/workflows/ci-failure-notify.yml`, `docs/modulos/despliegue.md`
 - **Cubre**: A-02
 - **Cubre (tests)**: M-09
 - **Verificación**: `bash -n deploy/github/protect-main.sh` → sin salida · lectura: `deploy/github/README.md` describe estado requerido `CI / tests` y cómo revertir
 
 **Criterios de aceptación**
-- [ ] `deploy/github/protect-main.sh` es idempotente, imprime lo que hará y exige confirmación explícita
-- [ ] Existe una notificación de fallo de Actions (workflow de aviso o ajuste documentado)
-- [ ] La doc explica por qué (CI en rojo 6 días sin verse)
+- [x] `deploy/github/protect-main.sh` es idempotente, imprime lo que hará y exige confirmación explícita
+- [x] Existe una notificación de fallo de Actions (workflow de aviso o ajuste documentado)
+- [x] La doc explica por qué (CI en rojo 6 días sin verse)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `bash -n deploy/github/protect-main.sh` → sin salida. `bash deploy/github/protect-main.sh --dry-run` (solo lectura: `gh api` GET) → «sin proteccion» actual y el JSON que se aplicaría; no se ejecutó la aplicación ni se cambió nada en GitHub. `gh api …/commits/main/check-runs` → check-run `tests`. YAML del workflow de aviso válido (`yaml.safe_load`). Pest/Playwright: no aplican (sin código PHP).
+
+**Decisiones**: El estado requerido en la API es `tests` (nombre del job), no `CI / tests` (así solo se ve en la UI de la PR); documentado y configurable con `CHECK_CONTEXT`. `APPROVALS=0` y `enforce_admins=false` por defecto (un único desarrollador, evitar bloqueo en urgencias). Aviso: workflow nuevo `ci-failure-notify.yml` (workflow_run, issue deduplicada por título, cierre automático al volver a verde; valores del evento pasados por `env`, no interpolados en el script). `ci.yml` no se modificó. Pendiente del usuario: ejecutar el script con permisos de admin.
 
 **Notas**: Tamaño S. Qué se puede hacer ya: script y docs. Queda a la espera (U): ejecutar el script con permisos de administrador del repo. No se ejecuta desde el plan; los merges los hace el usuario. **A la espera (no bloquea la fase)**: Ejecución del script con permisos de admin en GitHub (usuario).
 

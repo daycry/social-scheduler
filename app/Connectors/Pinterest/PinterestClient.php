@@ -101,6 +101,9 @@ class PinterestClient
             throw new TransientPublishException('No se pudo subir el video a Pinterest (tiempo agotado o red).', 'red');
         }
 
+        if (in_array($response->status(), [400, 403, 404, 410], true)) {
+            throw new PinterestUploadRejectedException($response->status());
+        }
         if (! $response->successful()) {
             throw $this->exceptionFor($response, false);
         }

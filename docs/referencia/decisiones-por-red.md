@@ -139,6 +139,6 @@ Añadidas en T-18 (creative-social-suite). Guía de alta, scopes e interruptores
 | Métricas | Sin lector: «no disponible» | Sin lector: «no disponible» |
 | Fuera | Portada de vídeo (`uploadThumbnail`) | — |
 | Versión de la API (A-04) | `LINKEDIN_API_VERSION=202610` (la 202511 se retira el 2026-11-16); `app:health` avisa a los 10 meses | — |
-| Vídeo (A-05) | — | Subida en streaming a la URL prefirmada; tope de 512 MB (Pinterest admite 2 GB) y timeout de 100 s dentro del job de 110 s |
+| Vídeo (A-05) | — | Subida en streaming a la URL prefirmada; tope de 128 MB (Pinterest admite 2 GB) y timeout de 100 s dentro del job de 110 s |
 
 X (Twitter, API de pago), Google Business Profile (aprobación de acceso) y Twitch (analítica de streams) quedan como deuda pendiente de decisión del usuario.

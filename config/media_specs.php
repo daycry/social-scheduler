@@ -248,8 +248,8 @@ return [
             'label' => 'un pin de video de Pinterest',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 800, 'required' => false],
-            // Tope de esta instalacion (Pinterest admite hasta 2 GB): una subida en streaming de 512 MB cabe en `social.pinterest.upload_timeout` (100 s) a ~5 MB/s.
-            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 512 * $mb, 'min_duration' => 4, 'max_duration' => 900],
+            // Tope de esta instalacion (Pinterest admite hasta 2 GB): la subida es UNA peticion dentro del paso del job (85 s, con registro y comprobaciones); 128 MB caben a ~2,5 MB/s.
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 128 * $mb, 'min_duration' => 4, 'max_duration' => 900],
         ],
     ],
 ];

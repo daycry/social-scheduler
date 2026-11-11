@@ -178,6 +178,8 @@ return [
         'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 100),
         /* Minimo (s) de subida para intentarla: con menos presupuesto en el paso se reprograma sin registrar un media nuevo. */
         'upload_min_seconds' => 15,
+        /* Vigencia (min) de la URL prefirmada guardada para reutilizarla en un reintento: pasada, se registra otro media. */
+        'upload_url_ttl_minutes' => (int) env('PINTEREST_UPLOAD_URL_TTL', 20),
     ],
 
     'threads' => [

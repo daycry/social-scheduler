@@ -65,6 +65,7 @@ function pinRealHandler(): object
 {
     $state = new stdClass;
     $state->log = [];
+    $state->uploadStatus = [];
     Http::globalMiddleware(fn (callable $handler) => function ($request, array $options) use ($handler, $state) {
         $state->timeout = $options['timeout'] ?? null;
 
@@ -83,7 +84,7 @@ function pinRealHandler(): object
             return Http::response(['media_id' => '8200', 'upload_url' => 'https://pinterest-media-upload.s3-accelerate.amazonaws.com/', 'upload_parameters' => ['key' => 'k9']], 201);
         }
 
-        return Http::response('', 204);
+        return Http::response('', array_shift($state->uploadStatus) ?? 204);
     });
 
     return $state;
@@ -157,9 +158,81 @@ test('un reintento reutiliza el media ya registrado en lugar de registrar otro',
 
 test('un video ya programado por encima del tope falla de forma permanente antes de registrar nada', function () {
     $state = pinRealHandler();
-    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 600 * 1024 * 1024, disk: 'local', path: 'm/t.mp4');
+    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 200 * 1024 * 1024, disk: 'local', path: 'm/t.mp4');
 
     expect(fn () => app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media)))
-        ->toThrow(PermanentPublishException::class, 'supera 512 MB');
+        ->toThrow(PermanentPublishException::class, 'supera 128 MB');
     expect($state->log)->toBe([]);
+});
+
+function pinMedia(): PublishMedia
+{
+    Storage::disk('local')->put('m/t.mp4', 'BYTES');
+
+    return new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 5, disk: 'local', path: 'm/t.mp4');
+}
+
+function pinSaved(int $age): array
+{
+    return ['pinterest_upload' => ['url' => 'https://pinterest-media-upload.s3-accelerate.amazonaws.com/old', 'parameters' => ['key' => 'old'], 'issued_at' => now()->timestamp - $age]];
+}
+
+function pinRegistrations(object $state): int
+{
+    return count(array_filter($state->log, fn ($l) => str_ends_with($l['uri'], '/v5/media')));
+}
+
+test('el reloj del presupuesto arranca en findPublished, antes de la primera llamada de red del paso', function () {
+    config(['publishing.step_budget_seconds' => 31]);   // registro 15 + subida minima 15 = 30
+    $state = pinRealHandler();
+    $request = pinRequest(pinMedia());
+    $publisher = app(PinterestPublisher::class);
+    $publisher->findPublished(NewNetworksFake::pinterestAccount(), $request);
+    usleep(1_300_000);
+
+    expect(fn () => $publisher->publish(NewNetworksFake::pinterestAccount(), $request))->toThrow(TransientPublishException::class);
+    expect(pinRegistrations($state))->toBe(0);
+});
+
+test('una URL guardada caducada (por TTL) no se reutiliza: se registra de nuevo', function () {
+    $state = pinRealHandler();
+
+    app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest(pinMedia(), '8100', pinSaved(3 * 3600)));
+
+    expect(pinRegistrations($state))->toBe(1)->and(pinUploads($state)[0]['uri'])->not->toContain('/old');
+});
+
+test('si la URL guardada vigente es rechazada (403), se limpia y se registra de nuevo una sola vez', function () {
+    $state = pinRealHandler();
+    $state->uploadStatus = [403, 204];
+
+    $result = app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest(pinMedia(), '8100', pinSaved(30)));
+
+    expect(pinRegistrations($state))->toBe(1)->and(count(pinUploads($state)))->toBe(2)->and($result->reference)->toBe('8200');
+});
+
+test('si la subida con la URL recien registrada es rechazada, falla claro y permanente, sin `permisos` y sin volver a registrar', function () {
+    $state = pinRealHandler();
+    $state->uploadStatus = [403];
+    $saved = [];
+    $media = pinMedia();
+    $request = new PublishRequest(targetId: 1, type: ContentType::PinterestVideo, text: 'V', media: [$media], options: ['pinterest_board_id' => '549755885175'], since: now()->subMinute(), checkpoint: function ($ref, $progress) use (&$saved) {
+        $saved[] = $progress;
+    });
+
+    try {
+        app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), $request);
+        $this->fail('debia fallar');
+    } catch (PermanentPublishException $e) {
+        expect($e->errorCode)->not->toBe('permisos')->and($e->getMessage())->toContain('rechazo la subida');
+    }
+    expect(pinRegistrations($state))->toBe(1)->and(end($saved))->toBe([]);   // el progreso con la URL firmada se vacia
+});
+
+test('tras subir bien, el progreso (con la URL firmada) se vacia', function () {
+    pinRealHandler();
+
+    $result = app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest(pinMedia(), '8100', pinSaved(30)));
+
+    expect($result->progress)->toBe([]);
 });

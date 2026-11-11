@@ -85,6 +85,6 @@ test('el timeout de la subida cabe en el job y un video por encima del tope se r
     ]);
     $validator = app(MediaValidator::class);
 
-    expect($validator->validate(ContentType::PinterestVideo, [$video(500 * 1024 * 1024)], null))->toBe([])
-        ->and($validator->validate(ContentType::PinterestVideo, [$video(513 * 1024 * 1024)], null))->not->toBe([]);
+    expect($validator->validate(ContentType::PinterestVideo, [$video(128 * 1024 * 1024)], null))->toBe([])
+        ->and($validator->validate(ContentType::PinterestVideo, [$video(129 * 1024 * 1024)], null))->not->toBe([]);
 });

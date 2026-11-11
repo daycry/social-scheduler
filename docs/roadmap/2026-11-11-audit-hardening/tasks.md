@@ -283,7 +283,7 @@ estado: en-progreso
 ### T-07 — Pinterest: subida de vídeo en streaming
 
 - **Descripción**: Sustituir `Storage::get` por subida en streaming (recurso multipart o por pasos), bajar el tope de 2 GB a un valor seguro y fijar un timeout acorde.
-- **Changelog**: Los vídeos de Pinterest se suben en streaming sin cargarlos enteros en memoria; el tope baja a 512 MB y un vídeo mayor se rechaza al programar.
+- **Changelog**: Los vídeos de Pinterest se suben en streaming sin cargarlos enteros en memoria; el tope baja a 128 MB y un vídeo mayor se rechaza al programar.
 - **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
@@ -291,7 +291,7 @@ estado: en-progreso
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `app/Connectors/Support/KnownSizeStream.php`, `config/social.php`, `docs/modulos/despliegue.md`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
+- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `app/Connectors/Support/KnownSizeStream.php`, `app/Connectors/Pinterest/PinterestUploadRejectedException.php`, `config/media_specs.php`, `config/social.php`, `docs/modulos/despliegue.md`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
 - **Cubre**: A-05
 - **Cubre (tests)**: M-01
 - **Verificación**: `php artisan test --compact --filter=PinterestVideoStreamingTest` → verde
@@ -3508,8 +3508,19 @@ Verificación: `MediaDeleteReferencesTest` + `MediaMissingRetryTest` 17/17; Pest
 | 1 | Critical | Con disco R2/S3 el vídeo se enviaba truncado: `readStream` devuelve el socket HTTP, `fstat` da 0 y el multipart medía solo sus cabeceras | T-07 | Tamaño real por `Filesystem::size` y stream decorado con tamaño fijo (`KnownSizeStream`): Guzzle declara bien el `Content-Length` (S3 no admite `chunked`) y envía el vídeo completo, sin cargarlo en memoria | `PinterestVideoUploadRobustnessTest` «un stream remoto sin tamano conocido envia el video completo»: stream con `fstat` 0 y cuerpo leído de la petición; rojo antes del arreglo |
 | 2 | Important | El paso podía superar el job: registrar (15 s) + subir (100 s) > 110 s; la recuperación registraba otro media | T-07 | La subida usa `min(upload_timeout, StepBudget::remaining())`; sin 30 s (`http_timeout` + `upload_min_seconds`) de presupuesto lanza `TransientPublishException` (`sin_tiempo`) antes de registrar; la URL prefirmada se guarda en el progreso y un reintento reutiliza el media registrado | tests «la subida acota su timeout…» (rojo: 100), «sin presupuesto suficiente… sin registrar» y «un reintento reutiliza el media ya registrado» |
 | 3 | Minor | El test de memoria no era fiable y se perdió la aserción de bytes | T-07 | `memory_reset_peak_usage()` y medición solo del envío; `PinterestConnectorTest` vuelve a comprobar `VIDEOBYTES` leyendo el cuerpo durante la petición | `PinterestVideoStreamingTest`, `PinterestConnectorTest` |
-| 4 | Minor | Vídeos ya programados de más de 512 MB | T-07 | Se revalida al publicar (tamaño del asset y real del disco): `PermanentPublishException` `video_grande` «El video supera 512 MB para Pinterest.», sin registrar medias | test «un video ya programado por encima del tope falla de forma permanente…» (rojo) |
+| 4 | Minor | Vídeos ya programados de de más del tope | T-07 | Se revalida al publicar (tamaño del asset y real del disco): `PermanentPublishException` `video_grande` «El video supera 512 MB para Pinterest.», sin registrar medias | test «un video ya programado por encima del tope falla de forma permanente…» (rojo) |
 | 5 | Minor | Una versión futura de `LINKEDIN_API_VERSION` no avisaba | T-08 | Antigüedad negativa ⇒ aviso «es futura (aun no existe)» | `LinkedInVersionHealthTest` «una version futura… avisa» (rojo → verde) |
 | 6 | Minor | Documentación de TikTok y de `app:health` incompleta | T-08 | Un scope no aprobado bloquea conectar y reconectar TODAS las cuentas de TikTok; se revierte vaciando la variable y `php artisan config:cache`; `linkedin_version` en `docs/modulos/despliegue.md`; Pinterest: presupuesto del paso y reintento | `decisiones-por-red.md`, `configuracion.md`, `despliegue.md`, `linkedin-pinterest.md` |
 
 Verificación: filtro `Pinterest|LinkedIn|TikTok|HealthCheckTest|InfraTest|QueueProbe` en verde; Pint. Pest completo y Playwright, del coordinador. T-07 y T-08 siguen `en-revision`.
+
+## Revisión de dos lentes — intento 2: Fase 1 (T-07, T-08) — gaps corregidos
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | El reloj del presupuesto arrancaba tarde: `findPublished` y `exists`/`size` del disco corrían antes de `StepBudget` | T-07 | `publish` y `findPublished` llaman a `$request->budget()` lo primero, así que todo el paso (comprobación de idempotencia incluida) queda dentro del presupuesto | `PinterestVideoUploadRobustnessTest` «el reloj del presupuesto arranca en findPublished…» (rojo: no lanzaba `sin_tiempo`) |
+| N2 | Important | La URL prefirmada guardada nunca caducaba ni se volvía a registrar; un 403 acababa como `permisos` engañoso | T-07 | El progreso guarda `issued_at`; TTL `PINTEREST_UPLOAD_URL_TTL` (20 min). Caducada, o rechazada con 400/403/404/410 al reutilizarla, se limpia y se registra de nuevo UNA vez. Rechazo con la URL recién registrada: `PermanentPublishException` `subida_rechazada` («Pinterest rechazo la subida del video (HTTP 403)…»), no `permisos` | tests «una URL guardada caducada…», «si la URL guardada vigente es rechazada (403)…», «si la subida con la URL recién registrada es rechazada…» (rojos) |
+| N3 | Minor (CWE-312) | La URL firmada quedaba en `post_targets.progress` | T-07 | Subida correcta: `processing($mediaId, raw, [])`; fallo permanente: `checkpoint(null, [])`. El `Log::notice` solo lleva `target_id` y estado. `progress` no aparece en recursos de API/MCP (solo en la serialización del modelo mientras dura la subida; mismo patrón que TikTok) | test «tras subir bien, el progreso… se vacía» (rojo) y el de rechazo comprueba `[]` |
+| N4 | Important | 512 MB no cabe en el presupuesto del paso (6-7 MB/s en un solo POST) | T-07 | **Se elige el tope de 128 MB** (`media_specs`) en lugar del paso propio: un job en cola `media` de ~600 s exigiría cambiar en producción el worker (`--timeout=120`, `--max-time=280`) y `retry_after` de la conexión `database` (180 s) más sus crons y `DeployQueuesDocTest`: cambios de infraestructura que no se pueden verificar aquí y arriesgan los workers existentes. 128 MB caben con ~55 s de margen peor caso a ~2,5 MB/s. Documentado en la guía de Pinterest | test de validación 128/129 MB y el de «supera 128 MB»; documentación actualizada |
+
+Verificación: `tests/Feature/Connectors/Pinterest` 32/32; Pest focal (Pinterest, Publishing, Jobs, Deploy, Infra); Pint. Pest completo y Playwright, del coordinador. T-07 y T-08 siguen `en-revision`.

@@ -189,15 +189,23 @@ Para cambiar la contraseña más tarde, desde **Perfil**. Si se pierde, repite e
 
 ```bash
 bash deploy/hestia/deploy.sh --dry-run   # lista los pasos sin ejecutar nada
-bash deploy/hestia/deploy.sh             # despliega: pull, composer, migrate, caches, queue:restart, health
-WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@media scheduler-studio" bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
+BACKUP_PASSFILE=$HOME/.backup-passphrase bash deploy/hestia/deploy.sh   # despliega
+WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@media scheduler-studio" BACKUP_PASSFILE=... bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
+bash deploy/hestia/deploy.sh rollback    # vuelve a la revision anterior (ensayable con --dry-run)
 ```
 
-Orden: `artisan down` -> fetch/pull -> composer -> `npm ci && npm run build` (gate: existe `public/build/manifest.json`) -> migrate -> caches
--> `queue:restart` -> `up` -> reinicio de `WORKER_UNITS` -> smoke (`manifest.json` + `app:health --skip-scheduler`).
-- Si algo falla **antes** de cambiar el codigo, la app se vuelve a levantar; si falla **despues**, se queda en mantenimiento (no se sirve codigo nuevo con
-  vendor o esquema a medias) y el script indica como volver a la revision anterior. En ambos casos se ejecuta `queue:restart`.
-- Un job fallido historico **no** rompe el deploy: `app:health` solo falla si algo esta caido (BD, cola, disco); los fallidos recientes salen como AVISO.
+Orden (la app solo esta en mantenimiento entre `down` y `up`):
+`fetch` -> **comprobar CI** (`gh`: el check `tests` del commit a desplegar debe estar en verde) -> **compilar en una carpeta aparte**
+(`git archive` + `composer install --no-scripts` + `npm ci && npm run build`; gate: `manifest.json`) -> `artisan down` -> **volcado de la BD**
+(`deploy/backup/backup.sh --db-only`, cifrado) -> `git merge --ff-only` y cambio de `vendor` y `public/build` (dos `mv`, segundos) -> `package:discover` ->
+`migrate` -> caches -> `queue:restart` -> `up` -> reinicio de `WORKER_UNITS` -> smoke (`manifest.json` + `app:health --skip-scheduler`).
+
+- **CI en verde:** el script se niega a desplegar un commit sin el check `tests` en verde (`CI_CHECK` lo cambia). `--force-unverified` lo salta de forma explicita (urgencias, o sin `gh` en el servidor; `gh auth login` una vez).
+- **Copia previa:** exige `BACKUP_PASSFILE` (ver [`deploy/backup/README.md`](../backup/README.md)); `SKIP_BACKUP=1` solo para un primer despliegue sin datos.
+- Si algo falla **antes** de cambiar el codigo (CI, build, volcado), la app no cambia y, si ya estaba en mantenimiento, se vuelve a levantar. Si falla **despues**, se queda en mantenimiento y el script indica `rollback`.
+- **Vuelta atras (`deploy.sh rollback`):** `down` -> `git reset --keep <revision anterior>` (guardada en `storage/logs/.deploy/last-deploy`) -> restaura el `vendor` y `public/build` anteriores (`storage/logs/.deploy/previous`) -> caches -> `queue:restart` -> `up`. **La BD no se revierte sola**: si el despliegue anadio migraciones incompatibles, restaura el volcado previo (`restore.sh`, BD vacia o `--force`; se pierde lo escrito desde el despliegue) o escribe una migracion correctiva. Solo hay una version anterior guardada: tras un segundo despliegue ya no se puede volver al primero.
+- Alternativa si el modo in situ resulta insuficiente: releases con symlink atomico (`releases/<sha>` + `current`), no implementada.
+- Un job fallido historico **no** rompe el despliegue: `app:health` solo falla si algo esta caido (BD, cola, disco); los fallidos recientes salen como AVISO.
 - `PHP_BIN` (p. ej. `PHP_BIN=php8.4`) fija el PHP CLI y debe coincidir con `Environment=PHP_BIN=` de la unidad systemd.
 
 ## 7. Verificacion manual (M-04) [VPS]
@@ -218,5 +226,5 @@ php artisan app:health                         # BD, cola, disco
 
 | Elemento | Estado |
 |---|---|
-| `deploy.sh --dry-run` | verificado en local |
+| `deploy.sh --dry-run`, orden de pasos y rollback en seco | verificado en local (`DeployScriptTest`); despliegue y rollback reales, pendientes en el VPS |
 | Dominio/TLS/BD/cron/Nginx en Hestia | pendiente: requiere el VPS (M-04) |

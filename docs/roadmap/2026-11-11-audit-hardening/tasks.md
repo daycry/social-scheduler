@@ -433,33 +433,37 @@ estado: en-progreso
 ### T-11 — Despliegue sin parada larga, con copia previa y comprobación de CI
 
 - **Descripción**: Compilar (`composer install`, `npm ci`, build) antes de `artisan down`, hacer `mysqldump` antes de `migrate`, comprobar que el commit tiene la CI en verde y documentar una vuelta atrás guiada.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El despliegue compila antes de poner la app en mantenimiento, hace una copia de la base de datos antes de migrar, se niega a desplegar un commit sin la CI en verde y permite volver atrás con deploy.sh rollback.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-09, T-05
 - **Tipo**: devops
-- **Archivos**: `deploy/hestia/deploy.sh`, `deploy/hestia/README.md`, `docs/modulos/despliegue.md`, `tests/Feature/Deploy/DeployScriptTest.php`
+- **Archivos**: `deploy/hestia/deploy.sh`, `deploy/hestia/README.md`, `docs/modulos/despliegue.md`, `tests/Feature/Deploy/DeployScriptTest.php`, `tests/Feature/Infra/InfraTest.php`
 - **Cubre**: A-10
 - **Cubre (tests)**: M-06
 - **Verificación**: `bash -n deploy/hestia/deploy.sh` → sin salida · `bash deploy/hestia/deploy.sh --dry-run` → imprime el orden: build, comprobación CI, dump, down, migrate, up
 
 **Criterios de aceptación**
-- [ ] `deploy.sh` solo entra en mantenimiento tras compilar y ejecuta un volcado previo a `migrate`
-- [ ] El script se niega a desplegar un commit sin CI verde (con `--force-unverified` explícito)
-- [ ] Existe `rollback` documentado y probado en seco (`--dry-run`)
+- [x] `deploy.sh` solo entra en mantenimiento tras compilar y ejecuta un volcado previo a `migrate`
+- [x] El script se niega a desplegar un commit sin CI verde (con `--force-unverified` explícito)
+- [x] Existe `rollback` documentado y probado en seco (`--dry-run`)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `bash -n deploy/hestia/deploy.sh` → sin salida. `bash deploy/hestia/deploy.sh --dry-run` → orden fetch, ci, build, down, dump, code, swap, discover, migrate, cache, link, queue, up, smoke. `php artisan test --compact --filter='DeployScriptTest|InfraTest|DeployQueuesDocTest'` → 39/39 verde (orden de pasos, rollback en seco, SKIP_BACKUP). Además se ensayó el flujo real con php/composer/npm/gh falsos y un origin local en un directorio temporal: CI roja cancela sin tocar nada, despliegue OK (vendor y build intercambiados, last-deploy escrito), rollback restaura revisión, vendor y build, y un fallo en migrate deja la app en mantenimiento con el aviso de rollback; falta BACKUP_PASSFILE aborta en el preflight. Ese ensayo destapó un bug (ERR trap en una sustitución de comando) ya corregido. Pint OK. Pest completo y Playwright no lanzados.
+
+**Decisiones**: Compilación en `storage/logs/.deploy/stage` (ya ignorado por git, mismo disco) desde `git archive` del SHA exacto y `composer install --no-scripts` (package:discover tras el cambio); intercambio vendor/build con `mv`; versión anterior en `storage/logs/.deploy/previous` (solo una). CI: check-runs del SHA vía `gh api`, nombre `tests` (`CI_CHECK`). Volcado previo con `backup.sh --db-only` (exige BACKUP_PASSFILE; SKIP_BACKUP=1 explícito). Rollback con `git reset --keep` (no destructivo) y BD manual. Se sustituyó la aserción de orden antigua de InfraTest (obsoleta) por DeployScriptTest. Symlink atómico por releases queda como mejora documentada. Pendiente del usuario: despliegue y rollback reales en el VPS, `gh auth login` en el servidor.
 
 **Notas**: Tamaño M. Sin VPS: se prueba en seco. Mantener la opción de symlink atómico como mejora documentada si el modo in situ resulta insuficiente.
 

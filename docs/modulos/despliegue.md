@@ -46,7 +46,7 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
 7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
 
-`deploy.sh` ejecuta: `artisan down` → pull → composer → `npm ci && npm run build` (exige `public/build/manifest.json`) → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
+`deploy.sh` ejecuta: fetch → comprobación de CI → compilar aparte (composer, `npm ci && npm run build`; exige `public/build/manifest.json`) → `artisan down` → volcado previo → código y cambio de vendor/build → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
 
 ## Primer usuario
 
@@ -234,6 +234,10 @@ Si sigue en «no disponible», en este orden:
 - **Correo al fallar un job:** con `HEALTH_ALERT_EMAIL` definido, cada job que agota sus reintentos envía un correo con el nombre del job, la cola y la clase de la excepción (nunca el payload), como máximo uno cada `HEALTH_ALERT_THROTTLE_MINUTES` (60). Requiere el correo configurado (`MAIL_*`).
 - `/up`: solo prueba que PHP responde.
 
+## Despliegue sin parada larga
+
+Detalle en [`deploy/hestia/README.md`](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando). `deploy.sh` comprueba con `gh` que el commit tiene el check `tests` en verde (`--force-unverified` para saltarlo), **compila en una carpeta aparte antes de `artisan down`**, hace el volcado previo (`backup.sh --db-only`), intercambia `vendor` y `public/build` con `mv` y migra; solo `down` -> `up` es mantenimiento. `deploy.sh rollback` (ensayable con `--dry-run`) vuelve a la revisión, `vendor` y build anteriores; la BD se restaura a mano desde el volcado previo.
+
 ## Protección de `main` y CI
 
 La CI estuvo 6 días en rojo en `main` sin verse (A-02). Guía: [`deploy/github/README.md`](../../deploy/github/README.md).
@@ -251,7 +255,7 @@ Guía completa (configuración, rotación, restauración y `APP_KEY`): [`deploy/
 - **Rotación:** 14 días locales (`BACKUP_KEEP_DAYS`); en remoto, regla de ciclo de vida del bucket (el script no borra en remoto).
 - **Restaurar:** `deploy/backup/restore.sh --db … --media …` sobre una BD vacía, con confirmación explícita; ensayado con una BD de prueba (`BackupVerifyTest`). La prueba contra MySQL real y el destino externo siguen pendientes (M-04).
 - **Frescura:** `php artisan app:backup-verify` (exit 1 con más de 26 h, `BACKUP_MAX_AGE_HOURS`) y, con `BACKUP_HEALTH=true`, el check `backup` de `app:health` (solo WARN).
-- `deploy.sh` reutiliza `backup.sh --db-only` antes de `migrate` (ver [Despliegue sin parada larga](../../deploy/hestia/README.md#despliegue-con-deploysh)).
+- `deploy.sh` reutiliza `backup.sh --db-only` antes de `migrate` (ver [Despliegue sin parada larga](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando)).
 
 ## Almacenamiento de media
 

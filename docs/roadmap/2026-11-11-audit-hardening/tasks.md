@@ -39,7 +39,7 @@ estado: en-progreso
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — Riesgo inmediato | 0 | 11 | 0% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
+| Fase 1 — Riesgo inmediato | 11 | 11 | 100% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
 | Fase 2 — CI y red de tests | 0 | 8 | 0% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
 | Fase 3 — Funciones incompletas | 0 | 16 | 0% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
 | Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
@@ -47,7 +47,7 @@ estado: en-progreso
 | Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **0** | **100** | **0%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
+| **TOTAL** | **11** | **100** | **11%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -63,7 +63,7 @@ estado: en-progreso
 
 - **Descripción**: Actualizar `symfony/*` y `laravel/framework` (13.37 → 13.42) para cerrar los 11 avisos de `composer audit` y comprobar que nada se rompe.
 - **Changelog**: Actualizadas las dependencias de Symfony y Laravel (13.42) para cerrar 11 avisos de seguridad conocidos; sin cambios visibles.
-- **Estado**: en-revision
+- **Estado**: completado
 - **Cerrada**: 2026-11-11
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
@@ -81,25 +81,28 @@ estado: en-progreso
 - [x] Suite Pest completa en verde tras la actualización
 - [x] `composer.lock` con versiones de Symfony ≥ las corregidas (7.4.22 o superior)
 - [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
 - [x] Revisión adversarial A+B(+C)
 - [x] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `composer update symfony/* laravel/framework --with-all-dependencies` (laravel 13.37.0 → 13.42.0; symfony 7.4.16-7.4.21 → 7.4.22/7.4.23; sin paquetes fijados). `composer audit` → `No security vulnerability advisories found`. Pest: 3581 tests, 3572 passed, 9 skipped (sin fallos). `npm run build` OK. Playwright aplazado al cierre de fase.
 
 **Notas**: Tamaño S. Primera tarea del plan. Si algún paquete queda fijado (laravel/mcp, laravel/passkeys), anotar y tratarlo en E-14. Solo se ejecuta Playwright de smoke (`composer.spec.ts`, `pages.spec.ts`); la suite completa en T-QA.
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-02 — Bloquear peticiones HTTP reales en todos los tests
 
 - **Descripción**: Mover `Http::preventStrayRequests()` a `TestCase::setUp` para que ningún test salga a la red; arreglar los ~234 ficheros que hoy dependen de ello sin saberlo.
 - **Changelog**:
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -116,25 +119,28 @@ estado: en-progreso
 - [x] Ningún test hace peticiones reales (los que las necesitaban usan `Http::fake`)
 - [x] Los tests de integración con servidor local (si los hay) declaran su excepción explícita
 - [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
 - [x] Revisión adversarial A+B(+C)
 - [x] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `Http::preventStrayRequests()` en `TestCase::setUp`; solo fallaban BlueskySsrfTest y UrlSourceRealHandlerTest (servidor local), que declaran `Http::allowStrayRequests()`. Pest completo: 3581 tests, 3572 passed, 9 skipped, 0 fallos. Pint OK. Playwright aplazado al cierre de fase.
 
 **Notas**: Tamaño S. Hacerlo antes de cualquier otra tarea que añada conectores: es la red de seguridad de la regla «sin red externa en pruebas». Excepción prevista: E-04 (servidor HTTP local).
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-03 — Cola `studio` en Hestia y `media` en systemd
 
 - **Descripción**: Añadir el cron/worker de la cola `studio` en Hestia y la unidad `scheduler-worker@media` en systemd; unificar la documentación de colas entre ambos.
 - **Changelog**:
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -151,25 +157,28 @@ estado: en-progreso
 - [x] La doc de systemd incluye `scheduler-worker@media`
 - [x] Un test lee `app/Jobs/**` y falla si una cola usada no aparece en `deploy/*/README.md`
 - [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
 - [x] Revisión adversarial A+B(+C)
 - [x] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: Hestia 5.1-bis (worker studio por unidad systemd, resumen cola→worker, WORKER_UNITS), systemd README con scheduler-worker@media y --queue=studio, cabecera de la plantilla, deploy.sh y docs/modulos/despliegue.md alineados. DeployQueuesDocTest: 4 tests verdes (falla si se retira studio de Hestia). Pest completo al final de la sesión.
 
 **Notas**: Tamaño S. Solo documentación y plantillas: sin VPS. La comprobación en el servidor real queda para el usuario (E-18).
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-04 — Poda de tablas y retención de revisiones del estudio
 
 - **Descripción**: `MassPrunable` en las ocho tablas con retención en `config/retention.php` y `model:prune` diario; las revisiones del estudio se crean con intervalo mínimo o al cerrar sesión, con retención (últimas N + diarias) y poda de `studio_font_usages`.
 - **Changelog**: Las tablas de histórico se podan a diario según su retención y el historial de revisiones del estudio ya no crece con cada autoguardado; las tipografías de revisiones antiguas se pueden borrar.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -186,16 +195,16 @@ estado: en-progreso
 - [x] El autoguardado no crea más de una revisión por intervalo mínimo; quedan las últimas N y una diaria
 - [x] Una tipografía solo usada por revisiones podadas se puede borrar
 - [x] Sin cambio en el contenido visible del editor
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: RetentionPruneTest + DesignRevisionRetentionTest: 9 tests verdes (retención por modelo, intervalo mínimo, últimas N + diaria, `studio_font_usages` podado por cascada y tipografía borrable tras la poda). `php artisan test tests/Feature/Studio`: 657 tests, 648 passed, 9 skipped. `model:prune --pretend` sobre SQLite migrada de cero: sin errores y lista los modelos (contra la BD .env no se pudo: MySQL local apagado). Migración de índices reversible (migrate + rollback --step=1 OK). Pint OK. Playwright no lanzado (decisión de la sesión; Editor.vue solo añade `autosave` al PATCH).
 
@@ -203,11 +212,14 @@ estado: en-progreso
 
 **Notas**: Tamaño M. Cuidado con `audit_logs`: la retención por defecto debe ser generosa (≥ 365 d) porque F-01 la mostrará. No tocar los datos del usuario 28: los tests usan fábricas.
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-05 — Salud: colas, snapshots, binarios nativos y sonda programada
 
 - **Descripción**: Ampliar `HealthCheck` con antigüedad del job más viejo por cola, frescura de `CollectSnapshots`, check `native` (ffmpeg, Chromium, Python) y aviso de `APP_DEBUG=true` en producción; `/health?strict=1` devuelve 503; programar `app:queue-probe`; correo al admin en `Queue::failing`.
 - **Changelog**: La comprobación de salud avisa de colas atrasadas, métricas sin actualizar, binarios ausentes y APP_DEBUG en producción; /health?strict=1 da 503 con cualquier aviso y un job fallido avisa por correo al administrador.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -224,16 +236,16 @@ estado: en-progreso
 - [x] `/health?strict=1` → 503 con jobs fallidos o checks en rojo; `/health` sin `strict` conserva su contrato
 - [x] `app:queue-probe` está programado
 - [x] `Queue::failing` envía un correo al administrador (con límite para no inundar)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: HealthCheckTest + QueueProbeScheduleTest + InfraTest: 46 tests verdes (cola atrasada por cola con umbral propio, snapshots, native con `Process::fake`, APP_DEBUG, `/health` y `/health?strict=1`, `app:health --strict`, correo con límite). `schedule:list` (SQLite scratch) incluye `app:queue-probe` cada 15 min; `app:health` real sobre la misma BD lista `snapshots`, `config` y `native`. Pest completo: 3605 tests, 3596 passed, 9 skipped, 0 fallos. Pint OK. Playwright no lanzado.
 
@@ -241,11 +253,14 @@ estado: en-progreso
 
 **Notas**: Tamaño M. Base de F-04 (UI), que se mantiene como tarea propia de la fase 7 (la auditoría pedía agruparlo, pero la UI depende de este backend y su tamaño sumado sería L). Sin red: los binarios se simulan con un `ProcessRunner` falso.
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-06 — Referencias de media con FK: `post_target_media`
 
 - **Descripción**: Crear la tabla `post_target_media` con `restrictOnDelete` y migrar los datos existentes; mientras tanto, el borrado de un `MediaAsset` comprueba también `autolist_items`.
 - **Changelog**: Borrar un archivo que usa un destino, una serie activa o una autolista se rechaza con un aviso claro y la base de datos lo garantiza; la media propia de cada destino pasa a una tabla relacional sin cambiar la API.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -261,16 +276,16 @@ estado: en-progreso
 - [x] Borrar un media referenciado por un post, serie, autolista o export falla con mensaje claro y sin recorrer todas las filas en PHP
 - [x] La migración de datos es reversible y conserva todas las referencias existentes
 - [x] `autolist_items` forma parte de la comprobación de uso
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `MediaDeleteReferencesTest` 7/7 verde (RED inicial: tabla inexistente, comprobación hidrataba filas, FK sin efecto). Pest focal (Posts, Media, Workflow, Parity, Mcp, Library, Isolation, Publishing, Retention): 1158 tests, 0 fallos; antes, Connectors/Studio/Instagram/Sites/Calendar/Jobs/Infra/Auth también verdes (2808 tests, único fallo era un test que borraba la fila saltándose la FK, ajustado). `migrate:fresh` + `migrate:rollback --step=1` + `migrate` sobre SQLite fichero scratch: sin errores (`migrate:fresh --env=testing` no aplica: ese entorno apunta a MySQL no disponible aquí). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
 
@@ -280,11 +295,14 @@ estado: en-progreso
 
 **Notas**: Tamaño M. Mismo contrato visible: el cambio es de integridad. La migración se prueba solo con fábricas, nunca con datos del usuario 28.
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-07 — Pinterest: subida de vídeo en streaming
 
 - **Descripción**: Sustituir `Storage::get` por subida en streaming (recurso multipart o por pasos), bajar el tope de 2 GB a un valor seguro y fijar un timeout acorde.
 - **Changelog**: Los vídeos de Pinterest se suben en streaming sin cargarlos enteros en memoria; el tope baja a 128 MB y un vídeo mayor se rechaza al programar.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -300,16 +318,16 @@ estado: en-progreso
 - [x] La subida no carga el vídeo entero en memoria (test con límite de memoria o stream verificado)
 - [x] Tope y timeout de vídeo de Pinterest ajustados en `config/media_specs.php` y documentados
 - [x] Un vídeo por encima del tope se rechaza en validación, no a mitad de publicación
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: RED inicial: el test de stream fallaba (el contenido iba como string de `Storage::get`). Tras el cambio `PinterestVideoStreamingTest` 3/3 y `tests/Feature/Connectors/Pinterest` 22/22 verdes (`php artisan test --compact tests/Feature/Connectors/Pinterest`). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
 
@@ -317,11 +335,14 @@ estado: en-progreso
 
 **Notas**: Tamaño M. Sin red: `Http::fake` con recuento de bytes. La verificación contra Pinterest sandbox es el smoke M-01 del usuario. **A la espera (no bloquea la fase)**: Contrato real de Pinterest (sandbox) sin verificar: queda para el smoke M-01.
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-08 — Versión de LinkedIn y scopes extra de TikTok
 
 - **Descripción**: Hacer configurable y documentar la versión de la API de LinkedIn con aviso en `app:health` cercano a su caducidad; añadir `TIKTOK_EXTRA_SCOPES` a la petición de autorización.
 - **Changelog**: LinkedIn usa por defecto la versión de API 202610 (la 202511 se retira el 16-11-2026), `app:health` avisa cuando caduca y TikTok admite pedir los scopes de analítica con TIKTOK_EXTRA_SCOPES.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -337,16 +358,16 @@ estado: en-progreso
 - [x] `LINKEDIN_API_VERSION` documentada en `.env.example` y `app:health` avisa si la versión supera 10 meses de antigüedad
 - [x] `TIKTOK_EXTRA_SCOPES` se concatena a los scopes de la petición OAuth
 - [x] La doc explica cómo reconectar TikTok para activar analítica
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `php artisan test --compact --filter='LinkedInVersionHealthTest|TikTokExtraScopesTest|TikTokOAuthTest|HealthCheckTest|InfraTest|QueueProbe'` → 60/60 verdes (4 tests de versión LinkedIn, 3 de scopes extra; `InfraTest` ajustado al nuevo check `linkedin_version`). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
 
@@ -356,11 +377,14 @@ estado: en-progreso
 
 **Notas**: Tamaño S. Qué se puede hacer ya: config, aviso y scopes. Queda a la espera del usuario: confirmar la versión activa de LinkedIn contra su doc oficial (V) y reconectar TikTok con los scopes aprobados en su auditoría (U). No editar `.env`: solo `.env.example`. **A la espera (no bloquea la fase)**: Confirmar versión activa de LinkedIn (V), reconexión y aprobación de TikTok (U).
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-09 — Copias de seguridad y restauración probada
 
 - **Descripción**: Scripts de `mysqldump` diario y copia cifrada de `storage/app` fuera del servidor, procedimiento de restauración probado en local y guía para guardar `APP_KEY` en un gestor de secretos; comando que verifica la frescura del último respaldo.
 - **Changelog**: Hay scripts de copia de seguridad cifrada (BD y archivos) y de restauración, el comando app:backup-verify avisa si el último respaldo tiene más de 26 h y app:health puede mostrarlo.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -376,16 +400,16 @@ estado: en-progreso
 - [x] `backup.sh` genera volcado + copia de media cifrada y `restore.sh` los restaura sobre una BD vacía (probado con una BD de pruebas)
 - [x] `app:backup-verify` avisa si el último respaldo supera 26 h
 - [x] `docs/modulos/despliegue.md` documenta destino externo, cifrado y rotación
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `php artisan test --compact --filter='BackupVerifyTest|HealthCheckTest|InfraTest'` → verde (BackupVerifyTest 7/7, incluido el viaje de ida y vuelta cifrado con `mysqldump`/`mysql` falsos y la comprobación de que la contraseña de la BD no aparece en la salida). `bash -n deploy/backup/backup.sh deploy/backup/restore.sh` → sin salida. Round-trip manual con falsos en un directorio temporal: backup (BD + media, copia a destino), restore sobre BD vacía OK, BD con 3 tablas rechazada sin --force, frase equivocada falla. Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
 
@@ -393,11 +417,14 @@ estado: en-progreso
 
 **Notas**: Tamaño M. Se implementa todo lo local. Queda a la espera del usuario (U): elegir el destino externo (R2/S3/otro) y programar el cron en el VPS. Sin tocar datos del usuario 28: la restauración se prueba con una BD de prueba. **A la espera (no bloquea la fase)**: Destino externo y cron en el VPS (usuario).
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-10 — Protección de `main` y avisos de fallos de Actions
 
 - **Descripción**: Dejar preparado el comando `gh api` que protege `main` (PR obligatoria, estado requerido `CI / tests`) y un aviso de fallos de Actions; la aplicación en GitHub la hace el usuario.
 - **Changelog**: Hay un script para proteger main (PR y tests en verde obligatorios) y un aviso automático por issue cuando la CI falla en main.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -413,16 +440,16 @@ estado: en-progreso
 - [x] `deploy/github/protect-main.sh` es idempotente, imprime lo que hará y exige confirmación explícita
 - [x] Existe una notificación de fallo de Actions (workflow de aviso o ajuste documentado)
 - [x] La doc explica por qué (CI en rojo 6 días sin verse)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `bash -n deploy/github/protect-main.sh` → sin salida. `bash deploy/github/protect-main.sh --dry-run` (solo lectura: `gh api` GET) → «sin proteccion» actual y el JSON que se aplicaría; no se ejecutó la aplicación ni se cambió nada en GitHub. `gh api …/commits/main/check-runs` → check-run `tests`. YAML del workflow de aviso válido (`yaml.safe_load`). Pest/Playwright: no aplican (sin código PHP).
 
@@ -430,11 +457,14 @@ estado: en-progreso
 
 **Notas**: Tamaño S. Qué se puede hacer ya: script y docs. Queda a la espera (U): ejecutar el script con permisos de administrador del repo. No se ejecuta desde el plan; los merges los hace el usuario. **A la espera (no bloquea la fase)**: Ejecución del script con permisos de admin en GitHub (usuario).
 
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
+
 ### T-11 — Despliegue sin parada larga, con copia previa y comprobación de CI
 
 - **Descripción**: Compilar (`composer install`, `npm ci`, build) antes de `artisan down`, hacer `mysqldump` antes de `migrate`, comprobar que el commit tiene la CI en verde y documentar una vuelta atrás guiada.
 - **Changelog**: El despliegue compila antes de poner la app en mantenimiento, hace una copia de la base de datos antes de migrar, se niega a desplegar un commit sin la CI en verde y permite volver atrás con deploy.sh rollback.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -450,16 +480,16 @@ estado: en-progreso
 - [x] `deploy.sh` solo entra en mantenimiento tras compilar y ejecuta un volcado previo a `migrate`
 - [x] El script se niega a desplegar un commit sin CI verde (con `--force-unverified` explícito)
 - [x] Existe `rollback` documentado y probado en seco (`--dry-run`)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `bash -n deploy/hestia/deploy.sh` → sin salida. `bash deploy/hestia/deploy.sh --dry-run` → orden fetch, ci, build, down, dump, code, swap, discover, migrate, cache, link, queue, up, smoke. `php artisan test --compact --filter='DeployScriptTest|InfraTest|DeployQueuesDocTest'` → 39/39 verde (orden de pasos, rollback en seco, SKIP_BACKUP). Además se ensayó el flujo real con php/composer/npm/gh falsos y un origin local en un directorio temporal: CI roja cancela sin tocar nada, despliegue OK (vendor y build intercambiados, last-deploy escrito), rollback restaura revisión, vendor y build, y un fallo en migrate deja la app en mantenimiento con el aviso de rollback; falta BACKUP_PASSFILE aborta en el preflight. Ese ensayo destapó un bug (ERR trap en una sustitución de comando) ya corregido. Pint OK. Pest completo y Playwright no lanzados.
 
@@ -468,6 +498,8 @@ estado: en-progreso
 **Notas**: Tamaño M. Sin VPS: se prueba en seco. Mantener la opción de symlink atómico como mejora documentada si el modo in situ resulta insuficiente.
 
 ---
+
+**Cierre (2026-11-12)**: revisión adversarial cerrada (ver secciones «Revisión de dos lentes» de la Fase 1); Pest completo en solitario 3676 passed / 9 skipped / 0 failed; E2E de la fase en los 3 tamaños, una sola ejecución: 327 passed / 0 failed (composer, calendario, media, destino, workflow, LinkedIn/Pinterest y los 18 specs del estudio).
 
 ## Fase 2 — CI y red de tests
 

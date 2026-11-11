@@ -162,6 +162,20 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 
 **Aprobadas por el usuario el 2026-10-31 (T-41)**: las secciones actuales del informe (`cover`, `summary`, `networks`, `top_posts`, `notes`, en `config/reports.php`) y su diseño. No hay variable para la lista de secciones: se cambia en el fichero. La aprobación se refiere al PDF de muestra; la comprobación de métricas reales de M-03 sigue pendiente.
 
+## Salud y avisos
+
+| Variable | Defecto | Explicación |
+|---|---|---|
+| `HEALTH_QUEUE_MAX_AGE` | `600` | Segundos que puede esperar el job pendiente más viejo de una cola antes de avisar de «cola atrasada» |
+| `HEALTH_QUEUE_MAX_AGE_NATIVE` | `1800` | Igual para las colas `media` y `studio` |
+| `HEALTH_SNAPSHOTS_MAX_AGE_HOURS` | `36` | Horas sin snapshots nuevos tras las que `app:health` avisa (con cuentas conectadas) |
+| `HEALTH_NATIVE` | `true` | Comprueba ffmpeg, ffprobe, Python, Chromium y el modelo (WARN); `false` lo desactiva |
+| `HEALTH_ALERT_EMAIL` | vacío | Correo del administrador al que avisa un job fallido; vacío = sin aviso |
+| `HEALTH_ALERT_THROTTLE_MINUTES` | `60` | Intervalo mínimo entre dos avisos de job fallido |
+| `STUDIO_CHROMIUM_PATH` | vacío | Ruta de Chromium para el estudio (si no, el de Playwright) |
+
+Ver [despliegue](../modulos/despliegue.md#healthcheck) para `/health?strict=1`.
+
 ## Retención y revisiones del estudio
 
 `model:prune` (programado a diario, 04:50) poda por lotes las tablas con retención de `config/retention.php`. Un plazo `0` desactiva la poda de esa tabla. `audit_logs` se conserva un año por defecto porque la pantalla de auditoría la mostrará.

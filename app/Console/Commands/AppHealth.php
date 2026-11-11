@@ -7,9 +7,9 @@ use Illuminate\Console\Command;
 
 class AppHealth extends Command
 {
-    protected $signature = 'app:health {--json : Salida JSON} {--skip-scheduler : No exigir el latido del cron (p. ej. durante el deploy)}';
+    protected $signature = 'app:health {--json : Salida JSON} {--skip-scheduler : No exigir el latido del cron (p. ej. durante el deploy)} {--strict : Tambien falla (exit 1) con avisos}';
 
-    protected $description = 'Comprueba BD, cola, almacenamiento y latido del scheduler (exit 1 solo si algo esta caido; jobs fallidos recientes = aviso)';
+    protected $description = 'Comprueba BD, cola (antiguedad por cola), almacenamiento, scheduler, snapshots, binarios nativos y APP_DEBUG (exit 1 solo si algo esta caido; el resto es aviso, salvo --strict)';
 
     public function handle(HealthCheck $health): int
     {
@@ -23,6 +23,8 @@ class AppHealth extends Command
             }
         }
 
-        return $result['ok'] ? self::SUCCESS : self::FAILURE;
+        $failed = ! $result['ok'] || ($this->option('strict') && $result['status'] !== 'ok');
+
+        return $failed ? self::FAILURE : self::SUCCESS;
     }
 }

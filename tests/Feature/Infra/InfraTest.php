@@ -134,7 +134,7 @@ test('app:health succeeds when everything is fine', function () {
     $result = json_decode(Artisan::output(), true);
 
     expect($exit)->toBe(0)->and($result['ok'])->toBeTrue()
-        ->and(array_keys($result['checks']))->toBe(['database', 'queue', 'storage', 'scheduler']);
+        ->and(array_keys($result['checks']))->toBe(['database', 'queue', 'storage', 'scheduler', 'snapshots', 'config']);
 });
 
 test('app:health fails without scheduler heartbeat unless skipped', function () {

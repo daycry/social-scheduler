@@ -5,6 +5,8 @@ $python = base_path('storage/framework/studio-python/'.(PHP_OS_FAMILY === 'Windo
 return [
     'node' => env('STUDIO_NODE_BINARY', 'node'),
     'python' => env('STUDIO_PYTHON_BINARY', is_file($python) ? $python : (PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3')),
+    // Ruta de Chromium para el renderizado (la leen los scripts Node por STUDIO_CHROMIUM_PATH); vacia = el de Playwright.
+    'chromium_path' => env('STUDIO_CHROMIUM_PATH'),
     'av' => [
         'queue' => 'studio',
         'lease_seconds' => 180,

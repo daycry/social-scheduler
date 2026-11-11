@@ -80,3 +80,6 @@ Schedule::call(function (): void {
         DB::table('notifications')->whereNotNull('read_at')->where('read_at', '<', now()->subDays($days))->delete();
     }
 })->dailyAt('04:55')->name('notifications-prune')->withoutOverlapping();
+
+// Sonda de colas (A-09): un job de prueba por cola; si ningun worker lo coge, `app:health` ve la cola atrasada.
+Schedule::command('app:queue-probe')->everyFifteenMinutes()->name('queue-probe')->withoutOverlapping();

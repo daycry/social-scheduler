@@ -30,11 +30,17 @@ use App\Models\Brand;
 use App\Models\PersonalAccessToken;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\QueueJobFailedAlert;
 use App\Services\Auth\Social\FakeSocialiteProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +52,7 @@ use Laravel\Sanctum\Sanctum;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\FacebookProvider;
 use Laravel\Socialite\Two\GoogleProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -133,6 +140,24 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PasskeyRegistered::class, [AuditPasskeyEvents::class, 'registered']);
         Event::listen(PasskeyVerified::class, [AuditPasskeyEvents::class, 'verified']);
         Event::listen(PasskeyDeleted::class, [AuditPasskeyEvents::class, 'deleted']);
+
+        // Salud (A-09): un job que agota sus reintentos avisa por correo al administrador (HEALTH_ALERT_EMAIL), como mucho una vez
+        // por intervalo para no inundar. Un fallo del propio aviso nunca debe afectar al worker.
+        Queue::failing(function (JobFailed $event): void {
+            $email = (string) config('health.alert_email');
+            if ($email === '') {
+                return;
+            }
+            try {
+                $ttl = max(1, (int) config('health.alert_throttle_minutes', 60));
+                if (! Cache::add('health:failed-job-alert', 1, now()->addMinutes($ttl))) {
+                    return;
+                }
+                Notification::route('mail', $email)->notifyNow(new QueueJobFailedAlert($event->job->resolveName(), (string) $event->job->getQueue(), $event->exception::class));
+            } catch (Throwable $e) {
+                Log::warning('health.failed_job_alert_error', ['exception' => $e::class]);
+            }
+        });
 
         // Informes (M-9): los FK en cascada no disparan eventos de modelo; se borran antes los ficheros de la marca/usuario.
         Brand::deleting(fn (Brand $b) => Report::purgeFor('brand_id', $b->id));

@@ -224,13 +224,14 @@ Si sigue en «no disponible», en este orden:
 
 ## Healthcheck
 
-- `php artisan app:health` (`--json`, `--skip-scheduler`): BD, cola, disco y latido del scheduler (falla si tiene más de 180 s).
-- `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min.
+- `php artisan app:health` (`--json`, `--skip-scheduler`, `--strict`): BD, cola, disco, latido del scheduler (falla si tiene más de 180 s), snapshots, `config` y `native`. Solo sale con exit 1 si algo está caído; los avisos (WARN) no lo tumban salvo con `--strict`.
+- **Cola atrasada:** `queue` informa `atrasadas=<cola>:<s>s` cuando el job pendiente más viejo (disponible y sin reservar) de una cola supera su umbral: 600 s (`HEALTH_QUEUE_MAX_AGE`) y 1800 s para `media` y `studio` (`HEALTH_QUEUE_MAX_AGE_NATIVE`). Indica que falta el worker de esa cola. `app:queue-probe` está programado cada 15 min, así que una cola sin worker acaba visible aunque no tenga tráfico.
+- **Snapshots:** avisa si hay cuentas conectadas y el último `CollectSnapshots` tiene más de 36 h (`HEALTH_SNAPSHOTS_MAX_AGE_HOURS`).
+- **`native` (WARN):** `ffmpeg`, `ffprobe`, Python del estudio, Chromium (`STUDIO_CHROMIUM_PATH` o el de Playwright) y el modelo de quitar fondo. Se apaga con `HEALTH_NATIVE=false`.
+- **`config`:** avisa si `APP_DEBUG=true` con `APP_ENV=production`.
+- `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min. Con **`/health?strict=1`** cualquier aviso (job fallido en 24 h, cola atrasada, snapshots viejos, binario ausente, debug en producción) devuelve 503: úsalo en un monitor que deba avisar de degradaciones; sin `strict` el contrato no cambia.
+- **Correo al fallar un job:** con `HEALTH_ALERT_EMAIL` definido, cada job que agota sus reintentos envía un correo con el nombre del job, la cola y la clase de la excepción (nunca el payload), como máximo uno cada `HEALTH_ALERT_THROTTLE_MINUTES` (60). Requiere el correo configurado (`MAIL_*`).
 - `/up`: solo prueba que PHP responde.
-
-## Retención de datos
-
-`model:prune` está programado a diario (04:50) y poda `audit_logs`, `publish_attempts`, los trabajos de IA/imagen/Canva terminados, exportaciones fallidas del estudio, pasos AV caducados y revisiones del estudio según `config/retention.php` (variables `RETENTION_*`, referencia en [configuración](../referencia/configuracion.md)). Las notificaciones leídas se podan en una tarea programada aparte. Comprobación sin borrar: `php artisan model:prune --pretend`. Necesita el cron del scheduler (opción A).
 
 ## Almacenamiento de media
 

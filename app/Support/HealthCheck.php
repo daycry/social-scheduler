@@ -3,9 +3,11 @@
 namespace App\Support;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -39,6 +41,13 @@ class HealthCheck
 
         if (! $skipScheduler) {
             $checks['scheduler'] = $this->scheduler();
+            $checks['snapshots'] = $this->snapshots();
+        }
+
+        $checks['config'] = $this->debug();
+
+        if (config('health.native', true)) {
+            $checks['native'] = $this->native();
         }
 
         $down = collect($checks)->contains(fn ($c) => ! $c['ok']);
@@ -97,12 +106,137 @@ class HealthCheck
                 $pending, self::FAILED_WINDOW_HOURS, $failedRecent, $failedTotal, implode(',', config('queue.names')),
             );
 
-            return $failedRecent > 0
+            $late = $this->lateQueues();
+            if ($late !== []) {
+                $detail .= ' atrasadas='.implode(',', array_map(fn ($age, $queue) => "$queue:{$age}s", $late, array_keys($late)));
+            }
+
+            return $failedRecent > 0 || $late !== []
                 ? ['ok' => true, 'warn' => true, 'detail' => "AVISO: $detail"]
                 : ['ok' => true, 'detail' => $detail];
         } catch (Throwable $e) {
             return $this->failure('queue', $e);
         }
+    }
+
+    /**
+     * Antigüedad (s) del job pendiente más viejo de cada cola que supera su umbral (`health.queue_max_age`): señal de que
+     * no hay worker escuchando esa cola o va por detrás. Solo cuenta jobs ya disponibles y sin reservar.
+     *
+     * @return array<string, int> cola => segundos de espera
+     */
+    public function lateQueues(): array
+    {
+        $now = now()->timestamp;
+        $rows = DB::table(config('queue.connections.database.table', 'jobs'))
+            ->whereNull('reserved_at')->where('available_at', '<=', $now)
+            ->groupBy('queue')->selectRaw('queue, min(available_at) as oldest')->get();
+
+        $limits = (array) config('health.queue_max_age', []);
+        $late = [];
+        foreach ($rows as $row) {
+            $age = $now - (int) $row->oldest;
+            $limit = (int) ($limits[$row->queue] ?? $limits['default'] ?? 600);
+            if ($limit > 0 && $age > $limit) {
+                $late[(string) $row->queue] = $age;
+            }
+        }
+        ksort($late);
+
+        return $late;
+    }
+
+    /**
+     * `CollectSnapshots` es diario: sin ningún snapshot nuevo en `health.snapshots_max_age_hours` (y con cuentas conectadas)
+     * las métricas se están quedando viejas.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function snapshots(): array
+    {
+        try {
+            if (! DB::table('social_accounts')->exists()) {
+                return ['ok' => true, 'detail' => 'sin cuentas conectadas'];
+            }
+            $last = DB::table('account_snapshots')->max('collected_at');
+            $limit = (int) config('health.snapshots_max_age_hours', 36);
+
+            if ($last === null) {
+                return ['ok' => true, 'warn' => true, 'detail' => 'AVISO: aun no hay snapshots de metricas'];
+            }
+            $hours = (int) floor(Carbon::parse($last)->diffInHours(now(), true));
+
+            return $limit > 0 && $hours > $limit
+                ? ['ok' => true, 'warn' => true, 'detail' => "AVISO: ultimo snapshot hace {$hours}h (limite {$limit}h)"]
+                : ['ok' => true, 'detail' => "ultimo snapshot hace {$hours}h"];
+        } catch (Throwable $e) {
+            return $this->failure('snapshots', $e);
+        }
+    }
+
+    /**
+     * Binarios nativos que usan media y estudio. Faltar uno solo avisa (WARN): la app sigue sirviendo, pero esa función fallará.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function native(): array
+    {
+        $missing = [];
+        $found = [];
+        $binaries = ['ffmpeg' => [config('media.ffmpeg', 'ffmpeg'), '-version'], 'ffprobe' => [config('media.ffprobe', 'ffprobe'), '-version'], 'python' => [config('studio.python', 'python3'), '--version']];
+        foreach ($binaries as $name => [$binary, $flag]) {
+            if ($this->runs((string) $binary, $flag)) {
+                $found[] = $name;
+            } else {
+                $missing[] = $name;
+            }
+        }
+        $chromium = (string) config('studio.chromium_path', '');
+        if ($chromium !== '' ? is_file($chromium) : $this->playwrightChromium()) {
+            $found[] = 'chromium';
+        } else {
+            $missing[] = 'chromium';
+        }
+        if (is_file((string) config('studio.images.model_path'))) {
+            $found[] = 'modelo';
+        } else {
+            $missing[] = 'modelo';
+        }
+
+        return $missing === []
+            ? ['ok' => true, 'detail' => 'ok: '.implode(',', $found)]
+            : ['ok' => true, 'warn' => true, 'detail' => 'AVISO: faltan '.implode(',', $missing)];
+    }
+
+    private function runs(string $binary, string $flag): bool
+    {
+        try {
+            return Process::timeout(5)->run([$binary, $flag])->successful();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /** Chromium de Playwright en su carpeta de navegadores (PLAYWRIGHT_BROWSERS_PATH o la de por defecto del usuario). */
+    private function playwrightChromium(): bool
+    {
+        $home = (string) (getenv('HOME') ?: getenv('USERPROFILE') ?: '');
+        $roots = array_filter([(string) getenv('PLAYWRIGHT_BROWSERS_PATH'), $home !== '' ? $home.'/.cache/ms-playwright' : '', $home !== '' ? $home.'/AppData/Local/ms-playwright' : '']);
+        foreach ($roots as $root) {
+            if ((glob($root.'/chromium-*') ?: []) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return array{ok: bool, detail: string, warn?: bool} */
+    public function debug(): array
+    {
+        return config('app.debug') && app()->environment('production')
+            ? ['ok' => true, 'warn' => true, 'detail' => 'AVISO: APP_DEBUG=true en produccion (expone trazas y variables)']
+            : ['ok' => true, 'detail' => 'debug='.(config('app.debug') ? 'true' : 'false')];
     }
 
     /**

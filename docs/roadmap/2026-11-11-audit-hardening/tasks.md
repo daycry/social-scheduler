@@ -206,34 +206,38 @@ estado: en-progreso
 ### T-05 — Salud: colas, snapshots, binarios nativos y sonda programada
 
 - **Descripción**: Ampliar `HealthCheck` con antigüedad del job más viejo por cola, frescura de `CollectSnapshots`, check `native` (ffmpeg, Chromium, Python) y aviso de `APP_DEBUG=true` en producción; `/health?strict=1` devuelve 503; programar `app:queue-probe`; correo al admin en `Queue::failing`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La comprobación de salud avisa de colas atrasadas, métricas sin actualizar, binarios ausentes y APP_DEBUG en producción; /health?strict=1 da 503 con cualquier aviso y un job fallido avisa por correo al administrador.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-04
 - **Tipo**: backend
-- **Archivos**: `app/Support/HealthCheck.php`, `app/Console/Commands/AppHealth.php`, `app/Console/Commands/QueueProbe.php`, `routes/console.php`, `routes/web.php`, `app/Providers/AppServiceProvider.php`, `docs/modulos/despliegue.md`
+- **Archivos**: `app/Support/HealthCheck.php`, `app/Console/Commands/AppHealth.php`, `app/Console/Commands/QueueProbe.php`, `routes/console.php`, `bootstrap/app.php`, `app/Http/Controllers/HealthController.php`, `app/Providers/AppServiceProvider.php`, `app/Notifications/QueueJobFailedAlert.php`, `config/health.php`, `config/studio.php`, `tests/TestCase.php`, `tests/Feature/Infra/InfraTest.php`, `tests/Feature/Infra/HealthCheckTest.php`, `tests/Feature/Infra/QueueProbeScheduleTest.php`, `docs/modulos/despliegue.md`, `docs/referencia/configuracion.md`, `.env.example`, `.env.production.example`
 - **Cubre**: A-09, E-20
 - **Cubre (tests)**: API-03
 - **Verificación**: `php artisan test --compact --filter=HealthCheckTest` → verde · `php artisan test --compact --filter=QueueProbeScheduleTest` → verde · `php artisan schedule:list` → incluye `app:queue-probe`
 
 **Criterios de aceptación**
-- [ ] `app:health` informa cola atrasada, snapshots viejos, binario ausente y `APP_DEBUG=true` en producción
-- [ ] `/health?strict=1` → 503 con jobs fallidos o checks en rojo; `/health` sin `strict` conserva su contrato
-- [ ] `app:queue-probe` está programado
-- [ ] `Queue::failing` envía un correo al administrador (con límite para no inundar)
+- [x] `app:health` informa cola atrasada, snapshots viejos, binario ausente y `APP_DEBUG=true` en producción
+- [x] `/health?strict=1` → 503 con jobs fallidos o checks en rojo; `/health` sin `strict` conserva su contrato
+- [x] `app:queue-probe` está programado
+- [x] `Queue::failing` envía un correo al administrador (con límite para no inundar)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: HealthCheckTest + QueueProbeScheduleTest + InfraTest: 46 tests verdes (cola atrasada por cola con umbral propio, snapshots, native con `Process::fake`, APP_DEBUG, `/health` y `/health?strict=1`, `app:health --strict`, correo con límite). `schedule:list` (SQLite scratch) incluye `app:queue-probe` cada 15 min; `app:health` real sobre la misma BD lista `snapshots`, `config` y `native`. Pest completo: 3605 tests, 3596 passed, 9 skipped, 0 fallos. Pint OK. Playwright no lanzado.
+
+**Decisiones**: `/health` sin `strict` conserva el contrato; con `strict=1` cualquier WARN da 503 (`ok:false`, `strict:true`). `native` y el correo se apagan por config (`HEALTH_NATIVE`, `HEALTH_ALERT_EMAIL` vacío); `TestCase` fija `health.native=false` para que la suite no dependa del equipo. La ruta `/health` está en `bootstrap/app.php`, no en `routes/web.php`. El correo solo lleva job, cola y clase de excepción (sin payload ni mensaje).
 
 **Notas**: Tamaño M. Base de F-04 (UI), que se mantiene como tarea propia de la fase 7 (la auditoría pedía agruparlo, pero la UI depende de este backend y su tamaño sumado sería L). Sin red: los binarios se simulan con un `ProcessRunner` falso.
 

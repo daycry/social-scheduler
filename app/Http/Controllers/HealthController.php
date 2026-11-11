@@ -20,7 +20,7 @@ class HealthController extends Controller
             abort(404);
         }
 
-        $result = $health->run();
+        $result = $health->run(false, true);
 
         // `?strict=1`: cualquier aviso (jobs fallidos recientes, cola atrasada, snapshots viejos, binario ausente...) tambien da 503.
         if ($request->boolean('strict') && $result['status'] !== 'ok') {

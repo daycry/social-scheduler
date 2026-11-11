@@ -3394,3 +3394,18 @@ estado: en-progreso
 **Notas**: Tamaño S. No se hace commit ni merge desde el plan.
 
 ---
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-04, T-05) — gaps corregidos
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Critical | La fusión de autoguardados nunca se activaba desde la UI: el editor envía `kit_revision` en cada PATCH y la condición lo excluía | T-04 | `$autosave` ya no depende de `kit_revision`; un autoguardado con una revisión de kit ya podada conserva el kit actual en vez de fallar | `DesignRevisionRetentionTest` «the real editor payload (with kit_revision) coalesces autosaves through HTTP»: rojo `[1,2,3,4]` → verde `[1,4]` |
+| 2 | Critical (latente) | La fusión reescribía el número de una revisión fijada por una exportación | T-04 | Los números no se reutilizan: la nueva revisión es una fila nueva y solo se borra la anterior de autoguardado si no la fija una exportación no terminada (`DesignRevision::pinnedByExport`) ni es la `kit_revision` del editor | test «does not reuse the number of a revision pinned by an unfinished export»: rojo (la fila 2 desaparecía) → verde |
+| 3 | Important | La fusión sobrescribía puntos de control explícitos | T-04 | Columna `autosave` en `studio_design_revisions` (migración `2026_12_16_090000`, reversible); solo se sustituye una fila de autoguardado del mismo autor; Guardar ahora, Ctrl+S, restaurar y kit nunca | test «an autosave never rewrites an explicit checkpoint»: rojo `[1,3]` → verde `[1,2,3]` |
+| 4 | Important | Falso positivo de snapshots (cuentas no activas y recién conectadas) | T-05 | Solo cuentas `activa` (como `CollectSnapshots`) con antigüedad ≥ 24 h + umbral | test «snapshots ignore inactive accounts and give a new account a grace period» |
+| 5 | Important | Falso positivo de Chromium bajo PHP-FPM (`clear_env`) | T-05 | Por HTTP solo se comprueba con `STUDIO_CHROMIUM_PATH`; la comprobación completa queda en la CLI | test «native is cached ... Chromium is not guessed outside the CLI» |
+| 6 | Minor | `native` lanzaba procesos en cada petición HTTP | T-05 | `/health` cachea `native` `HEALTH_NATIVE_CACHE_SECONDS` (300 s); la CLI siempre comprueba y refresca | mismo test: 3 procesos en dos `run(http)` |
+| 7 | Minor | La poda no excluía revisiones fijadas por exportaciones no terminadas | T-04 | `prunable()` excluye con `NOT EXISTS` las fijadas por exportaciones con estado distinto de `ready` | test «pruning keeps revisions pinned by unfinished exports»: rojo → verde |
+| 8 | Minor | Poda sin lotes eficientes | T-04 | `DesignRevision::pruneAll` calcula una vez los ids a podar y borra por lotes; notificaciones por lotes (`App\Support\Retention`) con índice `notifications_read_at_prune` | tests «computes the keep set once» (1 consulta de ventana, rojo 4) y «notifications prune deletes in batches» |
+
+Estado: T-04 y T-05 siguen en `en-revision` hasta la re-revisión. Pest focal 57/57; Pest completo y Pint: ver el resumen de la entrega.

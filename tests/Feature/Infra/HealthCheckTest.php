@@ -4,6 +4,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Notifications\QueueJobFailedAlert;
 use App\Support\HealthCheck;
+use App\Support\Retention;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Artisan;
@@ -43,10 +44,11 @@ test('queues within their threshold do not warn', function () {
 });
 
 test('stale snapshots warn only when accounts are connected', function () {
-    expect(app(HealthCheck::class)->snapshots())->toMatchArray(['ok' => true, 'detail' => 'sin cuentas conectadas']);
+    expect(app(HealthCheck::class)->snapshots())->toMatchArray(['ok' => true, 'detail' => 'sin cuentas activas con antiguedad suficiente']);
 
     $user = User::factory()->create();
     $account = SocialAccount::factory()->for($user)->create();
+    DB::table('social_accounts')->where('id', $account->id)->update(['created_at' => now()->subDays(10)]);
     $check = app(HealthCheck::class)->snapshots();
     expect($check['warn'])->toBeTrue()->and($check['detail'])->toContain('aun no hay snapshots');
 
@@ -136,4 +138,52 @@ test('a failed job emails the administrator, throttled, and never when no addres
     Cache::forget('health:failed-job-alert');
     event($event);
     Notification::assertSentOnDemandTimes(QueueJobFailedAlert::class, 2);
+});
+
+test('snapshots ignore inactive accounts and give a new account a grace period', function () {
+    $user = User::factory()->create();
+    $account = SocialAccount::factory()->for($user)->create(['status' => 'desconectada']);
+    expect(app(HealthCheck::class)->snapshots())->not->toHaveKey('warn');
+
+    $account->forceFill(['status' => 'activa'])->save();
+    DB::table('social_accounts')->where('id', $account->id)->update(['created_at' => now()->subHours(2)]);
+    expect(app(HealthCheck::class)->snapshots())->not->toHaveKey('warn');
+
+    DB::table('social_accounts')->where('id', $account->id)->update(['created_at' => now()->subDays(5)]);
+    expect(app(HealthCheck::class)->snapshots()['warn'])->toBeTrue();
+});
+
+test('native is cached for HTTP probes and Chromium is not guessed outside the CLI', function () {
+    config(['health.native' => true, 'studio.chromium_path' => '', 'studio.images.model_path' => __FILE__]);
+    Process::fake(['*' => Process::result(output: 'v1', exitCode: 0)]);
+    Cache::forget('health:native');
+
+    app(HealthCheck::class)->run(false, true);
+    app(HealthCheck::class)->run(false, true);
+    Process::assertRanTimes(fn () => true, 3);   // ffmpeg, ffprobe, python: una sola vez, no dos
+
+    // Entorno de FPM (clear_env): sin HOME ni PLAYWRIGHT_BROWSERS_PATH no se adivina Chromium desde HTTP; por CLI sí avisa.
+    $saved = [getenv('HOME'), getenv('USERPROFILE'), getenv('PLAYWRIGHT_BROWSERS_PATH')];
+    putenv('HOME='.sys_get_temp_dir().'/sin-home');
+    putenv('USERPROFILE='.sys_get_temp_dir().'/sin-home');
+    putenv('PLAYWRIGHT_BROWSERS_PATH');
+    try {
+        expect(app(HealthCheck::class)->native(false))->not->toHaveKey('warn')
+            ->and(app(HealthCheck::class)->native(true)['detail'])->toContain('faltan chromium');
+    } finally {
+        foreach (['HOME', 'USERPROFILE', 'PLAYWRIGHT_BROWSERS_PATH'] as $i => $name) {
+            putenv($saved[$i] === false ? $name : "$name={$saved[$i]}");
+        }
+    }
+});
+
+test('the notifications prune deletes in batches and the read_at index exists', function () {
+    foreach (range(1, 5) as $i) {
+        DB::table('notifications')->insert(['id' => (string) Str::uuid(), 'type' => 'x', 'notifiable_type' => 'App\Models\User', 'notifiable_id' => 1, 'data' => '{}', 'read_at' => now()->subDays(200), 'created_at' => now()->subDays(200), 'updated_at' => now()]);
+    }
+    config(['retention.notifications_days' => 90]);
+
+    expect(Retention::pruneNotifications(2))->toBe(5)
+        ->and(DB::table('notifications')->count())->toBe(0)
+        ->and(collect(Schema::getIndexes('notifications'))->flatten()->contains('notifications_read_at_prune'))->toBeTrue();
 });

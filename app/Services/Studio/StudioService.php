@@ -78,9 +78,10 @@ class StudioService
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
 
-        $coalesce = ($data['autosave'] ?? false) === true && $kitReference === null && ! isset($data['kit_revision']);
+        // Autoguardado del editor: llega con `kit_revision` en cada PATCH, asi que ese campo no impide fundirlo (A-07).
+        $autosave = ($data['autosave'] ?? false) === true && $kitReference === null;
 
-        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference, $coalesce): Design {
+        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference, $autosave): Design {
             $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
             if ($locked->revision !== (int) $data['revision']) {
                 $last = DesignRevision::withoutUserScope()->where('design_id', $locked->id)->where('revision', $locked->revision)->first();
@@ -92,15 +93,17 @@ class StudioService
             } elseif (isset($data['kit_revision'])) {
                 $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)
                     ->where('design_id', $locked->id)->where('revision', $data['kit_revision'])->first();
-                if ($snapshot === null) {
+                if ($snapshot !== null) {
+                    $locked->kit_reference = self::reference($snapshot->kit_reference);
+                } elseif (! $autosave) {
                     throw ValidationException::withMessages(['kit_revision' => ['Selecciona una revisión existente de este mismo diseño.']]);
                 }
-                $locked->kit_reference = self::reference($snapshot->kit_reference);
+                // Un autoguardado con una revisión de kit ya podada conserva el kit actual en lugar de fallar.
             }
             $locked->fill(['name' => trim($data['name']), 'document' => $document, 'revision' => $locked->revision + 1,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
                 'is_template' => $data['is_template'] ?? $locked->is_template, 'folder_id' => $folderId])->save();
-            $this->snapshot($locked, $actor->id, $coalesce);
+            $this->snapshot($locked, $actor->id, $autosave, isset($data['kit_revision']) ? (int) $data['kit_revision'] : null);
 
             return $locked;
         });
@@ -331,28 +334,31 @@ class StudioService
     }
 
     /**
-     * Guarda la revisión del diseño. Un autoguardado ($coalesce) del mismo autor dentro del intervalo mínimo
-     * (`studio.revisions.min_interval_seconds`) reescribe la revisión reciente en lugar de crear otra; los guardados
-     * explícitos, al cerrar la sesión, restaurar o aplicar kit siempre crean revisión (A-07).
+     * Guarda la revisión del diseño. Un autoguardado ($autosave) nace marcado y sustituye a la revisión de autoguardado
+     * anterior del mismo autor si cabe en el intervalo mínimo (`studio.revisions.min_interval_seconds`): la nueva fila hereda
+     * la fecha de la sustituida (la ventana no se desliza) y la anterior se borra con sus usos de tipografía. Nunca se
+     * sustituye un punto de control explícito, la revisión 1, una fijada por una exportación no terminada ni la que el editor
+     * usa como referencia de kit. Los números de revisión no se reutilizan (A-07).
      */
-    private function snapshot(Design $design, ?int $authorId = null, bool $coalesce = false): void
+    private function snapshot(Design $design, ?int $authorId = null, bool $autosave = false, ?int $kitRevision = null): void
     {
         $ids = array_values(array_unique(array_merge(StudioFonts::idsFromDocument($design->document), array_filter($design->kit_reference['font_ids'] ?? [], fn ($id) => $id !== null))));
         $fonts = StudioFont::withoutUserScope()->where('user_id', $design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
         abort_unless($fonts->count() === count($ids), 422, 'Las tipografías deben pertenecer a esta marca.');
         $author = $authorId ?? $design->user_id;
-        $attributes = ['author_id' => $author, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference];
+        $replace = null;
         $interval = (int) config('studio.revisions.min_interval_seconds', 300);
-        $revision = null;
-        if ($coalesce && $interval > 0) {
-            $latest = DesignRevision::withoutUserScope()->where('design_id', $design->id)->orderByDesc('revision')->first();
-            if ($latest !== null && $latest->revision > 1 && (int) $latest->author_id === (int) $author && $latest->created_at !== null && $latest->created_at->gt(now()->subSeconds($interval))) {
-                $latest->update($attributes);
-                DB::table('studio_font_usages')->where('revision_id', $latest->id)->delete();
-                $revision = $latest;
+        if ($autosave && $interval > 0) {
+            $previous = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', '<', $design->revision)->orderByDesc('revision')->first();
+            if ($previous !== null && $previous->autosave && $previous->revision > 1 && (int) $previous->author_id === (int) $author
+                && $previous->created_at !== null && $previous->created_at->gt(now()->subSeconds($interval))
+                && $previous->revision !== $kitRevision && ! DesignRevision::pinnedByExport($design->id, $previous->revision)) {
+                $replace = $previous;
             }
         }
-        $revision ??= DesignRevision::create($attributes + ['user_id' => $design->user_id, 'design_id' => $design->id]);
+        $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $author, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name,
+            'document' => $design->document, 'kit_reference' => $design->kit_reference, 'autosave' => $autosave] + ($replace !== null ? ['created_at' => $replace->created_at] : []));
+        $replace?->delete();
         foreach ($ids as $id) {
             DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
         }

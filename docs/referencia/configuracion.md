@@ -170,6 +170,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `HEALTH_QUEUE_MAX_AGE_NATIVE` | `1800` | Igual para las colas `media` y `studio` |
 | `HEALTH_SNAPSHOTS_MAX_AGE_HOURS` | `36` | Horas sin snapshots nuevos tras las que `app:health` avisa (con cuentas conectadas) |
 | `HEALTH_NATIVE` | `true` | Comprueba ffmpeg, ffprobe, Python, Chromium y el modelo (WARN); `false` lo desactiva |
+| `HEALTH_NATIVE_CACHE_SECONDS` | `300` | Segundos que se cachea `native` en `/health` (la CLI siempre comprueba) |
 | `HEALTH_ALERT_EMAIL` | vacío | Correo del administrador al que avisa un job fallido; vacío = sin aviso |
 | `HEALTH_ALERT_THROTTLE_MINUTES` | `60` | Intervalo mínimo entre dos avisos de job fallido |
 | `STUDIO_CHROMIUM_PATH` | vacío | Ruta de Chromium para el estudio (si no, el de Playwright) |

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Studio\StudioFonts;
 use App\Services\Studio\StudioService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -111,4 +112,79 @@ test('a font only used by pruned revisions can be deleted afterwards', function 
 
     app(StudioFonts::class)->delete($this->user, $this->brand, $font->id);
     expect(StudioFont::withoutUserScope()->whereKey($font->id)->exists())->toBeFalse();
+});
+
+function pinExport(object $test, Design $design, int $revision, string $status = 'pending'): void
+{
+    DB::table('studio_design_exports')->insert(['user_id' => $test->user->id, 'brand_id' => $test->brand->id, 'design_id' => $design->id, 'revision' => $revision,
+        'format' => 'png', 'pages' => '["page_1"]', 'status' => $status, 'created_at' => now(), 'updated_at' => now()]);
+}
+
+test('the real editor payload (with kit_revision) coalesces autosaves through HTTP', function () {
+    if (! Route::has('studio.index') && is_file(base_path('routes/studio.php'))) {
+        Route::middleware('web')->group(base_path('routes/studio.php'));
+        Route::getRoutes()->refreshNameLookups();
+        Route::getRoutes()->refreshActionLookups();
+    }
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $url = '/studio/designs/'.$this->design->id;
+    $payload = fn (string $text, int $revision) => ['name' => 'Diseño', 'document' => retentionDocument($text), 'revision' => $revision, 'is_template' => false, 'folder_id' => null, 'kit_revision' => 1, 'autosave' => true];
+
+    $this->patchJson($url, $payload('a', 1))->assertOk();
+    $this->patchJson($url, $payload('b', 2))->assertOk();
+    $this->patchJson($url, $payload('c', 3))->assertOk()->assertJsonPath('design.revision', 4);
+
+    expect(revisionRows($this->design))->toBe([1, 4]);
+});
+
+test('an autosave never rewrites an explicit checkpoint', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = saveDesign($this, $this->design, 'manual', false);      // revisión 2, punto de control
+    $design = saveDesign($this, $design, 'auto', true);               // revisión 3, nueva fila
+    expect(revisionRows($design))->toBe([1, 2, 3]);
+    $manual = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->first();
+    expect($manual->document['pages'][0]['elements'][0]['text'])->toBe('manual');
+});
+
+test('an autosave does not reuse the number of a revision pinned by an unfinished export', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = saveDesign($this, $this->design, 'uno', true);          // revisión 2 (autoguardado)
+    pinExport($this, $design, 2);
+    $design = saveDesign($this, $design, 'dos', true);
+
+    $pinned = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->first();
+    expect($pinned)->not->toBeNull()->and($pinned->document['pages'][0]['elements'][0]['text'])->toBe('uno')
+        ->and(revisionRows($design))->toBe([1, 2, 3]);
+});
+
+test('pruning keeps revisions pinned by unfinished exports', function () {
+    config(['retention.design_revisions.keep_last' => 1, 'retention.design_revisions.daily_days' => 1]);
+    $design = saveDesign($this, $this->design, 'uno', false);
+    $design = saveDesign($this, $design, 'dos', false);
+    DesignRevision::withoutUserScope()->where('design_id', $design->id)->update(['created_at' => now()->subDays(20)]);
+    pinExport($this, $design, 2, 'failed');
+    pinExport($this, $design, 1, 'ready');
+
+    $this->artisan('model:prune', ['--model' => [DesignRevision::class]])->assertSuccessful();
+
+    expect(revisionRows($design))->toBe([2, 3]);
+});
+
+test('pruning computes the keep set once and deletes in batches', function () {
+    config(['retention.design_revisions.keep_last' => 1, 'retention.design_revisions.daily_days' => 1]);
+    DesignRevision::withoutUserScope()->where('design_id', $this->design->id)->delete();
+    foreach (range(1, 25) as $n) {
+        DesignRevision::withoutUserScope()->create(['user_id' => $this->user->id, 'author_id' => $this->user->id, 'design_id' => $this->design->id, 'revision' => $n, 'name' => 'x',
+            'document' => retentionDocument(), 'kit_reference' => null, 'created_at' => now()->subDays(30), 'updated_at' => now()->subDays(30)]);
+    }
+    $windowQueries = 0;
+    DB::listen(function ($q) use (&$windowQueries) {
+        if (str_contains($q->sql, 'row_number()')) {
+            $windowQueries++;
+        }
+    });
+
+    $deleted = (new DesignRevision)->pruneAll(10);
+
+    expect($deleted)->toBe(24)->and($windowQueries)->toBe(1);
 });

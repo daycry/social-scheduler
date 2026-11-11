@@ -18,6 +18,9 @@ return [
     // Comprueba los binarios nativos (ffmpeg, ffprobe, Chromium, Python y modelo). Se apaga con HEALTH_NATIVE=false.
     'native' => (bool) env('HEALTH_NATIVE', true),
 
+    // Segundos que se cachea el resultado de `native` para las peticiones HTTP (la CLI siempre comprueba). 0 = sin cache.
+    'native_cache_seconds' => (int) env('HEALTH_NATIVE_CACHE_SECONDS', 300),
+
     // Correo al que avisa `Queue::failing` (vacio = sin aviso) y minutos minimos entre dos avisos para no inundar.
     'alert_email' => env('HEALTH_ALERT_EMAIL'),
     'alert_throttle_minutes' => (int) env('HEALTH_ALERT_THROTTLE_MINUTES', 60),

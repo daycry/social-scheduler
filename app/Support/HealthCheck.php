@@ -31,7 +31,7 @@ class HealthCheck
      *
      * @return array{ok: bool, status: string, checks: array<string, array{ok: bool, detail: string, warn?: bool}>}
      */
-    public function run(bool $skipScheduler = false): array
+    public function run(bool $skipScheduler = false, bool $http = false): array
     {
         $checks = [
             'database' => $this->database(),
@@ -47,7 +47,7 @@ class HealthCheck
         $checks['config'] = $this->debug();
 
         if (config('health.native', true)) {
-            $checks['native'] = $this->native();
+            $checks['native'] = $this->nativeCached($http);
         }
 
         $down = collect($checks)->contains(fn ($c) => ! $c['ok']);
@@ -155,11 +155,14 @@ class HealthCheck
     public function snapshots(): array
     {
         try {
-            if (! DB::table('social_accounts')->exists()) {
-                return ['ok' => true, 'detail' => 'sin cuentas conectadas'];
+            // Mismas cuentas que recoge `CollectSnapshots` (activas) y con margen para la recien conectada: hasta la proxima
+            // pasada diaria (24 h) mas el umbral.
+            $limit = (int) config('health.snapshots_max_age_hours', 36);
+            $accounts = DB::table('social_accounts')->where('status', 'activa')->where('created_at', '<=', now()->subHours(24 + $limit));
+            if (! $accounts->exists()) {
+                return ['ok' => true, 'detail' => 'sin cuentas activas con antiguedad suficiente'];
             }
             $last = DB::table('account_snapshots')->max('collected_at');
-            $limit = (int) config('health.snapshots_max_age_hours', 36);
 
             if ($last === null) {
                 return ['ok' => true, 'warn' => true, 'detail' => 'AVISO: aun no hay snapshots de metricas'];
@@ -179,8 +182,9 @@ class HealthCheck
      *
      * @return array{ok: bool, detail: string, warn?: bool}
      */
-    public function native(): array
+    public function native(?bool $console = null): array
     {
+        $console ??= true;
         $missing = [];
         $found = [];
         $binaries = ['ffmpeg' => [config('media.ffmpeg', 'ffmpeg'), '-version'], 'ffprobe' => [config('media.ffprobe', 'ffprobe'), '-version'], 'python' => [config('studio.python', 'python3'), '--version']];
@@ -194,6 +198,9 @@ class HealthCheck
         $chromium = (string) config('studio.chromium_path', '');
         if ($chromium !== '' ? is_file($chromium) : $this->playwrightChromium()) {
             $found[] = 'chromium';
+        } elseif ($chromium === '' && ! $console) {
+            // Bajo PHP-FPM (clear_env) no hay HOME ni PLAYWRIGHT_BROWSERS_PATH: no se puede saber donde busca el renderizador
+            // (que corre en el worker). Sin STUDIO_CHROMIUM_PATH la comprobacion queda para `app:health` por CLI.
         } else {
             $missing[] = 'chromium';
         }
@@ -206,6 +213,22 @@ class HealthCheck
         return $missing === []
             ? ['ok' => true, 'detail' => 'ok: '.implode(',', $found)]
             : ['ok' => true, 'warn' => true, 'detail' => 'AVISO: faltan '.implode(',', $missing)];
+    }
+
+    /** HTTP: el resultado se cachea unos minutos para que cada sondeo de /health no lance procesos; la CLI siempre comprueba y lo refresca. */
+    private function nativeCached(bool $http): array
+    {
+        $ttl = max(0, (int) config('health.native_cache_seconds', 300));
+        if (! $http || $ttl === 0) {
+            $result = $this->native(! $http);
+            if ($ttl > 0) {
+                Cache::put('health:native', $result, $ttl);
+            }
+
+            return $result;
+        }
+
+        return Cache::remember('health:native', $ttl, fn () => $this->native(false));
     }
 
     private function runs(string $binary, string $flag): bool

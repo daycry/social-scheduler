@@ -103,3 +103,12 @@ Listadas en [configuración](configuracion.md#resumen-de-decisiones-por-confirma
 |---|---|
 | Probar la migración `2026_12_18_090000_create_post_target_media_tables` en MySQL 8 | Revisada a mano (nombres de índice y FK por debajo de 64 caracteres, tipos de FK iguales, `dropColumn` de una columna JSON sin índice, `down()` reconstruye el JSON) pero no ejecutada: aquí no hay MySQL. Ejecutar `migrate`, `migrate:rollback --step=1` y `migrate` sobre una copia de la base de datos; revisar el log por «Migracion post_target_media» (destinos marcados fallidos por media inexistente) |
 | Borrar una cuenta con media por destino, series y autolistas | Comprobar en InnoDB que `ProfileController::destroy` no choca con las FK `restrict` (la purga previa está en `User::deleting`) |
+
+## Copias de seguridad, GitHub y despliegue (audit-hardening T-09..T-11)
+
+| Pendiente | Detalle |
+|---|---|
+| Probar `backup.sh` y `restore.sh` contra MySQL/MariaDB real y un destino externo | Solo se ensayaron con un `mysqldump` falso. En el VPS: crear `~/.backup-passphrase`, elegir `BACKUP_DEST` (R2/S3/rsync), programar el cron, restaurar en una BD vacía de prueba y comprobar `php artisan app:backup-verify`. Guía: [`deploy/backup/README.md`](../../deploy/backup/README.md) |
+| Guardar `APP_KEY` y la frase de cifrado en un gestor de secretos | Sin ellos una restauración deja ilegibles tokens y 2FA |
+| Ejecutar `deploy/github/protect-main.sh` (T-10) | Requiere ser admin del repo; no se ha ejecutado. Comprobar después con `gh api repos/:owner/:repo/branches/main/protection` |
+| Probar `deploy/hestia/deploy.sh` y `rollback` en el VPS (T-11) | Solo se probó `--dry-run` y el orden de pasos; un despliegue real y un rollback reales son del usuario. Necesita `gh` autenticado en el servidor (o `--force-unverified`) |

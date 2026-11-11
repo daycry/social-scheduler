@@ -359,33 +359,37 @@ estado: en-progreso
 ### T-09 — Copias de seguridad y restauración probada
 
 - **Descripción**: Scripts de `mysqldump` diario y copia cifrada de `storage/app` fuera del servidor, procedimiento de restauración probado en local y guía para guardar `APP_KEY` en un gestor de secretos; comando que verifica la frescura del último respaldo.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Hay scripts de copia de seguridad cifrada (BD y archivos) y de restauración, el comando app:backup-verify avisa si el último respaldo tiene más de 26 h y app:health puede mostrarlo.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-03
 - **Tipo**: devops
-- **Archivos**: `deploy/backup/backup.sh`, `deploy/backup/restore.sh`, `deploy/backup/README.md`, `app/Console/Commands/BackupVerify.php`, `docs/modulos/despliegue.md`, `tests/Feature/Console/BackupVerifyTest.php`
+- **Archivos**: `deploy/backup/backup.sh`, `deploy/backup/restore.sh`, `deploy/backup/README.md`, `app/Console/Commands/BackupVerify.php`, `app/Support/BackupStatus.php`, `app/Support/HealthCheck.php`, `config/backup.php`, `docs/modulos/despliegue.md`, `docs/referencia/configuracion.md`, `docs/referencia/pendientes-manuales.md`, `.env.example`, `.env.production.example`, `tests/Feature/Console/BackupVerifyTest.php`
 - **Cubre**: A-03
 - **Cubre (tests)**: M-05
 - **Verificación**: `php artisan test --compact --filter=BackupVerifyTest` → verde · `bash -n deploy/backup/backup.sh deploy/backup/restore.sh` → sin salida (sintaxis válida)
 
 **Criterios de aceptación**
-- [ ] `backup.sh` genera volcado + copia de media cifrada y `restore.sh` los restaura sobre una BD vacía (probado con una BD de pruebas)
-- [ ] `app:backup-verify` avisa si el último respaldo supera 26 h
-- [ ] `docs/modulos/despliegue.md` documenta destino externo, cifrado y rotación
+- [x] `backup.sh` genera volcado + copia de media cifrada y `restore.sh` los restaura sobre una BD vacía (probado con una BD de pruebas)
+- [x] `app:backup-verify` avisa si el último respaldo supera 26 h
+- [x] `docs/modulos/despliegue.md` documenta destino externo, cifrado y rotación
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `php artisan test --compact --filter='BackupVerifyTest|HealthCheckTest|InfraTest'` → verde (BackupVerifyTest 7/7, incluido el viaje de ida y vuelta cifrado con `mysqldump`/`mysql` falsos y la comprobación de que la contraseña de la BD no aparece en la salida). `bash -n deploy/backup/backup.sh deploy/backup/restore.sh` → sin salida. Round-trip manual con falsos en un directorio temporal: backup (BD + media, copia a destino), restore sobre BD vacía OK, BD con 3 tablas rechazada sin --force, frase equivocada falla. Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
+
+**Decisiones**: Respaldos `db-*.sql.gz.enc` y `media-*.tar.gz.enc` (openssl aes-256-cbc + pbkdf2, frase en `BACKUP_PASSFILE`); `last-backup` se escribe solo si todo fue bien y es lo que lee `app:backup-verify`. La contraseña de BD viaja en un fichero 600 temporal, no en argv. El check `backup` de `app:health` es opt-in (`BACKUP_HEALTH=false` por defecto) y solo WARN, para no avisar siempre antes de que exista el cron. APP_KEY y .env fuera del respaldo (gestor de secretos). Rotación remota delegada al ciclo de vida del bucket. Pendiente del usuario: prueba con MySQL real y destino externo, cron en el VPS (documentado en `pendientes-manuales.md`).
 
 **Notas**: Tamaño M. Se implementa todo lo local. Queda a la espera del usuario (U): elegir el destino externo (R2/S3/otro) y programar el cron en el VPS. Sin tocar datos del usuario 28: la restauración se prueba con una BD de prueba. **A la espera (no bloquea la fase)**: Destino externo y cron en el VPS (usuario).
 

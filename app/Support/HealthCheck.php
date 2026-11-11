@@ -50,6 +50,10 @@ class HealthCheck
             $checks['linkedin_version'] = $this->linkedinVersion();
         }
 
+        if (config('backup.health', false)) {
+            $checks['backup'] = $this->backup();
+        }
+
         if (config('health.native', true)) {
             $checks['native'] = $this->nativeCached($http);
         }
@@ -179,6 +183,18 @@ class HealthCheck
         } catch (Throwable $e) {
             return $this->failure('snapshots', $e);
         }
+    }
+
+    /**
+     * Frescura del ultimo respaldo (A-03). Solo avisa (WARN): un respaldo viejo no tumba la app.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function backup(): array
+    {
+        $r = app(BackupStatus::class)->check();
+
+        return $r['ok'] ? $r : ['ok' => true, 'warn' => true, 'detail' => 'AVISO: '.$r['detail']];
     }
 
     /**

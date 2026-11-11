@@ -234,6 +234,17 @@ Si sigue en «no disponible», en este orden:
 - **Correo al fallar un job:** con `HEALTH_ALERT_EMAIL` definido, cada job que agota sus reintentos envía un correo con el nombre del job, la cola y la clase de la excepción (nunca el payload), como máximo uno cada `HEALTH_ALERT_THROTTLE_MINUTES` (60). Requiere el correo configurado (`MAIL_*`).
 - `/up`: solo prueba que PHP responde.
 
+## Copias de seguridad
+
+Guía completa (configuración, rotación, restauración y `APP_KEY`): [`deploy/backup/README.md`](../../deploy/backup/README.md).
+
+- **Qué se respalda:** `mysqldump` de la BD y `storage/app` (media y adjuntos con disco local), comprimidos y cifrados (AES-256) con una frase guardada fuera del repo. El `.env` y la `APP_KEY` **no** van en el respaldo: guárdalos en un gestor de secretos; sin la misma `APP_KEY`, los tokens y secretos 2FA restaurados son ilegibles.
+- **Destino externo (`BACKUP_DEST`):** ruta montada, `usuario@host:ruta` (rsync) o `rclone:remoto:ruta` (R2/S3). Cron diario del usuario del dominio con `bash deploy/backup/backup.sh`.
+- **Rotación:** 14 días locales (`BACKUP_KEEP_DAYS`); en remoto, regla de ciclo de vida del bucket (el script no borra en remoto).
+- **Restaurar:** `deploy/backup/restore.sh --db … --media …` sobre una BD vacía, con confirmación explícita; ensayado con una BD de prueba (`BackupVerifyTest`). La prueba contra MySQL real y el destino externo siguen pendientes (M-04).
+- **Frescura:** `php artisan app:backup-verify` (exit 1 con más de 26 h, `BACKUP_MAX_AGE_HOURS`) y, con `BACKUP_HEALTH=true`, el check `backup` de `app:health` (solo WARN).
+- `deploy.sh` reutiliza `backup.sh --db-only` antes de `migrate` (ver [Despliegue sin parada larga](../../deploy/hestia/README.md#despliegue-con-deploysh)).
+
 ## Almacenamiento de media
 
 **Este despliegue usa el disco local del servidor** (`MEDIA_DISK=local`, decisión del 2026-10-23). R2 sigue soportado: para usarlo, `MEDIA_DISK=r2` y las variables `R2_*`.

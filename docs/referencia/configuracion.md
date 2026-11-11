@@ -175,6 +175,9 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `HEALTH_NATIVE_CACHE_SECONDS` | `300` | Segundos que se cachea `native` en `/health` (la CLI siempre comprueba) |
 | `HEALTH_ALERT_EMAIL` | vacío | Correo del administrador al que avisa un job fallido; vacío = sin aviso |
 | `HEALTH_ALERT_THROTTLE_MINUTES` | `60` | Intervalo mínimo entre dos avisos de job fallido |
+| `BACKUP_DIR` | `storage/backups` | Carpeta donde `deploy/backup/backup.sh` deja los respaldos y la marca `last-backup` |
+| `BACKUP_MAX_AGE_HOURS` | `26` | Horas tras las que `app:backup-verify` (y `app:health`) dan el último respaldo por viejo |
+| `BACKUP_HEALTH` | `false` | `true` añade el check `backup` (WARN) a `app:health`; actívalo cuando el cron de `backup.sh` exista |
 | `STUDIO_CHROMIUM_PATH` | vacío | Ruta de Chromium para el estudio (si no, el de Playwright) |
 
 Ver [despliegue](../modulos/despliegue.md#healthcheck) para `/health?strict=1`.

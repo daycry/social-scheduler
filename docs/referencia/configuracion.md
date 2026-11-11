@@ -84,6 +84,7 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `META_OAUTH_METHOD` | `post` (secretos en el cuerpo) o `get` (en la query; último recurso). ⚠️ **Por confirmar**: no consta que se haya probado `get` con Meta real (M-02) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente web de Google Cloud. Consentimiento "En producción" para que el refresh token no caduque |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | App de TikTok (sandbox o producción) |
+| `TIKTOK_EXTRA_SCOPES` | vacío. Scopes extra coma-separados que se piden al conectar TikTok, p. ej. `user.info.stats,video.list` para la analítica. Solo con la aprobación de TikTok en su auditoría (si no, el consentimiento falla) y **hay que reconectar** las cuentas ya conectadas |
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
 | `BLUESKY_ENABLED` | `true`. `false` retira Bluesky de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conecta con una app password cifrada: [guía](../guias/bluesky-app-password.md) |
 | `BLUESKY_IMAGE_MAX_BYTES`, `BLUESKY_VIDEO_MAX_BYTES` | `2000000` y `52428800` bytes. Topes de media; la foto mayor se recomprime y el vídeo mayor se rechaza al guardar |
@@ -98,7 +99,7 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `LINKEDIN_ENABLED` | `true`. `false` retira LinkedIn de Conexiones, compositor, filtros y MCP (las cuentas se conservan) |
 | `LINKEDIN_COMMUNITY_MANAGEMENT` | `false`. `true` pide los scopes de páginas (`w_organization_social`, `r_organization_social`, `rw_organization_admin`); solo con la Community Management API aprobada por LinkedIn. Sin él solo se conecta el perfil personal |
 | `LINKEDIN_R_MEMBER_SOCIAL` | `false`. `true` pide `r_member_social` (leer publicaciones y comentarios del perfil); solo apps aprobadas. Sin él, un perfil personal no tiene búsqueda de idempotencia ni primer comentario |
-| `LINKEDIN_AUTH_HOST`, `LINKEDIN_API_HOST`, `LINKEDIN_API_VERSION` | `https://www.linkedin.com`, `https://api.linkedin.com` y `202511` (versión mensual de la API REST; hay que subirla cuando LinkedIn retire la vigente) |
+| `LINKEDIN_AUTH_HOST`, `LINKEDIN_API_HOST`, `LINKEDIN_API_VERSION` | `https://www.linkedin.com`, `https://api.linkedin.com` y `202610` (versión mensual de la API REST; LinkedIn mantiene cada una unos 12 meses y `app:health` avisa a los 10; ver [guía](../guias/linkedin-pinterest.md)) |
 | `LINKEDIN_RECONNECT_NOTICE_DAYS`, `LINKEDIN_UPLOAD_TIMEOUT` | `7` días de aviso «reconecta antes de» y `60` s por parte de subida de vídeo |
 | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | ID y secreto de la app de Pinterest Developers (API v5). Sin `PINTEREST_APP_ID` la red no se ofrece |
 | `PINTEREST_ENABLED` | `true`. `false` retira Pinterest de la aplicación (las cuentas se conservan) |
@@ -169,6 +170,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `HEALTH_QUEUE_MAX_AGE` | `600` | Segundos que puede esperar el job pendiente más viejo de una cola antes de avisar de «cola atrasada» |
 | `HEALTH_QUEUE_MAX_AGE_NATIVE` | `1800` | Igual para las colas `media` y `studio` |
 | `HEALTH_SNAPSHOTS_MAX_AGE_HOURS` | `36` | Horas sin snapshots nuevos tras las que `app:health` avisa (con cuentas conectadas) |
+| `HEALTH_LINKEDIN_VERSION_WARN_MONTHS`, `HEALTH_LINKEDIN_VERSION_RETIRED_MONTHS` | `10` y `12` | Meses de antigüedad de `LINKEDIN_API_VERSION` a partir de los cuales `app:health` avisa y la da por retirada |
 | `HEALTH_NATIVE` | `true` | Comprueba ffmpeg, ffprobe, Python, Chromium y el modelo (WARN); `false` lo desactiva |
 | `HEALTH_NATIVE_CACHE_SECONDS` | `300` | Segundos que se cachea `native` en `/health` (la CLI siempre comprueba) |
 | `HEALTH_ALERT_EMAIL` | vacío | Correo del administrador al que avisa un job fallido; vacío = sin aviso |

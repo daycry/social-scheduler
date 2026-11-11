@@ -52,6 +52,14 @@ Limitaciones: la cuenta debe estar en modo desarrollo con roles propios mientras
 - Vídeos < 23 fps: `frame_rate_check_failed`.
 - Analítica: sin `user.info.stats`/`video.list` concedidos, queda fuera de v1.
 
+### Activar la analítica (`TIKTOK_EXTRA_SCOPES`)
+
+La analítica de TikTok (seguidores, número de vídeos, vistas, me gusta, comentarios y compartidos) necesita los scopes `user.info.stats` y `video.list`, que TikTok concede tras la auditoría de la app.
+
+1. Cuando TikTok apruebe ambos scopes, define `TIKTOK_EXTRA_SCOPES=user.info.stats,video.list` (se suman a los de `social.tiktok.scopes`).
+2. **Reconecta cada cuenta de TikTok** (Conexiones, Reconectar): el token existente no gana scopes nuevos. Hasta entonces la analítica sigue como «no disponible».
+3. Pedirlos **antes** de la aprobación hace fallar el consentimiento de TikTok: no los actives por adelantado.
+
 ### Cómo funciona hoy
 
 `TikTokPublisher` sube el vídeo a la bandeja (`/v2/post/publish/inbox/video/init/`, `FILE_UPLOAD` por trozos). El destino queda `publicada` con una nota; el usuario termina de publicar desde la app de TikTok. Las fotos/carrusel solo se ofrecen con `TIKTOK_VERIFIED_DOMAIN`.
@@ -129,6 +137,7 @@ Añadidas en T-18 (creative-social-suite). Guía de alta, scopes e interruptores
 | Primer comentario | Sí (1250 caracteres) | No (la API v5 no comenta pines) |
 | Métricas | Sin lector: «no disponible» | Sin lector: «no disponible» |
 | Fuera | Portada de vídeo (`uploadThumbnail`) | — |
+| Versión de la API (A-04) | `LINKEDIN_API_VERSION=202610` (la 202511 se retira el 2026-11-16); `app:health` avisa a los 10 meses | — |
 | Vídeo (A-05) | — | Subida en streaming a la URL prefirmada; tope de 512 MB (Pinterest admite 2 GB) y timeout de 100 s dentro del job de 110 s |
 
 X (Twitter, API de pago), Google Business Profile (aprobación de acceso) y Twitch (analítica de streams) quedan como deuda pendiente de decisión del usuario.

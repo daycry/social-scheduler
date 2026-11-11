@@ -320,33 +320,39 @@ estado: en-progreso
 ### T-08 — Versión de LinkedIn y scopes extra de TikTok
 
 - **Descripción**: Hacer configurable y documentar la versión de la API de LinkedIn con aviso en `app:health` cercano a su caducidad; añadir `TIKTOK_EXTRA_SCOPES` a la petición de autorización.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: LinkedIn usa por defecto la versión de API 202610 (la 202511 se retira el 16-11-2026), `app:health` avisa cuando caduca y TikTok admite pedir los scopes de analítica con TIKTOK_EXTRA_SCOPES.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `config/social.php`, `app/Connectors/LinkedIn/**`, `app/Connectors/TikTok/Display.php`, `app/Support/HealthCheck.php`, `.env.example`, `docs/modulos/conexiones.md`
+- **Archivos**: `config/social.php`, `app/Connectors/LinkedIn/**`, `app/Connectors/TikTok/Display.php`, `app/Support/HealthCheck.php`, `app/Connectors/TikTok/TikTokConnector.php`, `config/health.php`, `tests/Feature/Infra/**`, `tests/Feature/Connectors/LinkedIn/**`, `tests/Feature/Connectors/TikTok/**`, `.env.example`, `.env.production.example`, `docs/modulos/conexiones.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`
 - **Cubre**: A-04, A-11
 - **Cubre (tests)**: M-02, M-03
 - **Verificación**: `php artisan test --compact --filter=LinkedInVersionHealthTest` → verde · `php artisan test --compact --filter=TikTokExtraScopesTest` → verde
 
 **Criterios de aceptación**
-- [ ] `LINKEDIN_API_VERSION` documentada en `.env.example` y `app:health` avisa si la versión supera 10 meses de antigüedad
-- [ ] `TIKTOK_EXTRA_SCOPES` se concatena a los scopes de la petición OAuth
-- [ ] La doc explica cómo reconectar TikTok para activar analítica
+- [x] `LINKEDIN_API_VERSION` documentada en `.env.example` y `app:health` avisa si la versión supera 10 meses de antigüedad
+- [x] `TIKTOK_EXTRA_SCOPES` se concatena a los scopes de la petición OAuth
+- [x] La doc explica cómo reconectar TikTok para activar analítica
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `php artisan test --compact --filter='LinkedInVersionHealthTest|TikTokExtraScopesTest|TikTokOAuthTest|HealthCheckTest|InfraTest|QueueProbe'` → 60/60 verdes (4 tests de versión LinkedIn, 3 de scopes extra; `InfraTest` ajustado al nuevo check `linkedin_version`). Pint OK. Pest completo y Playwright no lanzados (los ejecuta el orquestador).
+
+**Fuente (A-04, datos leídos en la web, no instrucciones)**: Fuente: https://learn.microsoft.com/en-us/linkedin/marketing/versioning (consultada el 2026-11-11, actualizada por LinkedIn el 2026-10-15). Datos: «Latest Version: October 2026, 202610»; cada versión «supported and stable for a minimum of one year»; aviso «Marketing Version 202511 will be sunset on November 16, 2026». Elegida `202610` (la última publicada; la `202511` anterior caduca en 5 días). Cambiar la versión puede alterar el comportamiento de una llamada: se confirma en el smoke real CS-M-02 (U).
+
+**Decisiones**: `health.linkedin_version_warn_months=10` y `retired_months=12` (aviso `degraded`, nunca `down`); el check solo corre con `social.linkedin.enabled`. `TIKTOK_EXTRA_SCOPES` se parsea a `social.tiktok.extra_scopes` (valida `^[a-z][a-z0-9_.]*$`, descarta basura, sin duplicados al fusionar). Sin aprobación de TikTok no hay que activarlo (el consentimiento fallaría); tras activarlo hay que reconectar. Display ya lee `user.info.stats`/`video.list` de `account->scopes`.
 
 **Notas**: Tamaño S. Qué se puede hacer ya: config, aviso y scopes. Queda a la espera del usuario: confirmar la versión activa de LinkedIn contra su doc oficial (V) y reconectar TikTok con los scopes aprobados en su auditoría (U). No editar `.env`: solo `.env.example`. **A la espera (no bloquea la fase)**: Confirmar versión activa de LinkedIn (V), reconexión y aprobación de TikTok (U).
 

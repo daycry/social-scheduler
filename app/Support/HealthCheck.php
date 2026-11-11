@@ -46,6 +46,10 @@ class HealthCheck
 
         $checks['config'] = $this->debug();
 
+        if (config('social.linkedin.enabled', true)) {
+            $checks['linkedin_version'] = $this->linkedinVersion();
+        }
+
         if (config('health.native', true)) {
             $checks['native'] = $this->nativeCached($http);
         }
@@ -260,6 +264,34 @@ class HealthCheck
         }
 
         return false;
+    }
+
+    /**
+     * LinkedIn retira cada version mensual de su API (`Linkedin-Version`, AAAAMM) a los ~12 meses: una version vieja o retirada
+     * hace fallar todas las llamadas de LinkedIn de golpe. Avisa a partir de `health.linkedin_version_warn_months`.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function linkedinVersion(?Carbon $now = null): array
+    {
+        $version = (string) config('social.linkedin.api_version');
+        if (! preg_match('/^(\d{4})(0[1-9]|1[0-2])$/D', $version, $m)) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: LINKEDIN_API_VERSION='$version' no tiene formato AAAAMM"];
+        }
+
+        $now ??= now();
+        $age = ($now->year * 12 + $now->month) - ((int) $m[1] * 12 + (int) $m[2]);
+        $warn = (int) config('health.linkedin_version_warn_months', 10);
+        $retired = (int) config('health.linkedin_version_retired_months', 12);
+
+        if ($age >= $retired) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version (hace $age meses) esta retirada o a punto de estarlo: sube LINKEDIN_API_VERSION"];
+        }
+        if ($age >= $warn) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version tiene $age meses (LinkedIn la retira hacia los $retired): sube LINKEDIN_API_VERSION"];
+        }
+
+        return ['ok' => true, 'detail' => "version $version ($age meses)"];
     }
 
     /** @return array{ok: bool, detail: string, warn?: bool} */

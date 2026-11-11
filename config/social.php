@@ -145,7 +145,7 @@ return [
         'enabled' => (bool) env('LINKEDIN_ENABLED', true),
         'auth_host' => env('LINKEDIN_AUTH_HOST', 'https://www.linkedin.com'),
         'api_host' => env('LINKEDIN_API_HOST', 'https://api.linkedin.com'),
-        'api_version' => env('LINKEDIN_API_VERSION', '202511'),
+        'api_version' => env('LINKEDIN_API_VERSION', '202610'),
         'scopes' => ['openid', 'profile', 'w_member_social'],
         'page_scopes' => ['w_organization_social', 'r_organization_social', 'rw_organization_admin'],
         // Community Management API (paginas): LinkedIn la aprueba aparte. Sin ella (por defecto) solo se pide el perfil y no se listan paginas.
@@ -196,6 +196,13 @@ return [
     'tiktok' => [
         // video.publish solo es util tras la auditoria de TikTok (decision G1: borrador por defecto).
         'scopes' => ['user.info.basic', 'video.upload', 'video.publish'],
+
+        /*
+        | Scopes ADICIONALES que se piden al conectar (coma-separados), p. ej. `user.info.stats,video.list` para la analitica
+        | (decision G1). Solo ponerlos cuando TikTok los haya aprobado en la auditoria de la app, o el consentimiento falla;
+        | las cuentas ya conectadas hay que RECONECTARLAS para que el token los incluya. Se ignora lo que no sea un scope valido.
+        */
+        'extra_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('TIKTOK_EXTRA_SCOPES', ''))), fn ($s) => preg_match('/^[a-z][a-z0-9_.]*$/D', $s) === 1)),
 
         /*
         | Dominio VERIFICADO en TikTok (URL prefix) que sirve la media por PULL_FROM_URL. Solo con esto se ofrece el tipo

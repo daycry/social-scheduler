@@ -39,7 +39,6 @@ class StudioRenderer
             throw ValidationException::withMessages(['transparent' => ['La exportación audiovisual no admite transparencia.']]);
         }
         $revision = $this->exports->revision($user, $design, (int) $data['revision']);
-        // La validacion de arriba y la fijacion de abajo no son atomicas: se repite con bloqueo dentro de la transaccion.
         if (! array_is_list($data['pages']) || array_diff($data['pages'], array_column($revision->document['pages'], 'id')) !== []) {
             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes en la revisión indicada.']]);
         }
@@ -56,7 +55,6 @@ class StudioRenderer
         }
 
         return DB::transaction(function () use ($user, $design, $data, $frameOptions, $native): DesignExport {
-            $this->exports->revision($user, $design, (int) $data['revision'], true);
             $export = DesignExport::create(['user_id' => $user->id, 'brand_id' => $design->brand_id, 'design_id' => $design->id,
                 'revision' => $data['revision'], 'format' => $data['format'], 'pages' => $data['pages'], 'status' => 'pending',
                 'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)] + $frameOptions]);

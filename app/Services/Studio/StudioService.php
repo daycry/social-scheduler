@@ -337,8 +337,9 @@ class StudioService
      * Guarda la revisión del diseño. Un autoguardado ($autosave) nace marcado y, si cabe en el intervalo mínimo
      * (`studio.revisions.min_interval_seconds`), sustituye a la revisión de autoguardado anterior del mismo autor: la nueva
      * fila hereda su fecha (la ventana no se desliza) y la anterior queda `superseded_at`. No se borra en el acto: otro cliente
-     * (colaborador o segunda pestaña) puede estar parado sobre ella y exportarla; sigue siendo base válida, no aparece en el
-     * historial y la poda la elimina pasado `retention.design_revisions.superseded_hours` salvo que la fije una exportación.
+     * (colaborador o segunda pestaña) puede estar parado sobre ella y exportarla; sigue siendo base válida un paso más, no aparece en el
+     * historial y solo se conserva UNA sustituida por diseño y autor (la siguiente sustitución borra la anterior); la poda elimina la que
+     * quede pasado `retention.design_revisions.superseded_minutes`. Una revisión fijada por una exportación sin terminar no se sustituye.
      * Nunca se sustituye un punto de control explícito, la revisión 1 ni la que el editor usa de referencia de kit (A-07).
      */
     private function snapshot(Design $design, ?int $authorId = null, bool $autosave = false, ?int $kitRevision = null): void
@@ -353,13 +354,19 @@ class StudioService
             $previous = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', '<', $design->revision)->whereNull('superseded_at')->orderByDesc('revision')->first();
             if ($previous !== null && $previous->autosave && $previous->revision > 1 && (int) $previous->author_id === (int) $author
                 && $previous->created_at !== null && $previous->created_at->gt(now()->subSeconds($interval))
-                && $previous->revision !== $kitRevision) {
+                && $previous->revision !== $kitRevision && ! DesignRevision::pinnedByExport($design->id, $previous->revision)) {
                 $replace = $previous;
             }
         }
         $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $author, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name,
             'document' => $design->document, 'kit_reference' => $design->kit_reference, 'autosave' => $autosave] + ($replace !== null ? ['created_at' => $replace->created_at] : []));
-        $replace?->forceFill(['superseded_at' => now()])->save();
+        if ($replace !== null) {
+            $replace->forceFill(['superseded_at' => now()])->save();
+            // Tope: una sola sustituida por diseño y autor. La anterior (si no la fija una exportación) se borra con sus usos de tipografía.
+            DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('author_id', $author)->whereNotNull('superseded_at')->where('id', '!=', $replace->id)
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.design_id', 'studio_design_revisions.design_id')
+                    ->whereColumn('studio_design_exports.revision', 'studio_design_revisions.revision')->where('studio_design_exports.status', '!=', 'ready'))->delete();
+        }
         foreach ($ids as $id) {
             DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
         }

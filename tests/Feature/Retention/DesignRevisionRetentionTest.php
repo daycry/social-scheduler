@@ -203,14 +203,14 @@ test('a superseded revision stays usable as an export base and is hidden from th
 });
 
 test('superseded revisions are pruned only after the grace period and never when pinned', function () {
-    config(['retention.design_revisions.keep_last' => 50, 'retention.design_revisions.daily_days' => 90, 'retention.design_revisions.superseded_hours' => 24]);
+    config(['retention.design_revisions.keep_last' => 50, 'retention.design_revisions.daily_days' => 90, 'retention.design_revisions.superseded_minutes' => 15]);
     $design = saveDesign($this, $this->design, 'uno', false);   // 2
     $design = saveDesign($this, $design, 'dos', false);         // 3
     $design = saveDesign($this, $design, 'tres', false);        // 4
     $mark = fn (int $revision, $at) => DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', $revision)->update(['superseded_at' => $at]);
-    $mark(2, now()->subHours(2));     // dentro del margen
-    $mark(3, now()->subHours(30));    // pasado el margen
-    $mark(4, now()->subHours(30));    // pasado el margen pero fijada
+    $mark(2, now()->subMinutes(5));   // dentro del margen
+    $mark(3, now()->subMinutes(30));  // pasado el margen
+    $mark(4, now()->subMinutes(30));  // pasado el margen pero fijada
     pinExport($this, $design, 4, 'pending');
 
     $this->artisan('model:prune', ['--model' => [DesignRevision::class]])->assertSuccessful();
@@ -218,19 +218,43 @@ test('superseded revisions are pruned only after the grace period and never when
     expect(revisionRows($design, true))->toBe([1, 2, 4]);
 });
 
-test('an export validates its revision under a lock inside the transaction', function () {
+test('consecutive autosaves leave at most one superseded revision per design', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = $this->design;
+    foreach (range(1, 8) as $n) {
+        $design = saveDesign($this, $design, "texto {$n}", true);
+    }
+
+    $superseded = DesignRevision::withoutUserScope()->where('design_id', $design->id)->whereNotNull('superseded_at')->pluck('revision')->all();
+    expect($superseded)->toHaveCount(1)->and($superseded)->toBe([$design->revision - 1])
+        ->and(revisionRows($design))->toBe([1, $design->revision])
+        ->and(DB::table('studio_font_usages')->whereNotIn('revision_id', DesignRevision::withoutUserScope()->pluck('id'))->count())->toBe(0);
+});
+
+test('an autosave never supersedes a revision pinned by an unfinished export', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = saveDesign($this, $this->design, 'uno', true);     // 2
+    pinExport($this, $design, 2);
+    $design = saveDesign($this, $design, 'dos', true);           // 3 no sustituye a 2
+
+    expect(DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->value('superseded_at'))->toBeNull()
+        ->and(revisionRows($design))->toBe([1, 2, 3]);
+});
+
+test('pruning rechecks the export pin inside the DELETE, not only when it picks the ids', function () {
+    config(['retention.design_revisions.keep_last' => 1, 'retention.design_revisions.daily_days' => 1]);
     $design = saveDesign($this, $this->design, 'uno', false);
-    $selects = 0;
-    $inserted = false;
-    DB::listen(function ($q) use (&$selects, &$inserted) {
-        if (str_contains($q->sql, 'insert into "studio_design_exports"')) {
-            $inserted = true;
-        }
-        if (! $inserted && str_starts_with($q->sql, 'select') && str_contains($q->sql, 'from "studio_design_revisions"')) {
-            $selects++;
+    $design = saveDesign($this, $design, 'dos', false);
+    DesignRevision::withoutUserScope()->where('design_id', $design->id)->update(['created_at' => now()->subDays(20)]);
+    $pinned = false;
+    DB::listen(function ($q) use (&$pinned, $design) {
+        if (! $pinned && str_contains($q->sql, 'row_number()')) {
+            $pinned = true;   // la exportación llega justo después de elegir los ids y antes del DELETE
+            pinExport($this, $design, 1);
         }
     });
-    app(StudioRenderer::class)->export($this->user, $design, ['revision' => 2, 'format' => 'png', 'pages' => ['page_1']]);
-    // Una lectura para validar y otra, con bloqueo, justo antes de fijarla en la exportación.
-    expect($selects)->toBeGreaterThanOrEqual(2);
+
+    (new DesignRevision)->pruneAll();
+
+    expect(revisionRows($design))->toBe([1, 3]);
 });

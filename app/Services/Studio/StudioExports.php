@@ -103,11 +103,10 @@ class StudioExports
             'total' => $page->total(), 'has_more' => $page->hasMorePages()];
     }
 
-    public function revision(User $user, Design $design, int $revision, bool $lock = false): DesignRevision
+    public function revision(User $user, Design $design, int $revision): DesignRevision
     {
         $design = $this->studio->owned($user, $design);
-        $query = DesignRevision::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->where('revision', $revision);
-        $snapshot = ($lock ? $query->sharedLock() : $query)->first();
+        $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->where('revision', $revision)->first();
         if (! $snapshot) {
             throw ValidationException::withMessages(['revision' => ['La revisión indicada no existe en este diseño.']]);
         }

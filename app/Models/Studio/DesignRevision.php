@@ -42,22 +42,35 @@ class DesignRevision extends Model
         $dailyLast = DB::table(DB::raw("(select max(id) as id from {$table} where superseded_at is null and created_at >= ? group by design_id, date(created_at)) as daily"))
             ->setBindings([now()->subDays($dailyDays)->toDateTimeString()])->select('id');
 
-        $grace = max(0, (int) config('retention.design_revisions.superseded_hours', 24));
+        $grace = max(0, (int) config('retention.design_revisions.superseded_minutes', 15));
 
         return static::withoutGlobalScopes()
             ->where(fn ($q) => $q->where(fn ($q) => $q->whereNull('superseded_at')->whereNotIn('id', $recent)->whereNotIn('id', $dailyLast))
-                ->orWhere('superseded_at', '<', now()->subHours($grace)))
+                ->orWhere('superseded_at', '<', now()->subMinutes($grace)))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')
                 ->whereColumn('studio_design_exports.design_id', "{$table}.design_id")->whereColumn('studio_design_exports.revision', "{$table}.revision")
                 ->where('studio_design_exports.status', '!=', 'ready'));
     }
 
-    /** Calcula una sola vez qué revisiones se podan (la ventana por diseño no se recalcula en cada lote) y las borra por lotes. */
+    /** Una exportación sin terminar (o fallida, que se puede reintentar) lee el documento de su revisión fijada: no se sustituye ni se poda. */
+    public static function pinnedByExport(int $designId, int $revision): bool
+    {
+        return DB::table('studio_design_exports')->where('design_id', $designId)->where('revision', $revision)->where('status', '!=', 'ready')->exists();
+    }
+
+    /**
+     * Calcula una sola vez qué revisiones se podan (la ventana por diseño no se recalcula en cada lote) y las borra por lotes.
+     * La fijación por exportaciones se vuelve a comprobar en el propio DELETE: una exportación creada después de elegir los ids no pierde su revisión.
+     */
     public function pruneAll(int $chunkSize = 1000): int
     {
         $total = 0;
+        $table = $this->getTable();
         foreach ($this->prunable()->pluck('id')->chunk($chunkSize) as $ids) {
-            $total += static::withoutGlobalScopes()->whereIn('id', $ids)->delete();
+            $total += static::withoutGlobalScopes()->whereIn('id', $ids)
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')
+                    ->whereColumn('studio_design_exports.design_id', "{$table}.design_id")->whereColumn('studio_design_exports.revision', "{$table}.revision")
+                    ->where('studio_design_exports.status', '!=', 'ready'))->delete();
             event(new ModelsPruned(static::class, $total));
         }
 

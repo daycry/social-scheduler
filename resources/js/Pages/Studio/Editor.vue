@@ -26,6 +26,7 @@ import { clipMediaState, compileTimeline, splitTimelineElement, splitTimelineAud
 import { createTimelinePreview } from '@/Studio/timeline-preview';
 import { completeStudioAudio, isStudioAudio, uploadStudioAudio } from '@/Studio/audio-api';
 import { captionOperation } from '@/Studio/captions';
+import { nextSave } from '@/Studio/save-chain';
 
 const props = defineProps({ design: Object, brand: Object, kit: Object, assets: Array, folders: Array, ai_configured: { type: Boolean, default: false }, exports: Array, fonts: { type: Array, default: () => [] }, access: { type: Object, default: () => ({ role: 'owner', role_label: 'Propietario', is_owner: true, can_edit: true, can_comment: true, owner_name: '' }) } });
 const documentData = ref(validateDocument(props.design.document));
@@ -200,6 +201,7 @@ let adapter;
 let timer;
 let changeVersion = 0;
 let pendingSave = null;
+let pendingAutosave = false;
 let resizeObserver;
 let removeNavigate;
 let disposed = false;
@@ -386,15 +388,22 @@ function commit() {
     scheduleSave();
 }
 // `autosave === true` marca el guardado automatico: el servidor lo funde con la revision reciente del mismo autor (A-07).
-async function saveNow(autosave = false) {
+async function saveNow(autosave = false, force = false) {
     clearTimeout(timer);
     if (notesError.value) { error.value = notesError.value; return false; }
     if (conflict.value) return false;
-    if (pendingSave) { const success = await pendingSave; if (!success || conflict.value) return false; return dirty.value ? saveNow(autosave) : true; }
-    if (!dirty.value) return true;
+    if (pendingSave) {
+        const inflight = pendingAutosave;
+        const success = await pendingSave;
+        if (!success || conflict.value) return false;
+        const next = nextSave({ requested: autosave === true, inflight, dirty: dirty.value });
+        return next.send ? saveNow(next.autosave, next.force) : true;
+    }
+    if (!dirty.value && !force) return true;
     const version = changeVersion;
     const saved = snapshot();
     status.value = 'Guardando…';
+    pendingAutosave = autosave === true;
     pendingSave = (async () => {
         try {
             const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, folder_id: props.design.folder_id, kit_revision: saved.kit_revision, autosave: autosave === true });
@@ -411,7 +420,7 @@ async function saveNow(autosave = false) {
         }
     })().finally(() => { pendingSave = null; });
     const success = await pendingSave;
-    if (success && dirty.value) return saveNow(autosave);
+    if (success) { const next = nextSave({ requested: autosave === true, inflight: autosave === true, dirty: dirty.value }); if (next.send) return saveNow(next.autosave, next.force); }
     return success;
 }
 async function prepareExport() {

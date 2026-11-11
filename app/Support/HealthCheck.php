@@ -284,6 +284,9 @@ class HealthCheck
         $warn = (int) config('health.linkedin_version_warn_months', 10);
         $retired = (int) config('health.linkedin_version_retired_months', 12);
 
+        if ($age < 0) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version es futura (aun no existe): revisa LINKEDIN_API_VERSION"];
+        }
         if ($age >= $retired) {
             return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version (hace $age meses) esta retirada o a punto de estarlo: sube LINKEDIN_API_VERSION"];
         }

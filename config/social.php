@@ -176,6 +176,8 @@ return [
         'link_max' => 2048,
         /* Segundos de UNA subida de video en streaming: dentro de los 110 s del job (el tope de `media_specs.pinterest_video` esta calculado para ello). */
         'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 100),
+        /* Minimo (s) de subida para intentarla: con menos presupuesto en el paso se reprograma sin registrar un media nuevo. */
+        'upload_min_seconds' => 15,
     ],
 
     'threads' => [

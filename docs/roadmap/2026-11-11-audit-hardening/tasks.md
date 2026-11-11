@@ -291,7 +291,7 @@ estado: en-progreso
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `config/social.php`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
+- **Archivos**: `app/Connectors/Pinterest/PinterestPublisher.php`, `config/media_specs.php`, `app/Connectors/Pinterest/PinterestClient.php`, `app/Connectors/Support/KnownSizeStream.php`, `config/social.php`, `docs/modulos/despliegue.md`, `tests/Feature/Connectors/Pinterest/**`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md`, `.env.example`, `.env.production.example`
 - **Cubre**: A-05
 - **Cubre (tests)**: M-01
 - **Verificación**: `php artisan test --compact --filter=PinterestVideoStreamingTest` → verde
@@ -3500,3 +3500,16 @@ Verificación: `MediaDeleteReferencesTest` 11/11; Pest focal (Posts, Media, Work
 | UX | Minor | El error de borrado de un export decía «se usa en una publicación» | T-06 | `MediaAsset::usageReason()` distingue publicación, serie activa, autolista y exportación reciente del estudio; `MediaUploadService::delete` lo usa | test «el error de borrado distingue el motivo» (rojo) |
 
 Verificación: `MediaDeleteReferencesTest` + `MediaMissingRetryTest` 17/17; Pest focal; Pint; `npm run build`. Pest completo y Playwright, del coordinador. T-06 sigue `en-revision`.
+
+## Revisión de dos lentes — intento 1: Fase 1 (T-07, T-08) — gaps corregidos
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Critical | Con disco R2/S3 el vídeo se enviaba truncado: `readStream` devuelve el socket HTTP, `fstat` da 0 y el multipart medía solo sus cabeceras | T-07 | Tamaño real por `Filesystem::size` y stream decorado con tamaño fijo (`KnownSizeStream`): Guzzle declara bien el `Content-Length` (S3 no admite `chunked`) y envía el vídeo completo, sin cargarlo en memoria | `PinterestVideoUploadRobustnessTest` «un stream remoto sin tamano conocido envia el video completo»: stream con `fstat` 0 y cuerpo leído de la petición; rojo antes del arreglo |
+| 2 | Important | El paso podía superar el job: registrar (15 s) + subir (100 s) > 110 s; la recuperación registraba otro media | T-07 | La subida usa `min(upload_timeout, StepBudget::remaining())`; sin 30 s (`http_timeout` + `upload_min_seconds`) de presupuesto lanza `TransientPublishException` (`sin_tiempo`) antes de registrar; la URL prefirmada se guarda en el progreso y un reintento reutiliza el media registrado | tests «la subida acota su timeout…» (rojo: 100), «sin presupuesto suficiente… sin registrar» y «un reintento reutiliza el media ya registrado» |
+| 3 | Minor | El test de memoria no era fiable y se perdió la aserción de bytes | T-07 | `memory_reset_peak_usage()` y medición solo del envío; `PinterestConnectorTest` vuelve a comprobar `VIDEOBYTES` leyendo el cuerpo durante la petición | `PinterestVideoStreamingTest`, `PinterestConnectorTest` |
+| 4 | Minor | Vídeos ya programados de más de 512 MB | T-07 | Se revalida al publicar (tamaño del asset y real del disco): `PermanentPublishException` `video_grande` «El video supera 512 MB para Pinterest.», sin registrar medias | test «un video ya programado por encima del tope falla de forma permanente…» (rojo) |
+| 5 | Minor | Una versión futura de `LINKEDIN_API_VERSION` no avisaba | T-08 | Antigüedad negativa ⇒ aviso «es futura (aun no existe)» | `LinkedInVersionHealthTest` «una version futura… avisa» (rojo → verde) |
+| 6 | Minor | Documentación de TikTok y de `app:health` incompleta | T-08 | Un scope no aprobado bloquea conectar y reconectar TODAS las cuentas de TikTok; se revierte vaciando la variable y `php artisan config:cache`; `linkedin_version` en `docs/modulos/despliegue.md`; Pinterest: presupuesto del paso y reintento | `decisiones-por-red.md`, `configuracion.md`, `despliegue.md`, `linkedin-pinterest.md` |
+
+Verificación: filtro `Pinterest|LinkedIn|TikTok|HealthCheckTest|InfraTest|QueueProbe` en verde; Pint. Pest completo y Playwright, del coordinador. T-07 y T-08 siguen `en-revision`.

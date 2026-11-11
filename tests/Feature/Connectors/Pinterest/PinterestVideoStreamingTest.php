@@ -45,7 +45,7 @@ test('el video se sube como stream multipart, no como string', function () {
     $result = app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), psRequest($media));
 
     expect($result->isProcessing())->toBeTrue();
-    expect($seen)->toBe(['contents' => 'GuzzleHttp\Psr7\Stream', 'mime' => 'video/mp4', 'names' => ['key', 'file']]);
+    expect($seen)->toBe(['contents' => 'App\Connectors\Support\KnownSizeStream', 'mime' => 'video/mp4', 'names' => ['key', 'file']]);
 });
 
 test('un fichero grande no hace crecer la memoria con su tamano', function () {
@@ -67,6 +67,7 @@ test('un fichero grande no hace crecer la memoria con su tamano', function () {
     $request = psRequest($media);
 
     gc_collect_cycles();
+    memory_reset_peak_usage();
     $before = memory_get_usage();
     $publisher->publish($account, $request);
     $growth = memory_get_peak_usage() - $before;

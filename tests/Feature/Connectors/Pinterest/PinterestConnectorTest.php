@@ -146,9 +146,14 @@ test('un carrusel usa multiple_image_urls en el orden dado', function () {
 });
 
 test('un video se registra, se sube con los parametros prefirmados y queda procesando; poll crea el pin con la portada', function () {
+    $uploaded = null;
     Http::fake([
         'api.pinterest.com/v5/media' => Http::response(['media_id' => '8001', 'upload_url' => 'https://pinterest-media-upload.s3-accelerate.amazonaws.com/', 'upload_parameters' => ['key' => 'k1', 'policy' => 'p1']], 201),
-        'pinterest-media-upload.s3-accelerate.amazonaws.com/*' => Http::response('', 204),
+        'pinterest-media-upload.s3-accelerate.amazonaws.com/*' => function (Request $r) use (&$uploaded) {
+            $uploaded = $r->body(); // el stream sigue abierto mientras la peticion esta en vuelo
+
+            return Http::response('', 204);
+        },
         'api.pinterest.com/v5/media/8001' => Http::sequence()->push(['status' => 'processing'])->push(['status' => 'succeeded']),
         'api.pinterest.com/v5/pins?page_size=25' => Http::response(['items' => []]),
         'api.pinterest.com/v5/pins' => Http::response(['id' => '9004'], 201),
@@ -159,7 +164,7 @@ test('un video se registra, se sube con los parametros prefirmados y queda proce
 
     $first = $this->publisher->publish($account, $request);
     expect($first->isProcessing())->toBeTrue()->and($first->reference)->toBe('8001')->and($this->publisher)->toBeInstanceOf(StatusPoller::class);
-    // El video va como stream (Guzzle lo cierra al enviarlo: no se relee el cuerpo); el contenido en streaming se cubre en PinterestVideoStreamingTest.
+    expect($uploaded)->toContain('VIDEOBYTES')->toContain('name="key"');
     Http::assertSent(fn (Request $r) => str_contains($r->url(), 'amazonaws.com') && collect($r->data())->pluck('name')->all() === ['key', 'policy', 'file']);
 
     $request = piRequest(ContentType::PinterestVideo, 'Video', [piVideo($cover)], reference: '8001');

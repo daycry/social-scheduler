@@ -1,0 +1,165 @@
+<?php
+
+use App\Connectors\Data\PublishMedia;
+use App\Connectors\Data\PublishRequest;
+use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Pinterest\PinterestPublisher;
+use App\Enums\ContentType;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Tests\Support\NewNetworksFake;
+
+/** Stream que se comporta como el socket HTTP de R2/S3: `fstat` no da tamano (0). */
+class PinterestSocketLikeWrapper
+{
+    public static string $bytes = '';
+
+    public $context;
+
+    private int $pos = 0;
+
+    public function stream_open(string $path, string $mode, int $options, ?string &$opened): bool
+    {
+        $this->pos = 0;
+
+        return true;
+    }
+
+    public function stream_read(int $count): string|false
+    {
+        $chunk = substr(self::$bytes, $this->pos, $count);
+        $this->pos += strlen($chunk);
+
+        return $chunk;
+    }
+
+    public function stream_eof(): bool
+    {
+        return $this->pos >= strlen(self::$bytes);
+    }
+
+    public function stream_stat(): array
+    {
+        return ['size' => 0];
+    }
+
+    public function stream_close(): void {}
+}
+
+beforeEach(function () {
+    Storage::fake('local');
+    NewNetworksFake::pinterest();
+    if (! in_array('pinsock', stream_get_wrappers(), true)) {
+        stream_wrapper_register('pinsock', PinterestSocketLikeWrapper::class);
+    }
+});
+
+/**
+ * Registro de lo que saldria por la red: el cuerpo se LEE (con el tamano que declararia Guzzle) dentro del fake, mientras el stream sigue
+ * abierto, y el timeout se toma de las opciones de la peticion con un middleware global.
+ */
+function pinRealHandler(): object
+{
+    $state = new stdClass;
+    $state->log = [];
+    Http::globalMiddleware(fn (callable $handler) => function ($request, array $options) use ($handler, $state) {
+        $state->timeout = $options['timeout'] ?? null;
+
+        return $handler($request, $options);
+    });
+    Http::fake(function (Request $r) use ($state) {
+        $uri = $r->url();
+        $guzzle = $r->toPsrRequest();
+        $size = $guzzle->getBody()->getSize();
+        $body = '';
+        while (! $guzzle->getBody()->eof()) {   // una sola pasada, como el socket real: un stream remoto no se rebobina
+            $body .= $guzzle->getBody()->read(65536);
+        }
+        $state->log[] = ['method' => $r->method(), 'uri' => $uri, 'body' => $body, 'length' => $size, 'timeout' => $state->timeout ?? null];
+        if (str_ends_with($uri, '/v5/media')) {
+            return Http::response(['media_id' => '8200', 'upload_url' => 'https://pinterest-media-upload.s3-accelerate.amazonaws.com/', 'upload_parameters' => ['key' => 'k9']], 201);
+        }
+
+        return Http::response('', 204);
+    });
+
+    return $state;
+}
+
+function pinRequest(PublishMedia $media, ?string $reference = null, array $progress = []): PublishRequest
+{
+    return new PublishRequest(targetId: 1, type: ContentType::PinterestVideo, text: 'V', media: [$media], options: ['pinterest_board_id' => '549755885175'], reference: $reference, since: now()->subMinute(), progress: $progress);
+}
+
+function pinUploads(object $state): array
+{
+    return array_values(array_filter($state->log, fn ($l) => str_contains($l['uri'], 'amazonaws.com')));
+}
+
+test('un stream remoto sin tamano conocido envia el video completo, con Content-Length', function () {
+    $state = pinRealHandler();
+    $bytes = str_repeat('Z', 300_000);
+    PinterestSocketLikeWrapper::$bytes = $bytes;
+    $disk = Mockery::mock(Filesystem::class);
+    $disk->shouldReceive('exists')->andReturn(true);
+    $disk->shouldReceive('size')->andReturn(strlen($bytes));
+    $disk->shouldReceive('readStream')->andReturn(fopen('pinsock://video', 'rb'));
+    Storage::shouldReceive('disk')->with('r2')->andReturn($disk);
+    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/s.mp4', size: strlen($bytes), disk: 'r2', path: 'm/s.mp4');
+
+    app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media));
+
+    $upload = pinUploads($state)[0];
+    expect($upload['body'])->toContain($bytes)->and((int) $upload['length'])->toBeGreaterThan(strlen($bytes));
+});
+
+test('la subida acota su timeout a lo que queda del presupuesto del paso', function () {
+    config(['publishing.step_budget_seconds' => 60]);
+    $state = pinRealHandler();
+    Storage::disk('local')->put('m/t.mp4', 'BYTES');
+    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 5, disk: 'local', path: 'm/t.mp4');
+
+    app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media));
+
+    expect(pinUploads($state)[0]['timeout'])->toBeLessThanOrEqual(60)->toBeGreaterThan(0);
+});
+
+test('sin presupuesto suficiente se reprograma sin registrar ningun media', function () {
+    config(['publishing.step_budget_seconds' => 20]);
+    $state = pinRealHandler();
+    Storage::disk('local')->put('m/t.mp4', 'BYTES');
+    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 5, disk: 'local', path: 'm/t.mp4');
+
+    expect(fn () => app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media)))->toThrow(TransientPublishException::class);
+    expect($state->log)->toBe([]);
+});
+
+test('un reintento reutiliza el media ya registrado en lugar de registrar otro', function () {
+    $state = pinRealHandler();
+    Storage::disk('local')->put('m/t.mp4', 'BYTES');
+    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 5, disk: 'local', path: 'm/t.mp4');
+    $saved = [];
+    $first = new PublishRequest(targetId: 1, type: ContentType::PinterestVideo, text: 'V', media: [$media], options: ['pinterest_board_id' => '549755885175'], since: now()->subMinute(), checkpoint: function ($ref, $progress) use (&$saved) {
+        $saved = ['ref' => $ref, 'progress' => $progress];
+    });
+    app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), $first);
+    $registrations = count(array_filter($state->log, fn ($l) => str_ends_with($l['uri'], '/v5/media')));
+
+    $state->log = [];
+    $result = app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media, $saved['ref'], (array) $saved['progress']));
+
+    expect($registrations)->toBe(1)->and(array_filter($state->log, fn ($l) => str_ends_with($l['uri'], '/v5/media')))->toBe([])
+        ->and(count(pinUploads($state)))->toBe(1)->and($result->reference)->toBe('8200');
+});
+
+test('un video ya programado por encima del tope falla de forma permanente antes de registrar nada', function () {
+    $state = pinRealHandler();
+    $media = new PublishMedia(id: 5, kind: 'video', mime: 'video/mp4', url: 'https://signed.example/t.mp4', size: 600 * 1024 * 1024, disk: 'local', path: 'm/t.mp4');
+
+    expect(fn () => app(PinterestPublisher::class)->publish(NewNetworksFake::pinterestAccount(), pinRequest($media)))
+        ->toThrow(PermanentPublishException::class, 'supera 512 MB');
+    expect($state->log)->toBe([]);
+});

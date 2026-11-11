@@ -25,6 +25,11 @@ test('con 10 meses avisa y con 12 la da por retirada', function () {
         ->and(liCheck('202511', '2026-11-11')['detail'])->toContain('retirada');
 });
 
+test('una version futura (error de tecleo) avisa', function () {
+    expect(liCheck('202712', '2026-11-11'))->toMatchArray(['warn' => true])->and(liCheck('202712', '2026-11-11')['detail'])->toContain('futura')
+        ->and(liCheck('202611', '2026-11-11'))->not->toHaveKey('warn');
+});
+
 test('un valor sin formato AAAAMM avisa', function () {
     expect(liCheck('v1', '2026-11-11'))->toMatchArray(['warn' => true]);
 });

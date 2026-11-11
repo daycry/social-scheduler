@@ -42,7 +42,7 @@ Opciones por destino: `linkedin_visibility` (`PUBLIC` o `CONNECTIONS`; las pági
 
 Opciones: `pinterest_title` (hasta 100), descripción (el texto, hasta 800) y `pinterest_link` (https, hasta 2048). Pinterest no tiene primer comentario en la API v5.
 
-El vídeo se sube en streaming (nunca entero en memoria) a la URL prefirmada que devuelve `POST /v5/media`, en una sola petición de hasta `PINTEREST_UPLOAD_TIMEOUT` segundos (`100` por defecto, dentro de los 110 s del job). Un vídeo de más de 512 MB se rechaza al programar, no a mitad de la publicación. Contrato de subida sin verificar contra la documentación de Pinterest (es una SPA sin texto accesible desde aquí): queda para el smoke M-01.
+El vídeo se sube en streaming (nunca entero en memoria) a la URL prefirmada que devuelve `POST /v5/media`, en una sola petición de hasta `PINTEREST_UPLOAD_TIMEOUT` segundos (`100` por defecto), acotada además a lo que queda del presupuesto del paso (85 s del job de 110 s, con el registro del media incluido): sin al menos 30 s de margen el job se reprograma sin registrar nada, y un reintento reutiliza el media ya registrado. Con disco R2/S3 el tamaño real se toma de `Filesystem::size` (el stream remoto no lo declara). Un vídeo de más de 512 MB se rechaza al programar y, si ya estaba programado, falla de forma permanente al publicar («El video supera 512 MB para Pinterest»). Contrato de subida sin verificar contra la documentación de Pinterest (es una SPA sin texto accesible desde aquí): queda para el smoke M-01.
 
 ## Fuera de alcance
 

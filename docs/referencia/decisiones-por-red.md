@@ -58,7 +58,8 @@ La analítica de TikTok (seguidores, número de vídeos, vistas, me gusta, comen
 
 1. Cuando TikTok apruebe ambos scopes, define `TIKTOK_EXTRA_SCOPES=user.info.stats,video.list` (se suman a los de `social.tiktok.scopes`).
 2. **Reconecta cada cuenta de TikTok** (Conexiones, Reconectar): el token existente no gana scopes nuevos. Hasta entonces la analítica sigue como «no disponible».
-3. Pedirlos **antes** de la aprobación hace fallar el consentimiento de TikTok: no los actives por adelantado.
+3. Pedirlos **antes** de la aprobación hace fallar el consentimiento de TikTok: **bloquea conectar y reconectar TODAS las cuentas de TikTok** (la petición OAuth es una sola para la app), no solo la que quiere analítica. No los actives por adelantado.
+4. **Revertir:** vacía `TIKTOK_EXTRA_SCOPES` en `.env` y ejecuta `php artisan config:cache` (con la caché de configuración activa, el cambio de `.env` no se aplica hasta entonces).
 
 ### Cómo funciona hoy
 

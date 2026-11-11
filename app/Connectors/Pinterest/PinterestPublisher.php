@@ -8,6 +8,7 @@ use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use Illuminate\Support\Facades\Storage;
@@ -35,24 +36,57 @@ class PinterestPublisher implements Publisher, StatusPoller
         }
 
         $media = $request->media[0];
+        $max = (int) config('media_specs.types.pinterest_video.video.max_bytes');
+        // Un video programado antes de bajar el tope: fallo permanente y claro, no un reintento que registre medias.
+        if ($max > 0 && (int) $media->size > $max) {
+            throw new PermanentPublishException('El video supera '.intdiv($max, 1024 * 1024).' MB para Pinterest.', 'video_grande');
+        }
         if ($media->disk === null || $media->path === null || ! Storage::disk($media->disk)->exists($media->path)) {
             throw new PermanentPublishException('El video no esta disponible en el almacenamiento para subirlo a Pinterest.', 'media_no_disponible');
         }
-
-        $registered = $this->client->api('POST', 'v5/media', $token, ['media_type' => 'video'])->json() ?? [];
-        if (empty($registered['media_id']) || empty($registered['upload_url'])) {
-            throw new PermanentPublishException('Pinterest no devolvio donde subir el video.', 'sin_subida');
+        $disk = Storage::disk($media->disk);
+        $size = (int) $disk->size($media->path);
+        if ($max > 0 && $size > $max) {
+            throw new PermanentPublishException('El video supera '.intdiv($max, 1024 * 1024).' MB para Pinterest.', 'video_grande');
         }
-        $mediaId = (string) $registered['media_id'];
-        $request->checkpoint($mediaId);
 
-        // En streaming: el video (hasta `media_specs.pinterest_video.max_bytes`) nunca se carga entero en memoria.
-        $stream = Storage::disk($media->disk)->readStream($media->path);
+        $budget = $request->budget();
+        $saved = $request->progress['pinterest_upload'] ?? null;
+        if ($request->reference !== null && preg_match('/^\d{1,30}$/D', $request->reference) && is_array($saved) && ! empty($saved['url'])) {
+            // Reintento tras un fallo de la subida: el media ya esta registrado, se reutiliza (nunca se registra otro).
+            $mediaId = $request->reference;
+            $uploadUrl = (string) $saved['url'];
+            $parameters = (array) ($saved['parameters'] ?? []);
+        } else {
+            // Registrar (hasta `http_timeout`) + subir (minimo `upload_min_seconds`) tienen que caber en el paso: si no, se reprograma limpio.
+            $needed = (int) config('social.http_timeout', 15) + (int) config('social.pinterest.upload_min_seconds', 15);
+            if ($budget->remaining() < $needed) {
+                throw new TransientPublishException('Sin tiempo para subir el video a Pinterest en este intento; se reintentara.', 'sin_tiempo');
+            }
+            $registered = $this->client->api('POST', 'v5/media', $token, ['media_type' => 'video'])->json() ?? [];
+            $budget->spent();
+            if (empty($registered['media_id']) || empty($registered['upload_url'])) {
+                throw new PermanentPublishException('Pinterest no devolvio donde subir el video.', 'sin_subida');
+            }
+            $mediaId = (string) $registered['media_id'];
+            $uploadUrl = (string) $registered['upload_url'];
+            $parameters = (array) ($registered['upload_parameters'] ?? []);
+            // La URL prefirmada queda en el progreso para que un reintento no registre otro media.
+            $request->checkpoint($mediaId, ['pinterest_upload' => ['url' => $uploadUrl, 'parameters' => $parameters]]);
+        }
+
+        $timeout = min((int) config('social.pinterest.upload_timeout', 100), (int) floor($budget->remaining()));
+        if ($timeout < (int) config('social.pinterest.upload_min_seconds', 15)) {
+            throw new TransientPublishException('Sin tiempo para subir el video a Pinterest en este intento; se reintentara.', 'sin_tiempo');
+        }
+
+        // En streaming: el video (hasta `media_specs.types.pinterest_video.video.max_bytes`) nunca se carga entero en memoria.
+        $stream = $disk->readStream($media->path);
         if (! is_resource($stream)) {
             throw new PermanentPublishException('El video no esta disponible en el almacenamiento para subirlo a Pinterest.', 'media_no_disponible');
         }
         try {
-            $this->client->upload((string) $registered['upload_url'], (array) ($registered['upload_parameters'] ?? []), $stream, $media->mime);
+            $this->client->upload($uploadUrl, $parameters, $stream, $media->mime, $size, $timeout);
         } finally {
             if (is_resource($stream)) {
                 fclose($stream);

@@ -84,7 +84,7 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `META_OAUTH_METHOD` | `post` (secretos en el cuerpo) o `get` (en la query; último recurso). ⚠️ **Por confirmar**: no consta que se haya probado `get` con Meta real (M-02) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente web de Google Cloud. Consentimiento "En producción" para que el refresh token no caduque |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | App de TikTok (sandbox o producción) |
-| `TIKTOK_EXTRA_SCOPES` | vacío. Scopes extra coma-separados que se piden al conectar TikTok, p. ej. `user.info.stats,video.list` para la analítica. Solo con la aprobación de TikTok en su auditoría (si no, el consentimiento falla) y **hay que reconectar** las cuentas ya conectadas |
+| `TIKTOK_EXTRA_SCOPES` | vacío. Scopes extra coma-separados que se piden al conectar TikTok, p. ej. `user.info.stats,video.list` para la analítica. Solo con la aprobación de TikTok en su auditoría (si no, el consentimiento falla) y **hay que reconectar** las cuentas ya conectadas. Un scope no aprobado bloquea conectar y reconectar TODAS las cuentas de TikTok; para revertir, vacía la variable y ejecuta `php artisan config:cache` |
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
 | `BLUESKY_ENABLED` | `true`. `false` retira Bluesky de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conecta con una app password cifrada: [guía](../guias/bluesky-app-password.md) |
 | `BLUESKY_IMAGE_MAX_BYTES`, `BLUESKY_VIDEO_MAX_BYTES` | `2000000` y `52428800` bytes. Topes de media; la foto mayor se recomprime y el vídeo mayor se rechaza al guardar |

@@ -103,7 +103,7 @@ class AutolistService
         $item->user_id = $user->id;
         $item->autolist_id = $autolist->id;
         $item->position = (int) AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->max('position') + 1;
-        $item->save();
+        DB::transaction(fn () => $item->save()); // elemento + indice de media en una transaccion
 
         return $item;
     }

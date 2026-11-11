@@ -96,10 +96,25 @@ class MediaAsset extends Model
         return DB::table('autolist_item_media')->where('media_asset_id', $this->id)->exists();
     }
 
-    /** ¿La usa alguna publicacion (media comun o propia de un destino), una serie recurrente activa o una autolista? */
+    /**
+     * Media de un export de diseno listo y reciente (`studio_design_exports.media_ids`): su ventana la fija `studio.export_media_guard_days`
+     * (0 = no bloquea). Los exports historicos no impiden borrar. Una sola consulta filtrada por usuario, estado y fecha, sin cargar filas.
+     */
+    public function usedByExport(): bool
+    {
+        $days = (int) config('studio.export_media_guard_days', 30);
+        if ($days <= 0) {
+            return false;
+        }
+
+        return DB::table('studio_design_exports')->where('user_id', $this->user_id)->where('status', 'ready')
+            ->where('created_at', '>=', now()->subDays($days))->whereJsonContains('media_ids', $this->id)->exists();
+    }
+
+    /** ¿La usa alguna publicacion (media comun o propia de un destino), una serie recurrente activa, una autolista o un export reciente? */
     public function usedByPosts(): bool
     {
-        return $this->posts()->exists() || $this->usedByTargetMedia() || $this->usedBySeries() || $this->usedByAutolist();
+        return $this->posts()->exists() || $this->usedByTargetMedia() || $this->usedBySeries() || $this->usedByAutolist() || $this->usedByExport();
     }
 
     /**

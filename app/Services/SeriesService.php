@@ -51,7 +51,7 @@ class SeriesService
         $series = new PostSeries($rule + ['payload' => $payload, 'status' => PostSeries::ACTIVE]);
         $series->user_id = $user->id;
         $series->brand_id = $brand->id;
-        $series->save();
+        DB::transaction(fn () => $series->save()); // serie + indice de media en una transaccion
 
         $this->generate($series);
 
@@ -75,7 +75,7 @@ class SeriesService
         $payloadIn = array_replace($series->payload, Arr::only($data, ['text', 'media', 'targets']));
         $payload = $this->validatedPayload($user, $brand, $payloadIn, $rule['time_local']);
 
-        $series->forceFill($rule + ['payload' => $payload])->save();
+        DB::transaction(fn () => $series->forceFill($rule + ['payload' => $payload])->save());
         $this->reconcile($user, $series->fresh());
         $this->generate($series->fresh());
 

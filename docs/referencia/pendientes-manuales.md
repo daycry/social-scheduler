@@ -96,3 +96,10 @@ Playwright está instalado. Los doce E2E originales, tres bloques API y cuatro g
 ## Decisiones de producto por confirmar
 
 Listadas en [configuración](configuracion.md#resumen-de-decisiones-por-confirmar): `PUBLISH_QUOTA_POLICY`, `max_lateness_hours`, `PUBLISH_RECONNECT_GRACE_HOURS` (72 h), `META_OAUTH_METHOD` y borrador de TikTok = publicada con nota. El diseño y las secciones del informe están aprobados por el usuario desde el 2026-10-31 y T-41 está completada. T-12 sigue `en-progreso` por M-02 y T-37 por la parte de datos reales de M-03.
+
+## Verificación en MySQL de T-06 (referencias de media con FK)
+
+| Pendiente | Detalle |
+|---|---|
+| Probar la migración `2026_12_18_090000_create_post_target_media_tables` en MySQL 8 | Revisada a mano (nombres de índice y FK por debajo de 64 caracteres, tipos de FK iguales, `dropColumn` de una columna JSON sin índice, `down()` reconstruye el JSON) pero no ejecutada: aquí no hay MySQL. Ejecutar `migrate`, `migrate:rollback --step=1` y `migrate` sobre una copia de la base de datos; revisar el log por «Migracion post_target_media» (destinos marcados fallidos por media inexistente) |
+| Borrar una cuenta con media por destino, series y autolistas | Comprobar en InnoDB que `ProfileController::destroy` no choca con las FK `restrict` (la purga previa está en `User::deleting`) |

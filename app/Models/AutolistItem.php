@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\PostValidationException;
 use App\Models\Concerns\BelongsToUser;
 use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Model;
@@ -32,7 +33,10 @@ class AutolistItem extends Model
             return;
         }
         $ids = array_values(array_unique(array_filter(array_map('intval', (array) $this->media))));
-        $ids = $ids === [] ? [] : MediaAsset::withoutUserScope()->whereIn('id', $ids)->pluck('id')->all();
+        $found = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $this->user_id)->whereIn('id', $ids)->pluck('id')->all();
+        if (count($found) !== count($ids)) {
+            throw new PostValidationException(['media' => ['Algun archivo no existe: '.implode(', ', array_diff($ids, $found)).'.']]);
+        }
         DB::transaction(function () use ($ids) {
             DB::table('autolist_item_media')->where('autolist_item_id', $this->id)->delete();
             if ($ids !== []) {

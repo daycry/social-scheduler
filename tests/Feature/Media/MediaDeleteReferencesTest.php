@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PostStatus;
+use App\Exceptions\PostValidationException;
 use App\Models\Autolist;
 use App\Models\AutolistItem;
 use App\Models\Brand;
@@ -8,10 +9,13 @@ use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostSeries;
 use App\Models\PostTarget;
+use App\Models\Studio\Design;
+use App\Models\Studio\DesignExport;
 use App\Models\User;
 use App\Services\MediaUploadService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 // T-06 (A-12): las referencias a media de destinos, series y autolistas son relacionales (FK restrict); la comprobacion de uso es una consulta.
@@ -125,4 +129,84 @@ test('la migracion convierte el JSON existente, descarta ids huerfanos y es reve
         ->and(DB::table('post_targets')->where('id', $inherit->id)->value('media'))->toBeNull()
         ->and(DB::table('post_targets')->where('id', $empty->id)->value('media'))->toBe('[]');
     $migration->up();
+});
+
+function mdrExport(User $user, Brand $brand, MediaAsset $m, string $status = 'ready', ?string $createdAt = null): DesignExport
+{
+    $design = Design::unguarded(fn () => Design::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => 'D', 'document' => ['pages' => []], 'width' => 1, 'height' => 1, 'page_count' => 1, 'revision' => 1]));
+    $x = DesignExport::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'design_id' => $design->id, 'revision' => 1, 'format' => 'png', 'pages' => ['p1'], 'media_ids' => [$m->id], 'status' => $status]);
+    if ($createdAt !== null) {
+        DB::table('studio_design_exports')->where('id', $x->id)->update(['created_at' => $createdAt]);
+    }
+
+    return $x;
+}
+
+test('la media de un export listo reciente bloquea el borrado; la de uno antiguo, no listo o sin export, no', function () {
+    config(['studio.export_media_guard_days' => 30]);
+    $recent = ($this->asset)();
+    $old = ($this->asset)();
+    $failed = ($this->asset)();
+    mdrExport($this->user, $this->brand, $recent);
+    mdrExport($this->user, $this->brand, $old, 'ready', now()->subDays(31)->toDateTimeString());
+    mdrExport($this->user, $this->brand, $failed, 'failed');
+
+    expect(fn () => app(MediaUploadService::class)->delete($recent))->toThrow(DomainException::class, 'se usa en una publicacion');
+    expect($recent->usedByPosts())->toBeTrue()->and($old->usedByPosts())->toBeFalse()->and($failed->usedByPosts())->toBeFalse();
+});
+
+test('la migracion no descarta en silencio la media huerfana de un destino sin publicar: lo marca fallido', function () {
+    $a = ($this->asset)();
+    $b = ($this->asset)();
+    $scheduled = ($this->target)(PostStatus::Scheduled, [['id' => $a->id, 'alt' => null, 'cover_id' => null], ['id' => $b->id, 'alt' => null, 'cover_id' => null]]);
+    $published = ($this->target)(PostStatus::Published, [['id' => $a->id, 'alt' => null, 'cover_id' => null], ['id' => $b->id, 'alt' => null, 'cover_id' => null]]);
+    $migration = require database_path('migrations/2026_12_18_090000_create_post_target_media_tables.php');
+    $migration->down();
+    DB::table('media_assets')->where('id', $b->id)->delete();
+    Log::spy();
+    $migration->up();
+
+    $s = DB::table('post_targets')->where('id', $scheduled->id)->first();
+    expect($s->status)->toBe(PostStatus::Failed->value)->and($s->error_code)->toBe('media_inexistente')->and($s->error_message)->toContain((string) $b->id);
+    Log::shouldHaveReceived('warning')->once();
+    expect(DB::table('post_targets')->where('id', $published->id)->value('status'))->toBe(PostStatus::Published->value);
+    expect(PostTarget::withoutUserScope()->find($published->id)->media)->toBe([['id' => $a->id, 'alt' => null, 'cover_id' => null]]);
+});
+
+test('una serie o un elemento de autolista con media inexistente es un error de validacion y no deja filas', function () {
+    $m = ($this->asset)();
+    $before = PostSeries::withoutUserScope()->count();
+    $series = new PostSeries(['frequency' => 'diaria', 'time_local' => '10:00', 'starts_on' => '2026-11-10', 'status' => PostSeries::ACTIVE, 'payload' => ['media' => [$m->id, 987654]]]);
+    $series->user_id = $this->user->id;
+    $series->brand_id = $this->brand->id;
+    expect(fn () => DB::transaction(fn () => $series->save()))->toThrow(PostValidationException::class);
+    expect(PostSeries::withoutUserScope()->count())->toBe($before);
+
+    $list = Autolist::query()->forceCreate(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'name' => 'L', 'targets' => [], 'slots' => []]);
+    $item = new AutolistItem(['text' => 'x', 'media' => [987654]]);
+    $item->user_id = $this->user->id;
+    $item->autolist_id = $list->id;
+    $item->position = 1;
+    expect(fn () => DB::transaction(fn () => $item->save()))->toThrow(PostValidationException::class);
+    expect(AutolistItem::withoutUserScope()->count())->toBe(0);
+});
+
+test('borrar un usuario con posts, media por destino, series y autolistas no falla y no deja filas', function () {
+    $m = ($this->asset)();
+    $cover = ($this->asset)();
+    $t = ($this->target)(PostStatus::Scheduled, [['id' => $m->id, 'alt' => null, 'cover_id' => $cover->id]]);
+    $t->post->media()->attach($m->id, ['position' => 0]);
+    PostSeries::withoutUserScope()->create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'frequency' => 'diaria', 'time_local' => '10:00', 'starts_on' => '2026-11-10', 'status' => PostSeries::ACTIVE, 'payload' => ['media' => [$m->id]]]);
+    $list = Autolist::query()->forceCreate(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'name' => 'L', 'targets' => [], 'slots' => []]);
+    $item = new AutolistItem(['text' => 'x', 'media' => [$m->id]]);
+    $item->user_id = $this->user->id;
+    $item->autolist_id = $list->id;
+    $item->position = 1;
+    $item->save();
+
+    $this->user->delete();
+
+    foreach (['post_target_media', 'post_series_media', 'autolist_item_media', 'post_media', 'media_assets', 'post_targets'] as $table) {
+        expect(DB::table($table)->count())->toBe(0, $table);
+    }
 });

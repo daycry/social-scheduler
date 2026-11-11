@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\PostValidationException;
 use App\Models\Concerns\BelongsToUser;
 use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Model;
@@ -52,7 +53,7 @@ class PostSeries extends Model
                 }
             }
             $ids = array_values(array_unique(array_filter($ids)));
-            $ids = $ids === [] ? [] : MediaAsset::withoutUserScope()->whereIn('id', $ids)->pluck('id')->all();
+            $this->assertMediaExists($ids);
         }
         DB::transaction(function () use ($ids) {
             DB::table('post_series_media')->where('post_series_id', $this->id)->delete();
@@ -60,6 +61,15 @@ class PostSeries extends Model
                 DB::table('post_series_media')->insert(array_map(fn ($id) => ['post_series_id' => $this->id, 'media_asset_id' => $id], $ids));
             }
         });
+    }
+
+    /** @param  list<int>  $ids */
+    private function assertMediaExists(array $ids): void
+    {
+        $found = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $this->user_id)->whereIn('id', $ids)->pluck('id')->all();
+        if (count($found) !== count($ids)) {
+            throw new PostValidationException(['media' => ['Algun archivo de la serie no existe: '.implode(', ', array_diff($ids, $found)).'.']]);
+        }
     }
 
     public function brand(): BelongsTo

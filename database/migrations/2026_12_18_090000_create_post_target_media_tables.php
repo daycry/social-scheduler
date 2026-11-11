@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 // T-06 (A-12): las referencias a media dejan de ser JSON sin FK.
@@ -10,8 +11,9 @@ use Illuminate\Support\Facades\Schema;
 //    `post_targets.has_own_media` distingue «hereda la comun» (false) de «lista propia, tambien vacia» (true).
 //  - `post_series_media` y `autolist_item_media`: indices relacionales derivados (los mantienen los modelos) de la media que usan el
 //    contenido de una serie activa y los elementos de una autolista; el JSON sigue siendo el contenido, el indice da la FK restrict.
-// Reversible: `down()` reconstruye `post_targets.media` desde la tabla. Las referencias a media que ya no existe se descartan (no se puede
-// poner una FK sobre un id huerfano); las portadas huerfanas quedan en null.
+// Reversible: `down()` reconstruye `post_targets.media` desde la tabla. No se puede poner una FK sobre un id huerfano: en un destino ya
+// publicado se descarta; en uno que aun puede publicarse se marca `fallida` (`media_inexistente`, con los ids) y se registra en el log.
+// Compatible con MySQL 8: nombres de indice <= 64 caracteres, tipos de FK iguales (unsignedBigInteger) y dropColumn sin indice.
 return new class extends Migration
 {
     public function up(): void
@@ -51,9 +53,10 @@ return new class extends Migration
             $table->boolean('has_own_media')->default(false);
         });
 
-        $existing = fn (array $ids) => $ids === [] ? [] : DB::table('media_assets')->whereIn('id', $ids)->pluck('id')->flip()->all();
+        // Existencia en bloque: devuelve [id => true] de los ids que existen en media_assets.
+        $existing = fn (array $ids) => $ids === [] ? [] : DB::table('media_assets')->whereIn('id', array_values(array_unique($ids)))->pluck('id')->flip()->map(fn () => true)->all();
 
-        DB::table('post_targets')->whereNotNull('media')->orderBy('id')->select(['id', 'media'])->chunkById(200, function ($targets) use ($existing) {
+        DB::table('post_targets')->whereNotNull('media')->select(['id', 'media', 'status'])->chunkById(200, function ($targets) use ($existing) {
             $lists = [];
             $ids = [];
             foreach ($targets as $t) {
@@ -63,25 +66,48 @@ return new class extends Migration
                     $ids[] = (int) ($m['cover_id'] ?? 0);
                 }
             }
-            $known = $existing(array_values(array_unique(array_filter($ids))));
-            foreach ($lists as $targetId => $list) {
-                DB::table('post_targets')->where('id', $targetId)->update(['has_own_media' => true]);
-                $rows = [];
-                foreach ($list as $m) {
+            $known = $existing(array_filter($ids));
+            $rows = [];
+            $broken = [];
+            foreach ($targets as $t) {
+                $missing = [];
+                $position = 0;
+                foreach ($lists[$t->id] as $m) {
                     $id = (int) ($m['id'] ?? 0);
+                    $cover = (int) ($m['cover_id'] ?? 0);
                     if (! isset($known[$id])) {
+                        $missing[] = $id;
+
                         continue;
                     }
-                    $cover = (int) ($m['cover_id'] ?? 0);
-                    $rows[] = ['post_target_id' => $targetId, 'media_asset_id' => $id, 'cover_id' => isset($known[$cover]) ? $cover : null, 'alt' => $m['alt'] ?? null, 'position' => count($rows)];
+                    if ($cover !== 0 && ! isset($known[$cover])) {
+                        $missing[] = $cover;
+                        $cover = 0;
+                    }
+                    $rows[] = ['post_target_id' => $t->id, 'media_asset_id' => $id, 'cover_id' => $cover ?: null, 'alt' => $m['alt'] ?? null, 'position' => $position++];
                 }
-                if ($rows !== []) {
-                    DB::table('post_target_media')->insert($rows);
+                // Un destino que aun puede publicarse no pierde en silencio un archivo: se marca fallido con el motivo (los publicados, que ya
+                // salieron, solo descartan la referencia).
+                if ($missing !== [] && $t->status !== 'publicada') {
+                    $broken[$t->id] = array_values(array_unique($missing));
                 }
+            }
+            DB::table('post_targets')->whereIn('id', array_keys($lists))->update(['has_own_media' => true]);
+            foreach (array_chunk($rows, 200) as $part) {
+                DB::table('post_target_media')->insert($part);
+            }
+            foreach ($broken as $targetId => $missing) {
+                $list = implode(', ', $missing);
+                DB::table('post_targets')->where('id', $targetId)->update([
+                    'status' => 'fallida', 'error_code' => 'media_inexistente',
+                    'error_message' => "Falta el archivo $list de la media de este destino: editalo y vuelve a elegir la media.",
+                ]);
+                Log::warning('Migracion post_target_media: destino con media inexistente marcado como fallido', ['post_target_id' => $targetId, 'media_ids' => $missing]);
             }
         });
 
-        DB::table('post_series')->where('status', 'activa')->orderBy('id')->select(['id', 'payload'])->chunkById(200, function ($series) use ($existing) {
+        DB::table('post_series')->where('status', 'activa')->select(['id', 'payload'])->chunkById(200, function ($series) use ($existing) {
+            $byId = [];
             foreach ($series as $s) {
                 $payload = (array) json_decode((string) $s->payload, true);
                 $ids = array_map('intval', (array) ($payload['media'] ?? []));
@@ -91,19 +117,42 @@ return new class extends Migration
                         $ids[] = (int) ($m['cover_id'] ?? 0);
                     }
                 }
-                $ids = array_keys($existing(array_values(array_unique(array_filter($ids)))));
-                if ($ids !== []) {
-                    DB::table('post_series_media')->insert(array_map(fn ($id) => ['post_series_id' => $s->id, 'media_asset_id' => $id], $ids));
+                $byId[$s->id] = array_values(array_unique(array_filter($ids)));
+            }
+            $known = $existing(array_merge(...array_values($byId) ?: [[]]));
+            $rows = [];
+            foreach ($byId as $seriesId => $ids) {
+                foreach ($ids as $id) {
+                    if (isset($known[$id])) {
+                        $rows[] = ['post_series_id' => $seriesId, 'media_asset_id' => $id];
+                    } else {
+                        Log::warning('Migracion post_series_media: la serie referencia una media inexistente', ['post_series_id' => $seriesId, 'media_id' => $id]);
+                    }
                 }
+            }
+            foreach (array_chunk($rows, 200) as $part) {
+                DB::table('post_series_media')->insert($part);
             }
         });
 
-        DB::table('autolist_items')->whereNotNull('media')->orderBy('id')->select(['id', 'media'])->chunkById(200, function ($items) use ($existing) {
+        DB::table('autolist_items')->whereNotNull('media')->select(['id', 'media'])->chunkById(200, function ($items) use ($existing) {
+            $byId = [];
             foreach ($items as $i) {
-                $ids = array_keys($existing(array_values(array_unique(array_filter(array_map('intval', (array) json_decode((string) $i->media, true)))))));
-                if ($ids !== []) {
-                    DB::table('autolist_item_media')->insert(array_map(fn ($id) => ['autolist_item_id' => $i->id, 'media_asset_id' => $id], $ids));
+                $byId[$i->id] = array_values(array_unique(array_filter(array_map('intval', (array) json_decode((string) $i->media, true)))));
+            }
+            $known = $existing(array_merge(...array_values($byId) ?: [[]]));
+            $rows = [];
+            foreach ($byId as $itemId => $ids) {
+                foreach ($ids as $id) {
+                    if (isset($known[$id])) {
+                        $rows[] = ['autolist_item_id' => $itemId, 'media_asset_id' => $id];
+                    } else {
+                        Log::warning('Migracion autolist_item_media: el elemento referencia una media inexistente', ['autolist_item_id' => $itemId, 'media_id' => $id]);
+                    }
                 }
+            }
+            foreach (array_chunk($rows, 200) as $part) {
+                DB::table('autolist_item_media')->insert($part);
             }
         });
 

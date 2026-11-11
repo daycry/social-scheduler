@@ -13,6 +13,8 @@ return [
         'disk' => ['snapshot' => 8 * 1024 ** 3, 'pcm' => 8 * 1024 ** 3, 'segment' => 8 * 1024 ** 3, 'output' => 8 * 1024 ** 3],
     ],
     // Autoguardado (A-07): un autoguardado del mismo autor dentro de este intervalo (s) reescribe la revision reciente en vez de crear otra.
+    // Dias durante los que un export listo bloquea el borrado de su media (0 = nunca); los exports mas antiguos no la protegen.
+    'export_media_guard_days' => (int) env('STUDIO_EXPORT_MEDIA_GUARD_DAYS', 30),
     'revisions' => ['min_interval_seconds' => (int) env('STUDIO_REVISION_MIN_INTERVAL', 300)],
     'fonts' => [
         'disk' => env('STUDIO_FONT_DISK', 'local'),

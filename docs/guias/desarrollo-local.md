@@ -63,7 +63,11 @@ npx playwright test tests/e2e/security.spec.ts    # solo 2FA y passkeys
 E2E_NO_SERVER=1 npm run test:e2e                  # el servidor ya está en marcha (ver abajo)
 E2E_JSON_REPORT=ruta/results.json npm run test:e2e   # además escribe el informe json
 npx tsc --noEmit -p .                             # tipos de tests/e2e
+npm run test:unit                                 # tests de Node sin navegador
+npm run test:browser                              # tests de Node con Chromium
 ```
+
+Los tests de Node y la purga de `storage/framework/testing` (se ejecuta sola al acabar la batería E2E; `E2E_PURGE=0` la desactiva) están en [testing](testing.md).
 
 **Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:8080` con variables del proceso, sin tocar el `.env`:
 

@@ -83,6 +83,9 @@ El host virtual de Laragon debe apuntar a `public/`. Para OAuth de las redes y p
 composer test            # Pest (SQLite en memoria)
 vendor/bin/pint --test   # estilo
 npx tsc --noEmit -p .    # tipos de los tests E2E
+npm run test:unit        # tests de Node sin navegador (tests/frontend)
+npm run test:browser     # tests de Node con Chromium
+node scripts/test/purge-testing.mjs --dry-run # limpieza de storage/framework/testing (ver docs/guias/testing.md)
 npx playwright test -c playwright.roadmap.config.ts # T-43: SQLite desechable en localhost:8081
 ```
 

@@ -508,33 +508,37 @@ estado: en-progreso
 ### T-12 — Scripts de test de Node y purga de `storage/framework/testing`
 
 - **Descripción**: Añadir `test:unit` y `test:browser` (con `--expose-gc` donde haga falta) y purgar ejecuciones antiguas de `storage/framework/testing` en el teardown (7,6 GB hoy).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nuevos scripts npm test:unit y test:browser para los tests de Node, y la limpieza automática de las ejecuciones E2E antiguas en storage/framework/testing (conserva las 5 más recientes o de menos de 2 días).
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
-- **Tiempo IA (ejec.)**: est. 0.8h · real —
+- **Tiempo IA (ejec.)**: est. 0.8h · real 0.4h (estimado)
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-01
 - **Tipo**: test
-- **Archivos**: `package.json`, `tests/frontend/**`, `tests/e2e/global-teardown.ts`, `scripts/test/purge-testing.mjs`, `docs/guias/testing.md`
+- **Archivos**: `package.json`, `tests/frontend/**`, `tests/e2e/global-teardown.ts`, `scripts/test/purge-testing.mjs`, `docs/guias/testing.md`, `scripts/test/run-node-tests.mjs`, `scripts/test/purge-testing.d.mts`, `docs/guias/desarrollo-local.md`, `README.md`
 - **Cubre**: E-11, E-12
 - **Cubre (tests)**: —
 - **Verificación**: `npm run test:unit` → todos pasan · `node scripts/test/purge-testing.mjs --dry-run` → lista lo que borraría y no falla
 
 **Criterios de aceptación**
-- [ ] `npm run test:unit` ejecuta los tests de Node sin flags manuales
-- [ ] El teardown conserva solo las últimas N ejecuciones y borra el resto de `storage/framework/testing`
-- [ ] `docs/guias/testing.md` documenta los scripts
+- [x] `npm run test:unit` ejecuta los tests de Node sin flags manuales
+- [x] El teardown conserva solo las últimas N ejecuciones y borra el resto de `storage/framework/testing`
+- [x] `docs/guias/testing.md` documenta los scripts
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `npm run test:unit` → 627 tests, 627 pass, 0 fail (62 ficheros; los 6 `*.browser.test.mjs` y `studio-captions-render-entry.mjs` excluidos, `--list` de `browser` da los 6). `node scripts/test/purge-testing.mjs --dry-run` sobre el repo real → «borraría: 1384 · conservado: 655 · fallos: 0», solo informa (no se borró nada). La purga real se probó únicamente con directorios temporales (`tests/frontend/purge-testing.test.mjs`, 3/3: N más recientes o jóvenes se conservan, la ejecución en curso y `.gitignore` a salvo, `--dry-run` no borra, raíz inexistente no falla).
+
+**Decisiones**: Selector en `scripts/test/run-node-tests.mjs` (no globs de shell: Windows/Node 22 y exclusión limpia de `*.browser.test.mjs`). Purga como script Node invocado por `global-teardown.ts` (no artisan: no depende de PHP ni de BD, y corre aunque el teardown de usuarios falle) con respaldo `E2E_PURGE=0`; un fallo solo avisa. Regla: se conserva si es de las 5 más recientes O de <2 días (por mtime), sobre `testing/*` y `testing/t43/*`; ocultos y symlinks no se tocan. El bookends guard llama a `teardown()` y lo desactiva con `E2E_PURGE=0` (T-13). `docs/guias/testing.md` no existía: creada. `test:browser` no se ejecutó (necesita Chromium/ffmpeg; solo se verificó el listado).
 
 **Notas**: Tamaño S. No tocar el directorio de otra ejecución en curso: la purga respeta un mínimo de antigüedad.
 

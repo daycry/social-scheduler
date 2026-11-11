@@ -423,6 +423,10 @@ async function saveNow(autosave = false, force = false) {
     if (success) { const next = nextSave({ requested: autosave === true, inflight: autosave === true, dirty: dirty.value }); if (next.send) return saveNow(next.autosave, next.force); }
     return success;
 }
+// 409 al exportar o usar en publicacion: el diseño cambio desde que se abrio. Se abre el dialogo de conflicto de siempre (recargar / copia).
+function onExportConflict(message) {
+    conflict.value = true; status.value = 'Conflicto de revisión'; error.value = message; exportOpen.value = false;
+}
 async function prepareExport() {
     pauseTimeline(true);
     adapter?.pause(); playing.value = false;
@@ -748,7 +752,7 @@ onBeforeUnmount(() => { closePresentation(); disposed = true; chartResources.val
                 </aside>
             </div>
         </div>
-        <ExportDialog ref="exporter" v-model="exportOpen" :document="documentData" :assets="localAssets" :fonts="localFonts" :design-id="design.id" :chart-resources="chartResources" :prepare="prepareExport" :playhead="timeline" @busy="exportBusy = $event" />
+        <ExportDialog ref="exporter" v-model="exportOpen" :document="documentData" :assets="localAssets" :fonts="localFonts" :design-id="design.id" :chart-resources="chartResources" :prepare="prepareExport" :playhead="timeline" @busy="exportBusy = $event" @conflict="onExportConflict" />
         <StudioFontsDialog v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
         <StudioDatasetsDialog v-model="datasetsOpen" :brand-id="brand.id" :brand-name="brand.name" selectable @select-chart="selectChartData" />
         <StudioChartsDialog v-model="chartsOpen" :brand-id="brand.id" :chart="chartDraft" :source="chartSource" :chart-resources="chartResources" :fonts="localFonts" :kit="kit" @choose-data="chooseChartData" @apply="applyChart" />

@@ -5,6 +5,7 @@ use App\Models\Studio\Design;
 use App\Models\Studio\DesignRevision;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
+use App\Services\Studio\StudioDesignConflict;
 use App\Services\Studio\StudioFonts;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
@@ -257,4 +258,55 @@ test('pruning rechecks the export pin inside the DELETE, not only when it picks 
     (new DesignRevision)->pruneAll();
 
     expect(revisionRows($design))->toBe([1, 3]);
+});
+
+/** Deja el diseño en la revisión 4 con la 2 ya borrada por la fusión (tope de una sustituida). */
+function mergedAwayDesign(object $test): Design
+{
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = $test->design;
+    foreach (['uno', 'dos', 'tres'] as $text) {
+        $design = saveDesign($test, $design, $text, true);
+    }
+    expect(DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->exists())->toBeFalse();
+
+    return $design;
+}
+
+test('exporting a revision removed by a merge is a 409 conflict with the current revision', function () {
+    $design = mergedAwayDesign($this);
+
+    expect(fn () => app(StudioRenderer::class)->export($this->user, $design, ['revision' => 2, 'format' => 'png', 'pages' => ['page_1']]))
+        ->toThrow(function (StudioDesignConflict $e) {
+            expect($e->getStatusCode())->toBe(409)->and($e->currentRevision)->toBe(4)->and($e->getMessage())->toContain('El diseño ha cambiado desde que lo abriste');
+        });
+});
+
+test('the 409 reaches the web and the API clients with the current revision', function () {
+    if (! Route::has('studio.index') && is_file(base_path('routes/studio.php'))) {
+        Route::middleware('web')->group(base_path('routes/studio.php'));
+        Route::getRoutes()->refreshNameLookups();
+        Route::getRoutes()->refreshActionLookups();
+    }
+    $design = mergedAwayDesign($this);
+
+    $this->postJson('/studio/designs/'.$design->id.'/render', ['revision' => 2, 'format' => 'png', 'pages' => ['page_1']])
+        ->assertStatus(409)->assertJsonPath('current_revision', 4);
+    $this->postJson('/studio/designs/'.$design->id.'/render', ['revision' => 999, 'format' => 'png', 'pages' => ['page_1']])->assertStatus(422);
+});
+
+test('a revision removed between validating and inserting the export rolls the export back with the same 409', function () {
+    $design = saveDesign($this, $this->design, 'uno', false);   // 2
+    $removed = false;
+    DB::listen(function ($q) use (&$removed, $design) {
+        if (! $removed && str_contains($q->sql, 'insert into "studio_design_exports"')) {
+            $removed = true;   // la fusión borra la revisión justo después de insertar la exportación
+            DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->delete();
+            Design::withoutUserScope()->whereKey($design->id)->update(['revision' => 4]);   // y el diseño ya va por una revisión posterior
+        }
+    });
+
+    expect(fn () => app(StudioRenderer::class)->export($this->user, $design, ['revision' => 2, 'format' => 'png', 'pages' => ['page_1']]))
+        ->toThrow(StudioDesignConflict::class);
+    expect(DB::table('studio_design_exports')->where('design_id', $design->id)->count())->toBe(0);
 });

@@ -1,10 +1,11 @@
 <script setup>
+import { exportFailure } from '@/Studio/export-conflict';
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { createStudioExportClient, createExportMonitor } from '@/Studio/export-jobs';
 
 const props = defineProps({ active: Boolean, designId: Number, format: String, prepare: Function });
-const emit = defineEmits(['busy', 'registered']);
+const emit = defineEmits(['busy', 'registered', 'conflict']);
 const client = createStudioExportClient();
 const jobs = ref([]);
 const pagination = ref({ current_page: 1, last_page: 1 });
@@ -33,7 +34,7 @@ async function begin() {
         if (!current(token)) return;
         const job = await client.start(props.designId, options);
         if (current(token)) { page.value = 1; update(job); }
-    } catch (e) { if (current(token)) error.value = e.message; }
+    } catch (e) { if (current(token)) { const failure = exportFailure(e); error.value = failure.message; if (failure.conflict) emit('conflict', failure.message); } }
     finally {
         submitting.value = false;
         if (!disposed) { emit('busy', false); if (props.active) monitor.start(); }
@@ -51,7 +52,7 @@ async function control(job, operation) {
             const current = await client[operation](job.id);
             if (token === view && !disposed && props.active) update(current);
         }
-    } catch (e) { if (current(token)) error.value = e.message; }
+    } catch (e) { if (current(token)) { const failure = exportFailure(e); error.value = failure.message; if (failure.conflict) emit('conflict', failure.message); } }
     finally {
         action.value = null;
         if (!disposed && props.active) monitor.start();

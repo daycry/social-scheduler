@@ -58,6 +58,8 @@ class StudioRenderer
             $export = DesignExport::create(['user_id' => $user->id, 'brand_id' => $design->brand_id, 'design_id' => $design->id,
                 'revision' => $data['revision'], 'format' => $data['format'], 'pages' => $data['pages'], 'status' => 'pending',
                 'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)] + $frameOptions]);
+            // Con la fila ya insertada la fusion y la poda ven la revision como fijada; si desaparecio entre la validacion y el insert, se revierte con el 409.
+            $this->exports->revision($user, $design, (int) $data['revision']);
             if ($native) {
                 app(StudioAvState::class)->initialize($user, $export);
                 DB::afterCommit(fn () => app(StudioAvQueue::class)->enqueue($export->id));
